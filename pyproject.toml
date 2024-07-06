@@ -5,10 +5,17 @@ description = ""
 authors = []
 readme = "README.md"
 
+
+[tool.dagster]
+module_name = "vulkan_dagster"
+
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.13"
 requests = "^2.32.3"
 pytest = "^8.2.2"
+dagster = "^1.7.12"
+dagster-webserver = "^1.7.12"
+flask = "^3.0.3"
 
 
 [build-system]
