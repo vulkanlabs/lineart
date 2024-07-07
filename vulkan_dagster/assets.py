@@ -27,10 +27,12 @@ config = NodeConfig(
 )
 
 # The function has to specify a set of parameters that is defined in other assets.
-def f2(scr):
-    return scr
+def f2(context, scr_response):
+    context.log.info(f"Received SCR: {scr_response}")
+    score = scr_response["score"]
+    return score * 2
 
-p2 = {"scr": "x"}
+p2 = {"scr_response": "scr"}
 n2 = Transform(config, f2, p2)
 
 vulkan_nodes = [n1, n2]

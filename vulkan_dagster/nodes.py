@@ -83,5 +83,5 @@ class Transform(Node):
         return asset(
             self.func,
             name=self.config.name,
-            ins={key: AssetIn(key) for key, _ in self.params.items()},
+            ins={k: AssetIn(v) for k, v in self.params.items()},
         )

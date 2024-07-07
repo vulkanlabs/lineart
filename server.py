@@ -5,6 +5,7 @@ app = Flask(__name__)
 @app.route("/")
 def hello_world():
     response = {
-        "message": "Hello, World!"
+        "message": "Hello, World!",
+        "score": 100,
     }
     return response
