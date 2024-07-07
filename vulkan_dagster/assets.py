@@ -1,5 +1,5 @@
 
-from dagster import define_asset_job, Definitions
+from dagster import Definitions, GraphDefinition, asset
 from vulkan_dagster.nodes import HTTPConnection, HTTPConnectionConfig, NodeType, Context, NodeConfig, Transform
 
 context = Context(
@@ -36,12 +36,30 @@ p2 = {"scr_response": "scr"}
 n2 = Transform(config, f2, p2)
 
 vulkan_nodes = [n1, n2]
-dagster_nodes = [n.node() for n in vulkan_nodes]
-node_ids = [n.config.name for n in vulkan_nodes]
 
-job = define_asset_job("scr", selection=node_ids)
+dagster_nodes = []
+deps = {}
+for n in vulkan_nodes:
+    node, node_deps = n.node()
+    dagster_nodes.append(node)
+    if node_deps is not None:
+        deps[n.config.name] = node_deps
+        # {"transform": {"scr_response": ("scr", "result")}}
 
-defs = Definitions(
-    assets=dagster_nodes,
+graph = GraphDefinition(
+    name="policy",
+    description="Policy graph",
+    node_defs=dagster_nodes,
+    dependencies=deps,
+)
+job = graph.to_job(name="policy_job")
+
+@asset
+def hello_world():
+    return "Hello, world!"
+
+definitions = Definitions(
     jobs=[job],
 )
+
+print(definitions.jobs[0].name)

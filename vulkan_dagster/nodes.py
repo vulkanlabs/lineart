@@ -1,4 +1,4 @@
-from dagster import asset, AssetIn
+from dagster import op, OpDefinition, DependencyDefinition, In, Out
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
@@ -54,10 +54,14 @@ class HTTPConnection(Node):
         super().__init__(config)
 
     def node(self):
-        return asset(
-            self._run,
+        node_op = OpDefinition(
+            compute_fn=self._run,
             name=self.config.name,
+            ins={},
+            outs={"result": Out()},
         )
+        deps = None
+        return node_op, deps
 
     def _run(self):
         response = requests.request(
@@ -80,8 +84,19 @@ class Transform(Node):
         self.params = params
 
     def node(self):
-        return asset(
-            self.func,
+        node_op = OpDefinition(
+            compute_fn=self.func,
             name=self.config.name,
-            ins={k: AssetIn(v) for k, v in self.params.items()},
+            ins={k: In() for k in self.params.keys()},
+            outs={"result": Out()}
         )
+        deps = {k: DependencyDefinition(v, "result") for k, v in self.params.items()}
+        return node_op, deps
+    
+# class Branch(Node):
+#     def __init__(self, config: NodeConfig, func: Any, params: dict[str, Any]):
+#         super().__init__(config)
+#         self.func = func
+#         self.params = params
+
+    
