@@ -5,7 +5,6 @@ description = ""
 authors = []
 readme = "README.md"
 
-
 [tool.dagster]
 module_name = "vulkan_dagster"
 
@@ -16,7 +15,12 @@ pytest = "^8.2.2"
 dagster = "^1.7.12"
 dagster-webserver = "^1.7.12"
 flask = "^3.0.3"
+black = "^24.4.2"
 
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
 
 [build-system]
 requires = ["poetry-core"]

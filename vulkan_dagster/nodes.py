@@ -2,7 +2,7 @@ from dagster import Output, OpDefinition, DependencyDefinition, In, Out
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 import requests
 
 
@@ -39,7 +39,7 @@ class HTTPConnectionConfig(NodeConfig):
 
 
 class Node(ABC):
-    
+
     def __init__(self, config: NodeConfig):
         self.config = config
 
@@ -50,8 +50,9 @@ class Node(ABC):
 
 class HTTPConnection(Node):
 
-    def __init__(self, config: HTTPConnectionConfig):
+    def __init__(self, config: HTTPConnectionConfig, params: Optional[dict] = None):
         super().__init__(config)
+        self.params = params if params is not None else {}
 
     def node(self):
         node_op = OpDefinition(
@@ -60,7 +61,7 @@ class HTTPConnection(Node):
             ins={},
             outs={"result": Out()},
         )
-        deps = None
+        deps = _generate_dependencies(self.params)
         return node_op, deps
 
     def run(self, context, inputs):
@@ -74,11 +75,11 @@ class HTTPConnection(Node):
             yield Output(response.json())
         # handle exception in controller
         # raise Exception("Connection failed")
-    
+
 
 class Transform(Node):
 
-    def __init__(self, config: NodeConfig, func: Any, params: dict[str, Any]):
+    def __init__(self, config: NodeConfig, func: callable, params: dict[str, Any]):
         super().__init__(config)
         self.func = func
         self.params = params
@@ -92,26 +93,22 @@ class Transform(Node):
             compute_fn=fn,
             name=self.config.name,
             ins={k: In() for k in self.params.keys()},
-            outs={"result": Out()}
+            outs={"result": Out()},
         )
         deps = _generate_dependencies(self.params)
 
         return node_op, deps
 
-def _generate_dependencies(params: dict):
-    deps = {}
-    for k, v in params.items():
-        if isinstance(v, tuple):
-            definition = DependencyDefinition(v[0], v[1])
-        elif isinstance(v, str):
-            definition = DependencyDefinition(v, "result")
-        else:
-            raise ValueError(f"Invalid dependency definition: {k} -> {v}")
-        deps[k] = definition
-    return deps
-    
+
 class Branch(Node):
-    def __init__(self, config: NodeConfig, func: Any, params: dict[str, Any], left: str, right: str):
+    def __init__(
+        self,
+        config: NodeConfig,
+        func: callable,
+        params: dict[str, Any],
+        left: str,
+        right: str,
+    ):
         super().__init__(config)
         self.func = func
         self.params = params
@@ -131,9 +128,23 @@ class Branch(Node):
             compute_fn=fn,
             name=self.config.name,
             ins={k: In() for k in self.params.keys()},
-            outs={self.left: Out(is_required=False), 
-                  self.right: Out(is_required=False)}
+            outs={
+                self.left: Out(is_required=False),
+                self.right: Out(is_required=False),
+            },
         )
-        deps = {k: DependencyDefinition(v, "result") for k, v in self.params.items()}
+        deps = _generate_dependencies(self.params)
         return node_op, deps
-    
+
+
+def _generate_dependencies(params: dict):
+    deps = {}
+    for k, v in params.items():
+        if isinstance(v, tuple):
+            definition = DependencyDefinition(v[0], v[1])
+        elif isinstance(v, str):
+            definition = DependencyDefinition(v, "result")
+        else:
+            raise ValueError(f"Invalid dependency definition: {k} -> {v}")
+        deps[k] = definition
+    return depss
