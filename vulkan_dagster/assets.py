@@ -1,5 +1,5 @@
 
-from dagster import Definitions, GraphDefinition, asset
+from dagster import Output, GraphDefinition
 from vulkan_dagster.nodes import HTTPConnection, HTTPConnectionConfig, NodeType, Context, NodeConfig, Transform
 
 context = Context(
@@ -27,7 +27,7 @@ config = NodeConfig(
 )
 
 # The function has to specify a set of parameters that is defined in other assets.
-def f2(context, scr_response):
+def f2(context, scr_response, **kwargs):
     context.log.info(f"Received SCR: {scr_response}")
     score = scr_response["score"]
     return score * 2
@@ -44,7 +44,6 @@ for n in vulkan_nodes:
     dagster_nodes.append(node)
     if node_deps is not None:
         deps[n.config.name] = node_deps
-        # {"transform": {"scr_response": ("scr", "result")}}
 
 graph = GraphDefinition(
     name="policy",
@@ -52,14 +51,3 @@ graph = GraphDefinition(
     node_defs=dagster_nodes,
     dependencies=deps,
 )
-job = graph.to_job(name="policy_job")
-
-@asset
-def hello_world():
-    return "Hello, world!"
-
-definitions = Definitions(
-    jobs=[job],
-)
-
-print(definitions.jobs[0].name)

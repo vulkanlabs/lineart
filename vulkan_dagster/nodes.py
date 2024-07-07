@@ -1,4 +1,4 @@
-from dagster import op, OpDefinition, DependencyDefinition, In, Out
+from dagster import Output, OpDefinition, DependencyDefinition, In, Out
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
@@ -55,7 +55,7 @@ class HTTPConnection(Node):
 
     def node(self):
         node_op = OpDefinition(
-            compute_fn=self._run,
+            compute_fn=self.run,
             name=self.config.name,
             ins={},
             outs={"result": Out()},
@@ -63,7 +63,7 @@ class HTTPConnection(Node):
         deps = None
         return node_op, deps
 
-    def _run(self):
+    def run(self, context, inputs):
         response = requests.request(
             method=self.config.method,
             url=self.config.url,
@@ -71,9 +71,9 @@ class HTTPConnection(Node):
             params=self.config.params,
         )
         if response.status_code == 200:
-            return response.json()
+            yield Output(response.json())
         # handle exception in controller
-        raise Exception("Connection failed")
+        # raise Exception("Connection failed")
     
 
 class Transform(Node):
@@ -84,8 +84,12 @@ class Transform(Node):
         self.params = params
 
     def node(self):
+        # Wrap self.func to provide the expected bhv
+        def fn(context, inputs):
+            yield Output(self.func(context, **inputs))
+
         node_op = OpDefinition(
-            compute_fn=self.func,
+            compute_fn=fn,
             name=self.config.name,
             ins={k: In() for k in self.params.keys()},
             outs={"result": Out()}
