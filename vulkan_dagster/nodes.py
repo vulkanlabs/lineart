@@ -1,4 +1,4 @@
-from dagster import Output, OpDefinition, DependencyDefinition, In, Out
+from dagster import Config, Output, OpDefinition, DependencyDefinition, In, Out
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
@@ -13,8 +13,9 @@ class NodeType(Enum):
 
 
 class Status(Enum):
-    APPROVED = 1
-    DENIED = 2
+    APPROVED = "Approved"
+    DENIED = "Denied"
+    ANALYSIS = "Analysis"
 
 
 @dataclass
@@ -137,6 +138,35 @@ class Branch(Node):
         return node_op, deps
 
 
+class MultiBranch(Node):
+    def __init__(
+        self,
+        config: NodeConfig,
+        func: callable,
+        params: dict[str, Any],
+        outputs: list[str, str],
+    ):
+        super().__init__(config)
+        self.func = func
+        self.params = params
+        self.outputs = outputs
+
+    def node(self):
+        # Wrap self.func to provide the expected bhv
+        def fn(context, inputs):
+            output = self.func(context, **inputs)
+            yield Output(None, output)
+
+        node_op = OpDefinition(
+            compute_fn=fn,
+            name=self.config.name,
+            ins={k: In() for k in self.params.keys()},
+            outs={out: Out(is_required=False) for out in self.outputs},
+        )
+        deps = _generate_dependencies(self.params)
+        return node_op, deps
+
+
 def _generate_dependencies(params: dict):
     deps = {}
     for k, v in params.items():
@@ -147,4 +177,4 @@ def _generate_dependencies(params: dict):
         else:
             raise ValueError(f"Invalid dependency definition: {k} -> {v}")
         deps[k] = definition
-    return depss
+    return deps

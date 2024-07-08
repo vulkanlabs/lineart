@@ -1,5 +1,6 @@
 from vulkan_dagster.nodes import (
     Branch,
+    MultiBranch,
     HTTPConnection,
     HTTPConnectionConfig,
     NodeType,
@@ -10,21 +11,32 @@ from vulkan_dagster.nodes import (
 )
 
 context = Context(data={"cpf": "12345678900"}, variables={})
-
-config = HTTPConnectionConfig(
-    name="scr",
-    description="Get SCR score",
+http_params = dict(
     type=NodeType.CONNECTION,
-    url="http://127.0.0.1:5000",
     method="GET",
     headers={},
-    params={},
+    params={}
 )
-n1 = HTTPConnection(config)
 
-config = NodeConfig(
-    name="transform",
-    description="Transform data",
+scr_config = HTTPConnectionConfig(
+    name="scr",
+    description="Get SCR score",
+    url="http://127.0.0.1:5000/scr",
+    **http_params
+)
+scr = HTTPConnection(scr_config)
+
+serasa_config = HTTPConnectionConfig(
+    name="serasa",
+    description="Get Serasa score",
+    url="http://127.0.0.1:5000/serasa",
+    **http_params
+)
+serasa = HTTPConnection(serasa_config)
+
+scr_transform_config = NodeConfig(
+    name="scr_transform",
+    description="Transform SCR data",
     type=NodeType.TRANSFORM,
 )
 
@@ -32,65 +44,215 @@ config = NodeConfig(
 # The user function needs to use a set of parameters
 # that is defined by previous ops (validated in dagster).
 # It also needs to take the context and **kwargs.
-def f2(context, scr_response, **kwargs):
+def scr_func(context, scr_response, **kwargs):
     context.log.info(f"Received SCR: {scr_response}")
     score = scr_response["score"]
-    return score * 2
-
+    return score
 
 # Map of parameter names to the ops that define them.
-p2 = {"scr_response": "scr"}
-n2 = Transform(config, f2, p2)
+params = {"scr_response": "scr"}
+scr_transform = Transform(scr_transform_config, scr_func, params)
+
+
+def serasa_func(context, serasa_response, **kwargs):
+    context.log.info(f"Received Serasa: {serasa_response}")
+    score = serasa_response["score"]
+    return score
+
+serasa_transform = Transform(
+    func=serasa_func,
+    config=NodeConfig(
+        name="serasa_transform",
+        description="Transform Serasa data",
+        type=NodeType.TRANSFORM,
+    ),
+    params={"serasa_response": "serasa"}
+)
+
+
+def join_func(context, scr_score, serasa_score, **kwargs):
+    scores = {
+        "scr_score": scr_score,
+        "serasa_score": serasa_score
+    }
+    return scores
+
+join_transform = Transform(
+    func=join_func,
+    config=NodeConfig(
+        name="join_transform",
+        description="Join scores",
+        type=NodeType.TRANSFORM,
+    ),
+    params={
+        "scr_score": "scr_transform",
+        "serasa_score": "serasa_transform"
+    }
+)
 
 
 # Branching node
-branch_config = NodeConfig(
-    name="branch",
-    description="Branch data",
-    type=NodeType.BRANCH,
+def branch_condition_1(context, scores, **kwargs):
+    if scores["scr_score"] > 600:
+        return "approved"
+    if scores["serasa_score"] > 800:
+        return "analysis"
+    return "denied"
+
+
+branch_1 = MultiBranch(
+    func=branch_condition_1,
+    config=NodeConfig(
+        name="branch_1",
+        description="Branch data",
+        type=NodeType.BRANCH,
+    ),
+    params={"scores": "join_transform"},
+    outputs=["approved", "analysis", "denied"],
 )
 
 
-def branch_condition(context, score, **kwargs):
-    return score > 500
-
-
-p3 = {"score": "transform"}
-branch = Branch(
-    branch_config,
-    branch_condition,
-    p3,
-    left="left_branch_1",
-    right="right_branch_1",
-)
-
-# process the outputs of our branch op
-config_left = NodeConfig(
-    name="transform_left",
-    description="Transform left data branch",
-    type=NodeType.TRANSFORM,
-)
-
-
-def f_left(context, inputs, **kwargs):
-    return Status.DENIED
-
-
-p_left = {"inputs": ("branch", "left_branch_1")}
-t_left = Transform(config_left, f_left, p_left)
-
-config_right = NodeConfig(
-    name="transform_right",
-    description="Transform right data branch",
-    type=NodeType.TRANSFORM,
-)
-
-
-def f_right(context, inputs, **kwargs):
+def t_approved(context, inputs, scores, **kwargs):
+    context.log.info(f"Approved: {scores}")
     return Status.APPROVED
 
 
-p_right = {"inputs": ("branch", "right_branch_1")}
-t_right = Transform(config_right, f_right, p_right)
+terminate_1 = Transform(
+    func=t_approved,
+    config=NodeConfig(
+        name="terminate_1",
+        description="Terminate data branch",
+        type=NodeType.TRANSFORM,
+    ),
+    params={"inputs": ("branch_1", "approved"),
+            "scores": "join_transform"}
+)
 
-policy_nodes = [n1, n2, branch, t_left, t_right]
+
+def t_analysis(context, inputs, **kwargs):
+    return Status.ANALYSIS
+
+
+terminate_2 = Transform(
+    func=t_analysis,
+    config=NodeConfig(
+        name="terminate_2",
+        description="Terminate data branch",
+        type=NodeType.TRANSFORM,
+    ),
+    params={"inputs": ("branch_1", "analysis")}
+)
+
+
+def t_denied(context, inputs, **kwargs):
+    return Status.DENIED
+
+
+terminate_3 = Transform(
+    func=t_denied,
+    config=NodeConfig(
+        name="terminate_3",
+        description="Terminate data branch",
+        type=NodeType.TRANSFORM,
+    ),
+    params={"inputs": ("branch_1", "denied")}
+)
+
+# # Branching node
+# def branch_condition_1(context, scores, **kwargs):
+#     return scores["serasa_score"] > 500
+
+# branch_1 = Branch(
+#     func=branch_condition_1,
+#     config=NodeConfig(
+#         name="branch_1",
+#         description="Branch data",
+#         type=NodeType.BRANCH,
+#     ),
+#     params={"scores": "join_transform"},
+#     left="left_branch_1",
+#     right="right_branch_1",
+# )
+
+
+# # process the outputs of our branch op
+# def f_left(context, inputs, **kwargs):
+#     return Status.DENIED
+
+
+# terminate_1 = Transform(
+#     func=f_left,
+#     config=NodeConfig(
+#         name="terminate_1",
+#         description="Terminate data branch",
+#         type=NodeType.TRANSFORM,
+#     ),
+#     params={"inputs": ("branch_1", "left_branch_1")}
+# )
+
+
+# def branch_condition_2(context, scores, **kwargs):
+#     return scores["scr_score"] > 500
+
+# branch_2 = Branch(
+#     func=branch_condition_2,
+#     config=NodeConfig(
+#         name="branch_2",
+#         description="Branch data",
+#         type=NodeType.BRANCH,
+#     ),
+#     params={"scores": "join_transform"},
+#     left="left_branch_2",
+#     right="right_branch_2",
+# )
+
+# terminate_2 = Transform(
+#     func=f_left,
+#     config=NodeConfig(
+#         name="terminate_2",
+#         description="Terminate data branch",
+#         type=NodeType.TRANSFORM,
+#     ),
+#     params={"inputs": ("branch_2", "left_branch_2")}
+# )
+
+
+# def f_right(context, inputs, **kwargs):
+#     return Status.APPROVED
+
+
+# terminate_3 = Transform(
+#     func=f_right,
+#     config=NodeConfig(
+#         name="terminate_3",
+#         description="Transform right data branch",
+#         type=NodeType.TRANSFORM,
+#     ),
+#     params={"inputs": ("branch_2", "right_branch_2")}
+# )
+
+
+# policy_nodes = [
+#     scr,
+#     serasa,
+#     scr_transform,
+#     serasa_transform,
+#     join_transform,
+#     branch_1,
+#     terminate_1,
+#     branch_2,
+#     terminate_2,
+#     terminate_3,
+# ]
+
+policy_nodes = [
+    scr,
+    serasa,
+    scr_transform,
+    serasa_transform,
+    join_transform,
+    branch_1,
+    terminate_1,
+    terminate_2,
+    terminate_3,
+]

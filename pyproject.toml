@@ -5,6 +5,9 @@ description = ""
 authors = []
 readme = "README.md"
 
+[tool.poetry.group.dev.dependencies]
+numpy = "^2.0.0"
+
 [tool.dagster]
 module_name = "vulkan_dagster"
 
