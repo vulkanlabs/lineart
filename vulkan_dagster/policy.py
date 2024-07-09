@@ -1,7 +1,7 @@
 from vulkan_dagster.nodes import (
+    Branch,
     HTTPConnection,
     Input,
-    MultiBranch,
     NodeType,
     Status,
     Transform,
@@ -106,7 +106,7 @@ def branch_condition_1(context, scores, **kwargs):
     return "denied"
 
 
-branch_1 = MultiBranch(
+branch_1 = Branch(
     func=branch_condition_1,
     name="branch_1",
     description="Branch data",

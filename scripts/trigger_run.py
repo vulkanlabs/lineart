@@ -1,16 +1,16 @@
-from dagster import DagsterGraphQLClient
+from dagster_graphql import DagsterGraphQLClient
 
-# Set up the GraphQL client to communicate with your Dagster instance
-dagster_client = DagsterGraphQLClient("<http://localhost:3000/graphql>")
+client = DagsterGraphQLClient("localhost", port_number=3000)
 
 
 # Replace with your Dagster instance URL
 # Define a function to trigger a Dagster job
-def trigger_dagster_job(pipeline_name, environment_dict):
+def trigger_dagster_job(job_name, run_config):
     try:
-        response = dagster_client.execute_plan(
-            pipeline_name=pipeline_name,
-            environment_dict=environment_dict,
+        response = client.submit_job_execution(
+            repository_name="vulkan_dagster",
+            job_name=job_name,
+            run_config=run_config,
         )
         # Process the response if needed
         print(response)
@@ -22,4 +22,14 @@ def trigger_dagster_job(pipeline_name, environment_dict):
 
 
 # Call the function to trigger the Dagster job
-result = trigger_dagster_job("your_pipeline_name", {"config_key": "config_value"})
+result = trigger_dagster_job(
+    "policy_job",
+    {
+        "execution": {
+            "config": {
+                "multiprocess": {"max_concurrent": 2, "retries": {"disabled": {}}}
+            }
+        },
+        "ops": {"input_node": {"config": {"cpf": "1"}}},
+    },
+)

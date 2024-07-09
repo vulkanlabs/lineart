@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional
 
@@ -114,45 +113,6 @@ class Transform(Node):
 
 
 class Branch(Node):
-    def __init__(
-        self,
-        name: str,
-        description: str,
-        typ: NodeType,
-        func: callable,
-        params: dict[str, Any],
-        left: str,
-        right: str,
-    ):
-        super().__init__(name, description, typ)
-        self.func = func
-        self.params = params
-        self.left = left
-        self.right = right
-
-    def node(self):
-        # Wrap self.func to provide the expected bhv
-        def fn(context, inputs):
-            condition = self.func(context, **inputs)
-            if condition:
-                yield Output(True, self.right)
-            else:
-                yield Output(False, self.left)
-
-        node_op = OpDefinition(
-            compute_fn=fn,
-            name=self.name,
-            ins={k: In() for k in self.params.keys()},
-            outs={
-                self.left: Out(is_required=False),
-                self.right: Out(is_required=False),
-            },
-        )
-        deps = _generate_dependencies(self.params)
-        return node_op, deps
-
-
-class MultiBranch(Node):
     def __init__(
         self,
         name: str,
