@@ -30,6 +30,7 @@ db = {
     },
 }
 
+
 @app.route("/scr")
 def scr_data():
     print(request.form)

@@ -1,9 +1,10 @@
-from dagster import Config, Output, OpDefinition, DependencyDefinition, In, Out
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional
+
 import requests
+from dagster import Config, DependencyDefinition, In, OpDefinition, Out, Output
 
 
 class NodeType(Enum):
@@ -52,7 +53,12 @@ class Node(ABC):
 
 class HTTPConnection(Node):
 
-    def __init__(self, config: HTTPConnectionConfig, params: Optional[dict] = None, dependencies: Optional[dict] = None):
+    def __init__(
+        self,
+        config: HTTPConnectionConfig,
+        params: Optional[dict] = None,
+        dependencies: Optional[dict] = None,
+    ):
         super().__init__(config)
         self.params = params if params is not None else {}
         self.dependencies = dependencies if dependencies is not None else {}
@@ -78,11 +84,13 @@ class HTTPConnection(Node):
             params=self.params,
             data=body,
         )
-        
+
         if response.status_code == 200:
             yield Output(response.json())
         else:
-            context.log.error(f"Failed op {self.config.name} with status {response.status_code}")
+            context.log.error(
+                f"Failed op {self.config.name} with status {response.status_code}"
+            )
             raise Exception("Connection failed")
 
 
@@ -173,8 +181,9 @@ class MultiBranch(Node):
         )
         deps = _generate_dependencies(self.params)
         return node_op, deps
-    
-class Input(Node): 
+
+
+class Input(Node):
     def __init__(self, config: NodeConfig, config_schema: dict):
         super().__init__(config)
         self.config_schema = config_schema
@@ -185,7 +194,7 @@ class Input(Node):
             name=self.config.name,
             ins={},
             outs={"result": Out()},
-            config_schema=self.config_schema
+            config_schema=self.config_schema,
         )
         return node_op, None
 

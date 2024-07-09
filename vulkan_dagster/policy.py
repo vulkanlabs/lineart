@@ -1,14 +1,13 @@
 from vulkan_dagster.nodes import (
-    MultiBranch,
     HTTPConnection,
     HTTPConnectionConfig,
-    NodeType,
-    NodeConfig,
-    Transform,
-    Status,
     Input,
+    MultiBranch,
+    NodeConfig,
+    NodeType,
+    Status,
+    Transform,
 )
-
 
 input_node = Input(
     config=NodeConfig(
@@ -19,9 +18,7 @@ input_node = Input(
     config_schema={"cpf": str},
 )
 
-http_params = dict(
-    type=NodeType.CONNECTION, 
-    method="GET", headers={}, params={})
+http_params = dict(type=NodeType.CONNECTION, method="GET", headers={}, params={})
 
 scr_body = Transform(
     func=lambda _, inputs: {"cpf": inputs["cpf"]},
@@ -38,9 +35,10 @@ scr_config = HTTPConnectionConfig(
     url="http://127.0.0.1:5000/scr",
     **http_params,
 )
-scr = HTTPConnection(scr_config, 
+scr = HTTPConnection(
+    scr_config,
     dependencies={"body": "scr_body"},
-                     )
+)
 
 
 serasa_body = Transform(
@@ -58,9 +56,10 @@ serasa_config = HTTPConnectionConfig(
     url="http://127.0.0.1:5000/serasa",
     **http_params,
 )
-serasa = HTTPConnection(serasa_config, 
+serasa = HTTPConnection(
+    serasa_config,
     dependencies={"body": "serasa_body"},
-                     )
+)
 
 scr_transform_config = NodeConfig(
     name="scr_transform",
