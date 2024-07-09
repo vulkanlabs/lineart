@@ -1,38 +1,66 @@
 from vulkan_dagster.nodes import (
-    Branch,
     MultiBranch,
     HTTPConnection,
     HTTPConnectionConfig,
     NodeType,
-    Context,
     NodeConfig,
     Transform,
     Status,
+    Input,
 )
 
-context = Context(data={"cpf": "12345678900"}, variables={})
+
+input_node = Input(
+    config=NodeConfig(
+        name="input_node",
+        description="Input node",
+        type=NodeType.INPUT,
+    ),
+    config_schema={"cpf": str},
+)
+
 http_params = dict(
-    type=NodeType.CONNECTION,
-    method="GET",
-    headers={},
-    params={}
-)
+    type=NodeType.CONNECTION, 
+    method="GET", headers={}, params={})
 
+scr_body = Transform(
+    func=lambda _, inputs: {"cpf": inputs["cpf"]},
+    config=NodeConfig(
+        name="scr_body",
+        description="SCR body",
+        type=NodeType.TRANSFORM,
+    ),
+    params={"inputs": "input_node"},
+)
 scr_config = HTTPConnectionConfig(
     name="scr",
     description="Get SCR score",
     url="http://127.0.0.1:5000/scr",
-    **http_params
+    **http_params,
 )
-scr = HTTPConnection(scr_config)
+scr = HTTPConnection(scr_config, 
+    dependencies={"body": "scr_body"},
+                     )
 
+
+serasa_body = Transform(
+    func=lambda _, inputs: {"cpf": inputs["cpf"]},
+    config=NodeConfig(
+        name="serasa_body",
+        description="Serasa body",
+        type=NodeType.TRANSFORM,
+    ),
+    params={"inputs": "input_node"},
+)
 serasa_config = HTTPConnectionConfig(
     name="serasa",
     description="Get Serasa score",
     url="http://127.0.0.1:5000/serasa",
-    **http_params
+    **http_params,
 )
-serasa = HTTPConnection(serasa_config)
+serasa = HTTPConnection(serasa_config, 
+    dependencies={"body": "scr_body"},
+                     )
 
 scr_transform_config = NodeConfig(
     name="scr_transform",
@@ -49,6 +77,7 @@ def scr_func(context, scr_response, **kwargs):
     score = scr_response["score"]
     return score
 
+
 # Map of parameter names to the ops that define them.
 params = {"scr_response": "scr"}
 scr_transform = Transform(scr_transform_config, scr_func, params)
@@ -59,6 +88,7 @@ def serasa_func(context, serasa_response, **kwargs):
     score = serasa_response["score"]
     return score
 
+
 serasa_transform = Transform(
     func=serasa_func,
     config=NodeConfig(
@@ -66,16 +96,14 @@ serasa_transform = Transform(
         description="Transform Serasa data",
         type=NodeType.TRANSFORM,
     ),
-    params={"serasa_response": "serasa"}
+    params={"serasa_response": "serasa"},
 )
 
 
 def join_func(context, scr_score, serasa_score, **kwargs):
-    scores = {
-        "scr_score": scr_score,
-        "serasa_score": serasa_score
-    }
+    scores = {"scr_score": scr_score, "serasa_score": serasa_score}
     return scores
+
 
 join_transform = Transform(
     func=join_func,
@@ -84,10 +112,7 @@ join_transform = Transform(
         description="Join scores",
         type=NodeType.TRANSFORM,
     ),
-    params={
-        "scr_score": "scr_transform",
-        "serasa_score": "serasa_transform"
-    }
+    params={"scr_score": "scr_transform", "serasa_score": "serasa_transform"},
 )
 
 
@@ -124,8 +149,7 @@ terminate_1 = Transform(
         description="Terminate data branch",
         type=NodeType.TRANSFORM,
     ),
-    params={"inputs": ("branch_1", "approved"),
-            "scores": "join_transform"}
+    params={"inputs": ("branch_1", "approved"), "scores": "join_transform"},
 )
 
 
@@ -140,7 +164,7 @@ terminate_2 = Transform(
         description="Terminate data branch",
         type=NodeType.TRANSFORM,
     ),
-    params={"inputs": ("branch_1", "analysis")}
+    params={"inputs": ("branch_1", "analysis")},
 )
 
 
@@ -155,7 +179,7 @@ terminate_3 = Transform(
         description="Terminate data branch",
         type=NodeType.TRANSFORM,
     ),
-    params={"inputs": ("branch_1", "denied")}
+    params={"inputs": ("branch_1", "denied")},
 )
 
 # # Branching node
@@ -246,6 +270,8 @@ terminate_3 = Transform(
 # ]
 
 policy_nodes = [
+    input_node,
+    scr_body,
     scr,
     serasa,
     scr_transform,
