@@ -59,7 +59,7 @@ serasa_config = HTTPConnectionConfig(
     **http_params,
 )
 serasa = HTTPConnection(serasa_config, 
-    dependencies={"body": "scr_body"},
+    dependencies={"body": "serasa_body"},
                      )
 
 scr_transform_config = NodeConfig(
@@ -182,97 +182,11 @@ terminate_3 = Transform(
     params={"inputs": ("branch_1", "denied")},
 )
 
-# # Branching node
-# def branch_condition_1(context, scores, **kwargs):
-#     return scores["serasa_score"] > 500
-
-# branch_1 = Branch(
-#     func=branch_condition_1,
-#     config=NodeConfig(
-#         name="branch_1",
-#         description="Branch data",
-#         type=NodeType.BRANCH,
-#     ),
-#     params={"scores": "join_transform"},
-#     left="left_branch_1",
-#     right="right_branch_1",
-# )
-
-
-# # process the outputs of our branch op
-# def f_left(context, inputs, **kwargs):
-#     return Status.DENIED
-
-
-# terminate_1 = Transform(
-#     func=f_left,
-#     config=NodeConfig(
-#         name="terminate_1",
-#         description="Terminate data branch",
-#         type=NodeType.TRANSFORM,
-#     ),
-#     params={"inputs": ("branch_1", "left_branch_1")}
-# )
-
-
-# def branch_condition_2(context, scores, **kwargs):
-#     return scores["scr_score"] > 500
-
-# branch_2 = Branch(
-#     func=branch_condition_2,
-#     config=NodeConfig(
-#         name="branch_2",
-#         description="Branch data",
-#         type=NodeType.BRANCH,
-#     ),
-#     params={"scores": "join_transform"},
-#     left="left_branch_2",
-#     right="right_branch_2",
-# )
-
-# terminate_2 = Transform(
-#     func=f_left,
-#     config=NodeConfig(
-#         name="terminate_2",
-#         description="Terminate data branch",
-#         type=NodeType.TRANSFORM,
-#     ),
-#     params={"inputs": ("branch_2", "left_branch_2")}
-# )
-
-
-# def f_right(context, inputs, **kwargs):
-#     return Status.APPROVED
-
-
-# terminate_3 = Transform(
-#     func=f_right,
-#     config=NodeConfig(
-#         name="terminate_3",
-#         description="Transform right data branch",
-#         type=NodeType.TRANSFORM,
-#     ),
-#     params={"inputs": ("branch_2", "right_branch_2")}
-# )
-
-
-# policy_nodes = [
-#     scr,
-#     serasa,
-#     scr_transform,
-#     serasa_transform,
-#     join_transform,
-#     branch_1,
-#     terminate_1,
-#     branch_2,
-#     terminate_2,
-#     terminate_3,
-# ]
-
 policy_nodes = [
     input_node,
     scr_body,
     scr,
+    serasa_body,
     serasa,
     scr_transform,
     serasa_transform,
