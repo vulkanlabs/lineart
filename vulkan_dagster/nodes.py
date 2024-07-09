@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Any, Optional
 
 import requests
-from dagster import Config, DependencyDefinition, In, OpDefinition, Out, Output
+from dagster import DependencyDefinition, In, OpDefinition, Out, Output
 
 
 class NodeType(Enum):
@@ -20,31 +20,12 @@ class Status(Enum):
     ANALYSIS = "Analysis"
 
 
-@dataclass
-class Context:
-    data: dict[str, Any]
-    variables: dict[str, Any]
-
-
-@dataclass
-class NodeConfig:
-    name: str
-    description: str
-    type: NodeType
-
-
-@dataclass
-class HTTPConnectionConfig(NodeConfig):
-    url: str
-    method: str
-    headers: dict
-    params: dict
-
-
 class Node(ABC):
 
-    def __init__(self, config: NodeConfig):
-        self.config = config
+    def __init__(self, name, description, typ):
+        self.name = name
+        self.description = description
+        self.type = typ
 
     @abstractmethod
     def node(self):
@@ -55,18 +36,26 @@ class HTTPConnection(Node):
 
     def __init__(
         self,
-        config: HTTPConnectionConfig,
+        name: str,
+        description: str,
+        typ: NodeType,
+        url: str,
+        method: str,
+        headers: dict,
         params: Optional[dict] = None,
         dependencies: Optional[dict] = None,
     ):
-        super().__init__(config)
+        super().__init__(name, description, typ)
+        self.url = url
+        self.method = method
+        self.headers = headers
         self.params = params if params is not None else {}
         self.dependencies = dependencies if dependencies is not None else {}
 
     def node(self):
         node_op = OpDefinition(
             compute_fn=self.run,
-            name=self.config.name,
+            name=self.name,
             ins={k: In() for k in self.dependencies.keys()},
             outs={"result": Out()},
         )
@@ -74,13 +63,13 @@ class HTTPConnection(Node):
         return node_op, deps
 
     def run(self, context, inputs):
-        context.log.debug(f"Requesting {self.config.url}")
+        context.log.debug(f"Requesting {self.url}")
         body = inputs.get("body", None)
         context.log.debug(f"Body: {body}")
         response = requests.request(
-            method=self.config.method,
-            url=self.config.url,
-            headers=self.config.headers,
+            method=self.method,
+            url=self.url,
+            headers=self.headers,
             params=self.params,
             data=body,
         )
@@ -89,15 +78,22 @@ class HTTPConnection(Node):
             yield Output(response.json())
         else:
             context.log.error(
-                f"Failed op {self.config.name} with status {response.status_code}"
+                f"Failed op {self.name} with status {response.status_code}"
             )
             raise Exception("Connection failed")
 
 
 class Transform(Node):
 
-    def __init__(self, config: NodeConfig, func: callable, params: dict[str, Any]):
-        super().__init__(config)
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        typ: NodeType,
+        func: callable,
+        params: dict[str, Any],
+    ):
+        super().__init__(name, description, typ)
         self.func = func
         self.params = params
 
@@ -108,7 +104,7 @@ class Transform(Node):
 
         node_op = OpDefinition(
             compute_fn=fn,
-            name=self.config.name,
+            name=self.name,
             ins={k: In() for k in self.params.keys()},
             outs={"result": Out()},
         )
@@ -120,13 +116,15 @@ class Transform(Node):
 class Branch(Node):
     def __init__(
         self,
-        config: NodeConfig,
+        name: str,
+        description: str,
+        typ: NodeType,
         func: callable,
         params: dict[str, Any],
         left: str,
         right: str,
     ):
-        super().__init__(config)
+        super().__init__(name, description, typ)
         self.func = func
         self.params = params
         self.left = left
@@ -143,7 +141,7 @@ class Branch(Node):
 
         node_op = OpDefinition(
             compute_fn=fn,
-            name=self.config.name,
+            name=self.name,
             ins={k: In() for k in self.params.keys()},
             outs={
                 self.left: Out(is_required=False),
@@ -157,12 +155,14 @@ class Branch(Node):
 class MultiBranch(Node):
     def __init__(
         self,
-        config: NodeConfig,
+        name: str,
+        description: str,
+        typ: NodeType,
         func: callable,
         params: dict[str, Any],
         outputs: list[str, str],
     ):
-        super().__init__(config)
+        super().__init__(name, description, typ)
         self.func = func
         self.params = params
         self.outputs = outputs
@@ -175,7 +175,7 @@ class MultiBranch(Node):
 
         node_op = OpDefinition(
             compute_fn=fn,
-            name=self.config.name,
+            name=self.name,
             ins={k: In() for k in self.params.keys()},
             outs={out: Out(is_required=False) for out in self.outputs},
         )
@@ -184,14 +184,14 @@ class MultiBranch(Node):
 
 
 class Input(Node):
-    def __init__(self, config: NodeConfig, config_schema: dict):
-        super().__init__(config)
+    def __init__(self, name: str, description: str, typ: NodeType, config_schema: dict):
+        super().__init__(name, description, typ)
         self.config_schema = config_schema
 
     def node(self):
         node_op = OpDefinition(
             compute_fn=self.run,
-            name=self.config.name,
+            name=self.name,
             ins={},
             outs={"result": Out()},
             config_schema=self.config_schema,
