@@ -3,8 +3,11 @@ import json
 
 import requests
 
+PORT = 6000
+URL = f"http://localhost:{PORT}"
+
 response = requests.post(
-    "http://localhost:5000/policy/create",
+    f"{URL}/policy/create",
     data={
         "name": "test_policy",
         "description": "test_policy_description",
@@ -15,6 +18,7 @@ response = requests.post(
 )
 
 assert response.status_code == 200
+print(response.json())
 
 policy_id = response.json()["policy_id"]
 
@@ -27,12 +31,12 @@ execution_config = {
 }
 
 response = requests.post(
-    f"http://localhost:5000/policy/{policy_id}/run",
+    f"{URL}/policy/{policy_id}/run",
     data={"execution_config": json.dumps(execution_config)},
 )
 print(response.json())
 
 # Get the run status
 run_id = response.json()["run_id"]
-response = requests.get(f"http://localhost:5000/policy/{policy_id}/run/{run_id}")
+response = requests.get(f"{URL}/policy/{policy_id}/run/{run_id}")
 print(response.json())

@@ -8,7 +8,7 @@ from .db import Policy, Run
 from .trigger_run import trigger_dagster_job
 
 app = Flask(__name__)
-engine = create_engine("sqlite:///example.db", echo=True)
+engine = create_engine("sqlite:///server/example.db", echo=True)
 Session = sessionmaker(bind=engine)
 
 

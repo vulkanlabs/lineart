@@ -28,5 +28,5 @@ class Run(Base):
 
 
 if __name__ == "__main__":
-    engine = create_engine("sqlite:///example.db", echo=True)
+    engine = create_engine("sqlite:///server/example.db", echo=True)
     Base.metadata.create_all(engine)
