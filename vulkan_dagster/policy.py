@@ -26,7 +26,7 @@ scr_body = Transform(
 scr = HTTPConnection(
     name="scr",
     description="Get SCR score",
-    url="http://127.0.0.1:5000/scr",
+    url="http://127.0.0.1:5001/scr",
     dependencies={"body": "scr_body"},
     **http_params,
 )
@@ -42,7 +42,7 @@ serasa_body = Transform(
 serasa = HTTPConnection(
     name="serasa",
     description="Get Serasa score",
-    url="http://127.0.0.1:5000/serasa",
+    url="http://127.0.0.1:5001/serasa",
     dependencies={"body": "serasa_body"},
     **http_params,
 )
