@@ -163,7 +163,7 @@ cython_debug/
 
 # Dagster assets
 tmp*/
-dagster_storage/
+dagster_storage
 
 # VS Code
 *.code-workspace
