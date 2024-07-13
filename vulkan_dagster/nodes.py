@@ -37,14 +37,13 @@ class HTTPConnection(Node):
         self,
         name: str,
         description: str,
-        typ: NodeType,
         url: str,
         method: str,
         headers: dict,
         params: Optional[dict] = None,
         dependencies: Optional[dict] = None,
     ):
-        super().__init__(name, description, typ)
+        super().__init__(name, description, NodeType.CONNECTION)
         self.url = url
         self.method = method
         self.headers = headers
@@ -88,11 +87,10 @@ class Transform(Node):
         self,
         name: str,
         description: str,
-        typ: NodeType,
         func: callable,
         params: dict[str, Any],
     ):
-        super().__init__(name, description, typ)
+        super().__init__(name, description, NodeType.TRANSFORM)
         self.func = func
         self.params = params
 
@@ -112,17 +110,29 @@ class Transform(Node):
         return node_op, deps
 
 
+class Terminate(Transform):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        return_status: Status,
+        dependencies: dict[str, Any],
+    ):
+        self.return_status = return_status
+        self._fn = lambda _, **kwargs: self.return_status
+        super().__init__(name, description, self._fn, dependencies)
+
+
 class Branch(Node):
     def __init__(
         self,
         name: str,
         description: str,
-        typ: NodeType,
         func: callable,
         params: dict[str, Any],
         outputs: list[str, str],
     ):
-        super().__init__(name, description, typ)
+        super().__init__(name, description, NodeType.BRANCH)
         self.func = func
         self.params = params
         self.outputs = outputs
@@ -144,8 +154,8 @@ class Branch(Node):
 
 
 class Input(Node):
-    def __init__(self, name: str, description: str, typ: NodeType, config_schema: dict):
-        super().__init__(name, description, typ)
+    def __init__(self, name: str, description: str, config_schema: dict):
+        super().__init__(name, description, NodeType.INPUT)
         self.config_schema = config_schema
 
     def node(self):

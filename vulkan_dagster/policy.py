@@ -4,23 +4,22 @@ from vulkan_dagster.nodes import (
     Input,
     NodeType,
     Status,
+    Terminate,
     Transform,
 )
 
 input_node = Input(
     name="input_node",
     description="Input node",
-    typ=NodeType.INPUT,
     config_schema={"cpf": str},
 )
 
-http_params = dict(typ=NodeType.CONNECTION, method="GET", headers={}, params={})
+http_params = dict(method="GET", headers={}, params={})
 
 scr_body = Transform(
     func=lambda _, inputs: {"cpf": inputs["cpf"]},
     name="scr_body",
     description="SCR body",
-    typ=NodeType.TRANSFORM,
     params={"inputs": "input_node"},
 )
 scr = HTTPConnection(
@@ -36,7 +35,6 @@ serasa_body = Transform(
     func=lambda _, inputs: {"cpf": inputs["cpf"]},
     name="serasa_body",
     description="Serasa body",
-    typ=NodeType.TRANSFORM,
     params={"inputs": "input_node"},
 )
 serasa = HTTPConnection(
@@ -64,13 +62,13 @@ scr_transform = Transform(
     params=params,
     name="scr_transform",
     description="Transform SCR data",
-    typ=NodeType.TRANSFORM,
 )
 
 
 def serasa_func(context, serasa_response, **kwargs):
     context.log.info(f"Received Serasa: {serasa_response}")
-    score = serasa_response["score"]
+    score = 2 * serasa_response["score"] ** -1
+    context.log.warning(f"Transformed Serasa: {score}")
     return score
 
 
@@ -78,7 +76,6 @@ serasa_transform = Transform(
     func=serasa_func,
     name="serasa_transform",
     description="Transform Serasa data",
-    typ=NodeType.TRANSFORM,
     params={"serasa_response": "serasa"},
 )
 
@@ -92,7 +89,6 @@ join_transform = Transform(
     func=join_func,
     name="join_transform",
     description="Join scores",
-    typ=NodeType.TRANSFORM,
     params={"scr_score": "scr_transform", "serasa_score": "serasa_transform"},
 )
 
@@ -110,49 +106,30 @@ branch_1 = Branch(
     func=branch_condition_1,
     name="branch_1",
     description="Branch data",
-    typ=NodeType.BRANCH,
     params={"scores": "join_transform"},
     outputs=["approved", "analysis", "denied"],
 )
 
-
-def t_approved(context, inputs, scores, **kwargs):
-    context.log.info(f"Approved: {scores}")
-    return Status.APPROVED
-
-
-terminate_1 = Transform(
-    func=t_approved,
-    name="terminate_1",
+approved = Terminate(
+    name="approved",
     description="Terminate data branch",
-    typ=NodeType.TRANSFORM,
-    params={"inputs": ("branch_1", "approved"), "scores": "join_transform"},
+    return_status=Status.APPROVED,
+    dependencies={"inputs": ("branch_1", "approved")},
 )
 
 
-def t_analysis(context, inputs, **kwargs):
-    return Status.ANALYSIS
-
-
-terminate_2 = Transform(
-    func=t_analysis,
-    name="terminate_2",
+analysis = Terminate(
+    name="analysis",
     description="Terminate data branch",
-    typ=NodeType.TRANSFORM,
-    params={"inputs": ("branch_1", "analysis")},
+    return_status=Status.ANALYSIS,
+    dependencies={"inputs": ("branch_1", "analysis")},
 )
 
-
-def t_denied(context, inputs, **kwargs):
-    return Status.DENIED
-
-
-terminate_3 = Transform(
-    func=t_denied,
-    name="terminate_3",
+denied = Terminate(
+    name="denied",
     description="Terminate data branch",
-    typ=NodeType.TRANSFORM,
-    params={"inputs": ("branch_1", "denied")},
+    return_status=Status.DENIED,
+    dependencies={"inputs": ("branch_1", "denied")},
 )
 
 policy_nodes = [
@@ -165,7 +142,7 @@ policy_nodes = [
     serasa_transform,
     join_transform,
     branch_1,
-    terminate_1,
-    terminate_2,
-    terminate_3,
+    approved,
+    analysis,
+    denied,
 ]
