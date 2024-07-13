@@ -13,7 +13,7 @@ engine = create_engine("sqlite:///server/example.db", echo=True)
 Session = sessionmaker(bind=engine)
 
 
-@app.route("/policy/create", methods=["POST"])
+@app.route("/policies/create", methods=["POST"])
 def create_policy():
     name = request.form["name"]
     description = request.form["description"]
@@ -34,7 +34,7 @@ def create_policy():
         return {"policy_id": policy.policy_id}
 
 
-@app.route("/policy/<policy_id>")
+@app.route("/policies/<policy_id>")
 def get_policy(policy_id):
     with Session() as session:
         policy = session.query(Policy).filter_by(policy_id=policy_id).first()
@@ -47,7 +47,7 @@ def get_policy(policy_id):
         }
 
 
-@app.route("/policy/<policy_id>/run", methods=["POST"])
+@app.route("/policies/<policy_id>/runs/create", methods=["POST"])
 def create_run(policy_id: int):
     execution_config_str = request.form["execution_config"]
     try:
@@ -92,19 +92,21 @@ def create_run(policy_id: int):
 # depois via uma chamada nossa para algum endpoint
 
 
-@app.route("/policy/<policy_id>/run/<run_id>", methods=["GET"])
+@app.route("/policies/<policy_id>/runs/<run_id>", methods=["GET"])
 def get_run(policy_id, run_id):
     # How do we get the run status from Dagster API?
     with Session() as session:
-        run = session.query(Run).filter_by(run_id=run_id).first()
+        run = session.query(Run).filter_by(policy_id=policy_id, run_id=run_id).first()
         return {
+            "policy_id": run.policy_id,
+            "run_id": run.run_id,
             "status": run.status,
             "result": run.result,
             "dagster_run_id": run.dagster_run_id,
         }
 
 
-@app.route("/policy/<policy_id>/run/<run_id>", methods=["PUT"])
+@app.route("/policies/<policy_id>/runs/<run_id>", methods=["PUT"])
 def update_run(policy_id, run_id):
     try:
         result = request.form["status"]

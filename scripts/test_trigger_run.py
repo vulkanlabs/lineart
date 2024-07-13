@@ -7,7 +7,7 @@ PORT = 6000
 URL = f"http://localhost:{PORT}"
 
 response = requests.post(
-    f"{URL}/policy/create",
+    f"{URL}/policies/create",
     data={
         "name": "test_policy",
         "description": "test_policy_description",
@@ -31,12 +31,12 @@ execution_config = {
 }
 
 response = requests.post(
-    f"{URL}/policy/{policy_id}/run",
+    f"{URL}/policies/{policy_id}/runs/create",
     data={"execution_config": json.dumps(execution_config)},
 )
 print(response.json())
 
 # Get the run status
 run_id = response.json()["run_id"]
-response = requests.get(f"{URL}/policy/{policy_id}/run/{run_id}")
+response = requests.get(f"{URL}/policies/{policy_id}/runs/{run_id}")
 print(response.json())
