@@ -125,11 +125,32 @@ class Terminate(Transform):
         dependencies: dict[str, Any],
     ):
         self.return_status = return_status
-        super().__init__(name, description, self._fn, dependencies)
+        _internal_dependencies = {
+            "run_id": "_run_id",
+            "policy_id": "_policy_id",
+        }
+        all_dependencies = {**dependencies, **_internal_dependencies}
+        super().__init__(name, description, self._fn, all_dependencies)
 
-    def _fn(self, context, **kwargs):
+    def _fn(self, context, policy_id, run_id, **kwargs):
         context.log.info(f"Terminating with status {self.return_status}")
+        if self.callback is None:
+            raise ValueError(f"Callback function not set for op {self.name}")
+
+        context.log.debug("Executing callback function")
+        reported = self.callback(
+            context=context,
+            policy_id=policy_id,
+            run_id=run_id,
+            status=self.return_status,
+        )
+        if not reported:
+            raise ValueError("Callback function failed")
         return self.return_status
+
+    def with_callback(self, callback: callable) -> "Terminate":
+        self.callback = callback
+        return self
 
 
 class Branch(Node):
@@ -206,6 +227,7 @@ class Policy:
         description: str,
         nodes: list[Node],
         input_schema: dict[str, type],
+        output_callback: callable,
     ):
         assert len(nodes) > 0, "Policy must have at least one node"
         assert all(
@@ -218,9 +240,10 @@ class Policy:
         self.name = name
         self.description = description
         self.input_schema = input_schema
+        self.output_callback = output_callback
 
-        input_node = self._input_node()
-        self.nodes = [input_node, *nodes]
+        internal_nodes = self._internal_nodes()
+        self.nodes = self._update_nodes(nodes, internal_nodes)
 
     def graph(self):
         nodes = self._dagster_nodes()
@@ -246,9 +269,41 @@ class Policy:
     def to_job(self):
         return self.graph().to_job(self.name + "_job")
 
+    def _internal_nodes(self) -> list[Node]:
+        return [
+            self._input_node(),
+            self._run_id_node(),
+            self._policy_id_node(),
+        ]
+
     def _input_node(self) -> Input:
         return Input(
             name="input_node",
             description="Input node",
             config_schema=self.input_schema,
         )
+
+    def _run_id_node(self) -> Transform:
+        return Transform(
+            name="_run_id",
+            description="Get the run id",
+            func=lambda context, inputs, **kwargs: inputs["run_id"],
+            params={"inputs": "input_node"},
+        )
+
+    def _policy_id_node(self) -> Transform:
+        return Transform(
+            name="_policy_id",
+            description="Get the policy id",
+            func=lambda context, inputs, **kwargs: inputs["policy_id"],
+            params={"inputs": "input_node"},
+        )
+
+    def _update_nodes(self, nodes, internal_nodes):
+        all_nodes = [*internal_nodes]
+        for node in nodes:
+            if isinstance(node, Terminate):
+                node = node.with_callback(self.output_callback)
+            all_nodes.append(node)
+
+        return all_nodes

@@ -25,7 +25,7 @@ policy_id = response.json()["policy_id"]
 # Call the function to trigger the Dagster job
 execution_config = {
     "execution": {
-        "config": {"multiprocess": {"max_concurrent": 2, "retries": {"disabled": {}}}}
+        "config": {"multiprocess": {"max_concurrent": 5, "retries": {"disabled": {}}}}
     },
     "ops": {"input_node": {"config": {"cpf": "1"}}},
 }

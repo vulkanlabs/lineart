@@ -1,5 +1,6 @@
 import json
 
+import werkzeug.exceptions
 from flask import Flask, request
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -47,26 +48,42 @@ def get_policy(policy_id):
 
 
 @app.route("/policy/<policy_id>/run", methods=["POST"])
-def run_policy(policy_id):
+def create_run(policy_id: int):
     execution_config_str = request.form["execution_config"]
-    print("\n\n\n" + execution_config_str + "\n\n\n")
-    execution_config = json.loads(execution_config_str)
+    try:
+        execution_config = json.loads(execution_config_str)
+    except Exception as e:
+        handle_bad_request(e)
+
     with Session() as session:
         run = Run(policy_id=policy_id, status="pending")
         session.add(run)
         session.commit()
 
-        policy = session.query(Policy).filter_by(policy_id=policy_id).first()
-        # Trigger the Dagster job
-        dagster_run_id = trigger_dagster_job(
-            policy.repository,
-            policy.job_name,
-            execution_config,
-        )
-        run.status = "running"
-        run.dagster_run_id = dagster_run_id
-        session.commit()
-        return {"run_id": run.run_id}
+        try:
+            policy = session.query(Policy).filter_by(policy_id=policy_id).first()
+            # Trigger the Dagster job with Policy and Run IDs as inputs
+            execution_config["ops"]["input_node"]["config"][
+                "policy_id"
+            ] = policy.policy_id
+            execution_config["ops"]["input_node"]["config"]["run_id"] = run.run_id
+            dagster_run_id = trigger_dagster_job(
+                policy.repository,
+                policy.job_name,
+                execution_config,
+            )
+            if dagster_run_id is None:
+                raise Exception("Error triggering job")
+
+            run.status = "running"
+            run.dagster_run_id = dagster_run_id
+            session.commit()
+            return {"policy_id": policy.policy_id, "run_id": run.run_id}
+
+        except Exception as e:
+            run.status = "failed"
+            session.commit()
+            werkzeug.exceptions.InternalServerError(e)
 
 
 # Podemos ter um run_policy_async e um sync
@@ -75,7 +92,7 @@ def run_policy(policy_id):
 # depois via uma chamada nossa para algum endpoint
 
 
-@app.route("/policy/<policy_id>/run/<run_id>")
+@app.route("/policy/<policy_id>/run/<run_id>", methods=["GET"])
 def get_run(policy_id, run_id):
     # How do we get the run status from Dagster API?
     with Session() as session:
@@ -87,12 +104,37 @@ def get_run(policy_id, run_id):
         }
 
 
-@app.route("/policy/<policy_id>/run/<run_id>/update")
+@app.route("/policy/<policy_id>/run/<run_id>", methods=["PUT"])
 def update_run(policy_id, run_id):
-    with Session() as session:
-        run = session.query(Run).filter_by(run_id=run_id).first()
-        return {
-            "status": run.status,
-            "result": run.result,
-            "dagster_run_id": run.dagster_run_id,
-        }
+    try:
+        result = request.form["status"]
+        dagster_run_id = request.form["dagster_run_id"]
+
+        with Session() as session:
+            print("3!")
+            run = (
+                session.query(Run)
+                .filter_by(
+                    policy_id=policy_id, run_id=run_id, dagster_run_id=dagster_run_id
+                )
+                .first()
+            )
+            print("4!")
+            run.status = "completed"
+            run.result = result
+            session.commit()
+            print("RODOU!")
+            return {
+                "policy_id": run.policy_id,
+                "run_id": run.run_id,
+                "status": run.status,
+                "result": run.result,
+                "dagster_run_id": run.dagster_run_id,
+            }
+    except KeyError as e:
+        handle_bad_request(e)
+
+
+@app.errorhandler(werkzeug.exceptions.BadRequest)
+def handle_bad_request(e):
+    return "Bad Request", 400

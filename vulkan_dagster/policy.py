@@ -1,3 +1,8 @@
+from functools import partial
+
+import requests
+from dagster import OpExecutionContext
+
 from vulkan_dagster.nodes import (
     Branch,
     HTTPConnection,
@@ -107,7 +112,7 @@ approved = Terminate(
     name="approved",
     description="Terminate data branch",
     return_status=Status.APPROVED,
-    dependencies={"inputs": ("branch_1", "approved")},
+    dependencies={"condition": ("branch_1", "approved")},
 )
 
 
@@ -115,14 +120,14 @@ analysis = Terminate(
     name="analysis",
     description="Terminate data branch",
     return_status=Status.ANALYSIS,
-    dependencies={"inputs": ("branch_1", "analysis")},
+    dependencies={"condition": ("branch_1", "analysis")},
 )
 
 denied = Terminate(
     name="denied",
     description="Terminate data branch",
     return_status=Status.DENIED,
-    dependencies={"inputs": ("branch_1", "denied")},
+    dependencies={"condition": ("branch_1", "denied")},
 )
 
 # Policy
@@ -130,6 +135,27 @@ denied = Terminate(
 # Output <- o que fazer quando chegar num terminate
 #   1. marcar o resultado da run no nosso db
 #   2. retornar o status da run em alguma configuração que o usuario deu
+
+
+def return_fn(
+    context: OpExecutionContext,
+    base_url: str,
+    policy_id: int,
+    run_id: int,
+    status: Status,
+) -> bool:
+    url = f"{base_url}/policy/{policy_id}/run/{run_id}"
+    dagster_run_id: str = context.run_id
+    status: str = status.value
+    context.log.info(f"Returned status {status} to {url} for run {dagster_run_id}")
+    result = requests.put(
+        url, data={"dagster_run_id": dagster_run_id, "status": status}
+    )
+    if result.status_code not in {200, 204}:
+        msg = f"Error {result.status_code} Failed to return status {status} to {url} for run {dagster_run_id}"
+        context.log.error(msg)
+        return False
+    return True
 
 
 demo_policy = Policy(
@@ -148,5 +174,6 @@ demo_policy = Policy(
         analysis,
         denied,
     ],
-    input_schema={"cpf": str},
+    input_schema={"policy_id": int, "run_id": int, "cpf": str},
+    output_callback=partial(return_fn, base_url="http://localhost:6000"),
 )
