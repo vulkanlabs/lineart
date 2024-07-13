@@ -1,17 +1,10 @@
 from vulkan_dagster.nodes import (
     Branch,
     HTTPConnection,
-    Input,
     Policy,
     Status,
     Terminate,
     Transform,
-)
-
-input_node = Input(
-    name="input_node",
-    description="Input node",
-    config_schema={"cpf": str},
 )
 
 http_params = dict(method="GET", headers={}, params={})
@@ -140,10 +133,9 @@ denied = Terminate(
 
 
 demo_policy = Policy(
-    "policy",
-    "Demo policy created to test Vulkan functionality",
+    name="policy",
+    description="Demo policy created to test Vulkan functionality",
     nodes=[
-        input_node,
         scr_body,
         scr,
         serasa_body,
@@ -156,4 +148,5 @@ demo_policy = Policy(
         analysis,
         denied,
     ],
+    input_schema={"cpf": str},
 )

@@ -200,15 +200,27 @@ def _generate_dependencies(params: dict):
 
 
 class Policy:
-    def __init__(self, name: str, description: str, nodes: list[Node]):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        nodes: list[Node],
+        input_schema: dict[str, type],
+    ):
         assert len(nodes) > 0, "Policy must have at least one node"
         assert all(
             isinstance(n, Node) for n in nodes
         ), "All elements must be of type Node"
+        assert all(
+            isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
+        ), "Input schema must be a dictionary of str -> type"
 
         self.name = name
         self.description = description
-        self.nodes = nodes
+        self.input_schema = input_schema
+
+        input_node = self._input_node()
+        self.nodes = [input_node, *nodes]
 
     def graph(self):
         nodes = self._dagster_nodes()
@@ -233,3 +245,10 @@ class Policy:
 
     def to_job(self):
         return self.graph().to_job(self.name + "_job")
+
+    def _input_node(self) -> Input:
+        return Input(
+            name="input_node",
+            description="Input node",
+            config_schema=self.input_schema,
+        )
