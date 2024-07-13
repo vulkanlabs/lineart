@@ -69,9 +69,26 @@ def run_policy(policy_id):
         return {"run_id": run.run_id}
 
 
+# Podemos ter um run_policy_async e um sync
+# O sync vai esperar a run terminar e retornar o status
+# O async vai retornar o run_id e o status da run vai ser atualizado
+# depois via uma chamada nossa para algum endpoint
+
+
 @app.route("/policy/<policy_id>/run/<run_id>")
 def get_run(policy_id, run_id):
     # How do we get the run status from Dagster API?
+    with Session() as session:
+        run = session.query(Run).filter_by(run_id=run_id).first()
+        return {
+            "status": run.status,
+            "result": run.result,
+            "dagster_run_id": run.dagster_run_id,
+        }
+
+
+@app.route("/policy/<policy_id>/run/<run_id>/update")
+def update_run(policy_id, run_id):
     with Session() as session:
         run = session.query(Run).filter_by(run_id=run_id).first()
         return {

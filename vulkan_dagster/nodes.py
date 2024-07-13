@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any, Optional
 
 import requests
-from dagster import DependencyDefinition, In, OpDefinition, Out, Output
+from dagster import DependencyDefinition, GraphDefinition, In, OpDefinition, Out, Output
 
 
 class NodeType(Enum):
@@ -27,7 +27,11 @@ class Node(ABC):
         self.type = typ
 
     @abstractmethod
-    def node(self):
+    def node(self) -> OpDefinition:
+        pass
+
+    @abstractmethod
+    def graph_dependencies(self) -> dict[str, Any]:
         pass
 
 
@@ -50,15 +54,16 @@ class HTTPConnection(Node):
         self.params = params if params is not None else {}
         self.dependencies = dependencies if dependencies is not None else {}
 
-    def node(self):
-        node_op = OpDefinition(
+    def node(self) -> OpDefinition:
+        return OpDefinition(
             compute_fn=self.run,
             name=self.name,
             ins={k: In() for k in self.dependencies.keys()},
             outs={"result": Out()},
         )
-        deps = _generate_dependencies(self.dependencies)
-        return node_op, deps
+
+    def graph_dependencies(self) -> dict[str, Any]:
+        return _generate_dependencies(self.dependencies)
 
     def run(self, context, inputs):
         context.log.debug(f"Requesting {self.url}")
@@ -94,8 +99,7 @@ class Transform(Node):
         self.func = func
         self.params = params
 
-    def node(self):
-        # Wrap self.func to provide the expected bhv
+    def node(self) -> OpDefinition:
         def fn(context, inputs):
             yield Output(self.func(context, **inputs))
 
@@ -105,9 +109,11 @@ class Transform(Node):
             ins={k: In() for k in self.params.keys()},
             outs={"result": Out()},
         )
-        deps = _generate_dependencies(self.params)
 
-        return node_op, deps
+        return node_op
+
+    def graph_dependencies(self) -> dict[str, Any]:
+        return _generate_dependencies(self.params)
 
 
 class Terminate(Transform):
@@ -119,8 +125,11 @@ class Terminate(Transform):
         dependencies: dict[str, Any],
     ):
         self.return_status = return_status
-        self._fn = lambda _, **kwargs: self.return_status
         super().__init__(name, description, self._fn, dependencies)
+
+    def _fn(self, context, **kwargs):
+        context.log.info(f"Terminating with status {self.return_status}")
+        return self.return_status
 
 
 class Branch(Node):
@@ -137,8 +146,7 @@ class Branch(Node):
         self.params = params
         self.outputs = outputs
 
-    def node(self):
-        # Wrap self.func to provide the expected bhv
+    def node(self) -> OpDefinition:
         def fn(context, inputs):
             output = self.func(context, **inputs)
             yield Output(None, output)
@@ -149,8 +157,10 @@ class Branch(Node):
             ins={k: In() for k in self.params.keys()},
             outs={out: Out(is_required=False) for out in self.outputs},
         )
-        deps = _generate_dependencies(self.params)
-        return node_op, deps
+        return node_op
+
+    def graph_dependencies(self) -> dict[str, Any]:
+        return _generate_dependencies(self.params)
 
 
 class Input(Node):
@@ -158,21 +168,22 @@ class Input(Node):
         super().__init__(name, description, NodeType.INPUT)
         self.config_schema = config_schema
 
+    def run(self, context, *args, **kwargs):
+        config = context.op_config
+        context.log.info(f"Got Config: {config}")
+        yield Output(config)
+
     def node(self):
-        node_op = OpDefinition(
+        return OpDefinition(
             compute_fn=self.run,
             name=self.name,
             ins={},
             outs={"result": Out()},
             config_schema=self.config_schema,
         )
-        return node_op, None
 
-    def run(self, context, *args, **kwargs):
-        config = context.op_config
-        context.log.info(f"Got Config: {config}")
-        # Dict with config data
-        yield Output(config)
+    def graph_dependencies(self) -> dict[str, Any]:
+        return None
 
 
 def _generate_dependencies(params: dict):
@@ -186,3 +197,39 @@ def _generate_dependencies(params: dict):
             raise ValueError(f"Invalid dependency definition: {k} -> {v}")
         deps[k] = definition
     return deps
+
+
+class Policy:
+    def __init__(self, name: str, description: str, nodes: list[Node]):
+        assert len(nodes) > 0, "Policy must have at least one node"
+        assert all(
+            isinstance(n, Node) for n in nodes
+        ), "All elements must be of type Node"
+
+        self.name = name
+        self.description = description
+        self.nodes = nodes
+
+    def graph(self):
+        nodes = self._dagster_nodes()
+        deps = self._graph_dependencies()
+
+        return GraphDefinition(
+            name=self.name,
+            description=self.description,
+            node_defs=nodes,
+            dependencies=deps,
+        )
+
+    def _dagster_nodes(self):
+        return [n.node() for n in self.nodes]
+
+    def _graph_dependencies(self):
+        return {
+            n.name: n.graph_dependencies()
+            for n in self.nodes
+            if n.graph_dependencies() is not None
+        }
+
+    def to_job(self):
+        return self.graph().to_job(self.name + "_job")

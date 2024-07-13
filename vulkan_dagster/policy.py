@@ -2,7 +2,7 @@ from vulkan_dagster.nodes import (
     Branch,
     HTTPConnection,
     Input,
-    NodeType,
+    Policy,
     Status,
     Terminate,
     Transform,
@@ -132,17 +132,28 @@ denied = Terminate(
     dependencies={"inputs": ("branch_1", "denied")},
 )
 
-policy_nodes = [
-    input_node,
-    scr_body,
-    scr,
-    serasa_body,
-    serasa,
-    scr_transform,
-    serasa_transform,
-    join_transform,
-    branch_1,
-    approved,
-    analysis,
-    denied,
-]
+# Policy
+# Input <- schema do input
+# Output <- o que fazer quando chegar num terminate
+#   1. marcar o resultado da run no nosso db
+#   2. retornar o status da run em alguma configuração que o usuario deu
+
+
+demo_policy = Policy(
+    "policy",
+    "Demo policy created to test Vulkan functionality",
+    nodes=[
+        input_node,
+        scr_body,
+        scr,
+        serasa_body,
+        serasa,
+        scr_transform,
+        serasa_transform,
+        join_transform,
+        branch_1,
+        approved,
+        analysis,
+        denied,
+    ],
+)
