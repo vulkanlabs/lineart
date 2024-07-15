@@ -19,6 +19,7 @@ dagster = "^1.7.12"
 dagster-webserver = "^1.7.12"
 flask = "^3.0.3"
 black = "^24.4.2"
+python-dotenv = "^1.0.1"
 
 [tool.black]
 line-length = 88

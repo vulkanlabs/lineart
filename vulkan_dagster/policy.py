@@ -1,5 +1,7 @@
 from functools import partial
+from dotenv import dotenv_values
 
+import os
 import requests
 from dagster import OpExecutionContext
 
@@ -12,6 +14,10 @@ from vulkan_dagster.nodes import (
     Transform,
 )
 
+CONFIG = dotenv_values()
+DATA_SERVER_URL = f"http://127.0.0.1:{CONFIG['TEST_DATA_SERVER_PORT']}"
+CLIENT_SERVER_URL = f"http://127.0.0.1:{CONFIG['TEST_CLIENT_SERVER_PORT']}"
+
 http_params = dict(method="GET", headers={}, params={})
 
 scr_body = Transform(
@@ -23,7 +29,7 @@ scr_body = Transform(
 scr = HTTPConnection(
     name="scr",
     description="Get SCR score",
-    url="http://127.0.0.1:5001/scr",
+    url=f"{DATA_SERVER_URL}/scr",
     dependencies={"body": "scr_body"},
     **http_params,
 )
@@ -38,7 +44,7 @@ serasa_body = Transform(
 serasa = HTTPConnection(
     name="serasa",
     description="Get Serasa score",
-    url="http://127.0.0.1:5001/serasa",
+    url=f"{DATA_SERVER_URL}/serasa",
     dependencies={"body": "serasa_body"},
     **http_params,
 )
@@ -147,11 +153,11 @@ def return_fn(
     run_id: int,
     status: Status,
 ) -> bool:
-    url = f"{base_url}/policy/{policy_id}/run/{run_id}"
+    url = f"{base_url}/"
     dagster_run_id: str = context.run_id
     status: str = status.value
     context.log.info(f"Returned status {status} to {url} for run {dagster_run_id}")
-    result = requests.put(
+    result = requests.post(
         url, data={"dagster_run_id": dagster_run_id, "status": status}
     )
     if result.status_code not in {200, 204}:
@@ -177,6 +183,6 @@ demo_policy = Policy(
         analysis,
         denied,
     ],
-    input_schema={"policy_id": int, "run_id": int, "cpf": str},
-    output_callback=partial(return_fn, base_url="http://localhost:6000"),
+    input_schema={"cpf": str},
+    output_callback=partial(return_fn, base_url=CLIENT_SERVER_URL),
 )

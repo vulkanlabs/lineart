@@ -1,6 +1,8 @@
 import json
+import os
 
 import werkzeug.exceptions
+from dotenv import load_dotenv
 from flask import Flask, request
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -11,6 +13,9 @@ from .trigger_run import trigger_dagster_job
 app = Flask(__name__)
 engine = create_engine("sqlite:///server/example.db", echo=True)
 Session = sessionmaker(bind=engine)
+
+load_dotenv()
+SERVER_URL = f"http://localhost:{os.getenv('APP_PORT')}"
 
 
 @app.route("/policies/create", methods=["POST"])
@@ -63,10 +68,11 @@ def create_run(policy_id: int):
         try:
             policy = session.query(Policy).filter_by(policy_id=policy_id).first()
             # Trigger the Dagster job with Policy and Run IDs as inputs
-            execution_config["ops"]["input_node"]["config"][
-                "policy_id"
-            ] = policy.policy_id
-            execution_config["ops"]["input_node"]["config"]["run_id"] = run.run_id
+            execution_config["ops"]["input_node"]["config"].update({
+                "policy_id": policy.policy_id,
+                "run_id": run.run_id,
+                "server_url": SERVER_URL
+            })
             dagster_run_id = trigger_dagster_job(
                 policy.repository,
                 policy.job_name,

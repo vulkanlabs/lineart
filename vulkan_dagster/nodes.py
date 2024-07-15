@@ -3,7 +3,15 @@ from enum import Enum
 from typing import Any, Optional
 
 import requests
-from dagster import DependencyDefinition, GraphDefinition, In, OpDefinition, Out, Output
+from dagster import (
+    DependencyDefinition,
+    GraphDefinition,
+    In,
+    OpDefinition,
+    Out,
+    Output,
+    OpExecutionContext,
+)
 
 
 class NodeType(Enum):
@@ -128,14 +136,19 @@ class Terminate(Transform):
         _internal_dependencies = {
             "run_id": "_run_id",
             "policy_id": "_policy_id",
+            "server_url": "_server_url",
         }
         all_dependencies = {**dependencies, **_internal_dependencies}
         super().__init__(name, description, self._fn, all_dependencies)
 
-    def _fn(self, context, policy_id, run_id, **kwargs):
+    def _fn(self, context, policy_id, run_id, server_url, **kwargs):
         context.log.info(f"Terminating with status {self.return_status}")
         if self.callback is None:
             raise ValueError(f"Callback function not set for op {self.name}")
+
+        self._terminate(
+            context, server_url, policy_id, run_id, self.return_status
+        )
 
         context.log.debug("Executing callback function")
         reported = self.callback(
@@ -147,6 +160,29 @@ class Terminate(Transform):
         if not reported:
             raise ValueError("Callback function failed")
         return self.return_status
+
+    def _terminate(
+        self,
+        context: OpExecutionContext,
+        server_url: str,
+        policy_id: int,
+        run_id: int,
+        status: Status,
+    ) -> bool:
+        url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
+        dagster_run_id: str = context.run_id
+        status: str = status.value
+        context.log.info(
+            f"Returned status {status} to {url} for run {dagster_run_id}"
+        )
+        result = requests.put(
+            url, data={"dagster_run_id": dagster_run_id, "status": status}
+        )
+        if result.status_code not in {200, 204}:
+            msg = f"Error {result.status_code} Failed to return status {status} to {url} for run {dagster_run_id}"
+            context.log.error(msg)
+            return False
+        return True
 
     def with_callback(self, callback: callable) -> "Terminate":
         self.callback = callback
@@ -234,12 +270,18 @@ class Policy:
             isinstance(n, Node) for n in nodes
         ), "All elements must be of type Node"
         assert all(
-            isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
+            isinstance(k, str) and isinstance(v, type)
+            for k, v in input_schema.items()
         ), "Input schema must be a dictionary of str -> type"
 
         self.name = name
         self.description = description
-        self.input_schema = input_schema
+        internal_input_schema = {
+            "policy_id": int,
+            "run_id": int,
+            "server_url": str,
+        }
+        self.input_schema = {**internal_input_schema, **input_schema}
         self.output_callback = output_callback
 
         internal_nodes = self._internal_nodes()
@@ -274,6 +316,7 @@ class Policy:
             self._input_node(),
             self._run_id_node(),
             self._policy_id_node(),
+            self._server_url_node(),
         ]
 
     def _input_node(self) -> Input:
@@ -296,6 +339,14 @@ class Policy:
             name="_policy_id",
             description="Get the policy id",
             func=lambda context, inputs, **kwargs: inputs["policy_id"],
+            params={"inputs": "input_node"},
+        )
+
+    def _server_url_node(self) -> Transform:
+        return Transform(
+            name="_server_url",
+            description="Get the server url",
+            func=lambda context, inputs, **kwargs: inputs["server_url"],
             params={"inputs": "input_node"},
         )
 
