@@ -137,6 +137,9 @@ denied = Terminate(
 #   2. retornar o status da run em alguma configuração que o usuario deu
 
 
+# TODO: this callback in truth is INTERNAL!
+# We should allow the user to specify a second one that will be called
+# after the run is finished.
 def return_fn(
     context: OpExecutionContext,
     base_url: str,

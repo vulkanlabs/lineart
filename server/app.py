@@ -113,7 +113,6 @@ def update_run(policy_id, run_id):
         dagster_run_id = request.form["dagster_run_id"]
 
         with Session() as session:
-            print("3!")
             run = (
                 session.query(Run)
                 .filter_by(
@@ -121,11 +120,9 @@ def update_run(policy_id, run_id):
                 )
                 .first()
             )
-            print("4!")
             run.status = "completed"
             run.result = result
             session.commit()
-            print("RODOU!")
             return {
                 "policy_id": run.policy_id,
                 "run_id": run.run_id,

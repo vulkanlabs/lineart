@@ -1,5 +1,6 @@
 # Create policy
 import json
+import time
 
 import requests
 
@@ -40,3 +41,18 @@ print(response.json())
 run_id = response.json()["run_id"]
 response = requests.get(f"{URL}/policies/{policy_id}/runs/{run_id}")
 print(response.json())
+
+success = False
+# Poll the API until the job is completed
+for i in range(10):
+    response = requests.get(f"{URL}/policies/{policy_id}/runs/{run_id}")
+    try:
+        status = response.json()["status"]
+        if status == "completed":
+            success = True
+            break
+    except (KeyError, json.decoder.JSONDecodeError):
+        continue
+    time.sleep(1)
+
+assert success, f"Run {run_id} for policy {policy_id} did not complete successfully"
