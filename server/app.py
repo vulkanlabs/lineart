@@ -18,6 +18,23 @@ load_dotenv()
 SERVER_URL = f"http://localhost:{os.getenv('APP_PORT')}"
 
 
+@app.route("/policies/list", methods=["GET"])
+def list_policies():
+    with Session() as session:
+        policies = session.query(Policy).all()
+        return [
+            {
+                "policy_id": policy.policy_id,
+                "name": policy.name,
+                "description": policy.description,
+                "input_schema": policy.input_schema,
+                "repository": policy.repository,
+                "job_name": policy.job_name,
+            }
+            for policy in policies
+        ]
+
+
 @app.route("/policies/create", methods=["POST"])
 def create_policy():
     name = request.form["name"]

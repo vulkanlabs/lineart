@@ -1,18 +1,17 @@
-# Create policy
 import argparse
 import json
+import os
 import time
 
 import requests
+from dotenv import load_dotenv
 
 
-def run(args):
-    url = f"http://localhost:{args.port}"
-
+def create_policy(server_url: str, name: str):
     response = requests.post(
-        f"{url}/policies/create",
+        f"{server_url}/policies/create",
         data={
-            "name": "test_policy",
+            "name": name,
             "description": "test_policy_description",
             "input_schema": "test_input_schema",
             "repository": "vulkan_dagster",
@@ -24,7 +23,10 @@ def run(args):
     print(response.json())
 
     policy_id = response.json()["policy_id"]
+    return policy_id
 
+
+def run_policy(url: str, policy_id: int):
     # Call the function to trigger the Dagster job
     execution_config = {
         "execution": {
@@ -51,7 +53,7 @@ def run(args):
 
     success = False
     # Poll the API until the job is completed
-    for i in range(5):
+    for i in range(10):
         response = requests.get(f"{url}/policies/{policy_id}/runs/{run_id}")
         try:
             status = response.json()["status"]
@@ -61,14 +63,30 @@ def run(args):
                 break
         except (KeyError, json.decoder.JSONDecodeError):
             continue
-        time.sleep(3)
+        time.sleep(1)
 
     assert success, f"Run {run_id} for policy {policy_id} did not complete successfully"
 
 
 if __name__ == "__main__":
+    load_dotenv()
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, help="Port to run the server on")
-    parser.add_argument("--cpf", type=str, help="CPF to test the policy with")
+
+    command = parser.add_subparsers(dest="command")
+    create = command.add_parser("create")
+    create.add_argument("--name", type=str, help="Name of the policy to be created")
+
+    run = command.add_parser("run")
+    run.add_argument("--cpf", type=str, help="CPF to test the policy with")
+    run.add_argument("--policy_id", type=int, help="Policy ID to run")
+
     args = parser.parse_args()
-    run(args)
+    server_url = f"http://localhost:{os.getenv('APP_PORT')}"
+
+    if args.command == "create":
+        policy_id = create_policy(server_url, args.name)
+    elif args.command == "run":
+        policy_id = args.policy_id
+        run_policy(server_url, policy_id=policy_id)
+    else:
+        raise ValueError(f"Invalid command {args.command}")

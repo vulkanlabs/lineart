@@ -5,13 +5,12 @@ from sqlalchemy.sql import func
 Base = declarative_base()
 
 
-# TODO: validate
 class Policy(Base):
 
     __tablename__ = "policy"
 
     policy_id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String)
+    name = Column(String, unique=True)
     description = Column(String)
     input_schema = Column(String)
     repository = Column(String)
