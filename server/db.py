@@ -1,9 +1,11 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql import func
 
 Base = declarative_base()
 
 
+# TODO: validate
 class Policy(Base):
 
     __tablename__ = "policy"
@@ -14,6 +16,8 @@ class Policy(Base):
     input_schema = Column(String)
     repository = Column(String)
     job_name = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
 class Run(Base):
@@ -25,6 +29,8 @@ class Run(Base):
     status = Column(String)
     result = Column(String, nullable=True)
     dagster_run_id = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
 if __name__ == "__main__":

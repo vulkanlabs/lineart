@@ -31,6 +31,9 @@ def create_policy():
             name=name,
             description=description,
             input_schema=input_schema,
+            # git_repo=...,
+            # path=...,
+            # We should automatically generate this
             repository=repository,
             job_name=job_name,
         )
@@ -68,11 +71,13 @@ def create_run(policy_id: int):
         try:
             policy = session.query(Policy).filter_by(policy_id=policy_id).first()
             # Trigger the Dagster job with Policy and Run IDs as inputs
-            execution_config["ops"]["input_node"]["config"].update({
-                "policy_id": policy.policy_id,
-                "run_id": run.run_id,
-                "server_url": SERVER_URL
-            })
+            execution_config["ops"]["input_node"]["config"].update(
+                {
+                    "policy_id": policy.policy_id,
+                    "run_id": run.run_id,
+                    "server_url": SERVER_URL,
+                }
+            )
             dagster_run_id = trigger_dagster_job(
                 policy.repository,
                 policy.job_name,
@@ -143,3 +148,13 @@ def update_run(policy_id, run_id):
 @app.errorhandler(werkzeug.exceptions.BadRequest)
 def handle_bad_request(e):
     return "Bad Request", 400
+
+
+# Add Policy metrics endpoint
+# It should calculate the number of executions, average execution time,
+# Distribution of run outcomes (approved, analysis, denied) and the success rate
+# over time, per day.
+# The user should be able to filter by policy_id, date range, and run outcome.
+@app.route("/policies/<policy_id>/metrics", methods=["GET"])
+def get_policy_metrics(policy_id):
+    pass

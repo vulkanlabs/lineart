@@ -57,14 +57,13 @@ def run(args):
             status = response.json()["status"]
             if status == "completed":
                 success = True
+                print(response.json())
                 break
         except (KeyError, json.decoder.JSONDecodeError):
             continue
         time.sleep(3)
 
-    assert (
-        success
-    ), f"Run {run_id} for policy {policy_id} did not complete successfully"
+    assert success, f"Run {run_id} for policy {policy_id} did not complete successfully"
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
-from functools import partial
-from dotenv import dotenv_values
-
 import os
+from functools import partial
+
 import requests
 from dagster import OpExecutionContext
+from dotenv import dotenv_values
 
 from vulkan_dagster.nodes import (
     Branch,
@@ -59,11 +59,9 @@ def scr_func(context, scr_response, **kwargs):
     return score
 
 
-# Map of parameter names to the ops that define them.
-params = {"scr_response": "scr"}
 scr_transform = Transform(
     func=scr_func,
-    params=params,
+    params={"scr_response": "scr"},
     name="scr_transform",
     description="Transform SCR data",
 )

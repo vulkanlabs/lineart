@@ -8,9 +8,9 @@ from dagster import (
     GraphDefinition,
     In,
     OpDefinition,
+    OpExecutionContext,
     Out,
     Output,
-    OpExecutionContext,
 )
 
 
@@ -146,9 +146,7 @@ class Terminate(Transform):
         if self.callback is None:
             raise ValueError(f"Callback function not set for op {self.name}")
 
-        self._terminate(
-            context, server_url, policy_id, run_id, self.return_status
-        )
+        self._terminate(context, server_url, policy_id, run_id, self.return_status)
 
         context.log.debug("Executing callback function")
         reported = self.callback(
@@ -172,9 +170,7 @@ class Terminate(Transform):
         url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
         dagster_run_id: str = context.run_id
         status: str = status.value
-        context.log.info(
-            f"Returned status {status} to {url} for run {dagster_run_id}"
-        )
+        context.log.info(f"Returned status {status} to {url} for run {dagster_run_id}")
         result = requests.put(
             url, data={"dagster_run_id": dagster_run_id, "status": status}
         )
@@ -270,8 +266,7 @@ class Policy:
             isinstance(n, Node) for n in nodes
         ), "All elements must be of type Node"
         assert all(
-            isinstance(k, str) and isinstance(v, type)
-            for k, v in input_schema.items()
+            isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
         ), "Input schema must be a dictionary of str -> type"
 
         self.name = name
@@ -358,3 +353,6 @@ class Policy:
             all_nodes.append(node)
 
         return all_nodes
+
+
+# TODO: add failure op hook to update run status in app.
