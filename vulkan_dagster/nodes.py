@@ -4,6 +4,7 @@ from typing import Any, Optional
 
 import requests
 from dagster import (
+    ConfigurableResource,
     DependencyDefinition,
     GraphDefinition,
     HookContext,
@@ -30,6 +31,12 @@ class Status(Enum):
     APPROVED = "Approved"
     DENIED = "Denied"
     ANALYSIS = "Analysis"
+
+
+class VulkanRunConfig(ConfigurableResource):
+    policy_id: int
+    run_id: int
+    server_url: str
 
 
 class Node(ABC):
@@ -121,6 +128,10 @@ class Transform(Node):
             name=self.name,
             ins={k: In() for k in self.params.keys()},
             outs={"result": Out()},
+            # We expose the configuration in transform nodes
+            # to allow the callback function in terminate nodes to
+            # access it. In the future, we may separate terminate nodes.
+            required_resource_keys={"vulkan_run_config"},
         )
 
         return node_op
@@ -138,26 +149,21 @@ class Terminate(Transform):
         dependencies: dict[str, Any],
     ):
         self.return_status = return_status
-        _internal_dependencies = {
-            "run_id": "_run_id",
-            "policy_id": "_policy_id",
-            "server_url": "_server_url",
-        }
-        all_dependencies = {**dependencies, **_internal_dependencies}
-        super().__init__(name, description, self._fn, all_dependencies)
+        super().__init__(name, description, self._fn, dependencies)
 
-    def _fn(self, context, policy_id, run_id, server_url, **kwargs):
+    def _fn(self, context, **kwargs):
+        vulkan_run_config = context.resources.vulkan_run_config
         context.log.info(f"Terminating with status {self.return_status}")
         if self.callback is None:
             raise ValueError(f"Callback function not set for op {self.name}")
 
-        self._terminate(context, server_url, policy_id, run_id, self.return_status)
+        self._terminate(context, self.return_status)
 
-        context.log.debug("Executing callback function")
         reported = self.callback(
             context=context,
-            policy_id=policy_id,
-            run_id=run_id,
+            base_url=vulkan_run_config.server_url,
+            policy_id=vulkan_run_config.policy_id,
+            run_id=vulkan_run_config.run_id,
             status=self.return_status,
         )
         if not reported:
@@ -167,11 +173,13 @@ class Terminate(Transform):
     def _terminate(
         self,
         context: OpExecutionContext,
-        server_url: str,
-        policy_id: int,
-        run_id: int,
         result: Status,
     ) -> bool:
+        vulkan_run_config = context.resources.vulkan_run_config
+        server_url = vulkan_run_config.server_url
+        policy_id = vulkan_run_config.policy_id
+        run_id = vulkan_run_config.run_id
+
         url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
         dagster_run_id: str = context.run_id
         result: str = result.value
@@ -278,15 +286,13 @@ class Policy:
         assert all(
             isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
         ), "Input schema must be a dictionary of str -> type"
+        assert isinstance(
+            output_callback, callable
+        ), "Output callback must be a callable"
 
         self.name = name
         self.description = description
-        internal_input_schema = {
-            "policy_id": int,
-            "run_id": int,
-            "server_url": str,
-        }
-        self.input_schema = {**internal_input_schema, **input_schema}
+        self.input_schema = input_schema
         self.output_callback = output_callback
 
         internal_nodes = self._internal_nodes()
@@ -314,14 +320,21 @@ class Policy:
         }
 
     def to_job(self):
-        return self.graph().to_job(self.name + "_job")
+        return self.graph().to_job(
+            self.name + "_job",
+            resource_defs={
+                "vulkan_run_config": VulkanRunConfig(
+                    policy_id=0,
+                    run_id=0,
+                    server_url="tmpurl",
+                ),
+            },
+            hooks={_notify_failure},
+        )
 
     def _internal_nodes(self) -> list[Node]:
         return [
             self._input_node(),
-            self._run_id_node(),
-            self._policy_id_node(),
-            self._server_url_node(),
         ]
 
     def _input_node(self) -> Input:
@@ -329,30 +342,6 @@ class Policy:
             name="input_node",
             description="Input node",
             config_schema=self.input_schema,
-        )
-
-    def _run_id_node(self) -> Transform:
-        return Transform(
-            name="_run_id",
-            description="Get the run id",
-            func=lambda context, inputs, **kwargs: inputs["run_id"],
-            params={"inputs": "input_node"},
-        )
-
-    def _policy_id_node(self) -> Transform:
-        return Transform(
-            name="_policy_id",
-            description="Get the policy id",
-            func=lambda context, inputs, **kwargs: inputs["policy_id"],
-            params={"inputs": "input_node"},
-        )
-
-    def _server_url_node(self) -> Transform:
-        return Transform(
-            name="_server_url",
-            description="Get the server url",
-            func=lambda context, inputs, **kwargs: inputs["server_url"],
-            params={"inputs": "input_node"},
         )
 
     def _update_nodes(self, nodes, internal_nodes):
@@ -364,21 +353,25 @@ class Policy:
 
         return all_nodes
 
-    # def _failure_hook(self):
-    #     @failure_hook
-    #     def notify_failure(
-    #         context: HookContext,
-    #     ) -> bool:
-    #         url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
-    #         dagster_run_id: str = context.run_id
-    #         result = requests.put(
-    #             url,
-    #             data={
-    #                 "dagster_run_id": dagster_run_id,
-    #                 "result": "",
-    #                 "status": RunStatus.FAILURE.value,
-    #             },
-    #         )
-    #         if result.status_code not in {200, 204}:
-    #             msg = f"Error {result.status_code} Failed to notify failure to {url} for run {dagster_run_id}"
-    #             context.log.error(msg)
+
+@failure_hook(required_resource_keys={"vulkan_run_config"})
+def _notify_failure(context: HookContext) -> bool:
+    vulkan_run_config = context.resources.vulkan_run_config
+    server_url = vulkan_run_config.server_url
+    policy_id = vulkan_run_config.policy_id
+    run_id = vulkan_run_config.run_id
+
+    context.log.info(f"Notifying failure for run {run_id} in policy {policy_id}")
+    url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
+    dagster_run_id: str = context.run_id
+    result = requests.put(
+        url,
+        data={
+            "dagster_run_id": dagster_run_id,
+            "result": "",
+            "status": RunStatus.FAILURE.value,
+        },
+    )
+    if result.status_code not in {200, 204}:
+        msg = f"Error {result.status_code} Failed to notify failure to {url} for run {dagster_run_id}"
+        context.log.error(msg)

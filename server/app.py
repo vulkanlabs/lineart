@@ -88,13 +88,15 @@ def create_run(policy_id: int):
         try:
             policy = session.query(Policy).filter_by(policy_id=policy_id).first()
             # Trigger the Dagster job with Policy and Run IDs as inputs
-            execution_config["ops"]["input_node"]["config"].update(
-                {
-                    "policy_id": policy.policy_id,
-                    "run_id": run.run_id,
-                    "server_url": SERVER_URL,
+            execution_config["resources"] = {
+                "vulkan_run_config": {
+                    "config": {
+                        "policy_id": policy.policy_id,
+                        "run_id": run.run_id,
+                        "server_url": SERVER_URL,
+                    }
                 }
-            )
+            }
             dagster_run_id = trigger_dagster_job(
                 policy.repository,
                 policy.job_name,

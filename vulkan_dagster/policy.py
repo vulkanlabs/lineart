@@ -141,9 +141,9 @@ denied = Terminate(
 #   2. retornar o status da run em alguma configuração que o usuario deu
 
 
-# TODO: this callback in truth is INTERNAL!
-# We should allow the user to specify a second one that will be called
-# after the run is finished.
+# TODO: we may want to specify some data to be used in the output.
+# Example: return the tax id, status, duration, limit etc
+# User-configurable callback
 def return_fn(
     context: OpExecutionContext,
     base_url: str,
