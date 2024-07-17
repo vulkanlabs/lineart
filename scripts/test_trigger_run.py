@@ -6,6 +6,8 @@ import time
 import requests
 from dotenv import load_dotenv
 
+import vulkan_dagster
+
 
 def create_policy(server_url: str, name: str):
     response = requests.post(
@@ -53,17 +55,17 @@ def run_policy(url: str, policy_id: int):
 
     success = False
     # Poll the API until the job is completed
-    for i in range(10):
+    for i in range(5):
         response = requests.get(f"{url}/policies/{policy_id}/runs/{run_id}")
+        print(response.json())
         try:
             status = response.json()["status"]
-            if status == "completed":
+            if status == vulkan_dagster.run.RunStatus.SUCCESS.value:
                 success = True
-                print(response.json())
                 break
         except (KeyError, json.decoder.JSONDecodeError):
             continue
-        time.sleep(1)
+        time.sleep(3)
 
     assert success, f"Run {run_id} for policy {policy_id} did not complete successfully"
 

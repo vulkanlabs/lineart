@@ -6,12 +6,17 @@ import requests
 from dagster import (
     DependencyDefinition,
     GraphDefinition,
+    HookContext,
+    HookDefinition,
     In,
     OpDefinition,
     OpExecutionContext,
     Out,
     Output,
+    failure_hook,
 )
+
+from vulkan_dagster.run import RunStatus
 
 
 class NodeType(Enum):
@@ -165,17 +170,22 @@ class Terminate(Transform):
         server_url: str,
         policy_id: int,
         run_id: int,
-        status: Status,
+        result: Status,
     ) -> bool:
         url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
         dagster_run_id: str = context.run_id
-        status: str = status.value
-        context.log.info(f"Returned status {status} to {url} for run {dagster_run_id}")
+        result: str = result.value
+        context.log.info(f"Returned status {result} to {url} for run {dagster_run_id}")
         result = requests.put(
-            url, data={"dagster_run_id": dagster_run_id, "status": status}
+            url,
+            data={
+                "dagster_run_id": dagster_run_id,
+                "result": result,
+                "status": RunStatus.SUCCESS.value,
+            },
         )
         if result.status_code not in {200, 204}:
-            msg = f"Error {result.status_code} Failed to return status {status} to {url} for run {dagster_run_id}"
+            msg = f"Error {result.status_code} Failed to return status {result} to {url} for run {dagster_run_id}"
             context.log.error(msg)
             return False
         return True
@@ -354,5 +364,21 @@ class Policy:
 
         return all_nodes
 
-
-# TODO: add failure op hook to update run status in app.
+    # def _failure_hook(self):
+    #     @failure_hook
+    #     def notify_failure(
+    #         context: HookContext,
+    #     ) -> bool:
+    #         url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
+    #         dagster_run_id: str = context.run_id
+    #         result = requests.put(
+    #             url,
+    #             data={
+    #                 "dagster_run_id": dagster_run_id,
+    #                 "result": "",
+    #                 "status": RunStatus.FAILURE.value,
+    #             },
+    #         )
+    #         if result.status_code not in {200, 204}:
+    #             msg = f"Error {result.status_code} Failed to notify failure to {url} for run {dagster_run_id}"
+    #             context.log.error(msg)

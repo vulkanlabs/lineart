@@ -81,7 +81,7 @@ def create_run(policy_id: int):
         handle_bad_request(e)
 
     with Session() as session:
-        run = Run(policy_id=policy_id, status="pending")
+        run = Run(policy_id=policy_id, status="PENDING")
         session.add(run)
         session.commit()
 
@@ -103,7 +103,7 @@ def create_run(policy_id: int):
             if dagster_run_id is None:
                 raise Exception("Error triggering job")
 
-            run.status = "running"
+            run.status = "STARTED"
             run.dagster_run_id = dagster_run_id
             session.commit()
             return {"policy_id": policy.policy_id, "run_id": run.run_id}
@@ -137,8 +137,9 @@ def get_run(policy_id, run_id):
 @app.route("/policies/<policy_id>/runs/<run_id>", methods=["PUT"])
 def update_run(policy_id, run_id):
     try:
-        result = request.form["status"]
+        result = request.form["result"]
         dagster_run_id = request.form["dagster_run_id"]
+        status = request.form["status"]
 
         with Session() as session:
             run = (
@@ -148,7 +149,7 @@ def update_run(policy_id, run_id):
                 )
                 .first()
             )
-            run.status = "completed"
+            run.status = status
             run.result = result
             session.commit()
             return {
