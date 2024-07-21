@@ -3,7 +3,6 @@ from functools import partial
 
 import requests
 from dagster import OpExecutionContext
-from dotenv import dotenv_values
 
 from vulkan_dagster.nodes import (
     Branch,
@@ -14,9 +13,8 @@ from vulkan_dagster.nodes import (
     Transform,
 )
 
-CONFIG = dotenv_values()
-DATA_SERVER_URL = f"http://127.0.0.1:{CONFIG['TEST_DATA_SERVER_PORT']}"
-CLIENT_SERVER_URL = f"http://127.0.0.1:{CONFIG['TEST_CLIENT_SERVER_PORT']}"
+DATA_SERVER_URL = os.getenv("DATA_SERVER_URL")
+CLIENT_SERVER_URL = os.getenv("CLIENT_SERVER_URL")
 
 http_params = dict(method="GET", headers={}, params={})
 

@@ -286,9 +286,7 @@ class Policy:
         assert all(
             isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
         ), "Input schema must be a dictionary of str -> type"
-        assert isinstance(
-            output_callback, callable
-        ), "Output callback must be a callable"
+        assert callable(output_callback), "Output callback must be a callable"
 
         self.name = name
         self.description = description

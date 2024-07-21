@@ -1,0 +1,12 @@
+services:
+  dagster:
+    build: 
+      context: .
+      dockerfile: images/dagster.Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
+        DAGSTER_HOME: /opt/dagster
+    ports:
+      - "3000:3000"
+    env_file:
+      - ".env"
