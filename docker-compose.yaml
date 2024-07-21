@@ -10,8 +10,6 @@ services:
       - "3000:3000"
     env_file:
       - ".env"
-    networks:
-      - default
   app:
     build:
       context: .
@@ -22,6 +20,9 @@ services:
       - ".env"
     ports:
       - "6000:6000"
-    networks:
-      - default
-  
+  echo:
+    image: kennethreitz/httpbin
+    ports:
+      - "5001:80"
+    env_file:
+      - ".env"

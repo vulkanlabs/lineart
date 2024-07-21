@@ -144,12 +144,11 @@ denied = Terminate(
 # User-configurable callback
 def return_fn(
     context: OpExecutionContext,
-    base_url: str,
+    url: str,
     policy_id: int,
     run_id: int,
     status: Status,
 ) -> bool:
-    url = f"{base_url}/"
     dagster_run_id: str = context.run_id
     status: str = status.value
     context.log.info(
@@ -182,5 +181,5 @@ demo_policy = Policy(
         denied,
     ],
     input_schema={"cpf": str},
-    output_callback=partial(return_fn, base_url=CLIENT_SERVER_URL),
+    output_callback=partial(return_fn, url=CLIENT_SERVER_URL),
 )

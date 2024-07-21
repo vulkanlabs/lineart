@@ -1,6 +1,6 @@
 from dagster_graphql import DagsterGraphQLClient
 
-client = DagsterGraphQLClient("host.docker.internal", port_number=3000)
+client = DagsterGraphQLClient("dagster", port_number=3000)
 
 
 # Replace with your Dagster instance URL

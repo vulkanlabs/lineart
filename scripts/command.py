@@ -1,44 +1,12 @@
-from argparse import ArgumentParser
-from dotenv import load_dotenv
-
 import os
 import subprocess
+from argparse import ArgumentParser
+
+from dotenv import load_dotenv
 
 
-def launch_server(args):
-    if args.resource == "dagster":
-        os.environ["DAGSTER_HOME"] = os.path.join(
-            os.getcwd(), os.getenv("DAGSTER_HOME_DIR")
-        )
-        subprocess.run(["dagster", "dev", "-p", os.getenv("DAGSTER_PORT")])
-
-    elif args.resource == "app":
-        subprocess.run(
-            [
-                "flask",
-                "--app",
-                "server/app.py",
-                "run",
-                "--port",
-                os.getenv("APP_PORT"),
-                "--debug",
-            ]
-        )
-
-    elif args.resource == "client":
-        subprocess.run(
-            [
-                "flask",
-                "--app",
-                "test/resources/client_server.py",
-                "run",
-                "--port",
-                os.getenv("TEST_CLIENT_SERVER_PORT"),
-                "--debug",
-            ]
-        )
-
-    elif args.resource == "data":
+def launch_server(resource: str):
+    if resource == "data":
         subprocess.run(
             [
                 "flask",
@@ -50,11 +18,6 @@ def launch_server(args):
                 "--debug",
             ]
         )
-
-
-def shutdown_server(args):
-    print(args)
-    print("Shutting down servers")
 
 
 if __name__ == "__main__":
@@ -74,8 +37,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.command == "launch_server":
-        launch_server(args)
-    elif args.command == "shutdown":
-        shutdown_server(args)
+        launch_server(args.resource)
     else:
-        pass
+        raise ValueError(f"Unknown command: {args.command}")
