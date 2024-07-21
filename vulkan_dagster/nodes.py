@@ -157,11 +157,12 @@ class Terminate(Transform):
         if self.callback is None:
             raise ValueError(f"Callback function not set for op {self.name}")
 
-        self._terminate(context, self.return_status)
+        terminated = self._terminate(context, self.return_status)
+        if not terminated:
+            raise ValueError("Failed to terminate run")
 
         reported = self.callback(
             context=context,
-            base_url=vulkan_run_config.server_url,
             policy_id=vulkan_run_config.policy_id,
             run_id=vulkan_run_config.run_id,
             status=self.return_status,
@@ -183,7 +184,7 @@ class Terminate(Transform):
         url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
         dagster_run_id: str = context.run_id
         result: str = result.value
-        context.log.info(f"Returned status {result} to {url} for run {dagster_run_id}")
+        context.log.info(f"Returning status {result} to {url} for run {dagster_run_id}")
         result = requests.put(
             url,
             data={

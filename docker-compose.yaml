@@ -10,3 +10,18 @@ services:
       - "3000:3000"
     env_file:
       - ".env"
+    networks:
+      - default
+  app:
+    build:
+      context: .
+      dockerfile: images/app.Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
+    env_file:
+      - ".env"
+    ports:
+      - "6000:6000"
+    networks:
+      - default
+  

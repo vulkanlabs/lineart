@@ -152,7 +152,9 @@ def return_fn(
     url = f"{base_url}/"
     dagster_run_id: str = context.run_id
     status: str = status.value
-    context.log.info(f"Returned status {status} to {url} for run {dagster_run_id}")
+    context.log.info(
+        f"User callback: Returning status {status} to {url} for run {dagster_run_id}"
+    )
     result = requests.post(
         url, data={"dagster_run_id": dagster_run_id, "status": status}
     )

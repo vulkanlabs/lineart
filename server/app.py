@@ -15,7 +15,7 @@ engine = create_engine("sqlite:///server/example.db", echo=True)
 Session = sessionmaker(bind=engine)
 
 load_dotenv()
-SERVER_URL = f"http://localhost:{os.getenv('APP_PORT')}"
+SERVER_URL = f"http://host.docker.internal:{os.getenv('APP_PORT')}"
 
 
 @app.route("/policies/list", methods=["GET"])

@@ -1,10 +1,6 @@
 ARG PYTHON_VERSION
 FROM python:${PYTHON_VERSION}
 
-# ARG APP_PORT=6000
-# COPY scripts scripts/
-# COPY server server/
-
 ARG DAGSTER_HOME
 ENV DAGSTER_HOME=${DAGSTER_HOME}
 
@@ -23,9 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install dagster-webserver
 
 # TODO: import only user code here
-# COPY poetry.lock pyproject.toml README.md ./
 COPY vulkan_dagster vulkan_dagster/
-# RUN poetry install --no-root
 
 EXPOSE 3000
 COPY config/workspace.yaml config/dagster.yaml ${DAGSTER_HOME}/
