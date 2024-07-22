@@ -1,3 +1,4 @@
+import time
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Optional
@@ -8,7 +9,6 @@ from dagster import (
     DependencyDefinition,
     GraphDefinition,
     HookContext,
-    HookDefinition,
     In,
     OpDefinition,
     OpExecutionContext,
@@ -121,13 +121,28 @@ class Transform(Node):
 
     def node(self) -> OpDefinition:
         def fn(context, inputs):
-            yield Output(self.func(context, **inputs))
+            metadata = {}
+            metadata["start_time"] = time.time()
+            try:
+                result = self.func(context, **inputs)
+            except Exception as e:
+                metadata["error"] = str(e)
+                metadata["end_time"] = time.time()
+                yield Output(metadata, output_name="metadata")
+                # TODO: raise UserCodeException() from e
+                raise e
+
+            metadata["end_time"] = time.time()
+            # TODO: o que queremos salvar: o tipo do node, o tempo de execução
+
+            yield Output(result, output_name="result")
+            yield Output(metadata, output_name="metadata")
 
         node_op = OpDefinition(
             compute_fn=fn,
             name=self.name,
             ins={k: In() for k in self.params.keys()},
-            outs={"result": Out()},
+            outs={"result": Out(), "metadata": Out()},
             # We expose the configuration in transform nodes
             # to allow the callback function in terminate nodes to
             # access it. In the future, we may separate terminate nodes.
