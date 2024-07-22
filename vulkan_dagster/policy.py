@@ -22,7 +22,7 @@ scr_body = Transform(
     func=lambda _, inputs: {"cpf": inputs["cpf"]},
     name="scr_body",
     description="SCR body",
-    params={"inputs": "input_node"},
+    dependencies={"inputs": "input_node"},
 )
 scr = HTTPConnection(
     name="scr",
@@ -32,12 +32,19 @@ scr = HTTPConnection(
     **http_params,
 )
 
+# component = load_component_instance(src="")
+# step = component(
+#     name="step",
+#     description="Step description",
+#     dependencies={"input": "input_node"},
+#     **http_params,
+# )
 
 serasa_body = Transform(
     func=lambda _, inputs: {"cpf": inputs["cpf"]},
     name="serasa_body",
     description="Serasa body",
-    params={"inputs": "input_node"},
+    dependencies={"inputs": "input_node"},
 )
 serasa = HTTPConnection(
     name="serasa",
@@ -59,9 +66,9 @@ def scr_func(context, scr_response, **kwargs):
 
 scr_transform = Transform(
     func=scr_func,
-    params={"scr_response": "scr"},
     name="scr_transform",
     description="Transform SCR data",
+    dependencies={"scr_response": "scr"},
 )
 
 
@@ -76,7 +83,7 @@ serasa_transform = Transform(
     func=serasa_func,
     name="serasa_transform",
     description="Transform Serasa data",
-    params={"serasa_response": "serasa"},
+    dependencies={"serasa_response": "serasa"},
 )
 
 
@@ -89,7 +96,7 @@ join_transform = Transform(
     func=join_func,
     name="join_transform",
     description="Join scores",
-    params={"scr_score": "scr_transform", "serasa_score": "serasa_transform"},
+    dependencies={"scr_score": "scr_transform", "serasa_score": "serasa_transform"},
 )
 
 
@@ -106,7 +113,7 @@ branch_1 = Branch(
     func=branch_condition_1,
     name="branch_1",
     description="Branch data",
-    params={"scores": "join_transform"},
+    dependencies={"scores": "join_transform"},
     outputs=["approved", "analysis", "denied"],
 )
 

@@ -1,6 +1,8 @@
 import time
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import Enum
+from inspect import getsource
 from typing import Any, Optional
 
 import requests
@@ -28,15 +30,24 @@ class NodeType(Enum):
 
 
 class Status(Enum):
-    APPROVED = "Approved"
-    DENIED = "Denied"
-    ANALYSIS = "Analysis"
+    APPROVED = "APPROVED"
+    DENIED = "DENIED"
+    ANALYSIS = "ANALYSIS"
 
 
 class VulkanRunConfig(ConfigurableResource):
     policy_id: int
     run_id: int
     server_url: str
+
+
+@dataclass
+class VulkanNodeDefinition:
+    name: str
+    description: str
+    node_type: str
+    dependencies: Optional[dict[str, Any]] = None
+    metadata: Optional[dict[str, Any]] = None
 
 
 class Node(ABC):
@@ -113,11 +124,11 @@ class Transform(Node):
         name: str,
         description: str,
         func: callable,
-        params: dict[str, Any],
+        dependencies: dict[str, Any],
     ):
         super().__init__(name, description, NodeType.TRANSFORM)
         self.func = func
-        self.params = params
+        self.dependencies = dependencies
 
     def node(self) -> OpDefinition:
         def fn(context, inputs):
@@ -141,7 +152,7 @@ class Transform(Node):
         node_op = OpDefinition(
             compute_fn=fn,
             name=self.name,
-            ins={k: In() for k in self.params.keys()},
+            ins={k: In() for k in self.dependencies.keys()},
             outs={"result": Out(), "metadata": Out()},
             # We expose the configuration in transform nodes
             # to allow the callback function in terminate nodes to
@@ -152,7 +163,7 @@ class Transform(Node):
         return node_op
 
     def graph_dependencies(self) -> dict[str, Any]:
-        return _generate_dependencies(self.params)
+        return _generate_dependencies(self.dependencies)
 
 
 class Terminate(Transform):
@@ -199,7 +210,9 @@ class Terminate(Transform):
         url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
         dagster_run_id: str = context.run_id
         result: str = result.value
-        context.log.info(f"Returning status {result} to {url} for run {dagster_run_id}")
+        context.log.info(
+            f"Returning status {result} to {url} for run {dagster_run_id}"
+        )
         result = requests.put(
             url,
             data={
@@ -225,12 +238,12 @@ class Branch(Node):
         name: str,
         description: str,
         func: callable,
-        params: dict[str, Any],
+        dependencies: dict[str, Any],
         outputs: list[str, str],
     ):
         super().__init__(name, description, NodeType.BRANCH)
         self.func = func
-        self.params = params
+        self.dependencies = dependencies
         self.outputs = outputs
 
     def node(self) -> OpDefinition:
@@ -241,13 +254,13 @@ class Branch(Node):
         node_op = OpDefinition(
             compute_fn=fn,
             name=self.name,
-            ins={k: In() for k in self.params.keys()},
+            ins={k: In() for k in self.dependencies.keys()},
             outs={out: Out(is_required=False) for out in self.outputs},
         )
         return node_op
 
     def graph_dependencies(self) -> dict[str, Any]:
-        return _generate_dependencies(self.params)
+        return _generate_dependencies(self.dependencies)
 
 
 class Input(Node):
@@ -273,9 +286,9 @@ class Input(Node):
         return None
 
 
-def _generate_dependencies(params: dict):
+def _generate_dependencies(dependencies: dict):
     deps = {}
-    for k, v in params.items():
+    for k, v in dependencies.items():
         if isinstance(v, tuple):
             definition = DependencyDefinition(v[0], v[1])
         elif isinstance(v, str):
@@ -300,7 +313,8 @@ class Policy:
             isinstance(n, Node) for n in nodes
         ), "All elements must be of type Node"
         assert all(
-            isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
+            isinstance(k, str) and isinstance(v, type)
+            for k, v in input_schema.items()
         ), "Input schema must be a dictionary of str -> type"
         assert callable(output_callback), "Output callback must be a callable"
 
@@ -322,6 +336,28 @@ class Policy:
             node_defs=nodes,
             dependencies=deps,
         )
+
+    def node_definitions(self):
+        definitions = {}
+        for node in self.nodes:
+            opt_args = {}
+            dagster_deps = node.graph_dependencies()
+            if node.graph_dependencies() is not None:
+                opt_args["dependencies"] = [
+                    v.node for k, v in dagster_deps.items()
+                ]
+            if node.type == NodeType.TRANSFORM or node.type == NodeType.BRANCH:
+                opt_args["metadata"] = {
+                    "executable": getsource(node.func)
+                }
+
+            definitions[node.name] = VulkanNodeDefinition(
+                name=node.name,
+                description=node.description,
+                node_type=node.type,
+                **opt_args,
+            )
+        return definitions
 
     def _dagster_nodes(self):
         return [n.node() for n in self.nodes]
@@ -375,7 +411,9 @@ def _notify_failure(context: HookContext) -> bool:
     policy_id = vulkan_run_config.policy_id
     run_id = vulkan_run_config.run_id
 
-    context.log.info(f"Notifying failure for run {run_id} in policy {policy_id}")
+    context.log.info(
+        f"Notifying failure for run {run_id} in policy {policy_id}"
+    )
     url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
     dagster_run_id: str = context.run_id
     result = requests.put(
