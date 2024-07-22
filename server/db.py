@@ -49,6 +49,7 @@ class StepMetadata(Base):
     policy_id = Column(Integer, ForeignKey("run.policy_id"))
     run_id = Column(Integer, ForeignKey("run.run_id"))
     step_name = Column(String)
+    node_type = Column(String)
     start_time = Column(Float)
     end_time = Column(Float)
     error = Column(String, nullable=True)

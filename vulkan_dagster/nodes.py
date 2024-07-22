@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from inspect import getsource
+from traceback import format_exception_only
 from typing import Any, Optional
 
 import requests
@@ -20,7 +21,11 @@ from dagster import (
 )
 
 from vulkan_dagster.run import RUN_CONFIG_KEY, RunStatus
-from vulkan_dagster.step_metadata import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
+from vulkan_dagster.step_metadata import (
+    METADATA_OUTPUT_KEY,
+    PUBLISH_IO_MANAGER_KEY,
+    StepMetadata,
+)
 
 
 class NodeType(Enum):
@@ -127,21 +132,25 @@ class Transform(Node):
 
     def node(self) -> OpDefinition:
         def fn(context, inputs):
-            metadata = {}
-            metadata["start_time"] = time.time()
-            metadata["node_type"] = self.type.value
+            start_time = time.time()
+            error = None
             try:
                 result = self.func(context, **inputs)
             except Exception as e:
-                metadata["error"] = str(e)
-                metadata["end_time"] = time.time()
-                yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+                error = format_exception_only(type(e), e)
                 # TODO: raise UserCodeException() from e
                 raise e
-
-            metadata["end_time"] = time.time()
-            yield Output(result, output_name="result")
-            yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+            else:
+                yield Output(result, output_name="result")
+            finally:
+                end_time = time.time()
+                metadata = StepMetadata(
+                    self.type.value,
+                    start_time,
+                    end_time,
+                    error,
+                )
+                yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 
         node_op = OpDefinition(
             compute_fn=fn,

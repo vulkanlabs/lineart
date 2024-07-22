@@ -3,15 +3,10 @@ from collections.abc import Sequence
 from pickle import dump, load
 
 import requests
-from dagster import (
-    ConfigurableIOManager,
-    ConfigurableIOManagerFactory,
-    InputContext,
-    IOManager,
-    OutputContext,
-)
+from dagster import ConfigurableIOManager, InputContext, IOManager, OutputContext
 
 from vulkan_dagster.run import RUN_CONFIG_KEY, VulkanRunConfig
+from vulkan_dagster.step_metadata import StepMetadata
 
 
 class MyIOManager(ConfigurableIOManager):
@@ -41,19 +36,18 @@ class PublishMetadataIOManager(IOManager):
         if context.name != "metadata":
             raise NotImplementedError("Currently only supports metadata")
 
-        step_name = context.step_key
-        start_time = obj["start_time"]
-        end_time = obj["end_time"]
-        error = obj.get("error", None)
+        if not isinstance(obj, StepMetadata):
+            raise TypeError(f"Expected StepMetadata, got {type(obj)}")
 
         try:
             response = requests.post(
                 self._url,
                 data={
-                    "step_name": step_name,
-                    "start_time": start_time,
-                    "end_time": end_time,
-                    "error": error,
+                    "step_name": context.step_key,
+                    "node_type": obj.node_type,
+                    "start_time": obj.start_time,
+                    "end_time": obj.end_time,
+                    "error": obj.error,
                 },
             )
             if response.status_code != 200:

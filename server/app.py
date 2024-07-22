@@ -184,6 +184,7 @@ def get_policy_metrics(policy_id):
 def publish_metadata(policy_id, run_id):
     try:
         step_name = request.form["step_name"]
+        node_type = request.form["node_type"]
         start_time = request.form["start_time"]
         end_time = request.form["end_time"]
         error = request.form.get("error", None)
@@ -193,6 +194,7 @@ def publish_metadata(policy_id, run_id):
                 policy_id=policy_id,
                 run_id=run_id,
                 step_name=step_name,
+                node_type=node_type,
                 start_time=start_time,
                 end_time=end_time,
                 error=error,
