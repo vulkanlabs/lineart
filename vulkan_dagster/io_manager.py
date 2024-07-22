@@ -2,7 +2,16 @@ import os
 from collections.abc import Sequence
 from pickle import dump, load
 
-from dagster import ConfigurableIOManager, InputContext, OutputContext
+import requests
+from dagster import (
+    ConfigurableIOManager,
+    ConfigurableIOManagerFactory,
+    InputContext,
+    IOManager,
+    OutputContext,
+)
+
+from vulkan_dagster.run import RUN_CONFIG_KEY, VulkanRunConfig
 
 
 class MyIOManager(ConfigurableIOManager):
@@ -22,3 +31,47 @@ class MyIOManager(ConfigurableIOManager):
         path = self._get_path(context.get_identifier())
         with open(path, "rb") as f:
             return load(f)
+
+
+class PublishMetadataIOManager(IOManager):
+    def __init__(self, url: str):
+        self._url = url
+
+    def handle_output(self, context: OutputContext, obj):
+        if context.name != "metadata":
+            raise NotImplementedError("Currently only supports metadata")
+
+        step_name = context.step_key
+        start_time = obj["start_time"]
+        end_time = obj["end_time"]
+        error = obj.get("error", None)
+
+        try:
+            response = requests.post(
+                self._url,
+                data={
+                    "step_name": step_name,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "error": error,
+                },
+            )
+            if response.status_code != 200:
+                msg = f"ERROR {response.status_code}: Failed to publish metadata: {response.text}"
+                raise ValueError(msg)
+        except Exception as e:
+            msg = f"Failed to publish metadata for step {context.get_identifier()}"
+            raise ValueError(msg) from e
+
+    def load_input(self, context: InputContext):
+        raise NotImplementedError("Currently only supports metadata output")
+
+
+def metadata_io_manager(context) -> PublishMetadataIOManager:
+    run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
+    policy_id = run_config.policy_id
+    run_id = run_config.run_id
+    server_url = run_config.server_url
+    url = f"{server_url}/policies/{policy_id}/runs/{run_id}/metadata"
+
+    return PublishMetadataIOManager(url=url)

@@ -1,4 +1,12 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, create_engine
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    create_engine,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 
@@ -30,6 +38,20 @@ class Run(Base):
     dagster_run_id = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class StepMetadata(Base):
+
+    __tablename__ = "step_metadata"
+
+    step_metadata_id = Column(Integer, primary_key=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    policy_id = Column(Integer, ForeignKey("run.policy_id"))
+    run_id = Column(Integer, ForeignKey("run.run_id"))
+    step_name = Column(String)
+    start_time = Column(Float)
+    end_time = Column(Float)
+    error = Column(String, nullable=True)
 
 
 if __name__ == "__main__":

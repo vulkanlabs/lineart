@@ -7,7 +7,7 @@ from flask import Flask, request
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from .db import Policy, Run
+from .db import Policy, Run, StepMetadata
 from .trigger_run import trigger_dagster_job
 
 app = Flask(__name__)
@@ -178,3 +178,29 @@ def handle_bad_request(e):
 @app.route("/policies/<policy_id>/metrics", methods=["GET"])
 def get_policy_metrics(policy_id):
     pass
+
+
+@app.route("/policies/<policy_id>/runs/<run_id>/metadata", methods=["POST"])
+def publish_metadata(policy_id, run_id):
+    try:
+        step_name = request.form["step_name"]
+        start_time = request.form["start_time"]
+        end_time = request.form["end_time"]
+        error = request.form.get("error", None)
+
+        with Session() as session:
+            meta = StepMetadata(
+                policy_id=policy_id,
+                run_id=run_id,
+                step_name=step_name,
+                start_time=start_time,
+                end_time=end_time,
+                error=error,
+            )
+            session.add(meta)
+            session.commit()
+            return {"status": "success"}
+    except KeyError as e:
+        return werkzeug.exceptions.BadRequest(e)
+    except Exception as e:
+        return werkzeug.exceptions.InternalServerError(e)

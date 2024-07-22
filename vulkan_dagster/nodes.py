@@ -19,7 +19,8 @@ from dagster import (
     failure_hook,
 )
 
-from vulkan_dagster.run import RunStatus
+from vulkan_dagster.run import RUN_CONFIG_KEY, RunStatus
+from vulkan_dagster.step_metadata import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
 
 
 class NodeType(Enum):
@@ -33,12 +34,6 @@ class Status(Enum):
     APPROVED = "APPROVED"
     DENIED = "DENIED"
     ANALYSIS = "ANALYSIS"
-
-
-class VulkanRunConfig(ConfigurableResource):
-    policy_id: int
-    run_id: int
-    server_url: str
 
 
 @dataclass
@@ -134,30 +129,32 @@ class Transform(Node):
         def fn(context, inputs):
             metadata = {}
             metadata["start_time"] = time.time()
+            metadata["node_type"] = self.type.value
             try:
                 result = self.func(context, **inputs)
             except Exception as e:
                 metadata["error"] = str(e)
                 metadata["end_time"] = time.time()
-                yield Output(metadata, output_name="metadata")
+                yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
                 # TODO: raise UserCodeException() from e
                 raise e
 
             metadata["end_time"] = time.time()
-            # TODO: o que queremos salvar: o tipo do node, o tempo de execução
-
             yield Output(result, output_name="result")
-            yield Output(metadata, output_name="metadata")
+            yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 
         node_op = OpDefinition(
             compute_fn=fn,
             name=self.name,
             ins={k: In() for k in self.dependencies.keys()},
-            outs={"result": Out(), "metadata": Out()},
+            outs={
+                "result": Out(),
+                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
+            },
             # We expose the configuration in transform nodes
             # to allow the callback function in terminate nodes to
             # access it. In the future, we may separate terminate nodes.
-            required_resource_keys={"vulkan_run_config"},
+            required_resource_keys={RUN_CONFIG_KEY},
         )
 
         return node_op
@@ -202,7 +199,7 @@ class Terminate(Transform):
         context: OpExecutionContext,
         result: Status,
     ) -> bool:
-        vulkan_run_config = context.resources.vulkan_run_config
+        vulkan_run_config = getattr(context.resources, RUN_CONFIG_KEY)
         server_url = vulkan_run_config.server_url
         policy_id = vulkan_run_config.policy_id
         run_id = vulkan_run_config.run_id
@@ -210,9 +207,7 @@ class Terminate(Transform):
         url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
         dagster_run_id: str = context.run_id
         result: str = result.value
-        context.log.info(
-            f"Returning status {result} to {url} for run {dagster_run_id}"
-        )
+        context.log.info(f"Returning status {result} to {url} for run {dagster_run_id}")
         result = requests.put(
             url,
             data={
@@ -313,8 +308,7 @@ class Policy:
             isinstance(n, Node) for n in nodes
         ), "All elements must be of type Node"
         assert all(
-            isinstance(k, str) and isinstance(v, type)
-            for k, v in input_schema.items()
+            isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
         ), "Input schema must be a dictionary of str -> type"
         assert callable(output_callback), "Output callback must be a callable"
 
@@ -343,13 +337,9 @@ class Policy:
             opt_args = {}
             dagster_deps = node.graph_dependencies()
             if node.graph_dependencies() is not None:
-                opt_args["dependencies"] = [
-                    v.node for k, v in dagster_deps.items()
-                ]
+                opt_args["dependencies"] = [v.node for k, v in dagster_deps.items()]
             if node.type == NodeType.TRANSFORM or node.type == NodeType.BRANCH:
-                opt_args["metadata"] = {
-                    "executable": getsource(node.func)
-                }
+                opt_args["metadata"] = {"executable": getsource(node.func)}
 
             definitions[node.name] = VulkanNodeDefinition(
                 name=node.name,
@@ -369,16 +359,10 @@ class Policy:
             if n.graph_dependencies() is not None
         }
 
-    def to_job(self):
+    def to_job(self, resources: dict[str, ConfigurableResource]):
         return self.graph().to_job(
             self.name + "_job",
-            resource_defs={
-                "vulkan_run_config": VulkanRunConfig(
-                    policy_id=0,
-                    run_id=0,
-                    server_url="tmpurl",
-                ),
-            },
+            resource_defs=resources,
             hooks={_notify_failure},
         )
 
@@ -404,16 +388,14 @@ class Policy:
         return all_nodes
 
 
-@failure_hook(required_resource_keys={"vulkan_run_config"})
+@failure_hook(required_resource_keys={RUN_CONFIG_KEY})
 def _notify_failure(context: HookContext) -> bool:
     vulkan_run_config = context.resources.vulkan_run_config
     server_url = vulkan_run_config.server_url
     policy_id = vulkan_run_config.policy_id
     run_id = vulkan_run_config.run_id
 
-    context.log.info(
-        f"Notifying failure for run {run_id} in policy {policy_id}"
-    )
+    context.log.info(f"Notifying failure for run {run_id} in policy {policy_id}")
     url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
     dagster_run_id: str = context.run_id
     result = requests.put(
