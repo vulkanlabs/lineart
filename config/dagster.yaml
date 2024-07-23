@@ -1,7 +1,3 @@
-# storage:
-#   sqlite:
-#     base_dir:
-
 run_launcher:
   module: dagster.core.launcher
   class: DefaultRunLauncher
@@ -10,3 +6,16 @@ run_launcher:
 #   class: DefaultRunCoordinator
 telemetry:
   enabled: false
+
+
+storage:
+  postgres:
+    postgres_db:
+      hostname: run_db
+      port: 5432
+      username:
+        env: DAGSTER_POSTGRES_USER
+      password:
+        env: DAGSTER_POSTGRES_PASSWORD
+      db_name:
+        env: DAGSTER_POSTGRES_DB

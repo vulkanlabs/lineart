@@ -1,15 +1,4 @@
 services:
-  dagster:
-    build: 
-      context: .
-      dockerfile: images/dagster.Dockerfile
-      args:
-        PYTHON_VERSION: "3.12"
-        DAGSTER_HOME: /opt/dagster
-    ports:
-      - "3000:3000"
-    env_file:
-      - ".env"
   app:
     build:
       context: .
@@ -22,7 +11,34 @@ services:
       - "6000:6000"
   echo:
     image: kennethreitz/httpbin
-    ports:
-      - "5001:80"
     env_file:
       - ".env"
+  dagster:
+    build: 
+      context: .
+      dockerfile: images/dagster.Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
+        DAGSTER_HOME: /opt/dagster
+    ports:
+      - "3000:3000"
+    env_file:
+      - ".env"
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres_user"
+      DAGSTER_POSTGRES_PASSWORD: "postgres_password"
+      DAGSTER_POSTGRES_DB: "postgres_db"
+    depends_on:
+      - run_db
+  run_db:
+    image: postgres:16.3
+    restart: always
+    environment:
+      POSTGRES_USER: "postgres_user"
+      POSTGRES_PASSWORD: "postgres_password"
+      POSTGRES_DB: "postgres_db"
+    healthcheck:
+      test: ["CMD-SHELL", "pg-isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10

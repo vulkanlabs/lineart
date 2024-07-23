@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install dagster-webserver
+RUN pip install dagster-webserver dagster-postgres
 
 # TODO: import only user code here
 COPY vulkan_dagster vulkan_dagster/
