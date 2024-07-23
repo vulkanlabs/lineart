@@ -7,7 +7,7 @@ WORKDIR /app
 COPY server server/
 COPY poetry.lock pyproject.toml README.md ./
 RUN pip install poetry
-RUN poetry install --no-root
+RUN poetry install
 # TODO: this creates an empty database instance
 RUN poetry run python server/db.py
 
