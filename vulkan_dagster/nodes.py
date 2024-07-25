@@ -20,6 +20,7 @@ from dagster import (
     failure_hook,
 )
 
+from vulkan_dagster.io_manager import POSTGRES_IO_MANAGER_KEY
 from vulkan_dagster.run import RUN_CONFIG_KEY, RunStatus
 from vulkan_dagster.step_metadata import (
     METADATA_OUTPUT_KEY,
@@ -332,7 +333,6 @@ class Policy:
     def graph(self):
         nodes = self._dagster_nodes()
         deps = self._graph_dependencies()
-
         return GraphDefinition(
             name=self.name,
             description=self.description,
@@ -358,8 +358,15 @@ class Policy:
             )
         return definitions
 
-    def _dagster_nodes(self):
-        return [n.node() for n in self.nodes]
+    def _dagster_nodes(self) -> list[OpDefinition]:
+        nodes = []
+        for node in self.nodes:
+            dagster_node = node.node()
+            if _accesses_internal_resources(dagster_node):
+                msg = f"Policy node {node.name} tried to access protected resources"
+                raise ValueError(msg)
+            nodes.append(dagster_node)
+        return nodes
 
     def _graph_dependencies(self):
         return {
@@ -418,3 +425,9 @@ def _notify_failure(context: HookContext) -> bool:
     if result.status_code not in {200, 204}:
         msg = f"Error {result.status_code} Failed to notify failure to {url} for run {dagster_run_id}"
         context.log.error(msg)
+
+
+# TODO: should we do something like this?
+def _accesses_internal_resources(op: OpDefinition) -> bool:
+    INTERNAL_RESOURCE_KEYS = {POSTGRES_IO_MANAGER_KEY, "io_manager"}
+    return len(INTERNAL_RESOURCE_KEYS.intersection(op.required_resource_keys)) > 0

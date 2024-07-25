@@ -24,24 +24,19 @@ class PostgreSQLIOManager(IOManager):
         policy_id: int,
         run_id: int,
     ):
-        self.host = host
-        self.port = port
-        self.user = user
-        self.password = password
-        self.database = database
         self.table = table
         self.policy_id = policy_id
         self.run_id = run_id
 
-        self.url = URL.create(
+        url = URL.create(
             "postgresql+psycopg2",
-            username=self.user,
-            password=self.password,
-            host=self.host,
-            port=self.port,
-            database=self.database,
+            password=password,
+            username=user,
+            host=host,
+            port=port,
+            database=database,
         )
-        self.engine = create_engine(self.url)
+        self.engine = create_engine(url)
 
     def handle_output(self, context: OutputContext, obj: Any) -> None:
         try:
