@@ -1,18 +1,16 @@
-from os import getenv
+from dagster import Definitions, EnvVar, IOManagerDefinition, load_assets_from_modules
 
-from dagster import Definitions, IOManagerDefinition, load_assets_from_modules
-
-from . import assets
-from .io_manager import MyIOManager, metadata_io_manager
-from .run import RUN_CONFIG_KEY, VulkanRunConfig
-from .step_metadata import PUBLISH_IO_MANAGER_KEY
-
-storage_root_path = getenv("VULKAN_ASSETS_ROOT_PATH")
-if storage_root_path is None:
-    raise ValueError("VULKAN_ASSETS_ROOT_PATH must be set")
-
-all_assets = load_assets_from_modules([assets])
-
+from vulkan_dagster import assets
+from vulkan_dagster.io_manager import (
+    DB_CONFIG_KEY,
+    POSTGRES_IO_MANAGER_KEY,
+    DBConfig,
+    MyIOManager,
+    metadata_io_manager,
+    postgresql_io_manager,
+)
+from vulkan_dagster.run import RUN_CONFIG_KEY, VulkanRunConfig
+from vulkan_dagster.step_metadata import PUBLISH_IO_MANAGER_KEY
 
 resources = {
     RUN_CONFIG_KEY: VulkanRunConfig(
@@ -20,6 +18,18 @@ resources = {
         run_id=0,
         server_url="tmpurl",
     ),
+    DB_CONFIG_KEY: DBConfig(
+        host=EnvVar("VULKAN_DB_HOST"),
+        port=EnvVar("VULKAN_DB_PORT"),
+        user=EnvVar("VULKAN_DB_USER"),
+        password=EnvVar("VULKAN_DB_PASSWORD"),
+        database=EnvVar("VULKAN_DB_DATABASE"),
+        object_table=EnvVar("VULKAN_DB_OBJECT_TABLE"),
+    ),
+    # POSTGRES_IO_MANAGER_KEY: IOManagerDefinition(
+    #     resource_fn=postgresql_io_manager,
+    #     required_resource_keys={RUN_CONFIG_KEY, DB_CONFIG_KEY},
+    # ),
     PUBLISH_IO_MANAGER_KEY: IOManagerDefinition(
         resource_fn=metadata_io_manager,
         required_resource_keys={RUN_CONFIG_KEY},
@@ -28,9 +38,11 @@ resources = {
 jobs = [p.to_job(resources) for p in assets.policies]
 
 defs = Definitions(
-    assets=all_assets,
     jobs=jobs,
     resources={
-        "io_manager": MyIOManager(root_path=storage_root_path),
+        "io_manager": IOManagerDefinition(
+            resource_fn=postgresql_io_manager,
+            required_resource_keys={RUN_CONFIG_KEY, DB_CONFIG_KEY},
+        ),
     },
 )
