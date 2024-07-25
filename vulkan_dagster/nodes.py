@@ -20,6 +20,7 @@ from dagster import (
     failure_hook,
 )
 
+from vulkan_dagster.exceptions import UserCodeException
 from vulkan_dagster.io_manager import POSTGRES_IO_MANAGER_KEY
 from vulkan_dagster.run import RUN_CONFIG_KEY, RunStatus
 from vulkan_dagster.step_metadata import (
@@ -139,8 +140,7 @@ class Transform(Node):
                 result = self.func(context, **inputs)
             except Exception as e:
                 error = format_exception_only(type(e), e)
-                # TODO: raise UserCodeException() from e
-                raise e
+                raise UserCodeException(self.name) from e
             else:
                 yield Output(result, output_name="result")
             finally:
@@ -244,7 +244,7 @@ class Branch(Node):
         description: str,
         func: callable,
         dependencies: dict[str, Any],
-        outputs: list[str, str],
+        outputs: list[str],
     ):
         super().__init__(name, description, NodeType.BRANCH)
         self.func = func
@@ -253,14 +253,35 @@ class Branch(Node):
 
     def node(self) -> OpDefinition:
         def fn(context, inputs):
-            output = self.func(context, **inputs)
-            yield Output(None, output)
+            start_time = time.time()
+            error = None
+            try:
+                output = self.func(context, **inputs)
+            except Exception as e:
+                error = format_exception_only(type(e), e)
+                raise UserCodeException(self.name) from e
+            else:
+                yield Output(None, output)
+            finally:
+                end_time = time.time()
+                metadata = StepMetadata(
+                    self.type.value,
+                    start_time,
+                    end_time,
+                    error,
+                    {"choices": self.outputs},
+                )
+                yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 
+        branch_paths = {out: Out(is_required=False) for out in self.outputs}
         node_op = OpDefinition(
             compute_fn=fn,
             name=self.name,
             ins={k: In() for k in self.dependencies.keys()},
-            outs={out: Out(is_required=False) for out in self.outputs},
+            outs={
+                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
+                **branch_paths,
+            },
         )
         return node_op
 
