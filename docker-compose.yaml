@@ -29,9 +29,13 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
     depends_on:
-      - run_db
-  run_db:
-    image: postgres:16.3
+      - run-db
+  run-db:
+    build:
+      context: .
+      dockerfile: images/run-db.Dockerfile
+      args:
+        POSTGRES_VERSION: "16.3"
     restart: always
     environment:
       POSTGRES_USER: "postgres_user"

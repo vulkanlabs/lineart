@@ -7,11 +7,10 @@ run_launcher:
 telemetry:
   enabled: false
 
-
 storage:
   postgres:
     postgres_db:
-      hostname: run_db
+      hostname: run-db
       port: 5432
       username:
         env: DAGSTER_POSTGRES_USER
