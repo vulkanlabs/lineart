@@ -1,37 +1,15 @@
-import os
-from collections.abc import Sequence
 from dataclasses import dataclass
-from io import BytesIO
-from pickle import dump, dumps, load, loads
+from pickle import dumps, loads
 from typing import Any
 
 import requests
-from dagster import ConfigurableIOManager, InputContext, IOManager, OutputContext
+from dagster import InputContext, IOManager, OutputContext
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.sql import text
 
 from vulkan_dagster.run import RUN_CONFIG_KEY, VulkanRunConfig
 from vulkan_dagster.step_metadata import StepMetadata
-
-
-class MyIOManager(ConfigurableIOManager):
-    root_path: str
-
-    def _get_path(self, identifier: Sequence[str]) -> str:
-        return os.path.join(self.root_path, *identifier)
-
-    def handle_output(self, context: OutputContext, obj):
-        path = self._get_path(context.get_identifier())
-        dirname = os.path.dirname(path)
-        os.makedirs(dirname, exist_ok=True)
-        with open(path, "wb") as f:
-            dump(obj, f)
-
-    def load_input(self, context: InputContext):
-        path = self._get_path(context.get_identifier())
-        with open(path, "rb") as f:
-            return load(f)
 
 
 class PostgreSQLIOManager(IOManager):

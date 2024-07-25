@@ -5,7 +5,6 @@ from vulkan_dagster.io_manager import (
     DB_CONFIG_KEY,
     POSTGRES_IO_MANAGER_KEY,
     DBConfig,
-    MyIOManager,
     metadata_io_manager,
     postgresql_io_manager,
 )
@@ -26,10 +25,10 @@ resources = {
         database=EnvVar("VULKAN_DB_DATABASE"),
         object_table=EnvVar("VULKAN_DB_OBJECT_TABLE"),
     ),
-    # POSTGRES_IO_MANAGER_KEY: IOManagerDefinition(
-    #     resource_fn=postgresql_io_manager,
-    #     required_resource_keys={RUN_CONFIG_KEY, DB_CONFIG_KEY},
-    # ),
+    POSTGRES_IO_MANAGER_KEY: IOManagerDefinition(
+        resource_fn=postgresql_io_manager,
+        required_resource_keys={RUN_CONFIG_KEY, DB_CONFIG_KEY},
+    ),
     PUBLISH_IO_MANAGER_KEY: IOManagerDefinition(
         resource_fn=metadata_io_manager,
         required_resource_keys={RUN_CONFIG_KEY},
