@@ -8,8 +8,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.sql import text
 
-from vulkan_dagster.run import RUN_CONFIG_KEY, VulkanRunConfig
-from vulkan_dagster.step_metadata import StepMetadata
+from .run import RUN_CONFIG_KEY, VulkanRunConfig
+from .step_metadata import StepMetadata
 
 
 class PostgreSQLIOManager(IOManager):

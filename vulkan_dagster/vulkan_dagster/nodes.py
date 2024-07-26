@@ -20,14 +20,10 @@ from dagster import (
     failure_hook,
 )
 
-from vulkan_dagster.exceptions import UserCodeException
-from vulkan_dagster.io_manager import POSTGRES_IO_MANAGER_KEY
-from vulkan_dagster.run import RUN_CONFIG_KEY, RunStatus
-from vulkan_dagster.step_metadata import (
-    METADATA_OUTPUT_KEY,
-    PUBLISH_IO_MANAGER_KEY,
-    StepMetadata,
-)
+from .exceptions import UserCodeException
+from .io_manager import POSTGRES_IO_MANAGER_KEY
+from .run import RUN_CONFIG_KEY, RunStatus
+from .step_metadata import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY, StepMetadata
 
 
 class NodeType(Enum):

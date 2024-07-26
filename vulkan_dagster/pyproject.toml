@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "vulkan_dagster"
+version = "0.1.0"
+description = ""
+authors = []
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+dagster = "^1.7.12"
+dagster-webserver = "^1.7.12"
+dagster-postgres = "^0.23.15"
+
+[tool.poetry.scripts]
+vulkan = "vulkan_dagster.cli:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

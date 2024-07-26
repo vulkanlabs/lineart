@@ -26,6 +26,9 @@ line-length = 88
 target-version = ['py311']
 include = '\.pyi?$'
 
+[tool.poetry.scripts]
+vulkan-api = "vulkan_dagster.cli:main"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
