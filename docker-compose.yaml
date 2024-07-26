@@ -5,9 +5,13 @@ services:
       dockerfile: images/dagster.Dockerfile
       args:
         PYTHON_VERSION: "3.12"
-        DAGSTER_HOME: /opt/dagster
+        DAGSTER_HOME: /opt/dagster_home
+        DAGSTER_PORT: 3000
+        VULKAN_HOME: /opt/vulkan_home
+        VULKAN_PORT: 3001
     ports:
       - "3000:3000"
+      - "3001:3001"
     env_file:
       - ".env"
   app:

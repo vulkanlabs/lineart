@@ -1,3 +1,0 @@
-# TODO: this will have to be programatically defined
-load_from:
-  - python_module: vulkan_dagster

@@ -5,8 +5,8 @@ from pickle import dump, load
 import requests
 from dagster import ConfigurableIOManager, InputContext, IOManager, OutputContext
 
-from vulkan_dagster.run import RUN_CONFIG_KEY, VulkanRunConfig
-from vulkan_dagster.step_metadata import StepMetadata
+from .run import RUN_CONFIG_KEY, VulkanRunConfig
+from .step_metadata import StepMetadata
 
 
 class MyIOManager(ConfigurableIOManager):

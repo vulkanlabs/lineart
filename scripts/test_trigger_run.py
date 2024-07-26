@@ -6,18 +6,16 @@ import time
 import requests
 from dotenv import load_dotenv
 
-import vulkan_dagster
 
-
-def create_policy(server_url: str, name: str):
+def create_policy(server_url: str, name: str, repository: str, job_name: str):
     response = requests.post(
         f"{server_url}/policies/create",
         data={
             "name": name,
             "description": "test_policy_description",
             "input_schema": "test_input_schema",
-            "repository": "vulkan_dagster",
-            "job_name": "policy_job",
+            "repository": repository,
+            "job_name": job_name,
         },
     )
 
@@ -60,14 +58,16 @@ def run_policy(url: str, policy_id: int):
         print(response.json())
         try:
             status = response.json()["status"]
-            if status == vulkan_dagster.run.RunStatus.SUCCESS.value:
+            if status == "SUCCESS":
                 success = True
                 break
         except (KeyError, json.decoder.JSONDecodeError):
             continue
         time.sleep(3)
 
-    assert success, f"Run {run_id} for policy {policy_id} did not complete successfully"
+    assert (
+        success
+    ), f"Run {run_id} for policy {policy_id} did not complete successfully"
 
 
 if __name__ == "__main__":
@@ -76,7 +76,15 @@ if __name__ == "__main__":
 
     command = parser.add_subparsers(dest="command")
     create = command.add_parser("create")
-    create.add_argument("--name", type=str, help="Name of the policy to be created")
+    create.add_argument(
+        "--name", type=str, help="Name of the policy to be created"
+    )
+    create.add_argument(
+        "--repository", type=str, help="Repository of the policy to be created"
+    )
+    create.add_argument(
+        "--job_name", type=str, help="Job name of the policy to be created"
+    )
 
     run = command.add_parser("run")
     run.add_argument("--cpf", type=str, help="CPF to test the policy with")
@@ -86,7 +94,9 @@ if __name__ == "__main__":
     server_url = f"http://localhost:{os.getenv('APP_PORT')}"
 
     if args.command == "create":
-        policy_id = create_policy(server_url, args.name)
+        policy_id = create_policy(
+            server_url, args.name, args.repository, args.job_name
+        )
     elif args.command == "run":
         policy_id = args.policy_id
         run_policy(server_url, policy_id=policy_id)

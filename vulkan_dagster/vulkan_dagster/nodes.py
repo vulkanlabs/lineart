@@ -20,8 +20,8 @@ from dagster import (
     failure_hook,
 )
 
-from vulkan_dagster.run import RUN_CONFIG_KEY, RunStatus
-from vulkan_dagster.step_metadata import (
+from .run import RUN_CONFIG_KEY, RunStatus
+from .step_metadata import (
     METADATA_OUTPUT_KEY,
     PUBLISH_IO_MANAGER_KEY,
     StepMetadata,
