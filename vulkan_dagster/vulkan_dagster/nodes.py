@@ -21,7 +21,7 @@ from dagster import (
 )
 
 from .exceptions import UserCodeException
-from .io_manager import POSTGRES_IO_MANAGER_KEY
+from .io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
 from .run import RUN_CONFIG_KEY, RunStatus
 from .step_metadata import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY, StepMetadata
 
@@ -446,5 +446,5 @@ def _notify_failure(context: HookContext) -> bool:
 
 # TODO: should we do something like this?
 def _accesses_internal_resources(op: OpDefinition) -> bool:
-    INTERNAL_RESOURCE_KEYS = {POSTGRES_IO_MANAGER_KEY, "io_manager"}
+    INTERNAL_RESOURCE_KEYS = {DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY, "io_manager"}
     return len(INTERNAL_RESOURCE_KEYS.intersection(op.required_resource_keys)) > 0

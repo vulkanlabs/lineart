@@ -105,9 +105,6 @@ POSTGRES_IO_MANAGER_KEY = "postgres_io_manager"
 
 def postgresql_io_manager(context) -> PostgreSQLIOManager:
     run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
-
-    # TODO: This config should probably not live here.
-    # This is exposed to the user via context resources.
     db_config: DBConfig = getattr(context.resources, "db_config")
 
     return PostgreSQLIOManager(
