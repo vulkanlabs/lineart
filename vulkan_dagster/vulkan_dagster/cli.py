@@ -39,7 +39,13 @@ TEMP_DIR = "./.tmp"
 
 # TODO: at the moment we assume repository is a path in local disk,
 # but this could be a remote repository in git etc
-def create_workspace(name, repository, path):
+def create_workspace(
+    name: str,
+    description: str,
+    input_schema: str,
+    repository,
+    path,
+):
     if not os.path.exists(repository):
         raise FileNotFoundError(f"Path does not exist: {repository}")
     if not os.path.isdir(repository):
@@ -59,15 +65,21 @@ def create_workspace(name, repository, path):
     with open(filename, "rb") as f:
         try:
             logging.info(f"Creating workspace {name}: from {repository} at {path}")
+
             response = requests.post(
-                "http://localhost:3001/workspace/create",
-                data={"name": name, "path": path},
+                "http://localhost:6000/policies/create",
+                data={
+                    "name": name,
+                    "description": description,
+                    "input_schema": input_schema,
+                    "workspace": path,
+                    "job_name": "policy",
+                },
                 files={"workspace": f},
             )
-
             if response.status_code != 200:
-                raise Exception(f"Failed to create workspace: {response.text}")
-            logging.info(f"Workspace {name} created")
+                logging.error(f"Failed to create policy: {response.text}")
+                raise Exception(f"Failed to create policy: {response.text}")
 
         except Exception as e:
             logging.error(f"Failed to create workspace: {e}")

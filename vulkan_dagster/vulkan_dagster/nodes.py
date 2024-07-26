@@ -394,7 +394,7 @@ class Policy:
 
     def to_job(self, resources: dict[str, ConfigurableResource]):
         return self.graph().to_job(
-            self.name + "_job",
+            self.name,
             resource_defs=resources,
             hooks={_notify_failure},
         )

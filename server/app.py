@@ -1,6 +1,7 @@
 import json
 import os
 
+import requests
 import werkzeug.exceptions
 from dotenv import load_dotenv
 from flask import Flask, request
@@ -28,7 +29,7 @@ def list_policies():
                 "name": policy.name,
                 "description": policy.description,
                 "input_schema": policy.input_schema,
-                "repository": policy.repository,
+                "workspace": policy.workspace,
                 "job_name": policy.job_name,
             }
             for policy in policies
@@ -40,22 +41,39 @@ def create_policy():
     name = request.form["name"]
     description = request.form["description"]
     input_schema = request.form["input_schema"]
-    repository = request.form["repository"]
+    workspace = request.form["workspace"]
     job_name = request.form["job_name"]
 
+    # TODO: we can separate this into a workspace/create method in this server
+    try:
+        response = requests.post(
+            "http://localhost:3001/workspace/create",
+            data={"name": name, "path": workspace},
+            files=request.files,
+        )
+    except Exception as e:
+        app.logger.error(f"Failed to create workspace: {e}")
+        raise werkzeug.exceptions.InternalServerError(e)
+
+    if response.status_code != 200:
+        app.logger.error(f"Failed to create workspace: {response.text}")
+        resp = {"status": "failed", "original_status_code": response.status_code}
+        return werkzeug.exceptions.BadRequest(response.text, resp)
+
+    app.logger.info(f"Workspace {name} created for policy {name}")
+
+    # TODO: handle failures - rollback workspace creation
     with Session() as session:
         policy = Policy(
             name=name,
             description=description,
             input_schema=input_schema,
-            # git_repo=...,
-            # path=...,
-            # We should automatically generate this
-            repository=repository,
+            workspace=workspace,
             job_name=job_name,
         )
         session.add(policy)
         session.commit()
+        app.logger.info(f"Policy {name} created")
         return {"policy_id": policy.policy_id}
 
 
@@ -67,7 +85,7 @@ def get_policy(policy_id):
             "name": policy.name,
             "description": policy.description,
             "input_schema": policy.input_schema,
-            "repository": policy.repository,
+            "workspace": policy.workspace,
             "job_name": policy.job_name,
         }
 
@@ -98,7 +116,7 @@ def create_run(policy_id: int):
                 }
             }
             dagster_run_id = trigger_dagster_job(
-                policy.repository,
+                policy.workspace,
                 policy.job_name,
                 execution_config,
             )
@@ -113,7 +131,7 @@ def create_run(policy_id: int):
         except Exception as e:
             run.status = "failed"
             session.commit()
-            werkzeug.exceptions.InternalServerError(e)
+            return werkzeug.exceptions.InternalServerError(e)
 
 
 # Podemos ter um run_policy_async e um sync

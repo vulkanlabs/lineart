@@ -21,7 +21,7 @@ class Policy(Base):
     name = Column(String, unique=True)
     description = Column(String)
     input_schema = Column(String)
-    repository = Column(String)
+    workspace = Column(String)
     job_name = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
