@@ -20,9 +20,29 @@ class Policy(Base):
     policy_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, unique=True)
     description = Column(String)
-    input_schema = Column(String)
-    workspace = Column(String)
-    job_name = Column(String)
+    input_schema = Column(String, nullable=True)
+    output_schema = Column(String, nullable=True)
+    # We might want to have a split between versions.
+    # I don't know a good way to do that yet.
+    active_policy_version_id = Column(
+        Integer,
+        ForeignKey("policy_version.policy_version_id"),
+        nullable=True,
+    )
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class PolicyVersion(Base):
+
+    __tablename__ = "policy_version"
+
+    policy_version_id = Column(Integer, primary_key=True)
+    policy_id = Column(Integer, ForeignKey("policy.policy_id"))
+    alias = Column(String)
+    repository = Column(String)
+    repository_version = Column(String)
+    entrypoint = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -32,7 +52,7 @@ class Run(Base):
     __tablename__ = "run"
 
     run_id = Column(Integer, primary_key=True)
-    policy_id = Column(Integer, ForeignKey("policy.policy_id"))
+    policy_version_id = Column(Integer, ForeignKey("policy.policy_id"))
     status = Column(String)
     result = Column(String, nullable=True)
     dagster_run_id = Column(String, nullable=True)
@@ -46,7 +66,6 @@ class StepMetadata(Base):
 
     step_metadata_id = Column(Integer, primary_key=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    policy_id = Column(Integer, ForeignKey("run.policy_id"))
     run_id = Column(Integer, ForeignKey("run.run_id"))
     step_name = Column(String)
     node_type = Column(String)

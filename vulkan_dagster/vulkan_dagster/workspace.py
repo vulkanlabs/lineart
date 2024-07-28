@@ -6,11 +6,12 @@ from .io_manager import (
     metadata_io_manager,
     postgresql_io_manager,
 )
+from .nodes import Policy
 from .run import RUN_CONFIG_KEY, VulkanRunConfig
 from .step_metadata import PUBLISH_IO_MANAGER_KEY
 
 
-def make_workspace_definition(policies):
+def make_workspace_definition(policies: list[Policy]) -> Definitions:
     resources = {
         RUN_CONFIG_KEY: VulkanRunConfig(
             policy_id=0,
