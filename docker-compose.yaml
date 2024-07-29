@@ -13,6 +13,12 @@ services:
     image: kennethreitz/httpbin
     env_file:
       - ".env"
+  testdata:
+    build:
+      context: .
+      dockerfile: images/testdata.Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
   dagster:
     build: 
       context: .
