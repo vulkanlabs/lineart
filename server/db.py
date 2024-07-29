@@ -18,7 +18,7 @@ class Policy(Base):
     __tablename__ = "policy"
 
     policy_id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, unique=True)
+    name = Column(String)
     description = Column(String)
     input_schema = Column(String, nullable=True)
     output_schema = Column(String, nullable=True)
