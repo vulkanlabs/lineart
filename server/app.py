@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 import requests
@@ -9,15 +10,22 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from .db import Policy, PolicyVersion, Run, StepMetadata
-from .trigger_run import trigger_dagster_job
+from .trigger_run import create_dagster_client, trigger_dagster_job, update_repository
 
 app = Flask(__name__)
+app.logger.setLevel(logging.INFO)
+
 engine = create_engine("sqlite:///server/example.db", echo=True)
 Session = sessionmaker(bind=engine)
 
 load_dotenv()
 SERVER_URL = f"http://app:{os.getenv('APP_PORT')}"
 VULKAN_DAGSTER_SERVER_URL = os.getenv("VULKAN_DAGSTER_SERVER_URL")
+
+DAGSTER_URL = "dagster"
+DAGSTER_PORT = 3000
+dagster_client = create_dagster_client(DAGSTER_URL, DAGSTER_PORT)
+app.logger.info(f"Dagster client created at http://{DAGSTER_URL}:{DAGSTER_PORT}")
 
 
 @app.route("/policies/list", methods=["GET"])
@@ -173,6 +181,13 @@ def create_policy_version(policy_id):
         session.add(version)
         session.commit()
         app.logger.info(f"Policy version {alias} created for policy {policy_id}")
+
+        try:
+            update_repository(dagster_client)
+            app.logger.info(f"Updated repository {alias} successfully")
+        except ValueError as e:
+            app.logger.warn(f"Failed to update repositories: {e}")
+
         return {
             "policy_id": policy_id,
             "policy_version_id": version.policy_version_id,
@@ -239,6 +254,7 @@ def create_run(policy_id: int):
             # a dagster-workspace backing the policy version. This is a
             # workaround for now.
             dagster_run_id = trigger_dagster_job(
+                dagster_client,
                 version.entrypoint,
                 "policy",
                 execution_config,
