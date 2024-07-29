@@ -1,3 +1,6 @@
+import os
+from shutil import make_archive, unpack_archive
+
 from dagster import Definitions, EnvVar, IOManagerDefinition
 
 from .io_manager import (
@@ -6,7 +9,7 @@ from .io_manager import (
     metadata_io_manager,
     postgresql_io_manager,
 )
-from .nodes import Policy
+from .policy import Policy
 from .run import RUN_CONFIG_KEY, VulkanRunConfig
 from .step_metadata import PUBLISH_IO_MANAGER_KEY
 
@@ -44,3 +47,38 @@ def make_workspace_definition(policies: list[Policy]) -> Definitions:
         resources={},
     )
     return definition
+
+
+ARCHIVE_FORMAT = "gztar"
+
+
+def pack_workspace(name: str, repository_path: str):
+    basename = f".tmp.{name}"
+    filename = make_archive(basename, ARCHIVE_FORMAT, repository_path)
+    with open(filename, "rb") as f:
+        repository = f.read()
+    os.remove(filename)
+    return repository
+
+
+def unpack_workspace(base_dir: str, name: str, repository: bytes):
+    workspace_path = os.path.join(base_dir, "workspaces", name)
+    filepath = f".tmp.{name}"
+    with open(filepath, "wb") as f:
+        f.write(repository)
+    unpack_archive(filepath, workspace_path, format=ARCHIVE_FORMAT)
+
+    os.remove(filepath)
+
+    return workspace_path
+
+
+def add_workspace_config(base_dir: str, name: str, path: str):
+    with open(os.path.join(base_dir, "workspace.yaml"), "a") as ws:
+        ws.write(
+            (
+                "  - python_module:\n"
+                f"      module_name: {path}\n"
+                f"      working_directory: workspaces/{name}\n"
+            )
+        )

@@ -5,13 +5,12 @@ from dagster import (
     ConfigurableResource,
     GraphDefinition,
     HookContext,
-    Input,
     OpDefinition,
     failure_hook,
 )
 
 from .io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
-from .nodes import Node, NodeType, Terminate, VulkanNodeDefinition
+from .nodes import Input, Node, NodeType, Terminate, VulkanNodeDefinition
 from .run import RUN_CONFIG_KEY, RunStatus
 
 

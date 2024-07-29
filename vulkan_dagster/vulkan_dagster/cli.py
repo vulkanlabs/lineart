@@ -1,11 +1,11 @@
+import base64
 import logging
 import os
 from argparse import ArgumentParser
-from io import BytesIO
-from shutil import make_archive
-from zipfile import ZipFile
 
 import requests
+
+from .workspace import pack_workspace
 
 logging.basicConfig(level=logging.INFO)
 
@@ -22,8 +22,16 @@ def main():
     create.add_argument("--path", type=str, required=True, help="Path to workspace")
     args = parser.parse_args()
 
+    SERVER_URL = "http://localhost:6000"
     if args.command == "create_workspace":
-        create_workspace(args.name, args.repository, args.path)
+        policy_id = create_policy(SERVER_URL, args.name, "", "")
+        policy_version_id = create_policy_version(
+            SERVER_URL, policy_id, args.name, args.repository, args.path
+        )
+        logging.info(
+            f"Created workspace {args.name} with policy version {policy_version_id}"
+        )
+        register_active_version(SERVER_URL, policy_id, policy_version_id)
     else:
         raise ValueError(f"Unknown command: {args.command}")
 
@@ -34,15 +42,27 @@ def config_environment():
     pass
 
 
-TEMP_DIR = "./.tmp"
+def create_policy(server_url, name, description, input_schema):
+    response = requests.post(
+        f"{server_url}/policies/create",
+        data={
+            "name": name,
+            "description": description,
+            "input_schema": input_schema,
+            "output_schema": "",
+        },
+    )
+    assert response.status_code == 200, "Failed to create policy"
+    policy_id = response.json()["policy_id"]
+    return policy_id
 
 
 # TODO: at the moment we assume repository is a path in local disk,
 # but this could be a remote repository in git etc
-def create_workspace(
+def create_policy_version(
+    server_url: str,
+    policy_id: int,
     name: str,
-    description: str,
-    input_schema: str,
     repository,
     path,
 ):
@@ -59,32 +79,30 @@ def create_workspace(
         msg = f"Path is not a directory: {path} - resolved to: {expanded_path}"
         raise ValueError(msg)
 
-    os.makedirs(TEMP_DIR, exist_ok=True)
-    basename = f"{TEMP_DIR}/{name}"
-    filename = make_archive(basename, "gztar", repository)
-    with open(filename, "rb") as f:
-        try:
-            logging.info(f"Creating workspace {name}: from {repository} at {path}")
+    repository = pack_workspace(name, repository)
+    logging.info(f"Creating workspace {name} at {path}")
+    response = requests.post(
+        f"{server_url}/policies/{policy_id}/versions/create",
+        data={
+            "alias": name,
+            "repository": base64.b64encode(repository),
+            "repository_version": "0.0.1",
+            "entrypoint": path,
+        },
+    )
+    assert (
+        response.status_code == 200
+    ), f"Failed to create policy version: {response.content}"
 
-            response = requests.post(
-                "http://localhost:6000/policies/create",
-                data={
-                    "name": name,
-                    "description": description,
-                    "input_schema": input_schema,
-                    "workspace": path,
-                    "job_name": "policy",
-                },
-                files={"workspace": f},
-            )
-            if response.status_code != 200:
-                logging.error(f"Failed to create policy: {response.text}")
-                raise Exception(f"Failed to create policy: {response.text}")
+    return response.json()["policy_version_id"]
 
-        except Exception as e:
-            logging.error(f"Failed to create workspace: {e}")
-            f.close()
-            os.remove(filename)
+
+def register_active_version(server_url, policy_id, policy_version_id):
+    response = requests.put(
+        f"{server_url}/policies/{policy_id}/update",
+        data={"active_policy_version_id": policy_version_id},
+    )
+    assert response.status_code == 200, "Failed to activate policy version"
 
 
 def update_workspace():

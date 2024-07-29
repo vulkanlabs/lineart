@@ -1,2 +1,4 @@
 load_from:
-  - python_module: mock_workspace
+  - python_module:
+      module_name: mock_workspace
+      working_directory: workspaces

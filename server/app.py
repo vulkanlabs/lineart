@@ -17,6 +17,7 @@ Session = sessionmaker(bind=engine)
 
 load_dotenv()
 SERVER_URL = f"http://app:{os.getenv('APP_PORT')}"
+VULKAN_DAGSTER_SERVER_URL = os.getenv("VULKAN_DAGSTER_SERVER_URL")
 
 
 @app.route("/policies/list", methods=["GET"])
@@ -132,7 +133,6 @@ def list_policy_versions(policy_id):
         ]
 
 
-# TODO: this should create the underlying dagster workspace for the version.
 @app.route("/policies/<policy_id>/versions/create", methods=["POST"])
 def create_policy_version(policy_id):
     repository = request.form["repository"]
@@ -152,14 +152,16 @@ def create_policy_version(policy_id):
             return werkzeug.exceptions.BadRequest(msg)
 
         # Create workspace
-        # try:
-        #     status_code = _create_policy_version_workspace()
-        #     if status_code != 200:
-        #         raise ValueError(f"Failed to create workspace: {status_code}")
-        # except Exception as e:
-        #     msg = f"Failed to create workspace for policy {policy_id} version {version.policy_version_id}"
-        #     app.logger.error(msg)
-        #     return werkzeug.exceptions.InternalServerError(e)
+        try:
+            status_code = _create_policy_version_workspace(
+                VULKAN_DAGSTER_SERVER_URL, alias, entrypoint, repository
+            )
+            if status_code != 200:
+                raise ValueError(f"Failed to create workspace: {status_code}")
+        except Exception as e:
+            msg = f"Failed to create workspace for policy {policy_id} version {alias}"
+            app.logger.error(msg)
+            return werkzeug.exceptions.InternalServerError(e)
 
         version = PolicyVersion(
             policy_id=policy.policy_id,
@@ -179,12 +181,13 @@ def create_policy_version(policy_id):
 
 
 def _create_policy_version_workspace(
+    vulkan_dagster_server_url: str,
     name: str,
     workspace: str,
     repository: bytes,
 ) -> int:
     response = requests.post(
-        "http://localhost:3001/workspace/create",
+        vulkan_dagster_server_url,
         data={"name": name, "path": workspace, "repository": repository},
     )
 
@@ -236,7 +239,7 @@ def create_run(policy_id: int):
             # workaround for now.
             dagster_run_id = trigger_dagster_job(
                 version.entrypoint,
-                "policy_job",
+                "policy",
                 execution_config,
             )
             if dagster_run_id is None:
@@ -323,7 +326,6 @@ def publish_metadata(policy_id, run_id):
 
         with Session() as session:
             meta = StepMetadata(
-                policy_id=policy_id,
                 run_id=run_id,
                 step_name=step_name,
                 node_type=node_type,

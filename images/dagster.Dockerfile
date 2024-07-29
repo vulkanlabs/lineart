@@ -27,7 +27,7 @@ RUN pip install poetry
 
 COPY vulkan_dagster /tmp/vulkan_dagster
 COPY vulkan_dagster_deploy/config/* ${DAGSTER_HOME}/
-COPY vulkan_dagster_deploy/mock_workspace ${DAGSTER_HOME}/mock_workspace
+COPY vulkan_dagster_deploy/mock_workspace ${DAGSTER_HOME}/workspaces/mock_workspace
 COPY vulkan_dagster_deploy/app.py ${VULKAN_HOME}/
 
 WORKDIR /opt
