@@ -80,5 +80,6 @@ def add_workspace_config(base_dir: str, name: str, path: str):
                 "  - python_module:\n"
                 f"      module_name: {path}\n"
                 f"      working_directory: workspaces/{name}\n"
+                f"      executable_path: /opt/venvs/{name}/bin/python\n"
             )
         )
