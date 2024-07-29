@@ -186,8 +186,9 @@ def _create_policy_version_workspace(
     workspace: str,
     repository: bytes,
 ) -> int:
+    server_url = f"{vulkan_dagster_server_url}/workspaces/create"
     response = requests.post(
-        vulkan_dagster_server_url,
+        server_url,
         data={"name": name, "path": workspace, "repository": repository},
     )
 
@@ -340,3 +341,24 @@ def publish_metadata(policy_id, run_id):
         return werkzeug.exceptions.BadRequest(e)
     except Exception as e:
         return werkzeug.exceptions.InternalServerError(e)
+
+
+@app.route("/components/create", methods=["POST"])
+def create_component():
+    repository = request.form["repository"]
+    name = request.form.get("name", None)
+
+    try:
+        server_url = f"{VULKAN_DAGSTER_SERVER_URL}/components/create"
+        response = requests.post(
+            server_url,
+            data={"name": name, "repository": repository},
+        )
+        if response.status_code != 200:
+            raise ValueError(f"Failed to create component: {response.status_code}")
+    except Exception as e:
+        msg = f"Failed to create component {name}"
+        app.logger.error(msg)
+        return werkzeug.exceptions.InternalServerError(e)
+
+    return {"status": "success"}

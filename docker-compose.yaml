@@ -27,7 +27,7 @@ services:
         PYTHON_VERSION: "3.12"
         DAGSTER_HOME: /opt/dagster
         DAGSTER_PORT: 3000
-        VULKAN_HOME: /opt/vulkan_home
+        VULKAN_HOME: /opt
         VULKAN_PORT: 3001
     ports:
       - "3000:3000"

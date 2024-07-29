@@ -62,7 +62,7 @@ def pack_workspace(name: str, repository_path: str):
 
 
 def unpack_workspace(base_dir: str, name: str, repository: bytes):
-    workspace_path = os.path.join(base_dir, "workspaces", name)
+    workspace_path = os.path.join(base_dir, name)
     filepath = f".tmp.{name}"
     with open(filepath, "wb") as f:
         f.write(repository)

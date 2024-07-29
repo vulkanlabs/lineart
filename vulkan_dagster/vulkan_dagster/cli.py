@@ -14,12 +14,19 @@ def main():
     parser = ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    create = subparsers.add_parser("create_workspace", help="Create a workspace")
-    create.add_argument("--name", type=str, required=True, help="Name of the workspace")
-    create.add_argument(
+    workspace = subparsers.add_parser("create_workspace", help="Create a workspace")
+    workspace.add_argument("--name", type=str, required=True, help="Name of the workspace")
+    workspace.add_argument(
         "--repository", type=str, required=True, help="Path to repository"
     )
-    create.add_argument("--path", type=str, required=True, help="Path to workspace")
+    workspace.add_argument("--path", type=str, required=True, help="Path to workspace")
+
+    component = subparsers.add_parser("create_component", help="Create a component")
+    component.add_argument("--name", type=str, required=True, help="Name of the component")
+    component.add_argument(
+        "--repository", type=str, required=True, help="Path to repository"
+    )
+
     args = parser.parse_args()
 
     SERVER_URL = "http://localhost:6000"
@@ -32,6 +39,13 @@ def main():
             f"Created workspace {args.name} with policy version {policy_version_id}"
         )
         register_active_version(SERVER_URL, policy_id, policy_version_id)
+
+    elif args.command == "create_component":
+        create_component(SERVER_URL, args.name, args.repository)
+        logging.info(
+            f"Created component {args.name}"
+        )
+
     else:
         raise ValueError(f"Unknown command: {args.command}")
 
@@ -95,6 +109,32 @@ def create_policy_version(
     ), f"Failed to create policy version: {response.content}"
 
     return response.json()["policy_version_id"]
+
+
+def create_component(
+    server_url: str,
+    name: str,
+    repository,
+):
+    if not os.path.exists(repository):
+        raise FileNotFoundError(f"Path does not exist: {repository}")
+    if not os.path.isdir(repository):
+        raise ValueError(f"Path is not a directory: {repository}")
+
+    repository = pack_workspace(name, repository)
+    logging.info(f"Creating component {name}")
+    response = requests.post(
+        f"{server_url}/components/create",
+        data={
+            "name": name,
+            "repository": base64.b64encode(repository),
+        },
+    )
+    assert (
+        response.status_code == 200
+    ), f"Failed to create component version: {response.content}"
+
+    return response.json()
 
 
 def register_active_version(server_url, policy_id, policy_version_id):
