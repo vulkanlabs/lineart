@@ -30,11 +30,7 @@ def update_repository(client: DagsterGraphQLClient) -> dict[str, bool]:
     if "reloadWorkspace" not in response.keys():
         raise ValueError(f"Failed to reload workspace: {response}")
     entries = response["reloadWorkspace"]["locationEntries"]
-    location_loaded = {
-        entry["name"]: entry["loadStatus"] == ReloadRepositoryLocationStatus.SUCCESS
-        for entry in entries
-    }
-    return location_loaded
+    return {e["name"]: e["loadStatus"] == "LOADED" for e in entries}
 
 
 RELOAD_WORKSPACE_MUTATION = """
