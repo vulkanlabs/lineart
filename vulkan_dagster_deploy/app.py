@@ -4,7 +4,7 @@ import subprocess
 
 import werkzeug.exceptions
 import yaml
-from flask import Flask, request
+from flask import Flask, Response, request
 
 from vulkan_dagster.workspace import add_workspace_config, unpack_workspace
 
@@ -55,13 +55,10 @@ def create_workspace():
 
     except Exception as e:
         app.logger.error(f"Failed create workspace: {e}")
-        return werkzeug.exceptions.InternalServerError(
-            "Failed to create workspace",
-            original_exception=e,
-        )
+        return Response({"status": "error", "message": str(e)}, status=500)
 
     app.logger.info(f"Created workspace at: {workspace_path}")
-    return {"status": "success"}
+    return {"status": "success", "path": workspace_path}
 
 
 @app.route("/components/create", methods=["POST"])

@@ -21,6 +21,15 @@ class PolicyVersionStatus(enum.Enum):
     INVALID = "INVALID"
 
 
+class DagsterWorkspaceStatus(enum.Enum):
+    OK = "OK"
+    CREATION_PENDING = "CREATION_PENDING"
+    CREATION_FAILED = "CREATION_FAILED"
+    # TODO: maybe we don't need to separate failure reasons
+    UPDATING = "UPDATING"
+    UPDATE_FAILED = "UPDATE_FAILED"
+
+
 class Policy(Base):
 
     __tablename__ = "policy"
@@ -52,6 +61,21 @@ class PolicyVersion(Base):
     repository = Column(String)
     repository_version = Column(String)
     entrypoint = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class DagsterWorkspace(Base):
+
+    __tablename__ = "dagster_workspace"
+
+    policy_version_id = Column(
+        Integer, ForeignKey("policy_version.policy_version_id"), primary_key=True
+    )
+    name = Column(String)
+    workspace = Column(String)
+    status = Column(Enum(DagsterWorkspaceStatus))
+    path = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

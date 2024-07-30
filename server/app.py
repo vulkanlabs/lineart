@@ -9,7 +9,15 @@ from flask import Flask, Response, request
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from .db import Policy, PolicyVersion, PolicyVersionStatus, Run, StepMetadata
+from .db import (
+    DagsterWorkspace,
+    DagsterWorkspaceStatus,
+    Policy,
+    PolicyVersion,
+    PolicyVersionStatus,
+    Run,
+    StepMetadata,
+)
 from .trigger_run import create_dagster_client, trigger_dagster_job, update_repository
 
 app = Flask(__name__)
@@ -176,25 +184,27 @@ def create_policy_version(policy_id):
             msg = f"Tried to create a version for non-existent policy {policy_id}"
             return werkzeug.exceptions.BadRequest(msg)
 
-        # Create workspace
-        try:
-            _create_policy_version_workspace(
-                VULKAN_DAGSTER_SERVER_URL, alias, entrypoint, repository
-            )
-        except Exception as e:
-            msg = f"Failed to create workspace for policy {policy_id} version {alias}"
-            app.logger.error(msg)
-            return werkzeug.exceptions.InternalServerError(e)
+    # Create workspace
+    try:
+        _create_policy_version_workspace(
+            VULKAN_DAGSTER_SERVER_URL, policy_id, alias, entrypoint, repository
+        )
+    except Exception as e:
+        msg = f"Failed to create workspace for policy {policy_id} version {alias}"
+        app.logger.error(msg)
+        app.logger.error(e)
+        return werkzeug.exceptions.InternalServerError(e)
 
-        version_status = PolicyVersionStatus.VALID
-        loaded_repos = update_repository(dagster_client)
-        if loaded_repos.get(entrypoint, False) is False:
-            msg = f"Failed to load repository {entrypoint}"
-            app.logger.warn(msg)
-            version_status = PolicyVersionStatus.INVALID
+    version_status = PolicyVersionStatus.VALID
+    loaded_repos = update_repository(dagster_client)
+    if loaded_repos.get(entrypoint, False) is False:
+        msg = f"Failed to load repository {entrypoint}"
+        app.logger.warn(msg)
+        version_status = PolicyVersionStatus.INVALID
 
+    with SessionMaker() as session:
         version = PolicyVersion(
-            policy_id=policy.policy_id,
+            policy_id=policy_id,
             alias=alias,
             repository=repository,
             repository_version=repository_version,
@@ -216,18 +226,40 @@ def create_policy_version(policy_id):
 
 def _create_policy_version_workspace(
     vulkan_dagster_server_url: str,
+    policy_version_id: int,
     name: str,
-    workspace: str,
+    entrypoint: str,
     repository: bytes,
 ):
-    server_url = f"{vulkan_dagster_server_url}/workspaces/create"
-    response = requests.post(
-        server_url,
-        data={"name": name, "path": workspace, "repository": repository},
-    )
-    status_code = response.status_code
-    if status_code != 200:
-        raise ValueError(f"Failed to create workspace: {status_code}")
+    with SessionMaker() as session:
+        workspace = DagsterWorkspace(
+            policy_version_id=policy_version_id,
+            name=name,
+            entrypoint=entrypoint,
+            status=DagsterWorkspaceStatus.CREATION_PENDING,
+        )
+        session.add(workspace)
+        session.commit()
+
+        server_url = f"{vulkan_dagster_server_url}/workspaces/create"
+        response = requests.post(
+            server_url,
+            data={"name": name, "path": entrypoint, "repository": repository},
+        )
+        status_code = response.status_code
+        if status_code != 200:
+            workspace.status = DagsterWorkspaceStatus.CREATION_FAILED
+            session.commit()
+            try:
+                error_msg = response.json()["message"]
+                raise ValueError(f"Failed to create workspace: {error_msg}")
+            except:
+                raise ValueError(f"Failed to create workspace: {status_code}")
+
+        workspace_path = response.json()["path"]
+        workspace.workspace_path = workspace_path
+        workspace.status = DagsterWorkspaceStatus.OK
+        session.commit()
 
 
 @app.route("/policies/<policy_id>/runs/create", methods=["POST"])
