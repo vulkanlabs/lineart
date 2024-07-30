@@ -25,16 +25,16 @@ def trigger_dagster_job(
         return None
 
 
-def update_repository(client: DagsterGraphQLClient) -> None:
+def update_repository(client: DagsterGraphQLClient) -> dict[str, bool]:
     response = client._execute(RELOAD_WORKSPACE_MUTATION)
     if "reloadWorkspace" not in response.keys():
         raise ValueError(f"Failed to reload workspace: {response}")
     entries = response["reloadWorkspace"]["locationEntries"]
-    for entry in entries:
-        if entry["loadStatus"] == ReloadRepositoryLocationStatus.FAILURE:
-            raise ValueError(f"Failed to reload repository: {entry}")
-        print(f"Repository {entry['name']} reloaded successfully")
-    print("All repositories reloaded successfully")
+    location_loaded = {
+        entry["name"]: entry["loadStatus"] == ReloadRepositoryLocationStatus.SUCCESS
+        for entry in entries
+    }
+    return location_loaded
 
 
 RELOAD_WORKSPACE_MUTATION = """

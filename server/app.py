@@ -7,16 +7,16 @@ import werkzeug.exceptions
 from dotenv import load_dotenv
 from flask import Flask, Response, request
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
-from .db import Policy, PolicyVersion, Run, StepMetadata
+from .db import Policy, PolicyVersion, PolicyVersionStatus, Run, StepMetadata
 from .trigger_run import create_dagster_client, trigger_dagster_job, update_repository
 
 app = Flask(__name__)
 app.logger.setLevel(logging.INFO)
 
 engine = create_engine("sqlite:///server/example.db", echo=True)
-Session = sessionmaker(bind=engine)
+SessionMaker = sessionmaker(bind=engine)
 
 load_dotenv()
 SERVER_URL = f"http://app:{os.getenv('APP_PORT')}"
@@ -30,7 +30,7 @@ app.logger.info(f"Dagster client created at http://{DAGSTER_URL}:{DAGSTER_PORT}"
 
 @app.route("/policies/list", methods=["GET"])
 def list_policies():
-    with Session() as session:
+    with SessionMaker() as session:
         policies = session.query(Policy).all()
         if len(policies) == 0:
             return Response(status=204)
@@ -52,7 +52,7 @@ def list_policies():
 
 @app.route("/policies/<policy_id>")
 def get_policy(policy_id):
-    with Session() as session:
+    with SessionMaker() as session:
         policy = session.query(Policy).filter_by(policy_id=policy_id).first()
         if policy is None:
             return Response(status=204)
@@ -76,7 +76,7 @@ def create_policy():
     input_schema = request.form["input_schema"]
     output_schema = request.form["output_schema"]
 
-    with Session() as session:
+    with SessionMaker() as session:
         policy = Policy(
             name=name,
             description=description,
@@ -91,26 +91,43 @@ def create_policy():
 
 @app.route("/policies/<policy_id>/update", methods=["PUT"])
 def update_policy(policy_id):
-    active_policy_version_id = request.form["active_policy_version_id"]
-    with Session() as session:
+    name = request.form.get("name", None)
+    description = request.form.get("description", None)
+    active_policy_version_id = request.form.get("active_policy_version_id")
+    with SessionMaker() as session:
         policy = session.query(Policy).filter_by(policy_id=policy_id).first()
         if policy is None:
             msg = f"Tried to update non-existent policy {policy_id}"
             return werkzeug.exceptions.BadRequest(msg)
 
-        policy_version = (
-            session.query(PolicyVersion)
-            .filter_by(policy_version_id=active_policy_version_id)
-            .first()
-        )
-        if policy_version is None:
-            msg = f"Tried to use non-existent version {active_policy_version_id} for policy {policy_id}"
-            return werkzeug.exceptions.BadRequest(msg)
+        if (
+            active_policy_version_id is not None
+            and active_policy_version_id != policy.active_policy_version_id
+        ):
+            policy_version = (
+                session.query(PolicyVersion)
+                .filter_by(policy_version_id=active_policy_version_id)
+                .first()
+            )
+            if policy_version is None:
+                msg = f"Tried to use non-existent version {active_policy_version_id} for policy {policy_id}"
+                raise ValueError(msg)
 
-        policy.active_policy_version_id = active_policy_version_id
+            if policy_version.status != PolicyVersionStatus.VALID:
+                msg = f"Tried to use invalid version {active_policy_version_id} for policy {policy_id}"
+                raise ValueError(msg)
+
+            policy.active_policy_version_id = active_policy_version_id
+
+        if name is not None and name != policy.name:
+            policy.name = name
+        if description is not None and description != policy.description:
+            policy.description = description
+
         session.commit()
         msg = f"Policy {policy_id} updated: active version set to {active_policy_version_id}"
         app.logger.info(msg)
+
         return {
             "policy_id": policy.policy_id,
             "active_policy_version_id": policy.active_policy_version_id,
@@ -119,7 +136,7 @@ def update_policy(policy_id):
 
 @app.route("/policies/<policy_id>/versions/list", methods=["GET"])
 def list_policy_versions(policy_id):
-    with Session() as session:
+    with SessionMaker() as session:
         policy_versions = (
             session.query(PolicyVersion).filter_by(policy_id=policy_id).all()
         )
@@ -153,7 +170,7 @@ def create_policy_version(policy_id):
         # unique version of the code.
         alias = request.form["repository_version"]
 
-    with Session() as session:
+    with SessionMaker() as session:
         policy = session.query(Policy).filter_by(policy_id=policy_id).first()
         if policy is None:
             msg = f"Tried to create a version for non-existent policy {policy_id}"
@@ -161,15 +178,20 @@ def create_policy_version(policy_id):
 
         # Create workspace
         try:
-            status_code = _create_policy_version_workspace(
+            _create_policy_version_workspace(
                 VULKAN_DAGSTER_SERVER_URL, alias, entrypoint, repository
             )
-            if status_code != 200:
-                raise ValueError(f"Failed to create workspace: {status_code}")
         except Exception as e:
             msg = f"Failed to create workspace for policy {policy_id} version {alias}"
             app.logger.error(msg)
             return werkzeug.exceptions.InternalServerError(e)
+
+        version_status = PolicyVersionStatus.VALID
+        loaded_repos = update_repository(dagster_client)
+        if loaded_repos.get(entrypoint, False) is False:
+            msg = f"Failed to load repository {entrypoint}"
+            app.logger.warn(msg)
+            version_status = PolicyVersionStatus.INVALID
 
         version = PolicyVersion(
             policy_id=policy.policy_id,
@@ -177,21 +199,18 @@ def create_policy_version(policy_id):
             repository=repository,
             repository_version=repository_version,
             entrypoint=entrypoint,
+            status=version_status,
         )
         session.add(version)
         session.commit()
-        app.logger.info(f"Policy version {alias} created for policy {policy_id}")
-
-        try:
-            update_repository(dagster_client)
-            app.logger.info(f"Updated repository {alias} successfully")
-        except ValueError as e:
-            app.logger.warn(f"Failed to update repositories: {e}")
+        msg = f"Policy version {alias} created for policy {policy_id} with status {version_status.value}"
+        app.logger.info(msg)
 
         return {
             "policy_id": policy_id,
             "policy_version_id": version.policy_version_id,
             "alias": version.alias,
+            "status": version.status.value,
         }
 
 
@@ -200,14 +219,15 @@ def _create_policy_version_workspace(
     name: str,
     workspace: str,
     repository: bytes,
-) -> int:
+):
     server_url = f"{vulkan_dagster_server_url}/workspaces/create"
     response = requests.post(
         server_url,
         data={"name": name, "path": workspace, "repository": repository},
     )
-
-    return response.status_code
+    status_code = response.status_code
+    if status_code != 200:
+        raise ValueError(f"Failed to create workspace: {status_code}")
 
 
 @app.route("/policies/<policy_id>/runs/create", methods=["POST"])
@@ -218,7 +238,7 @@ def create_run(policy_id: int):
     except Exception as e:
         handle_bad_request(e)
 
-    with Session() as session:
+    with SessionMaker() as session:
         policy = session.query(Policy).filter_by(policy_id=policy_id).first()
         if policy is None:
             return werkzeug.exceptions.BadRequest(f"Policy {policy_id} not found")
@@ -281,7 +301,7 @@ def create_run(policy_id: int):
 
 @app.route("/policies/<policy_id>/runs/<run_id>", methods=["GET"])
 def get_run(policy_id, run_id):
-    with Session() as session:
+    with SessionMaker() as session:
         run = session.query(Run).filter_by(run_id=run_id).first()
         return {
             "run_id": run.run_id,
@@ -298,7 +318,7 @@ def update_run(policy_id, run_id):
         result = request.form["result"]
         status = request.form["status"]
 
-        with Session() as session:
+        with SessionMaker() as session:
             run = session.query(Run).filter_by(run_id=run_id).first()
             if run is None:
                 return werkzeug.exceptions.BadRequest(f"Run {run_id} not found")
@@ -341,7 +361,7 @@ def publish_metadata(policy_id, run_id):
         end_time = request.form["end_time"]
         error = request.form.get("error", None)
 
-        with Session() as session:
+        with SessionMaker() as session:
             meta = StepMetadata(
                 run_id=run_id,
                 step_name=step_name,

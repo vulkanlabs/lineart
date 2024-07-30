@@ -1,6 +1,9 @@
+import enum
+
 from sqlalchemy import (
     Column,
     DateTime,
+    Enum,
     Float,
     ForeignKey,
     Integer,
@@ -11,6 +14,11 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 
 Base = declarative_base()
+
+
+class PolicyVersionStatus(enum.Enum):
+    VALID = "VALID"
+    INVALID = "INVALID"
 
 
 class Policy(Base):
@@ -40,6 +48,7 @@ class PolicyVersion(Base):
     policy_version_id = Column(Integer, primary_key=True)
     policy_id = Column(Integer, ForeignKey("policy.policy_id"))
     alias = Column(String)
+    status = Column(Enum(PolicyVersionStatus))
     repository = Column(String)
     repository_version = Column(String)
     entrypoint = Column(String)
