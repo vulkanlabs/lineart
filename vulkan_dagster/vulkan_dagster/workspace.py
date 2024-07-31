@@ -73,13 +73,14 @@ def unpack_workspace(base_dir: str, name: str, repository: bytes):
     return workspace_path
 
 
-def add_workspace_config(base_dir: str, name: str, path: str):
+def add_workspace_config(base_dir: str, name: str, entrypoint: str):
     with open(os.path.join(base_dir, "workspace.yaml"), "a") as ws:
         ws.write(
             (
                 "  - python_module:\n"
-                f"      module_name: {path}\n"
+                f"      module_name: {entrypoint}\n"
                 f"      working_directory: workspaces/{name}\n"
                 f"      executable_path: /opt/venvs/{name}/bin/python\n"
+                f"      location_name: {name}\n"
             )
         )

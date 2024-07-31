@@ -5,15 +5,19 @@ def create_dagster_client(url: str, port: int) -> DagsterGraphQLClient:
     return DagsterGraphQLClient(url, port_number=port)
 
 
+_DEFAULT_REPOSITORY_NAME = "__repository__"
+
+
 def trigger_dagster_job(
     client: DagsterGraphQLClient,
-    repository_name: str,
+    repository_location_name: str,
     job_name: str,
     run_config: dict,
 ):
     try:
         response = client.submit_job_execution(
-            repository_name=repository_name,
+            repository_location_name=repository_location_name,
+            repository_name=_DEFAULT_REPOSITORY_NAME,
             job_name=job_name,
             run_config=run_config,
         )
@@ -30,13 +34,17 @@ def update_repository(client: DagsterGraphQLClient) -> dict[str, bool]:
     if "reloadWorkspace" not in response.keys():
         raise ValueError(f"Failed to reload workspace: {response}")
     entries = response["reloadWorkspace"]["locationEntries"]
-    return {
-        # Checks if the repository location was loaded
-        # and then if the location load had any errors
-        e["name"]: e["loadStatus"] == "LOADED"
-        and e["locationOrLoadError"]["__typename"] == "RepositoryLocation"
-        for e in entries
-    }
+    return {e["name"]: _check_location_status(e) for e in entries}
+
+
+def _check_location_status(entry: dict) -> bool:
+    keys = set(entry.keys())
+    return (
+        "loadStatus" in keys
+        and entry["loadStatus"] == "LOADED"
+        and "locationOrLoadError" in keys
+        and entry["locationOrLoadError"]["__typename"] == "RepositoryLocation"
+    )
 
 
 RELOAD_WORKSPACE_MUTATION = """

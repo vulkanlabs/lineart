@@ -184,36 +184,44 @@ def create_policy_version(policy_id):
             msg = f"Tried to create a version for non-existent policy {policy_id}"
             return werkzeug.exceptions.BadRequest(msg)
 
-    # Create workspace
-    try:
-        _create_policy_version_workspace(
-            VULKAN_DAGSTER_SERVER_URL, policy_id, alias, entrypoint, repository
-        )
-    except Exception as e:
-        msg = f"Failed to create workspace for policy {policy_id} version {alias}"
-        app.logger.error(msg)
-        app.logger.error(e)
-        return werkzeug.exceptions.InternalServerError(e)
-
-    version_status = PolicyVersionStatus.VALID
-    loaded_repos = update_repository(dagster_client)
-    if loaded_repos.get(entrypoint, False) is False:
-        msg = f"Failed to load repository {entrypoint}"
-        app.logger.warn(msg)
-        version_status = PolicyVersionStatus.INVALID
-
-    with SessionMaker() as session:
         version = PolicyVersion(
             policy_id=policy_id,
             alias=alias,
             repository=repository,
             repository_version=repository_version,
             entrypoint=entrypoint,
-            status=version_status,
+            status=PolicyVersionStatus.INVALID,
         )
         session.add(version)
         session.commit()
-        msg = f"Policy version {alias} created for policy {policy_id} with status {version_status.value}"
+        msg = f"Creating version {version.policy_version_id} ({alias}) for policy {policy_id}"
+        app.logger.info(msg)
+
+        version_name = _version_name(policy_id, version.policy_version_id)
+        try:
+            _create_policy_version_workspace(
+                server_url=VULKAN_DAGSTER_SERVER_URL,
+                policy_version_id=version.policy_version_id,
+                name=version_name,
+                entrypoint=entrypoint,
+                repository=repository,
+            )
+        except Exception as e:
+            msg = f"Failed to create workspace for policy {policy_id} version {alias}"
+            app.logger.error(msg)
+            app.logger.error(e)
+            return werkzeug.exceptions.InternalServerError(e)
+
+        loaded_repos = update_repository(dagster_client)
+        if loaded_repos.get(version_name, False) is False:
+            msg = f"Failed to load repository {version_name}"
+            app.logger.error(msg)
+            app.logger.error(f"Repository load status: {loaded_repos}")
+            return werkzeug.exceptions.InternalServerError(msg)
+
+        version.status = PolicyVersionStatus.VALID
+        session.commit()
+        msg = f"Policy version {alias} created for policy {policy_id} with status {version.status}"
         app.logger.info(msg)
 
         return {
@@ -224,8 +232,12 @@ def create_policy_version(policy_id):
         }
 
 
+def _version_name(policy_id: int, policy_version_id: int) -> str:
+    return f"policy-{policy_id}-version-{policy_version_id}"
+
+
 def _create_policy_version_workspace(
-    vulkan_dagster_server_url: str,
+    server_url: str,
     policy_version_id: int,
     name: str,
     entrypoint: str,
@@ -239,7 +251,7 @@ def _create_policy_version_workspace(
         session.add(workspace)
         session.commit()
 
-        server_url = f"{vulkan_dagster_server_url}/workspaces/create"
+        server_url = f"{server_url}/workspaces/create"
         response = requests.post(
             server_url,
             data={"name": name, "path": entrypoint, "repository": repository},
@@ -300,12 +312,9 @@ def create_run(policy_id: int):
                     }
                 }
             }
-            # TODO: this could be specified separately as the definition of
-            # a dagster-workspace backing the policy version. This is a
-            # workaround for now.
             dagster_run_id = trigger_dagster_job(
                 dagster_client,
-                version.entrypoint,
+                _version_name(policy.policy_id, version.policy_version_id),
                 "policy",
                 execution_config,
             )
