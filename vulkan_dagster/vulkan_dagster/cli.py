@@ -7,7 +7,7 @@ import requests
 
 from .workspace import pack_workspace
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 def main():
@@ -32,6 +32,7 @@ def main():
     SERVER_URL = "http://localhost:6000"
     if args.command == "create_workspace":
         policy_id = create_policy(SERVER_URL, args.name, "", "")
+        logging.info(f"Created policy {policy_id}")
         policy_version_id = create_policy_version(
             SERVER_URL, policy_id, args.name, args.repository, args.path
         )
@@ -59,7 +60,7 @@ def config_environment():
 def create_policy(server_url, name, description, input_schema):
     response = requests.post(
         f"{server_url}/policies/create",
-        data={
+        json={
             "name": name,
             "description": description,
             "input_schema": input_schema,
@@ -95,11 +96,13 @@ def create_policy_version(
 
     repository = pack_workspace(name, repository)
     logging.info(f"Creating workspace {name} at {path}")
+    # TODO: send repository as file upload
     response = requests.post(
         f"{server_url}/policies/{policy_id}/versions/create",
-        data={
+        json={
+            "policy_id": policy_id,
             "alias": name,
-            "repository": base64.b64encode(repository),
+            "repository": base64.b64encode(repository).decode("ascii"),
             "repository_version": "0.0.1",
             "entrypoint": path,
         },
@@ -108,6 +111,7 @@ def create_policy_version(
         response.status_code == 200
     ), f"Failed to create policy version: {response.content}"
 
+    logging.debug(response.json())
     return response.json()["policy_version_id"]
 
 
@@ -140,7 +144,7 @@ def create_component(
 def register_active_version(server_url, policy_id, policy_version_id):
     response = requests.put(
         f"{server_url}/policies/{policy_id}/update",
-        data={"active_policy_version_id": policy_version_id},
+        json={"active_policy_version_id": policy_version_id},
     )
     assert response.status_code == 200, "Failed to activate policy version"
 

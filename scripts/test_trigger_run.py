@@ -42,7 +42,7 @@ def run_policy(url: str, policy_id: int):
 
     response = requests.post(
         f"{url}/policies/{policy_id}/runs/create",
-        data={"execution_config": json.dumps(execution_config)},
+        json={"execution_config_str": json.dumps(execution_config)},
     )
     print(response.json())
 

@@ -21,10 +21,10 @@ from .step_metadata import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY, StepMeta
 
 
 class NodeType(Enum):
-    TRANSFORM = 1
-    CONNECTION = 2
-    BRANCH = 3
-    INPUT = 4
+    TRANSFORM = "TRANSFORM"
+    CONNECTION = "CONNECTION"
+    BRANCH = "BRANCH"
+    INPUT = "INPUT"
 
 
 class Status(Enum):

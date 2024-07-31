@@ -3,6 +3,6 @@ FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
 COPY test/resources/data_server.py server.py
-RUN pip install flask
+RUN pip install fastapi
 
-ENTRYPOINT ["flask", "--app", "server.py", "run", "--host", "0.0.0.0", "--port", "5000"]
+ENTRYPOINT ["fastapi", "dev", "server.py", "--host", "0.0.0.0", "--port", "5000"]
