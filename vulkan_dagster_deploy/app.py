@@ -26,32 +26,16 @@ def create_workspace():
             f"{DAGSTER_HOME}/workspaces", name, repository
         )
 
-        subprocess.run(
+        completed_process = subprocess.run(
             ["bash", "scripts/create_venv.sh", name, path],
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
+            capture_output=True,
         )
+        if completed_process.returncode != 0:
+            msg = f"Failed to create virtual environment: {completed_process.stderr}"
+            raise Exception(msg)
 
         add_workspace_config(DAGSTER_HOME, name, path)
-
-        config_path = os.path.join(workspace_path, path, "vulkan.yaml")
-        if os.path.exists(config_path):
-            with open(config_path, "r") as fn:
-                config = yaml.safe_load(fn)
-
-            if len(config["components"]) > 0:
-                app.logger.info(f"Installing components for workspace: {name}")
-                for component in config["components"]:
-                    subprocess.run(
-                        [
-                            "bash",
-                            "scripts/install_component.sh",
-                            component["name"],
-                            name,
-                        ],
-                        stderr=subprocess.PIPE,
-                        stdout=subprocess.PIPE,
-                    )
+        _install_components(name, workspace_path, path)
 
     except Exception as e:
         app.logger.error(f"Failed create workspace: {e}")
@@ -80,3 +64,29 @@ def create_component():
 
     app.logger.info(f"Created component at: {component_path}")
     return {"status": "success"}
+
+
+def _install_components(name, workspace_path, entrypoint):
+    config_path = os.path.join(workspace_path, entrypoint, "vulkan.yaml")
+    if not os.path.exists(config_path):
+        raise ValueError(f"Config file not found at: {config_path}")
+
+    with open(config_path, "r") as fn:
+        config = yaml.safe_load(fn)
+        # TODO: validate schema config
+        # config = VulkanWorkspaceConfig.from_dict(config_data)
+
+    if len(config["components"]) > 0:
+        app.logger.info(f"Installing components for workspace: {name}")
+        for component in config["components"]:
+            result = subprocess.run(
+                [
+                    "bash",
+                    "scripts/install_component.sh",
+                    component["name"],
+                    name,
+                ],
+                capture_output=True,
+            )
+            if result.returncode != 0:
+                raise Exception(f"Failed to install component: {component['name']}")

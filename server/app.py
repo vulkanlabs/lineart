@@ -7,7 +7,7 @@ import werkzeug.exceptions
 from dotenv import load_dotenv
 from flask import Flask, Response, request
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from .db import (
     DagsterWorkspace,
@@ -234,8 +234,6 @@ def _create_policy_version_workspace(
     with SessionMaker() as session:
         workspace = DagsterWorkspace(
             policy_version_id=policy_version_id,
-            name=name,
-            entrypoint=entrypoint,
             status=DagsterWorkspaceStatus.CREATION_PENDING,
         )
         session.add(workspace)

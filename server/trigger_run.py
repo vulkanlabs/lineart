@@ -30,33 +30,25 @@ def update_repository(client: DagsterGraphQLClient) -> dict[str, bool]:
     if "reloadWorkspace" not in response.keys():
         raise ValueError(f"Failed to reload workspace: {response}")
     entries = response["reloadWorkspace"]["locationEntries"]
-    return {e["name"]: e["loadStatus"] == "LOADED" for e in entries}
+    return {
+        # Checks if the repository location was loaded
+        # and then if the location load had any errors
+        e["name"]: e["loadStatus"] == "LOADED"
+        and e["locationOrLoadError"]["__typename"] == "RepositoryLocation"
+        for e in entries
+    }
 
 
 RELOAD_WORKSPACE_MUTATION = """
 mutation ReloadWorkspaceMutation {
-      reloadWorkspace {
-        ... on Workspace {
-          id
+  reloadWorkspace {
+    ... on Workspace {
+      id
       locationEntries {
-            name
+        name
         id
         loadStatus
         locationOrLoadError {
-              ... on RepositoryLocation {
-                id
-            repositories {
-                  id
-              name
-              pipelines {
-                    id
-                name
-                __typename
-              }
-              __typename
-            }
-            __typename
-          }
           ...PythonErrorFragment
           __typename
         }

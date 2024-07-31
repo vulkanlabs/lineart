@@ -14,15 +14,25 @@ def main():
     parser = ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    policy = subparsers.add_parser("create_policy", help="Create a policy")
+    policy.add_argument("--name", type=str, required=True, help="Name of the policy")
+
     workspace = subparsers.add_parser("create_workspace", help="Create a workspace")
-    workspace.add_argument("--name", type=str, required=True, help="Name of the workspace")
+    workspace.add_argument(
+        "--policy_id", type=int, required=True, help="Id of the policy"
+    )
+    workspace.add_argument(
+        "--name", type=str, required=True, help="Name of the workspace"
+    )
     workspace.add_argument(
         "--repository", type=str, required=True, help="Path to repository"
     )
     workspace.add_argument("--path", type=str, required=True, help="Path to workspace")
 
     component = subparsers.add_parser("create_component", help="Create a component")
-    component.add_argument("--name", type=str, required=True, help="Name of the component")
+    component.add_argument(
+        "--name", type=str, required=True, help="Name of the component"
+    )
     component.add_argument(
         "--repository", type=str, required=True, help="Path to repository"
     )
@@ -30,8 +40,11 @@ def main():
     args = parser.parse_args()
 
     SERVER_URL = "http://localhost:6000"
-    if args.command == "create_workspace":
+    if args.command == "create_policy":
         policy_id = create_policy(SERVER_URL, args.name, "", "")
+        logging.info(f"Created policy {args.name} with id {policy_id}")
+    elif args.command == "create_workspace":
+        policy_id = args.policy_id
         policy_version_id = create_policy_version(
             SERVER_URL, policy_id, args.name, args.repository, args.path
         )
@@ -42,9 +55,7 @@ def main():
 
     elif args.command == "create_component":
         create_component(SERVER_URL, args.name, args.repository)
-        logging.info(
-            f"Created component {args.name}"
-        )
+        logging.info(f"Created component {args.name}")
 
     else:
         raise ValueError(f"Unknown command: {args.command}")
