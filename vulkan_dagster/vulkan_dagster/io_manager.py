@@ -133,7 +133,7 @@ class PublishMetadataIOManager(IOManager):
         try:
             response = requests.post(
                 self._url,
-                data={
+                json={
                     "step_name": context.step_key,
                     "node_type": obj.node_type,
                     "start_time": obj.start_time,

@@ -126,8 +126,7 @@ def _notify_failure(context: HookContext) -> bool:
     dagster_run_id: str = context.run_id
     result = requests.put(
         url,
-        data={
-            "dagster_run_id": dagster_run_id,
+        json={
             "result": "",
             "status": RunStatus.FAILURE.value,
         },

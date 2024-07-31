@@ -1,25 +1,30 @@
 import base64
+import logging
 import os
 import subprocess
+from typing import Annotated
 
-import werkzeug.exceptions
 import yaml
-from flask import Flask, Response, request
+from fastapi import FastAPI, Form, HTTPException
 
 from vulkan_dagster.workspace import add_workspace_config, unpack_workspace
 
-app = Flask("vulkan-dagster-server")
+app = FastAPI()
+
+logger = logging.getLogger("uvicorn.error")
+logger.setLevel(logging.INFO)
 
 DAGSTER_HOME = os.getenv("DAGSTER_HOME")
 
 
-@app.route("/workspaces/create", methods=["POST"])
-def create_workspace():
-    name = request.form["name"]
-    path = request.form["path"]
-    repository = request.form["repository"]
+@app.post("/workspaces/create")
+def create_workspace(
+    name: Annotated[str, Form()],
+    path: Annotated[str, Form()],
+    repository: Annotated[str, Form()],
+):
     repository = base64.b64decode(repository)
-    app.logger.info(f"Creating workspace: {name} (python_module)")
+    logger.info(f"Creating workspace: {name} (python_module)")
 
     try:
         workspace_path = unpack_workspace(
@@ -38,31 +43,32 @@ def create_workspace():
         _install_components(name, workspace_path, path)
 
     except Exception as e:
-        app.logger.error(f"Failed create workspace: {e}")
-        return Response({"status": "error", "message": str(e)}, status=500)
+        logger.error(f"Failed create workspace: {e}")
+        raise HTTPException(status_code=500, detail=e)
 
-    app.logger.info(f"Created workspace at: {workspace_path}")
+    logger.info(f"Created workspace at: {workspace_path}")
     return {"status": "success", "path": workspace_path}
 
 
-@app.route("/components/create", methods=["POST"])
-def create_component():
-    name = request.form["name"]
-    repository = request.form["repository"]
+@app.post("/components/create")
+def create_component(
+    name: Annotated[str, Form()],
+    repository: Annotated[bytes, Form()],
+):
     repository = base64.b64decode(repository)
-    app.logger.info(f"Creating component: {name}")
+    logger.info(f"Creating component: {name}")
 
     try:
         base_dir = f"{DAGSTER_HOME}/components"
         component_path = unpack_workspace(base_dir, name, repository)
     except Exception as e:
-        app.logger.error(f"Failed create component: {e}")
-        return werkzeug.exceptions.InternalServerError(
-            "Failed to create component",
-            original_exception=e,
+        logger.error(f"Failed create component: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create component",
         )
 
-    app.logger.info(f"Created component at: {component_path}")
+    logger.info(f"Created component at: {component_path}")
     return {"status": "success"}
 
 
@@ -77,7 +83,7 @@ def _install_components(name, workspace_path, entrypoint):
         # config = VulkanWorkspaceConfig.from_dict(config_data)
 
     if len(config["components"]) > 0:
-        app.logger.info(f"Installing components for workspace: {name}")
+        logger.info(f"Installing components for workspace: {name}")
         for component in config["components"]:
             result = subprocess.run(
                 [

@@ -1,6 +1,7 @@
-from flask import Flask, request
+from fastapi import FastAPI
+from pydantic import BaseModel
 
-app = Flask(__name__)
+app = FastAPI()
 
 db = {
     "1": {
@@ -31,22 +32,24 @@ db = {
 }
 
 
-@app.route("/scr")
-def scr_data():
-    print(request.form)
-    cpf = request.form["cpf"]
-    entry = db[cpf]
+class Entity(BaseModel):
+    tax_id: str
+
+
+@app.get("/scr")
+def scr_data(entity: Entity):
+    tax_id = entity.tax_id
+    entry = db[tax_id]
     response = {
         "score": entry["scr"],
     }
     return response
 
 
-@app.route("/serasa")
-def serasa_data():
-    print(request.form)
-    cpf = request.form["cpf"]
-    entry = db[cpf]
+@app.get("/serasa")
+def serasa_data(entity: Entity):
+    tax_id = entity.tax_id
+    entry = db[tax_id]
     response = {
         "score": entry["serasa"],
     }

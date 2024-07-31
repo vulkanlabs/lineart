@@ -11,4 +11,4 @@ RUN poetry install
 # TODO: this creates an empty database instance
 RUN poetry run python server/db.py
 
-ENTRYPOINT ["poetry", "run",  "flask", "--app", "server/app.py", "run", "--host", "0.0.0.0", "--port", "6000"]
+ENTRYPOINT ["poetry", "run",  "fastapi", "dev", "server/app.py", "--host", "0.0.0.0", "--port", "6000"]
