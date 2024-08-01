@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from typing import Annotated
+
+from fastapi import Body, FastAPI, Form
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -32,13 +34,8 @@ db = {
 }
 
 
-class Entity(BaseModel):
-    tax_id: str
-
-
 @app.get("/scr")
-def scr_data(entity: Entity):
-    tax_id = entity.tax_id
+def scr_data(tax_id: Annotated[str, Form()]):
     entry = db[tax_id]
     response = {
         "score": entry["scr"],
@@ -47,8 +44,7 @@ def scr_data(entity: Entity):
 
 
 @app.get("/serasa")
-def serasa_data(entity: Entity):
-    tax_id = entity.tax_id
+def serasa_data(tax_id: Annotated[str, Form()]):
     entry = db[tax_id]
     response = {
         "score": entry["serasa"],

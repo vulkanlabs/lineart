@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -9,7 +8,7 @@ class PolicyBase(BaseModel):
     description: str
     input_schema: str
     output_schema: str
-    active_policy_version_id: Optional[int] = None
+    active_policy_version_id: int | None = None
 
 
 class PolicyUpdate(BaseModel):
@@ -32,7 +31,7 @@ class PolicyVersionBase(BaseModel):
     repository: str
     repository_version: str
     entrypoint: str
-    alias: Optional[str] = None
+    alias: str | None = None
 
 
 class PolicyVersion(PolicyVersionBase):
@@ -45,10 +44,10 @@ class PolicyVersion(PolicyVersionBase):
 
 
 class RunBase(BaseModel):
-    policy_version_id: int
+    run_id: int
     status: str
-    dagster_run_id: Optional[str] = None
-    result: Optional[str] = None
+    dagster_run_id: str | None = None
+    result: str | None = None
 
 
 class Run(RunBase):
@@ -65,7 +64,7 @@ class StepMetadataBase(BaseModel):
     node_type: str
     start_time: float
     end_time: float
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class StepMetadata(StepMetadataBase):

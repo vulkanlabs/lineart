@@ -92,13 +92,19 @@ class HTTPConnection(Node):
         context.log.debug(f"Requesting {self.url}")
         body = inputs.get("body", None)
         context.log.debug(f"Body: {body}")
-        response = requests.request(
+        # TODO: review how we can customize request creation
+        req = requests.Request(
             method=self.method,
             url=self.url,
             headers=self.headers,
             params=self.params,
             data=body,
+        ).prepare()
+        context.log.debug(
+            f"Request: body {req.body}\n headers {req.headers} \n url {req.url}"
         )
+        response = requests.Session().send(req)
+        context.log.debug(f"Response: {response}")
 
         if response.status_code == 200:
             yield Output(response.json())
@@ -129,7 +135,7 @@ class Transform(Node):
             try:
                 result = self.func(context, **inputs)
             except Exception as e:
-                error = format_exception_only(type(e), e)
+                error = ("\n").join(format_exception_only(type(e), e))
                 raise UserCodeException(self.name) from e
             else:
                 yield Output(result, output_name="result")
@@ -208,16 +214,15 @@ class Terminate(Transform):
         dagster_run_id: str = context.run_id
         result: str = result.value
         context.log.info(f"Returning status {result} to {url} for run {dagster_run_id}")
-        result = requests.put(
+        response = requests.put(
             url,
-            data={
-                "dagster_run_id": dagster_run_id,
+            json={
                 "result": result,
                 "status": RunStatus.SUCCESS.value,
             },
         )
-        if result.status_code not in {200, 204}:
-            msg = f"Error {result.status_code} Failed to return status {result} to {url} for run {dagster_run_id}"
+        if response.status_code not in {200, 204}:
+            msg = f"Error {response.status_code} Failed to return status {result} to {url} for run {dagster_run_id}"
             context.log.error(msg)
             return False
         return True

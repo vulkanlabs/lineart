@@ -306,7 +306,14 @@ def get_run(policy_id: int, run_id: int):
         run = session.query(Run).filter_by(run_id=run_id).first()
         if run is None:
             raise HTTPException(status_code=400, detail=f"Run {run_id} not found")
-        return run
+
+        return {
+            "run_id": run.run_id,
+            "status": run.status,
+            "result": run.result,
+            "created_at": run.created_at,
+            "last_updated_at": run.last_updated_at,
+        }
 
 
 @app.put("/policies/{policy_id}/runs/{run_id}", response_model=schemas.Run)
@@ -316,18 +323,21 @@ def update_run(
     status: Annotated[str, Body()],
     result: Annotated[str, Body()],
 ):
-    try:
-        with Session() as session:
-            run = session.query(Run).filter_by(run_id=run_id).first()
-            if run is None:
-                raise HTTPException(status_code=400, detail=f"Run {run_id} not found")
+    with Session() as session:
+        run = session.query(Run).filter_by(run_id=run_id).first()
+        if run is None:
+            raise HTTPException(status_code=400, detail=f"Run {run_id} not found")
 
-            run.status = status
-            run.result = result
-            session.commit()
-            return run
-    except KeyError as e:
-        HTTPException(status_code=400, detail=e)
+        run.status = status
+        run.result = result
+        session.commit()
+        return {
+            "run_id": run.run_id,
+            "status": run.status,
+            "result": run.result,
+            "created_at": run.created_at,
+            "last_updated_at": run.last_updated_at,
+        }
 
 
 # Add Policy metrics endpoint
