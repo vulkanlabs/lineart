@@ -263,35 +263,31 @@ def create_run(policy_id: int, execution_config_str: Annotated[str, Body(embed=T
         session.add(run)
         session.commit()
 
-        try:
-            # Trigger the Dagster job with Policy and Run IDs as inputs
-            execution_config["resources"] = {
-                "vulkan_run_config": {
-                    "config": {
-                        "policy_id": policy.policy_id,
-                        "run_id": run.run_id,
-                        "server_url": SERVER_URL,
-                    }
+        # Trigger the Dagster job with Policy and Run IDs as inputs
+        execution_config["resources"] = {
+            "vulkan_run_config": {
+                "config": {
+                    "policy_id": policy.policy_id,
+                    "run_id": run.run_id,
+                    "server_url": SERVER_URL,
                 }
             }
-            dagster_run_id = trigger_dagster_job(
-                dagster_client,
-                _version_name(policy.policy_id, version.policy_version_id),
-                "policy",
-                execution_config,
-            )
-            if dagster_run_id is None:
-                raise Exception("Error triggering job")
-
-            run.status = "STARTED"
-            run.dagster_run_id = dagster_run_id
+        }
+        dagster_run_id = trigger_dagster_job(
+            dagster_client,
+            _version_name(policy.policy_id, version.policy_version_id),
+            "policy",
+            execution_config,
+        )
+        if dagster_run_id is None:
+            run.status = "FAILURE"
             session.commit()
-            return {"policy_id": policy.policy_id, "run_id": run.run_id}
+            raise HTTPException(status_code=500, detail="Error triggering job")
 
-        except Exception as e:
-            run.status = "failed"
-            session.commit()
-            raise HTTPException(status_code=500, detail=e)
+        run.status = "STARTED"
+        run.dagster_run_id = dagster_run_id
+        session.commit()
+        return {"policy_id": policy.policy_id, "run_id": run.run_id}
 
 
 # Podemos ter um run_policy_async e um sync
