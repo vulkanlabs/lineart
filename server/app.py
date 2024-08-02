@@ -3,14 +3,17 @@ import logging
 import os
 from typing import Annotated, Optional
 
+import json
 import requests
 from dotenv import load_dotenv
-from fastapi import Body, FastAPI, Form, HTTPException, Response
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from fastapi import Body, Depends, FastAPI, Form, HTTPException, Response
+from sqlalchemy.orm import Session
 
 from . import schemas
 from .db import (
+    DBSession,
+    Component,
+    ComponentVersion,
     DagsterWorkspace,
     DagsterWorkspaceStatus,
     Policy,
@@ -26,9 +29,6 @@ app = FastAPI()
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
-engine = create_engine("sqlite:///server/example.db", echo=True)
-Session = sessionmaker(bind=engine)
-
 load_dotenv()
 SERVER_URL = f"http://app:{os.getenv('APP_PORT')}"
 VULKAN_DAGSTER_SERVER_URL = os.getenv("VULKAN_DAGSTER_SERVER_URL")
@@ -39,30 +39,36 @@ dagster_client = create_dagster_client(DAGSTER_URL, DAGSTER_PORT)
 logger.info(f"Dagster client created at http://{DAGSTER_URL}:{DAGSTER_PORT}")
 
 
+def get_db():
+    db = DBSession()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 @app.get("/policies/list", response_model=list[schemas.Policy])
-def list_policies():
-    with Session() as session:
-        policies = session.query(Policy).all()
-        if len(policies) == 0:
-            return Response(status=204)
-        return policies
+def list_policies(db: Session = Depends(get_db)):
+    policies = db.query(Policy).all()
+    if len(policies) == 0:
+        return Response(status=204)
+    return policies
 
 
 @app.get("/policies/{policy_id}", response_model=schemas.Policy)
-def get_policy(policy_id):
-    with Session() as session:
-        policy = session.query(Policy).filter_by(policy_id=policy_id).first()
-        if policy is None:
-            return Response(status=204)
-        return policy
+def get_policy(policy_id, db: Session = Depends(get_db)):
+    policy = db.query(Policy).filter_by(policy_id=policy_id).first()
+    if policy is None:
+        return Response(status=204)
+    return policy
 
 
 @app.post("/policies/create")
 def create_policy(config: schemas.PolicyBase):
-    with Session() as session:
+    with DBSession() as db:
         policy = Policy(**config.model_dump())
-        session.add(policy)
-        session.commit()
+        db.add(policy)
+        db.commit()
         logger.info(f"Policy {config.name} created")
         return {"policy_id": policy.policy_id, "name": policy.name}
 
@@ -72,8 +78,8 @@ def update_policy(
     policy_id: int,
     config: schemas.PolicyUpdate,
 ):
-    with Session() as session:
-        policy = session.query(Policy).filter_by(policy_id=policy_id).first()
+    with DBSession() as db:
+        policy = db.query(Policy).filter_by(policy_id=policy_id).first()
         if policy is None:
             msg = f"Tried to update non-existent policy {policy_id}"
             raise HTTPException(status_code=400, detail=msg)
@@ -83,7 +89,7 @@ def update_policy(
             and config.active_policy_version_id != policy.active_policy_version_id
         ):
             policy_version = (
-                session.query(PolicyVersion)
+                db.query(PolicyVersion)
                 .filter_by(policy_version_id=config.active_policy_version_id)
                 .first()
             )
@@ -102,7 +108,7 @@ def update_policy(
         if config.description is not None and config.description != policy.description:
             policy.description = config.description
 
-        session.commit()
+        db.commit()
         msg = f"Policy {policy_id} updated: active version set to {config.active_policy_version_id}"
         logger.info(msg)
         return {
@@ -115,14 +121,11 @@ def update_policy(
     "/policies/{policy_id}/versions/list",
     response_model=list[schemas.PolicyVersion],
 )
-def list_policy_versions(policy_id: int):
-    with Session() as session:
-        policy_versions = (
-            session.query(PolicyVersion).filter_by(policy_id=policy_id).all()
-        )
-        if len(policy_versions) == 0:
-            return Response(status=204)
-        return policy_versions
+def list_policy_versions(policy_id: int, db: Session = Depends(get_db)):
+    policy_versions = db.query(PolicyVersion).filter_by(policy_id=policy_id).all()
+    if len(policy_versions) == 0:
+        return Response(status=204)
+    return policy_versions
 
 
 # TODO: evaluate whether policy_id should be a path parameter or a form parameter
@@ -130,6 +133,7 @@ def list_policy_versions(policy_id: int):
 def create_policy_version(
     policy_id: int,
     config: schemas.PolicyVersionBase,
+    dependencies: Annotated[Optional[list[str]], Body()] = None,
 ):
     logger.info(f"Creating policy version for policy {policy_id}")
     if config.alias is None:
@@ -138,8 +142,8 @@ def create_policy_version(
         # unique version of the code.
         config.alias = config.repository_version
 
-    with Session() as session:
-        policy = session.query(Policy).filter_by(policy_id=policy_id).first()
+    with DBSession() as db:
+        policy = db.query(Policy).filter_by(policy_id=policy_id).first()
         if policy is None:
             msg = f"Tried to create a version for non-existent policy {policy_id}"
             raise HTTPException(status_code=400, detail=msg)
@@ -152,8 +156,26 @@ def create_policy_version(
             entrypoint=config.entrypoint,
             status=PolicyVersionStatus.INVALID,
         )
-        session.add(version)
-        session.commit()
+
+        if dependencies:
+            matched = (
+                db.query(ComponentVersion)
+                .filter(ComponentVersion.alias.in_(dependencies))
+                .all()
+            )
+            missing = set(dependencies) - set([m.alias for m in matched])
+            if missing:
+                msg = f"Missing components: {missing}"
+                raise HTTPException(status_code=400, detail=msg)
+
+            # TODO: SQLite doesn't support ARRAY type, so we store the list as String.
+            # Change this when moving to Postgres.
+            version.component_version_ids = json.dumps(
+                [m.component_version_id for m in matched]
+            )
+
+        db.add(version)
+        db.commit()
         msg = f"Creating version {version.policy_version_id} ({config.alias}) for policy {policy_id}"
         logger.info(msg)
 
@@ -165,6 +187,7 @@ def create_policy_version(
                 name=version_name,
                 entrypoint=config.entrypoint,
                 repository=config.repository,
+                dependencies=dependencies,
             )
         except Exception as e:
             msg = f"Failed to create workspace for policy {policy_id} version {config.alias}"
@@ -180,7 +203,7 @@ def create_policy_version(
             raise HTTPException(status_code=500, detail=msg)
 
         version.status = PolicyVersionStatus.VALID
-        session.commit()
+        db.commit()
 
         msg = f"Policy version {config.alias} created for policy {policy_id} with status {version.status}"
         logger.info(msg)
@@ -202,25 +225,31 @@ def _create_policy_version_workspace(
     policy_version_id: int,
     name: str,
     entrypoint: str,
-    repository: bytes,
+    repository: str,
+    dependencies: Optional[list[str]] = None,
 ):
-    with Session() as session:
+    with DBSession() as db:
         workspace = DagsterWorkspace(
             policy_version_id=policy_version_id,
             status=DagsterWorkspaceStatus.CREATION_PENDING,
         )
-        session.add(workspace)
-        session.commit()
+        db.add(workspace)
+        db.commit()
 
         server_url = f"{server_url}/workspaces/create"
         response = requests.post(
             server_url,
-            data={"name": name, "path": entrypoint, "repository": repository},
+            json={
+                "name": name,
+                "path": entrypoint,
+                "repository": repository,
+                "dependencies": dependencies,
+            },
         )
         status_code = response.status_code
         if status_code != 200:
             workspace.status = DagsterWorkspaceStatus.CREATION_FAILED
-            session.commit()
+            db.commit()
             try:
                 error_msg = response.json()["message"]
                 raise ValueError(f"Failed to create workspace: {error_msg}")
@@ -230,7 +259,7 @@ def _create_policy_version_workspace(
         workspace_path = response.json()["path"]
         workspace.workspace_path = workspace_path
         workspace.status = DagsterWorkspaceStatus.OK
-        session.commit()
+        db.commit()
 
 
 @app.post("/policies/{policy_id}/runs/create")
@@ -240,8 +269,8 @@ def create_run(policy_id: int, execution_config_str: Annotated[str, Body(embed=T
     except Exception as e:
         HTTPException(status_code=400, detail=e)
 
-    with Session() as session:
-        policy = session.query(Policy).filter_by(policy_id=policy_id).first()
+    with DBSession() as db:
+        policy = db.query(Policy).filter_by(policy_id=policy_id).first()
         if policy is None:
             raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
         if policy.active_policy_version_id is None:
@@ -251,7 +280,7 @@ def create_run(policy_id: int, execution_config_str: Annotated[str, Body(embed=T
             )
 
         version = (
-            session.query(PolicyVersion)
+            db.query(PolicyVersion)
             .filter_by(
                 policy_id=policy_id,
                 policy_version_id=policy.active_policy_version_id,
@@ -260,8 +289,8 @@ def create_run(policy_id: int, execution_config_str: Annotated[str, Body(embed=T
         )
 
         run = Run(policy_version_id=version.policy_version_id, status="PENDING")
-        session.add(run)
-        session.commit()
+        db.add(run)
+        db.commit()
 
         # Trigger the Dagster job with Policy and Run IDs as inputs
         execution_config["resources"] = {
@@ -281,12 +310,12 @@ def create_run(policy_id: int, execution_config_str: Annotated[str, Body(embed=T
         )
         if dagster_run_id is None:
             run.status = "FAILURE"
-            session.commit()
+            db.commit()
             raise HTTPException(status_code=500, detail="Error triggering job")
 
         run.status = "STARTED"
         run.dagster_run_id = dagster_run_id
-        session.commit()
+        db.commit()
         return {"policy_id": policy.policy_id, "run_id": run.run_id}
 
 
@@ -297,19 +326,18 @@ def create_run(policy_id: int, execution_config_str: Annotated[str, Body(embed=T
 
 
 @app.get("/policies/{policy_id}/runs/{run_id}", response_model=schemas.Run)
-def get_run(policy_id: int, run_id: int):
-    with Session() as session:
-        run = session.query(Run).filter_by(run_id=run_id).first()
-        if run is None:
-            raise HTTPException(status_code=400, detail=f"Run {run_id} not found")
+def get_run(policy_id: int, run_id: int, db: Session = Depends(get_db)):
+    run = db.query(Run).filter_by(run_id=run_id).first()
+    if run is None:
+        raise HTTPException(status_code=400, detail=f"Run {run_id} not found")
 
-        return {
-            "run_id": run.run_id,
-            "status": run.status,
-            "result": run.result,
-            "created_at": run.created_at,
-            "last_updated_at": run.last_updated_at,
-        }
+    return {
+        "run_id": run.run_id,
+        "status": run.status,
+        "result": run.result,
+        "created_at": run.created_at,
+        "last_updated_at": run.last_updated_at,
+    }
 
 
 @app.put("/policies/{policy_id}/runs/{run_id}", response_model=schemas.Run)
@@ -319,14 +347,14 @@ def update_run(
     status: Annotated[str, Body()],
     result: Annotated[str, Body()],
 ):
-    with Session() as session:
-        run = session.query(Run).filter_by(run_id=run_id).first()
+    with DBSession() as db:
+        run = db.query(Run).filter_by(run_id=run_id).first()
         if run is None:
             raise HTTPException(status_code=400, detail=f"Run {run_id} not found")
 
         run.status = status
         run.result = result
-        session.commit()
+        db.commit()
         return {
             "run_id": run.run_id,
             "status": run.status,
@@ -350,11 +378,11 @@ def get_policy_metrics(policy_id: int):
 @app.post("/policies/{policy_id}/runs/{run_id}/metadata")
 def publish_metadata(policy_id: int, run_id: int, config: schemas.StepMetadataBase):
     try:
-        with Session() as session:
+        with DBSession() as db:
             args = {"run_id": run_id, **config.model_dump()}
             meta = StepMetadata(**args)
-            session.add(meta)
-            session.commit()
+            db.add(meta)
+            db.commit()
             return {"status": "success"}
     except KeyError as e:
         raise HTTPException(status_code=400, detail=e)
@@ -362,21 +390,55 @@ def publish_metadata(policy_id: int, run_id: int, config: schemas.StepMetadataBa
         raise HTTPException(status_code=500, detail=e)
 
 
-@app.post("/components/create")
-def create_component(
-    name: Annotated[str, Form()], repository: Annotated[bytes, Form()]
-):
+@app.post("/components/create", response_model=schemas.Component)
+def create_component(config: schemas.ComponentBase, db: Session = Depends(get_db)):
+    component = Component(**config.model_dump())
+    db.add(component)
+    db.commit()
+    logger.info(f"Creating component {config.name}")
+    return component
+
+
+@app.get("/components/list", response_model=list[schemas.Component])
+def list_components(db: Session = Depends(get_db)):
+    components = db.query(Component).all()
+    if len(components) == 0:
+        return Response(status=204)
+    return components
+
+
+@app.post("/components/{component_id}/versions/create")
+def create_component_version(component_id: int, config: schemas.ComponentVersionBase):
     try:
         server_url = f"{VULKAN_DAGSTER_SERVER_URL}/components/create"
+        # TODO: add input and output schemas and handle them in the endpoint
         response = requests.post(
             server_url,
-            data={"name": name, "repository": repository},
+            data={"alias": config.alias, "repository": config.repository},
         )
         if response.status_code != 200:
             raise ValueError(f"Failed to create component: {response.status_code}")
     except Exception as e:
-        msg = f"Failed to create component {name}"
+        msg = f"Failed to create component {config.alias}"
         logger.error(msg)
         raise HTTPException(status_code=500, detail=e)
 
+    with DBSession() as db:
+        args = {"component_id": component_id, **config.model_dump()}
+        component = ComponentVersion(**args)
+        db.add(component)
+        db.commit()
+        logger.info(f"Creating component {config.alias}")
+
     return {"status": "success"}
+
+
+@app.get(
+    "/components/{component_id}/versions/list",
+    response_model=list[schemas.ComponentVersion],
+)
+def list_component_versions(component_id: int, db: Session = Depends(get_db)):
+    versions = db.query(ComponentVersion).filter_by(component_id=component_id).all()
+    if len(versions) == 0:
+        return Response(status=204)
+    return versions

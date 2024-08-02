@@ -26,6 +26,33 @@ class Policy(PolicyBase):
         from_attributes = True
 
 
+class ComponentBase(BaseModel):
+    name: str
+
+
+class Component(ComponentBase):
+    component_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class ComponentVersionBase(BaseModel):
+    alias: str
+    input_schema: str
+    output_schema: str
+    repository: str
+
+
+class ComponentVersion(ComponentVersionBase):
+    component_id: int
+    component_version_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class PolicyVersionBase(BaseModel):
     policy_id: int
     repository: str
@@ -38,15 +65,14 @@ class PolicyVersion(PolicyVersionBase):
     policy_version_id: int
     created_at: datetime
     last_updated_at: datetime
+    component_version_ids: list[int] | None = None
 
     class Config:
         from_attributes = True
 
 
 class RunBase(BaseModel):
-    run_id: int
     status: str
-    dagster_run_id: str | None = None
     result: str | None = None
 
 
@@ -74,8 +100,3 @@ class StepMetadata(StepMetadataBase):
 
     class Config:
         from_attributes = True
-
-
-class Component(BaseModel):
-    name: str
-    repository: bytes

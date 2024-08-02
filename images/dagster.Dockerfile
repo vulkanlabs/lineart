@@ -13,16 +13,11 @@ ENV VULKAN_HOME=${VULKAN_HOME}
 ENV VULKAN_PORT=${VULKAN_PORT}
 EXPOSE ${VULKAN_PORT}
 
-ARG TEST_DATA_SERVER_PORT=5000
-ARG TEST_CLIENT_SERVER_PORT=5001
-ENV TEST_DATA_SERVER_PORT=${TEST_DATA_SERVER_PORT}
-ENV TEST_CLIENT_SERVER_PORT=${TEST_CLIENT_SERVER_PORT}
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
 build-essential vim \
 && rm -rf /var/lib/apt/lists/*
 
-RUN pip install dagster-webserver fastapi pyyaml
+RUN pip install dagster-webserver fastapi[standard] pyyaml
 
 COPY vulkan_dagster /tmp/vulkan_dagster
 RUN pip install /tmp/vulkan_dagster

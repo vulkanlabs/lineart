@@ -1,6 +1,7 @@
 import enum
 
 from sqlalchemy import (
+    ARRAY,
     Column,
     DateTime,
     Enum,
@@ -10,11 +11,12 @@ from sqlalchemy import (
     String,
     create_engine,
 )
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 
 Base = declarative_base()
-
+engine = create_engine("sqlite:///server/example.db", echo=True)
+DBSession = sessionmaker(bind=engine)
 
 class PolicyVersionStatus(enum.Enum):
     VALID = "VALID"
@@ -31,7 +33,7 @@ class Policy(Base):
 
     __tablename__ = "policy"
 
-    policy_id = Column(Integer, primary_key=True, autoincrement=True)
+    policy_id = Column(Integer, primary_key=True)
     name = Column(String)
     description = Column(String)
     input_schema = Column(String, nullable=True)
@@ -47,6 +49,27 @@ class Policy(Base):
     last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
+class Component(Base):
+
+    __tablename__ = "component"
+
+    component_id = Column(Integer, primary_key=True)
+    name = Column(String)
+
+
+class ComponentVersion(Base):
+
+    __tablename__ = "component_version"
+
+    component_version_id = Column(Integer, primary_key=True)
+    component_id = Column(Integer, ForeignKey("component.component_id"))
+    alias = Column(String)
+    input_schema = Column(String)
+    output_schema = Column(String)
+    repository = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class PolicyVersion(Base):
 
     __tablename__ = "policy_version"
@@ -57,6 +80,8 @@ class PolicyVersion(Base):
     status = Column(Enum(PolicyVersionStatus))
     repository = Column(String)
     repository_version = Column(String)
+    # TODO: SQLite doesn't support ARRAY type. Change this when moving to Postgres.
+    component_version_ids = Column(String, nullable=True)
     entrypoint = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -103,5 +128,4 @@ class StepMetadata(Base):
 
 
 if __name__ == "__main__":
-    engine = create_engine("sqlite:///server/example.db", echo=True)
     Base.metadata.create_all(engine)

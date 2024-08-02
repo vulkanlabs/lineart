@@ -2,10 +2,11 @@ import base64
 import logging
 import os
 import subprocess
+from shutil import rmtree
 from typing import Annotated
 
 import yaml
-from fastapi import FastAPI, Form, HTTPException
+from fastapi import Body, FastAPI, Form, HTTPException
 
 from vulkan_dagster.workspace import add_workspace_config, unpack_workspace
 
@@ -19,9 +20,10 @@ DAGSTER_HOME = os.getenv("DAGSTER_HOME")
 
 @app.post("/workspaces/create")
 def create_workspace(
-    name: Annotated[str, Form()],
-    path: Annotated[str, Form()],
-    repository: Annotated[str, Form()],
+    name: Annotated[str, Body()],
+    path: Annotated[str, Body()],
+    repository: Annotated[str, Body()],
+    dependencies: Annotated[list[str] | None, Body()] = None,
 ):
     repository = base64.b64decode(repository)
     logger.info(f"Creating workspace: {name} (python_module)")
@@ -40,7 +42,10 @@ def create_workspace(
             raise Exception(msg)
 
         add_workspace_config(DAGSTER_HOME, name, path)
-        _install_components(name, workspace_path, path)
+        # TODO: check if the python modules names are unique
+        # _install_components(name, workspace_path, path)
+        if dependencies:
+            _install_dependencies(name, dependencies)
 
     except Exception as e:
         logger.error(f"Failed create workspace: {e}")
@@ -52,17 +57,27 @@ def create_workspace(
 
 @app.post("/components/create")
 def create_component(
-    name: Annotated[str, Form()],
-    repository: Annotated[bytes, Form()],
+    alias: Annotated[str, Form()],
+    repository: Annotated[str, Form()],
 ):
+    base_dir = f"{DAGSTER_HOME}/components"
+    component_path = os.path.join(base_dir, alias)
+    if os.path.exists(component_path):
+        raise HTTPException(
+            status_code=409,
+            detail="Component already exists",
+        )
+
+    logger.info(f"Creating component: {alias}")
     repository = base64.b64decode(repository)
-    logger.info(f"Creating component: {name}")
 
     try:
-        base_dir = f"{DAGSTER_HOME}/components"
-        component_path = unpack_workspace(base_dir, name, repository)
+        component_path = unpack_workspace(base_dir, alias, repository)
     except Exception as e:
         logger.error(f"Failed create component: {e}")
+        if os.path.exists(component_path):
+            rmtree(component_path)
+
         raise HTTPException(
             status_code=500,
             detail="Failed to create component",
@@ -70,6 +85,22 @@ def create_component(
 
     logger.info(f"Created component at: {component_path}")
     return {"status": "success"}
+
+
+def _install_dependencies(name, dependencies):
+    logger.info(f"Installing components for workspace: {name}")
+    for dependency in dependencies:
+        result = subprocess.run(
+            [
+                "bash",
+                "scripts/install_component.sh",
+                dependency,
+                name,
+            ],
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            raise Exception(f"Failed to install dependency: {dependency}")
 
 
 def _install_components(name, workspace_path, entrypoint):
