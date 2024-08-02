@@ -22,10 +22,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 build-essential vim \
 && rm -rf /var/lib/apt/lists/*
 
-RUN pip install dagster-webserver fastapi pyyaml
+RUN pip install dagster-webserver "fastapi[standard]" pyyaml pytest pytest-httpserver
 
 COPY vulkan_dagster /tmp/vulkan_dagster
-RUN pip install /tmp/vulkan_dagster
+RUN pip install /tmp/vulkan_dagster && pytest /tmp/vulkan_dagster 
 
 COPY vulkan_dagster_deploy/config/* ${DAGSTER_HOME}/
 COPY vulkan_dagster_deploy/mock_workspace ${DAGSTER_HOME}/workspaces/mock_workspace

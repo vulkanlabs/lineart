@@ -14,6 +14,10 @@ dagster-postgres = "^0.23.15"
 [tool.poetry.scripts]
 vulkan = "vulkan_dagster.cli:main"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.2"
+pytest-httpserver = "^1.0.12"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
