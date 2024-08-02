@@ -82,7 +82,7 @@ class Policy:
         return {
             n.name: n.graph_dependencies()
             for n in self.nodes
-            if n.graph_dependencies() is not None
+            if len(n.dependencies) > 0
         }
 
     def to_job(self, resources: dict[str, ConfigurableResource]):

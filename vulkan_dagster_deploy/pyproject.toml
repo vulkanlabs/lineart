@@ -6,7 +6,7 @@ authors = []
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
-flask = "^3.0.3"
+fastapi = "^0.112.0"
 
 [build-system]
 requires = ["poetry-core"]

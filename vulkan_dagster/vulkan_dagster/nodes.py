@@ -44,18 +44,36 @@ class VulkanNodeDefinition:
 
 class Node(ABC):
 
-    def __init__(self, name, description, typ):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        typ: NodeType,
+        dependencies: dict | None = None,
+    ):
         self.name = name
         self.description = description
         self.type = typ
+        self.dependencies = dependencies if dependencies is not None else {}
 
     @abstractmethod
     def node(self) -> OpDefinition:
         pass
 
-    @abstractmethod
     def graph_dependencies(self) -> dict[str, Any]:
-        pass
+        if self.dependencies is None:
+            return None
+
+        deps = {}
+        for k, v in self.dependencies.items():
+            if isinstance(v, tuple):
+                definition = DependencyDefinition(v[0], v[1])
+            elif isinstance(v, str):
+                definition = DependencyDefinition(v, "result")
+            else:
+                raise ValueError(f"Invalid dependency definition: {k} -> {v}")
+            deps[k] = definition
+        return deps
 
 
 class HTTPConnection(Node):
@@ -70,12 +88,11 @@ class HTTPConnection(Node):
         params: Optional[dict] = None,
         dependencies: Optional[dict] = None,
     ):
-        super().__init__(name, description, NodeType.CONNECTION)
+        super().__init__(name, description, NodeType.CONNECTION, dependencies)
         self.url = url
         self.method = method
         self.headers = headers
         self.params = params if params is not None else {}
-        self.dependencies = dependencies if dependencies is not None else {}
 
     def node(self) -> OpDefinition:
         return OpDefinition(
@@ -85,24 +102,31 @@ class HTTPConnection(Node):
             outs={"result": Out()},
         )
 
-    def graph_dependencies(self) -> dict[str, Any]:
-        return _generate_dependencies(self.dependencies)
-
     def run(self, context, inputs):
         context.log.debug(f"Requesting {self.url}")
         body = inputs.get("body", None)
         context.log.debug(f"Body: {body}")
+
+        if self.headers.get("Content-Type") == "application/json":
+            json = body
+            data = None
+        else:
+            json = None
+            data = body
+
         # TODO: review how we can customize request creation
         req = requests.Request(
             method=self.method,
             url=self.url,
             headers=self.headers,
             params=self.params,
-            data=body,
+            data=data,
+            json=json,
         ).prepare()
         context.log.debug(
             f"Request: body {req.body}\n headers {req.headers} \n url {req.url}"
         )
+
         response = requests.Session().send(req)
         context.log.debug(f"Response: {response}")
 
@@ -124,9 +148,8 @@ class Transform(Node):
         func: callable,
         dependencies: dict[str, Any],
     ):
-        super().__init__(name, description, NodeType.TRANSFORM)
+        super().__init__(name, description, NodeType.TRANSFORM, dependencies)
         self.func = func
-        self.dependencies = dependencies
 
     def node(self) -> OpDefinition:
         def fn(context, inputs):
@@ -165,9 +188,6 @@ class Transform(Node):
 
         return node_op
 
-    def graph_dependencies(self) -> dict[str, Any]:
-        return _generate_dependencies(self.dependencies)
-
 
 class Terminate(Transform):
     def __init__(
@@ -178,6 +198,7 @@ class Terminate(Transform):
         dependencies: dict[str, Any],
     ):
         self.return_status = return_status
+        assert dependencies is not None, f"Dependencies not set for TERMINATE op {name}"
         super().__init__(name, description, self._fn, dependencies)
 
     def _fn(self, context, **kwargs):
@@ -241,9 +262,8 @@ class Branch(Node):
         dependencies: dict[str, Any],
         outputs: list[str],
     ):
-        super().__init__(name, description, NodeType.BRANCH)
+        super().__init__(name, description, NodeType.BRANCH, dependencies)
         self.func = func
-        self.dependencies = dependencies
         self.outputs = outputs
 
     def node(self) -> OpDefinition:
@@ -280,13 +300,10 @@ class Branch(Node):
         )
         return node_op
 
-    def graph_dependencies(self) -> dict[str, Any]:
-        return _generate_dependencies(self.dependencies)
-
 
 class Input(Node):
-    def __init__(self, name: str, description: str, config_schema: dict):
-        super().__init__(name, description, NodeType.INPUT)
+    def __init__(self, description: str, config_schema: dict, name="input_node"):
+        super().__init__(name, description, NodeType.INPUT, dependencies=None)
         self.config_schema = config_schema
 
     def run(self, context, *args, **kwargs):
@@ -302,19 +319,3 @@ class Input(Node):
             outs={"result": Out()},
             config_schema=self.config_schema,
         )
-
-    def graph_dependencies(self) -> dict[str, Any]:
-        return None
-
-
-def _generate_dependencies(dependencies: dict):
-    deps = {}
-    for k, v in dependencies.items():
-        if isinstance(v, tuple):
-            definition = DependencyDefinition(v[0], v[1])
-        elif isinstance(v, str):
-            definition = DependencyDefinition(v, "result")
-        else:
-            raise ValueError(f"Invalid dependency definition: {k} -> {v}")
-        deps[k] = definition
-    return deps
