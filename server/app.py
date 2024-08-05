@@ -3,19 +3,19 @@ import logging
 import os
 from typing import Annotated, Optional
 
-import json
 import requests
 from dotenv import load_dotenv
-from fastapi import Body, Depends, FastAPI, Form, HTTPException, Response
+from fastapi import Body, Depends, FastAPI, HTTPException, Response
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from . import schemas
 from .db import (
-    DBSession,
     Component,
     ComponentVersion,
     DagsterWorkspace,
     DagsterWorkspaceStatus,
+    DBSession,
     Policy,
     PolicyVersion,
     PolicyVersionStatus,
@@ -25,6 +25,24 @@ from .db import (
 from .trigger_run import create_dagster_client, trigger_dagster_job, update_repository
 
 app = FastAPI()
+
+origins = [
+    "http://127.0.0.1",
+    "http://0.0.0.0",
+    "http://localhost",
+    "http://localhost:8080",
+    "http://host.docker.internal",
+    "http://host.docker.internal:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)

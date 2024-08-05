@@ -1,10 +1,9 @@
-import Image from "next/image";
-import PersistentDrawerLeft from "./components";
-
-export default function Home() {
+export default function Page() {
   return (
+    // TODO
     <div>
-      <PersistentDrawerLeft />
+      Hello world
     </div>
   );
 }
+
