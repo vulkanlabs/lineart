@@ -39,19 +39,16 @@ export default function PolicyPageBody() {
 function PolicyPageContent({ policies }) {
     const [showForm, setShowForm] = useState(false);
 
-    if (policies.length > 0) {
-        return (
-            <div>
-                <Button className="mt-4" onClick={() => setShowForm(true)}>Criar Política</Button>
-                <PolicyTable policies={policies} />
-                <PolicyForm display={showForm} closeFunc={() => setShowForm(false)} />
-            </div>
-        );
-    }
-    return <EmptyPolicyTable />;
+    return (
+        <div>
+            <Button className="mt-4" onClick={() => setShowForm(true)}>Criar Política</Button>
+            {policies.length > 0 ? <PolicyTable policies={policies} /> : <EmptyPolicyTable />}
+            <PolicyForm display={showForm} closeFunc={() => setShowForm(false)} />
+        </div>
+    );
 }
 
-function EmptyPolicyTable() {
+function EmptyPolicyTable({ setShowAddPolicy }) {
     return (
         <div>
             <div
@@ -64,7 +61,6 @@ function EmptyPolicyTable() {
                     <p className="text-sm text-muted-foreground">
                         Crie uma política para começar a tomar decisões.
                     </p>
-                    <Button className="mt-4">Criar Política</Button>
                 </div>
             </div>
         </div>
