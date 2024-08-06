@@ -197,6 +197,12 @@ def create_policy_version(
         msg = f"Creating version {version.policy_version_id} ({config.alias}) for policy {policy_id}"
         logger.info(msg)
 
+        # TODO: parse the policy and validate the dag structure
+        # Then save the structure to the database so we can use it
+        # in the UI.
+        # This also allows us to run validation on user code in
+        # "compile-time" and avoid invalid policies.
+
         version_name = _version_name(policy_id, version.policy_version_id)
         try:
             _create_policy_version_workspace(
