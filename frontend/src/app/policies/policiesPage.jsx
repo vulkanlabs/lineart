@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { PolicyForm } from "@/components/policy-form";
 import { PolicyTable } from "@/components/policy-table";
 import { Button } from "@/components/ui/button";
-import { set } from "zod";
 
 export default function PolicyPageBody() {
     const [policies, setPolicies] = useState([]);
@@ -18,11 +17,11 @@ export default function PolicyPageBody() {
         } catch (error) {
             console.error(error);
         }
-    }
+    };
 
     useEffect(() => {
         const comInterval = setInterval(fetchPolicies, refreshTime);
-        return () => clearInterval(comInterval)
+        return () => clearInterval(comInterval);
     }, []);
 
     return (
@@ -38,22 +37,14 @@ export default function PolicyPageBody() {
 }
 
 function PolicyPageContent({ policies }) {
-    const [formState, setFormState] = useState("hidden");
-
-    function openForm() {
-        setFormState("open");
-    }
-
-    function closeForm() {
-        setFormState("hidden");
-    }
+    const [showForm, setShowForm] = useState(false);
 
     if (policies.length > 0) {
         return (
             <div>
-                <Button className="mt-4" onClick={openForm}>Criar Política</Button>
+                <Button className="mt-4" onClick={() => setShowForm(true)}>Criar Política</Button>
                 <PolicyTable policies={policies} />
-                <PolicyForm state={formState} closeFunc={closeForm}/>
+                <PolicyForm display={showForm} closeFunc={() => setShowForm(false)} />
             </div>
         );
     }
@@ -65,7 +56,6 @@ function EmptyPolicyTable() {
         <div>
             <div
                 className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm"
-                x-chunk="dashboard-02-chunk-1"
             >
                 <div className="flex flex-col items-center gap-1 text-center">
                     <h3 className="text-2xl font-bold tracking-tight">

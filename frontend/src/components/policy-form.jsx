@@ -1,4 +1,3 @@
-
 "use client";
 
 import { z } from "zod";
@@ -7,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { Form, FormField, FormControl, FormDescription, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card } from "./ui/card";
 
 const formSchema = z.object({
     name: z.string(),
@@ -15,11 +15,7 @@ const formSchema = z.object({
     output_schema: z.string(),
 });
 
-export function PolicyForm({ state, closeFunc }) {
-    if (state === "hidden") {
-        return null;
-    }
-    
+export function PolicyForm({ display, closeFunc }) {
     const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -29,6 +25,10 @@ export function PolicyForm({ state, closeFunc }) {
             output_schema: "",
         },
     });
+
+    if (!display) {
+        return null;
+    }
 
     function onSubmit(values) {
         console.log(values);
@@ -49,38 +49,42 @@ export function PolicyForm({ state, closeFunc }) {
     }
 
     return (
-        <div>
-            <Button className="mt-4" onClick={closeFunc}>X</Button>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-2">
-                    <FormField control={form.control} name="name" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Nome</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Nova Política 1" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                                O nome da política.
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={form.control} name="description" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Description</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Uma política interessante" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                                Descrição sucinta da política.
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
+        // A very long classname that essentially says:
+        // "Whole screen, black background, centered content, with a nice animation"
+        <div className="fixed inset-0 z-50 bg-black/80 flex justify-center items-center align-center data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
+            <Card >
+                <Button className="mt-4" onClick={closeFunc}>X</Button>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-2">
+                        <FormField control={form.control} name="name" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Nome</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Nova Política 1" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                    O nome da política.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="description" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Description</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Uma política interessante" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                    Descrição sucinta da política.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
 
-                    <Button type="submit" className="col-start-2">Criar Política</Button>
-                </form>
-            </Form>
+                        <Button type="submit" className="col-start-2">Criar Política</Button>
+                    </form>
+                </Form>
+            </Card>
         </div>
     );
 }
