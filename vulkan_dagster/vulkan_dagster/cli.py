@@ -17,6 +17,7 @@ def main():
 
     policy = subparsers.add_parser("create_policy", help="Create a policy")
     policy.add_argument("--name", type=str, required=True, help="Name of the policy")
+    policy.add_argument("--description", type=str, default="", help="Description of the policy")
 
     workspace = subparsers.add_parser("create_workspace", help="Create a workspace")
     workspace.add_argument(
@@ -63,10 +64,11 @@ def main():
 
     args = parser.parse_args()
 
-    SERVER_URL = "http://localhost:6000"
+    # TODO: This should come from a user config
+    SERVER_URL = "http://localhost:6001"
 
     if args.command == "create_policy":
-        policy_id = create_policy(SERVER_URL, args.name, "", "")
+        policy_id = create_policy(SERVER_URL, args.name, args.description, "")
         logging.info(f"Created policy {args.name} with id {policy_id}")
 
     elif args.command == "create_workspace":

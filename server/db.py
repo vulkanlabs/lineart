@@ -18,6 +18,7 @@ Base = declarative_base()
 engine = create_engine("sqlite:///server/example.db", echo=True)
 DBSession = sessionmaker(bind=engine)
 
+
 class PolicyVersionStatus(enum.Enum):
     VALID = "VALID"
     INVALID = "INVALID"
@@ -46,7 +47,9 @@ class Policy(Base):
         nullable=True,
     )
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    last_updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class Component(Base):
@@ -84,7 +87,9 @@ class PolicyVersion(Base):
     component_version_ids = Column(String, nullable=True)
     entrypoint = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    last_updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class DagsterWorkspace(Base):
@@ -110,7 +115,9 @@ class Run(Base):
     result = Column(String, nullable=True)
     dagster_run_id = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    last_updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class StepMetadata(Base):

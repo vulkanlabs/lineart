@@ -69,7 +69,7 @@ def get_db():
 def list_policies(db: Session = Depends(get_db)):
     policies = db.query(Policy).all()
     if len(policies) == 0:
-        return Response(status=204)
+        return Response(status_code=204)
     return policies
 
 
@@ -77,7 +77,7 @@ def list_policies(db: Session = Depends(get_db)):
 def get_policy(policy_id, db: Session = Depends(get_db)):
     policy = db.query(Policy).filter_by(policy_id=policy_id).first()
     if policy is None:
-        return Response(status=204)
+        return Response(status_code=204)
     return policy
 
 
@@ -142,7 +142,7 @@ def update_policy(
 def list_policy_versions(policy_id: int, db: Session = Depends(get_db)):
     policy_versions = db.query(PolicyVersion).filter_by(policy_id=policy_id).all()
     if len(policy_versions) == 0:
-        return Response(status=204)
+        return Response(status_code=204)
     return policy_versions
 
 
@@ -421,7 +421,7 @@ def create_component(config: schemas.ComponentBase, db: Session = Depends(get_db
 def list_components(db: Session = Depends(get_db)):
     components = db.query(Component).all()
     if len(components) == 0:
-        return Response(status=204)
+        return Response(status_code=204)
     return components
 
 
@@ -458,5 +458,5 @@ def create_component_version(component_id: int, config: schemas.ComponentVersion
 def list_component_versions(component_id: int, db: Session = Depends(get_db)):
     versions = db.query(ComponentVersion).filter_by(component_id=component_id).all()
     if len(versions) == 0:
-        return Response(status=204)
+        return Response(status_code=204)
     return versions

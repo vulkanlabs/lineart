@@ -15,7 +15,11 @@ const formSchema = z.object({
     output_schema: z.string(),
 });
 
-export function PolicyForm() {
+export function PolicyForm({ state, closeFunc }) {
+    if (state === "hidden") {
+        return null;
+    }
+    
     const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -38,41 +42,45 @@ export function PolicyForm() {
         }).then((response) => {
             console.log(response);
             console.log(response.json());
+            closeFunc();
         }).catch((error) => {
             console.error(error);
         });
     }
 
     return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-2">
-                <FormField control={form.control} name="name" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Nome</FormLabel>
-                        <FormControl>
-                            <Input placeholder="Nova Política 1" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                            O nome da política.
-                        </FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                <FormField control={form.control} name="description" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                            <Input placeholder="Uma política interessante" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                            Descrição sucinta da política.
-                        </FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                )} />
+        <div>
+            <Button className="mt-4" onClick={closeFunc}>X</Button>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-2">
+                    <FormField control={form.control} name="name" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Nome</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Nova Política 1" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                                O nome da política.
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <FormField control={form.control} name="description" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Uma política interessante" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                                Descrição sucinta da política.
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
 
-                <Button type="submit" className="col-start-2">Criar Política</Button>
-            </form>
-        </Form>
+                    <Button type="submit" className="col-start-2">Criar Política</Button>
+                </form>
+            </Form>
+        </div>
     );
 }
