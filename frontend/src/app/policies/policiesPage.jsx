@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 export default function PolicyPageBody() {
     const [policies, setPolicies] = useState([]);
     const refreshTime = 3000;
+    const baseUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
 
     const fetchPolicies = async () => {
         try {
-            const response = await fetch("http://localhost:6001/policies/list");
+            const response = await fetch(new URL("/policies/list", baseUrl));
             const data = await response.json();
             setPolicies(data);
         } catch (error) {

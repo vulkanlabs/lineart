@@ -467,7 +467,7 @@ def create_component_version(component_id: int, config: schemas.ComponentVersion
     except Exception as e:
         msg = f"Failed to create component {config.alias}"
         logger.error(msg)
-        raise HTTPException(status_code=500, detail=e)
+        raise HTTPException(status_code=500, detail=str(e))
 
     with DBSession() as db:
         args = {"component_id": component_id, **config.model_dump()}
