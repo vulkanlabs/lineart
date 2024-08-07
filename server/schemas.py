@@ -55,17 +55,23 @@ class ComponentVersion(ComponentVersionBase):
 
 class PolicyVersionBase(BaseModel):
     policy_id: int
+    alias: str | None = None
+
+
+class PolicyVersionCreate(PolicyVersionBase):
     repository: str
     repository_version: str
     entrypoint: str
-    alias: str | None = None
 
 
 class PolicyVersion(PolicyVersionBase):
     policy_version_id: int
+    graph_definition: str
     created_at: datetime
     last_updated_at: datetime
-    component_version_ids: list[int] | None = None
+    # TODO: SQLite doesn't support ARRAY type. Change this when moving to Postgres.
+    # component_version_ids: list[int] | None = None
+    component_version_ids: str | None = None
 
     class Config:
         from_attributes = True

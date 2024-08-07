@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 import os
 import subprocess
@@ -21,7 +22,7 @@ DAGSTER_HOME = os.getenv("DAGSTER_HOME")
 @app.post("/workspaces/create")
 def create_workspace(
     name: Annotated[str, Body()],
-    path: Annotated[str, Body()],
+    entrypoint: Annotated[str, Body()],
     repository: Annotated[str, Body()],
     dependencies: Annotated[list[str] | None, Body()] = None,
 ):
@@ -34,25 +35,46 @@ def create_workspace(
         )
 
         completed_process = subprocess.run(
-            ["bash", "scripts/create_venv.sh", name, path],
+            ["bash", "scripts/create_venv.sh", name, entrypoint],
             capture_output=True,
         )
         if completed_process.returncode != 0:
             msg = f"Failed to create virtual environment: {completed_process.stderr}"
             raise Exception(msg)
 
-        add_workspace_config(DAGSTER_HOME, name, path)
+        add_workspace_config(DAGSTER_HOME, name, entrypoint)
         # TODO: check if the python modules names are unique
         # _install_components(name, workspace_path, path)
         if dependencies:
             _install_dependencies(name, dependencies)
+
+        # TODO: source into created venv (to have access to the installed components)
+        # and run extract_node_definitions.py with args `f"{DAGSTER_HOME}/workspaces/{name}"` and `entrypoint`
+        tmp_path = f"/tmp/nodes.json"
+        venv = f"/opt/venvs/{name}/bin/python"
+        completed_process = subprocess.run(
+            [venv, "/opt/scripts/extract_node_definitions.py", entrypoint, tmp_path],
+            cwd=workspace_path,
+            capture_output=True,
+        )
+        if completed_process.returncode != 0:
+            msg = f"Failed to create virtual environment: {completed_process.stderr}"
+            raise Exception(msg)
+        
+        if not os.path.exists(tmp_path):
+            msg = f"Failed to create virtual environment: Policy instance not found"
+            raise Exception(msg)
+        
+        with open(tmp_path, "r") as fn:
+            nodes = json.load(fn)
+        os.remove(tmp_path)
 
     except Exception as e:
         logger.error(f"Failed create workspace: {e}")
         raise HTTPException(status_code=500, detail=e)
 
     logger.info(f"Created workspace at: {workspace_path}")
-    return {"status": "success", "path": workspace_path}
+    return {"workspace_path": workspace_path, "graph": nodes}
 
 
 @app.post("/components/create")

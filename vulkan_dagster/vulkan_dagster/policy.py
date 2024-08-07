@@ -50,7 +50,7 @@ class Policy:
             dependencies=deps,
         )
 
-    def node_definitions(self):
+    def node_definitions(self) -> dict[str, VulkanNodeDefinition]:
         definitions = {}
         for node in self.nodes:
             opt_args = {}
@@ -63,7 +63,7 @@ class Policy:
             definitions[node.name] = VulkanNodeDefinition(
                 name=node.name,
                 description=node.description,
-                node_type=node.type,
+                node_type=node.type.value,
                 **opt_args,
             )
         return definitions

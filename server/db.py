@@ -83,6 +83,7 @@ class PolicyVersion(Base):
     status = Column(Enum(PolicyVersionStatus))
     repository = Column(String)
     repository_version = Column(String)
+    graph_definition = Column(String)
     # TODO: SQLite doesn't support ARRAY type. Change this when moving to Postgres.
     component_version_ids = Column(String, nullable=True)
     entrypoint = Column(String)

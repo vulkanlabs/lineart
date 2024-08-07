@@ -146,11 +146,28 @@ def list_policy_versions(policy_id: int, db: Session = Depends(get_db)):
     return policy_versions
 
 
+@app.get(
+    "/policies/{policy_id}/versions/{policy_version_id}",
+    response_model=schemas.PolicyVersion,
+)
+def list_policy_versions(
+    policy_id: int, policy_version_id: int, db: Session = Depends(get_db)
+):
+    policy_version = (
+        db.query(PolicyVersion)
+        .filter_by(policy_id=policy_id, policy_version_id=policy_version_id)
+        .first()
+    )
+    if policy_version is None:
+        return Response(status_code=204)
+    return policy_version
+
+
 # TODO: evaluate whether policy_id should be a path parameter or a form parameter
 @app.post("/policies/{policy_id}/versions/create")
 def create_policy_version(
     policy_id: int,
-    config: schemas.PolicyVersionBase,
+    config: schemas.PolicyVersionCreate,
     dependencies: Annotated[Optional[list[str]], Body()] = None,
 ):
     logger.info(f"Creating policy version for policy {policy_id}")
@@ -205,7 +222,8 @@ def create_policy_version(
 
         version_name = _version_name(policy_id, version.policy_version_id)
         try:
-            _create_policy_version_workspace(
+            graph = _create_policy_version_workspace(
+                db=db,
                 server_url=VULKAN_DAGSTER_SERVER_URL,
                 policy_version_id=version.policy_version_id,
                 name=version_name,
@@ -227,6 +245,7 @@ def create_policy_version(
             raise HTTPException(status_code=500, detail=msg)
 
         version.status = PolicyVersionStatus.VALID
+        version.graph_definition = json.dumps(graph)
         db.commit()
 
         msg = f"Policy version {config.alias} created for policy {policy_id} with status {version.status}"
@@ -245,6 +264,7 @@ def _version_name(policy_id: int, policy_version_id: int) -> str:
 
 
 def _create_policy_version_workspace(
+    db: Session,
     server_url: str,
     policy_version_id: int,
     name: str,
@@ -252,38 +272,40 @@ def _create_policy_version_workspace(
     repository: str,
     dependencies: Optional[list[str]] = None,
 ):
-    with DBSession() as db:
-        workspace = DagsterWorkspace(
-            policy_version_id=policy_version_id,
-            status=DagsterWorkspaceStatus.CREATION_PENDING,
-        )
-        db.add(workspace)
-        db.commit()
+    workspace = DagsterWorkspace(
+        policy_version_id=policy_version_id,
+        status=DagsterWorkspaceStatus.CREATION_PENDING,
+    )
+    db.add(workspace)
+    db.commit()
 
-        server_url = f"{server_url}/workspaces/create"
-        response = requests.post(
-            server_url,
-            json={
-                "name": name,
-                "path": entrypoint,
-                "repository": repository,
-                "dependencies": dependencies,
-            },
-        )
-        status_code = response.status_code
-        if status_code != 200:
-            workspace.status = DagsterWorkspaceStatus.CREATION_FAILED
-            db.commit()
-            try:
-                error_msg = response.json()["message"]
-                raise ValueError(f"Failed to create workspace: {error_msg}")
-            except:
-                raise ValueError(f"Failed to create workspace: {status_code}")
-
-        workspace_path = response.json()["path"]
-        workspace.workspace_path = workspace_path
-        workspace.status = DagsterWorkspaceStatus.OK
+    server_url = f"{server_url}/workspaces/create"
+    response = requests.post(
+        server_url,
+        json={
+            "name": name,
+            "entrypoint": entrypoint,
+            "repository": repository,
+            "dependencies": dependencies,
+        },
+    )
+    status_code = response.status_code
+    if status_code != 200:
+        workspace.status = DagsterWorkspaceStatus.CREATION_FAILED
         db.commit()
+        try:
+            error_msg = response.json()["message"]
+            raise ValueError(f"Failed to create workspace: {error_msg}")
+        except:
+            raise ValueError(f"Failed to create workspace: {status_code}")
+
+    response_data = response.json()
+    workspace_path = response_data["workspace_path"]
+    workspace.workspace_path = workspace_path
+    workspace.status = DagsterWorkspaceStatus.OK
+    db.commit()
+
+    return response_data["graph"]
 
 
 @app.post("/policies/{policy_id}/runs/create")
