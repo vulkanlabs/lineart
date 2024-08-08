@@ -6,14 +6,20 @@ import {
     MiniMap,
     Controls,
     ConnectionLineType,
+    Background,
+    BackgroundVariant
 } from '@xyflow/react';
 
 import dagre from '@dagrejs/dagre';
 
 import '@xyflow/react/dist/style.css';
 
+import WorkflowSidebar from "@/components/workflow-sidebar";
+
 
 export default function Page({ params }) {
+    const [showSidebar, setShowSidebar] = useState(false);
+    const [clickedNode, setClickedNode] = useState([]);
     const [nodes, setNodes] = useState([]);
     const [edges, setEdges] = useState([]);
     const dagreGraph = new dagre.graphlib.Graph();
@@ -30,22 +36,55 @@ export default function Page({ params }) {
             });
     };
 
+    function openNodeSidebar(node) {
+        console.log("Clicked node:", node);
+        setClickedNode(node);
+        setShowSidebar(true);
+    }
+
+    if (!showSidebar) {
+        return (
+            <div className='w-full max-w-full h-full'>
+                <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onInit={initGraph}
+                    onNodeClick={(_, node) => openNodeSidebar(node)}
+                    connectionLineType={ConnectionLineType.SmoothStep}
+                    fitView
+                >
+                    <Background color="#ccc" variant={BackgroundVariant.Dots} />
+                    <MiniMap nodeStrokeWidth={3} zoomable pannable />
+                    <Controls />
+                </ReactFlow>
+            </div>
+        );
+    }
+
     return (
-        <div className='w-full max-w-full h-full'>
-            <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                onInit={initGraph}
-                connectionLineType={ConnectionLineType.SmoothStep}
-                fitView
-            >
-                <MiniMap nodeStrokeWidth={3} zoomable pannable />
-                <Controls />
-            </ReactFlow>
+        <div className="w-full max-w-full h-full grid grid-cols-6">
+            <div className="col-span-4">
+                <div className='w-full max-w-full h-full'>
+                    <ReactFlow
+                        nodes={nodes}
+                        edges={edges}
+                        onInit={initGraph}
+                        onNodeClick={(_, node) => openNodeSidebar(node)}
+                        connectionLineType={ConnectionLineType.SmoothStep}
+                        fitView
+                    >
+                        <Background color="#ccc" variant={BackgroundVariant.Dots} />
+                        <MiniMap nodeStrokeWidth={3} zoomable pannable />
+                        <Controls />
+                    </ReactFlow>
+                </div>
+            </div>
+            <div className="col-span-2">
+                <WorkflowSidebar clickedNode={clickedNode} closeFunc={() => setShowSidebar(false)} />
+            </div>
         </div>
     );
 }
-
 
 async function assembleGraph(policyId, graph) {
     const graphData = await getGraphData(policyId)
@@ -54,14 +93,18 @@ async function assembleGraph(policyId, graph) {
         });
 
     const vulkanNodes = Object.entries(graphData).map(([name, node]) => {
-        return {
+        let nodeData = {
             id: name,
             data: {
                 label: name,
                 description: node.description,
                 type: node.node_type,
             }
-        };
+        }
+        if (node.metadata !== null && node.metadata.hasOwnProperty("executable")) {
+            nodeData.data.code = node.metadata.executable;
+        }
+        return nodeData;
     });
 
     const vulkanEdges = Object.entries(graphData).flatMap(([name, node]) => {

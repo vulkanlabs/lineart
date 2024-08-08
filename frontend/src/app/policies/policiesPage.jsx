@@ -27,8 +27,6 @@ export default function PolicyPageBody() {
 
     return (
         <div>
-            {/* TODO: preencher com tabela de políticas */}
-            {/* Check: se vazio, mostra isso; senão mostra a tabela */}
             <div className="flex items-center">
                 <h1 className="text-lg font-semibold md:text-2xl">Políticas</h1>
             </div>

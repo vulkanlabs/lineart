@@ -27,7 +27,7 @@ export function PolicyTable({ policies }) {
             </TableHeader>
             <TableBody>
                 {policies.map((policy) => (
-                    <TableRow key={policy.policy_id} onClick={() => router.push(`/policies/${policy.policy_id}`)} >
+                    <TableRow key={policy.policy_id} className="cursor-pointer" onClick={() => router.push(`/policies/${policy.policy_id}`)} >
                         <TableCell>{policy.policy_id}</TableCell>
                         <TableCell>{policy.name}</TableCell>
                         <TableCell>{policy.description.length > 0 ? policy.description : "-"}</TableCell>
