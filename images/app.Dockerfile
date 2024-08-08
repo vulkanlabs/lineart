@@ -1,7 +1,7 @@
 ARG PYTHON_VERSION
 FROM python:${PYTHON_VERSION}
 
-EXPOSE 6000
+EXPOSE 6001
 
 WORKDIR /app
 COPY server server/
@@ -11,4 +11,4 @@ RUN poetry install
 # TODO: this creates an empty database instance
 RUN poetry run python server/db.py
 
-ENTRYPOINT ["poetry", "run",  "fastapi", "dev", "server/app.py", "--host", "0.0.0.0", "--port", "6000"]
+ENTRYPOINT ["poetry", "run",  "fastapi", "dev", "server/app.py", "--host", "0.0.0.0", "--port", "6001"]

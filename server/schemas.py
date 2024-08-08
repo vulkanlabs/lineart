@@ -77,13 +77,11 @@ class PolicyVersion(PolicyVersionBase):
         from_attributes = True
 
 
-class RunBase(BaseModel):
+class Run(BaseModel):
+    run_id: int
+    policy_version_id: int
     status: str
     result: str | None = None
-
-
-class Run(RunBase):
-    run_id: int
     created_at: datetime
     last_updated_at: datetime
 

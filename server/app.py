@@ -65,12 +65,22 @@ def get_db():
         db.close()
 
 
-@app.get("/policies/list", response_model=list[schemas.Policy])
+@app.get("/policies", response_model=list[schemas.Policy])
 def list_policies(db: Session = Depends(get_db)):
     policies = db.query(Policy).all()
     if len(policies) == 0:
         return Response(status_code=204)
     return policies
+
+
+@app.post("/policies")
+def create_policy(config: schemas.PolicyBase):
+    with DBSession() as db:
+        policy = Policy(**config.model_dump())
+        db.add(policy)
+        db.commit()
+        logger.info(f"Policy {config.name} created")
+        return {"policy_id": policy.policy_id, "name": policy.name}
 
 
 @app.get("/policies/{policy_id}", response_model=schemas.Policy)
@@ -81,17 +91,7 @@ def get_policy(policy_id, db: Session = Depends(get_db)):
     return policy
 
 
-@app.post("/policies/create")
-def create_policy(config: schemas.PolicyBase):
-    with DBSession() as db:
-        policy = Policy(**config.model_dump())
-        db.add(policy)
-        db.commit()
-        logger.info(f"Policy {config.name} created")
-        return {"policy_id": policy.policy_id, "name": policy.name}
-
-
-@app.put("/policies/{policy_id}/update")
+@app.put("/policies/{policy_id}")
 def update_policy(
     policy_id: int,
     config: schemas.PolicyUpdate,
@@ -136,7 +136,7 @@ def update_policy(
 
 
 @app.get(
-    "/policies/{policy_id}/versions/list",
+    "/policies/{policy_id}/versions",
     response_model=list[schemas.PolicyVersion],
 )
 def list_policy_versions(policy_id: int, db: Session = Depends(get_db)):
@@ -146,25 +146,8 @@ def list_policy_versions(policy_id: int, db: Session = Depends(get_db)):
     return policy_versions
 
 
-@app.get(
-    "/policies/{policy_id}/versions/{policy_version_id}",
-    response_model=schemas.PolicyVersion,
-)
-def list_policy_versions(
-    policy_id: int, policy_version_id: int, db: Session = Depends(get_db)
-):
-    policy_version = (
-        db.query(PolicyVersion)
-        .filter_by(policy_id=policy_id, policy_version_id=policy_version_id)
-        .first()
-    )
-    if policy_version is None:
-        return Response(status_code=204)
-    return policy_version
-
-
 # TODO: evaluate whether policy_id should be a path parameter or a form parameter
-@app.post("/policies/{policy_id}/versions/create")
+@app.post("/policies/{policy_id}/versions")
 def create_policy_version(
     policy_id: int,
     config: schemas.PolicyVersionCreate,
@@ -279,7 +262,7 @@ def _create_policy_version_workspace(
     db.add(workspace)
     db.commit()
 
-    server_url = f"{server_url}/workspaces/create"
+    server_url = f"{server_url}/workspaces"
     response = requests.post(
         server_url,
         json={
@@ -308,7 +291,39 @@ def _create_policy_version_workspace(
     return response_data["graph"]
 
 
-@app.post("/policies/{policy_id}/runs/create")
+@app.get(
+    "/policyVersions/{policy_version_id}",
+    response_model=schemas.PolicyVersion,
+)
+def get_policy_version(policy_version_id: int, db: Session = Depends(get_db)):
+    policy_version = (
+        db.query(PolicyVersion).filter_by(policy_version_id=policy_version_id).first()
+    )
+    if policy_version is None:
+        return Response(status_code=204)
+    return policy_version
+
+
+@app.get("/policy/{policy_id}/runs", response_model=list[schemas.Run])
+def list_runs_by_policy(policy_id: int, db: Session = Depends(get_db)):
+    policy_version = db.query(PolicyVersion).filter_by(policy_id=policy_id).first()
+    policy_version_id = policy_version.policy_version_id
+    runs = db.query(Run).filter_by(policy_version_id=policy_version_id).all()
+    if len(runs) == 0:
+        return Response(status_code=204)
+    return runs
+
+
+@app.get("/policyVersions/{policy_version_id}/runs", response_model=list[schemas.Run])
+def list_runs_by_policy_version(policy_version_id: int, db: Session = Depends(get_db)):
+    runs = db.query(Run).filter_by(policy_version_id=policy_version_id).all()
+    if len(runs) == 0:
+        return Response(status_code=204)
+    return runs
+
+
+# TODO: allow run creation with url "/policyVersions/{policy_version_id}/runs"
+@app.post("/policies/{policy_id}/runs")
 def create_run(policy_id: int, execution_config_str: Annotated[str, Body(embed=True)]):
     try:
         execution_config = json.loads(execution_config_str)
@@ -371,43 +386,29 @@ def create_run(policy_id: int, execution_config_str: Annotated[str, Body(embed=T
 # depois via uma chamada nossa para algum endpoint
 
 
-@app.get("/policies/{policy_id}/runs/{run_id}", response_model=schemas.Run)
-def get_run(policy_id: int, run_id: int, db: Session = Depends(get_db)):
+@app.get("/runs/{run_id}", response_model=schemas.Run)
+def get_run(run_id: int, db: Session = Depends(get_db)):
+    run = db.query(Run).filter_by(run_id=run_id).first()
+    if run is None:
+        raise HTTPException(status_code=400, detail=f"Run {run_id} not found")
+    return run
+
+
+@app.put("/runs/{run_id}", response_model=schemas.Run)
+def update_run(
+    run_id: int,
+    status: Annotated[str, Body()],
+    result: Annotated[str, Body()],
+    db: Session = Depends(get_db),
+):
     run = db.query(Run).filter_by(run_id=run_id).first()
     if run is None:
         raise HTTPException(status_code=400, detail=f"Run {run_id} not found")
 
-    return {
-        "run_id": run.run_id,
-        "status": run.status,
-        "result": run.result,
-        "created_at": run.created_at,
-        "last_updated_at": run.last_updated_at,
-    }
-
-
-@app.put("/policies/{policy_id}/runs/{run_id}", response_model=schemas.Run)
-def update_run(
-    policy_id: int,
-    run_id: int,
-    status: Annotated[str, Body()],
-    result: Annotated[str, Body()],
-):
-    with DBSession() as db:
-        run = db.query(Run).filter_by(run_id=run_id).first()
-        if run is None:
-            raise HTTPException(status_code=400, detail=f"Run {run_id} not found")
-
-        run.status = status
-        run.result = result
-        db.commit()
-        return {
-            "run_id": run.run_id,
-            "status": run.status,
-            "result": run.result,
-            "created_at": run.created_at,
-            "last_updated_at": run.last_updated_at,
-        }
+    run.status = status
+    run.result = result
+    db.commit()
+    return run
 
 
 # Add Policy metrics endpoint
@@ -421,8 +422,8 @@ def get_policy_metrics(policy_id: int):
 
 
 # TODO: evaluate whether run_id should be a path parameter or a form parameter
-@app.post("/policies/{policy_id}/runs/{run_id}/metadata")
-def publish_metadata(policy_id: int, run_id: int, config: schemas.StepMetadataBase):
+@app.post("/runs/{run_id}/metadata")
+def publish_metadata(run_id: int, config: schemas.StepMetadataBase):
     try:
         with DBSession() as db:
             args = {"run_id": run_id, **config.model_dump()}
@@ -436,7 +437,7 @@ def publish_metadata(policy_id: int, run_id: int, config: schemas.StepMetadataBa
         raise HTTPException(status_code=500, detail=e)
 
 
-@app.post("/components/create", response_model=schemas.Component)
+@app.post("/components", response_model=schemas.Component)
 def create_component(config: schemas.ComponentBase, db: Session = Depends(get_db)):
     component = Component(**config.model_dump())
     db.add(component)
@@ -445,7 +446,7 @@ def create_component(config: schemas.ComponentBase, db: Session = Depends(get_db
     return component
 
 
-@app.get("/components/list", response_model=list[schemas.Component])
+@app.get("/components", response_model=list[schemas.Component])
 def list_components(db: Session = Depends(get_db)):
     components = db.query(Component).all()
     if len(components) == 0:
@@ -453,10 +454,10 @@ def list_components(db: Session = Depends(get_db)):
     return components
 
 
-@app.post("/components/{component_id}/versions/create")
+@app.post("/components/{component_id}/versions")
 def create_component_version(component_id: int, config: schemas.ComponentVersionBase):
     try:
-        server_url = f"{VULKAN_DAGSTER_SERVER_URL}/components/create"
+        server_url = f"{VULKAN_DAGSTER_SERVER_URL}/components"
         # TODO: add input and output schemas and handle them in the endpoint
         response = requests.post(
             server_url,
@@ -480,7 +481,7 @@ def create_component_version(component_id: int, config: schemas.ComponentVersion
 
 
 @app.get(
-    "/components/{component_id}/versions/list",
+    "/components/{component_id}/versions",
     response_model=list[schemas.ComponentVersion],
 )
 def list_component_versions(component_id: int, db: Session = Depends(get_db)):

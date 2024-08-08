@@ -19,7 +19,7 @@ logger.setLevel(logging.INFO)
 DAGSTER_HOME = os.getenv("DAGSTER_HOME")
 
 
-@app.post("/workspaces/create")
+@app.post("/workspaces")
 def create_workspace(
     name: Annotated[str, Body()],
     entrypoint: Annotated[str, Body()],
@@ -77,7 +77,7 @@ def create_workspace(
     return {"workspace_path": workspace_path, "graph": nodes}
 
 
-@app.post("/components/create")
+@app.post("/components")
 def create_component(
     alias: Annotated[str, Form()],
     repository: Annotated[str, Form()],

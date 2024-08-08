@@ -17,7 +17,9 @@ def main():
 
     policy = subparsers.add_parser("create_policy", help="Create a policy")
     policy.add_argument("--name", type=str, required=True, help="Name of the policy")
-    policy.add_argument("--description", type=str, default="", help="Description of the policy")
+    policy.add_argument(
+        "--description", type=str, default="", help="Description of the policy"
+    )
 
     workspace = subparsers.add_parser("create_workspace", help="Create a workspace")
     workspace.add_argument(
@@ -104,7 +106,7 @@ def config_environment():
 
 def create_policy(server_url, name, description, input_schema):
     response = requests.post(
-        f"{server_url}/policies/create",
+        f"{server_url}/policies",
         json={
             "name": name,
             "description": description,
@@ -166,9 +168,7 @@ def create_policy_version(
             ]
 
     # TODO: send repository as file upload
-    response = requests.post(
-        f"{server_url}/policies/{policy_id}/versions/create", json=body
-    )
+    response = requests.post(f"{server_url}/policies/{policy_id}/versions", json=body)
     assert (
         response.status_code == 200
     ), f"Failed to create policy version: {response.content}"
@@ -190,17 +190,14 @@ def create_component(
     if not os.path.isdir(repository):
         raise ValueError(f"Path is not a directory: {repository}")
 
-    response = requests.post(
-        f"{server_url}/components/create",
-        json={"name": name},
-    )
+    response = requests.post(f"{server_url}/components", json={"name": name})
     component_id = response.json()["component_id"]
 
     alias = _make_component_alias(name, version)
     repository = pack_workspace(alias, repository)
     logging.info(f"Creating component {name}")
     response = requests.post(
-        f"{server_url}/components/{component_id}/versions/create",
+        f"{server_url}/components/{component_id}/versions",
         json={
             "alias": alias,
             "input_schema": input_schema,
@@ -217,7 +214,7 @@ def create_component(
 
 def register_active_version(server_url, policy_id, policy_version_id):
     response = requests.put(
-        f"{server_url}/policies/{policy_id}/update",
+        f"{server_url}/policies/{policy_id}",
         json={"active_policy_version_id": policy_version_id},
     )
     assert response.status_code == 200, "Failed to activate policy version"

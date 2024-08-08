@@ -231,7 +231,8 @@ class Terminate(Transform):
         policy_id = vulkan_run_config.policy_id
         run_id = vulkan_run_config.run_id
 
-        url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
+        # TODO: get URL from env config
+        url = f"{server_url}/runs/{run_id}"
         dagster_run_id: str = context.run_id
         result: str = result.value
         context.log.info(f"Returning status {result} to {url} for run {dagster_run_id}")

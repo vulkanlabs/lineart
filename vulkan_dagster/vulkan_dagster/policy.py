@@ -122,7 +122,8 @@ def _notify_failure(context: HookContext) -> bool:
     run_id = vulkan_run_config.run_id
 
     context.log.info(f"Notifying failure for run {run_id} in policy {policy_id}")
-    url = f"{server_url}/policies/{policy_id}/runs/{run_id}"
+    # TODO: get URL from env config
+    url = f"{server_url}/runs/{run_id}"
     dagster_run_id: str = context.run_id
     result = requests.put(
         url,
