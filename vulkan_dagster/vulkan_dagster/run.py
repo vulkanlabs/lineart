@@ -11,7 +11,6 @@ class RunStatus(Enum):
 
 
 class VulkanRunConfig(ConfigurableResource):
-    policy_id: int
     run_id: int
     server_url: str
 

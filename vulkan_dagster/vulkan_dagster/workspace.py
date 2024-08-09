@@ -17,7 +17,6 @@ from .step_metadata import PUBLISH_IO_MANAGER_KEY
 def make_workspace_definition(policies: list[Policy]) -> Definitions:
     resources = {
         RUN_CONFIG_KEY: VulkanRunConfig(
-            policy_id=0,
             run_id=0,
             server_url="tmpurl",
         ),

@@ -322,62 +322,107 @@ def list_runs_by_policy_version(policy_version_id: int, db: Session = Depends(ge
     return runs
 
 
-# TODO: allow run creation with url "/policyVersions/{policy_version_id}/runs"
 @app.post("/policies/{policy_id}/runs")
-def create_run(policy_id: int, execution_config_str: Annotated[str, Body(embed=True)]):
+def create_run_by_policy(
+    policy_id: int,
+    execution_config_str: Annotated[str, Body(embed=True)],
+    db: Session = Depends(get_db),
+):
     try:
         execution_config = json.loads(execution_config_str)
     except Exception as e:
         HTTPException(status_code=400, detail=e)
 
-    with DBSession() as db:
-        policy = db.query(Policy).filter_by(policy_id=policy_id).first()
-        if policy is None:
-            raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
-        if policy.active_policy_version_id is None:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Policy {policy_id} has no active version",
-            )
-
-        version = (
-            db.query(PolicyVersion)
-            .filter_by(
-                policy_id=policy_id,
-                policy_version_id=policy.active_policy_version_id,
-            )
-            .first()
+    policy = db.query(Policy).filter_by(policy_id=policy_id).first()
+    if policy is None:
+        raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
+    if policy.active_policy_version_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Policy {policy_id} has no active version",
         )
 
-        run = Run(policy_version_id=version.policy_version_id, status="PENDING")
-        db.add(run)
-        db.commit()
+    version = (
+        db.query(PolicyVersion)
+        .filter_by(policy_version_id=policy.active_policy_version_id)
+        .first()
+    )
 
-        # Trigger the Dagster job with Policy and Run IDs as inputs
-        execution_config["resources"] = {
-            "vulkan_run_config": {
-                "config": {
-                    "policy_id": policy.policy_id,
-                    "run_id": run.run_id,
-                    "server_url": SERVER_URL,
-                }
+    run = _launch_run(
+        execution_config, version.policy_id, version.policy_version_id, db
+    )
+    return {"policy_id": policy.policy_id, "run_id": run.run_id}
+
+
+@app.post("/policyVersions/{policy_version_id}/runs")
+def create_run_by_policy_version(
+    policy_version_id: int,
+    execution_config_str: Annotated[str, Body(embed=True)],
+    db: Session = Depends(get_db),
+):
+    try:
+        execution_config = json.loads(execution_config_str)
+    except Exception as e:
+        HTTPException(status_code=400, detail=e)
+
+    version = (
+        db.query(PolicyVersion).filter_by(policy_version_id=policy_version_id).first()
+    )
+    if version is None:
+        msg = f"Policy version {policy_version_id} not found"
+        raise HTTPException(status_code=400, detail=msg)
+
+    run = _launch_run(
+        execution_config, version.policy_id, version.policy_version_id, db
+    )
+    if run is None:
+        raise HTTPException(status_code=500, detail="Error triggering job")
+    return {"policy_id": version.policy_id, "run_id": run.run_id}
+
+
+def _launch_run(
+    execution_config: dict, policy_id: int, policy_version_id: int, db: Session
+):
+    run = Run(policy_version_id=policy_version_id, status="PENDING")
+    db.add(run)
+    db.commit()
+
+    dagster_run_id = _trigger_dagster_job(
+        execution_config,
+        policy_id,
+        policy_version_id,
+        run.run_id,
+    )
+    if dagster_run_id is None:
+        run.status = "FAILURE"
+        db.commit()
+        return None 
+
+    run.status = "STARTED"
+    run.dagster_run_id = dagster_run_id
+    db.commit()
+    return run
+
+
+def _trigger_dagster_job(
+    execution_config: dict, policy_id: int, policy_version_id: int, run_id: int
+):
+    # Trigger the Dagster job with Policy and Run IDs as inputs
+    execution_config["resources"] = {
+        "vulkan_run_config": {
+            "config": {
+                "run_id": run_id,
+                "server_url": SERVER_URL,
             }
         }
-        dagster_run_id = trigger_dagster_job(
-            dagster_client,
-            _version_name(policy.policy_id, version.policy_version_id),
-            "policy",
-            execution_config,
-        )
-        if dagster_run_id is None:
-            run.status = "FAILURE"
-            db.commit()
-            raise HTTPException(status_code=500, detail="Error triggering job")
-
-        run.status = "STARTED"
-        run.dagster_run_id = dagster_run_id
-        db.commit()
-        return {"policy_id": policy.policy_id, "run_id": run.run_id}
+    }
+    dagster_run_id = trigger_dagster_job(
+        dagster_client,
+        _version_name(policy_id, policy_version_id),
+        "policy",
+        execution_config,
+    )
+    return dagster_run_id
 
 
 # Podemos ter um run_policy_async e um sync
