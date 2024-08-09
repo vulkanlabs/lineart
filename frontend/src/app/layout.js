@@ -20,9 +20,9 @@ export default function RootLayout({ children }) {
           </header>
           <div className="grid h-full w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
             <Sidebar />
-            <main className="flex flex-col max-h-full">
+            <div className="flex flex-col max-h-full">
               {children}
-            </main>
+            </div>
           </div>
         </div>
 

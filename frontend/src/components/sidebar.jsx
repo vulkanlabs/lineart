@@ -5,7 +5,7 @@ import { ChevronRightIcon, ChevronLeftIcon, Users2, Code2, ListTree } from "luci
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
-import { fetchPolicies, fetchPolicy } from "@/lib/policies";
+import { fetchPolicies, fetchPolicy } from "@/lib/api";
 
 
 const SidebarContext = createContext();
