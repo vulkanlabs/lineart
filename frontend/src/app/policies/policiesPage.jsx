@@ -4,25 +4,20 @@ import React, { useState, useEffect } from "react";
 import { PolicyForm } from "@/components/policy-form";
 import { PolicyTable } from "@/components/policy-table";
 import { Button } from "@/components/ui/button";
+import { fetchPolicies } from "@/lib/policies";
 
 export default function PolicyPageBody() {
     const [policies, setPolicies] = useState([]);
     const refreshTime = 5000;
     const baseUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
 
-    const fetchPolicies = async () => {
-        try {
-            const response = await fetch(new URL("/policies", baseUrl));
-            const data = await response.json();
-            setPolicies(data);
-        } catch (error) {
-            console.error(error);
-        }
-    };
+    const refreshPolicies = () => fetchPolicies(baseUrl)
+        .then((data) => setPolicies(data))
+        .catch((error) => console.error("Error fetching policies", error));
 
     useEffect(() => {
-        fetchPolicies();
-        const comInterval = setInterval(fetchPolicies, refreshTime);
+        refreshPolicies();
+        const comInterval = setInterval(refreshPolicies, refreshTime);
         return () => clearInterval(comInterval);
     }, []);
 
@@ -48,7 +43,7 @@ function PolicyPageContent({ policies }) {
     );
 }
 
-function EmptyPolicyTable({ setShowAddPolicy }) {
+function EmptyPolicyTable() {
     return (
         <div>
             <div
