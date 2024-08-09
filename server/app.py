@@ -9,6 +9,8 @@ from fastapi import Body, Depends, FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
+from vulkan_dagster.policy import DEFAULT_POLICY_NAME
+
 from . import schemas
 from .db import (
     Component,
@@ -419,7 +421,7 @@ def _trigger_dagster_job(
     dagster_run_id = trigger_dagster_job(
         dagster_client,
         _version_name(policy_id, policy_version_id),
-        "policy",
+        DEFAULT_POLICY_NAME,
         execution_config,
     )
     return dagster_run_id

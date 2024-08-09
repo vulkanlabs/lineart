@@ -48,8 +48,6 @@ def create_workspace(
         if dependencies:
             _install_dependencies(name, dependencies)
 
-        # TODO: source into created venv (to have access to the installed components)
-        # and run extract_node_definitions.py with args `f"{DAGSTER_HOME}/workspaces/{name}"` and `entrypoint`
         tmp_path = f"/tmp/nodes.json"
         venv = f"/opt/venvs/{name}/bin/python"
         completed_process = subprocess.run(

@@ -13,12 +13,12 @@ from .io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
 from .nodes import Input, Node, NodeType, Terminate, VulkanNodeDefinition
 from .run import RUN_CONFIG_KEY, RunStatus
 
+DEFAULT_POLICY_NAME = "vulkan_policy"
+
 
 class Policy:
     def __init__(
         self,
-        name: str,
-        description: str,
         nodes: list[Node],
         input_schema: dict[str, type],
         output_callback: callable,
@@ -32,8 +32,6 @@ class Policy:
         ), "Input schema must be a dictionary of str -> type"
         assert callable(output_callback), "Output callback must be a callable"
 
-        self.name = name
-        self.description = description
         self.input_schema = input_schema
         self.output_callback = output_callback
 
@@ -44,8 +42,7 @@ class Policy:
         nodes = self._dagster_nodes()
         deps = self._graph_dependencies()
         return GraphDefinition(
-            name=self.name,
-            description=self.description,
+            name=DEFAULT_POLICY_NAME,
             node_defs=nodes,
             dependencies=deps,
         )
@@ -86,11 +83,7 @@ class Policy:
         }
 
     def to_job(self, resources: dict[str, ConfigurableResource]):
-        return self.graph().to_job(
-            self.name,
-            resource_defs=resources,
-            hooks={_notify_failure},
-        )
+        return self.graph().to_job(resource_defs=resources, hooks={_notify_failure})
 
     def _internal_nodes(self) -> list[Node]:
         return [

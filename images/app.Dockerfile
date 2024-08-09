@@ -3,12 +3,14 @@ FROM python:${PYTHON_VERSION}
 
 EXPOSE 6001
 
+RUN pip install "fastapi[standard]" sqlalchemy requests python-dotenv pydantic dagster-graphql
+
+COPY vulkan_dagster /tmp/vulkan_dagster
+RUN pip install /tmp/vulkan_dagster && pytest /tmp/vulkan_dagster
+
 WORKDIR /app
 COPY server server/
-COPY poetry.lock pyproject.toml README.md ./
-RUN pip install poetry
-RUN poetry install
 # TODO: this creates an empty database instance
 RUN poetry run python server/db.py
 
-ENTRYPOINT ["poetry", "run",  "fastapi", "dev", "server/app.py", "--host", "0.0.0.0", "--port", "6001"]
+ENTRYPOINT ["fastapi", "dev", "server/app.py", "--host", "0.0.0.0", "--port", "6001"]
