@@ -13,6 +13,7 @@ from . import schemas
 from .db import (
     Component,
     ComponentVersion,
+    ComponentVersionDependency,
     DagsterWorkspace,
     DagsterWorkspaceStatus,
     DBSession,
@@ -174,7 +175,10 @@ def create_policy_version(
             entrypoint=config.entrypoint,
             status=PolicyVersionStatus.INVALID,
         )
+        db.add(version)
 
+        # Dependencies are added in the same transaction as the policy version
+        # so we can rollback if any of them are missing.
         if dependencies:
             matched = (
                 db.query(ComponentVersion)
@@ -186,13 +190,13 @@ def create_policy_version(
                 msg = f"Missing components: {missing}"
                 raise HTTPException(status_code=400, detail=msg)
 
-            # TODO: SQLite doesn't support ARRAY type, so we store the list as String.
-            # Change this when moving to Postgres.
-            version.component_version_ids = json.dumps(
-                [m.component_version_id for m in matched]
-            )
+            for m in matched:
+                dependency = ComponentVersionDependency(
+                    component_version_id=m.component_version_id,
+                    policy_version_id=version.policy_version_id,
+                )
+                db.add(dependency)
 
-        db.add(version)
         db.commit()
         msg = f"Creating version {version.policy_version_id} ({config.alias}) for policy {policy_id}"
         logger.info(msg)
@@ -396,7 +400,7 @@ def _launch_run(
     if dagster_run_id is None:
         run.status = "FAILURE"
         db.commit()
-        return None 
+        return None
 
     run.status = "STARTED"
     run.dagster_run_id = dagster_run_id
@@ -534,3 +538,72 @@ def list_component_versions(component_id: int, db: Session = Depends(get_db)):
     if len(versions) == 0:
         return Response(status_code=204)
     return versions
+
+
+@app.get(
+    "/components/{component_id}/usage",
+    response_model=list[schemas.ComponentVersionDependencyExpanded],
+)
+def list_component_usage(component_id: int, db: Session = Depends(get_db)):
+    component_versions = (
+        db.query(ComponentVersion).filter_by(component_id=component_id).all()
+    )
+    if len(component_versions) == 0:
+        return Response(status_code=204)
+
+    usage = []
+    for component_version in component_versions:
+        version_usage = list_component_version_usage(
+            component_version.component_version_id, db
+        )
+        if len(version_usage) > 0:
+            usage.extend(version_usage)
+
+    return usage
+
+
+def list_component_version_usage(
+    component_version_id: int, db: Session = Depends(get_db)
+) -> list[schemas.ComponentVersionDependencyExpanded]:
+    component_version_uses = (
+        db.query(ComponentVersionDependency)
+        .filter_by(component_version_id=component_version_id)
+        .all()
+    )
+    if len(component_version_uses) == 0:
+        return []
+
+    component_version = (
+        db.query(ComponentVersion)
+        .filter_by(component_version_id=component_version_id)
+        .first()
+    )
+
+    dependencies = []
+    for use in component_version_uses:
+        policy_version = (
+            db.query(PolicyVersion)
+            .filter_by(policy_version_id=use.policy_version_id)
+            .first()
+        )
+
+        if policy_version is None:
+            raise ValueError(f"Policy version {use.policy_version_id} not found")
+
+        policy = db.query(Policy).filter_by(policy_id=policy_version.policy_id).first()
+
+        if policy is None:
+            raise ValueError(f"Policy {policy_version.policy_id} not found")
+
+        dependencies.append(
+            schemas.ComponentVersionDependencyExpanded(
+                component_version_id=component_version.component_version_id,
+                component_version_alias=component_version.alias,
+                policy_id=policy.policy_id,
+                policy_name=policy.name,
+                policy_version_id=policy_version.policy_version_id,
+                policy_version_alias=policy_version.alias,
+            )
+        )
+
+    return dependencies

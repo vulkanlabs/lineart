@@ -53,6 +53,15 @@ class ComponentVersion(ComponentVersionBase):
         from_attributes = True
 
 
+class ComponentVersionDependencyExpanded(BaseModel):
+    component_version_id: int
+    component_version_alias: str
+    policy_id: int
+    policy_version_id: int
+    policy_name: str
+    policy_version_alias: str
+
+
 class PolicyVersionBase(BaseModel):
     policy_id: int
     alias: str | None = None

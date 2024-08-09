@@ -34,7 +34,7 @@ class Policy(Base):
 
     __tablename__ = "policy"
 
-    policy_id = Column(Integer, primary_key=True)
+    policy_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String)
     description = Column(String)
     input_schema = Column(String, nullable=True)
@@ -56,7 +56,7 @@ class Component(Base):
 
     __tablename__ = "component"
 
-    component_id = Column(Integer, primary_key=True)
+    component_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String)
 
 
@@ -64,7 +64,7 @@ class ComponentVersion(Base):
 
     __tablename__ = "component_version"
 
-    component_version_id = Column(Integer, primary_key=True)
+    component_version_id = Column(Integer, primary_key=True, autoincrement=True)
     component_id = Column(Integer, ForeignKey("component.component_id"))
     alias = Column(String)
     input_schema = Column(String)
@@ -77,19 +77,30 @@ class PolicyVersion(Base):
 
     __tablename__ = "policy_version"
 
-    policy_version_id = Column(Integer, primary_key=True)
+    policy_version_id = Column(Integer, primary_key=True, autoincrement=True)
     policy_id = Column(Integer, ForeignKey("policy.policy_id"))
     alias = Column(String)
     status = Column(Enum(PolicyVersionStatus))
     repository = Column(String)
     repository_version = Column(String)
     graph_definition = Column(String)
-    # TODO: SQLite doesn't support ARRAY type. Change this when moving to Postgres.
-    component_version_ids = Column(String, nullable=True)
     entrypoint = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class ComponentVersionDependency(Base):
+
+    __tablename__ = "component_version_dependency"
+
+    component_version_dependency_id = Column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    policy_version_id = Column(Integer, ForeignKey("policy_version.policy_version_id"))
+    component_version_id = Column(
+        Integer, ForeignKey("component_version.component_version_id")
     )
 
 
@@ -110,7 +121,7 @@ class Run(Base):
 
     __tablename__ = "run"
 
-    run_id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, primary_key=True, autoincrement=True)
     policy_version_id = Column(Integer, ForeignKey("policy.policy_id"))
     status = Column(String)
     result = Column(String, nullable=True)
@@ -125,7 +136,7 @@ class StepMetadata(Base):
 
     __tablename__ = "step_metadata"
 
-    step_metadata_id = Column(Integer, primary_key=True)
+    step_metadata_id = Column(Integer, primary_key=True, autoincrement=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     run_id = Column(Integer, ForeignKey("run.run_id"))
     step_name = Column(String)
