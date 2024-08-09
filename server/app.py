@@ -304,11 +304,11 @@ def get_policy_version(policy_version_id: int, db: Session = Depends(get_db)):
     return policy_version
 
 
-@app.get("/policy/{policy_id}/runs", response_model=list[schemas.Run])
+@app.get("/policies/{policy_id}/runs", response_model=list[schemas.Run])
 def list_runs_by_policy(policy_id: int, db: Session = Depends(get_db)):
-    policy_version = db.query(PolicyVersion).filter_by(policy_id=policy_id).first()
-    policy_version_id = policy_version.policy_version_id
-    runs = db.query(Run).filter_by(policy_version_id=policy_version_id).all()
+    policy_versions = db.query(PolicyVersion).filter_by(policy_id=policy_id).all()
+    policy_version_ids = [v.policy_version_id for v in policy_versions]
+    runs = db.query(Run).filter(Run.policy_version_id.in_(policy_version_ids)).all()
     if len(runs) == 0:
         return Response(status_code=204)
     return runs

@@ -32,7 +32,7 @@ export function PolicyForm({ display, closeFunc }) {
 
     function onSubmit(values) {
         console.log(values);
-        fetch("http://localhost:6001/policies/create", {
+        fetch("http://localhost:6001/policies", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

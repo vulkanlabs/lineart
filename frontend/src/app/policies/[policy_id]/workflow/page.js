@@ -62,9 +62,9 @@ export default function Page({ params }) {
     }
 
     return (
-        <div className="w-full max-w-full h-full grid grid-cols-6">
+        <div className="w-full h-full grid grid-cols-6">
             <div className="col-span-4">
-                <div className='w-full max-w-full h-full'>
+                <div className='w-full h-full'>
                     <ReactFlow
                         nodes={nodes}
                         edges={edges}
@@ -183,7 +183,7 @@ async function getGraphData(policyId) {
         throw new Error(`Policy ${policyId} has no active version`);
     }
 
-    const versionUrl = new URL(`/policies/${policyId}/versions/${policyVersionId}`, baseUrl);
+    const versionUrl = new URL(`/policyVersions/${policyVersionId}`, baseUrl);
     const data = await fetch(versionUrl)
         .then((res) => res.json())
         .catch((error) => {

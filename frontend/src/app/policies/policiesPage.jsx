@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 
 export default function PolicyPageBody() {
     const [policies, setPolicies] = useState([]);
-    const refreshTime = 3000;
+    const refreshTime = 5000;
     const baseUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
 
     const fetchPolicies = async () => {
         try {
-            const response = await fetch(new URL("/policies/list", baseUrl));
+            const response = await fetch(new URL("/policies", baseUrl));
             const data = await response.json();
             setPolicies(data);
         } catch (error) {
@@ -21,6 +21,7 @@ export default function PolicyPageBody() {
     };
 
     useEffect(() => {
+        fetchPolicies();
         const comInterval = setInterval(fetchPolicies, refreshTime);
         return () => clearInterval(comInterval);
     }, []);
