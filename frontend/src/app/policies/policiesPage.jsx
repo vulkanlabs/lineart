@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { PolicyForm } from "@/components/policy-form";
 import { PolicyTable } from "@/components/policy-table";
 import { Button } from "@/components/ui/button";
-import { fetchPolicies } from "@/lib/policies";
+import { fetchPolicies } from "@/lib/api";
 
 export default function PolicyPageBody() {
     const [policies, setPolicies] = useState([]);

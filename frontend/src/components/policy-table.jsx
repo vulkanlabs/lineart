@@ -39,5 +39,4 @@ export function PolicyTable({ policies }) {
             </TableBody>
         </Table >
     );
-
 }

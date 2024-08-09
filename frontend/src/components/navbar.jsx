@@ -28,6 +28,12 @@ export default function Navbar() {
             )}>
                 <span>Políticas</span>
             </Link>
+            <Link href="/components" className={cn(
+                "flex items-center gap-2 text md:text-base",
+                isSubpathActive("/components") ? "font-semibold" : "text-muted-foreground"
+            )}>
+                <span>Componentes</span>
+            </Link>
             <Link href="/integrations" className={cn(
                 "flex items-center gap-2 text md:text-base",
                 isSubpathActive("/integrations") ? "font-semibold" : "text-muted-foreground"

@@ -51,14 +51,14 @@ export default function Page({ params }) {
     };
 
     useEffect(() => {
-        fetchPolicyVersions()
-        fetchRuns()
+        fetchPolicyVersions();
+        fetchRuns();
         const policiesInterval = setInterval(fetchPolicyVersions, refreshTime);
         const runsInterval = setInterval(fetchRuns, 2000);
         return () => {
             clearInterval(policiesInterval);
             clearInterval(runsInterval);
-        }
+        };
     }, []);
 
     return (
@@ -180,35 +180,4 @@ function RunsTable({ runs }) {
         </Table >
     );
 
-}
-
-
-async function getGraphData(policyId) {
-    const baseUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    const policyUrl = new URL(`/policies/${policyId}`, baseUrl);
-    const policyVersionId = await fetch(policyUrl)
-        .then((res) => res.json())
-        .catch((error) => {
-            throw new Error("Failed to fetch policy version id for policy",
-                { cause: error });
-        })
-        .then((response) => {
-            if (response.active_policy_version_id === null) {
-                throw new Error(`Policy ${policyId} has no active version`);
-            }
-            return response.active_policy_version_id;
-        });
-
-
-    if (policyVersionId === null) {
-        throw new Error(`Policy ${policyId} has no active version`);
-    }
-
-    const versionUrl = new URL(`/policyVersions/${policyVersionId}`, baseUrl);
-    const data = await fetch(versionUrl)
-        .then((res) => res.json())
-        .catch((error) => {
-            throw new Error("Failed to fetch graph data", { cause: error });
-        });
-    return data;
 }
