@@ -106,7 +106,6 @@ function PolicyVersionsTable({ policyVersions }) {
                 <TableRow>
                     <TableHead>ID</TableHead>
                     <TableHead>Tag</TableHead>
-                    <TableHead>Componentes</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Criada Em</TableHead>
                 </TableRow>
@@ -120,7 +119,6 @@ function PolicyVersionsTable({ policyVersions }) {
                     >
                         <TableCell>{policyVersion.policy_version_id}</TableCell>
                         <TableCell>{policyVersion.alias}</TableCell>
-                        <TableCell>{policyVersion.component_version_ids.length > 0 ? policyVersion.component_version_ids : "-"}</TableCell>
                         <TableCell><PolicyVersionStatus value={policyVersion.status} /></TableCell>
                         <TableCell>{policyVersion.created_at}</TableCell>
                     </TableRow>
