@@ -100,15 +100,28 @@ async function assembleGraph(policyId, graph) {
                 description: node.description,
                 type: node.node_type,
             }
-        }
-        if (node.metadata !== null && node.metadata.hasOwnProperty("executable")) {
-            nodeData.data.code = node.metadata.executable;
+        };
+        if (node.metadata !== null) {
+            Object.entries(node.metadata).map(([key, value]) => {
+                nodeData.data[key] = value;
+            })
         }
         return nodeData;
     });
 
     const vulkanEdges = Object.entries(graphData).flatMap(([name, node]) => {
+        if (node.dependencies === null) {
+            return [];
+        }
+
         return node.dependencies.map((dep) => {
+            // TODO: If `dep` is an array, it means that it comes from
+            // a specific output of a node. For now, we discard it, as
+            // we don't display the node outputs.
+            if (Array.isArray(dep)) {
+                dep = dep[0];
+            }
+
             return {
                 id: `${dep}-${name}`,
                 source: dep,

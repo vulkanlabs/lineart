@@ -1,9 +1,8 @@
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from enum import Enum
 from traceback import format_exception_only
-from typing import Any, Optional
+from typing import Any
 
 import requests
 from dagster import (
@@ -15,50 +14,32 @@ from dagster import (
     Output,
 )
 
-from .exceptions import UserCodeException
-from .run import RUN_CONFIG_KEY, RunStatus
-from .step_metadata import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY, StepMetadata
+from ..core.exceptions import UserCodeException
+from ..core.nodes import (
+    BranchNode,
+    HTTPConnectionNode,
+    InputNode,
+    NodeType,
+    TerminateNode,
+    TransformNode,
+)
+from ..core.run import RunStatus
+from ..core.step_metadata import StepMetadata
+from .io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
+from .run_config import RUN_CONFIG_KEY
 
 
-class NodeType(Enum):
-    TRANSFORM = "TRANSFORM"
-    CONNECTION = "CONNECTION"
-    BRANCH = "BRANCH"
-    INPUT = "INPUT"
+# TODO: we should review how to require users to define the possible return
+# values for each policy and then ensure that the values adhere to it.
+class UserStatus(Enum):
+    pass
 
 
-class Status(Enum):
-    APPROVED = "APPROVED"
-    DENIED = "DENIED"
-    ANALYSIS = "ANALYSIS"
-
-
-@dataclass
-class VulkanNodeDefinition:
-    name: str
-    description: str
-    node_type: str
-    dependencies: Optional[dict[str, Any]] = None
-    metadata: Optional[dict[str, Any]] = None
-
-
-class Node(ABC):
-
-    def __init__(
-        self,
-        name: str,
-        description: str,
-        typ: NodeType,
-        dependencies: dict | None = None,
-    ):
-        self.name = name
-        self.description = description
-        self.type = typ
-        self.dependencies = dependencies if dependencies is not None else {}
+class DagsterNode(ABC):
 
     @abstractmethod
-    def node(self) -> OpDefinition:
-        pass
+    def op(self) -> OpDefinition:
+        """Construct the Dagster op for this node."""
 
     def graph_dependencies(self) -> dict[str, Any]:
         if self.dependencies is None:
@@ -76,7 +57,7 @@ class Node(ABC):
         return deps
 
 
-class HTTPConnection(Node):
+class HTTPConnection(HTTPConnectionNode, DagsterNode):
 
     def __init__(
         self,
@@ -85,16 +66,20 @@ class HTTPConnection(Node):
         url: str,
         method: str,
         headers: dict,
-        params: Optional[dict] = None,
-        dependencies: Optional[dict] = None,
+        params: dict | None = None,
+        dependencies: dict | None = None,
     ):
-        super().__init__(name, description, NodeType.CONNECTION, dependencies)
-        self.url = url
-        self.method = method
-        self.headers = headers
-        self.params = params if params is not None else {}
+        super().__init__(
+            name=name,
+            description=description,
+            url=url,
+            method=method,
+            headers=headers,
+            params=params,
+            dependencies=dependencies,
+        )
 
-    def node(self) -> OpDefinition:
+    def op(self) -> OpDefinition:
         return OpDefinition(
             compute_fn=self.run,
             name=self.name,
@@ -114,7 +99,6 @@ class HTTPConnection(Node):
             json = None
             data = body
 
-        # TODO: review how we can customize request creation
         req = requests.Request(
             method=self.method,
             url=self.url,
@@ -139,7 +123,7 @@ class HTTPConnection(Node):
             raise Exception("Connection failed")
 
 
-class Transform(Node):
+class Transform(TransformNode, DagsterNode):
 
     def __init__(
         self,
@@ -148,10 +132,10 @@ class Transform(Node):
         func: callable,
         dependencies: dict[str, Any],
     ):
-        super().__init__(name, description, NodeType.TRANSFORM, dependencies)
+        super().__init__(name, description, func, dependencies)
         self.func = func
 
-    def node(self) -> OpDefinition:
+    def op(self) -> OpDefinition:
         def fn(context, inputs):
             start_time = time.time()
             error = None
@@ -189,17 +173,16 @@ class Transform(Node):
         return node_op
 
 
-class Terminate(Transform):
+class Terminate(TerminateNode, Transform):
     def __init__(
         self,
         name: str,
         description: str,
-        return_status: Status,
+        return_status: UserStatus,
         dependencies: dict[str, Any],
     ):
-        self.return_status = return_status
-        assert dependencies is not None, f"Dependencies not set for TERMINATE op {name}"
-        super().__init__(name, description, self._fn, dependencies)
+        super().__init__(name, description, return_status, dependencies)
+        self.func = self._fn
 
     def _fn(self, context, **kwargs):
         vulkan_run_config = context.resources.vulkan_run_config
@@ -213,7 +196,6 @@ class Terminate(Transform):
 
         reported = self.callback(
             context=context,
-            policy_id=vulkan_run_config.policy_id,
             run_id=vulkan_run_config.run_id,
             status=self.return_status,
         )
@@ -224,14 +206,12 @@ class Terminate(Transform):
     def _terminate(
         self,
         context: OpExecutionContext,
-        result: Status,
+        result: UserStatus,
     ) -> bool:
         vulkan_run_config = getattr(context.resources, RUN_CONFIG_KEY)
         server_url = vulkan_run_config.server_url
-        policy_id = vulkan_run_config.policy_id
         run_id = vulkan_run_config.run_id
 
-        # TODO: get URL from env config
         url = f"{server_url}/runs/{run_id}"
         dagster_run_id: str = context.run_id
         result: str = result.value
@@ -249,25 +229,19 @@ class Terminate(Transform):
             return False
         return True
 
-    def with_callback(self, callback: callable) -> "Terminate":
-        self.callback = callback
-        return self
 
-
-class Branch(Node):
+class Branch(BranchNode, DagsterNode):
     def __init__(
         self,
         name: str,
         description: str,
         func: callable,
-        dependencies: dict[str, Any],
         outputs: list[str],
+        dependencies: dict[str, Any],
     ):
-        super().__init__(name, description, NodeType.BRANCH, dependencies)
-        self.func = func
-        self.outputs = outputs
+        super().__init__(name, description, func, outputs, dependencies)
 
-    def node(self) -> OpDefinition:
+    def op(self) -> OpDefinition:
         def fn(context, inputs):
             start_time = time.time()
             error = None
@@ -302,21 +276,20 @@ class Branch(Node):
         return node_op
 
 
-class Input(Node):
-    def __init__(self, description: str, config_schema: dict, name="input_node"):
-        super().__init__(name, description, NodeType.INPUT, dependencies=None)
-        self.config_schema = config_schema
+class Input(InputNode, DagsterNode):
+    def __init__(self, description: str, schema: dict[str, type], name="input_node"):
+        super().__init__(name=name, description=description, schema=schema)
 
     def run(self, context, *args, **kwargs):
         config = context.op_config
         context.log.info(f"Got Config: {config}")
         yield Output(config)
 
-    def node(self):
+    def op(self):
         return OpDefinition(
             compute_fn=self.run,
             name=self.name,
             ins={},
             outs={"result": Out()},
-            config_schema=self.config_schema,
+            config_schema=self.schema,
         )

@@ -3,18 +3,18 @@ from shutil import make_archive, unpack_archive
 
 from dagster import Definitions, EnvVar, IOManagerDefinition
 
+from .run_config import RUN_CONFIG_KEY, VulkanRunConfig
 from .io_manager import (
     DB_CONFIG_KEY,
+    PUBLISH_IO_MANAGER_KEY,
     DBConfig,
     metadata_io_manager,
     postgresql_io_manager,
 )
-from .policy import Policy
-from .run import RUN_CONFIG_KEY, VulkanRunConfig
-from .step_metadata import PUBLISH_IO_MANAGER_KEY
+from .policy import DagsterPolicy
 
 
-def make_workspace_definition(policies: list[Policy]) -> Definitions:
+def make_workspace_definition(policy: DagsterPolicy) -> Definitions:
     resources = {
         RUN_CONFIG_KEY: VulkanRunConfig(
             run_id=0,
@@ -38,8 +38,8 @@ def make_workspace_definition(policies: list[Policy]) -> Definitions:
         ),
     }
 
-    jobs = [p.to_job(resources) for p in policies]
-
+    # By definition, Vulkan dagster worskpaces have a single job.
+    jobs = [policy.to_job(resources)]
     definition = Definitions(
         assets=[],
         jobs=jobs,

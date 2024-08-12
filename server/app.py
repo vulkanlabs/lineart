@@ -9,7 +9,7 @@ from fastapi import Body, Depends, FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from vulkan_dagster.policy import DEFAULT_POLICY_NAME
+from vulkan_dagster.dagster.policy import DEFAULT_POLICY_NAME
 
 from . import schemas
 from .db import (

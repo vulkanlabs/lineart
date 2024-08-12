@@ -1,12 +1,16 @@
 import json
 
 import pytest
-from dagster import JobDefinition, OpDefinition, RunConfig, mem_io_manager
+from dagster import JobDefinition, RunConfig, mem_io_manager
 from pytest_httpserver import HTTPServer
 
-from vulkan_dagster import nodes, policy
-from vulkan_dagster.run import RUN_CONFIG_KEY, VulkanRunConfig
-from vulkan_dagster.step_metadata import PUBLISH_IO_MANAGER_KEY, StepMetadata
+from vulkan_dagster.core.step_metadata import StepMetadata
+from vulkan_dagster.dagster import nodes, policy
+from vulkan_dagster.dagster.io_manager import PUBLISH_IO_MANAGER_KEY
+from vulkan_dagster.dagster.run_config import (
+    RUN_CONFIG_KEY,
+    VulkanRunConfig,
+)
 
 
 def test_http_connection(httpserver: HTTPServer):
@@ -25,7 +29,7 @@ def test_http_connection(httpserver: HTTPServer):
 
     assert len(node.graph_dependencies()) == 1
 
-    dagster_op = node.node()
+    dagster_op = node.op()
     assert len(dagster_op.ins) == 1
     assert set(dagster_op.outs.keys()) == {
         "result"
@@ -56,7 +60,7 @@ def test_transform():
 
     assert len(node.graph_dependencies()) == 1
 
-    dagster_op = node.node()
+    dagster_op = node.op()
     assert len(dagster_op.ins) == 1
     assert set(dagster_op.outs.keys()) == {
         "result",
@@ -79,10 +83,8 @@ _TEST_RESOURCES = {
 }
 
 
-def _make_job(ops: list[nodes.Node], input_schema: dict) -> JobDefinition:
-    p = policy.Policy(
-        name="test_policy",
-        description="Test policy",
+def _make_job(ops: list[nodes.DagsterNode], input_schema: dict) -> JobDefinition:
+    p = policy.DagsterPolicy(
         nodes=ops,
         input_schema=input_schema,
         output_callback=lambda _, **kwargs: None,

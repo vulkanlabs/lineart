@@ -2,7 +2,7 @@ import importlib.util
 import json
 import sys
 
-from vulkan_dagster.policy import Policy
+from vulkan_dagster.dagster.policy import DagsterPolicy
 
 file_location = f"{sys.argv[1]}/__init__.py"
 temp_location = sys.argv[2]
@@ -16,8 +16,8 @@ context = vars(module)
 print(context)
 
 for _, obj in context.items():
-    if isinstance(obj, Policy):
-        nodes = {name: node.__dict__ for name, node in obj.node_definitions().items()}
+    if isinstance(obj, DagsterPolicy):
+        nodes = {name: node.__dict__ for name, node in obj.node_definitions.items()}
         with open(temp_location, "w") as f:
             json.dump(nodes, f)
         break

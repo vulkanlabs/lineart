@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 export default function WorkflowSidebar({ clickedNode, closeFunc }) {
 
     function codeSnippet(clickedNode) {
-        if (clickedNode.data.hasOwnProperty("code")) {
+        if (clickedNode.data.hasOwnProperty("source")) {
             return (
                 <div className="my-5 pr-10">
                     <h1 className="text-lg font-semibold">Código</h1>
                     <div className="mt-3 rounded overflow-auto">
                         <SyntaxHighlighter language="python" style={atomOneDark}>
-                            {clickedNode.data.code}
+                            {clickedNode.data.source}
                         </SyntaxHighlighter>
                     </div>
                 </div>

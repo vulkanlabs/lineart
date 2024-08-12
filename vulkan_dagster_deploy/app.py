@@ -9,7 +9,7 @@ from typing import Annotated
 import yaml
 from fastapi import Body, FastAPI, Form, HTTPException
 
-from vulkan_dagster.workspace import add_workspace_config, unpack_workspace
+from vulkan_dagster.dagster.workspace import add_workspace_config, unpack_workspace
 
 app = FastAPI()
 

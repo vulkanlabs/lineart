@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 import requests
 import yaml
 
-from .workspace import pack_workspace
+from .dagster.workspace import pack_workspace
 
 logging.basicConfig(level=logging.DEBUG)
 

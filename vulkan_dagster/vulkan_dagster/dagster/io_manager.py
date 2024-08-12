@@ -8,8 +8,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.sql import text
 
-from .run import RUN_CONFIG_KEY, VulkanRunConfig
-from .step_metadata import StepMetadata
+from ..core.step_metadata import StepMetadata
+from .run_config import RUN_CONFIG_KEY, VulkanRunConfig
+
+PUBLISH_IO_MANAGER_KEY = "publish_metadata_io_manager"
+METADATA_OUTPUT_KEY = "metadata"
 
 
 class PostgreSQLIOManager(IOManager):
@@ -21,11 +24,9 @@ class PostgreSQLIOManager(IOManager):
         password: str,
         database: str,
         table: str,
-        policy_id: int,
         run_id: int,
     ):
         self.table = table
-        self.policy_id = policy_id
         self.run_id = run_id
 
         url = URL.create(
@@ -47,15 +48,14 @@ class PostgreSQLIOManager(IOManager):
         query_str = text(
             f"""
             INSERT INTO {self.table}
-            (policy_id, run_id, step_name, object_name, value)
-            VALUES (:policy_id, :run_id, :step_name, :object_name, :value)
+            (run_id, step_name, object_name, value)
+            VALUES (:run_id, :step_name, :object_name, :value)
             """
         )
         with self.engine.connect() as conn:
             conn.execute(
                 query_str,
                 {
-                    "policy_id": self.policy_id,
                     "run_id": self.run_id,
                     "step_name": context.step_key,
                     "object_name": context.name,
@@ -68,8 +68,7 @@ class PostgreSQLIOManager(IOManager):
         query_str = text(
             f"""
             SELECT value FROM {self.table}
-             WHERE policy_id = :policy_id
-               AND run_id = :run_id
+             WHERE run_id = :run_id
                AND step_name = :step_name 
                AND object_name = :object_name
                """
@@ -78,7 +77,6 @@ class PostgreSQLIOManager(IOManager):
             result = conn.execute(
                 query_str,
                 {
-                    "policy_id": self.policy_id,
                     "run_id": self.run_id,
                     "step_name": context.upstream_output.step_key,
                     "object_name": context.upstream_output.name,
@@ -114,7 +112,6 @@ def postgresql_io_manager(context) -> PostgreSQLIOManager:
         password=db_config.password.get_value(),
         database=db_config.database.get_value(),
         table=db_config.object_table.get_value(),
-        policy_id=run_config.policy_id,
         run_id=run_config.run_id,
     )
 

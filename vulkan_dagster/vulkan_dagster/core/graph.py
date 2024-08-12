@@ -1,0 +1,68 @@
+from abc import ABC, abstractmethod
+from inspect import getsource
+from typing import Any
+
+from .nodes import Node, TerminateNode, VulkanNodeDefinition
+
+
+class Graph(ABC):
+    # TODO: this should be able to receive a node or a graph.
+    def __init__(self, nodes: list[Node], input_schema: dict[str, type]):
+        assert len(nodes) > 0, "Policy must have at least one node"
+        assert all(
+            isinstance(n, Node) for n in nodes
+        ), "All elements must be of type Node"
+        assert all(
+            isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
+        ), "Input schema must be a dictionary of str -> type"
+
+        self._nodes = nodes
+        self._node_definitions = {n.name: n.node_definition() for n in nodes}
+        self._dependency_definitions = {n.name: n.node_dependencies() for n in nodes}
+        self.input_schema = input_schema
+
+    @property
+    def nodes(self) -> list[Node]:
+        return self._nodes
+
+    @property
+    def node_definitions(self) -> dict[str, VulkanNodeDefinition]:
+        return self._node_definitions
+
+    @property
+    def dependency_definitions(self) -> dict[str, list[str] | None]:
+        return self._dependency_definitions
+
+
+class Policy(Graph):
+    def __init__(
+        self,
+        nodes: list[Node],
+        input_schema: dict[str, type],
+        output_callback: callable,
+    ):
+        assert callable(output_callback), "Output callback must be a callable"
+        self.output_callback = output_callback
+        nodes = self._with_output_callback(nodes)
+
+        super().__init__(nodes, input_schema)
+
+    def _with_output_callback(self, nodes: list[Node]) -> list[Node]:
+        modified_nodes = []
+        for node in nodes:
+            if isinstance(node, TerminateNode):
+                node = node.with_callback(self.output_callback)
+            modified_nodes.append(node)
+
+        return modified_nodes
+
+    # @abstractmethod
+    # def return_type(self) -> Any:
+    #     """A specification of the type of the return values of this policy."""
+
+
+# Onboarding: Input >> ValidaCPF >> Bureau A >> Fraude | > (Negado Fraude, Aprovado Fraude) >> ...
+#
+# PJ: Input >> ... \    Consulta ao Socio 1   > ...
+#                   \   Consulta ao Socio 2  /
+#                    \> Consulta ao Socio 3 /
