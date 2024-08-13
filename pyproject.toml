@@ -4,6 +4,9 @@ version = "0.1.0"
 description = ""
 authors = []
 readme = "README.md"
+packages = [
+    { include = "vulkan_dagster", from = "vulkan_dagster" }
+]
 
 [tool.poetry.group.dev.dependencies]
 numpy = "^2.0.0"
@@ -19,12 +22,10 @@ requests = "^2.32.3"
 pytest = "^8.2.2"
 dagster = "^1.7.12"
 dagster-webserver = "^1.7.12"
-flask = "^3.0.3"
 black = "^24.4.2"
 python-dotenv = "^1.0.1"
 pyyaml = "^6.0.1"
 fastapi = "^0.111.1"
-flask-cors = "^4.0.1"
 
 [tool.black]
 line-length = 88

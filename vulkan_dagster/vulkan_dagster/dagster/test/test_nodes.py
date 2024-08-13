@@ -1,4 +1,5 @@
 import json
+from enum import Enum
 
 import pytest
 from dagster import JobDefinition, RunConfig, mem_io_manager
@@ -75,6 +76,21 @@ def test_transform():
     metadata = job_result._get_output_for_handle("transform", "metadata")
     assert isinstance(metadata, StepMetadata)
     assert metadata.error is None
+
+
+class ReturnStatus(Enum):
+    APPROVED = "APPROVED"
+
+
+def test_terminate():
+    terminate = nodes.Terminate(
+        name="terminate",
+        description="Terminate node",
+        return_status=ReturnStatus.APPROVED,
+        dependencies={"inputs": "input_node"},
+    )
+    definition = terminate.node_definition()
+    assert definition.node_type == nodes.NodeType.TERMINATE.value
 
 
 _TEST_RESOURCES = {
