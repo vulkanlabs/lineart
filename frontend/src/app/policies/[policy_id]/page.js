@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
+import { Bar, BarChart, XAxis, YAxis } from "recharts";
 
 import {
     Table,
@@ -12,21 +13,29 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { fetchPolicy, fetchPolicyVersions, fetchRunsCount } from "@/lib/api";
+
+import {
+    ChartContainer,
+    ChartTooltip,
+    ChartTooltipContent,
+    ChartLegend,
+    ChartLegendContent,
+} from "@/components/ui/chart";
 
 
 export default function Page({ params }) {
     const [policyVersions, setPolicyVersions] = useState([]);
-    const [runs, setRuns] = useState([]);
+    const [runsCount, setRunsCount] = useState([]);
 
     const refreshTime = 5000;
     const baseUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
 
-    const fetchPolicyVersions = async () => {
+    const refreshPolicyVersions = async () => {
         try {
-            const policyResponse = await fetch(new URL(`/policies/${params.policy_id}`, baseUrl));
-            const policyData = await policyResponse.json();
-            const policyVersionsResponse = await fetch(new URL(`/policies/${params.policy_id}/versions`, baseUrl));
-            const policyVersionsData = await policyVersionsResponse.json();
+            const policyData = await fetchPolicy(baseUrl, params.policy_id);
+            const policyVersionsData = await fetchPolicyVersions(baseUrl, params.policy_id);
+
             policyVersionsData.forEach((policyVersion) => {
                 if (policyVersion.policy_version_id === policyData.active_policy_version_id) {
                     policyVersion.status = "ativa";
@@ -40,21 +49,19 @@ export default function Page({ params }) {
         }
     };
 
-    const fetchRuns = async () => {
-        try {
-            const response = await fetch(new URL(`/policies/${params.policy_id}/runs`, baseUrl));
-            const data = await response.json();
-            setRuns(data);
-        } catch (error) {
-            console.error(error);
-        }
+    const refreshRunsCount = async () => {
+        fetchRunsCount(baseUrl, params.policy_id)
+            .then((data) => setRunsCount(data))
+            .catch((error) => {
+                console.error(error);
+            });
     };
 
     useEffect(() => {
-        fetchPolicyVersions();
-        fetchRuns();
-        const policiesInterval = setInterval(fetchPolicyVersions, refreshTime);
-        const runsInterval = setInterval(fetchRuns, 2000);
+        refreshPolicyVersions();
+        refreshRunsCount();
+        const policiesInterval = setInterval(refreshPolicyVersions, refreshTime);
+        const runsInterval = setInterval(refreshRunsCount, 3 * refreshTime);
         return () => {
             clearInterval(policiesInterval);
             clearInterval(runsInterval);
@@ -62,20 +69,19 @@ export default function Page({ params }) {
     }, []);
 
     return (
-        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+        <div className="flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
             <div>
-                <div className="flex items-center">
-                    <h1 className="text-lg font-semibold md:text-2xl">Versões</h1>
-                </div>
+                <h1 className="text-lg font-semibold md:text-2xl">Versões</h1>
                 <PolicyVersionsTable policyVersions={policyVersions} />
             </div>
-            <div>
-                <div className="flex items-center">
-                    <h1 className="text-lg font-semibold md:text-2xl">Execuções</h1>
+            <div >
+                <h1 className="text-lg font-semibold md:text-2xl">Métricas</h1>
+                <h3 className="font-semibold md:text-xl">Quantidade de Execuções</h3>
+                <div className="grid h-3/5 w-3/4 mt-4">
+                    <RunsChart chartData={runsCount} />
                 </div>
-                <RunsTable runs={runs} />
             </div>
-        </div>
+        </div >
     );
 }
 
@@ -129,53 +135,39 @@ function PolicyVersionsTable({ policyVersions }) {
     );
 }
 
+function RunsChart({ chartData }) {
+    if (chartData.length === 0) {
+        return (
+            <div className="flex items-center justify-center h-full w-full">
+                <p className="text-lg font-semibold text-gray-500">Nenhuma execução registrada.</p>
+            </div>
+        );
+    }
 
-function RunStatus({ value }) {
-    const getColor = (status) => {
-        switch (status) {
-            case "SUCCESS":
-                return "green";
-            case "FAILURE":
-                return "red";
-            default:
-                return "gray";
-        }
+    const chartConfig = {
+        count: {
+            label: "Número de Execuções",
+            color: "#2563eb",
+        },
     };
 
     return (
-        <p className={`w-fit p-[0.3em] rounded-lg bg-${getColor(value)}-200`}>
-            {value}
-        </p>
+        <ChartContainer config={chartConfig} className="h-full w-full" >
+            <BarChart accessibilityLayer data={chartData}>
+                <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                />
+                <YAxis
+                    type="number"
+                    domain={[0, dataMax => Math.ceil(dataMax / 10) * 10]}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+            </BarChart>
+        </ChartContainer>
     );
-}
-
-
-function RunsTable({ runs }) {
-    return (
-        <Table>
-            <TableCaption>Execuções.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Versão</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Resultado</TableHead>
-                    <TableHead>Criada Em</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {runs.map((run) => (
-                    <TableRow key={run.run_id}>
-                        <TableCell>{run.run_id}</TableCell>
-                        <TableCell>{run.policy_version_id}</TableCell>
-                        <TableCell><RunStatus value={run.status} /></TableCell>
-                        <TableCell>{run.result == null || run.result == "" ? "-" : run.result}</TableCell>
-                        <TableCell>{run.created_at}</TableCell>
-                    </TableRow>
-
-                ))}
-            </TableBody>
-        </Table >
-    );
-
 }

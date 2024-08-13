@@ -14,18 +14,17 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="flex flex-col h-screen w-screen max-h-screen">
-          <header className="flex h-16 min-h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+        <div className="flex flex-col w-screen h-screen max-h-screen">
+          <header className="sticky flex h-16 min-h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
             <Navbar />
           </header>
-          <div className="grid h-full w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+          <div className="grid h-full w-full md:grid-cols-[200px_1fr] lg:grid-cols-[200px_1fr]">
             <Sidebar />
             <div className="flex flex-col max-h-full">
               {children}
             </div>
           </div>
         </div>
-
       </body>
     </html>
   );

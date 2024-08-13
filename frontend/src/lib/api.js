@@ -28,6 +28,13 @@ export async function fetchPolicy(serverUrl, policyId) {
         });
 }
 
+export async function fetchPolicyVersions(serverUrl, policyId) {
+    return fetch(new URL(`/policies/${policyId}/versions`, serverUrl))
+        .then((response) => response.json())
+        .catch((error) => {
+            throw new Error(`Error fetching versions for policy ${policyId}`, { cause: error });
+        });
+}
 
 
 export async function fetchComponentVersions(serverUrl, componentId) {
@@ -49,5 +56,13 @@ export async function fetchComponentVersionUsage(serverUrl, componentId = null, 
         }))
         .catch((error) => {
             throw new Error(`Error fetching component usage for component ${componentId}`, { cause: error });
+        });
+}
+
+export async function fetchRunsCount(serverUrl, policyId) {
+    return fetch(new URL(`/policies/${policyId}/runs/count`, serverUrl))
+        .then((response) => response.json())
+        .catch((error) => {
+            throw new Error(`Error fetching runs count for policy ${policyId}`, { cause: error });
         });
 }
