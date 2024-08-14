@@ -1,12 +1,14 @@
+import datetime
 import json
 import logging
 import os
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 
 import requests
 from dotenv import load_dotenv
 from fastapi import Body, Depends, FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import func as F
 from sqlalchemy.orm import Session
 
 from vulkan_dagster.dagster.policy import DEFAULT_POLICY_NAME
@@ -326,6 +328,40 @@ def list_runs_by_policy_version(policy_version_id: int, db: Session = Depends(ge
     if len(runs) == 0:
         return Response(status_code=204)
     return runs
+
+
+@app.get("/policies/{policy_id}/runs/count", response_model=list[Any])
+def count_runs_by_policy(
+    policy_id: int,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    db: Session = Depends(get_db),
+):
+    if end_date is None:
+        end_date = datetime.date.today()
+    if start_date is None:
+        start_date = end_date - datetime.timedelta(days=30)
+
+    active_version = db.query(Policy).filter_by(policy_id=policy_id).first()
+    if active_version is None:
+        raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
+
+    metrics = (
+        db.query(
+            F.DATE(Run.created_at).label("date"),
+            F.count(Run.run_id).label("count"),
+        )
+        .filter(
+            (Run.policy_version_id == active_version.active_policy_version_id)
+            & (Run.created_at >= start_date)
+            & (F.DATE(Run.created_at) <= end_date)
+        )
+        .group_by(F.DATE(Run.created_at))
+        .all()
+    )
+
+    data = [{"date": m.date, "count": m.count} for m in metrics]
+    return data
 
 
 @app.post("/policies/{policy_id}/runs")

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
+import { subDays } from "date-fns";
 
 import {
     Table,
@@ -23,10 +24,15 @@ import {
     ChartLegendContent,
 } from "@/components/ui/chart";
 
+import { DatePickerWithRange } from "@/components/date-picker";
 
 export default function Page({ params }) {
     const [policyVersions, setPolicyVersions] = useState([]);
     const [runsCount, setRunsCount] = useState([]);
+    const [dateRange, setDateRange] = useState({
+        from: subDays(new Date(), 7),
+        to: new Date(),
+    });
 
     const refreshTime = 5000;
     const baseUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
@@ -49,24 +55,19 @@ export default function Page({ params }) {
         }
     };
 
-    const refreshRunsCount = async () => {
-        fetchRunsCount(baseUrl, params.policy_id)
+    useEffect(() => {
+        refreshPolicyVersions();
+        const policiesInterval = setInterval(refreshPolicyVersions, refreshTime);
+        return () => clearInterval(policiesInterval);
+    }, []);
+
+    useEffect(() => {
+        fetchRunsCount(baseUrl, params.policy_id, dateRange?.from, dateRange?.to)
             .then((data) => setRunsCount(data))
             .catch((error) => {
                 console.error(error);
             });
-    };
-
-    useEffect(() => {
-        refreshPolicyVersions();
-        refreshRunsCount();
-        const policiesInterval = setInterval(refreshPolicyVersions, refreshTime);
-        const runsInterval = setInterval(refreshRunsCount, 3 * refreshTime);
-        return () => {
-            clearInterval(policiesInterval);
-            clearInterval(runsInterval);
-        };
-    }, []);
+    }, [dateRange]);
 
     return (
         <div className="flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
@@ -78,6 +79,7 @@ export default function Page({ params }) {
                 <h1 className="text-lg font-semibold md:text-2xl">Métricas</h1>
                 <h3 className="font-semibold md:text-xl">Quantidade de Execuções</h3>
                 <div className="grid h-3/5 w-3/4 mt-4">
+                    <DatePickerWithRange date={dateRange} setDate={setDateRange} />
                     <RunsChart chartData={runsCount} />
                 </div>
             </div>

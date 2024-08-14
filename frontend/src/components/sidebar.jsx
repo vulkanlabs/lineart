@@ -11,18 +11,18 @@ import { fetchPolicies, fetchPolicy } from "@/lib/api";
 const SidebarContext = createContext();
 
 export default function Sidebar() {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(true);
     const pathname = usePathname();
 
     return (
         <SidebarContext.Provider value={{ isOpen }}>
-            <div className="flex flex-col border-r gap-4 w-fit max-w-64 h-full overflow-clip">
-                <Button
+            <div className="flex flex-col border-r gap-4 w-40 max-w-64 h-full overflow-auto">
+                {/* <Button
                     onClick={() => setIsOpen(!isOpen)}
                     className="justify-start w-12 rounded-full"
                 >
                     {isOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-                </Button>
+                </Button> */}
                 {chooseNavBar(pathname)}
             </div>
         </SidebarContext.Provider>

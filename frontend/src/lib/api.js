@@ -1,4 +1,4 @@
-
+import { formatISO } from "date-fns";
 
 export async function fetchComponents(serverUrl) {
     return fetch(new URL("/components", serverUrl))
@@ -59,8 +59,14 @@ export async function fetchComponentVersionUsage(serverUrl, componentId = null, 
         });
 }
 
-export async function fetchRunsCount(serverUrl, policyId) {
-    return fetch(new URL(`/policies/${policyId}/runs/count`, serverUrl))
+const formatISODate = (date) => formatISO(date, { representation: "date" });
+
+export async function fetchRunsCount(serverUrl, policyId, startDate, endDate) {
+
+    return fetch(
+        new URL(`/policies/${policyId}/runs/count?`, serverUrl)
+        + new URLSearchParams({ start_date: formatISODate(startDate), end_date: formatISODate(endDate) })
+    )
         .then((response) => response.json())
         .catch((error) => {
             throw new Error(`Error fetching runs count for policy ${policyId}`, { cause: error });
