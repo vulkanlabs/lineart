@@ -1,16 +1,16 @@
 import { formatISO } from "date-fns";
 
-export async function fetchComponents(serverUrl) {
+export async function fetchComponents(serverUrl: string) {
     return fetch(new URL("/components", serverUrl))
         .then((response) => response.json().catch((error) => {
-            throw new Error("Error parsing response", { cause: error });
+            throw Error("Error parsing response", { cause: error });
         }))
         .catch((error) => {
-            throw new Error("Error fetching components", { cause: error });
+            throw Error("Error fetching components", { cause: error });
         });
 };
 
-export async function fetchPolicies(serverUrl) {
+export async function fetchPolicies(serverUrl: string) {
     return fetch(new URL("/policies", serverUrl))
         .then((response) => response.json().catch((error) => {
             throw new Error("Error parsing response", { cause: error });
@@ -20,7 +20,7 @@ export async function fetchPolicies(serverUrl) {
         });
 };
 
-export async function fetchPolicy(serverUrl, policyId) {
+export async function fetchPolicy(serverUrl: string, policyId: number) {
     return fetch(new URL(`/policies/${policyId}`, serverUrl))
         .then((response) => response.json())
         .catch((error) => {
@@ -28,7 +28,7 @@ export async function fetchPolicy(serverUrl, policyId) {
         });
 }
 
-export async function fetchPolicyVersions(serverUrl, policyId) {
+export async function fetchPolicyVersions(serverUrl: string, policyId: number) {
     return fetch(new URL(`/policies/${policyId}/versions`, serverUrl))
         .then((response) => response.json())
         .catch((error) => {
@@ -37,7 +37,7 @@ export async function fetchPolicyVersions(serverUrl, policyId) {
 }
 
 
-export async function fetchComponentVersions(serverUrl, componentId) {
+export async function fetchComponentVersions(serverUrl: string, componentId: number) {
     return fetch(new URL(`/components/${componentId}/versions`, serverUrl))
         .then((response) => response.json().catch((error) => {
             throw new Error("Error parsing response", { cause: error });
@@ -49,7 +49,9 @@ export async function fetchComponentVersions(serverUrl, componentId) {
 
 
 
-export async function fetchComponentVersionUsage(serverUrl, componentId = null, policyVersionId = null) {
+export async function fetchComponentVersionUsage(
+    serverUrl: string, componentId: number,
+) {
     return fetch(new URL(`/components/${componentId}/usage`, serverUrl))
         .then((response) => response.json().catch((error) => {
             throw new Error("Error parsing response", { cause: error });
@@ -59,12 +61,13 @@ export async function fetchComponentVersionUsage(serverUrl, componentId = null, 
         });
 }
 
-const formatISODate = (date) => formatISO(date, { representation: "date" });
+const formatISODate = (date: Date) => formatISO(date, { representation: "date" });
 
-export async function fetchRunsCount(serverUrl, policyId, startDate, endDate) {
-
+export async function fetchRunsCount(
+    serverUrl: string, policyId: number, startDate: Date, endDate: Date,
+) {
     return fetch(
-        new URL(`/policies/${policyId}/runs/count?`, serverUrl)
+        (new URL(`/policies/${policyId}/runs/count?`, serverUrl)).toString()
         + new URLSearchParams({ start_date: formatISODate(startDate), end_date: formatISODate(endDate) })
     )
         .then((response) => response.json())

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from 'next/navigation';
 import { fetchComponents } from "@/lib/api";
 import { EmptyAssetTable } from "@/components/empty-asset-table";
@@ -17,17 +17,17 @@ import {
 export default function PolicyPageBody() {
     const [components, setComponents] = useState([]);
     const refreshTime = 5000;
-    const baseUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-
-    const refreshComponents = () => fetchComponents(baseUrl)
-        .then((data) => setComponents(data))
-        .catch((error) => console.error("Error fetching policies", error));
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
 
     useEffect(() => {
+        const refreshComponents = () => fetchComponents(serverUrl)
+            .then((data) => setComponents(data))
+            .catch((error) => console.error("Error fetching policies", error));
+
         refreshComponents();
         const comInterval = setInterval(refreshComponents, refreshTime);
         return () => clearInterval(comInterval);
-    }, []);
+    }, [serverUrl]);
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
@@ -50,7 +50,7 @@ function ComponentPageContent({ components }) {
     );
 }
 
-export function ComponentsTable({ components }) {
+function ComponentsTable({ components }) {
     const router = useRouter();
 
     return (
@@ -68,7 +68,7 @@ export function ComponentsTable({ components }) {
                     <TableRow key={entry.component_id} className="cursor-pointer" onClick={() => router.push(`/components/${entry.component_id}`)} >
                         <TableCell>{entry.component_id}</TableCell>
                         <TableCell>{entry.name}</TableCell>
-                        <TableCell>"-"</TableCell>
+                        <TableCell> - </TableCell>
                     </TableRow>
                 ))}
             </TableBody>

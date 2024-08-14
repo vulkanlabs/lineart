@@ -62,7 +62,10 @@ export default function Page({ params }) {
     }, []);
 
     useEffect(() => {
-        fetchRunsCount(baseUrl, params.policy_id, dateRange?.from, dateRange?.to)
+        if (!dateRange || !dateRange.from || !dateRange.to) {
+            return;
+        }
+        fetchRunsCount(baseUrl, params.policy_id, dateRange.from, dateRange.to)
             .then((data) => setRunsCount(data))
             .catch((error) => {
                 console.error(error);
@@ -78,8 +81,10 @@ export default function Page({ params }) {
             <div >
                 <h1 className="text-lg font-semibold md:text-2xl">Métricas</h1>
                 <h3 className="font-semibold md:text-xl">Quantidade de Execuções</h3>
-                <div className="grid h-3/5 w-3/4 mt-4">
-                    <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                <div className="absolute h-3/5 w-3/4 mt-4">
+                    <div className="flex justify-end">
+                        <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                    </div>
                     <RunsChart chartData={runsCount} />
                 </div>
             </div>
@@ -148,7 +153,7 @@ function RunsChart({ chartData }) {
 
     const chartConfig = {
         count: {
-            label: "Número de Execuções",
+            label: "Execuções",
             color: "#2563eb",
         },
     };
