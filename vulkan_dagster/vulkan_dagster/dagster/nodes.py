@@ -123,17 +123,7 @@ class HTTPConnection(HTTPConnectionNode, DagsterNode):
             raise Exception("Connection failed")
 
 
-class Transform(TransformNode, DagsterNode):
-
-    def __init__(
-        self,
-        name: str,
-        description: str,
-        func: callable,
-        dependencies: dict[str, Any],
-    ):
-        super().__init__(name, description, func, dependencies)
-        self.func = func
+class TransformNodeMixin(DagsterNode):
 
     def op(self) -> OpDefinition:
         def fn(context, inputs):
@@ -173,7 +163,20 @@ class Transform(TransformNode, DagsterNode):
         return node_op
 
 
-class Terminate(TerminateNode, Transform):
+class Transform(TransformNode, TransformNodeMixin):
+
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        func: callable,
+        dependencies: dict[str, Any],
+    ):
+        super().__init__(name, description, func, dependencies)
+        self.func = func
+
+
+class Terminate(TerminateNode, TransformNodeMixin):
     def __init__(
         self,
         name: str,
