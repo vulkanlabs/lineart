@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { fetchPolicies, fetchPolicy } from "@/lib/api";
 
 
-const SidebarContext = createContext();
+const SidebarContext = createContext({ isOpen: true });
 
 export default function Sidebar() {
     const [isOpen, setIsOpen] = useState(true);
@@ -16,14 +16,14 @@ export default function Sidebar() {
 
     return (
         <SidebarContext.Provider value={{ isOpen }}>
-            <div className="flex flex-col border-r-2 gap-4 w-64 max-w-64 h-full overflow-auto">
+            <div className="flex flex-col border-r-2 gap-4 w-48 max-w-64 h-full overflow-auto">
                 {/* <Button
                     onClick={() => setIsOpen(!isOpen)}
                     className="justify-start w-12 rounded-full"
                 >
                     {isOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
                 </Button> */}
-                <div className="mt-4 ml-2">
+                <div className="mt-4">
                     {chooseNavBar(pathname)}
                 </div>
             </div>
@@ -31,7 +31,7 @@ export default function Sidebar() {
     );
 }
 
-function chooseNavBar(pathname) {
+function chooseNavBar(pathname: string) {
     if (pathname.startsWith("/policies")) {
         return <PoliciesSidebarNav />;
     }
@@ -40,7 +40,6 @@ function chooseNavBar(pathname) {
 
 function SidebarNav() {
     const { isOpen } = useContext(SidebarContext);
-
     const sections = [
         { name: "Times", path: "/teams", icon: Users2 },
         { name: "Componentes", path: "/components", icon: Code2 },
@@ -53,7 +52,7 @@ function SidebarNav() {
                 <Link
                     key={section.name}
                     href={section.path}
-                    className="flex mx-2 gap-2 hover:font-semibold"
+                    className="flex ml-4 gap-2 hover:font-semibold"
                 >
                     <section.icon />
                     <span className={isOpen ? "ease-in" : "hidden"}>{section.name}</span>
@@ -65,29 +64,16 @@ function SidebarNav() {
 
 function PoliciesSidebarNav() {
     const { isOpen } = useContext(SidebarContext);
-    const [policies, setPolicies] = useState([]);
     const [currentPolicy, setCurrentPolicy] = useState(null);
 
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const pathname = usePathname();
 
     useEffect(() => {
-        // TODO: This will be used to construct the policies list in the
-        // sidebar. We should evaluate whether to keep it there.
-        fetchPolicies(serverUrl)
-            .then((data) => {
-                const policyData = data.map((policy) => {
-                    return [policy.name, `/policies/${policy.policy_id}`];
-                });
-                setPolicies(policyData);
-            })
-            .catch((error) => { console.error("Error fetching policies", error); });
-
         const policyId = extractPolicyId(pathname);
         if (policyId !== null) {
-            fetchPolicy(serverUrl, policyId).then((data) => {
-                setCurrentPolicy(data);
-            });
+            fetchPolicy(serverUrl, policyId)
+                .then((data) => setCurrentPolicy(data));
         } else {
             setCurrentPolicy(null);
         }
@@ -107,7 +93,7 @@ function PoliciesSidebarNav() {
     return (
         <div className="flex flex-col gap-4 mt-1">
             <div className="pb-4 border-b-2 ">
-                <h1 className="text-xl text-wrap font-semibold ml-2">
+                <h1 className="text-xl text-wrap font-semibold ml-4">
                     {currentPolicy == null ? "Políticas" : currentPolicy.name}
                 </h1>
             </div>
@@ -120,7 +106,7 @@ function PoliciesSidebarNav() {
     );
 };
 
-function extractPolicyId(path) {
+function extractPolicyId(path: string): number | null {
     if (!path.startsWith("/policies/")) {
         return null;
     }
@@ -128,5 +114,5 @@ function extractPolicyId(path) {
     if (parts.length < 3) {
         return null;
     }
-    return parts[2];
+    return parseInt(parts[2]);
 }
