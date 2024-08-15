@@ -57,7 +57,6 @@ export default function Page({ params }) {
             <div>
                 <div className="flex flex-col justify-start">
                     <h1 className="text-lg font-semibold md:text-2xl">Utilização</h1>
-                    <h3 className="text-sm text-muted-foreground">Políticas que utilizam esse Componente</h3>
                     <ComponentVersionDependenciesTable entries={componentVersionDependencies} />
                 </div>
             </div>

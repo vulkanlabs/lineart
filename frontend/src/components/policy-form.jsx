@@ -23,7 +23,7 @@ export function PolicyForm({ display, closeFunc }) {
             description: "",
             input_schema: "",
             output_schema: "",
-        },
+        }
     });
 
     if (!display) {
@@ -46,6 +46,7 @@ export function PolicyForm({ display, closeFunc }) {
         }).catch((error) => {
             console.error(error);
         });
+        form.reset();
     }
 
     return (
