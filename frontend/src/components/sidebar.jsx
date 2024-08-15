@@ -16,14 +16,16 @@ export default function Sidebar() {
 
     return (
         <SidebarContext.Provider value={{ isOpen }}>
-            <div className="flex flex-col border-r gap-4 w-40 max-w-64 h-full overflow-auto">
+            <div className="flex flex-col border-r-2 gap-4 w-64 max-w-64 h-full overflow-auto">
                 {/* <Button
                     onClick={() => setIsOpen(!isOpen)}
                     className="justify-start w-12 rounded-full"
                 >
                     {isOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
                 </Button> */}
-                {chooseNavBar(pathname)}
+                <div className="mt-4 ml-2">
+                    {chooseNavBar(pathname)}
+                </div>
             </div>
         </SidebarContext.Provider>
     );
@@ -37,30 +39,32 @@ function chooseNavBar(pathname) {
 }
 
 function SidebarNav() {
-    let { isOpen } = useContext(SidebarContext);
+    const { isOpen } = useContext(SidebarContext);
+
+    const sections = [
+        { name: "Times", path: "/teams", icon: Users2 },
+        { name: "Componentes", path: "/components", icon: Code2 },
+        { name: "Políticas", path: "/policies", icon: ListTree },
+    ];
 
     return (
-        <div className="flex flex-col gap-4 mt-1 ">
-            <Link href="/teams" className="flex mx-2 gap-2 hover:font-bold">
-                <Users2 />
-                <span className={isOpen ? "ease-in" : "hidden"}>Times</span>
-            </Link>
-
-            <Link href="/components" className="flex mx-2 gap-2 hover:font-bold">
-                <Code2 />
-                <span className={isOpen ? "ease-in" : "hidden"}>Componentes</span>
-            </Link>
-
-            <Link href="/policies" className="flex mx-2 gap-2 hover:font-bold">
-                <ListTree />
-                <span className={isOpen ? "ease-in" : "hidden"}>Políticas</span>
-            </Link>
+        <div className="flex flex-col gap-4 mt-1">
+            {sections.map((section) => (
+                <Link
+                    key={section.name}
+                    href={section.path}
+                    className="flex mx-2 gap-2 hover:font-semibold"
+                >
+                    <section.icon />
+                    <span className={isOpen ? "ease-in" : "hidden"}>{section.name}</span>
+                </Link>
+            ))}
         </div>
     );
 }
 
 function PoliciesSidebarNav() {
-    let { isOpen } = useContext(SidebarContext);
+    const { isOpen } = useContext(SidebarContext);
     const [policies, setPolicies] = useState([]);
     const [currentPolicy, setCurrentPolicy] = useState(null);
 
@@ -79,9 +83,7 @@ function PoliciesSidebarNav() {
             })
             .catch((error) => { console.error("Error fetching policies", error); });
 
-        console.log("Pathname", pathname);
         const policyId = extractPolicyId(pathname);
-
         if (policyId !== null) {
             fetchPolicy(serverUrl, policyId).then((data) => {
                 setCurrentPolicy(data);
@@ -89,13 +91,31 @@ function PoliciesSidebarNav() {
         } else {
             setCurrentPolicy(null);
         }
-    }, [pathname]);
+    }, [pathname, serverUrl]);
+
+    const sections = [
+        {
+            "name": "Monitoramento",
+            "children": [],
+        },
+        {
+            "name": "Componentes",
+            "children": [],
+        },
+    ];
 
     return (
         <div className="flex flex-col gap-4 mt-1">
-            <h2 className="text-lg text-clip font-semibold">
-                {currentPolicy == null ? "Políticas" : currentPolicy.name}
-            </h2>
+            <div className="pb-4 border-b-2 ">
+                <h1 className="text-xl text-wrap font-semibold ml-2">
+                    {currentPolicy == null ? "Políticas" : currentPolicy.name}
+                </h1>
+            </div>
+            {sections.map((section) => (
+                <div>
+                    <h2 className="text-base text-clip ml-4 hover:font-semibold">{section.name}</h2>
+                </div>
+            ))}
         </div>
     );
 };

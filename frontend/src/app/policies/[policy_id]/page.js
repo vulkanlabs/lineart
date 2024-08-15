@@ -82,7 +82,7 @@ export default function Page({ params }) {
                 <h1 className="text-lg font-semibold md:text-2xl">Métricas</h1>
                 <h3 className="font-semibold md:text-xl">Quantidade de Execuções</h3>
                 <div className="absolute h-3/5 w-3/4 mt-4">
-                    <div className="flex justify-end">
+                    <div className="float-end">
                         <DatePickerWithRange date={dateRange} setDate={setDateRange} />
                     </div>
                     <RunsChart chartData={runsCount} />
