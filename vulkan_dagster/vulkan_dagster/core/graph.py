@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from inspect import getsource
 from typing import Any
 
 from .nodes import Node, TerminateNode, VulkanNodeDefinition
@@ -17,13 +16,19 @@ class Graph(ABC):
         ), "Input schema must be a dictionary of str -> type"
 
         self._nodes = nodes
+        self._flattened_nodes = _flatten_nodes(nodes)
         self._node_definitions = {n.name: n.node_definition() for n in nodes}
         self._dependency_definitions = {n.name: n.node_dependencies() for n in nodes}
+        # TODO: where should we validate the input schema?
         self.input_schema = input_schema
 
     @property
     def nodes(self) -> list[Node]:
         return self._nodes
+
+    @property
+    def flattened_nodes(self) -> list[Node]:
+        return self._flattened_nodes
 
     @property
     def node_definitions(self) -> dict[str, VulkanNodeDefinition]:
@@ -32,6 +37,16 @@ class Graph(ABC):
     @property
     def dependency_definitions(self) -> dict[str, list[str] | None]:
         return self._dependency_definitions
+
+
+def _flatten_nodes(nodes: list[Node]) -> list[Node]:
+    flattened_nodes = []
+    for node in nodes:
+        if isinstance(node, Graph):
+            flattened_nodes.extend(_flatten_nodes(node.nodes))
+        else:
+            flattened_nodes.append(node)
+    return flattened_nodes
 
 
 class Policy(Graph):

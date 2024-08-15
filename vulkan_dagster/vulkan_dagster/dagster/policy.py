@@ -41,7 +41,7 @@ class DagsterPolicy(Policy):
 
     def _dagster_nodes(self) -> list[OpDefinition]:
         nodes = []
-        for node in self.nodes:
+        for node in self.flattened_nodes:
             dagster_node = node.op()
             if _accesses_internal_resources(dagster_node):
                 msg = f"Policy node {node.name} tried to access protected resources"
@@ -52,7 +52,7 @@ class DagsterPolicy(Policy):
     def _graph_dependencies(self):
         return {
             node.name: _as_dagster_dependencies(node.dependencies)
-            for node in self.nodes
+            for node in self.flattened_nodes
             if len(node.dependencies) > 0
         }
 
