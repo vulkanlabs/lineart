@@ -5,7 +5,7 @@ description = ""
 authors = []
 readme = "README.md"
 packages = [
-    { include = "vulkan_dagster", from = "vulkan_dagster" }
+    { include = "vulkan_dagster", from = "vulkan_dagster/vulkan_dagster" }
 ]
 
 [tool.poetry.group.dev.dependencies]

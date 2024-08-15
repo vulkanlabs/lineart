@@ -2,6 +2,7 @@ import importlib.util
 import json
 import sys
 
+from vulkan_dagster.core.nodes import NodeType
 from vulkan_dagster.dagster.policy import DagsterPolicy
 
 file_location = f"{sys.argv[1]}/__init__.py"
@@ -15,9 +16,20 @@ spec.loader.exec_module(module)
 context = vars(module)
 print(context)
 
+
+# TODO: This function should come from the core library
+def _to_dict(node):
+    node_ = node.__dict__.copy()
+    if node.node_type == NodeType.COMPONENT.value:
+        node_["metadata"]["nodes"] = {
+            name: _to_dict(n) for name, n in node.metadata["nodes"].items()
+        }
+    return node_
+
+
 for _, obj in context.items():
     if isinstance(obj, DagsterPolicy):
-        nodes = {name: node.__dict__ for name, node in obj.node_definitions.items()}
+        nodes = {name: _to_dict(node) for name, node in obj.node_definitions.items()}
         with open(temp_location, "w") as f:
             json.dump(nodes, f)
         break
