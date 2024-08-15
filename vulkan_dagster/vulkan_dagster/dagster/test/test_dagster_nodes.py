@@ -6,7 +6,9 @@ from dagster import JobDefinition, RunConfig, mem_io_manager
 from pytest_httpserver import HTTPServer
 
 from vulkan_dagster.core.step_metadata import StepMetadata
-from vulkan_dagster.dagster import nodes, policy
+from vulkan_dagster.dagster import component
+from vulkan_dagster.dagster.nodes import *
+from vulkan_dagster.dagster.policy import *
 from vulkan_dagster.dagster.io_manager import PUBLISH_IO_MANAGER_KEY
 from vulkan_dagster.dagster.run_config import (
     RUN_CONFIG_KEY,
@@ -18,7 +20,7 @@ def test_http_connection(httpserver: HTTPServer):
     test_req_data = {"key": "value"}
     test_resp_data = {"resp_key": "resp_value"}
 
-    node = nodes.HTTPConnection(
+    node = HTTPConnection(
         name="http_connection",
         description="HTTP connection",
         url=httpserver.url_for("/"),
@@ -52,7 +54,7 @@ def test_http_connection(httpserver: HTTPServer):
 
 
 def test_transform():
-    node = nodes.Transform(
+    node = Transform(
         name="transform",
         description="Transform node",
         func=lambda context, inputs: inputs["x"] * 2,
@@ -80,17 +82,89 @@ def test_transform():
 
 class ReturnStatus(Enum):
     APPROVED = "APPROVED"
+    DENIED = "DENIED"
 
 
 def test_terminate():
-    terminate = nodes.Terminate(
+    terminate = Terminate(
         name="terminate",
         description="Terminate node",
         return_status=ReturnStatus.APPROVED,
         dependencies={"inputs": "input_node"},
     )
     definition = terminate.node_definition()
-    assert definition.node_type == nodes.NodeType.TERMINATE.value
+    assert definition.node_type == NodeType.TERMINATE.value
+
+
+class TestComponent(component.Component):
+    def __init__(self, name, description, dependencies):
+        node_a = Transform(
+            name="a",
+            description="Node A",
+            func=lambda _, inputs: inputs,
+            dependencies={"inputs": self.make_input_node_name(name)},
+        )
+        node_b = Transform(
+            name=self.make_output_node_name(name),
+            description="Node B",
+            func=lambda _, inputs: inputs["cpf"],
+            dependencies={"inputs": node_a.name},
+        )
+        nodes = [node_a, node_b]
+        input_schema = {"cpf": str}
+        super().__init__(name, description, nodes, input_schema, dependencies)
+
+
+def test_dagster_component():
+    input_schema = {"cpf": str}
+    component = TestComponent("component", "Component", {"cpf": "input_node"})
+
+    def branch_fn(context, inputs: dict):
+        context.log.info(f"Branching with inputs {inputs}")
+        if inputs["cpf"] == "1":
+            return ReturnStatus.APPROVED.value
+        return ReturnStatus.DENIED.value
+
+    branch = Branch(
+        "branch",
+        "Branch Node",
+        func=branch_fn,
+        outputs=[ReturnStatus.APPROVED.value, ReturnStatus.DENIED.value],
+        dependencies={"inputs": component.output_node_name},
+    )
+
+    approved = Transform(
+        "approved",
+        "Approved",
+        func=lambda _, inputs: ReturnStatus.APPROVED.value,
+        dependencies={"inputs": (branch.name, ReturnStatus.APPROVED.value)},
+    )
+    
+    denied = Transform(
+        "denied",
+        "Denied",
+        func=lambda _, inputs: ReturnStatus.DENIED.value,
+        dependencies={"inputs": (branch.name, ReturnStatus.DENIED.value)},
+    )
+
+    policy = DagsterPolicy(
+        nodes=[
+            component,
+            branch,
+            approved,
+            denied
+        ],
+        input_schema=input_schema,
+        output_callback=lambda _, **kwargs: "OK",
+    )
+    print("Nodes: ", [n.name for n in policy.nodes])
+    print("Flattened Nodes: ", [n.name for n in policy.flattened_nodes])
+
+    job = policy.to_job(resources=_TEST_RESOURCES)
+    cfg = _make_run_config({"input_node": {"config": {"cpf": "1"}}})
+    job_result = job.execute_in_process(run_config=cfg)
+    result = job_result._get_output_for_handle("approved", "result")
+    assert result == ReturnStatus.APPROVED.value
 
 
 _TEST_RESOURCES = {
@@ -99,8 +173,8 @@ _TEST_RESOURCES = {
 }
 
 
-def _make_job(ops: list[nodes.DagsterNode], input_schema: dict) -> JobDefinition:
-    p = policy.DagsterPolicy(
+def _make_job(ops: list[DagsterNode], input_schema: dict) -> JobDefinition:
+    p = DagsterPolicy(
         nodes=ops,
         input_schema=input_schema,
         output_callback=lambda _, **kwargs: None,

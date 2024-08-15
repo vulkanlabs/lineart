@@ -1,4 +1,4 @@
-from . import components
+from . import component
 from . import exceptions
 from . import graph
 from . import nodes
