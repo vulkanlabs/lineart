@@ -61,6 +61,20 @@ export async function fetchComponentVersionUsage(
         });
 }
 
+export async function fetchPolicyVersionComponents(
+    serverUrl: string, policyVersionId: number,
+) {
+    return fetch(new URL(`/policyVersions/${policyVersionId}/components`, serverUrl))
+        .then((response) => response.json().catch((error) => {
+            throw new Error("Error parsing response", { cause: error });
+        }))
+        .catch((error) => {
+            throw new Error(
+                `Error fetching component usage for policy version ${policyVersionId}`,
+                { cause: error });
+        });
+}
+
 const formatISODate = (date: Date) => formatISO(date, { representation: "date" });
 
 export async function fetchRunsCount(

@@ -54,6 +54,8 @@ class ComponentVersion(ComponentVersionBase):
 
 
 class ComponentVersionDependencyExpanded(BaseModel):
+    component_id: int
+    component_name: str
     component_version_id: int
     component_version_alias: str
     policy_id: int

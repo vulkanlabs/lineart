@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 export default function Navbar() {
     const pathname = usePathname();
-    const isSubpathActive = (path) => pathname.startsWith(path);
+    const isSubpathActive = (path: string) => pathname.startsWith(path);
 
     const sidebarSections = [
         { name: "Dashboard", path: "/dashboard" },
@@ -25,8 +25,8 @@ export default function Navbar() {
             {sidebarSections.map((section) => (
                 <Link key={section.name} href={section.path}
                     className={cn(
-                        "flex items-center text-base gap-2",
-                        isSubpathActive(section.path) ? "font-semibold" : "text-muted-foreground"
+                        "flex items-center text-base gap-2 hover:font-bold",
+                        isSubpathActive(section.path) ? "font-bold" : "text-muted-foreground"
                     )}>
                     <span>{section.name}</span>
                 </Link>

@@ -5,7 +5,8 @@ import { ChevronRightIcon, ChevronLeftIcon, Users2, Code2, ListTree } from "luci
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
-import { fetchPolicies, fetchPolicy } from "@/lib/api";
+import { fetchComponents, fetchPolicy, fetchPolicyVersionComponents } from "@/lib/api";
+import { string } from "zod";
 
 
 const SidebarContext = createContext({ isOpen: true });
@@ -16,7 +17,7 @@ export default function Sidebar() {
 
     return (
         <SidebarContext.Provider value={{ isOpen }}>
-            <div className="flex flex-col border-r-2 gap-4 w-48 max-w-64 h-full overflow-auto">
+            <div className="flex flex-col border-r-2 gap-4 w-64 max-w-64 h-full overflow-auto">
                 {/* <Button
                     onClick={() => setIsOpen(!isOpen)}
                     className="justify-start w-12 rounded-full"
@@ -62,31 +63,74 @@ function SidebarNav() {
     );
 }
 
+// TODO: This code has two different behaviors depending on whether or 
+// not the user is in a specific policy.
+// We should try splitting this up into two different components.
 function PoliciesSidebarNav() {
     const { isOpen } = useContext(SidebarContext);
     const [currentPolicy, setCurrentPolicy] = useState(null);
+    const [components, setComponents] = useState([]);
 
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const pathname = usePathname();
 
     useEffect(() => {
         const policyId = extractPolicyId(pathname);
-        if (policyId !== null) {
-            fetchPolicy(serverUrl, policyId)
-                .then((data) => setCurrentPolicy(data));
-        } else {
+        if (policyId === null) {
             setCurrentPolicy(null);
+            fetchComponents(serverUrl)
+                .then((data) => {
+                    const componentData = data.map(
+                        (component: { id: number, name: string }) => ({
+                            "name": component.name,
+                            "path": `/components/${component.id}`,
+                        }));
+                    setComponents(componentData);
+                })
+            return;
         }
+
+        fetchPolicy(serverUrl, policyId)
+            .then((policy) => setCurrentPolicy(policy))
+            .catch((error) => {
+                console.error(error);
+                setCurrentPolicy(null);
+                setComponents([]);
+            })
+
+        return;
     }, [pathname, serverUrl]);
+
+    // Handle component & policy dependencies
+    useEffect(() => {
+        if (currentPolicy == null) {
+            return;
+        }
+
+        fetchPolicyVersionComponents(serverUrl, currentPolicy?.active_policy_version_id)
+            .then((dependencies) => {
+                const componentData = dependencies.map(
+                    (dep) => ({
+                        "name": dep.component_name,
+                        "path": `/components/${dep.component_id}`,
+                    }));
+                setComponents(componentData);
+            })
+            .catch((error) => {
+                throw Error(`Error fetching components for policy ${currentPolicy.id}`, { cause: error })
+            });
+    }, [currentPolicy]);
 
     const sections = [
         {
-            "name": "Monitoramento",
-            "children": [],
+            name: "Monitoramento",
+            children: [],
+            emptySectionMsg: "Ainda não tem nada aqui."
         },
         {
-            "name": "Componentes",
-            "children": [],
+            name: "Componentes",
+            children: components,
+            emptySectionMsg: "Seus componentes ficam aqui. Crie um novo para começar."
         },
     ];
 
@@ -99,12 +143,34 @@ function PoliciesSidebarNav() {
             </div>
             {sections.map((section) => (
                 <div>
-                    <h2 className="text-base text-clip ml-4 hover:font-semibold">{section.name}</h2>
+                    <h2 className="text-base font-semibold text-clip ml-4">{section.name}</h2>
+                    <div className="flex flex-col gap-2 ml-4">
+                        {
+                            section.children.length == 0
+                                ? <EmptySidebarSection text={section.emptySectionMsg} />
+                                : section.children.map((child) => (
+                                    <Link key={child.name}
+                                        href={child.path}
+                                        className="flex text-sm gap-2 justify-end mr-8 hover:font-semibold"
+                                    >
+                                        <span>{child.name}</span>
+                                    </Link>
+                                ))}
+                    </div>
                 </div>
             ))}
         </div>
     );
 };
+
+function EmptySidebarSection({ text }: { text: string }) {
+    return (
+        <div>
+            <span className="text-sm text-clip justify-end">{text}</span>
+        </div>
+    );
+}
+
 
 function extractPolicyId(path: string): number | null {
     if (!path.startsWith("/policies/")) {

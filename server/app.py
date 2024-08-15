@@ -151,6 +151,153 @@ def list_policy_versions(policy_id: int, db: Session = Depends(get_db)):
     return policy_versions
 
 
+@app.get("/policies/{policy_id}/runs", response_model=list[schemas.Run])
+def list_runs_by_policy(policy_id: int, db: Session = Depends(get_db)):
+    policy_versions = db.query(PolicyVersion).filter_by(policy_id=policy_id).all()
+    policy_version_ids = [v.policy_version_id for v in policy_versions]
+    runs = db.query(Run).filter(Run.policy_version_id.in_(policy_version_ids)).all()
+    if len(runs) == 0:
+        return Response(status_code=204)
+    return runs
+
+
+@app.get("/policies/{policy_id}/runs/count", response_model=list[Any])
+def count_runs_by_policy(
+    policy_id: int,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    db: Session = Depends(get_db),
+):
+    if end_date is None:
+        end_date = datetime.date.today()
+    if start_date is None:
+        start_date = end_date - datetime.timedelta(days=30)
+
+    active_version = db.query(Policy).filter_by(policy_id=policy_id).first()
+    if active_version is None:
+        raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
+
+    metrics = (
+        db.query(
+            F.DATE(Run.created_at).label("date"),
+            F.count(Run.run_id).label("count"),
+        )
+        .filter(
+            (Run.policy_version_id == active_version.active_policy_version_id)
+            & (Run.created_at >= start_date)
+            & (F.DATE(Run.created_at) <= end_date)
+        )
+        .group_by(F.DATE(Run.created_at))
+        .all()
+    )
+
+    data = [{"date": m.date, "count": m.count} for m in metrics]
+    return data
+
+
+@app.post("/policies/{policy_id}/runs")
+def create_run_by_policy(
+    policy_id: int,
+    execution_config_str: Annotated[str, Body(embed=True)],
+    db: Session = Depends(get_db),
+):
+    try:
+        execution_config = json.loads(execution_config_str)
+    except Exception as e:
+        HTTPException(status_code=400, detail=e)
+
+    policy = db.query(Policy).filter_by(policy_id=policy_id).first()
+    if policy is None:
+        raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
+    if policy.active_policy_version_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Policy {policy_id} has no active version",
+        )
+
+    version = (
+        db.query(PolicyVersion)
+        .filter_by(policy_version_id=policy.active_policy_version_id)
+        .first()
+    )
+
+    run = _launch_run(
+        execution_config, version.policy_id, version.policy_version_id, db
+    )
+    return {"policy_id": policy.policy_id, "run_id": run.run_id}
+
+
+@app.post("/policyVersions/{policy_version_id}/runs")
+def create_run_by_policy_version(
+    policy_version_id: int,
+    execution_config_str: Annotated[str, Body(embed=True)],
+    db: Session = Depends(get_db),
+):
+    try:
+        execution_config = json.loads(execution_config_str)
+    except Exception as e:
+        HTTPException(status_code=400, detail=e)
+
+    version = (
+        db.query(PolicyVersion).filter_by(policy_version_id=policy_version_id).first()
+    )
+    if version is None:
+        msg = f"Policy version {policy_version_id} not found"
+        raise HTTPException(status_code=400, detail=msg)
+
+    run = _launch_run(
+        execution_config, version.policy_id, version.policy_version_id, db
+    )
+    if run is None:
+        raise HTTPException(status_code=500, detail="Error triggering job")
+    return {"policy_id": version.policy_id, "run_id": run.run_id}
+
+
+def _launch_run(
+    execution_config: dict, policy_id: int, policy_version_id: int, db: Session
+):
+    run = Run(policy_version_id=policy_version_id, status="PENDING")
+    db.add(run)
+    db.commit()
+
+    dagster_run_id = _trigger_dagster_job(
+        execution_config,
+        policy_id,
+        policy_version_id,
+        run.run_id,
+    )
+    if dagster_run_id is None:
+        run.status = "FAILURE"
+        db.commit()
+        return None
+
+    run.status = "STARTED"
+    run.dagster_run_id = dagster_run_id
+    db.commit()
+    return run
+
+
+def _trigger_dagster_job(
+    execution_config: dict, policy_id: int, policy_version_id: int, run_id: int
+):
+    # Trigger the Dagster job with Policy and Run IDs as inputs
+    execution_config["resources"] = {
+        "vulkan_run_config": {
+            "config": {
+                "run_id": run_id,
+                "server_url": SERVER_URL,
+            }
+        }
+    }
+    dagster_run_id = trigger_dagster_job(
+        dagster_client,
+        _version_name(policy_id, policy_version_id),
+        DEFAULT_POLICY_NAME,
+        execution_config,
+    )
+    return dagster_run_id
+
+
 # TODO: evaluate whether policy_id should be a path parameter or a form parameter
 @app.post("/policies/{policy_id}/versions")
 def create_policy_version(
@@ -299,6 +446,69 @@ def _create_policy_version_workspace(
     return response_data["graph"]
 
 
+@app.get("/policyVersions/{policy_version_id}/runs", response_model=list[schemas.Run])
+def list_runs_by_policy_version(policy_version_id: int, db: Session = Depends(get_db)):
+    runs = db.query(Run).filter_by(policy_version_id=policy_version_id).all()
+    if len(runs) == 0:
+        return Response(status_code=204)
+    return runs
+
+
+@app.get(
+    "/policyVersions/{policy_version_id}/components",
+    response_model=list[schemas.ComponentVersionDependencyExpanded],
+)
+def list_dependencies_by_policy_version(
+    policy_version_id: int, db: Session = Depends(get_db)
+):
+    policy_version = (
+        db.query(PolicyVersion).filter_by(policy_version_id=policy_version_id).first()
+    )
+    if policy_version is None:
+        raise ValueError(f"Policy version {policy_version_id} not found")
+
+    component_version_uses = (
+        db.query(ComponentVersionDependency)
+        .filter_by(policy_version_id=policy_version_id)
+        .all()
+    )
+    if len(component_version_uses) == 0:
+        return Response(status_code=204)
+
+    policy = db.query(Policy).filter_by(policy_id=policy_version.policy_id).first()
+
+    dependencies = []
+    for use in component_version_uses:
+        component_version = (
+            db.query(ComponentVersion)
+            .filter_by(component_version_id=use.component_version_id)
+            .first()
+        )
+
+        if component_version is None:
+            raise ValueError(f"Component version {use.component_version_id} not found")
+
+        component = (
+            db.query(Component)
+            .filter_by(component_id=component_version.component_id)
+            .first()
+        )
+        dependencies.append(
+            schemas.ComponentVersionDependencyExpanded(
+                component_id=component.component_id,
+                component_name=component.name,
+                component_version_id=component_version.component_version_id,
+                component_version_alias=component_version.alias,
+                policy_id=policy.policy_id,
+                policy_name=policy.name,
+                policy_version_id=policy_version.policy_version_id,
+                policy_version_alias=policy_version.alias,
+            )
+        )
+
+    return dependencies
+
+
 @app.get(
     "/policyVersions/{policy_version_id}",
     response_model=schemas.PolicyVersion,
@@ -310,161 +520,6 @@ def get_policy_version(policy_version_id: int, db: Session = Depends(get_db)):
     if policy_version is None:
         return Response(status_code=204)
     return policy_version
-
-
-@app.get("/policies/{policy_id}/runs", response_model=list[schemas.Run])
-def list_runs_by_policy(policy_id: int, db: Session = Depends(get_db)):
-    policy_versions = db.query(PolicyVersion).filter_by(policy_id=policy_id).all()
-    policy_version_ids = [v.policy_version_id for v in policy_versions]
-    runs = db.query(Run).filter(Run.policy_version_id.in_(policy_version_ids)).all()
-    if len(runs) == 0:
-        return Response(status_code=204)
-    return runs
-
-
-@app.get("/policyVersions/{policy_version_id}/runs", response_model=list[schemas.Run])
-def list_runs_by_policy_version(policy_version_id: int, db: Session = Depends(get_db)):
-    runs = db.query(Run).filter_by(policy_version_id=policy_version_id).all()
-    if len(runs) == 0:
-        return Response(status_code=204)
-    return runs
-
-
-@app.get("/policies/{policy_id}/runs/count", response_model=list[Any])
-def count_runs_by_policy(
-    policy_id: int,
-    start_date: datetime.date | None = None,
-    end_date: datetime.date | None = None,
-    db: Session = Depends(get_db),
-):
-    if end_date is None:
-        end_date = datetime.date.today()
-    if start_date is None:
-        start_date = end_date - datetime.timedelta(days=30)
-
-    active_version = db.query(Policy).filter_by(policy_id=policy_id).first()
-    if active_version is None:
-        raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
-
-    metrics = (
-        db.query(
-            F.DATE(Run.created_at).label("date"),
-            F.count(Run.run_id).label("count"),
-        )
-        .filter(
-            (Run.policy_version_id == active_version.active_policy_version_id)
-            & (Run.created_at >= start_date)
-            & (F.DATE(Run.created_at) <= end_date)
-        )
-        .group_by(F.DATE(Run.created_at))
-        .all()
-    )
-
-    data = [{"date": m.date, "count": m.count} for m in metrics]
-    return data
-
-
-@app.post("/policies/{policy_id}/runs")
-def create_run_by_policy(
-    policy_id: int,
-    execution_config_str: Annotated[str, Body(embed=True)],
-    db: Session = Depends(get_db),
-):
-    try:
-        execution_config = json.loads(execution_config_str)
-    except Exception as e:
-        HTTPException(status_code=400, detail=e)
-
-    policy = db.query(Policy).filter_by(policy_id=policy_id).first()
-    if policy is None:
-        raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
-    if policy.active_policy_version_id is None:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Policy {policy_id} has no active version",
-        )
-
-    version = (
-        db.query(PolicyVersion)
-        .filter_by(policy_version_id=policy.active_policy_version_id)
-        .first()
-    )
-
-    run = _launch_run(
-        execution_config, version.policy_id, version.policy_version_id, db
-    )
-    return {"policy_id": policy.policy_id, "run_id": run.run_id}
-
-
-@app.post("/policyVersions/{policy_version_id}/runs")
-def create_run_by_policy_version(
-    policy_version_id: int,
-    execution_config_str: Annotated[str, Body(embed=True)],
-    db: Session = Depends(get_db),
-):
-    try:
-        execution_config = json.loads(execution_config_str)
-    except Exception as e:
-        HTTPException(status_code=400, detail=e)
-
-    version = (
-        db.query(PolicyVersion).filter_by(policy_version_id=policy_version_id).first()
-    )
-    if version is None:
-        msg = f"Policy version {policy_version_id} not found"
-        raise HTTPException(status_code=400, detail=msg)
-
-    run = _launch_run(
-        execution_config, version.policy_id, version.policy_version_id, db
-    )
-    if run is None:
-        raise HTTPException(status_code=500, detail="Error triggering job")
-    return {"policy_id": version.policy_id, "run_id": run.run_id}
-
-
-def _launch_run(
-    execution_config: dict, policy_id: int, policy_version_id: int, db: Session
-):
-    run = Run(policy_version_id=policy_version_id, status="PENDING")
-    db.add(run)
-    db.commit()
-
-    dagster_run_id = _trigger_dagster_job(
-        execution_config,
-        policy_id,
-        policy_version_id,
-        run.run_id,
-    )
-    if dagster_run_id is None:
-        run.status = "FAILURE"
-        db.commit()
-        return None
-
-    run.status = "STARTED"
-    run.dagster_run_id = dagster_run_id
-    db.commit()
-    return run
-
-
-def _trigger_dagster_job(
-    execution_config: dict, policy_id: int, policy_version_id: int, run_id: int
-):
-    # Trigger the Dagster job with Policy and Run IDs as inputs
-    execution_config["resources"] = {
-        "vulkan_run_config": {
-            "config": {
-                "run_id": run_id,
-                "server_url": SERVER_URL,
-            }
-        }
-    }
-    dagster_run_id = trigger_dagster_job(
-        dagster_client,
-        _version_name(policy_id, policy_version_id),
-        DEFAULT_POLICY_NAME,
-        execution_config,
-    )
-    return dagster_run_id
 
 
 # Podemos ter um run_policy_async e um sync
@@ -611,8 +666,13 @@ def list_component_version_usage(
     if len(component_version_uses) == 0:
         return []
 
-    component_version = (
-        db.query(ComponentVersion)
+    component = (
+        db.query(
+            ComponentVersion.component_version_id,
+            ComponentVersion.alias,
+            ComponentVersion.component_id,
+            Component.name,
+        )
         .filter_by(component_version_id=component_version_id)
         .first()
     )
@@ -620,7 +680,12 @@ def list_component_version_usage(
     dependencies = []
     for use in component_version_uses:
         policy_version = (
-            db.query(PolicyVersion)
+            db.query(
+                PolicyVersion.policy_id,
+                PolicyVersion.policy_version_id,
+                Policy.name.label("policy_name"),
+                PolicyVersion.alias.label("policy_version_alias"),
+            )
             .filter_by(policy_version_id=use.policy_version_id)
             .first()
         )
@@ -628,19 +693,16 @@ def list_component_version_usage(
         if policy_version is None:
             raise ValueError(f"Policy version {use.policy_version_id} not found")
 
-        policy = db.query(Policy).filter_by(policy_id=policy_version.policy_id).first()
-
-        if policy is None:
-            raise ValueError(f"Policy {policy_version.policy_id} not found")
-
         dependencies.append(
             schemas.ComponentVersionDependencyExpanded(
-                component_version_id=component_version.component_version_id,
-                component_version_alias=component_version.alias,
-                policy_id=policy.policy_id,
-                policy_name=policy.name,
+                component_id=component.component_id,
+                component_name=component.name,
+                component_version_id=component.component_version_id,
+                component_version_alias=component.alias,
+                policy_id=policy_version.policy_id,
+                policy_name=policy_version.policy_name,
                 policy_version_id=policy_version.policy_version_id,
-                policy_version_alias=policy_version.alias,
+                policy_version_alias=policy_version.policy_version_alias,
             )
         )
 

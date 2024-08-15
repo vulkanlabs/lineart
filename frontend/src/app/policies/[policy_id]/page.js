@@ -65,11 +65,15 @@ export default function Page({ params }) {
         if (!dateRange || !dateRange.from || !dateRange.to) {
             return;
         }
-        fetchRunsCount(baseUrl, params.policy_id, dateRange.from, dateRange.to)
-            .then((data) => setRunsCount(data))
-            .catch((error) => {
-                console.error(error);
-            });
+        const refreshRunsCount = () =>
+            fetchRunsCount(baseUrl, params.policy_id, dateRange.from, dateRange.to)
+                .then((data) => setRunsCount(data))
+                .catch((error) => {
+                    console.error(error);
+                });
+        refreshRunsCount();
+        const runsInterval = setInterval(refreshRunsCount, refreshTime);
+        return () => clearInterval(runsInterval);
     }, [dateRange]);
 
     return (
