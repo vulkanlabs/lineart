@@ -10,10 +10,10 @@ export default function Navbar() {
     const isSubpathActive = (path: string) => pathname.startsWith(path);
 
     const sidebarSections = [
-        { name: "Dashboard", path: "/dashboard" },
+        // { name: "Dashboard", path: "/dashboard" },
         { name: "Políticas", path: "/policies" },
         { name: "Componentes", path: "/components" },
-        { name: "Integrações", path: "/integrations" },
+        // { name: "Integrações", path: "/integrations" },
     ];
 
     return (

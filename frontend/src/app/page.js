@@ -1,9 +1,6 @@
+import { redirect } from "next/navigation"
+
 export default function Page() {
-  return (
-    // TODO
-    <div>
-      Hello world
-    </div>
-  );
+  redirect("/policies")
 }
 

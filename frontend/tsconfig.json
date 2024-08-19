@@ -31,8 +31,8 @@
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "**/*.ts",
-    "**/*.tsx"
-, "src/components/sidebar.tsx"  ],
+    "**/*.tsx",
+  ],
   "exclude": [
     "node_modules"
   ]

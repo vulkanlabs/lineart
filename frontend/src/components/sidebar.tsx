@@ -42,9 +42,9 @@ function chooseNavBar(pathname: string) {
 function SidebarNav() {
     const { isOpen } = useContext(SidebarContext);
     const sections = [
-        { name: "Times", path: "/teams", icon: Users2 },
-        { name: "Componentes", path: "/components", icon: Code2 },
+        // { name: "Times", path: "/teams", icon: Users2 },
         { name: "Políticas", path: "/policies", icon: ListTree },
+        { name: "Componentes", path: "/components", icon: Code2 },
     ];
 
     return (

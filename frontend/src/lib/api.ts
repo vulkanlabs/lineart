@@ -6,24 +6,20 @@ export async function fetchComponents(serverUrl: string) {
             if (response.status === 204) {
                 return [];
             }
-            response.json().catch((error) => {
-                throw Error("Error parsing response", { cause: error });
-            });
+            return response.json();
         })
         .catch((error) => {
             throw Error("Error fetching components", { cause: error });
         });
 };
 
-export async function fetchPolicies(serverUrl: string) {
+export async function fetchPolicies(serverUrl: string): Promise<any[]> {
     return fetch(new URL("/policies", serverUrl))
         .then((response) => {
             if (response.status === 204) {
                 return [];
             }
-            response.json().catch((error) => {
-                throw new Error("Error parsing response", { cause: error });
-            });
+            return response.json()
         })
         .catch((error) => {
             throw new Error("Error fetching policies", { cause: error });
