@@ -125,7 +125,7 @@ async function assembleGraph(policyId, elk, options) {
         if (node.metadata !== null) {
             Object.entries(node.metadata).map(([key, value]) => {
                 nodeConfig.data[key] = value;
-            })
+            });
         }
 
         return nodeConfig;
@@ -141,8 +141,8 @@ async function assembleGraph(policyId, elk, options) {
                 // TODO: If `dep` is an array, it means that it comes from
                 // a specific output of a node. For now, we discard it, as
                 // we don't display the node outputs.
-                if (Array.isArray(dep)) {
-                    dep = dep[0];
+                if (typeof dep === 'object' && dep !== null) {
+                    dep = dep.node;
                 }
 
                 const edge = {
@@ -219,8 +219,6 @@ function getLayoutedElements(nodes, edges, elk, options) {
     return elk
         .layout(graph)
         .then((layoutedGraph) => {
-            console.log(layoutedGraph);
-
             const _format_node = (node) => ({
                 ...node,
                 // React Flow expects a position property on the node instead of `x`
@@ -234,7 +232,7 @@ function getLayoutedElements(nodes, edges, elk, options) {
                     return [_format_node(node), ...children];
                 }
                 return _format_node(node);
-            }
+            };
 
             let _nodes = layoutedGraph.children.flatMap((node) => extractChildren(node));
             _nodes = _nodes.filter((node) => node.id !== 'all');
