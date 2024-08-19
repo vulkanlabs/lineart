@@ -11,9 +11,10 @@ from dagster import (
 )
 
 from vulkan_dagster.core.graph import Policy
+from vulkan_dagster.core.dependency import Dependency
 from vulkan_dagster.core.run import RunStatus
 from .io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
-from .nodes import Input, Terminate
+from .nodes import Input
 from .run_config import RUN_CONFIG_KEY
 
 DEFAULT_POLICY_NAME = "default_policy"
@@ -104,18 +105,17 @@ def _accesses_internal_resources(op: OpDefinition) -> bool:
 
 
 def _as_dagster_dependencies(
-    dependencies: dict[str, Any] | None
+    dependencies: dict[str, Dependency] | None
 ) -> dict[str, DependencyDefinition]:
     if dependencies is None:
         return None
 
     deps = {}
     for k, v in dependencies.items():
-        if isinstance(v, tuple):
-            definition = DependencyDefinition(v[0], v[1])
-        elif isinstance(v, str):
-            definition = DependencyDefinition(v, "result")
+        # Check if the dependency specifies an output name or a key
+        if v.output is not None:
+            definition = DependencyDefinition(v.node, v.output)
         else:
-            raise ValueError(f"Invalid dependency definition: {k} -> {v}")
+            definition = DependencyDefinition(v.node, "result")
         deps[k] = definition
     return deps

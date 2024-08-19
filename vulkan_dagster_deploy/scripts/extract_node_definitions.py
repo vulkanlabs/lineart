@@ -5,6 +5,14 @@ import sys
 from vulkan_dagster.core.nodes import NodeType
 from vulkan_dagster.dagster.policy import DagsterPolicy
 
+import dataclasses, json
+
+class EnhancedJSONEncoder(json.JSONEncoder):
+        def default(self, o):
+            if dataclasses.is_dataclass(o):
+                return dataclasses.asdict(o)
+            return super().default(o)
+
 file_location = f"{sys.argv[1]}/__init__.py"
 temp_location = sys.argv[2]
 
@@ -15,6 +23,7 @@ spec.loader.exec_module(module)
 
 context = vars(module)
 print(context)
+
 
 
 # TODO: This function should come from the core library
@@ -31,5 +40,5 @@ for _, obj in context.items():
     if isinstance(obj, DagsterPolicy):
         nodes = {name: _to_dict(node) for name, node in obj.node_definitions.items()}
         with open(temp_location, "w") as f:
-            json.dump(nodes, f)
+            json.dump(nodes, f, cls=EnhancedJSONEncoder)
         break

@@ -8,6 +8,7 @@ from vulkan_dagster.core.nodes import (
     TransformNode,
 )
 from vulkan_dagster.core.component import ComponentGraph
+from vulkan_dagster.core.dependency import Dependency
 
 
 class DummyStatus(Enum):
@@ -21,13 +22,13 @@ def test_core_graph_trivial():
         name="a",
         description="Node A",
         func=lambda inputs: inputs,
-        dependencies={"input": input_node.name},
+        dependencies={"input": Dependency(input_node.name)},
     )
     node_b = TransformNode(
         name="b",
         description="Node B",
         func=lambda inputs: inputs,
-        dependencies={"input": node_a.name},
+        dependencies={"input": Dependency(node_a.name)},
     )
 
     def branch_fn(inputs: dict):
@@ -40,20 +41,20 @@ def test_core_graph_trivial():
         "Branch Node",
         func=branch_fn,
         outputs=["approved", "denied"],
-        dependencies={"input": node_b.name},
+        dependencies={"input": Dependency(node_b.name)},
     )
 
     approved = TerminateNode(
         "approved",
         "Approved",
         return_status=DummyStatus.APPROVED,
-        dependencies={"input": (branch.name, "approved")},
+        dependencies={"input": Dependency(branch.name, "approved")},
     )
     denied = TerminateNode(
         "denied",
         "Denied",
         return_status=DummyStatus.DENIED,
-        dependencies={"input": (branch.name, "denied")},
+        dependencies={"input": Dependency(branch.name, "denied")},
     )
 
     graph = Graph(
@@ -73,7 +74,7 @@ def test_core_graph_with_component():
         name="a",
         description="Node A",
         func=lambda inputs: inputs,
-        dependencies={"input": input_node.name},
+        dependencies={"input": Dependency(input_node.name)},
     )
     component_name = "component"
     component_output_name = ComponentGraph.make_output_node_name(component_name)
@@ -81,21 +82,21 @@ def test_core_graph_with_component():
         name=component_output_name,
         description="Node B",
         func=lambda inputs: inputs,
-        dependencies={"input": node_a.name},
+        dependencies={"input": Dependency(node_a.name)},
     )
     component = ComponentGraph(
         name=component_name,
         description="Component",
         nodes=[node_a, node_b],
         input_schema=input_schema,
-        dependencies={"input": input_node.name}
+        dependencies={"input": Dependency(input_node.name)}
     )
 
     approved = TerminateNode(
         "approved",
         "Approved",
         return_status=DummyStatus.APPROVED,
-        dependencies={"input": component_output_name},
+        dependencies={"input": Dependency(component_output_name)},
     )
 
     graph = Graph(

@@ -2,7 +2,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from inspect import getsource
-from typing import Any, Optional
+from typing import Any
+
+from vulkan_dagster.core.dependency import Dependency
 
 
 class NodeType(Enum):
@@ -19,7 +21,7 @@ class VulkanNodeDefinition:
     name: str
     description: str
     node_type: str
-    dependencies: dict[str, Any] | None = None
+    dependencies: dict[str, Dependency] | None = None
     metadata: dict[str, Any] | None = None
 
 
@@ -30,26 +32,32 @@ class Node(ABC):
         name: str,
         description: str,
         typ: NodeType,
-        dependencies: dict | None = None,
+        dependencies: dict[str, Dependency] | None = None,
     ):
         self._name = name
         self.description = description
         self.type = typ
         self._dependencies = dependencies if dependencies is not None else {}
+        # TODO: here, we can enforce the typing of dependency specifications,
+        # but this ends up making the API harder to use. We should consider
+        # parsing the dependency specification from strings or tuples.
+        assert all(
+            isinstance(d, Dependency) for d in self._dependencies.values()
+        ), "Dependencies must be of type Dependency"
 
     @property
     def name(self) -> str:
         return self._name
 
     @property
-    def dependencies(self) -> dict[str, Any]:
+    def dependencies(self) -> dict[str, Dependency]:
         return self._dependencies
 
     @abstractmethod
     def node_definition(self) -> VulkanNodeDefinition:
         pass
 
-    def node_dependencies(self) -> list[str]:
+    def node_dependencies(self) -> list[Dependency]:
         return list(self.dependencies.values())
 
 
@@ -136,7 +144,7 @@ class TerminateNode(Node):
                 "return_status": self.return_status.value,
             },
         )
-    
+
     def with_callback(self, callback: callable) -> "TerminateNode":
         self.callback = callback
         return self
@@ -180,6 +188,6 @@ class InputNode(Node):
             description=self.description,
             node_type=self.type.value,
             metadata={
-                "schema": {k: t.__name__ for k, t in self.schema.items()}, 
+                "schema": {k: t.__name__ for k, t in self.schema.items()},
             },
         )

@@ -41,21 +41,6 @@ class DagsterNode(ABC):
     def op(self) -> OpDefinition:
         """Construct the Dagster op for this node."""
 
-    def graph_dependencies(self) -> dict[str, Any]:
-        if self.dependencies is None:
-            return None
-
-        deps = {}
-        for k, v in self.dependencies.items():
-            if isinstance(v, tuple):
-                definition = DependencyDefinition(v[0], v[1])
-            elif isinstance(v, str):
-                definition = DependencyDefinition(v, "result")
-            else:
-                raise ValueError(f"Invalid dependency definition: {k} -> {v}")
-            deps[k] = definition
-        return deps
-
 
 class HTTPConnection(HTTPConnectionNode, DagsterNode):
 

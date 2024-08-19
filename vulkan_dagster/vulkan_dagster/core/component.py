@@ -1,8 +1,7 @@
-from dataclasses import dataclass
 from typing import Any
 
-from .nodes import Node, NodeType, TransformNode, VulkanNodeDefinition
 from .graph import Graph
+from .nodes import Node, NodeType, VulkanNodeDefinition
 
 
 class ComponentGraph(Node, Graph):
@@ -27,15 +26,15 @@ class ComponentGraph(Node, Graph):
     @property
     def input_node_name(self) -> str:
         return self.make_input_node_name(self.name)
-    
+
     @property
     def output_node_name(self) -> str:
         return self.make_output_node_name(self.name)
-    
+
     @staticmethod
     def make_input_node_name(component_name: str) -> str:
         return f"{component_name}_input"
-    
+
     @staticmethod
     def make_output_node_name(component_name: str) -> str:
         return f"{component_name}_output"

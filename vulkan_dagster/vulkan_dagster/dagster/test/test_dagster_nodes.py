@@ -6,6 +6,7 @@ from dagster import JobDefinition, RunConfig, mem_io_manager
 from pytest_httpserver import HTTPServer
 
 from vulkan_dagster.core.step_metadata import StepMetadata
+from vulkan_dagster.core.dependency import Dependency
 from vulkan_dagster.dagster import component
 from vulkan_dagster.dagster.nodes import *
 from vulkan_dagster.dagster.policy import *
@@ -27,10 +28,10 @@ def test_http_connection(httpserver: HTTPServer):
         method="GET",
         headers={"Content-Type": "application/json"},
         params={"param": "value", "param2": "value2"},
-        dependencies={"body": "input_node"},
+        dependencies={"body": Dependency("input_node")},
     )
 
-    assert len(node.graph_dependencies()) == 1
+    assert len(node.dependencies) == 1
 
     dagster_op = node.op()
     assert len(dagster_op.ins) == 1
@@ -57,11 +58,11 @@ def test_transform():
     node = Transform(
         name="transform",
         description="Transform node",
-        func=lambda context, inputs: inputs["x"] * 2,
-        dependencies={"inputs": "input_node"},
+        func=lambda _, inputs: inputs["x"] * 2,
+        dependencies={"inputs": Dependency("input_node")},
     )
 
-    assert len(node.graph_dependencies()) == 1
+    assert len(node.dependencies) == 1
 
     dagster_op = node.op()
     assert len(dagster_op.ins) == 1
@@ -90,25 +91,25 @@ def test_terminate():
         name="terminate",
         description="Terminate node",
         return_status=ReturnStatus.APPROVED,
-        dependencies={"inputs": "input_node"},
+        dependencies={"inputs": Dependency("input_node")},
     )
     definition = terminate.node_definition()
     assert definition.node_type == NodeType.TERMINATE.value
 
 
-class TestComponent(component.Component):
+class ExampleComponent(component.Component):
     def __init__(self, name, description, dependencies):
         node_a = Transform(
             name="a",
             description="Node A",
             func=lambda _, inputs: inputs,
-            dependencies={"inputs": self.make_input_node_name(name)},
+            dependencies={"inputs": Dependency(self.make_input_node_name(name))},
         )
         node_b = Transform(
             name=self.make_output_node_name(name),
             description="Node B",
             func=lambda _, inputs: inputs["cpf"],
-            dependencies={"inputs": node_a.name},
+            dependencies={"inputs": Dependency(node_a.name)},
         )
         nodes = [node_a, node_b]
         input_schema = {"cpf": str}
@@ -117,7 +118,7 @@ class TestComponent(component.Component):
 
 def test_dagster_component():
     input_schema = {"cpf": str}
-    component = TestComponent("component", "Component", {"cpf": "input_node"})
+    component = ExampleComponent("component", "Component", {"cpf": Dependency("input_node")})
 
     def branch_fn(context, inputs: dict):
         context.log.info(f"Branching with inputs {inputs}")
@@ -130,21 +131,21 @@ def test_dagster_component():
         "Branch Node",
         func=branch_fn,
         outputs=[ReturnStatus.APPROVED.value, ReturnStatus.DENIED.value],
-        dependencies={"inputs": component.output_node_name},
+        dependencies={"inputs": Dependency(component.output_node_name)},
     )
 
     approved = Transform(
         "approved",
         "Approved",
         func=lambda _, inputs: ReturnStatus.APPROVED.value,
-        dependencies={"inputs": (branch.name, ReturnStatus.APPROVED.value)},
+        dependencies={"inputs": Dependency(branch.name, ReturnStatus.APPROVED.value)},
     )
     
     denied = Transform(
         "denied",
         "Denied",
         func=lambda _, inputs: ReturnStatus.DENIED.value,
-        dependencies={"inputs": (branch.name, ReturnStatus.DENIED.value)},
+        dependencies={"inputs": Dependency(branch.name, ReturnStatus.DENIED.value)},
     )
 
     policy = DagsterPolicy(
