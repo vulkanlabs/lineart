@@ -81,9 +81,9 @@ function PoliciesSidebarNav() {
             fetchComponents(serverUrl)
                 .then((data) => {
                     const componentData = data.map(
-                        (component: { id: number, name: string }) => ({
+                        (component: { component_id: number, name: string }) => ({
                             "name": component.name,
-                            "path": `/components/${component.id}`,
+                            "path": `/components/${component.component_id}`,
                         }));
                     setComponents(componentData);
                 })
