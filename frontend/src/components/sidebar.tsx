@@ -142,7 +142,7 @@ function PoliciesSidebarNav() {
                 </h1>
             </div>
             {sections.map((section) => (
-                <div>
+                <div key={section.name}>
                     <h2 className="text-base font-semibold text-clip ml-4">{section.name}</h2>
                     <div className="flex flex-col gap-2 ml-4">
                         {
@@ -165,9 +165,7 @@ function PoliciesSidebarNav() {
 
 function EmptySidebarSection({ text }: { text: string }) {
     return (
-        <div>
-            <span className="text-sm text-clip justify-end">{text}</span>
-        </div>
+        <span className="text-sm text-clip justify-end">{text}</span>
     );
 }
 

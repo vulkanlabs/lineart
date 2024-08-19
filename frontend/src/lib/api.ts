@@ -2,9 +2,14 @@ import { formatISO } from "date-fns";
 
 export async function fetchComponents(serverUrl: string) {
     return fetch(new URL("/components", serverUrl))
-        .then((response) => response.json().catch((error) => {
-            throw Error("Error parsing response", { cause: error });
-        }))
+        .then((response) => {
+            if (response.status === 204) {
+                return [];
+            }
+            response.json().catch((error) => {
+                throw Error("Error parsing response", { cause: error });
+            });
+        })
         .catch((error) => {
             throw Error("Error fetching components", { cause: error });
         });
@@ -12,9 +17,14 @@ export async function fetchComponents(serverUrl: string) {
 
 export async function fetchPolicies(serverUrl: string) {
     return fetch(new URL("/policies", serverUrl))
-        .then((response) => response.json().catch((error) => {
-            throw new Error("Error parsing response", { cause: error });
-        }))
+        .then((response) => {
+            if (response.status === 204) {
+                return [];
+            }
+            response.json().catch((error) => {
+                throw new Error("Error parsing response", { cause: error });
+            });
+        })
         .catch((error) => {
             throw new Error("Error fetching policies", { cause: error });
         });

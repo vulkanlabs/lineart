@@ -22,7 +22,7 @@ export default function PolicyPageBody() {
     useEffect(() => {
         const refreshComponents = () => fetchComponents(serverUrl)
             .then((data) => setComponents(data))
-            .catch((error) => console.error("Error fetching policies", error));
+            .catch((error) => console.error("Error fetching components", error));
 
         refreshComponents();
         const comInterval = setInterval(refreshComponents, refreshTime);
