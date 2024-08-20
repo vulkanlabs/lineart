@@ -1,38 +1,24 @@
 'use client';
 import Link from "next/link";
-import { ChevronRightIcon, ChevronLeftIcon, Users2, Code2, ListTree } from "lucide-react";
-
-import { Children, createContext, useContext, useEffect, useState } from 'react';
-import { Button } from "@/components/ui/button";
+import { ChartSpline, Users2, Code2, ListTree, Section } from "lucide-react";
+import { useEffect, useState } from 'react';
 import { usePathname } from "next/navigation";
 import { fetchComponents, fetchPolicy, fetchPolicyVersionComponents } from "@/lib/api";
-import { string } from "zod";
 
-
-const SidebarContext = createContext({ isOpen: true });
 
 export default function Sidebar() {
-    const [isOpen, setIsOpen] = useState(true);
     const pathname = usePathname();
 
     return (
-        <SidebarContext.Provider value={{ isOpen }}>
-            <div className="flex flex-col border-r-2 gap-4 w-64 max-w-64 h-full overflow-auto">
-                {/* <Button
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="justify-start w-12 rounded-full"
-                >
-                    {isOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-                </Button> */}
-                <div className="mt-4">
-                    {chooseNavBar(pathname)}
-                </div>
+        <div className="flex flex-col border-r-2 gap-4 w-64 max-w-64 h-full overflow-auto">
+            <div className="mt-4">
+                {chooseSideBar(pathname)}
             </div>
-        </SidebarContext.Provider>
+        </div>
     );
 }
 
-function chooseNavBar(pathname: string) {
+function chooseSideBar(pathname: string) {
     if (pathname.startsWith("/policies")) {
         const policyId = extractPolicyId(pathname);
         if (policyId === null) {
@@ -53,17 +39,57 @@ type SidebarSectionProps = {
     emptySectionMsg?: string,
 };
 
+function withPath(props: SidebarSectionProps, path: string): SidebarSectionProps {
+    return {
+        ...props,
+        path: path,
+    };
+}
+
+function withChildren(props: SidebarSectionProps, children: SidebarSectionItemProps[]): SidebarSectionProps {
+    return {
+        ...props,
+        children: children,
+    };
+}
+
 type SidebarSectionItemProps = {
     name: string,
     path: string,
 }
 
+const SectionDefinitions: Map<string, SidebarSectionProps> = new Map([
+    ["teams", {
+        name: "Times",
+        icon: Users2,
+        path: "/teams",
+        emptySectionMsg: "Ainda não tem nada aqui."
+    }],
+    ["components", {
+        name: "Componentes",
+        icon: Code2,
+        path: "/components",
+        emptySectionMsg: "Seus componentes ficam aqui. Crie um novo para começar."
+    }],
+    ["policies", {
+        name: "Políticas",
+        icon: Code2,
+        path: "/policies",
+        emptySectionMsg: "Suas políticas ficarão aqui. Crie uma nova para começar."
+    }],
+    ["monitoring", {
+        name: "Monitoramento",
+        icon: ChartSpline,
+        path: ``,
+        emptySectionMsg: "Ainda não tem nada aqui."
+    },]
+]);
+
 function SidebarNav() {
-    const { isOpen } = useContext(SidebarContext);
     const sections = [
-        { name: "Times", path: "/teams", icon: Users2 },
-        { name: "Políticas", path: "/policies", icon: ListTree },
-        { name: "Componentes", path: "/components", icon: Code2 },
+        SectionDefinitions.get("teams"),
+        SectionDefinitions.get("components"),
+        SectionDefinitions.get("policies"),
     ];
 
     return (
@@ -73,7 +99,6 @@ function SidebarNav() {
 
 
 function PoliciesSidebarNav() {
-    const { isOpen } = useContext(SidebarContext);
     const [components, setComponents] = useState([]);
 
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
@@ -91,18 +116,8 @@ function PoliciesSidebarNav() {
     }, [serverUrl]);
 
     const sections: Array<SidebarSectionProps> = [
-        {
-            name: "Times",
-            path: "/teams",
-            children: [],
-            emptySectionMsg: "Ainda não tem nada aqui."
-        },
-        {
-            name: "Componentes",
-            path: "/components",
-            children: components,
-            emptySectionMsg: "Seus componentes ficam aqui. Crie um novo para começar."
-        },
+        SectionDefinitions.get("teams"),
+        withChildren(SectionDefinitions.get("components"), components),
     ];
 
     return (
@@ -111,7 +126,6 @@ function PoliciesSidebarNav() {
 };
 
 function PolicyDetailsSidebar({ policyId }: { policyId: number }) {
-    const { isOpen } = useContext(SidebarContext);
     const [currentPolicy, setCurrentPolicy] = useState(null);
     const [components, setComponents] = useState([]);
 
@@ -148,17 +162,8 @@ function PolicyDetailsSidebar({ policyId }: { policyId: number }) {
     }, [serverUrl, currentPolicy]);
 
     const sections = [
-        {
-            name: "Monitoramento",
-            path: `/policies/${policyId}/monitoring`,
-            emptySectionMsg: "Ainda não tem nada aqui."
-        },
-        {
-            name: "Componentes",
-            path: `/components`,
-            children: components,
-            emptySectionMsg: "Seus componentes ficam aqui. Crie um novo para começar."
-        },
+        withPath(SectionDefinitions.get("monitoring"), `/policies/${policyId}/monitoring`),
+        withChildren(SectionDefinitions.get("components"), components),
     ];
 
     return (
