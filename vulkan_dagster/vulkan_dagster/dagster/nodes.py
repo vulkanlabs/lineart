@@ -6,7 +6,6 @@ from typing import Any
 
 import requests
 from dagster import (
-    DependencyDefinition,
     In,
     OpDefinition,
     OpExecutionContext,
@@ -19,7 +18,6 @@ from ..core.nodes import (
     BranchNode,
     HTTPConnectionNode,
     InputNode,
-    NodeType,
     TerminateNode,
     TransformNode,
 )
@@ -100,7 +98,7 @@ class HTTPConnection(HTTPConnectionNode, DagsterNode):
         context.log.debug(f"Response: {response}")
 
         if response.status_code == 200:
-            yield Output(response.json())
+            yield Output(response.content)
         else:
             context.log.error(
                 f"Failed op {self.name} with status {response.status_code}"

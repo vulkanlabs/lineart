@@ -86,6 +86,7 @@ const SectionDefinitions: Map<string, SidebarSectionProps> = new Map([
 ]);
 
 function SidebarNav() {
+    // TODO: Get Teams + Components + Policies
     const sections = [
         SectionDefinitions.get("teams"),
         SectionDefinitions.get("components"),
@@ -100,7 +101,6 @@ function SidebarNav() {
 
 function PoliciesSidebarNav() {
     const [components, setComponents] = useState([]);
-
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
 
     useEffect(() => {

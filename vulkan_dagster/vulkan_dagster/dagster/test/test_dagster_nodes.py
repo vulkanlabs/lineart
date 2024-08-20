@@ -2,19 +2,14 @@ import json
 from enum import Enum
 
 import pytest
-from dagster import JobDefinition, RunConfig, mem_io_manager
 from pytest_httpserver import HTTPServer
 
-from vulkan_dagster.core.step_metadata import StepMetadata
 from vulkan_dagster.core.dependency import Dependency
+from vulkan_dagster.core.step_metadata import StepMetadata
 from vulkan_dagster.dagster import component
 from vulkan_dagster.dagster.nodes import *
 from vulkan_dagster.dagster.policy import *
-from vulkan_dagster.dagster.io_manager import PUBLISH_IO_MANAGER_KEY
-from vulkan_dagster.dagster.run_config import (
-    RUN_CONFIG_KEY,
-    VulkanRunConfig,
-)
+from vulkan_dagster.dagster.testing import run_test_job
 
 
 def test_http_connection(httpserver: HTTPServer):
@@ -47,11 +42,13 @@ def test_http_connection(httpserver: HTTPServer):
         query_string="param=value&param2=value2",
     ).respond_with_json(test_resp_data)
 
-    job = _make_job([node], input_schema={"key": str})
-    cfg = _make_run_config({"input_node": {"config": test_req_data}})
-    job_result = job.execute_in_process(run_config=cfg)
+    job_result = run_test_job(
+        ops=[node],
+        input_schema={"key": str},
+        run_config={"input_node": {"config": test_req_data}},
+    )
     result = job_result._get_output_for_handle("http_connection", "result")
-    assert result == test_resp_data
+    assert json.loads(result) == test_resp_data
 
 
 def test_transform():
@@ -71,9 +68,11 @@ def test_transform():
         "metadata",
     }, "Should have two outputs 'result' and 'metadata'"
 
-    job = _make_job([node], input_schema={"x": int})
-    cfg = _make_run_config({"input_node": {"config": {"x": 10}}})
-    job_result = job.execute_in_process(run_config=cfg)
+    job_result = run_test_job(
+        [node],
+        input_schema={"x": int},
+        run_config={"input_node": {"config": {"x": 10}}},
+    )
     result = job_result._get_output_for_handle("transform", "result")
     assert result == 20
     metadata = job_result._get_output_for_handle("transform", "metadata")
@@ -118,7 +117,9 @@ class ExampleComponent(component.Component):
 
 def test_dagster_component():
     input_schema = {"cpf": str}
-    component = ExampleComponent("component", "Component", {"cpf": Dependency("input_node")})
+    component = ExampleComponent(
+        "component", "Component", {"cpf": Dependency("input_node")}
+    )
 
     def branch_fn(context, inputs: dict):
         context.log.info(f"Branching with inputs {inputs}")
@@ -140,7 +141,7 @@ def test_dagster_component():
         func=lambda _, inputs: ReturnStatus.APPROVED.value,
         dependencies={"inputs": Dependency(branch.name, ReturnStatus.APPROVED.value)},
     )
-    
+
     denied = Transform(
         "denied",
         "Denied",
@@ -148,40 +149,10 @@ def test_dagster_component():
         dependencies={"inputs": Dependency(branch.name, ReturnStatus.DENIED.value)},
     )
 
-    policy = DagsterPolicy(
-        nodes=[
-            component,
-            branch,
-            approved,
-            denied
-        ],
-        input_schema=input_schema,
-        output_callback=lambda _, **kwargs: "OK",
+    job_result = run_test_job(
+        [component, branch, approved, denied],
+        input_schema,
+        run_config={"input_node": {"config": {"cpf": "1"}}},
     )
-    print("Nodes: ", [n.name for n in policy.nodes])
-    print("Flattened Nodes: ", [n.name for n in policy.flattened_nodes])
-
-    job = policy.to_job(resources=_TEST_RESOURCES)
-    cfg = _make_run_config({"input_node": {"config": {"cpf": "1"}}})
-    job_result = job.execute_in_process(run_config=cfg)
     result = job_result._get_output_for_handle("approved", "result")
     assert result == ReturnStatus.APPROVED.value
-
-
-_TEST_RESOURCES = {
-    RUN_CONFIG_KEY: VulkanRunConfig(policy_id=1, run_id=1, server_url="dummy"),
-    PUBLISH_IO_MANAGER_KEY: mem_io_manager,
-}
-
-
-def _make_job(ops: list[DagsterNode], input_schema: dict) -> JobDefinition:
-    p = DagsterPolicy(
-        nodes=ops,
-        input_schema=input_schema,
-        output_callback=lambda _, **kwargs: None,
-    )
-    return p.to_job(resources=_TEST_RESOURCES)
-
-
-def _make_run_config(ops: dict) -> RunConfig:
-    return RunConfig(ops=ops)
