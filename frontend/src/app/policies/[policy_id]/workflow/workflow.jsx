@@ -18,6 +18,8 @@ import ELK from 'elkjs/lib/elk.bundled.js';
 
 import '@xyflow/react/dist/style.css';
 
+import { nodeTypes } from '@/components/workflow/nodeTypes';
+
 
 function LayoutFlow({ policyId, onNodeClick }) {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -62,6 +64,7 @@ function LayoutFlow({ policyId, onNodeClick }) {
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onNodeClick={onNodeClick}
+                nodeTypes={nodeTypes}
                 connectionLineType={ConnectionLineType.SmoothStep}
                 fitView
             >
@@ -87,8 +90,8 @@ async function assembleGraph(policyId, elk, options) {
         });
 
     function makeNodes(node, options, parent = null) {
-        const nodeWidth = 172;
-        const nodeHeight = 36;
+        const nodeWidth = 210;
+        const nodeHeight = 42;
 
         let nodeConfig = {
             id: node.name,
@@ -98,10 +101,6 @@ async function assembleGraph(policyId, elk, options) {
                 type: node.node_type,
                 dependencies: node.dependencies,
             },
-            // Adjust the target and source handle positions based on the layout
-            // direction.
-            targetPosition: 'top',
-            sourcePosition: 'bottom',
 
             // Hardcode a width and height for elk to use when layouting.
             width: nodeWidth,
@@ -120,6 +119,28 @@ async function assembleGraph(policyId, elk, options) {
             nodeConfig.layoutOptions = options;
             nodeConfig.type = "group";
             return nodeConfig;
+        }
+
+        switch (node.node_type) {
+            case 'TRANSFORM':
+                nodeConfig.type = 'transform';
+                break;
+            case 'CONNECTION':
+                nodeConfig.type = 'connection';
+                break;
+            case 'BRANCH':
+                nodeConfig.type = 'branch';
+                break;
+            case 'TERMINATE':
+                nodeConfig.type = 'terminate';
+                break;
+            case 'INPUT':
+                nodeConfig.type = 'input-node';
+                break;
+            default:
+                nodeConfig.type = 'default';
+                nodeConfig.targetPosition = 'top';
+                nodeConfig.sourcePosition = 'bottom';
         }
 
         if (node.metadata !== null) {
