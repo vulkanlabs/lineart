@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { ChevronRightIcon, ChevronLeftIcon, Users2, Code2, ListTree } from "lucide-react";
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { Children, createContext, useContext, useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { fetchComponents, fetchPolicy, fetchPolicyVersionComponents } from "@/lib/api";
@@ -34,39 +34,83 @@ export default function Sidebar() {
 
 function chooseNavBar(pathname: string) {
     if (pathname.startsWith("/policies")) {
-        return <PoliciesSidebarNav />;
+        const policyId = extractPolicyId(pathname);
+        if (policyId === null) {
+            return <PoliciesSidebarNav />;
+        }
+        return <PolicyDetailsSidebar policyId={policyId} />;
     }
+
+    // default
     return <SidebarNav />;
+}
+
+type SidebarSectionProps = {
+    name: string,
+    path: string,
+    icon?: any,
+    children?: SidebarSectionItemProps[],
+    emptySectionMsg?: string,
+};
+
+type SidebarSectionItemProps = {
+    name: string,
+    path: string,
 }
 
 function SidebarNav() {
     const { isOpen } = useContext(SidebarContext);
     const sections = [
-        // { name: "Times", path: "/teams", icon: Users2 },
+        { name: "Times", path: "/teams", icon: Users2 },
         { name: "Políticas", path: "/policies", icon: ListTree },
         { name: "Componentes", path: "/components", icon: Code2 },
     ];
 
     return (
-        <div className="flex flex-col gap-4 mt-1">
-            {sections.map((section) => (
-                <Link
-                    key={section.name}
-                    href={section.path}
-                    className="flex ml-4 gap-2 hover:font-semibold"
-                >
-                    <section.icon />
-                    <span className={isOpen ? "ease-in" : "hidden"}>{section.name}</span>
-                </Link>
-            ))}
-        </div>
+        <SidebarMenu title="Navegação" sections={sections} />
     );
 }
 
-// TODO: This code has two different behaviors depending on whether or 
-// not the user is in a specific policy.
-// We should try splitting this up into two different components.
+
 function PoliciesSidebarNav() {
+    const { isOpen } = useContext(SidebarContext);
+    const [components, setComponents] = useState([]);
+
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+
+    useEffect(() => {
+        fetchComponents(serverUrl)
+            .then((data) => {
+                const componentData = data.map(
+                    (component: { component_id: number, name: string }) => ({
+                        "name": component.name,
+                        "path": `/components/${component.component_id}`,
+                    }));
+                setComponents(componentData);
+            })
+    }, [serverUrl]);
+
+    const sections: Array<SidebarSectionProps> = [
+        {
+            name: "Times",
+            path: "/teams",
+            children: [],
+            emptySectionMsg: "Ainda não tem nada aqui."
+        },
+        {
+            name: "Componentes",
+            path: "/components",
+            children: components,
+            emptySectionMsg: "Seus componentes ficam aqui. Crie um novo para começar."
+        },
+    ];
+
+    return (
+        <SidebarMenu title="Políticas" sections={sections} />
+    );
+};
+
+function PolicyDetailsSidebar({ policyId }: { policyId: number }) {
     const { isOpen } = useContext(SidebarContext);
     const [currentPolicy, setCurrentPolicy] = useState(null);
     const [components, setComponents] = useState([]);
@@ -75,39 +119,21 @@ function PoliciesSidebarNav() {
     const pathname = usePathname();
 
     useEffect(() => {
-        const policyId = extractPolicyId(pathname);
-        if (policyId === null) {
-            setCurrentPolicy(null);
-            fetchComponents(serverUrl)
-                .then((data) => {
-                    const componentData = data.map(
-                        (component: { component_id: number, name: string }) => ({
-                            "name": component.name,
-                            "path": `/components/${component.component_id}`,
-                        }));
-                    setComponents(componentData);
-                })
-            return;
-        }
-
         fetchPolicy(serverUrl, policyId)
             .then((policy) => setCurrentPolicy(policy))
             .catch((error) => {
                 console.error(error);
-                setCurrentPolicy(null);
-                setComponents([]);
             })
 
         return;
-    }, [pathname, serverUrl]);
+    }, [policyId, pathname, serverUrl]);
 
-    // Handle component & policy dependencies
+    // Handle component dependencies
     useEffect(() => {
-        if (currentPolicy == null) {
+        if (!currentPolicy || !currentPolicy.active_policy_version_id) {
             return;
         }
-
-        fetchPolicyVersionComponents(serverUrl, currentPolicy?.active_policy_version_id)
+        fetchPolicyVersionComponents(serverUrl, currentPolicy.active_policy_version_id)
             .then((dependencies) => {
                 const componentData = dependencies.map(
                     (dep) => ({
@@ -119,34 +145,46 @@ function PoliciesSidebarNav() {
             .catch((error) => {
                 throw Error(`Error fetching components for policy ${currentPolicy.id}`, { cause: error })
             });
-    }, [currentPolicy]);
+    }, [serverUrl, currentPolicy]);
 
     const sections = [
         {
             name: "Monitoramento",
-            children: [],
+            path: `/policies/${policyId}/monitoring`,
             emptySectionMsg: "Ainda não tem nada aqui."
         },
         {
             name: "Componentes",
+            path: `/components`,
             children: components,
             emptySectionMsg: "Seus componentes ficam aqui. Crie um novo para começar."
         },
     ];
 
     return (
+        <SidebarMenu title="Política" sections={sections} />
+    );
+}
+
+function SidebarMenu({ title, sections }: { title: string, sections: SidebarSectionProps[] }) {
+    return (
         <div className="flex flex-col gap-4 mt-1">
             <div className="pb-4 border-b-2 ">
                 <h1 className="text-xl text-wrap font-semibold ml-4">
-                    {currentPolicy == null ? "Políticas" : currentPolicy.name}
+                    {title}
                 </h1>
             </div>
             {sections.map((section) => (
                 <div key={section.name}>
-                    <h2 className="text-base font-semibold text-clip ml-4">{section.name}</h2>
+                    <Link href={section.path}>
+                        <div className="flex ml-4 gap-2">
+                            {section?.icon && <section.icon />}
+                            <h2 className="text-base font-semibold text-clip">{section.name}</h2>
+                        </div>
+                    </Link>
                     <div className="flex flex-col gap-2 ml-4">
                         {
-                            section.children.length == 0
+                            !section.children || section.children.length == 0
                                 ? <EmptySidebarSection text={section.emptySectionMsg} />
                                 : section.children.map((child) => (
                                     <Link key={child.name}
@@ -160,8 +198,8 @@ function PoliciesSidebarNav() {
                 </div>
             ))}
         </div>
-    );
-};
+    )
+}
 
 function EmptySidebarSection({ text }: { text: string }) {
     return (
