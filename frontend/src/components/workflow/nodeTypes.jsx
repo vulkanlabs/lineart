@@ -5,7 +5,6 @@ import { Split } from "lucide-react";
 import HttpIcon from '@mui/icons-material/Http';
 import OutputIcon from '@mui/icons-material/Output';
 
-import HTTPLogo from "/public/http-logo.png";
 import PythonLogo from "/public/python-logo.png";
 
 
