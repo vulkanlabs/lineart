@@ -13,7 +13,11 @@ export default function Page({ params }) {
         <div className="w-full h-full grid grid-cols-12">
             <div className="col-span-9">
                 <div className='w-full h-full'>
-                <Workflow policyId={params.policy_id} onNodeClick={(_, node) => setClickedNode(node)} />
+                    <Workflow
+                        policyId={params.policy_id}
+                        onNodeClick={(_, node) => setClickedNode(node)}
+                        onPaneClick={() => setClickedNode([])}
+                    />
                 </div>
             </div>
             <div className="col-span-3">
