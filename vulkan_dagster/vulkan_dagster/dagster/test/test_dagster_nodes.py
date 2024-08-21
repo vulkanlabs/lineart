@@ -6,6 +6,7 @@ from pytest_httpserver import HTTPServer
 
 from vulkan_dagster.core.dependency import Dependency
 from vulkan_dagster.core.step_metadata import StepMetadata
+from vulkan_dagster.core.nodes import NodeType
 from vulkan_dagster.dagster import component
 from vulkan_dagster.dagster.nodes import *
 from vulkan_dagster.dagster.policy import *
