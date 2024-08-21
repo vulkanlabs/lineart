@@ -298,7 +298,6 @@ def _trigger_dagster_job(
     return dagster_run_id
 
 
-# TODO: evaluate whether policy_id should be a path parameter or a form parameter
 @app.post("/policies/{policy_id}/versions")
 def create_policy_version(
     policy_id: int,
@@ -351,12 +350,6 @@ def create_policy_version(
         db.commit()
         msg = f"Creating version {version.policy_version_id} ({config.alias}) for policy {policy_id}"
         logger.info(msg)
-
-        # TODO: parse the policy and validate the dag structure
-        # Then save the structure to the database so we can use it
-        # in the UI.
-        # This also allows us to run validation on user code in
-        # "compile-time" and avoid invalid policies.
 
         version_name = _version_name(policy_id, version.policy_version_id)
         try:
@@ -563,7 +556,6 @@ def get_policy_metrics(policy_id: int):
     pass
 
 
-# TODO: evaluate whether run_id should be a path parameter or a form parameter
 @app.post("/runs/{run_id}/metadata")
 def publish_metadata(run_id: int, config: schemas.StepMetadataBase):
     try:

@@ -80,9 +80,6 @@ class PolicyVersion(PolicyVersionBase):
     graph_definition: str
     created_at: datetime
     last_updated_at: datetime
-    # TODO: SQLite doesn't support ARRAY type. Change this when moving to Postgres.
-    # component_version_ids: list[int] | None = None
-    component_version_ids: str | None = None
 
     class Config:
         from_attributes = True

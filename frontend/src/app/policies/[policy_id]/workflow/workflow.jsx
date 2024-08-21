@@ -181,7 +181,7 @@ async function assembleGraph(policyId, elk, options) {
 
         function __makeEdges(node, elk_specific = false) {
             return node.dependencies.flatMap((dep) => {
-                // TODO: If `dep` is an array, it means that it comes from
+                // TODO: If `dep` is an object, it means that it comes from
                 // a specific output of a node. For now, we discard it, as
                 // we don't display the node outputs.
                 if (typeof dep === 'object' && dep !== null) {

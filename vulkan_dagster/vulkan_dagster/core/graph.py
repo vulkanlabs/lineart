@@ -5,7 +5,6 @@ from .nodes import Node, TerminateNode, VulkanNodeDefinition
 
 
 class Graph(ABC):
-    # TODO: this should be able to receive a node or a graph.
     def __init__(self, nodes: list[Node], input_schema: dict[str, type]):
         assert len(nodes) > 0, "Policy must have at least one node"
         assert all(

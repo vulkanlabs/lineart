@@ -153,7 +153,6 @@ def metadata_io_manager(context) -> PublishMetadataIOManager:
     run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
     run_id = run_config.run_id
     server_url = run_config.server_url
-    # TODO: get URL from env config
     url = f"{server_url}/runs/{run_id}/metadata"
 
     return PublishMetadataIOManager(url=url)
