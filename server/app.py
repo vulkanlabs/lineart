@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func as F
 from sqlalchemy.orm import Session
 
+from vulkan_dagster.core.run import RunStatus
 from vulkan_dagster.dagster.policy import DEFAULT_POLICY_NAME
 
 from . import schemas
@@ -256,7 +257,7 @@ def create_run_by_policy_version(
 def _launch_run(
     execution_config: dict, policy_id: int, policy_version_id: int, db: Session
 ):
-    run = Run(policy_version_id=policy_version_id, status="PENDING")
+    run = Run(policy_version_id=policy_version_id, status=RunStatus.PENDING)
     db.add(run)
     db.commit()
 
@@ -267,11 +268,11 @@ def _launch_run(
         run.run_id,
     )
     if dagster_run_id is None:
-        run.status = "FAILURE"
+        run.status = RunStatus.FAILURE
         db.commit()
         return None
 
-    run.status = "STARTED"
+    run.status = RunStatus.STARTED
     run.dagster_run_id = dagster_run_id
     db.commit()
     return run
@@ -539,6 +540,11 @@ def update_run(
     run = db.query(Run).filter_by(run_id=run_id).first()
     if run is None:
         raise HTTPException(status_code=400, detail=f"Run {run_id} not found")
+
+    try:
+        status = RunStatus(status)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     run.status = status
     run.result = result

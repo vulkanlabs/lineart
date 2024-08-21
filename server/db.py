@@ -1,7 +1,6 @@
 import enum
 
 from sqlalchemy import (
-    ARRAY,
     Column,
     DateTime,
     Enum,
@@ -13,6 +12,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
+from vulkan_dagster.core.run import RunStatus
 
 Base = declarative_base()
 engine = create_engine("sqlite:///server/example.db", echo=True)
@@ -123,7 +123,7 @@ class Run(Base):
 
     run_id = Column(Integer, primary_key=True, autoincrement=True)
     policy_version_id = Column(Integer, ForeignKey("policy.policy_id"))
-    status = Column(String)
+    status = Column(Enum(RunStatus))
     result = Column(String, nullable=True)
     dagster_run_id = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
