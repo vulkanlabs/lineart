@@ -15,9 +15,9 @@ import {
 } from "@/components/ui/popover";
 
 export function DatePickerWithRange(
-  { className, date, setDate }: { className: HTMLDivElement, date: DateRange, setDate: any }) {
+  { date, setDate }: { date: DateRange, setDate: any }) {
   return (
-    <div className={cn("grid gap-2", className)}>
+    <div className={"grid gap-2"}>
       <Popover>
         <PopoverTrigger asChild>
           <Button

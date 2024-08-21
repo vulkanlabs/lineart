@@ -17,6 +17,7 @@ import {
 import { fetchPolicy, fetchPolicyVersions, fetchRunsCount } from "@/lib/api";
 
 import {
+    ChartConfig,
     ChartContainer,
     ChartTooltip,
     ChartTooltipContent,
@@ -98,15 +99,19 @@ export default function Page({ params }) {
 
 
 function PolicyVersionStatus({ value }) {
-    if (value === "ativa") {
-        return (
-            <p className={`w-fit p-[0.3em] rounded-lg bg-green-200`}>
-                {value}
-            </p>
-        );
-    }
+    const getColor = (status) => {
+        switch (status) {
+            case "ativa":
+                return "green";
+            case "inativa":
+                return "gray";
+            default:
+                return "gray";
+        }
+    };
+
     return (
-        <p className={`w-fit p-[0.3em] rounded-lg bg-gray-200`}>
+        <p className={`w-fit p-[0.3em] rounded-lg bg-${getColor(value)}-200`}>
             {value}
         </p>
     );
@@ -148,11 +153,41 @@ function PolicyVersionsTable({ policyVersions }) {
 
 function RunsChart({ chartData }) {
     if (chartData.length === 0) {
-        return (
-            <div className="flex items-center justify-center h-full w-full">
-                <p className="text-lg font-semibold text-gray-500">Nenhuma execução registrada.</p>
-            </div>
-        );
+        return EmptyChart();
+    }
+
+    const chartConfig = {
+        count: {
+            label: "Execuções",
+            color: "#2563eb",
+        },
+    } satisfies ChartConfig;
+
+    return (
+        <ChartContainer config={chartConfig} className="h-full w-full" >
+            <BarChart accessibilityLayer data={chartData}>
+                <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                />
+                <YAxis
+                    type="number"
+                    domain={[0, dataMax => Math.ceil(dataMax / 10) * 10]}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+            </BarChart>
+        </ChartContainer>
+    );
+}
+
+
+function RunsByStatusChart({ chartData }) {
+    if (chartData.length === 0) {
+        return EmptyChart();
     }
 
     const chartConfig = {
@@ -180,5 +215,13 @@ function RunsChart({ chartData }) {
                 <Bar dataKey="count" fill="var(--color-count)" radius={4} />
             </BarChart>
         </ChartContainer>
+    );
+}
+
+function EmptyChart() {
+    return (
+        <div className="flex items-center justify-center h-full w-full">
+            <p className="text-lg font-semibold text-gray-500">Nenhuma execução registrada.</p>
+        </div>
     );
 }
