@@ -167,7 +167,7 @@ function PolicyDetailsSidebar({ policyId }: { policyId: number }) {
     ];
 
     return (
-        <SidebarMenu title="Política" sections={sections} />
+        <SidebarMenu title={currentPolicy ? currentPolicy.name : "Política"} sections={sections} />
     );
 }
 
