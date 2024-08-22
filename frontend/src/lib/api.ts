@@ -84,11 +84,15 @@ export async function fetchPolicyVersionComponents(
 const formatISODate = (date: Date) => formatISO(date, { representation: "date" });
 
 export async function fetchRunsCount(
-    serverUrl: string, policyId: number, startDate: Date, endDate: Date,
+    serverUrl: string, policyId: number, startDate: Date, endDate: Date, groupByStatus: boolean = false,
 ) {
     return fetch(
         (new URL(`/policies/${policyId}/runs/count?`, serverUrl)).toString()
-        + new URLSearchParams({ start_date: formatISODate(startDate), end_date: formatISODate(endDate) })
+        + new URLSearchParams({
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+            group_by_status: groupByStatus.toString(),
+        })
     )
         .then((response) => response.json())
         .catch((error) => {

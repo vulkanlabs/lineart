@@ -30,33 +30,33 @@ import { DatePickerWithRange } from "@/components/date-picker";
 export default function Page({ params }) {
     const [policyVersions, setPolicyVersions] = useState([]);
     const [runsCount, setRunsCount] = useState([]);
+    const [runsByStatus, setRunsByStatus] = useState([]);
     const [dateRange, setDateRange] = useState({
         from: subDays(new Date(), 7),
         to: new Date(),
     });
 
-    const refreshTime = 5000;
+    const refreshTime = 15000;
     const baseUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
 
-    const refreshPolicyVersions = async () => {
-        try {
-            const policyData = await fetchPolicy(baseUrl, params.policy_id);
-            const policyVersionsData = await fetchPolicyVersions(baseUrl, params.policy_id);
-
-            policyVersionsData.forEach((policyVersion) => {
-                if (policyVersion.policy_version_id === policyData.active_policy_version_id) {
-                    policyVersion.status = "ativa";
-                } else {
-                    policyVersion.status = "inativa";
-                }
-            });
-            setPolicyVersions(policyVersionsData);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
     useEffect(() => {
+        const refreshPolicyVersions = async () => {
+            try {
+                const policyData = await fetchPolicy(baseUrl, params.policy_id);
+                const policyVersionsData = await fetchPolicyVersions(baseUrl, params.policy_id);
+
+                policyVersionsData.forEach((policyVersion) => {
+                    if (policyVersion.policy_version_id === policyData.active_policy_version_id) {
+                        policyVersion.status = "ativa";
+                    } else {
+                        policyVersion.status = "inativa";
+                    }
+                });
+                setPolicyVersions(policyVersionsData);
+            } catch (error) {
+                console.error(error);
+            }
+        };
         refreshPolicyVersions();
         const policiesInterval = setInterval(refreshPolicyVersions, refreshTime);
         return () => clearInterval(policiesInterval);
@@ -66,16 +66,42 @@ export default function Page({ params }) {
         if (!dateRange || !dateRange.from || !dateRange.to) {
             return;
         }
-        const refreshRunsCount = () =>
-            fetchRunsCount(baseUrl, params.policy_id, dateRange.from, dateRange.to)
-                .then((data) => setRunsCount(data))
-                .catch((error) => {
-                    console.error(error);
-                });
-        refreshRunsCount();
-        const runsInterval = setInterval(refreshRunsCount, refreshTime);
-        return () => clearInterval(runsInterval);
+        fetchRunsCount(baseUrl, params.policy_id, dateRange.from, dateRange.to)
+            .then((data) => setRunsCount(data))
+            .catch((error) => {
+                console.error(error);
+            });
+
+
+        fetchRunsCount(baseUrl, params.policy_id, dateRange.from, dateRange.to, true)
+            .then((data) => setRunsByStatus(data))
+            .catch((error) => {
+                console.error(error);
+            });
     }, [dateRange]);
+
+    const graphDefinitions = [
+        {
+            name: "Execuções",
+            data: runsCount,
+            component: RunsChart,
+        },
+        {
+            name: "Execuções por Status",
+            data: runsByStatus,
+            component: RunsByStatusChart,
+        },
+        // {
+        //     name: "Duração Média",
+        //     data: runsCount,
+        //     component: RunsChart,
+        // },
+        // {
+        //     name: "Distribuição de Resultados",
+        //     data: runsCount,
+        //     component: RunsByStatusChart,
+        // },
+    ];
 
     return (
         <div className="flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
@@ -84,13 +110,23 @@ export default function Page({ params }) {
                 <PolicyVersionsTable policyVersions={policyVersions} />
             </div>
             <div >
-                <h1 className="text-lg font-semibold md:text-2xl">Métricas</h1>
-                <h3 className="font-semibold md:text-xl">Quantidade de Execuções</h3>
-                <div className="absolute h-3/5 w-3/4 mt-4">
-                    <div className="float-end">
+                <div className="flex gap-4 pb-4">
+                    <h1 className="text-lg font-semibold md:text-2xl">Métricas</h1>
+                    <div>
                         <DatePickerWithRange date={dateRange} setDate={setDateRange} />
                     </div>
-                    <RunsChart chartData={runsCount} />
+                </div>
+                {/* Note: This is ugly, but not defining height or using h-full
+                          causes the graph to not render. */}
+                <div className="flex h-3/4 w-3/4">
+                    <div className="grid grid-cols-2 flex-shrink gap-4">
+                        {graphDefinitions.map((graphDefinition) => (
+                            <div key={graphDefinition.name} className="h-full min-w-full">
+                                <h3 className="text-lg">{graphDefinition.name}</h3>
+                                <graphDefinition.component chartData={graphDefinition.data} />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div >
@@ -186,16 +222,30 @@ function RunsChart({ chartData }) {
 
 
 function RunsByStatusChart({ chartData }) {
+    console.log("chartData", chartData);
     if (chartData.length === 0) {
         return EmptyChart();
     }
 
     const chartConfig = {
-        count: {
-            label: "Execuções",
-            color: "#2563eb",
+        SUCCESS: {
+            label: "Success",
+            color: "hsl(var(--chart-1))",
         },
-    };
+        FAILURE: {
+            label: "Failure",
+            color: "hsl(var(--chart-2))",
+        },
+        STARTED: {
+            label: "Started",
+            color: "hsl(var(--chart-3))",
+        },
+        PENDING: {
+            label: "Pending",
+            color: "hsl(var(--chart-4))",
+        },
+    } satisfies ChartConfig
+
 
     return (
         <ChartContainer config={chartConfig} className="h-full w-full" >
@@ -212,7 +262,10 @@ function RunsByStatusChart({ chartData }) {
                 />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+                <Bar dataKey="SUCCESS" radius={0}  stackId="a" fill="var(--color-SUCCESS)"/>
+                <Bar dataKey="FAILURE" radius={0}  stackId="a" fill="var(--color-FAILURE)"/>
+                <Bar dataKey="STARTED" radius={0}  stackId="a" fill="var(--color-STARTED)"/>
+                <Bar dataKey="PENDING" radius={0}  stackId="a" fill="var(--color-PENDING)"/>
             </BarChart>
         </ChartContainer>
     );

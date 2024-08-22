@@ -4,7 +4,7 @@ FROM python:${PYTHON_VERSION}
 EXPOSE 6001
 
 RUN pip install uv
-RUN uv pip install --system "fastapi[standard]" sqlalchemy requests python-dotenv pydantic dagster-graphql pytest pytest-httpserver
+RUN uv pip install --system "fastapi[standard]" pandas sqlalchemy requests python-dotenv pydantic dagster-graphql pytest pytest-httpserver
 
 COPY vulkan_dagster /tmp/vulkan_dagster
 RUN uv pip install --system /tmp/vulkan_dagster

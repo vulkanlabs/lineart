@@ -4,6 +4,7 @@ import logging
 import os
 from typing import Annotated, Any, Optional
 
+import pandas as pd
 import requests
 from dotenv import load_dotenv
 from fastapi import Body, Depends, FastAPI, HTTPException, Response
@@ -61,6 +62,9 @@ DAGSTER_URL = "dagster"
 DAGSTER_PORT = 3000
 dagster_client = create_dagster_client(DAGSTER_URL, DAGSTER_PORT)
 logger.info(f"Dagster client created at http://{DAGSTER_URL}:{DAGSTER_PORT}")
+
+# TODO: Configure the maximum period of time we allow queries for.
+MAX_DAYS = 30
 
 
 def get_db():
@@ -167,6 +171,7 @@ def count_runs_by_policy(
     policy_id: int,
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
+    group_by_status: bool = False,
     db: Session = Depends(get_db),
 ):
     if end_date is None:
@@ -178,22 +183,30 @@ def count_runs_by_policy(
     if active_version is None:
         raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
 
-    metrics = (
+    date_clause = F.DATE(Run.created_at).label("date")
+    groupers = []
+    if group_by_status:
+        groupers.append(Run.status.label("status"))
+
+    query = (
         db.query(
-            F.DATE(Run.created_at).label("date"),
+            date_clause,
             F.count(Run.run_id).label("count"),
+            *groupers,
         )
         .filter(
             (Run.policy_version_id == active_version.active_policy_version_id)
             & (Run.created_at >= start_date)
             & (F.DATE(Run.created_at) <= end_date)
         )
-        .group_by(F.DATE(Run.created_at))
-        .all()
+        .group_by(date_clause, *groupers)
     )
+    df = pd.read_sql(query.statement, query.session.bind)
+    if len(groupers) > 0:
+        df = df.pivot(index="date", values="count", columns=[c.name for c in groupers]).reset_index()
 
-    data = [{"date": m.date, "count": m.count} for m in metrics]
-    return data
+    # data = [{k: getattr(row, k) for k in row._mapping} for row in rows]
+    return df.to_dict(orient="records")
 
 
 @app.post("/policies/{policy_id}/runs")
