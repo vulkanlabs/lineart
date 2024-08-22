@@ -37,4 +37,5 @@ def _make_input_node(name: str, dependencies: dict[str, Dependency]) -> list[Nod
         description=f"Input node for Component {name}",
         func=_input_fn,
         dependencies=dependencies,
+        hidden=True,
     )

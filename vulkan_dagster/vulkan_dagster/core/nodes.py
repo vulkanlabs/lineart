@@ -21,6 +21,7 @@ class VulkanNodeDefinition:
     name: str
     description: str
     node_type: str
+    hidden: bool = False
     dependencies: dict[str, Dependency] | None = None
     metadata: dict[str, Any] | None = None
 
@@ -32,11 +33,13 @@ class Node(ABC):
         name: str,
         description: str,
         typ: NodeType,
+        hidden: bool = False,
         dependencies: dict[str, Dependency] | None = None,
     ):
         self._name = name
         self.description = description
         self.type = typ
+        self.hidden = hidden
         self._dependencies = dependencies if dependencies is not None else {}
         # TODO: here, we can enforce the typing of dependency specifications,
         # but this ends up making the API harder to use. We should consider
@@ -74,10 +77,10 @@ class HTTPConnectionNode(Node):
         dependencies: dict | None = None,
     ):
         super().__init__(
-            name,
-            description,
-            NodeType.CONNECTION,
-            dependencies,
+            name=name,
+            description=description,
+            typ=NodeType.CONNECTION,
+            dependencies=dependencies,
         )
         self.url = url
         self.method = method
@@ -106,8 +109,15 @@ class TransformNode(Node):
         description: str,
         func: callable,
         dependencies: dict[str, Any],
+        hidden: bool = False,
     ):
-        super().__init__(name, description, NodeType.TRANSFORM, dependencies)
+        super().__init__(
+            name=name,
+            description=description,
+            typ=NodeType.TRANSFORM,
+            dependencies=dependencies,
+            hidden=hidden,
+        )
         self.func = func
 
     def node_definition(self) -> VulkanNodeDefinition:
@@ -115,6 +125,7 @@ class TransformNode(Node):
             name=self.name,
             description=self.description,
             node_type=self.type.value,
+            hidden=self.hidden,
             dependencies=self.node_dependencies(),
             metadata={
                 "source": getsource(self.func),
@@ -132,7 +143,12 @@ class TerminateNode(Node):
     ):
         self.return_status = return_status
         assert dependencies is not None, f"Dependencies not set for TERMINATE op {name}"
-        super().__init__(name, description, NodeType.TERMINATE, dependencies)
+        super().__init__(
+            name=name,
+            description=description,
+            typ=NodeType.TERMINATE,
+            dependencies=dependencies,
+        )
 
     def node_definition(self) -> VulkanNodeDefinition:
         return VulkanNodeDefinition(
@@ -159,7 +175,12 @@ class BranchNode(Node):
         outputs: list[str],
         dependencies: dict[str, Any],
     ):
-        super().__init__(name, description, NodeType.BRANCH, dependencies)
+        super().__init__(
+            name=name,
+            description=description,
+            typ=NodeType.BRANCH,
+            dependencies=dependencies,
+        )
         self.func = func
         self.outputs = outputs
 
@@ -179,7 +200,9 @@ class BranchNode(Node):
 class InputNode(Node):
 
     def __init__(self, description: str, schema: dict[str, type], name="input_node"):
-        super().__init__(name, description, NodeType.INPUT, dependencies=None)
+        super().__init__(
+            name=name, description=description, typ=NodeType.INPUT, dependencies=None
+        )
         self.schema = schema
 
     def node_definition(self) -> VulkanNodeDefinition:

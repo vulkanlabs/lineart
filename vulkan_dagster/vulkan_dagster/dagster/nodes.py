@@ -156,8 +156,9 @@ class Transform(TransformNode, TransformNodeMixin):
         description: str,
         func: callable,
         dependencies: dict[str, Any],
+        hidden: bool = False,
     ):
-        super().__init__(name, description, func, dependencies)
+        super().__init__(name, description, func, dependencies, hidden)
         self.func = func
 
 

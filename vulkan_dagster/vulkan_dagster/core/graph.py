@@ -5,7 +5,7 @@ from .nodes import Node, TerminateNode, VulkanNodeDefinition
 
 
 class Graph(ABC):
-    # TODO: this should be able to receive a node or a graph.
+
     def __init__(self, nodes: list[Node], input_schema: dict[str, type]):
         assert len(nodes) > 0, "Policy must have at least one node"
         assert all(
@@ -70,14 +70,3 @@ class Policy(Graph):
             modified_nodes.append(node)
 
         return modified_nodes
-
-    # @abstractmethod
-    # def return_type(self) -> Any:
-    #     """A specification of the type of the return values of this policy."""
-
-
-# Onboarding: Input >> ValidaCPF >> Bureau A >> Fraude | > (Negado Fraude, Aprovado Fraude) >> ...
-#
-# PJ: Input >> ... \    Consulta ao Socio 1   > ...
-#                   \   Consulta ao Socio 2  /
-#                    \> Consulta ao Socio 3 /

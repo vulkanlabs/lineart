@@ -20,8 +20,14 @@ class ComponentGraph(Node, Graph):
         # TODO: insert component input node as internal node (when we have
         # the execution logic implemented in our core)
 
-        Node.__init__(self, name, description, NodeType.COMPONENT, dependencies)
-        Graph.__init__(self, nodes, input_schema)
+        Node.__init__(
+            self,
+            name=name,
+            description=description,
+            typ=NodeType.COMPONENT,
+            dependencies=dependencies,
+        )
+        Graph.__init__(self, nodes=nodes, input_schema=input_schema)
 
     @property
     def input_node_name(self) -> str:
