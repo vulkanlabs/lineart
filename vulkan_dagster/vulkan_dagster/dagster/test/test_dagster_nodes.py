@@ -1,7 +1,6 @@
 import json
 from enum import Enum
 
-import pytest
 from pytest_httpserver import HTTPServer
 
 from vulkan_dagster.core.dependency import Dependency

@@ -195,6 +195,7 @@ def count_runs_by_policy(
             *groupers,
         )
         .filter(
+            # TODO: Should get runs for all policy versions.
             (Run.policy_version_id == active_version.active_policy_version_id)
             & (Run.created_at >= start_date)
             & (F.DATE(Run.created_at) <= end_date)
@@ -203,9 +204,10 @@ def count_runs_by_policy(
     )
     df = pd.read_sql(query.statement, query.session.bind)
     if len(groupers) > 0:
-        df = df.pivot(index="date", values="count", columns=[c.name for c in groupers]).reset_index()
+        df = df.pivot(
+            index="date", values="count", columns=[c.name for c in groupers]
+        ).reset_index()
 
-    # data = [{k: getattr(row, k) for k in row._mapping} for row in rows]
     return df.to_dict(orient="records")
 
 

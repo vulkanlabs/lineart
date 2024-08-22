@@ -1,4 +1,4 @@
-from dagster_graphql import DagsterGraphQLClient, ReloadRepositoryLocationStatus
+from dagster_graphql import DagsterGraphQLClient
 
 
 def create_dagster_client(url: str, port: int) -> DagsterGraphQLClient:

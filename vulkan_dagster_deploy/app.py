@@ -48,7 +48,7 @@ def create_workspace(
         if dependencies:
             _install_dependencies(name, dependencies)
 
-        tmp_path = f"/tmp/nodes.json"
+        tmp_path = "/tmp/nodes.json"
         venv = f"/opt/venvs/{name}/bin/python"
         completed_process = subprocess.run(
             [venv, "/opt/scripts/extract_node_definitions.py", entrypoint, tmp_path],
@@ -60,7 +60,7 @@ def create_workspace(
             raise Exception(msg)
         
         if not os.path.exists(tmp_path):
-            msg = f"Failed to create virtual environment: Policy instance not found"
+            msg = "Failed to create virtual environment: Policy instance not found"
             raise Exception(msg)
         
         with open(tmp_path, "r") as fn:

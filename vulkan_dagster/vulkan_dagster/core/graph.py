@@ -1,5 +1,4 @@
-from abc import ABC, abstractmethod
-from typing import Any
+from abc import ABC
 
 from .nodes import Node, TerminateNode, VulkanNodeDefinition
 
