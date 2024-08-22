@@ -68,14 +68,3 @@ class Policy(Graph):
             modified_nodes.append(node)
 
         return modified_nodes
-
-    # @abstractmethod
-    # def return_type(self) -> Any:
-    #     """A specification of the type of the return values of this policy."""
-
-
-# Onboarding: Input >> ValidaCPF >> Bureau A >> Fraude | > (Negado Fraude, Aprovado Fraude) >> ...
-#
-# PJ: Input >> ... \    Consulta ao Socio 1   > ...
-#                   \   Consulta ao Socio 2  /
-#                    \> Consulta ao Socio 3 /
