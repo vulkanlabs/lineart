@@ -1,5 +1,6 @@
 "use client";
 
+import ELK from 'elkjs/lib/elk.bundled.js';
 import React, { useState, useLayoutEffect, useCallback } from "react";
 import {
     ReactFlow,
@@ -13,16 +14,24 @@ import {
     useEdgesState,
     useReactFlow,
 } from '@xyflow/react';
-
-import ELK from 'elkjs/lib/elk.bundled.js';
-
 import '@xyflow/react/dist/style.css';
 
 import { nodeTypes } from '@/components/workflow/nodeTypes';
-import { on } from "events";
+
+
+const NodeTypeMapping = {
+    TRANSFORM: "transform",
+    CONNECTION: "connection",
+    BRANCH: "branch",
+    TERMINATE: "terminate",
+    INPUT: "input-node",
+    COMPONENT: "component",
+};
 
 
 function LayoutFlow({ policyId, onNodeClick, onPaneClick }) {
+    const [graphData, setGraphData] = useState([]);
+    const [componentsState, setComponentsState] = useState([]);
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const { fitView } = useReactFlow();
@@ -31,29 +40,74 @@ function LayoutFlow({ policyId, onNodeClick, onPaneClick }) {
 
     const elkOptions = {
         'elk.algorithm': 'layered',
-        'elk.layered.spacing.nodeNodeBetweenLayers': '50',
-        'elk.spacing.nodeNode': '80',
+        'elk.layered.nodePlacement.strategy': 'SIMPLE',
+        'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
+        'elk.layered.spacing.nodeNodeBetweenLayers': 50,
+        'elk.spacing.nodeNode': 80,
+        'elk.aspectRatio': 1.0,
+        'elk.center': true,
         'elk.direction': 'DOWN',
     };
 
-    const onLayout = useCallback(
-        () => {
-            assembleGraph(policyId, elk, elkOptions)
+    const loadAndLayout = () => {
+        getPolicyVersionData(policyId).then((policyVersionData) => {
+            const data = JSON.parse(policyVersionData.graph_definition);
+            setGraphData(data);
+            console.log(data);
+
+            const components = Object.values(data).filter(
+                (node) => node.node_type === "COMPONENT"
+            );
+            const states = components.map((c) => ({ [c.name]: { isOpen: false } }));
+            const componentsState = Object.assign({}, ...states)
+            setComponentsState(componentsState);
+            console.log(componentsState);
+
+            assembleGraph(data, componentsState, elk, elkOptions)
                 .then(([layoutedNodes, layoutedEdges]) => {
                     setNodes(layoutedNodes);
                     setEdges(layoutedEdges);
                     window.requestAnimationFrame(() => fitView());
                 });
-        },
-        [nodes, edges],
-    );
+        });
+    };
+
+    const onLayout = useCallback(loadAndLayout, []);
+
+    // Calculate the initial layout on mount.
+    useLayoutEffect(() => {
+        onLayout();
+    }, []);
+
+    const resetClick = () => {
+        const newNodes = nodes.map((n) => {
+            n.data.clicked = false;
+            return n;
+        });
+        setNodes(newNodes);
+    };
 
     const clickNode = (e, node) => {
+        resetClick();
+
+        if (node.data.type === "COMPONENT") {
+            const newComponentsState = { ...componentsState };
+            newComponentsState[node.id].isOpen = !newComponentsState[node.id].isOpen;
+            setComponentsState(newComponentsState);
+
+            assembleGraph(graphData, newComponentsState, elk, elkOptions)
+                .then(([layoutedNodes, layoutedEdges]) => {
+                    setNodes(layoutedNodes);
+                    setEdges(layoutedEdges);
+                    window.requestAnimationFrame(() => fitView());
+                });
+            onNodeClick(e, []);
+            return;
+        }
+
         const newNodes = nodes.map((n) => {
             if (n.id === node.id) {
                 n.data.clicked = true;
-            } else {
-                n.data.clicked = false;
             }
             return n;
         });
@@ -62,18 +116,9 @@ function LayoutFlow({ policyId, onNodeClick, onPaneClick }) {
     };
 
     const clickPane = (e) => {
-        const newNodes = nodes.map((n) => {
-            n.data.clicked = false;
-            return n;
-        });
-        setNodes(newNodes);
+        resetClick();
         onPaneClick(e);
     };
-
-    // Calculate the initial layout on mount.
-    useLayoutEffect(() => {
-        onLayout();
-    }, []);
 
     return (
         <ReactFlowProvider>
@@ -86,6 +131,7 @@ function LayoutFlow({ policyId, onNodeClick, onPaneClick }) {
                 onPaneClick={clickPane}
                 nodeTypes={nodeTypes}
                 connectionLineType={ConnectionLineType.SmoothStep}
+                fitViewOptions={{ maxZoom: 1 }}
                 fitView
             >
                 <Background color="#ccc" variant={BackgroundVariant.Dots} />
@@ -105,11 +151,7 @@ export default function Workflow({ policyId, onNodeClick, onPaneClick }) {
 }
 
 
-async function assembleGraph(policyId, elk, options) {
-    const graphData = await getPolicyVersionData(policyId)
-        .then((policyVersionData) => {
-            return JSON.parse(policyVersionData.graph_definition);
-        });
+function makeGraphElements(graphData, options) {
 
     function makeNodes(node, options, parent = null) {
         const nodeWidth = 210;
@@ -131,7 +173,6 @@ async function assembleGraph(policyId, elk, options) {
 
         if (parent) {
             nodeConfig.parentId = parent;
-            // nodeConfig.style = { backgroundColor: 'rgba(240,240,240,0.25)' }
         }
 
         if (node.node_type === 'COMPONENT') {
@@ -143,26 +184,12 @@ async function assembleGraph(policyId, elk, options) {
             return nodeConfig;
         }
 
-        switch (node.node_type) {
-            case 'TRANSFORM':
-                nodeConfig.type = 'transform';
-                break;
-            case 'CONNECTION':
-                nodeConfig.type = 'connection';
-                break;
-            case 'BRANCH':
-                nodeConfig.type = 'branch';
-                break;
-            case 'TERMINATE':
-                nodeConfig.type = 'terminate';
-                break;
-            case 'INPUT':
-                nodeConfig.type = 'input-node';
-                break;
-            default:
-                nodeConfig.type = 'default';
-                nodeConfig.targetPosition = 'top';
-                nodeConfig.sourcePosition = 'bottom';
+        if (Object.keys(NodeTypeMapping).includes(node.node_type)) {
+            nodeConfig.type = NodeTypeMapping[node.node_type];
+        } else {
+            nodeConfig.type = 'default';
+            nodeConfig.targetPosition = 'top';
+            nodeConfig.sourcePosition = 'bottom';
         }
 
         if (node.metadata !== null) {
@@ -179,7 +206,7 @@ async function assembleGraph(policyId, elk, options) {
             return [];
         }
 
-        function __makeEdges(node, elk_specific = false) {
+        function __makeEdges(node, isComponentIO = false) {
             return node.dependencies.flatMap((dep) => {
                 // TODO: If `dep` is an array, it means that it comes from
                 // a specific output of a node. For now, we discard it, as
@@ -192,22 +219,32 @@ async function assembleGraph(policyId, elk, options) {
                     id: `${dep}-${node.name}`,
                     source: dep,
                     target: node.name,
-                    elk_specific: elk_specific,
+                    isComponentIO: isComponentIO,
                 };
+
+                if (nodesMap[node.name].parentId) {
+                    edge.toComponentChild = true;
+                    edge.toComponent = nodesMap[node.name].parentId;
+                }
 
                 // In order for Elk to layout the edges correctly when the
                 // dependency is the output of a Component, we need to add
                 // an edge between the Component and the target node.
                 const depNode = nodesMap[dep];
 
-                if (depNode?.parentId && nodesMap[node.name]?.parentId != depNode.parentId) {
-                    const parentEdge = {
-                        id: `${depNode.parentId}-${node.name}`,
-                        source: depNode.parentId,
-                        target: node.name,
-                        elk_specific: true,
-                    };
-                    return [edge, parentEdge];
+                if (depNode.parentId) {
+                    edge.fromComponentChild = true;
+                    edge.fromComponent = depNode.parentId;
+
+                    if (nodesMap[node.name].parentId != depNode.parentId) {
+                        const parentEdge = {
+                            id: `${depNode.parentId}-${node.name}`,
+                            source: depNode.parentId,
+                            target: node.name,
+                            isComponentIO: true,
+                        };
+                        return [edge, parentEdge];
+                    }
                 }
 
                 return edge;
@@ -224,7 +261,7 @@ async function assembleGraph(policyId, elk, options) {
     }
 
     function flattenNodes(node) {
-        if (node?.children) {
+        if (node.children) {
             const flattenedNodes = node.children.flatMap((n) => flattenNodes(n));
             return [{ [node.id]: node }, ...flattenedNodes];
         }
@@ -239,13 +276,50 @@ async function assembleGraph(policyId, elk, options) {
 
     const edges = rawNodes.flatMap((node) => makeEdges(node, nodesMap));
 
+    return [structuredNodes, edges];
+}
+
+
+async function assembleGraph(graphData, componentsState, elk, options) {
+    const [nodes, edges] = makeGraphElements(graphData, options);
+
+    const modifiedNodes = nodes.filter((node) => {
+        return !node.parentId || componentsState[node.parentId].isOpen;
+    });
+    modifiedNodes.forEach((node) => {
+        if (node.data.type === "COMPONENT" && !componentsState[node.id].isOpen) {
+            node.children = [];
+            node.type = NodeTypeMapping.COMPONENT;
+        }
+    });
+    const modifiedEdges = edges.filter((edge) => {
+        const fromChildOfClosedComponent = (
+            edge.fromComponentChild && !componentsState[edge.fromComponent].isOpen
+        );
+        const toChildOfClosedComponent = (
+            edge.toComponentChild && !componentsState[edge.toComponent].isOpen
+        );
+        return !(fromChildOfClosedComponent || toChildOfClosedComponent);
+    });
+
     const [layoutedNodes, layoutedEdges] = await getLayoutedElements(
-        structuredNodes, edges, elk, options
+        modifiedNodes, modifiedEdges, elk, options
     );
 
-    // Filter out the edges that are specific to Elk (otherwise ReactFlow will
-    // raise several warnings).
-    const filteredEdges = layoutedEdges.filter((edge) => !edge.elk_specific);
+    // Filter out the edges that come into or frow from open Components
+    // (otherwise ReactFlow will raise several warnings).
+    const filteredEdges = layoutedEdges.filter((edge) => {
+        const fromOpenComponent = (
+            edge.isComponentIO &&
+            (componentsState[edge.source] && componentsState[edge.source].isOpen)
+        );
+        const toOpenComponent = (
+            edge.isComponentIO &&
+            (componentsState[edge.target] && componentsState[edge.target].isOpen)
+        );
+        return !(fromOpenComponent || toOpenComponent);
+    });
+    console.log(layoutedNodes, filteredEdges);
 
     return [layoutedNodes, filteredEdges];
 }
