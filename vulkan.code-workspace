@@ -10,11 +10,12 @@
 			"defaultInterpreterPath": "vulkan-server/.venv/bin/python"
 		},
 		{
-			"path": "vulkan_dagster",
-			"defaultInterpreterPath": "vulkan_dagster/.venv/bin/python"
+			"path": "vulkan-dagster",
+			"defaultInterpreterPath": "vulkan-dagster/.venv/bin/python"
 		},
 		{
-			"path": "vulkan_dagster_deploy"
+			"path": "vulkan-dagster-deploy",
+			"defaultInterpreterPath": "vulkan-dagster-deploy/.venv/bin/python"
 		}
 	],
 	"settings": {
