@@ -1,6 +1,5 @@
+import os
 from dataclasses import dataclass
-
-from dotenv import dotenv_values
 
 
 def version_name(policy_id: int, policy_version_id: int) -> str:
@@ -16,8 +15,9 @@ class VulkanServerConfig:
 
 
 def get_vulkan_server_config() -> VulkanServerConfig:
-    config = dotenv_values()
+    app_port = os.getenv("APP_PORT")
+    vulkan_dagster_server_url = os.getenv("VULKAN_DAGSTER_SERVER_URL")
     return VulkanServerConfig(
-        server_url=f"http://app:{config['APP_PORT']}",
-        vulkan_dagster_server_url=config["VULKAN_DAGSTER_SERVER_URL"],
+        server_url=f"http://app:{app_port}",
+        vulkan_dagster_server_url=vulkan_dagster_server_url,
     )

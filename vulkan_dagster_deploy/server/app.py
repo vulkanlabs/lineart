@@ -121,7 +121,7 @@ def _install_dependencies(name, dependencies):
         result = subprocess.run(
             [
                 "bash",
-                f"{SCRIPTS_PATH}install_component.sh",
+                f"{SCRIPTS_PATH}/install_component.sh",
                 dependency,
                 name,
             ],
