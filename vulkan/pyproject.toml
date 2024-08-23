@@ -1,5 +1,5 @@
 [project]
-name = "vulkan_dagster"
+name = "vulkan"
 version = "0.1.0"
 description = ""
 authors = []
@@ -11,3 +11,6 @@ dependencies = [
     "pytest>=8.3.2",
     "pytest-httpserver>=1.1.0",
 ]
+
+[project.scripts]
+vulkan = "vulkan.cli:main"

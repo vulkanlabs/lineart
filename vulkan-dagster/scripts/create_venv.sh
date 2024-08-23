@@ -1,12 +1,13 @@
 set -ex
-NAME=$1
-WORKSPACE_PATH=$2
-VENV=/opt/venvs/$NAME
-uv venv $VENV
-source $VENV/bin/activate
-uv pip install /tmp/vulkan_dagster/
+name=$1
+workspace_path=$2
 
-cd $DAGSTER_HOME/workspaces/$NAME/$WORKSPACE_PATH
+venv_name=${VULKAN_VENVS_PATH}/${name}
+uv venv ${venv_name}
+source ${venv_name}/bin/activate
+uv pip install /tmp/vulkan/
+
+cd ${DAGSTER_HOME}/workspaces/${name}/${workspace_path}
 
 if [ -e requirements.txt ]; then
     uv pip install -r requirements.txt

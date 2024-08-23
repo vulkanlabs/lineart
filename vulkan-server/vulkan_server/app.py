@@ -392,6 +392,7 @@ def create_component_version(
     ),
 ):
     try:
+        logger.info(f"config: {server_config.vulkan_dagster_server_url}, {server_config.server_url}")
         server_url = f"{server_config.vulkan_dagster_server_url}/components"
         # TODO: add input and output schemas and handle them in the endpoint
         response = requests.post(

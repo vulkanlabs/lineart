@@ -30,8 +30,8 @@ RUN uv pip install --system /tmp/vulkan && pytest /tmp/vulkan
 # Install vulkan-dagster-server
 COPY vulkan-dagster/config/* ${DAGSTER_HOME}/
 COPY vulkan-dagster/mock_workspace ${DAGSTER_HOME}/workspaces/mock_workspace
-COPY vulkan-dagster ${VULKAN_HOME}/vulkan_dagster/
-RUN uv pip install --system ${VULKAN_HOME}/vulkan_dagster/
+COPY vulkan-dagster ${VULKAN_HOME}/vulkan-dagster
+RUN uv pip install --system ${VULKAN_HOME}/vulkan-dagster
 
 RUN mkdir ${VULKAN_VENVS_PATH}
 COPY vulkan-dagster/scripts/* ${VULKAN_SCRIPTS_PATH}/
