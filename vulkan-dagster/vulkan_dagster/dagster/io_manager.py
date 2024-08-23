@@ -8,8 +8,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.sql import text
 
-from ..core.step_metadata import StepMetadata
-from .run_config import RUN_CONFIG_KEY, VulkanRunConfig
+from vulkan_dagster.core.step_metadata import StepMetadata
+from vulkan_dagster.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
 
 PUBLISH_IO_MANAGER_KEY = "publish_metadata_io_manager"
 METADATA_OUTPUT_KEY = "metadata"
