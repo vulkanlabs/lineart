@@ -1,7 +1,9 @@
-# Byte-compiled / optimized / DLL files
+# Python environment and build artifacts
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
+.venv/
 
 # C extensions
 *.so
@@ -16,4 +18,7 @@ dagster_storage
 
 # VS Code
 *.code-workspace
+!vulkan.code-workspace
 
+# uv build artifacts
+uv.lock

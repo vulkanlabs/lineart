@@ -6,9 +6,7 @@ import subprocess
 from shutil import rmtree
 from typing import Annotated
 
-import yaml
 from fastapi import Body, FastAPI, Form, HTTPException
-
 from vulkan_dagster.dagster.workspace import add_workspace_config, unpack_workspace
 
 app = FastAPI()
@@ -17,6 +15,8 @@ logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
 DAGSTER_HOME = os.getenv("DAGSTER_HOME")
+VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
+SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
 
 
 @app.post("/workspaces")
@@ -35,7 +35,7 @@ def create_workspace(
         )
 
         completed_process = subprocess.run(
-            ["bash", "scripts/create_venv.sh", name, entrypoint],
+            ["bash", f"{SCRIPTS_PATH}/create_venv.sh", name, entrypoint],
             capture_output=True,
         )
         if completed_process.returncode != 0:
@@ -48,21 +48,29 @@ def create_workspace(
         if dependencies:
             _install_dependencies(name, dependencies)
 
+        # TODO: These paths need to be configurable when creating the image.
+        # Today we use hardcoded paths for scripts and venv.
         tmp_path = "/tmp/nodes.json"
-        venv = f"/opt/venvs/{name}/bin/python"
         completed_process = subprocess.run(
-            [venv, "/opt/scripts/extract_node_definitions.py", entrypoint, tmp_path],
+            [
+                f"{VENVS_PATH}/{name}/bin/python",
+                f"{SCRIPTS_PATH}/extract_node_definitions.py",
+                "--file_location",
+                entrypoint,
+                "--output_file",
+                tmp_path,
+            ],
             cwd=workspace_path,
             capture_output=True,
         )
         if completed_process.returncode != 0:
             msg = f"Failed to create virtual environment: {completed_process.stderr}"
             raise Exception(msg)
-        
+
         if not os.path.exists(tmp_path):
             msg = "Failed to create virtual environment: Policy instance not found"
             raise Exception(msg)
-        
+
         with open(tmp_path, "r") as fn:
             nodes = json.load(fn)
         os.remove(tmp_path)
@@ -113,7 +121,7 @@ def _install_dependencies(name, dependencies):
         result = subprocess.run(
             [
                 "bash",
-                "scripts/install_component.sh",
+                f"{SCRIPTS_PATH}install_component.sh",
                 dependency,
                 name,
             ],
@@ -121,29 +129,3 @@ def _install_dependencies(name, dependencies):
         )
         if result.returncode != 0:
             raise Exception(f"Failed to install dependency: {dependency}")
-
-
-def _install_components(name, workspace_path, entrypoint):
-    config_path = os.path.join(workspace_path, entrypoint, "vulkan.yaml")
-    if not os.path.exists(config_path):
-        raise ValueError(f"Config file not found at: {config_path}")
-
-    with open(config_path, "r") as fn:
-        config = yaml.safe_load(fn)
-        # TODO: validate schema config
-        # config = VulkanWorkspaceConfig.from_dict(config_data)
-
-    if len(config["components"]) > 0:
-        logger.info(f"Installing components for workspace: {name}")
-        for component in config["components"]:
-            result = subprocess.run(
-                [
-                    "bash",
-                    "scripts/install_component.sh",
-                    component["name"],
-                    name,
-                ],
-                capture_output=True,
-            )
-            if result.returncode != 0:
-                raise Exception(f"Failed to install component: {component['name']}")

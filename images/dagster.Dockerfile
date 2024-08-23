@@ -9,27 +9,33 @@ EXPOSE ${DAGSTER_PORT}
 
 ARG VULKAN_HOME
 ARG VULKAN_PORT
+ARG VULKAN_SCRIPTS_PATH
+ARG VULKAN_VENVS_PATH
 ENV VULKAN_HOME=${VULKAN_HOME}
 ENV VULKAN_PORT=${VULKAN_PORT}
+ENV VULKAN_SCRIPTS_PATH=${VULKAN_SCRIPTS_PATH}
+ENV VULKAN_VENVS_PATH=${VULKAN_VENVS_PATH}
 EXPOSE ${VULKAN_PORT}
 
+# Install Dagster webserver + vulkan core library
 RUN apt-get update && apt-get install -y --no-install-recommends \
-build-essential vim \
-&& rm -rf /var/lib/apt/lists/*
+    build-essential vim \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN pip install uv
-RUN uv pip install --system dagster-webserver "fastapi[standard]" pyyaml pytest pytest-httpserver
 
 COPY vulkan_dagster /tmp/vulkan_dagster
 RUN uv pip install --system /tmp/vulkan_dagster && pytest /tmp/vulkan_dagster 
 
+# Install vulkan-dagster-server
 COPY vulkan_dagster_deploy/config/* ${DAGSTER_HOME}/
 COPY vulkan_dagster_deploy/mock_workspace ${DAGSTER_HOME}/workspaces/mock_workspace
-COPY vulkan_dagster_deploy/app.py ${VULKAN_HOME}/
+COPY vulkan_dagster_deploy ${VULKAN_HOME}/vulkan_dagster_deploy/
+RUN uv pip install --system ${VULKAN_HOME}/vulkan_dagster_deploy/
 
-WORKDIR /opt
+RUN mkdir ${VULKAN_VENVS_PATH}
+COPY vulkan_dagster_deploy/scripts/* ${VULKAN_SCRIPTS_PATH}/
 
-RUN mkdir venvs
-COPY vulkan_dagster_deploy/scripts/* ./scripts/
-
-ENTRYPOINT ["sh", "scripts/entrypoint.sh"]
+# Run both servers
+WORKDIR ${VULKAN_SCRIPTS_PATH}
+ENTRYPOINT ["sh", "entrypoint.sh"]

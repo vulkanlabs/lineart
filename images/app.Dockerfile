@@ -1,17 +1,22 @@
 ARG PYTHON_VERSION
 FROM python:${PYTHON_VERSION}
 
+ARG VULKAN_SERVER_DB_PATH
+ENV VULKAN_SERVER_DB_PATH=${VULKAN_SERVER_DB_PATH}
+
 EXPOSE 6001
 
-RUN pip install uv
-RUN uv pip install --system "fastapi[standard]" pandas sqlalchemy requests python-dotenv pydantic dagster-graphql pytest pytest-httpserver
+WORKDIR /app
 
+RUN pip install uv
+
+# TODO: make this dependency explicit to the vulkan_dagster package
 COPY vulkan_dagster /tmp/vulkan_dagster
 RUN uv pip install --system /tmp/vulkan_dagster
 
-WORKDIR /app
-COPY server server/
+COPY vulkan-server vulkan-server/
+RUN uv pip install --system vulkan-server/
 # TODO: this creates an empty database instance
-RUN python server/db.py
+RUN python vulkan-server/vulkan_server/db.py
 
-ENTRYPOINT ["fastapi", "dev", "server/app.py", "--host", "0.0.0.0", "--port", "6001"]
+ENTRYPOINT ["fastapi", "dev", "vulkan-server/vulkan_server/app.py", "--host", "0.0.0.0", "--port", "6001"]

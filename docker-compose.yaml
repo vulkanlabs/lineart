@@ -5,6 +5,7 @@ services:
       dockerfile: images/app.Dockerfile
       args:
         PYTHON_VERSION: "3.12"
+        VULKAN_SERVER_DB_PATH: "/app/vulkan-server/db.sqlite3"
     env_file:
       - ".env"
     ports:
@@ -29,6 +30,8 @@ services:
         DAGSTER_PORT: 3000
         VULKAN_HOME: /opt
         VULKAN_PORT: 3001
+        VULKAN_SCRIPTS_PATH: /opt/scripts
+        VULKAN_VENVS_PATH: /opt/venvs
     ports:
       - "3000:3000"
       - "3001:3001"

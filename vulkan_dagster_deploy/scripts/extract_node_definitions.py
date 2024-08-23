@@ -1,29 +1,18 @@
+import argparse
+import dataclasses
 import importlib.util
 import json
+import os
 import sys
 
 from vulkan_dagster.core.nodes import NodeType
 from vulkan_dagster.dagster.policy import DagsterPolicy
 
-import dataclasses
-
 class EnhancedJSONEncoder(json.JSONEncoder):
-        def default(self, o):
-            if dataclasses.is_dataclass(o):
-                return dataclasses.asdict(o)
-            return super().default(o)
-
-file_location = f"{sys.argv[1]}/__init__.py"
-temp_location = sys.argv[2]
-
-spec = importlib.util.spec_from_file_location("user.policy", file_location)
-module = importlib.util.module_from_spec(spec)
-sys.modules["user.policy"] = module
-spec.loader.exec_module(module)
-
-context = vars(module)
-print(context)
-
+    def default(self, o):
+        if dataclasses.is_dataclass(o):
+            return dataclasses.asdict(o)
+        return super().default(o)
 
 
 # TODO: This function should come from the core library
@@ -36,9 +25,35 @@ def _to_dict(node):
     return node_
 
 
-for _, obj in context.items():
-    if isinstance(obj, DagsterPolicy):
-        nodes = {name: _to_dict(node) for name, node in obj.node_definitions.items()}
-        with open(temp_location, "w") as f:
-            json.dump(nodes, f, cls=EnhancedJSONEncoder)
-        break
+def extract_node_definitions(file_location):
+    if not os.path.exists(file_location):
+        raise ValueError(f"File not found: {file_location}")
+
+    if os.path.isdir(file_location):
+        file_location = os.path.join(file_location, "__init__.py")
+
+    spec = importlib.util.spec_from_file_location("user.policy", file_location)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["user.policy"] = module
+    spec.loader.exec_module(module)
+
+    context = vars(module)
+
+    for _, obj in context.items():
+        if isinstance(obj, DagsterPolicy):
+            nodes = {
+                name: _to_dict(node) for name, node in obj.node_definitions.items()
+            }
+            return nodes
+    raise ValueError("No policy definition found in module")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--file_location", type=str)
+    parser.add_argument("--output_file", type=str)
+    args = parser.parse_args()
+
+    nodes = extract_node_definitions(args.file_location)
+    with open(args.output_file, "w") as f:
+        json.dump(nodes, f, cls=EnhancedJSONEncoder)

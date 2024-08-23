@@ -1,0 +1,31 @@
+{
+	"folders": [
+		{
+			"path": ".",
+			"name": "vulkan"
+		},
+		{
+			"path": "vulkan-server",
+			"name": "vulkan-server",
+			"defaultInterpreterPath": "vulkan-server/.venv/bin/python"
+		},
+		{
+			"path": "vulkan_dagster",
+			"defaultInterpreterPath": "vulkan_dagster/.venv/bin/python"
+		},
+		{
+			"path": "vulkan_dagster_deploy"
+		}
+	],
+	"settings": {
+		"files.autoSave": "afterDelay",
+		"[python]": {
+			"editor.formatOnType": true,
+			"editor.codeActionsOnSave": {
+				"source.organizeImports": "explicit",
+				"source.fixAll": "explicit"
+			},
+			"editor.defaultFormatter": "charliermarsh.ruff",
+		},
+	}
+}

@@ -1,4 +1,5 @@
 import enum
+import os
 
 from sqlalchemy import (
     Column,
@@ -15,8 +16,21 @@ from sqlalchemy.sql import func
 from vulkan_dagster.core.run import RunStatus
 
 Base = declarative_base()
-engine = create_engine("sqlite:///server/example.db", echo=True)
+
+DB_PATH = os.getenv("VULKAN_SERVER_DB_PATH")
+if DB_PATH is None:
+    raise ValueError("VULKAN_SERVER_DB_PATH is not set")
+
+engine = create_engine(f"sqlite:///{DB_PATH}", echo=True)
 DBSession = sessionmaker(bind=engine)
+
+
+def get_db():
+    db = DBSession()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 class PolicyVersionStatus(enum.Enum):
@@ -31,7 +45,6 @@ class DagsterWorkspaceStatus(enum.Enum):
 
 
 class Policy(Base):
-
     __tablename__ = "policy"
 
     policy_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -53,7 +66,6 @@ class Policy(Base):
 
 
 class Component(Base):
-
     __tablename__ = "component"
 
     component_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -61,7 +73,6 @@ class Component(Base):
 
 
 class ComponentVersion(Base):
-
     __tablename__ = "component_version"
 
     component_version_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -74,7 +85,6 @@ class ComponentVersion(Base):
 
 
 class PolicyVersion(Base):
-
     __tablename__ = "policy_version"
 
     policy_version_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -92,7 +102,6 @@ class PolicyVersion(Base):
 
 
 class ComponentVersionDependency(Base):
-
     __tablename__ = "component_version_dependency"
 
     component_version_dependency_id = Column(
@@ -105,7 +114,6 @@ class ComponentVersionDependency(Base):
 
 
 class DagsterWorkspace(Base):
-
     __tablename__ = "dagster_workspace"
 
     policy_version_id = Column(
@@ -118,7 +126,6 @@ class DagsterWorkspace(Base):
 
 
 class Run(Base):
-
     __tablename__ = "run"
 
     run_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -133,7 +140,6 @@ class Run(Base):
 
 
 class StepMetadata(Base):
-
     __tablename__ = "step_metadata"
 
     step_metadata_id = Column(Integer, primary_key=True, autoincrement=True)

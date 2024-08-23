@@ -2,7 +2,7 @@ from vulkan_dagster.core.component import ComponentGraph
 from vulkan_dagster.core.dependency import Dependency
 from vulkan_dagster.core.nodes import Node
 
-from .nodes import Transform
+from vulkan_dagster.dagster.nodes import Transform
 
 
 class Component(ComponentGraph):
