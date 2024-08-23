@@ -5,8 +5,9 @@ import json
 import os
 import sys
 
-from vulkan_dagster.core.nodes import NodeType
-from vulkan_dagster.dagster.policy import DagsterPolicy
+from vulkan.core.nodes import NodeType
+from vulkan.dagster.policy import DagsterPolicy
+
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, o):

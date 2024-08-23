@@ -24,17 +24,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip install uv
 
-COPY vulkan_dagster /tmp/vulkan_dagster
-RUN uv pip install --system /tmp/vulkan_dagster && pytest /tmp/vulkan_dagster 
+COPY vulkan /tmp/vulkan
+RUN uv pip install --system /tmp/vulkan && pytest /tmp/vulkan 
 
 # Install vulkan-dagster-server
-COPY vulkan_dagster_deploy/config/* ${DAGSTER_HOME}/
-COPY vulkan_dagster_deploy/mock_workspace ${DAGSTER_HOME}/workspaces/mock_workspace
-COPY vulkan_dagster_deploy ${VULKAN_HOME}/vulkan_dagster_deploy/
-RUN uv pip install --system ${VULKAN_HOME}/vulkan_dagster_deploy/
+COPY vulkan-dagster/config/* ${DAGSTER_HOME}/
+COPY vulkan-dagster/mock_workspace ${DAGSTER_HOME}/workspaces/mock_workspace
+COPY vulkan-dagster ${VULKAN_HOME}/vulkan_dagster/
+RUN uv pip install --system ${VULKAN_HOME}/vulkan_dagster/
 
 RUN mkdir ${VULKAN_VENVS_PATH}
-COPY vulkan_dagster_deploy/scripts/* ${VULKAN_SCRIPTS_PATH}/
+COPY vulkan-dagster/scripts/* ${VULKAN_SCRIPTS_PATH}/
 
 # Run both servers
 WORKDIR ${VULKAN_SCRIPTS_PATH}

@@ -3,13 +3,13 @@ from enum import Enum
 
 from pytest_httpserver import HTTPServer
 
-from vulkan_dagster.core.dependency import Dependency
-from vulkan_dagster.core.step_metadata import StepMetadata
-from vulkan_dagster.core.nodes import NodeType
-from vulkan_dagster.dagster import component
-from vulkan_dagster.dagster.nodes import *
-from vulkan_dagster.dagster.policy import *
-from vulkan_dagster.dagster.testing import run_test_job
+from vulkan.core.dependency import Dependency
+from vulkan.core.nodes import NodeType
+from vulkan.core.step_metadata import StepMetadata
+from vulkan.dagster import component
+from vulkan.dagster.nodes import *
+from vulkan.dagster.policy import *
+from vulkan.dagster.testing import run_test_job
 
 
 def test_http_connection(httpserver: HTTPServer):

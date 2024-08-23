@@ -5,7 +5,7 @@ import requests
 from fastapi import Body, Depends, FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from vulkan_dagster.core.run import RunStatus
+from vulkan.core.run import RunStatus
 
 from vulkan_server import definitions, routers, schemas
 from vulkan_server.dagster.client import get_dagster_client

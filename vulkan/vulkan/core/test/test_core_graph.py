@@ -1,14 +1,14 @@
 from enum import Enum
 
-from vulkan_dagster.core.graph import Graph
-from vulkan_dagster.core.nodes import (
+from vulkan.core.component import ComponentGraph
+from vulkan.core.dependency import Dependency
+from vulkan.core.graph import Graph
+from vulkan.core.nodes import (
     BranchNode,
     InputNode,
     TerminateNode,
     TransformNode,
 )
-from vulkan_dagster.core.component import ComponentGraph
-from vulkan_dagster.core.dependency import Dependency
 
 
 class DummyStatus(Enum):

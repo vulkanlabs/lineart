@@ -10,9 +10,9 @@ WORKDIR /app
 
 RUN pip install uv
 
-# TODO: make this dependency explicit to the vulkan_dagster package
-COPY vulkan_dagster /tmp/vulkan_dagster
-RUN uv pip install --system /tmp/vulkan_dagster
+# TODO: make this dependency explicit to the vulkan package
+COPY vulkan /tmp/vulkan
+RUN uv pip install --system /tmp/vulkan
 
 COPY vulkan-server vulkan-server/
 RUN uv pip install --system vulkan-server/

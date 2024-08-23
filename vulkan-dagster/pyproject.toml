@@ -1,13 +1,12 @@
 [project]
-name = "vulkan_dagster"
+name = "vulkan-dagster-server"
 version = "0.1.0"
 description = ""
 authors = []
-readme = "README.md"
+requires-python = ">=3.10"
 dependencies = [
-    "dagster==1.8.2",
-    "dagster-webserver>=1.8.2",
-    "dagster-postgres>=0.24.2",
-    "pytest>=8.3.2",
-    "pytest-httpserver>=1.1.0",
+    "fastapi[standard]>=0.112.0",
 ]
+
+[tool.setuptools]
+packages = ["server"]

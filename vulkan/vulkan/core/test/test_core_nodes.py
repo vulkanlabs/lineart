@@ -1,5 +1,5 @@
-from vulkan_dagster.core.nodes import TransformNode
-from vulkan_dagster.core.dependency import Dependency
+from vulkan.core.dependency import Dependency
+from vulkan.core.nodes import TransformNode
 
 
 def test_transform_node():

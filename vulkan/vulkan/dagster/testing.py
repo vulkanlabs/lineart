@@ -1,9 +1,9 @@
 from dagster import JobExecutionResult, RunConfig, mem_io_manager
 
-from vulkan_dagster.dagster.io_manager import PUBLISH_IO_MANAGER_KEY
-from vulkan_dagster.dagster.nodes import DagsterNode
-from vulkan_dagster.dagster.policy import DagsterPolicy
-from vulkan_dagster.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
+from vulkan.dagster.io_manager import PUBLISH_IO_MANAGER_KEY
+from vulkan.dagster.nodes import DagsterNode
+from vulkan.dagster.policy import DagsterPolicy
+from vulkan.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
 
 _TEST_RESOURCES = {
     RUN_CONFIG_KEY: VulkanRunConfig(policy_id=1, run_id=1, server_url=""),

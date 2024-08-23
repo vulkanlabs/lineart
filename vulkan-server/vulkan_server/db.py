@@ -13,7 +13,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
-from vulkan_dagster.core.run import RunStatus
+from vulkan.core.run import RunStatus
 
 Base = declarative_base()
 

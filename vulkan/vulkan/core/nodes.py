@@ -4,7 +4,7 @@ from enum import Enum
 from inspect import getsource
 from typing import Any
 
-from vulkan_dagster.core.dependency import Dependency
+from vulkan.core.dependency import Dependency
 
 
 class NodeType(Enum):

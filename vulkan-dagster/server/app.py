@@ -7,7 +7,7 @@ from shutil import rmtree
 from typing import Annotated
 
 from fastapi import Body, FastAPI, Form, HTTPException
-from vulkan_dagster.dagster.workspace import add_workspace_config, unpack_workspace
+from vulkan.dagster.workspace import add_workspace_config, unpack_workspace
 
 app = FastAPI()
 

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from vulkan_dagster.core.run import RunStatus
-from vulkan_dagster.dagster.policy import DEFAULT_POLICY_NAME
+from vulkan.core.run import RunStatus
+from vulkan.dagster.policy import DEFAULT_POLICY_NAME
 
 from vulkan_server.dagster import trigger_run
 from vulkan_server.db import Run

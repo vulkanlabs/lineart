@@ -2,20 +2,16 @@
 	"folders": [
 		{
 			"path": ".",
-			"name": "vulkan"
+			"name": "root"
+		},
+		{
+			"path": "vulkan",
 		},
 		{
 			"path": "vulkan-server",
-			"name": "vulkan-server",
-			"defaultInterpreterPath": "vulkan-server/.venv/bin/python"
 		},
 		{
 			"path": "vulkan-dagster",
-			"defaultInterpreterPath": "vulkan-dagster/.venv/bin/python"
-		},
-		{
-			"path": "vulkan-dagster-deploy",
-			"defaultInterpreterPath": "vulkan-dagster-deploy/.venv/bin/python"
 		}
 	],
 	"settings": {

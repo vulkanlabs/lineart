@@ -9,9 +9,10 @@ from dagster import (
     failure_hook,
 )
 
-from vulkan_dagster.core.graph import Policy
-from vulkan_dagster.core.dependency import Dependency
-from vulkan_dagster.core.run import RunStatus
+from vulkan.core.dependency import Dependency
+from vulkan.core.graph import Policy
+from vulkan.core.run import RunStatus
+
 from .io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
 from .nodes import Input
 from .run_config import RUN_CONFIG_KEY
