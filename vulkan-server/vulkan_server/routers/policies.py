@@ -3,6 +3,7 @@ import json
 from typing import Annotated, Any
 
 import pandas as pd
+import requests
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy import func as F
 from sqlalchemy.orm import Session
@@ -10,7 +11,12 @@ from sqlalchemy.orm import Session
 from vulkan_server import definitions, schemas
 from vulkan_server.dagster.client import get_dagster_client
 from vulkan_server.dagster.launch_run import launch_run
+from vulkan_server.dagster.trigger_run import update_repository
 from vulkan_server.db import (
+    ComponentVersion,
+    ComponentVersionDependency,
+    DagsterWorkspace,
+    DagsterWorkspaceStatus,
     DBSession,
     Policy,
     PolicyVersion,
@@ -205,3 +211,144 @@ def create_run_by_policy(
         db=db,
     )
     return {"policy_id": policy.policy_id, "run_id": run.run_id}
+
+
+@router.post("/{policy_id}/versions")
+def create_policy_version(
+    policy_id: int,
+    config: schemas.PolicyVersionCreate,
+    dependencies: Annotated[list[str] | None, Body()] = None,
+    dagster_client=Depends(get_dagster_client),
+    server_config: definitions.VulkanServerConfig = Depends(
+        definitions.get_vulkan_server_config
+    ),
+):
+    logger.info(f"Creating policy version for policy {policy_id}")
+    if config.alias is None:
+        # We can use the repo version as an easy alias or generate one.
+        # This should ideally be a commit hash or similar, indicating a
+        # unique version of the code.
+        config.alias = config.repository_version
+
+    with DBSession() as db:
+        policy = db.query(Policy).filter_by(policy_id=policy_id).first()
+        if policy is None:
+            msg = f"Tried to create a version for non-existent policy {policy_id}"
+            raise HTTPException(status_code=400, detail=msg)
+
+        version = PolicyVersion(
+            policy_id=policy_id,
+            alias=config.alias,
+            repository=config.repository,
+            repository_version=config.repository_version,
+            entrypoint=config.entrypoint,
+            status=PolicyVersionStatus.INVALID,
+        )
+        db.add(version)
+
+        # Dependencies are added in the same transaction as the policy version
+        # so we can rollback if any of them are missing.
+        if dependencies:
+            matched = (
+                db.query(ComponentVersion)
+                .filter(ComponentVersion.alias.in_(dependencies))
+                .all()
+            )
+            missing = set(dependencies) - set([m.alias for m in matched])
+            if missing:
+                msg = f"Missing components: {missing}"
+                raise HTTPException(status_code=400, detail=msg)
+
+            for m in matched:
+                dependency = ComponentVersionDependency(
+                    component_version_id=m.component_version_id,
+                    policy_version_id=version.policy_version_id,
+                )
+                db.add(dependency)
+
+        db.commit()
+        msg = f"Creating version {version.policy_version_id} ({config.alias}) for policy {policy_id}"
+        logger.info(msg)
+
+        version_name = definitions.version_name(policy_id, version.policy_version_id)
+        try:
+            graph = _create_policy_version_workspace(
+                db=db,
+                server_url=server_config.vulkan_dagster_server_url,
+                policy_version_id=version.policy_version_id,
+                name=version_name,
+                entrypoint=config.entrypoint,
+                repository=config.repository,
+                dependencies=dependencies,
+            )
+        except Exception as e:
+            msg = f"Failed to create workspace for policy {policy_id} version {config.alias}"
+            logger.error(msg)
+            logger.error(e)
+            raise HTTPException(status_code=500, detail=e)
+
+        loaded_repos = update_repository(dagster_client)
+        if loaded_repos.get(version_name, False) is False:
+            msg = f"Failed to load repository {version_name}"
+            logger.error(msg)
+            logger.error(f"Repository load status: {loaded_repos}")
+            raise HTTPException(status_code=500, detail=msg)
+
+        version.status = PolicyVersionStatus.VALID
+        version.graph_definition = json.dumps(graph)
+        db.commit()
+
+        msg = f"Policy version {config.alias} created for policy {policy_id} with status {version.status}"
+        logger.info(msg)
+
+        return {
+            "policy_id": policy_id,
+            "policy_version_id": version.policy_version_id,
+            "alias": version.alias,
+            "status": version.status.value,
+        }
+
+
+def _create_policy_version_workspace(
+    db: Session,
+    server_url: str,
+    policy_version_id: int,
+    name: str,
+    entrypoint: str,
+    repository: str,
+    dependencies: list[str] | None = None,
+):
+    workspace = DagsterWorkspace(
+        policy_version_id=policy_version_id,
+        status=DagsterWorkspaceStatus.CREATION_PENDING,
+    )
+    db.add(workspace)
+    db.commit()
+
+    server_url = f"{server_url}/workspaces"
+    response = requests.post(
+        server_url,
+        json={
+            "name": name,
+            "entrypoint": entrypoint,
+            "repository": repository,
+            "dependencies": dependencies,
+        },
+    )
+    status_code = response.status_code
+    if status_code != 200:
+        workspace.status = DagsterWorkspaceStatus.CREATION_FAILED
+        db.commit()
+        try:
+            error_msg = response.json()["message"]
+            raise ValueError(f"Failed to create workspace: {error_msg}")
+        except:
+            raise ValueError(f"Failed to create workspace: {status_code}")
+
+    response_data = response.json()
+    workspace_path = response_data["workspace_path"]
+    workspace.workspace_path = workspace_path
+    workspace.status = DagsterWorkspaceStatus.OK
+    db.commit()
+
+    return response_data["graph"]

@@ -1,0 +1,7 @@
+{
+    "files.exclude": {
+        "vulkan/": true,
+        "vulkan-server/": true,
+        "vulkan-dagster/": true,
+    }
+}
