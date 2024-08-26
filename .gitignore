@@ -8,7 +8,6 @@ __pycache__/
 # C extensions
 *.so
 
-
 # Sqlite databases
 *.db
 
@@ -22,3 +21,7 @@ dagster_storage
 
 # uv build artifacts
 uv.lock
+
+# cache
+.pytest_cache/
+.ruff_cache/
