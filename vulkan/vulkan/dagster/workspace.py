@@ -1,17 +1,18 @@
 import os
-from shutil import make_archive, unpack_archive
+import tarfile
+from shutil import unpack_archive
 
 from dagster import Definitions, EnvVar, IOManagerDefinition
 
-from .run_config import RUN_CONFIG_KEY, VulkanRunConfig
-from .io_manager import (
+from vulkan.dagster.io_manager import (
     DB_CONFIG_KEY,
     PUBLISH_IO_MANAGER_KEY,
     DBConfig,
     metadata_io_manager,
     postgresql_io_manager,
 )
-from .policy import DagsterPolicy
+from vulkan.dagster.policy import DagsterPolicy
+from vulkan.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
 
 
 def make_workspace_definition(policy: DagsterPolicy) -> Definitions:
@@ -48,12 +49,28 @@ def make_workspace_definition(policy: DagsterPolicy) -> Definitions:
     return definition
 
 
-ARCHIVE_FORMAT = "gztar"
+_ARCHIVE_FORMAT = "gztar"
+_TAR_FLAGS = "w:gz"
+_EXCLUDE_PATHS = [".git", ".venv"]
 
 
 def pack_workspace(name: str, repository_path: str):
     basename = f".tmp.{name}"
-    filename = make_archive(basename, ARCHIVE_FORMAT, repository_path)
+    # TODO: ignore .venv,.git files
+    # In the future we may want to have an ignore list
+    filename = f"{basename}.{_ARCHIVE_FORMAT}"
+    with tarfile.open(name=filename, mode=_TAR_FLAGS) as tf:
+        for root, dirs, files in os.walk(repository_path):
+            for path in _EXCLUDE_PATHS:
+                if path in dirs:
+                    dirs.remove(path)
+
+            for file in files:
+                file_path = os.path.join(root, file)
+                tf.add(
+                    file_path,
+                    arcname=os.path.relpath(file_path, repository_path),
+                )
     with open(filename, "rb") as f:
         repository = f.read()
     os.remove(filename)
@@ -65,7 +82,7 @@ def unpack_workspace(base_dir: str, name: str, repository: bytes):
     filepath = f".tmp.{name}"
     with open(filepath, "wb") as f:
         f.write(repository)
-    unpack_archive(filepath, workspace_path, format=ARCHIVE_FORMAT)
+    unpack_archive(filepath, workspace_path, format=_ARCHIVE_FORMAT)
 
     os.remove(filepath)
 

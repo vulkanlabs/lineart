@@ -210,6 +210,9 @@ def create_run_by_policy(
         ),
         db=db,
     )
+    if run is None:
+        raise HTTPException(status_code=500, detail="Failed to launch run")
+    
     return {"policy_id": policy.policy_id, "run_id": run.run_id}
 
 
