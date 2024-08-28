@@ -7,7 +7,7 @@ import requests
 from dotenv import load_dotenv
 
 
-def run_policy(url: str, policy_id: int):
+def run_policy(url: str, policy_id: int, data: dict):
     # Call the function to trigger the Dagster job
     execution_config = {
         "execution": {
@@ -18,7 +18,7 @@ def run_policy(url: str, policy_id: int):
                 }
             }
         },
-        "ops": {"input_node": {"config": {"cpf": args.cpf}}},
+        "ops": {"input_node": {"config": data}},
     }
 
     response = requests.post(
@@ -52,18 +52,12 @@ def run_policy(url: str, policy_id: int):
 if __name__ == "__main__":
     load_dotenv()
     parser = argparse.ArgumentParser()
-
-    command = parser.add_subparsers(dest="command")
-
-    run = command.add_parser("run")
-    run.add_argument("--cpf", type=str, help="CPF to test the policy with")
-    run.add_argument("--policy_id", type=int, help="Policy ID to run")
-
+    parser.add_argument("--data", type=str, help="Data as a JSON string")
+    parser.add_argument("--policy_id", type=int, help="Policy ID to run")
     args = parser.parse_args()
+
     server_url = f"http://localhost:{os.getenv('APP_PORT')}"
 
-    if args.command == "run":
-        policy_id = args.policy_id
-        run_policy(server_url, policy_id=policy_id)
-    else:
-        raise ValueError(f"Invalid command {args.command}")
+    policy_id = args.policy_id
+    data = json.loads(args.data)
+    run_policy(server_url, policy_id=policy_id, data=data)
