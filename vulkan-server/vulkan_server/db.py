@@ -14,6 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 from vulkan.core.run import RunStatus
+from vulkan.environment.config import PackagingMode
 
 Base = declarative_base()
 
@@ -94,7 +95,6 @@ class PolicyVersion(Base):
     repository = Column(String)
     repository_version = Column(String)
     graph_definition = Column(String)
-    entrypoint = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

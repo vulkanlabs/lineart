@@ -6,8 +6,10 @@ import subprocess
 from shutil import rmtree
 from typing import Annotated
 
+import yaml
 from fastapi import Body, FastAPI, Form, HTTPException
-from vulkan.dagster.workspace import add_workspace_config, unpack_workspace
+from vulkan.dagster.workspace import find_package_entrypoint, add_workspace_config, unpack_workspace
+from vulkan.environment.config import PackagingMode, VulkanWorkspaceConfig
 
 app = FastAPI()
 
@@ -22,10 +24,14 @@ SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
 @app.post("/workspaces")
 def create_workspace(
     name: Annotated[str, Body()],
-    entrypoint: Annotated[str, Body()],
     repository: Annotated[str, Body()],
     dependencies: Annotated[list[str] | None, Body()] = None,
 ):
+    """
+    Create the dagster workspace and venv used to run a policy version.
+
+
+    """
     repository = base64.b64decode(repository)
     logger.info(f"Creating workspace: {name} (python_module)")
 
@@ -35,28 +41,43 @@ def create_workspace(
         )
 
         completed_process = subprocess.run(
-            ["bash", f"{SCRIPTS_PATH}/create_venv.sh", name, entrypoint],
+            ["bash", f"{SCRIPTS_PATH}/create_venv.sh", name, workspace_path],
             capture_output=True,
         )
         if completed_process.returncode != 0:
             msg = f"Failed to create virtual environment: {completed_process.stderr}"
             raise Exception(msg)
 
-        add_workspace_config(DAGSTER_HOME, name, entrypoint)
+        config_path = os.path.join(workspace_path, "vulkan.yaml")
+        with open(config_path, "r") as fn:
+            config_data = yaml.safe_load(fn)
+        config = VulkanWorkspaceConfig.from_dict(config_data)
+
+        if config.packaging.mode == PackagingMode.PYTHON_MODULE:
+            working_directory = os.path.dirname(workspace_path)
+            module_name = name
+        elif config.packaging.mode == PackagingMode.PYTHON_PACKAGE:
+            working_directory = workspace_path
+            module_name = config.packaging.entrypoint
+        else:
+            raise ValueError(f"Unsupported packaging mode: {config.packaging.mode}")
+
+        code_path = os.path.join(working_directory, module_name)
+        code_entrypoint = find_package_entrypoint(code_path)
+
+        add_workspace_config(DAGSTER_HOME, name, working_directory, module_name)
         # TODO: check if the python modules names are unique
         # _install_components(name, workspace_path, path)
         if dependencies:
             _install_dependencies(name, dependencies)
 
-        # TODO: These paths need to be configurable when creating the image.
-        # Today we use hardcoded paths for scripts and venv.
         tmp_path = "/tmp/nodes.json"
         completed_process = subprocess.run(
             [
                 f"{VENVS_PATH}/{name}/bin/python",
                 f"{SCRIPTS_PATH}/extract_node_definitions.py",
                 "--file_location",
-                entrypoint,
+                code_entrypoint,
                 "--output_file",
                 tmp_path,
             ],

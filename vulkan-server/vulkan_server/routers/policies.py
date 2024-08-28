@@ -244,7 +244,6 @@ def create_policy_version(
             alias=config.alias,
             repository=config.repository,
             repository_version=config.repository_version,
-            entrypoint=config.entrypoint,
             status=PolicyVersionStatus.INVALID,
         )
         db.add(version)
@@ -280,7 +279,6 @@ def create_policy_version(
                 server_url=server_config.vulkan_dagster_server_url,
                 policy_version_id=version.policy_version_id,
                 name=version_name,
-                entrypoint=config.entrypoint,
                 repository=config.repository,
                 dependencies=dependencies,
             )
@@ -317,7 +315,6 @@ def _create_policy_version_workspace(
     server_url: str,
     policy_version_id: int,
     name: str,
-    entrypoint: str,
     repository: str,
     dependencies: list[str] | None = None,
 ):
@@ -333,7 +330,6 @@ def _create_policy_version_workspace(
         server_url,
         json={
             "name": name,
-            "entrypoint": entrypoint,
             "repository": repository,
             "dependencies": dependencies,
         },

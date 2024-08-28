@@ -72,7 +72,6 @@ class PolicyVersionBase(BaseModel):
 class PolicyVersionCreate(PolicyVersionBase):
     repository: str
     repository_version: str
-    entrypoint: str
 
 
 class PolicyVersion(PolicyVersionBase):

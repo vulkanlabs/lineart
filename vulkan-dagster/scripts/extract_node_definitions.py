@@ -30,9 +30,6 @@ def extract_node_definitions(file_location):
     if not os.path.exists(file_location):
         raise ValueError(f"File not found: {file_location}")
 
-    if os.path.isdir(file_location):
-        file_location = os.path.join(file_location, "__init__.py")
-
     spec = importlib.util.spec_from_file_location("user.policy", file_location)
     module = importlib.util.module_from_spec(spec)
     sys.modules["user.policy"] = module

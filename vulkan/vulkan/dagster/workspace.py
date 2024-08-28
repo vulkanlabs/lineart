@@ -56,8 +56,7 @@ _EXCLUDE_PATHS = [".git", ".venv"]
 
 def pack_workspace(name: str, repository_path: str):
     basename = f".tmp.{name}"
-    # TODO: ignore .venv,.git files
-    # In the future we may want to have an ignore list
+    # TODO: In the future we may want to have an ignore list
     filename = f"{basename}.{_ARCHIVE_FORMAT}"
     with tarfile.open(name=filename, mode=_TAR_FLAGS) as tf:
         for root, dirs, files in os.walk(repository_path):
@@ -89,14 +88,43 @@ def unpack_workspace(base_dir: str, name: str, repository: bytes):
     return workspace_path
 
 
-def add_workspace_config(base_dir: str, name: str, entrypoint: str):
+def add_workspace_config(
+    base_dir: str,
+    name: str,
+    working_directory: str,
+    module_name: str,
+):
     with open(os.path.join(base_dir, "workspace.yaml"), "a") as ws:
         ws.write(
             (
                 "  - python_module:\n"
-                f"      module_name: {entrypoint}\n"
-                f"      working_directory: workspaces/{name}\n"
+                f"      module_name: {module_name}\n"
+                f"      working_directory: {working_directory}\n"
                 f"      executable_path: /opt/venvs/{name}/bin/python\n"
                 f"      location_name: {name}\n"
             )
         )
+
+
+def find_package_entrypoint(file_location):
+    if not os.path.isdir(file_location):
+        if file_location.endswith(".py"):
+            return file_location
+        msg = (
+            "Entrypoint needs to be a python package or a python file, got: {}"
+        ).format(file_location)
+        raise ValueError(msg)
+
+    init_file = _find_first_init_file(file_location)
+    if init_file is None:
+        raise ValueError(
+            f"Could not find __init__.py file in directory: {file_location}"
+        )
+    return init_file
+
+
+def _find_first_init_file(file_location):
+    for root, _, files in os.walk(file_location):
+        for file in files:
+            if file == "__init__.py":
+                return os.path.join(root, file)

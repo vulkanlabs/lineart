@@ -185,6 +185,7 @@ class Terminate(TerminateNode, TransformNodeMixin):
             context=context,
             run_id=vulkan_run_config.run_id,
             status=self.return_status,
+            **kwargs,
         )
         if not reported:
             raise ValueError("Callback function failed")
