@@ -184,7 +184,7 @@ class Terminate(TerminateNode, TransformNodeMixin):
         reported = self.callback(
             context=context,
             run_id=vulkan_run_config.run_id,
-            status=self.return_status,
+            return_status=self.return_status,
             **kwargs,
         )
         if not reported:
