@@ -1,8 +1,5 @@
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { atomOneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
-import { ChevronRight } from "lucide-react"
-
-import { Button } from "@/components/ui/button";
 
 
 function codeSnippet(clickedNode) {
@@ -50,6 +47,11 @@ function NodeContent({ clickedNode }) {
                 <NodeParam name={"Descrição"} value={clickedNode.data.description} />
             </div>
             {codeSnippet(clickedNode)}
+            {clickedNode.parentId && (
+                <div className="mt-5">
+                    <NodeParam name={"Componente"} value={clickedNode.parentId} />
+                </div>
+            )}
         </div>
     );
 }

@@ -11,7 +11,7 @@ export default function Page({ params }) {
 
     return (
         <div className="w-full h-full grid grid-cols-12">
-            <div className="col-span-9">
+            <div className="col-span-8">
                 <div className='w-full h-full'>
                     <Workflow
                         policyId={params.policy_id}
@@ -20,7 +20,7 @@ export default function Page({ params }) {
                     />
                 </div>
             </div>
-            <div className="col-span-3">
+            <div className="col-span-4">
                 <WorkflowSidebar clickedNode={clickedNode} />
             </div>
         </div>
