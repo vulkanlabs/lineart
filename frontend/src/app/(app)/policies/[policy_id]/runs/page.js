@@ -52,16 +52,16 @@ function RunStatus({ value }) {
     const getColor = (status) => {
         switch (status) {
             case "SUCCESS":
-                return "green";
+                return "bg-green-200";
             case "FAILURE":
-                return "red";
+                return "bg-red-200";
             default:
-                return "gray";
+                return "bg-gray-200";
         }
     };
 
     return (
-        <p className={`w-fit p-[0.3em] rounded-lg bg-${getColor(value)}-200`}>
+        <p className={`w-fit p-[0.3em] rounded-lg ${getColor(value)}`}>
             {value}
         </p>
     );
@@ -71,7 +71,7 @@ function RunStatus({ value }) {
 function RunsTable({ runs }) {
     return (
         <Table>
-            <TableCaption>Execuções.</TableCaption>
+            <TableCaption>Execuções</TableCaption>
             <TableHeader>
                 <TableRow>
                     <TableHead>ID</TableHead>

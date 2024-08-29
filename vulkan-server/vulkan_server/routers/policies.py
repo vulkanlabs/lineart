@@ -109,7 +109,14 @@ def update_policy(
     response_model=list[schemas.PolicyVersion],
 )
 def list_policy_versions(policy_id: int, db: Session = Depends(get_db)):
-    policy_versions = db.query(PolicyVersion).filter_by(policy_id=policy_id).all()
+    policy_versions = (
+        db.query(PolicyVersion)
+        .filter_by(
+            policy_id=policy_id,
+            status=PolicyVersionStatus.VALID,
+        )
+        .all()
+    )
     if len(policy_versions) == 0:
         return Response(status_code=204)
     return policy_versions
@@ -212,7 +219,7 @@ def create_run_by_policy(
     )
     if run is None:
         raise HTTPException(status_code=500, detail="Failed to launch run")
-    
+
     return {"policy_id": policy.policy_id, "run_id": run.run_id}
 
 

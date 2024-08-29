@@ -135,19 +135,19 @@ export default function Page({ params }) {
 
 
 function PolicyVersionStatus({ value }) {
-    const getColor = (status) => {
+    const getColor = (status: string) => {
         switch (status) {
             case "ativa":
-                return "green";
+                return "bg-green-200";
             case "inativa":
-                return "gray";
+                return "bg-gray-200";
             default:
-                return "gray";
+                return "bg-gray-200";
         }
     };
 
     return (
-        <p className={`w-fit p-[0.3em] rounded-lg bg-${getColor(value)}-200`}>
+        <p className={`w-fit p-[0.3em] rounded-lg ${getColor(value)}`}>
             {value}
         </p>
     );
@@ -262,10 +262,10 @@ function RunsByStatusChart({ chartData }) {
                 />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="SUCCESS" radius={0}  stackId="a" fill="var(--color-SUCCESS)"/>
-                <Bar dataKey="FAILURE" radius={0}  stackId="a" fill="var(--color-FAILURE)"/>
-                <Bar dataKey="STARTED" radius={0}  stackId="a" fill="var(--color-STARTED)"/>
-                <Bar dataKey="PENDING" radius={0}  stackId="a" fill="var(--color-PENDING)"/>
+                <Bar dataKey="SUCCESS" radius={0} stackId="a" fill="var(--color-SUCCESS)" />
+                <Bar dataKey="FAILURE" radius={0} stackId="a" fill="var(--color-FAILURE)" />
+                <Bar dataKey="STARTED" radius={0} stackId="a" fill="var(--color-STARTED)" />
+                <Bar dataKey="PENDING" radius={0} stackId="a" fill="var(--color-PENDING)" />
             </BarChart>
         </ChartContainer>
     );
