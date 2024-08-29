@@ -1,15 +1,14 @@
 "use client";
 import Link from 'next/link';
-import Image from 'next/image';
-import LogoLight from "/public/vulkan-light.png";
 import { usePathname } from 'next/navigation';
 import { cn } from "@/lib/utils";
+import { VulkanLogo } from "@/components/logo";
 
 export default function Navbar() {
     const pathname = usePathname();
     const isSubpathActive = (path: string) => pathname.startsWith(path);
 
-    const sidebarSections = [
+    const sections = [
         // { name: "Dashboard", path: "/dashboard" },
         { name: "Políticas", path: "/policies" },
         { name: "Componentes", path: "/components" },
@@ -18,11 +17,8 @@ export default function Navbar() {
 
     return (
         <nav className="flex-row gap-4 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6 overflow-clip">
-            <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-                <Image src={LogoLight} alt="Vulkan logo" className="max-h-10 max-w-10" />
-                <span>Vulkan Engine</span>
-            </Link>
-            {sidebarSections.map((section) => (
+            <VulkanLogo />
+            {sections.map((section) => (
                 <Link key={section.name} href={section.path}
                     className={cn(
                         "flex items-center text-base gap-2 hover:font-bold",

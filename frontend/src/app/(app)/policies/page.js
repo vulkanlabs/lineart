@@ -30,9 +30,9 @@ export default function Page() {
                 <h1 className="text-lg font-semibold md:text-2xl">Políticas</h1>
             </div>
             <div>
-                <Button className="mt-4" onClick={() => setShowForm(true)}>Criar Política</Button>
                 {policies.length > 0 ? <PolicyTable policies={policies} /> : <EmptyPolicyTable />}
-                <PolicyForm display={showForm} closeFunc={() => setShowForm(false)} />
+                {/* <Button className="mt-4" onClick={() => setShowForm(true)}>Criar Política</Button> */}
+                {/* <PolicyForm display={showForm} closeFunc={() => setShowForm(false)} /> */}
             </div>
         </main>
     );

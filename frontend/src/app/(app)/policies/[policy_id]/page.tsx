@@ -271,6 +271,39 @@ function RunsByStatusChart({ chartData }) {
     );
 }
 
+function RunDurationChart({ chartData }) {
+    if (chartData.length === 0) {
+        return EmptyChart();
+    }
+
+    const chartConfig = {
+        count: {
+            label: "Execuções",
+            color: "#2563eb",
+        },
+    } satisfies ChartConfig;
+
+    return (
+        <ChartContainer config={chartConfig} className="h-full w-full" >
+            <BarChart accessibilityLayer data={chartData}>
+                <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                />
+                <YAxis
+                    type="number"
+                    domain={[0, dataMax => Math.ceil(dataMax / 10) * 10]}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+            </BarChart>
+        </ChartContainer>
+    );
+}
+
 function EmptyChart() {
     return (
         <div className="flex items-center justify-center h-full w-full">
