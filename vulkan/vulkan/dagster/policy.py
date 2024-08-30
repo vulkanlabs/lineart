@@ -26,10 +26,12 @@ class DagsterPolicy(Policy):
         nodes: list,
         input_schema: dict[str, type],
         output_callback: callable,
+        components: list = [],
     ):
         internal_nodes = self._internal_nodes(input_schema)
         all_nodes = [*internal_nodes, *nodes]
         super().__init__(all_nodes, input_schema, output_callback)
+        self.components = components
 
     def graph(self):
         nodes = self._dagster_nodes()
@@ -52,7 +54,7 @@ class DagsterPolicy(Policy):
 
     def _graph_dependencies(self):
         return {
-            node.name: _as_dagster_dependencies(node.dependencies)
+            node.name: _as_dagster_dependencies(self.flattened_dependencies[node.name])
             for node in self.flattened_nodes
             if len(node.dependencies) > 0
         }

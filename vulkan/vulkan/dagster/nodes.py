@@ -104,6 +104,18 @@ class HTTPConnection(HTTPConnectionNode, DagsterNode):
                 f"Failed op {self.name} with status {response.status_code}"
             )
             raise Exception("Connection failed")
+    
+    @classmethod
+    def from_spec(cls, node: HTTPConnectionNode):
+        return cls(
+            name=node.name,
+            description=node.description,
+            url=node.url,
+            method=node.method,
+            headers=node.headers,
+            params=node.params,
+            dependencies=node.dependencies,
+        )
 
 
 class TransformNodeMixin(DagsterNode):
@@ -158,6 +170,16 @@ class Transform(TransformNode, TransformNodeMixin):
     ):
         super().__init__(name, description, func, dependencies, hidden)
         self.func = func
+    
+    @classmethod
+    def from_spec(cls, node: TransformNode):
+        return cls(
+            name=node.name,
+            description=node.description,
+            func=node.func,
+            dependencies=node.dependencies,
+            hidden=node.hidden,
+        )
 
 
 class Terminate(TerminateNode, TransformNodeMixin):

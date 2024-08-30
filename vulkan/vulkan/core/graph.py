@@ -1,6 +1,7 @@
 from abc import ABC
 
-from .nodes import Node, TerminateNode, VulkanNodeDefinition
+from .nodes import Node, NodeType, TerminateNode, VulkanNodeDefinition
+from .dependency import Dependency
 
 
 class Graph(ABC):
@@ -17,6 +18,7 @@ class Graph(ABC):
         self._flattened_nodes = _flatten_nodes(nodes)
         self._node_definitions = {n.name: n.node_definition() for n in nodes}
         self._dependency_definitions = {n.name: n.node_dependencies() for n in nodes}
+        self._flattened_dependencies = _flatten_dependencies(nodes)
         # TODO: where should we validate the input schema?
         self.input_schema = input_schema
 
@@ -35,6 +37,49 @@ class Graph(ABC):
     @property
     def dependency_definitions(self) -> dict[str, list[str] | None]:
         return self._dependency_definitions
+
+    @property
+    def flattened_dependencies(self) -> dict[str, list[str] | None]:
+        return self._flattened_dependencies
+
+
+def _flatten_dependencies(nodes: list[Node]) -> dict[str, list[Dependency]]:
+    layer_nodes = {node.name: node for node in nodes}
+    flattened_dependencies = {}
+
+    for node in nodes:
+        if node.type == NodeType.COMPONENT:
+            for component_node in node.nodes:
+                flattened_dependencies[component_node.name] = (
+                    component_node.dependencies
+                )
+                layer_nodes[component_node.name] = component_node
+
+    for node in nodes:
+        if node.type == NodeType.COMPONENT:
+            continue
+
+        dependencies = {}
+
+        for name, dep in node.dependencies.items():
+            if dep.node not in layer_nodes.keys():
+                dependencies[name] = dep
+                continue
+            #     raise ValueError(f"Node {node.name} depends on unknown node {dep}")
+
+            dep_node: Node = layer_nodes[dep.node]
+
+            if dep_node.type == NodeType.TERMINATE:
+                raise ValueError(f"Node {node.name} depends on terminate node {dep}")
+
+            if dep_node.type == NodeType.COMPONENT:
+                dep.node = dep_node.output_node_name
+
+            dependencies[name] = dep
+
+        flattened_dependencies[node.name] = dependencies
+
+    return flattened_dependencies
 
 
 def _flatten_nodes(nodes: list[Node]) -> list[Node]:

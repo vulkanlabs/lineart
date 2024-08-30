@@ -1,11 +1,10 @@
 from vulkan.core.component import ComponentGraph
 from vulkan.core.dependency import Dependency
-from vulkan.core.nodes import Node
-from vulkan.dagster.nodes import Transform
+from vulkan.core.nodes import Node, TransformNode, HTTPConnectionNode
+from vulkan.dagster.nodes import DagsterNode, Transform, HTTPConnection
 
 
-class Component(ComponentGraph):
-
+class DagsterComponent(ComponentGraph):
     def __init__(
         self,
         name: str,
@@ -14,27 +13,16 @@ class Component(ComponentGraph):
         input_schema: dict[str, type],
         dependencies: dict[str, Dependency],
     ):
-        all_nodes = [_make_input_node(name, dependencies), *nodes]
-        super().__init__(name, description, all_nodes, input_schema, dependencies)
+        super().__init__(name, description, nodes, input_schema, dependencies)
+        self._nodes = to_dagster_nodes(self.nodes)
+        self._flattened_nodes = to_dagster_nodes(self._flattened_nodes)
 
-
-def _make_input_node(name: str, dependencies: dict[str, Dependency]) -> list[Node]:
-    def _input_fn(_, **kwargs: dict):
-        inputs = {}
-        for k, v in dependencies.items():
-            if k not in kwargs.keys():
-                raise ValueError(f"Missing input {k}")
-            if v.key is not None:
-                inputs[k] = kwargs[k][v.key]
-            else:
-                inputs[k] = kwargs[k]
-
-        return inputs
-
-    return Transform(
-        name=ComponentGraph.make_input_node_name(name),
-        description=f"Input node for Component {name}",
-        func=_input_fn,
-        dependencies=dependencies,
-        hidden=True,
-    )
+def to_dagster_nodes(nodes: list[Node]) -> list[DagsterNode]:
+    dagster_nodes = []
+    for node in nodes:
+        if isinstance(node, TransformNode) and not isinstance(node, DagsterNode):
+            node = Transform.from_spec(node)
+        if isinstance(node, HTTPConnectionNode) and not isinstance(node, DagsterNode):
+            node = HTTPConnection.from_spec(node)
+        dagster_nodes.append(node)
+    return dagster_nodes

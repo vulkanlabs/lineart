@@ -96,16 +96,16 @@ def test_terminate():
     assert definition.node_type == NodeType.TERMINATE.value
 
 
-class ExampleComponent(component.Component):
+class ExampleComponent(component.DagsterComponent):
     def __init__(self, name, description, dependencies):
         node_a = Transform(
             name="a",
             description="Node A",
             func=lambda _, inputs: inputs,
-            dependencies={"inputs": Dependency(self.make_input_node_name(name))},
+            dependencies={"inputs": Dependency("input_node")},
         )
         node_b = Transform(
-            name=self.make_output_node_name(name),
+            name="b",
             description="Node B",
             func=lambda _, inputs: inputs["cpf"],
             dependencies={"inputs": Dependency(node_a.name)},
@@ -132,7 +132,7 @@ def test_dagster_component():
         "Branch Node",
         func=branch_fn,
         outputs=[ReturnStatus.APPROVED.value, ReturnStatus.DENIED.value],
-        dependencies={"inputs": Dependency(component.output_node_name)},
+        dependencies={"inputs": Dependency(component.name)},
     )
 
     approved = Transform(

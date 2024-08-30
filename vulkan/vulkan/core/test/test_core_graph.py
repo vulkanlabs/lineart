@@ -74,18 +74,16 @@ def test_core_graph_with_component():
         name="a",
         description="Node A",
         func=lambda inputs: inputs,
-        dependencies={"input": Dependency(input_node.name)},
+        dependencies={"input": Dependency("input_node")},
     )
-    component_name = "component"
-    component_output_name = ComponentGraph.make_output_node_name(component_name)
     node_b = TransformNode(
-        name=component_output_name,
+        name="b",
         description="Node B",
         func=lambda inputs: inputs,
         dependencies={"input": Dependency(node_a.name)},
     )
     component = ComponentGraph(
-        name=component_name,
+        name="component",
         description="Component",
         nodes=[node_a, node_b],
         input_schema=input_schema,
@@ -96,7 +94,7 @@ def test_core_graph_with_component():
         "approved",
         "Approved",
         return_status=DummyStatus.APPROVED,
-        dependencies={"input": Dependency(component_output_name)},
+        dependencies={"input": Dependency("component")},
     )
 
     graph = Graph(

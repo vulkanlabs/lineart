@@ -1,9 +1,14 @@
+import importlib.util
 import os
+import sys
 import tarfile
 from shutil import unpack_archive
 
 from dagster import Definitions, EnvVar, IOManagerDefinition
 
+from vulkan.core.component import ComponentDefinition
+from vulkan.core.nodes import NodeFactory, InputNode
+from vulkan.dagster.component import DagsterComponent
 from vulkan.dagster.io_manager import (
     DB_CONFIG_KEY,
     PUBLISH_IO_MANAGER_KEY,
@@ -39,8 +44,42 @@ def make_workspace_definition(policy: DagsterPolicy) -> Definitions:
         ),
     }
 
+    components = []
+
+    for component_instance in policy.components:
+        # TODO: DAGSTER_HOME will be available on the server where the code will run,
+        # but we should think of a better way to get the path to the component definition.
+        DAGSTER_HOME = os.getenv("DAGSTER_HOME")
+        base_dir = f"{DAGSTER_HOME}/components"
+        # TODO: this alias should be created with a function from the core (as it
+        # is used in multiple places)
+        alias = f"{component_instance.name}:{component_instance.version}"
+        file_location = find_package_entrypoint(os.path.join(base_dir, alias))
+        component_definition = extract_component_definition(file_location)
+        nodes = configure_component_nodes(
+            component_definition.nodes, component_instance.config
+        )
+        component = DagsterComponent(
+            name=component_instance.config["name"],
+            description=component_instance.config.get("description", ""),
+            nodes=nodes,
+            input_schema=component_definition.input_schema,
+            dependencies=component_instance.config.get("dependencies", []),
+        )
+        components.append(component)
+
+    _nodes = [n for n in policy.nodes if not isinstance(n, InputNode)]
+    compiled_policy = DagsterPolicy(
+        nodes=[*_nodes, *components],
+        input_schema=policy.input_schema,
+        output_callback=policy.output_callback,
+    )
+
+    print([n.name for n in compiled_policy.flattened_nodes])
+    print(compiled_policy.flattened_dependencies)
+
     # By definition, Vulkan dagster worskpaces have a single job.
-    jobs = [policy.to_job(resources)]
+    jobs = [compiled_policy.to_job(resources)]
     definition = Definitions(
         assets=[],
         jobs=jobs,
@@ -51,7 +90,37 @@ def make_workspace_definition(policy: DagsterPolicy) -> Definitions:
 
 _ARCHIVE_FORMAT = "gztar"
 _TAR_FLAGS = "w:gz"
-_EXCLUDE_PATHS = [".git", ".venv"]
+_EXCLUDE_PATHS = [".git", ".venv", ".vscode"]
+
+
+def configure_component_nodes(nodes, config):
+    _nodes = []
+    for node in nodes:
+        if isinstance(node, NodeFactory):
+            node = node.create(**config["params"])
+        _nodes.append(node)
+    return _nodes
+
+
+def extract_component_definition(file_location):
+    if not os.path.exists(file_location):
+        raise ValueError(f"File not found: {file_location}")
+
+    if os.path.isdir(file_location):
+        file_location = os.path.join(file_location, "__init__.py")
+
+    spec = importlib.util.spec_from_file_location("user.component", file_location)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["user.component"] = module
+    spec.loader.exec_module(module)
+
+    context = vars(module)
+
+    for _, obj in context.items():
+        # TODO: validate there is only one component definition
+        if isinstance(obj, ComponentDefinition):
+            return obj
+    raise ValueError("No component definition found in module")
 
 
 def pack_workspace(name: str, repository_path: str):
@@ -60,6 +129,7 @@ def pack_workspace(name: str, repository_path: str):
     filename = f"{basename}.{_ARCHIVE_FORMAT}"
     with tarfile.open(name=filename, mode=_TAR_FLAGS) as tf:
         for root, dirs, files in os.walk(repository_path):
+            # TODO: match regex instead of exact path
             for path in _EXCLUDE_PATHS:
                 if path in dirs:
                     dirs.remove(path)
