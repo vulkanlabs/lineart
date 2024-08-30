@@ -7,6 +7,7 @@ import sys
 
 from vulkan.core.nodes import NodeType
 from vulkan.dagster.policy import DagsterPolicy
+from vulkan.environment.packing import find_definitions
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):
@@ -27,23 +28,15 @@ def _to_dict(node):
 
 
 def extract_node_definitions(file_location):
-    if not os.path.exists(file_location):
-        raise ValueError(f"File not found: {file_location}")
+    policies = find_definitions(file_location, DagsterPolicy)
+    if len(policies) != 1:
+        raise ValueError("Expected exactly one DagsterPolicy definition in the module")
 
-    spec = importlib.util.spec_from_file_location("user.policy", file_location)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["user.policy"] = module
-    spec.loader.exec_module(module)
-
-    context = vars(module)
-
-    for _, obj in context.items():
-        if isinstance(obj, DagsterPolicy):
-            nodes = {
-                name: _to_dict(node) for name, node in obj.node_definitions.items()
-            }
-            return nodes
-    raise ValueError("No policy definition found in module")
+    obj = policies[0]
+    nodes = {
+        name: _to_dict(node) for name, node in obj.node_definitions.items()
+    }
+    return nodes
 
 
 if __name__ == "__main__":

@@ -1,6 +1,4 @@
-import importlib.util
 import os
-import sys
 
 from dagster import Definitions, EnvVar, IOManagerDefinition
 
@@ -16,9 +14,13 @@ from vulkan.dagster.io_manager import (
 )
 from vulkan.dagster.policy import DagsterPolicy
 from vulkan.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
+from vulkan.environment.packing import find_definitions, find_package_entrypoint
 
 
-def make_workspace_definition(policy: DagsterPolicy) -> Definitions:
+def make_workspace_definition(
+    file_location: str,
+    components_base_dir: str,
+) -> Definitions:
     resources = {
         RUN_CONFIG_KEY: VulkanRunConfig(
             run_id=0,
@@ -42,17 +44,21 @@ def make_workspace_definition(policy: DagsterPolicy) -> Definitions:
         ),
     }
 
-    components = []
+    policy_defs = find_definitions(file_location, DagsterPolicy)
+    if len(policy_defs) != 1:
+        raise ValueError(
+            f"Expected only one DagsterPolicy in the module, found {len(policy_defs)}"
+        )
+    policy = policy_defs[0]
 
+    components = []
     for component_instance in policy.components:
-        # TODO: DAGSTER_HOME will be available on the server where the code will run,
-        # but we should think of a better way to get the path to the component definition.
-        DAGSTER_HOME = os.getenv("DAGSTER_HOME")
-        base_dir = f"{DAGSTER_HOME}/components"
         # TODO: this alias should be created with a function from the core (as it
         # is used in multiple places)
         alias = f"{component_instance.name}:{component_instance.version}"
-        file_location = find_package_entrypoint(os.path.join(base_dir, alias))
+        file_location = find_package_entrypoint(
+            os.path.join(components_base_dir, alias)
+        )
         component_definition = extract_component_definition(file_location)
         nodes = configure_component_nodes(
             component_definition.nodes, component_instance.config
@@ -96,24 +102,11 @@ def configure_component_nodes(nodes, config):
 
 
 def extract_component_definition(file_location):
-    if not os.path.exists(file_location):
-        raise ValueError(f"File not found: {file_location}")
-
-    if os.path.isdir(file_location):
-        file_location = os.path.join(file_location, "__init__.py")
-
-    spec = importlib.util.spec_from_file_location("user.component", file_location)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["user.component"] = module
-    spec.loader.exec_module(module)
-
-    context = vars(module)
-
-    for _, obj in context.items():
-        # TODO: validate there is only one component definition
-        if isinstance(obj, ComponentDefinition):
-            return obj
-    raise ValueError("No component definition found in module")
+    definitions = find_definitions(file_location, ComponentDefinition)
+    if len(definitions) == 1:
+        return definitions[0]
+    msg = f"Expected only one component definition, found {len(definitions)} in module"
+    raise ValueError(msg)
 
 
 def add_workspace_config(
@@ -123,10 +116,12 @@ def add_workspace_config(
     module_name: str,
 ):
     with open(os.path.join(base_dir, "workspace.yaml"), "a") as ws:
+        init_path = os.path.join(working_directory, "__init__.py")
         ws.write(
             (
-                "  - python_module:\n"
-                f"      module_name: {module_name}\n"
+                "  - python_file:\n"
+                # f"      module_name: {module_name}\n"
+                f"      relative_path: {init_path}\n"
                 f"      working_directory: {working_directory}\n"
                 f"      executable_path: /opt/venvs/{name}/bin/python\n"
                 f"      location_name: {name}\n"

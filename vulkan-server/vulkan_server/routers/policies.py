@@ -227,7 +227,7 @@ def create_run_by_policy(
 def create_policy_version(
     policy_id: int,
     config: schemas.PolicyVersionCreate,
-    dependencies: Annotated[list[str] | None, Body()] = None,
+    required_components: Annotated[list[str] | None, Body()] = None,
     dagster_client=Depends(get_dagster_client),
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
@@ -257,13 +257,13 @@ def create_policy_version(
 
         # Dependencies are added in the same transaction as the policy version
         # so we can rollback if any of them are missing.
-        if dependencies:
+        if required_components:
             matched = (
                 db.query(ComponentVersion)
-                .filter(ComponentVersion.alias.in_(dependencies))
+                .filter(ComponentVersion.alias.in_(required_components))
                 .all()
             )
-            missing = set(dependencies) - set([m.alias for m in matched])
+            missing = set(required_components) - set([m.alias for m in matched])
             if missing:
                 msg = f"Missing components: {missing}"
                 raise HTTPException(status_code=400, detail=msg)
@@ -287,7 +287,7 @@ def create_policy_version(
                 policy_version_id=version.policy_version_id,
                 name=version_name,
                 repository=config.repository,
-                dependencies=dependencies,
+                required_components=required_components,
             )
         except Exception as e:
             msg = f"Failed to create workspace for policy {policy_id} version {config.alias}"
@@ -323,7 +323,7 @@ def _create_policy_version_workspace(
     policy_version_id: int,
     name: str,
     repository: str,
-    dependencies: list[str] | None = None,
+    required_components: list[str] | None = None,
 ):
     workspace = DagsterWorkspace(
         policy_version_id=policy_version_id,
@@ -338,7 +338,7 @@ def _create_policy_version_workspace(
         json={
             "name": name,
             "repository": repository,
-            "dependencies": dependencies,
+            "required_components": required_components,
         },
     )
     status_code = response.status_code

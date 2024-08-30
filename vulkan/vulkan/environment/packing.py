@@ -1,4 +1,6 @@
+import importlib.util
 import os
+import sys
 import tarfile
 from shutil import unpack_archive
 
@@ -69,3 +71,26 @@ def _find_first_init_file(file_location):
         for file in files:
             if file == "__init__.py":
                 return os.path.join(root, file)
+
+
+def find_definitions(file_location, typ):
+    if not os.path.exists(file_location):
+        raise ValueError(f"File not found: {file_location}")
+
+    module = _import_module_from_file(file_location)
+    context = vars(module)
+
+    definitions = []
+    for _, obj in context.items():
+        if isinstance(obj, typ):
+            definitions.append(obj)
+    return definitions
+
+
+def _import_module_from_file(file_location: str):
+    spec = importlib.util.spec_from_file_location("user.policy", file_location)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["user.policy"] = module
+    spec.loader.exec_module(module)
+
+    return module

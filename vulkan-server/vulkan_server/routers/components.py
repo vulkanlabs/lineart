@@ -22,6 +22,8 @@ router = APIRouter(
 )
 
 
+# TODO: check if the python modules names are unique
+#       This can be validated on component creation.
 @router.post("/", response_model=schemas.Component)
 def create_component(config: schemas.ComponentBase, db: Session = Depends(get_db)):
     component = Component(**config.model_dump())

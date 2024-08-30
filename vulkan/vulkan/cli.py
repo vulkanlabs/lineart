@@ -6,8 +6,8 @@ from argparse import ArgumentParser
 import requests
 import yaml
 
-from vulkan.dagster.workspace import pack_workspace
 from vulkan.environment.config import ComponentVersionInfo, VulkanWorkspaceConfig
+from vulkan.environment.packing import pack_workspace
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -32,7 +32,7 @@ def main():
     workspace.add_argument(
         "--repository_path", type=str, required=True, help="Path to repository"
     )
-    
+
     component = subparsers.add_parser("create_component", help="Create a component")
     component.add_argument(
         "--name", type=str, required=True, help="Name of the component"
@@ -74,7 +74,10 @@ def main():
     elif args.command == "create_workspace":
         policy_id = args.policy_id
         policy_version_id = create_policy_version(
-            SERVER_URL, policy_id, args.name, args.repository_path,
+            SERVER_URL,
+            policy_id,
+            args.name,
+            args.repository_path,
         )
         logging.info(
             f"Created workspace {args.name} with policy version {policy_version_id}"
@@ -154,9 +157,9 @@ def create_policy_version(
             "policy_id": policy_id,
             "alias": version_name,
             "repository": base64.b64encode(repository).decode("ascii"),
-            "repository_version": "0.0.1", # TODO: get/gen a hash
+            "repository_version": "0.0.1",  # TODO: get/gen a hash
         },
-        "dependencies": [c.alias() for c in config.components],
+        "required_components": [c.alias() for c in config.components],
     }
 
     # TODO: send repository as file upload
