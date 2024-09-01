@@ -1,7 +1,7 @@
 from abc import ABC
 
-from .nodes import Node, NodeType, TerminateNode, VulkanNodeDefinition
 from .dependency import Dependency
+from .nodes import Node, NodeType, TerminateNode, VulkanNodeDefinition
 
 
 class Graph(ABC):
@@ -44,38 +44,42 @@ class Graph(ABC):
 
 
 def _flatten_dependencies(nodes: list[Node]) -> dict[str, list[Dependency]]:
-    layer_nodes = {node.name: node for node in nodes}
+    all_nodes = {node.name: node for node in nodes}
     flattened_dependencies = {}
 
+    # Flatten nodes without discarding component nodes
     for node in nodes:
         if node.type == NodeType.COMPONENT:
             for component_node in node.nodes:
                 flattened_dependencies[component_node.name] = (
                     component_node.dependencies
                 )
-                layer_nodes[component_node.name] = component_node
+                all_nodes[component_node.name] = component_node
 
     for node in nodes:
         if node.type == NodeType.COMPONENT:
+            # Components are treated as "virtual" nodes at the moment
             continue
 
         dependencies = {}
-
-        for name, dep in node.dependencies.items():
-            if dep.node not in layer_nodes.keys():
-                dependencies[name] = dep
+        for name, dependency in node.dependencies.items():
+            if dependency.node not in all_nodes.keys():
+                # This handles the case of the input node, which is only
+                # inserted by upper layers.
+                # When we remodel core as a config/spec, we can refactor
+                dependencies[name] = dependency
                 continue
-            #     raise ValueError(f"Node {node.name} depends on unknown node {dep}")
 
-            dep_node: Node = layer_nodes[dep.node]
-
+            dep_node: Node = all_nodes[dependency.node]
             if dep_node.type == NodeType.TERMINATE:
-                raise ValueError(f"Node {node.name} depends on terminate node {dep}")
+                raise ValueError(
+                    f"Node {node.name} depends on terminate node {dependency}"
+                )
 
             if dep_node.type == NodeType.COMPONENT:
-                dep.node = dep_node.output_node_name
+                dependency.node = dep_node.output_node_name
 
-            dependencies[name] = dep
+            dependencies[name] = dependency
 
         flattened_dependencies[node.name] = dependencies
 

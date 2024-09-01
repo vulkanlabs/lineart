@@ -24,6 +24,7 @@ class PackagingConfig:
 class VulkanWorkspaceConfig:
     name: str
     packaging: PackagingConfig
+    # TODO: remove components here as they'll be parsed in the graph
     components: dict[str, ComponentInstance] | None
 
     @classmethod

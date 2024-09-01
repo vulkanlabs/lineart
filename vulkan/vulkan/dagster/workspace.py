@@ -4,7 +4,6 @@ from dagster import Definitions, EnvVar, IOManagerDefinition
 
 from vulkan.core.component import (
     ComponentDefinition,
-    ComponentGraph,
     check_all_parameters_specified,
 )
 from vulkan.core.nodes import InputNode
@@ -16,6 +15,7 @@ from vulkan.dagster.io_manager import (
     postgresql_io_manager,
 )
 from vulkan.dagster.policy import DagsterPolicy
+from vulkan.dagster.component import DagsterComponent
 from vulkan.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
 from vulkan.environment.packing import find_definitions, find_package_entrypoint
 
@@ -54,22 +54,18 @@ def make_workspace_definition(
         )
     policy = policy_defs[0]
 
+    # TODO: We're not handling installing the component packages.
+    # This will lead to errors if components have dependencies.
     components = []
     for component_instance in policy.components:
-        # TODO: this alias should be created with a function from the core (as it
-        # is used in multiple places)
         alias = component_instance.alias()
         file_location = find_package_entrypoint(
             os.path.join(components_base_dir, alias)
         )
         component_definition = extract_component_definition(file_location)
 
-        # TODO:
-        # 1. Check that all parameters are specified
-        # 2. Update component node config
-        # 3. Generate the component itself
         check_all_parameters_specified(component_definition, component_instance)
-        component = ComponentGraph.from_spec(component_definition, component_instance)
+        component = DagsterComponent.from_spec(component_definition, component_instance)
         components.append(component)
 
     _nodes = [n for n in policy.nodes if not isinstance(n, InputNode)]

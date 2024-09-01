@@ -145,7 +145,7 @@ def test_core_graph_with_component_definition():
 
     check_all_parameters_specified(definition, correct_instance)
     component = ComponentGraph.from_spec(definition, correct_instance)
-    assert component is not None
+    assert component.nodes[-1].url == "test_url"
 
     missing_params = ComponentInstance(
         name="test_cmp",

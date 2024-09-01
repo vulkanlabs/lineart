@@ -6,7 +6,8 @@ from argparse import ArgumentParser
 import requests
 import yaml
 
-from vulkan.environment.config import ComponentVersionInfo, VulkanWorkspaceConfig
+from vulkan.core.component import component_version_alias
+from vulkan.environment.config import VulkanWorkspaceConfig
 from vulkan.environment.packing import pack_workspace
 
 logging.basicConfig(level=logging.DEBUG)
@@ -188,14 +189,14 @@ def create_component(
     response = requests.post(f"{server_url}/components", json={"name": name})
     component_id = response.json()["component_id"]
 
-    component_info = ComponentVersionInfo(name, version, input_schema, output_schema)
+    alias = component_version_alias(name, version)
 
-    repository = pack_workspace(component_info.alias(), repository)
+    repository = pack_workspace(alias, repository)
     logging.info(f"Creating component {name}")
     response = requests.post(
         f"{server_url}/components/{component_id}/versions",
         json={
-            "alias": component_info.alias(),
+            "alias": alias,
             "input_schema": input_schema,
             "output_schema": output_schema,
             "repository": base64.b64encode(repository).decode("ascii"),

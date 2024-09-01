@@ -47,7 +47,7 @@ class ComponentInstance:
         )
 
     def alias(self) -> str:
-        return f"{self.name}:{self.version}"
+        return component_version_alias(self.name, self.version)
 
 
 class ComponentGraph(Node, Graph):
@@ -94,7 +94,7 @@ class ComponentGraph(Node, Graph):
         ]
 
         return cls(
-            name=instance.name,
+            name=instance.config["name"],
             description=instance.config["description"],
             nodes=resolved_nodes,
             input_schema=definition.input_schema,
@@ -163,7 +163,7 @@ def _apply_instance_params(
     # We create a copy to avoid modifying the original while scanning it
     node = deepcopy(_node)
     node_vars = vars(_node)
-    for _, obj in node_vars.items():
+    for param_name, obj in node_vars.items():
         if isinstance(obj, InstanceParam):
             # TODO: check this when creating the component
             desired_type = schema.get(obj.name)
@@ -175,9 +175,12 @@ def _apply_instance_params(
             # This assumes we've checked that all entries in the schema
             # are specified and match the desired type.
             value = params[obj.name]
-            setattr(node, obj.name, value)
+            setattr(node, param_name, value)
 
     return node
+
+def component_version_alias(name: str, version: str):
+    return f"{name}:{version}"
 
 
 def _make_input_node(name: str, dependencies: dict[str, Dependency]) -> list[Node]:
