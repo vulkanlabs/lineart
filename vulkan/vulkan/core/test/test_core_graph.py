@@ -1,10 +1,19 @@
 from enum import Enum
 
-from vulkan.core.component import ComponentGraph
+import pytest
+
+from vulkan.core.component import (
+    ComponentDefinition,
+    ComponentGraph,
+    ComponentInstance,
+    InstanceParam,
+    check_all_parameters_specified,
+)
 from vulkan.core.dependency import Dependency
 from vulkan.core.graph import Graph
 from vulkan.core.nodes import (
     BranchNode,
+    HTTPConnectionNode,
     InputNode,
     TerminateNode,
     TransformNode,
@@ -87,7 +96,7 @@ def test_core_graph_with_component():
         description="Component",
         nodes=[node_a, node_b],
         input_schema=input_schema,
-        dependencies={"input": Dependency(input_node.name)}
+        dependencies={"input": Dependency(input_node.name)},
     )
 
     approved = TerminateNode(
@@ -104,3 +113,77 @@ def test_core_graph_with_component():
 
     print("Nodes: ", graph.node_definitions)
     print("Edges: ", graph.dependency_definitions)
+
+
+def test_core_graph_with_component_definition():
+    configurable_node = HTTPConnectionNode(
+        name="query",
+        description="Get SCR score",
+        method="GET",
+        headers={},
+        params={},
+        dependencies={"body": Dependency("body")},
+        url=InstanceParam("server_url"),
+    )
+
+    definition = ComponentDefinition(
+        nodes=[configurable_node],
+        input_schema={"cpf": str},
+        instance_params_schema={"server_url": str},
+    )
+
+    correct_instance = ComponentInstance(
+        name="test_cmp",
+        version="vtest",
+        config={
+            "name": "scr_query_component",
+            "description": "Get SCR score",
+            "dependencies": {"body": Dependency("input_node")},
+            "instance_params": {"server_url": "test_url"},
+        },
+    )
+
+    check_all_parameters_specified(definition, correct_instance)
+    component = ComponentGraph.from_spec(definition, correct_instance)
+    assert component is not None
+
+    missing_params = ComponentInstance(
+        name="test_cmp",
+        version="vtest",
+        config={
+            "name": "scr_query_component",
+            "description": "Get SCR score",
+            "dependencies": {"body": Dependency("input_node")},
+        },
+    )
+
+    with pytest.raises(ValueError):
+        check_all_parameters_specified(definition, missing_params)
+
+    missing_value = ComponentInstance(
+        name="test_cmp",
+        version="vtest",
+        config={
+            "name": "scr_query_component",
+            "description": "Get SCR score",
+            "dependencies": {"body": Dependency("input_node")},
+            "instance_params": {},
+        },
+    )
+
+    with pytest.raises(ValueError):
+        check_all_parameters_specified(definition, missing_value)
+
+    incorrect_type = ComponentInstance(
+        name="test_cmp",
+        version="vtest",
+        config={
+            "name": "scr_query_component",
+            "description": "Get SCR score",
+            "dependencies": {"body": Dependency("input_node")},
+            "instance_params": {"server_url": 1},
+        },
+    )
+
+    with pytest.raises(TypeError):
+        check_all_parameters_specified(definition, incorrect_type)

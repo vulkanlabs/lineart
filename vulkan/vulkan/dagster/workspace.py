@@ -2,9 +2,12 @@ import os
 
 from dagster import Definitions, EnvVar, IOManagerDefinition
 
-from vulkan.core.component import ComponentDefinition
-from vulkan.core.nodes import InputNode, NodeFactory
-from vulkan.dagster.component import DagsterComponent
+from vulkan.core.component import (
+    ComponentDefinition,
+    ComponentGraph,
+    check_all_parameters_specified,
+)
+from vulkan.core.nodes import InputNode
 from vulkan.dagster.io_manager import (
     DB_CONFIG_KEY,
     PUBLISH_IO_MANAGER_KEY,
@@ -55,21 +58,18 @@ def make_workspace_definition(
     for component_instance in policy.components:
         # TODO: this alias should be created with a function from the core (as it
         # is used in multiple places)
-        alias = f"{component_instance.name}:{component_instance.version}"
+        alias = component_instance.alias()
         file_location = find_package_entrypoint(
             os.path.join(components_base_dir, alias)
         )
         component_definition = extract_component_definition(file_location)
-        nodes = configure_component_nodes(
-            component_definition.nodes, component_instance.config
-        )
-        component = DagsterComponent(
-            name=component_instance.config["name"],
-            description=component_instance.config.get("description", ""),
-            nodes=nodes,
-            input_schema=component_definition.input_schema,
-            dependencies=component_instance.config.get("dependencies", []),
-        )
+
+        # TODO:
+        # 1. Check that all parameters are specified
+        # 2. Update component node config
+        # 3. Generate the component itself
+        check_all_parameters_specified(component_definition, component_instance)
+        component = ComponentGraph.from_spec(component_definition, component_instance)
         components.append(component)
 
     _nodes = [n for n in policy.nodes if not isinstance(n, InputNode)]
@@ -90,15 +90,6 @@ def make_workspace_definition(
         resources={},
     )
     return definition
-
-
-def configure_component_nodes(nodes, config):
-    _nodes = []
-    for node in nodes:
-        if isinstance(node, NodeFactory):
-            node = node.create(**config["params"])
-        _nodes.append(node)
-    return _nodes
 
 
 def extract_component_definition(file_location):

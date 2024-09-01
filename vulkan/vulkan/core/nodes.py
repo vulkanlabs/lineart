@@ -211,34 +211,3 @@ class InputNode(Node):
                 "schema": {k: t.__name__ for k, t in self.schema.items()},
             },
         )
-
-
-ConstuctorFromType = {
-    NodeType.TRANSFORM: TransformNode,
-    NodeType.TERMINATE: TerminateNode,
-    NodeType.CONNECTION: HTTPConnectionNode,
-    NodeType.BRANCH: BranchNode,
-    NodeType.INPUT: InputNode,
-}
-
-
-class NodeFactory:
-    def __init__(
-        self,
-        type: NodeType,
-        static_params: dict[str, Any],
-        instance_params: dict[str, Any],
-    ):
-        self.type = type
-        self.static_params = static_params
-        self.instance_params = instance_params
-
-    def create(self, **kwargs) -> Node:
-        params = self.static_params.copy()
-
-        for name, alias in self.instance_params.items():
-            if alias not in kwargs.keys():
-                raise ValueError(f"Missing value for instance parameter {name}")
-            params[name] = kwargs[alias]
-
-        return ConstuctorFromType[self.type](**params)
