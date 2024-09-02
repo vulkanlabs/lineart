@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from vulkan.core.graph import Graph
 from vulkan.core.nodes import Node, InputNode, TerminateNode
@@ -10,7 +10,7 @@ class PolicyDefinition:
     nodes: list[Node]
     input_schema: dict[str, type]
     output_callback: callable
-    components: list[ComponentInstance] = []
+    components: list[ComponentInstance] = field(default_factory=list)
 
     def __post_init__(self):
         if not callable(self.output_callback):
@@ -40,7 +40,7 @@ class Policy(Graph):
         nodes: list[Node],
         input_schema: dict[str, type],
         output_callback: callable,
-        components: list[ComponentInstance] = [],
+        components: list[ComponentInstance] = field(default_factory=list),
     ):
         assert callable(output_callback), "Output callback must be a callable"
         self.output_callback = output_callback

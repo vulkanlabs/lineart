@@ -159,8 +159,13 @@ class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
         dependencies: dict[str, Any],
         hidden: bool = False,
     ):
-        super().__init__(name, description, func, dependencies, hidden)
-        self.func = func
+        super().__init__(
+            name=name,
+            description=description,
+            func=func,
+            dependencies=dependencies,
+            hidden=hidden,
+        )
 
     @classmethod
     def from_spec(cls, node: TransformNode):
@@ -181,7 +186,12 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         return_status: UserStatus,
         dependencies: dict[str, Any],
     ):
-        super().__init__(name, description, return_status, dependencies)
+        super().__init__(
+            name=name,
+            description=description,
+            return_status=return_status,
+            dependencies=dependencies,
+        )
         self.func = self._fn
 
     def _fn(self, context, **kwargs):
@@ -230,6 +240,15 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             return False
         return True
 
+    @classmethod
+    def from_spec(cls, node: TerminateNode):
+        return cls(
+            name=node.name,
+            description=node.description,
+            return_status=node.return_status,
+            dependencies=node.dependencies,
+        )
+
 
 class DagsterBranch(BranchNode, DagsterNode):
     def __init__(
@@ -240,7 +259,13 @@ class DagsterBranch(BranchNode, DagsterNode):
         outputs: list[str],
         dependencies: dict[str, Any],
     ):
-        super().__init__(name, description, func, outputs, dependencies)
+        super().__init__(
+            name=name,
+            description=description,
+            func=func,
+            outputs=outputs,
+            dependencies=dependencies,
+        )
 
     def op(self) -> OpDefinition:
         def fn(context, inputs):
@@ -276,6 +301,16 @@ class DagsterBranch(BranchNode, DagsterNode):
         )
         return node_op
 
+    @classmethod
+    def from_spec(cls, node: BranchNode):
+        return cls(
+            name=node.name,
+            description=node.description,
+            func=node.func,
+            outputs=node.outputs,
+            dependencies=node.dependencies,
+        )
+
 
 class DagsterInput(InputNode, DagsterNode):
     def __init__(self, description: str, schema: dict[str, type], name="input_node"):
@@ -295,6 +330,14 @@ class DagsterInput(InputNode, DagsterNode):
             config_schema=self.schema,
         )
 
+    @classmethod
+    def from_spec(cls, node: InputNode):
+        return cls(
+            name=node.name,
+            description=node.description,
+            schema=node.schema,
+        )
+
 
 NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
     TransformNode: DagsterTransform,
@@ -306,13 +349,14 @@ NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
 
 
 def to_dagster_nodes(nodes: list[Node]) -> list[DagsterNode]:
-    dagster_nodes = []
-    for node in nodes:
-        typ = type(node)
-        impl_type = NODE_TYPE_MAP.get(typ)
-        if impl_type is None:
-            msg = f"Node type {typ} has no known Dagster implementation"
-            raise ValueError(msg)
+    return [to_dagster_node(node) for node in nodes]
 
-        dagster_nodes.append(impl_type.from_spec(node))
-    return dagster_nodes
+
+def to_dagster_node(node: Node) -> DagsterNode:
+    typ = type(node)
+    impl_type = NODE_TYPE_MAP.get(typ)
+    if impl_type is None:
+        msg = f"Node type {typ} has no known Dagster implementation"
+        raise ValueError(msg)
+
+    return impl_type.from_spec(node)

@@ -25,7 +25,7 @@ class DagsterFlow:
         self.dependencies = _as_graph_dependencies(nodes, dependencies)
 
     def to_job(self, resources: dict[str, ConfigurableResource]):
-        g = self.graph()
+        g = self._graph()
         return g.to_job(
             resource_defs=resources,
             hooks={_notify_failure},
