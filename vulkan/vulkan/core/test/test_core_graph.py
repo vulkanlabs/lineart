@@ -26,7 +26,7 @@ class DummyStatus(Enum):
 
 
 def test_core_graph_trivial():
-    input_node = InputNode("Input Node", {"cpf": str})
+    input_node = InputNode(name="Input Node", schema={"cpf": str})
     node_a = TransformNode(
         name="a",
         description="Node A",
@@ -47,7 +47,6 @@ def test_core_graph_trivial():
 
     branch = BranchNode(
         "branch",
-        "Branch Node",
         func=branch_fn,
         outputs=["approved", "denied"],
         dependencies={"input": Dependency(node_b.name)},
@@ -55,13 +54,11 @@ def test_core_graph_trivial():
 
     approved = TerminateNode(
         "approved",
-        "Approved",
         return_status=DummyStatus.APPROVED,
         dependencies={"input": Dependency(branch.name, "approved")},
     )
     denied = TerminateNode(
         "denied",
-        "Denied",
         return_status=DummyStatus.DENIED,
         dependencies={"input": Dependency(branch.name, "denied")},
     )
@@ -77,7 +74,7 @@ def test_core_graph_trivial():
 
 def test_core_graph_with_component():
     input_schema = {"cpf": str}
-    input_node = InputNode("Input Node", input_schema)
+    input_node = InputNode(name="Input Node", schema=input_schema)
 
     node_a = TransformNode(
         name="a",
@@ -101,7 +98,6 @@ def test_core_graph_with_component():
 
     approved = TerminateNode(
         "approved",
-        "Approved",
         return_status=DummyStatus.APPROVED,
         dependencies={"input": Dependency("component")},
     )

@@ -16,7 +16,7 @@ def test_http_connection(httpserver: HTTPServer):
     test_req_data = {"key": "value"}
     test_resp_data = {"resp_key": "resp_value"}
 
-    node = HTTPConnection(
+    node = DagsterHTTPConnection(
         name="http_connection",
         description="HTTP connection",
         url=httpserver.url_for("/"),
@@ -52,7 +52,7 @@ def test_http_connection(httpserver: HTTPServer):
 
 
 def test_transform():
-    node = Transform(
+    node = DagsterTransform(
         name="transform",
         description="Transform node",
         func=lambda _, inputs: inputs["x"] * 2,
@@ -86,7 +86,7 @@ class ReturnStatus(Enum):
 
 
 def test_terminate():
-    terminate = Terminate(
+    terminate = DagsterTerminate(
         name="terminate",
         description="Terminate node",
         return_status=ReturnStatus.APPROVED,
@@ -98,13 +98,13 @@ def test_terminate():
 
 class ExampleComponent(component.DagsterComponent):
     def __init__(self, name, description, dependencies):
-        node_a = Transform(
+        node_a = DagsterTransform(
             name="a",
             description="Node A",
             func=lambda _, inputs: inputs,
             dependencies={"inputs": Dependency("input_node")},
         )
-        node_b = Transform(
+        node_b = DagsterTransform(
             name="b",
             description="Node B",
             func=lambda _, inputs: inputs["cpf"],
@@ -127,7 +127,7 @@ def test_dagster_component():
             return ReturnStatus.APPROVED.value
         return ReturnStatus.DENIED.value
 
-    branch = Branch(
+    branch = DagsterBranch(
         "branch",
         "Branch Node",
         func=branch_fn,
@@ -135,14 +135,14 @@ def test_dagster_component():
         dependencies={"inputs": Dependency(component.name)},
     )
 
-    approved = Transform(
+    approved = DagsterTransform(
         "approved",
         "Approved",
         func=lambda _, inputs: ReturnStatus.APPROVED.value,
         dependencies={"inputs": Dependency(branch.name, ReturnStatus.APPROVED.value)},
     )
 
-    denied = Transform(
+    denied = DagsterTransform(
         "denied",
         "Denied",
         func=lambda _, inputs: ReturnStatus.DENIED.value,

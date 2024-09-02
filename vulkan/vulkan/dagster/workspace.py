@@ -3,11 +3,10 @@ import os
 from dagster import Definitions, EnvVar, IOManagerDefinition
 
 from vulkan.core.component import (
-    ComponentGraph,
     ComponentDefinition,
+    ComponentGraph,
     check_all_parameters_specified,
 )
-from vulkan.core.nodes import InputNode
 from vulkan.core.policy import Policy, PolicyDefinition
 from vulkan.dagster.io_manager import (
     DB_CONFIG_KEY,
@@ -16,8 +15,7 @@ from vulkan.dagster.io_manager import (
     metadata_io_manager,
     postgresql_io_manager,
 )
-from vulkan.dagster.policy import DagsterPolicy
-from vulkan.dagster.component import DagsterComponent
+from vulkan.dagster.policy import DagsterFlow
 from vulkan.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
 from vulkan.environment.packing import find_definitions, find_package_entrypoint
 
@@ -66,12 +64,12 @@ def resolve_policy(file_location: str, components_base_dir: str) -> Policy:
         raise ValueError(
             f"Expected only one PolicyDefinition in the module, found {len(policy_defs)}"
         )
-    policy = policy_defs[0]
+    policy_def: PolicyDefinition = policy_defs[0]
 
     # TODO: We're not handling installing the component packages.
     # This will lead to errors if components have dependencies.
     components = []
-    for component_instance in policy.components:
+    for component_instance in policy_def.components:
         alias = component_instance.alias()
         file_location = find_package_entrypoint(
             os.path.join(components_base_dir, alias)
@@ -79,25 +77,28 @@ def resolve_policy(file_location: str, components_base_dir: str) -> Policy:
         component_definition = extract_component_definition(file_location)
 
         check_all_parameters_specified(component_definition, component_instance)
-        # TODO: we should create as the core Component
         component = ComponentGraph.from_spec(component_definition, component_instance)
         components.append(component)
 
     # Up to this point, everything should be defined in terms of core elements.
     # Nodes and components should be configured, resolved, checked in core.
-    # 
+    #
     # From here, each implementation should handle transforming core to its own
     # needs, ie. Core -> Dagster
     # -> Transform nodes in dagster nodes
-    _nodes = [n for n in policy.nodes if not isinstance(n, InputNode)]
-    resolved_policy = DagsterPolicy(
-        nodes=[*_nodes, *components],
-        input_schema=policy.input_schema,
-        output_callback=policy.output_callback,
+    policy = Policy(
+        policy_def.nodes,
+        policy_def.input_schema,
+        policy_def.output_callback,
+        components,
+    )
+    resolved_policy = DagsterFlow(
+        nodes=policy.flattened_nodes,
+        dependencies=policy.flattened_dependencies,
     )
 
-    print([n.name for n in resolved_policy.flattened_nodes])
-    print(resolved_policy.flattened_dependencies)
+    print([n.name for n in resolved_policy.nodes])
+    print(resolved_policy.dependencies)
     return resolved_policy
 
 

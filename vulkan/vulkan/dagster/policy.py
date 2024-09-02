@@ -1,4 +1,3 @@
-
 import requests
 from dagster import (
     ConfigurableResource,
@@ -10,73 +9,45 @@ from dagster import (
 )
 
 from vulkan.core.dependency import Dependency
-from vulkan.core.graph import Policy
 from vulkan.core.run import RunStatus
-
-from .io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
-from .nodes import Input
-from .run_config import RUN_CONFIG_KEY
+from vulkan.dagster.io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
+from vulkan.dagster.nodes import to_dagster_nodes
+from vulkan.dagster.run_config import RUN_CONFIG_KEY
 
 DEFAULT_POLICY_NAME = "default_policy"
 
 
-class DagsterPolicy(Policy):
-    def __init__(
-        self,
-        nodes: list,
-        input_schema: dict[str, type],
-        output_callback: callable,
-        components: list = [],
-    ):
-        internal_nodes = self._internal_nodes(input_schema)
-        all_nodes = [*internal_nodes, *nodes]
-        super().__init__(all_nodes, input_schema, output_callback)
-        self.components = components
+class DagsterFlow:
+    def __init__(self, nodes: list, dependencies: dict) -> None:
+        self._raw_nodes = nodes
+        self._raw_dependencies = dependencies
+        self.nodes = to_dagster_nodes(nodes)
+        self.dependencies = _as_graph_dependencies(nodes, dependencies)
 
-    def graph(self):
-        nodes = self._dagster_nodes()
-        deps = self._graph_dependencies()
-        return GraphDefinition(
-            name=DEFAULT_POLICY_NAME,
-            node_defs=nodes,
-            dependencies=deps,
+    def to_job(self, resources: dict[str, ConfigurableResource]):
+        g = self.graph()
+        return g.to_job(
+            resource_defs=resources,
+            hooks={_notify_failure},
         )
 
-    def _dagster_nodes(self) -> list[OpDefinition]:
+    def _graph(self):
+        ops = self._dagster_ops()
+        return GraphDefinition(
+            name=DEFAULT_POLICY_NAME,
+            node_defs=ops,
+            dependencies=self.dependencies,
+        )
+
+    def _dagster_ops(self) -> list[OpDefinition]:
         nodes = []
-        for node in self.flattened_nodes:
+        for node in self.nodes:
             dagster_node = node.op()
             if _accesses_internal_resources(dagster_node):
                 msg = f"Policy node {node.name} tried to access protected resources"
                 raise ValueError(msg)
             nodes.append(dagster_node)
         return nodes
-
-    def _graph_dependencies(self):
-        return {
-            node.name: _as_dagster_dependencies(self.flattened_dependencies[node.name])
-            for node in self.flattened_nodes
-            if len(node.dependencies) > 0
-        }
-
-    def to_job(self, resources: dict[str, ConfigurableResource]):
-        return self.graph().to_job(
-            resource_defs=resources,
-            hooks={_notify_failure},
-        )
-
-    def _internal_nodes(self, input_schema) -> list:
-        return [
-            self._input_node(input_schema),
-        ]
-
-    def _input_node(self, input_schema) -> Input:
-        return Input(
-            name="input_node",
-            description="Input node",
-            schema=input_schema,
-        )
-
 
 
 @failure_hook(required_resource_keys={RUN_CONFIG_KEY})
@@ -106,8 +77,16 @@ def _accesses_internal_resources(op: OpDefinition) -> bool:
     return len(INTERNAL_RESOURCE_KEYS.intersection(op.required_resource_keys)) > 0
 
 
+def _as_graph_dependencies(nodes, dependencies):
+    return {
+        node.name: _as_dagster_dependencies(dependencies[node.name])
+        for node in nodes
+        if len(node.dependencies) > 0
+    }
+
+
 def _as_dagster_dependencies(
-    dependencies: dict[str, Dependency] | None
+    dependencies: dict[str, Dependency] | None,
 ) -> dict[str, DependencyDefinition]:
     if dependencies is None:
         return None

@@ -58,6 +58,15 @@ class Policy(Graph):
             modified_nodes.append(node)
 
         return modified_nodes
+    
+    @classmethod
+    def from_definition(cls, definition: PolicyDefinition) -> "Policy":
+        return cls(
+            nodes=definition.nodes,
+            input_schema=definition.input_schema,
+            output_callback=definition.output_callback,
+            components=definition.components,
+        )
 
 
 def _make_input_node(input_schema) -> InputNode:

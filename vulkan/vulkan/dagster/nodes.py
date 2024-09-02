@@ -5,26 +5,21 @@ from traceback import format_exception_only
 from typing import Any
 
 import requests
-from dagster import (
-    In,
-    OpDefinition,
-    OpExecutionContext,
-    Out,
-    Output,
-)
+from dagster import In, OpDefinition, OpExecutionContext, Out, Output
 
-from ..core.exceptions import UserCodeException
-from ..core.nodes import (
+from vulkan.core.exceptions import UserCodeException
+from vulkan.core.nodes import (
     BranchNode,
     HTTPConnectionNode,
     InputNode,
+    Node,
     TerminateNode,
     TransformNode,
 )
-from ..core.run import RunStatus
-from ..core.step_metadata import StepMetadata
-from .io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
-from .run_config import RUN_CONFIG_KEY
+from vulkan.core.run import RunStatus
+from vulkan.core.step_metadata import StepMetadata
+from vulkan.dagster.io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
+from vulkan.dagster.run_config import RUN_CONFIG_KEY
 
 
 # TODO: we should review how to require users to define the possible return
@@ -34,14 +29,12 @@ class UserStatus(Enum):
 
 
 class DagsterNode(ABC):
-
     @abstractmethod
     def op(self) -> OpDefinition:
         """Construct the Dagster op for this node."""
 
 
-class HTTPConnection(HTTPConnectionNode, DagsterNode):
-
+class DagsterHTTPConnection(HTTPConnectionNode, DagsterNode):
     def __init__(
         self,
         name: str,
@@ -104,7 +97,7 @@ class HTTPConnection(HTTPConnectionNode, DagsterNode):
                 f"Failed op {self.name} with status {response.status_code}"
             )
             raise Exception("Connection failed")
-    
+
     @classmethod
     def from_spec(cls, node: HTTPConnectionNode):
         return cls(
@@ -118,8 +111,7 @@ class HTTPConnection(HTTPConnectionNode, DagsterNode):
         )
 
 
-class TransformNodeMixin(DagsterNode):
-
+class DagsterTransformNodeMixin(DagsterNode):
     def op(self) -> OpDefinition:
         def fn(context, inputs):
             start_time = time.time()
@@ -158,8 +150,7 @@ class TransformNodeMixin(DagsterNode):
         return node_op
 
 
-class Transform(TransformNode, TransformNodeMixin):
-
+class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
     def __init__(
         self,
         name: str,
@@ -170,7 +161,7 @@ class Transform(TransformNode, TransformNodeMixin):
     ):
         super().__init__(name, description, func, dependencies, hidden)
         self.func = func
-    
+
     @classmethod
     def from_spec(cls, node: TransformNode):
         return cls(
@@ -182,7 +173,7 @@ class Transform(TransformNode, TransformNodeMixin):
         )
 
 
-class Terminate(TerminateNode, TransformNodeMixin):
+class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
     def __init__(
         self,
         name: str,
@@ -240,7 +231,7 @@ class Terminate(TerminateNode, TransformNodeMixin):
         return True
 
 
-class Branch(BranchNode, DagsterNode):
+class DagsterBranch(BranchNode, DagsterNode):
     def __init__(
         self,
         name: str,
@@ -286,7 +277,7 @@ class Branch(BranchNode, DagsterNode):
         return node_op
 
 
-class Input(InputNode, DagsterNode):
+class DagsterInput(InputNode, DagsterNode):
     def __init__(self, description: str, schema: dict[str, type], name="input_node"):
         super().__init__(name=name, description=description, schema=schema)
 
@@ -303,3 +294,25 @@ class Input(InputNode, DagsterNode):
             outs={"result": Out()},
             config_schema=self.schema,
         )
+
+
+NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
+    TransformNode: DagsterTransform,
+    TerminateNode: DagsterTerminate,
+    BranchNode: DagsterBranch,
+    HTTPConnectionNode: DagsterHTTPConnection,
+    InputNode: DagsterInput,
+}
+
+
+def to_dagster_nodes(nodes: list[Node]) -> list[DagsterNode]:
+    dagster_nodes = []
+    for node in nodes:
+        typ = type(node)
+        impl_type = NODE_TYPE_MAP.get(typ)
+        if impl_type is None:
+            msg = f"Node type {typ} has no known Dagster implementation"
+            raise ValueError(msg)
+
+        dagster_nodes.append(impl_type.from_spec(node))
+    return dagster_nodes
