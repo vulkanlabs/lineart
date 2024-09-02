@@ -18,12 +18,19 @@ class ComponentDefinition:
     input_schema: dict[str, type]
     instance_params_schema: dict[str, type]
 
+@dataclass
+class ComponentInstanceConfig:
+    name: str
+    description: str
+    dependencies: dict[str, Dependency]
+    instance_params: dict[str, Any]
+
 
 @dataclass
 class ComponentInstance:
     name: str
     version: str
-    config: dict[str, Any]
+    config: ComponentInstanceConfig
     input_schema: dict | None = None
     output_schema: dict | None = None
 

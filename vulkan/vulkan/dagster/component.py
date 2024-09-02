@@ -17,6 +17,7 @@ class DagsterComponent(ComponentGraph):
         self._nodes = to_dagster_nodes(self.nodes)
         self._flattened_nodes = to_dagster_nodes(self._flattened_nodes)
 
+
 def to_dagster_nodes(nodes: list[Node]) -> list[DagsterNode]:
     dagster_nodes = []
     for node in nodes:

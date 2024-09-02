@@ -19,9 +19,9 @@ class NodeType(Enum):
 @dataclass
 class VulkanNodeDefinition:
     name: str
-    description: str
     node_type: str
     hidden: bool = False
+    description: str | None = None
     dependencies: dict[str, Dependency] | None = None
     metadata: dict[str, Any] | None = None
 
@@ -30,9 +30,9 @@ class Node(ABC):
     def __init__(
         self,
         name: str,
-        description: str,
         typ: NodeType,
         hidden: bool = False,
+        description: str | None = None,
         dependencies: dict[str, Dependency] | None = None,
     ):
         self._name = name
@@ -67,11 +67,11 @@ class HTTPConnectionNode(Node):
     def __init__(
         self,
         name: str,
-        description: str,
         url: str,
         method: str,
         headers: dict,
         params: dict | None = None,
+        description: str | None = None,
         dependencies: dict | None = None,
     ):
         super().__init__(
@@ -104,9 +104,9 @@ class TransformNode(Node):
     def __init__(
         self,
         name: str,
-        description: str,
         func: callable,
         dependencies: dict[str, Any],
+        description: str | None = None,
         hidden: bool = False,
     ):
         super().__init__(
@@ -135,9 +135,9 @@ class TerminateNode(Node):
     def __init__(
         self,
         name: str,
-        description: str,
         return_status: str,
         dependencies: dict[str, Any],
+        description: str | None = None,
     ):
         self.return_status = return_status
         assert dependencies is not None, f"Dependencies not set for TERMINATE op {name}"
@@ -168,10 +168,10 @@ class BranchNode(Node):
     def __init__(
         self,
         name: str,
-        description: str,
         func: callable,
         outputs: list[str],
         dependencies: dict[str, Any],
+        description: str | None = None,
     ):
         super().__init__(
             name=name,
@@ -196,9 +196,11 @@ class BranchNode(Node):
 
 
 class InputNode(Node):
-    def __init__(self, description: str, schema: dict[str, type], name="input_node"):
+    def __init__(
+        self, schema: dict[str, type], name="input_node", description: str | None = None
+    ):
         super().__init__(
-            name=name, description=description, typ=NodeType.INPUT, dependencies=None
+            name=name, typ=NodeType.INPUT, description=description, dependencies=None
         )
         self.schema = schema
 

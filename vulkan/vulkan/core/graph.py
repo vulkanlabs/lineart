@@ -1,7 +1,7 @@
 from abc import ABC
 
 from .dependency import Dependency
-from .nodes import Node, NodeType, TerminateNode, VulkanNodeDefinition
+from .nodes import Node, NodeType, VulkanNodeDefinition
 
 
 class Graph(ABC):
@@ -70,6 +70,7 @@ def _flatten_dependencies(nodes: list[Node]) -> dict[str, list[Dependency]]:
                 dependencies[name] = dependency
                 continue
 
+            # TODO: bring this valitation to PolicyDefinition
             dep_node: Node = all_nodes[dependency.node]
             if dep_node.type == NodeType.TERMINATE:
                 raise ValueError(
@@ -94,26 +95,3 @@ def _flatten_nodes(nodes: list[Node]) -> list[Node]:
         else:
             flattened_nodes.append(node)
     return flattened_nodes
-
-
-class Policy(Graph):
-    def __init__(
-        self,
-        nodes: list[Node],
-        input_schema: dict[str, type],
-        output_callback: callable,
-    ):
-        assert callable(output_callback), "Output callback must be a callable"
-        self.output_callback = output_callback
-        nodes = self._with_output_callback(nodes)
-
-        super().__init__(nodes, input_schema)
-
-    def _with_output_callback(self, nodes: list[Node]) -> list[Node]:
-        modified_nodes = []
-        for node in nodes:
-            if isinstance(node, TerminateNode):
-                node = node.with_callback(self.output_callback)
-            modified_nodes.append(node)
-
-        return modified_nodes

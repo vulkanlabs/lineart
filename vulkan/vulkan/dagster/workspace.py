@@ -3,10 +3,12 @@ import os
 from dagster import Definitions, EnvVar, IOManagerDefinition
 
 from vulkan.core.component import (
+    ComponentGraph,
     ComponentDefinition,
     check_all_parameters_specified,
 )
 from vulkan.core.nodes import InputNode
+from vulkan.core.policy import Policy, PolicyDefinition
 from vulkan.dagster.io_manager import (
     DB_CONFIG_KEY,
     PUBLISH_IO_MANAGER_KEY,
@@ -58,11 +60,11 @@ def make_workspace_definition(
     return definition
 
 
-def resolve_policy(file_location: str, components_base_dir: str) -> DagsterPolicy:
-    policy_defs = find_definitions(file_location, DagsterPolicy)
+def resolve_policy(file_location: str, components_base_dir: str) -> Policy:
+    policy_defs = find_definitions(file_location, PolicyDefinition)
     if len(policy_defs) != 1:
         raise ValueError(
-            f"Expected only one DagsterPolicy in the module, found {len(policy_defs)}"
+            f"Expected only one PolicyDefinition in the module, found {len(policy_defs)}"
         )
     policy = policy_defs[0]
 
@@ -78,7 +80,7 @@ def resolve_policy(file_location: str, components_base_dir: str) -> DagsterPolic
 
         check_all_parameters_specified(component_definition, component_instance)
         # TODO: we should create as the core Component
-        component = DagsterComponent.from_spec(component_definition, component_instance)
+        component = ComponentGraph.from_spec(component_definition, component_instance)
         components.append(component)
 
     # Up to this point, everything should be defined in terms of core elements.
