@@ -47,6 +47,18 @@ def make_workspace_definition(
         ),
     }
 
+    resolved_policy = resolve_policy(file_location, components_base_dir)
+    # By definition, Vulkan dagster worskpaces have a single job.
+    jobs = [resolved_policy.to_job(resources)]
+    definition = Definitions(
+        assets=[],
+        jobs=jobs,
+        resources={},
+    )
+    return definition
+
+
+def resolve_policy(file_location: str, components_base_dir: str) -> DagsterPolicy:
     policy_defs = find_definitions(file_location, DagsterPolicy)
     if len(policy_defs) != 1:
         raise ValueError(
@@ -65,27 +77,26 @@ def make_workspace_definition(
         component_definition = extract_component_definition(file_location)
 
         check_all_parameters_specified(component_definition, component_instance)
+        # TODO: we should create as the core Component
         component = DagsterComponent.from_spec(component_definition, component_instance)
         components.append(component)
 
+    # Up to this point, everything should be defined in terms of core elements.
+    # Nodes and components should be configured, resolved, checked in core.
+    # 
+    # From here, each implementation should handle transforming core to its own
+    # needs, ie. Core -> Dagster
+    # -> Transform nodes in dagster nodes
     _nodes = [n for n in policy.nodes if not isinstance(n, InputNode)]
-    compiled_policy = DagsterPolicy(
+    resolved_policy = DagsterPolicy(
         nodes=[*_nodes, *components],
         input_schema=policy.input_schema,
         output_callback=policy.output_callback,
     )
 
-    print([n.name for n in compiled_policy.flattened_nodes])
-    print(compiled_policy.flattened_dependencies)
-
-    # By definition, Vulkan dagster worskpaces have a single job.
-    jobs = [compiled_policy.to_job(resources)]
-    definition = Definitions(
-        assets=[],
-        jobs=jobs,
-        resources={},
-    )
-    return definition
+    print([n.name for n in resolved_policy.flattened_nodes])
+    print(resolved_policy.flattened_dependencies)
+    return resolved_policy
 
 
 def extract_component_definition(file_location):
