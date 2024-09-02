@@ -34,3 +34,16 @@ class Dependency:
         if self.key is not None:
             return f"{self.node}[{self.key}]"
         return self.node
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Dependency":
+        return cls(
+            node=data["node"],
+            output=data.get("output"),
+            key=data.get("key"),
+        )
+
+
+# TODO: ensure that the user can't define a node with this name.
+INPUT_NODE = "input_node"
+"""Name of the input node of a subgraph. Always created internally."""

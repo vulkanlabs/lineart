@@ -18,6 +18,7 @@ class ComponentDefinition:
     input_schema: dict[str, type]
     instance_params_schema: dict[str, type]
 
+
 @dataclass
 class ComponentInstanceConfig:
     name: str
@@ -25,12 +26,24 @@ class ComponentInstanceConfig:
     dependencies: dict[str, Dependency]
     instance_params: dict[str, Any]
 
+    @classmethod
+    def from_dict(cls, data: dict) -> "ComponentInstanceConfig":
+        return cls(
+            name=data["name"],
+            description=data["description"],
+            dependencies={
+                k: Dependency.from_dict(v) if isinstance(v, dict) else v
+                for k, v in data["dependencies"].items()
+            },
+            instance_params=data.get("instance_params"),
+        )
+
 
 @dataclass
 class ComponentInstance:
     name: str
     version: str
-    config: ComponentInstanceConfig
+    config: ComponentInstanceConfig | dict
     input_schema: dict | None = None
     output_schema: dict | None = None
 
@@ -40,15 +53,17 @@ class ComponentInstance:
         if not isinstance(self.version, str) or self.version == "":
             raise ValueError("version must be provided")
 
-        if not isinstance(self.config, dict):
-            raise ValueError("config must be a dictionary")
+        if not isinstance(self.config, (ComponentInstanceConfig, dict)):
+            raise ValueError("config must be `ComponentInstanceConfig` or dict")
+        if isinstance(self.config, dict):
+            self.config = ComponentInstanceConfig.from_dict(self.config)
 
     @classmethod
     def from_dict(cls, data: dict) -> "ComponentInstance":
         return cls(
             name=data["name"],
             version=data["version"],
-            config=data["config"],
+            config=ComponentInstanceConfig.from_dict(data["config"]),
             input_schema=data.get("input_schema"),
             output_schema=data.get("output_schema"),
         )
@@ -92,7 +107,7 @@ class ComponentGraph(Node, Graph):
     def from_spec(
         cls, definition: ComponentDefinition, instance: ComponentInstance
     ) -> "ComponentGraph":
-        instance_params = instance.config.get("instance_params", {})
+        instance_params = instance.config.instance_params
         resolved_nodes = [
             _apply_instance_params(
                 n, definition.instance_params_schema, instance_params
@@ -101,11 +116,11 @@ class ComponentGraph(Node, Graph):
         ]
 
         return cls(
-            name=instance.config["name"],
-            description=instance.config["description"],
+            name=instance.config.name,
+            description=instance.config.description,
             nodes=resolved_nodes,
             input_schema=definition.input_schema,
-            dependencies=instance.config["dependencies"],
+            dependencies=instance.config.dependencies,
         )
 
     @property
@@ -143,7 +158,7 @@ def check_all_parameters_specified(
     if len(definition.instance_params_schema) == 0:
         return
 
-    params = instance.config.get("instance_params")
+    params = instance.config.instance_params
     if params is None:
         msg = f"[{instance.name}]: Instance params not specified"
         raise ValueError(msg)
@@ -185,6 +200,7 @@ def _apply_instance_params(
             setattr(node, param_name, value)
 
     return node
+
 
 def component_version_alias(name: str, version: str):
     return f"{name}:{version}"

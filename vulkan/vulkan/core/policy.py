@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 
-from vulkan.core.graph import Graph
-from vulkan.core.nodes import Node, InputNode, TerminateNode
 from vulkan.core.component import ComponentInstance
+from vulkan.core.dependency import INPUT_NODE
+from vulkan.core.graph import Graph
+from vulkan.core.nodes import InputNode, Node, TerminateNode
 
 
 @dataclass
@@ -26,6 +27,10 @@ class PolicyDefinition:
             if dependencies is None:
                 continue
             for dep in dependencies.values():
+                if dep.node == INPUT_NODE:
+                    # Input nodes are added to the graph after validation.
+                    continue
+
                 if dep.node not in nodes.keys():
                     msg = (
                         f"Node {node_name} has a dependency {dep.node} "
@@ -58,7 +63,7 @@ class Policy(Graph):
             modified_nodes.append(node)
 
         return modified_nodes
-    
+
     @classmethod
     def from_definition(cls, definition: PolicyDefinition) -> "Policy":
         return cls(

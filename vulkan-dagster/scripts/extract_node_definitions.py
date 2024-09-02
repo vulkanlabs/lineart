@@ -6,7 +6,7 @@ import os
 import sys
 
 from vulkan.core.nodes import NodeType
-from vulkan.dagster.policy import DagsterPolicy
+from vulkan.core.policy import PolicyDefinition
 from vulkan.environment.packing import find_definitions
 
 
@@ -28,9 +28,9 @@ def _to_dict(node):
 
 
 def extract_node_definitions(file_location):
-    policies = find_definitions(file_location, DagsterPolicy)
+    policies = find_definitions(file_location, PolicyDefinition)
     if len(policies) != 1:
-        raise ValueError("Expected exactly one DagsterPolicy definition in the module")
+        raise ValueError("Expected exactly one PolicyDefinition definition in the module")
 
     obj = policies[0]
     nodes = {
