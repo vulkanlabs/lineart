@@ -57,8 +57,6 @@ def make_workspace_definition(
         nodes=resolved_policy.flattened_nodes,
         dependencies=resolved_policy.flattened_dependencies,
     )
-    print([n.name for n in dagster_flow.nodes])
-    print(dagster_flow.dependencies)
     # By definition, Vulkan dagster worskpaces have a single job.
     jobs = [dagster_flow.to_job(resources)]
     definition = Definitions(

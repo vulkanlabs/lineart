@@ -1,0 +1,1 @@
+export const roundUp = (dataMax: number) => Math.ceil(dataMax / 10) * 10
