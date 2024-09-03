@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
 
-from vulkan.core.component import ComponentInstance
-
 
 class PackagingMode(Enum):
     PYTHON_MODULE = "python_module"
@@ -19,24 +17,15 @@ class PackagingConfig:
             raise ValueError("entrypoint must be provided for python_module packaging")
 
 
-
 @dataclass
 class VulkanWorkspaceConfig:
-    name: str
     packaging: PackagingConfig
-    # TODO: remove components here as they'll be parsed in the graph
-    components: dict[str, ComponentInstance] | None
 
     @classmethod
     def from_dict(cls, data: dict) -> "VulkanWorkspaceConfig":
-        components = [
-            ComponentInstance.from_dict(c) for c in data.get("components", [])
-        ]
         return cls(
-            name=data["name"],
             packaging=PackagingConfig(
                 mode=PackagingMode(data["packaging"]["mode"]),
                 entrypoint=data["packaging"].get("entrypoint"),
             ),
-            components=components,
         )

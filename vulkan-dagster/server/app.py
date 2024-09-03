@@ -5,6 +5,7 @@ import os
 import subprocess
 from shutil import rmtree
 from typing import Annotated
+from time import time
 
 import yaml
 from fastapi import Body, FastAPI, Form, HTTPException
@@ -75,11 +76,11 @@ def create_workspace(
             module_name,
         )
 
-        tmp_path = "/tmp/nodes.json"
+        tmp_path = f"/tmp/{name}-{str(time())}.json"
         completed_process = subprocess.run(
             [
                 f"{VENVS_PATH}/{name}/bin/python",
-                f"{SCRIPTS_PATH}/extract_node_definitions.py",
+                f"{SCRIPTS_PATH}/resolve_policy.py",
                 "--file_location",
                 code_entrypoint,
                 "--components_base_dir",
@@ -99,7 +100,7 @@ def create_workspace(
             raise Exception(msg)
 
         with open(tmp_path, "r") as fn:
-            nodes = json.load(fn)
+            resolved_policy = json.load(fn)
         os.remove(tmp_path)
 
     except Exception as e:
@@ -107,7 +108,11 @@ def create_workspace(
         raise HTTPException(status_code=500, detail=e)
 
     logger.info(f"Created workspace at: {workspace_path}")
-    return {"workspace_path": workspace_path, "graph": nodes}
+    return {
+        "workspace_path": workspace_path,
+        "graph": resolved_policy["nodes"],
+        "required_components": resolved_policy.get("required_components", []),
+    }
 
 
 @app.post("/components")

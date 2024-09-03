@@ -148,19 +148,18 @@ def create_policy_version(
 
     with open(config_path, "r") as fn:
         config_data = yaml.safe_load(fn)
-    config = VulkanWorkspaceConfig.from_dict(config_data)
+    # TODO: we aren't currently usign this, but it can become handy in the future
+    # to validate the user config
+    _ = VulkanWorkspaceConfig.from_dict(config_data)
 
     repository = pack_workspace(version_name, repository_path)
     logging.info(f"Creating workspace {version_name}")
 
     body = {
-        "config": {
-            "policy_id": policy_id,
-            "alias": version_name,
-            "repository": base64.b64encode(repository).decode("ascii"),
-            "repository_version": "0.0.1",  # TODO: get/gen a hash
-        },
-        "required_components": [c.alias() for c in config.components],
+        "policy_id": policy_id,
+        "alias": version_name,
+        "repository": base64.b64encode(repository).decode("ascii"),
+        "repository_version": "0.0.1",  # TODO: get/gen a hash
     }
 
     # TODO: send repository as file upload

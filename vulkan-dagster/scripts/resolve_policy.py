@@ -23,13 +23,11 @@ def _to_dict(node):
     return node_
 
 
-def extract_node_definitions(file_location, components_base_dir):
-    resolved_policy = resolve_policy(file_location, components_base_dir)
-
+def extract_node_definitions(policy):
     nodes = {
         node.name: _to_dict(node.node_definition()) 
         for node 
-        in resolved_policy.nodes
+        in policy.nodes
     }
     return nodes
 
@@ -41,6 +39,13 @@ if __name__ == "__main__":
     parser.add_argument("--output_file", type=str)
     args = parser.parse_args()
 
-    nodes = extract_node_definitions(args.file_location, args.components_base_dir)
+    resolved_policy = resolve_policy(args.file_location, args.components_base_dir)
+    required_components = [c.reference for c in resolved_policy.components]
+    nodes = extract_node_definitions(resolved_policy)
+    result = {
+        "nodes": nodes,
+        "required_components": required_components
+    }
+
     with open(args.output_file, "w") as f:
-        json.dump(nodes, f, cls=EnhancedJSONEncoder)
+        json.dump(result, f, cls=EnhancedJSONEncoder)

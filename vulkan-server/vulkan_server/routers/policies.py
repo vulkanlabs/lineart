@@ -227,7 +227,6 @@ def create_run_by_policy(
 def create_policy_version(
     policy_id: int,
     config: schemas.PolicyVersionCreate,
-    required_components: Annotated[list[str] | None, Body()] = None,
     dagster_client=Depends(get_dagster_client),
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
@@ -254,46 +253,46 @@ def create_policy_version(
             status=PolicyVersionStatus.INVALID,
         )
         db.add(version)
-
-        # Dependencies are added in the same transaction as the policy version
-        # so we can rollback if any of them are missing.
-        if required_components:
-            matched = (
-                db.query(ComponentVersion)
-                .filter(ComponentVersion.alias.in_(required_components))
-                .all()
-            )
-            missing = set(required_components) - set([m.alias for m in matched])
-            if missing:
-                msg = f"Missing components: {missing}"
-                raise HTTPException(status_code=400, detail=msg)
-
-            for m in matched:
-                dependency = ComponentVersionDependency(
-                    component_version_id=m.component_version_id,
-                    policy_version_id=version.policy_version_id,
-                )
-                db.add(dependency)
-
         db.commit()
-        msg = f"Creating version {version.policy_version_id} ({config.alias}) for policy {policy_id}"
-        logger.info(msg)
 
         version_name = definitions.version_name(policy_id, version.policy_version_id)
         try:
-            graph = _create_policy_version_workspace(
+            graph, required_components = _create_policy_version_workspace(
                 db=db,
                 server_url=server_config.vulkan_dagster_server_url,
                 policy_version_id=version.policy_version_id,
                 name=version_name,
                 repository=config.repository,
-                required_components=required_components,
             )
+
+            if required_components:
+                matched = (
+                    db.query(ComponentVersion)
+                    .filter(ComponentVersion.alias.in_(required_components))
+                    .all()
+                )
+                missing = set(required_components) - set([m.alias for m in matched])
+                if missing:
+                    msg = f"Missing components: {missing}"
+                    raise HTTPException(status_code=400, detail=msg)
+
+                for m in matched:
+                    dependency = ComponentVersionDependency(
+                        component_version_id=m.component_version_id,
+                        policy_version_id=version.policy_version_id,
+                    )
+                    db.add(dependency)
+
         except Exception as e:
             msg = f"Failed to create workspace for policy {policy_id} version {config.alias}"
             logger.error(msg)
             logger.error(e)
             raise HTTPException(status_code=500, detail=e)
+        finally:
+            db.commit()
+
+        msg = f"Creating version {version.policy_version_id} ({config.alias}) for policy {policy_id}"
+        logger.info(msg)
 
         loaded_repos = update_repository(dagster_client)
         if loaded_repos.get(version_name, False) is False:
@@ -323,7 +322,6 @@ def _create_policy_version_workspace(
     policy_version_id: int,
     name: str,
     repository: str,
-    required_components: list[str] | None = None,
 ):
     workspace = DagsterWorkspace(
         policy_version_id=policy_version_id,
@@ -335,11 +333,7 @@ def _create_policy_version_workspace(
     server_url = f"{server_url}/workspaces"
     response = requests.post(
         server_url,
-        json={
-            "name": name,
-            "repository": repository,
-            "required_components": required_components,
-        },
+        json={"name": name, "repository": repository},
     )
     status_code = response.status_code
     if status_code != 200:
@@ -357,4 +351,4 @@ def _create_policy_version_workspace(
     workspace.status = DagsterWorkspaceStatus.OK
     db.commit()
 
-    return response_data["graph"]
+    return response_data["graph"], response_data["required_components"]

@@ -80,6 +80,7 @@ class ComponentGraph(Node, Graph):
         nodes: list[Node],
         input_schema: dict[str, type],
         dependencies: dict[str, Any],
+        reference: str | None = None,
     ):
         # TODO: match input_schema with dependencies
         # TODO: assert there aren't Terminate nodes in the component
@@ -100,7 +101,7 @@ class ComponentGraph(Node, Graph):
         )
         Graph.__init__(self, nodes=all_nodes, input_schema=input_schema)
 
-        # TODO: find output node
+        self.reference = reference
         self.output_node = _find_output_node(nodes)
 
     @classmethod
@@ -117,6 +118,7 @@ class ComponentGraph(Node, Graph):
 
         return cls(
             name=instance.config.name,
+            reference=instance.alias(),
             description=instance.config.description,
             nodes=resolved_nodes,
             input_schema=definition.input_schema,
