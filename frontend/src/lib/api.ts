@@ -99,3 +99,36 @@ export async function fetchRunsCount(
             throw new Error(`Error fetching runs count for policy ${policyId}`, { cause: error });
         });
 }
+
+export async function fetchRunDurationStats(
+    serverUrl: string, policyId: number, startDate: Date, endDate: Date,
+) {
+    return fetch(
+        (new URL(`/policies/${policyId}/runs/duration?`, serverUrl)).toString()
+        + new URLSearchParams({
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        })
+    )
+        .then((response) => response.json())
+        .catch((error) => {
+            throw new Error(`Error fetching run duration stats for policy ${policyId}`, { cause: error });
+        });
+}
+
+
+export async function fetchRunDurationByStatus(
+    serverUrl: string, policyId: number, startDate: Date, endDate: Date,
+) {
+    return fetch(
+        (new URL(`/policies/${policyId}/runs/duration/by_status?`, serverUrl)).toString()
+        + new URLSearchParams({
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        })
+    )
+        .then((response) => response.json())
+        .catch((error) => {
+            throw new Error(`Error fetching run duration stats for policy ${policyId}`, { cause: error });
+        });
+}

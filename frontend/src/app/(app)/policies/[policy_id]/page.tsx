@@ -2,9 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
-import { Bar, BarChart, XAxis, YAxis } from "recharts";
 import { subDays } from "date-fns";
 
+import {
+    fetchPolicy,
+    fetchPolicyVersions,
+    fetchRunsCount,
+    fetchRunDurationStats,
+    fetchRunDurationByStatus,
+} from "@/lib/api";
 import {
     Table,
     TableBody,
@@ -14,23 +20,16 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { fetchPolicy, fetchPolicyVersions, fetchRunsCount } from "@/lib/api";
+import { DatePickerWithRange } from "@/components/charts/date-picker";
+import { RunsChart, RunsByStatusChart, RunDurationStatsChart, AvgDurationByStatusChart } from "@/components/charts/policy-stats";
 
-import {
-    ChartConfig,
-    ChartContainer,
-    ChartTooltip,
-    ChartTooltipContent,
-    ChartLegend,
-    ChartLegendContent,
-} from "@/components/ui/chart";
-
-import { DatePickerWithRange } from "@/components/date-picker";
 
 export default function Page({ params }) {
     const [policyVersions, setPolicyVersions] = useState([]);
     const [runsCount, setRunsCount] = useState([]);
     const [runsByStatus, setRunsByStatus] = useState([]);
+    const [runDurationStats, setRunDurationStats] = useState([]);
+    const [runDurationByStatus, setRunDurationByStatus] = useState([]);
     const [dateRange, setDateRange] = useState({
         from: subDays(new Date(), 7),
         to: new Date(),
@@ -72,9 +71,20 @@ export default function Page({ params }) {
                 console.error(error);
             });
 
-
         fetchRunsCount(baseUrl, params.policy_id, dateRange.from, dateRange.to, true)
             .then((data) => setRunsByStatus(data))
+            .catch((error) => {
+                console.error(error);
+            });
+
+        fetchRunDurationStats(baseUrl, params.policy_id, dateRange.from, dateRange.to)
+            .then((data) => setRunDurationStats(data))
+            .catch((error) => {
+                console.error(error);
+            });
+
+        fetchRunDurationByStatus(baseUrl, params.policy_id, dateRange.from, dateRange.to)
+            .then((data) => setRunDurationByStatus(data))
             .catch((error) => {
                 console.error(error);
             });
@@ -91,16 +101,16 @@ export default function Page({ params }) {
             data: runsByStatus,
             component: RunsByStatusChart,
         },
-        // {
-        //     name: "Duração Média",
-        //     data: runsCount,
-        //     component: RunsChart,
-        // },
-        // {
-        //     name: "Distribuição de Resultados",
-        //     data: runsCount,
-        //     component: RunsByStatusChart,
-        // },
+        {
+            name: "Duração (segundos)",
+            data: runDurationStats,
+            component: RunDurationStatsChart,
+        },
+        {
+            name: "Duração Média por Status (segundos)",
+            data: runDurationByStatus,
+            component: AvgDurationByStatusChart,
+        },
     ];
 
     return (
@@ -123,7 +133,11 @@ export default function Page({ params }) {
                         {graphDefinitions.map((graphDefinition) => (
                             <div key={graphDefinition.name} className="h-full min-w-full">
                                 <h3 className="text-lg">{graphDefinition.name}</h3>
-                                <graphDefinition.component chartData={graphDefinition.data} />
+                                {
+                                    graphDefinition.data.length === 0
+                                        ? <EmptyChart />
+                                        : <graphDefinition.component chartData={graphDefinition.data} />
+                                }
                             </div>
                         ))}
                     </div>
@@ -187,127 +201,11 @@ function PolicyVersionsTable({ policyVersions }) {
     );
 }
 
-function RunsChart({ chartData }) {
-    if (chartData.length === 0) {
-        return EmptyChart();
-    }
-
-    const chartConfig = {
-        count: {
-            label: "Execuções",
-            color: "#2563eb",
-        },
-    } satisfies ChartConfig;
-
-    return (
-        <ChartContainer config={chartConfig} className="h-full w-full" >
-            <BarChart accessibilityLayer data={chartData}>
-                <XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    tickMargin={10}
-                    axisLine={false}
-                />
-                <YAxis
-                    type="number"
-                    domain={[0, dataMax => Math.ceil(dataMax / 10) * 10]}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="count" fill="var(--color-count)" radius={4} />
-            </BarChart>
-        </ChartContainer>
-    );
-}
-
-
-function RunsByStatusChart({ chartData }) {
-    console.log("chartData", chartData);
-    if (chartData.length === 0) {
-        return EmptyChart();
-    }
-
-    const chartConfig = {
-        SUCCESS: {
-            label: "Success",
-            color: "hsl(var(--chart-1))",
-        },
-        FAILURE: {
-            label: "Failure",
-            color: "hsl(var(--chart-2))",
-        },
-        STARTED: {
-            label: "Started",
-            color: "hsl(var(--chart-3))",
-        },
-        PENDING: {
-            label: "Pending",
-            color: "hsl(var(--chart-4))",
-        },
-    } satisfies ChartConfig
-
-
-    return (
-        <ChartContainer config={chartConfig} className="h-full w-full" >
-            <BarChart accessibilityLayer data={chartData}>
-                <XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    tickMargin={10}
-                    axisLine={false}
-                />
-                <YAxis
-                    type="number"
-                    domain={[0, dataMax => Math.ceil(dataMax / 10) * 10]}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="SUCCESS" radius={0} stackId="a" fill="var(--color-SUCCESS)" />
-                <Bar dataKey="FAILURE" radius={0} stackId="a" fill="var(--color-FAILURE)" />
-                <Bar dataKey="STARTED" radius={0} stackId="a" fill="var(--color-STARTED)" />
-                <Bar dataKey="PENDING" radius={0} stackId="a" fill="var(--color-PENDING)" />
-            </BarChart>
-        </ChartContainer>
-    );
-}
-
-function RunDurationChart({ chartData }) {
-    if (chartData.length === 0) {
-        return EmptyChart();
-    }
-
-    const chartConfig = {
-        count: {
-            label: "Execuções",
-            color: "#2563eb",
-        },
-    } satisfies ChartConfig;
-
-    return (
-        <ChartContainer config={chartConfig} className="h-full w-full" >
-            <BarChart accessibilityLayer data={chartData}>
-                <XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    tickMargin={10}
-                    axisLine={false}
-                />
-                <YAxis
-                    type="number"
-                    domain={[0, dataMax => Math.ceil(dataMax / 10) * 10]}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="count" fill="var(--color-count)" radius={4} />
-            </BarChart>
-        </ChartContainer>
-    );
-}
 
 function EmptyChart() {
     return (
         <div className="flex items-center justify-center h-full w-full">
-            <p className="text-lg font-semibold text-gray-500">Nenhuma execução registrada.</p>
+            <p className="text-sm font-semibold text-gray-500">Nenhuma execução registrada.</p>
         </div>
     );
 }

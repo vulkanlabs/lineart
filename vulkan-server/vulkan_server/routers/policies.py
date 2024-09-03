@@ -132,51 +132,6 @@ def list_runs_by_policy(policy_id: int, db: Session = Depends(get_db)):
     return runs
 
 
-@router.get("/{policy_id}/runs/count", response_model=list[Any])
-def count_runs_by_policy(
-    policy_id: int,
-    start_date: datetime.date | None = None,
-    end_date: datetime.date | None = None,
-    group_by_status: bool = False,
-    db: Session = Depends(get_db),
-):
-    if end_date is None:
-        end_date = datetime.date.today()
-    if start_date is None:
-        start_date = end_date - datetime.timedelta(days=30)
-
-    active_version = db.query(Policy).filter_by(policy_id=policy_id).first()
-    if active_version is None:
-        raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
-
-    date_clause = F.DATE(Run.created_at).label("date")
-    groupers = []
-    if group_by_status:
-        groupers.append(Run.status.label("status"))
-
-    query = (
-        db.query(
-            date_clause,
-            F.count(Run.run_id).label("count"),
-            *groupers,
-        )
-        .filter(
-            # TODO: Should get runs for all policy versions.
-            (Run.policy_version_id == active_version.active_policy_version_id)
-            & (Run.created_at >= start_date)
-            & (F.DATE(Run.created_at) <= end_date)
-        )
-        .group_by(date_clause, *groupers)
-    )
-    df = pd.read_sql(query.statement, query.session.bind)
-    if len(groupers) > 0:
-        df = df.pivot(
-            index="date", values="count", columns=[c.name for c in groupers]
-        ).reset_index()
-
-    return df.to_dict(orient="records")
-
-
 @router.post("/{policy_id}/runs")
 def create_run_by_policy(
     policy_id: int,
@@ -347,9 +302,9 @@ def _create_policy_version_workspace(
         db.commit()
         try:
             error_msg = response.json()["message"]
-            raise ValueError(f"Failed to create workspace: {error_msg}")
-        except:
-            raise ValueError(f"Failed to create workspace: {status_code}")
+        except requests.exceptions.JSONDecodeError:
+            error_msg = f"Status code: {status_code}"
+        raise ValueError(f"Failed to create workspace: {error_msg}")
 
     response_data = response.json()
     workspace_path = response_data["workspace_path"]
@@ -358,3 +313,136 @@ def _create_policy_version_workspace(
     db.commit()
 
     return response_data["graph"]
+
+
+def _validate_date_range(
+    start_date: datetime.date | None,
+    end_date: datetime.date | None,
+):
+    if start_date is None:
+        start_date = datetime.date.today() - datetime.timedelta(days=30)
+    if end_date is None:
+        end_date = datetime.date.today()
+    return start_date, end_date
+
+
+@router.get("/{policy_id}/runs/duration", response_model=list[Any])
+def run_duration_stats_by_policy(
+    policy_id: int,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    db: Session = Depends(get_db),
+):
+    start_date, end_date = _validate_date_range(start_date, end_date)
+    policy_versions = (
+        db.query(PolicyVersion.policy_version_id).filter_by(policy_id=policy_id).all()
+    )
+    policy_version_ids = [v.policy_version_id for v in policy_versions]
+
+    duration_seconds = (
+        24
+        * 60
+        * 60
+        * (F.julianday(Run.last_updated_at) - F.julianday(Run.created_at))
+    )
+    date_clause = F.DATE(Run.created_at).label("date")
+
+    query = (
+        db.query(
+            date_clause,
+            F.avg(duration_seconds).label("avg_duration"),
+            F.min(duration_seconds).label("min_duration"),
+            F.max(duration_seconds).label("max_duration"),
+        )
+        .filter(
+            (Run.policy_version_id.in_(policy_version_ids))
+            & (Run.created_at >= start_date)
+            & (F.DATE(Run.created_at) <= end_date)
+        )
+        .group_by(date_clause)
+    )
+    df = pd.read_sql(query.statement, query.session.bind)
+    return df.to_dict(orient="records")
+
+
+@router.get("/{policy_id}/runs/duration/by_status", response_model=list[Any])
+def run_duration_stats_by_policy_status(
+    policy_id: int,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    db: Session = Depends(get_db),
+):
+    start_date, end_date = _validate_date_range(start_date, end_date)
+    policy_versions = (
+        db.query(PolicyVersion.policy_version_id).filter_by(policy_id=policy_id).all()
+    )
+    policy_version_ids = [v.policy_version_id for v in policy_versions]
+
+    duration_seconds = (
+        24
+        * 60
+        * 60
+        * (F.julianday(Run.last_updated_at) - F.julianday(Run.created_at))
+    )
+    date_clause = F.DATE(Run.created_at).label("date")
+
+    query = (
+        db.query(
+            date_clause,
+            Run.status,
+            F.avg(duration_seconds).label("avg_duration"),
+        )
+        .filter(
+            (Run.policy_version_id.in_(policy_version_ids))
+            & (Run.created_at >= start_date)
+            & (F.DATE(Run.created_at) <= end_date)
+        )
+        .group_by(date_clause, Run.status)
+    )
+    df = pd.read_sql(query.statement, query.session.bind)
+    df = df.pivot(
+        index=date_clause.name, values="avg_duration", columns=["status"]
+    ).reset_index()
+    return df.to_dict(orient="records")
+
+
+@router.get("/{policy_id}/runs/count", response_model=list[Any])
+def count_runs_by_policy(
+    policy_id: int,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    group_by_status: bool = False,
+    db: Session = Depends(get_db),
+):
+    start_date, end_date = _validate_date_range(start_date, end_date)
+
+    date_clause = F.DATE(Run.created_at).label("date")
+    groupers = []
+    if group_by_status:
+        groupers.append(Run.status.label("status"))
+
+    policy_versions = (
+        db.query(PolicyVersion.policy_version_id).filter_by(policy_id=policy_id).all()
+    )
+    policy_version_ids = [v.policy_version_id for v in policy_versions]
+
+    query = (
+        db.query(
+            date_clause,
+            F.count(Run.run_id).label("count"),
+            *groupers,
+        )
+        .filter(
+            (Run.policy_version_id.in_(policy_version_ids))
+            & (Run.created_at >= start_date)
+            & (F.DATE(Run.created_at) <= end_date)
+        )
+        .group_by(date_clause, *groupers)
+    )
+    df = pd.read_sql(query.statement, query.session.bind)
+    if len(groupers) > 0:
+        df = df.pivot(
+            index="date", values="count", columns=[c.name for c in groupers]
+        ).reset_index()
+
+    return df.to_dict(orient="records")
