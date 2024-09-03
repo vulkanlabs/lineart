@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Callable
 
 from vulkan.core.component import ComponentInstance
 from vulkan.core.dependency import INPUT_NODE
@@ -44,16 +45,20 @@ class Policy(Graph):
         self,
         nodes: list[Node],
         input_schema: dict[str, type],
-        output_callback: callable,
-        components: list[ComponentInstance] = field(default_factory=list),
+        output_callback: Callable,
+        components: list[ComponentInstance] | None = None,
     ):
         assert callable(output_callback), "Output callback must be a callable"
         self.output_callback = output_callback
-        nodes = self._with_output_callback(nodes)
-        all_nodes = [_make_input_node(input_schema), *nodes]
 
-        super().__init__(all_nodes, input_schema)
+        if components is None:
+            components = []
+
+        nodes = self._with_output_callback(nodes)
+        all_nodes = [_make_input_node(input_schema), *nodes, *components]
+
         self.components = components
+        super().__init__(all_nodes, input_schema)
 
     def _with_output_callback(self, nodes: list[Node]) -> list[Node]:
         modified_nodes = []

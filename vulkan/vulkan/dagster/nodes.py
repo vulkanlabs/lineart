@@ -2,7 +2,7 @@ import time
 from abc import ABC, abstractmethod
 from enum import Enum
 from traceback import format_exception_only
-from typing import Any
+from typing import Any, Callable
 
 import requests
 from dagster import In, OpDefinition, OpExecutionContext, Out, Output
@@ -185,12 +185,14 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         description: str,
         return_status: UserStatus,
         dependencies: dict[str, Any],
+        callback: Callable | None = None,
     ):
         super().__init__(
             name=name,
             description=description,
             return_status=return_status,
             dependencies=dependencies,
+            callback=callback,
         )
         self.func = self._fn
 
@@ -212,7 +214,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         )
         if not reported:
             raise ValueError("Callback function failed")
-        return self.return_status
+        return self.return_status.value
 
     def _terminate(
         self,
@@ -247,6 +249,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             description=node.description,
             return_status=node.return_status,
             dependencies=node.dependencies,
+            callback=node.callback,
         )
 
 

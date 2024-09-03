@@ -47,9 +47,20 @@ def make_workspace_definition(
         ),
     }
 
+    # Up to this point, everything should be defined in terms of core elements.
+    # Nodes and components should be configured, resolved, checked in core.
     resolved_policy = resolve_policy(file_location, components_base_dir)
+    # From here, each implementation should handle transforming core to its own
+    # needs, ie. Core -> Dagster
+    # -> Transform nodes in dagster nodes
+    dagster_flow = DagsterFlow(
+        nodes=resolved_policy.flattened_nodes,
+        dependencies=resolved_policy.flattened_dependencies,
+    )
+    print([n.name for n in dagster_flow.nodes])
+    print(dagster_flow.dependencies)
     # By definition, Vulkan dagster worskpaces have a single job.
-    jobs = [resolved_policy.to_job(resources)]
+    jobs = [dagster_flow.to_job(resources)]
     definition = Definitions(
         assets=[],
         jobs=jobs,
@@ -80,26 +91,13 @@ def resolve_policy(file_location: str, components_base_dir: str) -> Policy:
         component = ComponentGraph.from_spec(component_definition, component_instance)
         components.append(component)
 
-    # Up to this point, everything should be defined in terms of core elements.
-    # Nodes and components should be configured, resolved, checked in core.
-    #
-    # From here, each implementation should handle transforming core to its own
-    # needs, ie. Core -> Dagster
-    # -> Transform nodes in dagster nodes
     policy = Policy(
         policy_def.nodes,
         policy_def.input_schema,
         policy_def.output_callback,
         components,
     )
-    resolved_policy = DagsterFlow(
-        nodes=policy.flattened_nodes,
-        dependencies=policy.flattened_dependencies,
-    )
-
-    print([n.name for n in resolved_policy.nodes])
-    print(resolved_policy.dependencies)
-    return resolved_policy
+    return policy
 
 
 def extract_component_definition(file_location):

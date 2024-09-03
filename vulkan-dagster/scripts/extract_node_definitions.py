@@ -1,13 +1,9 @@
 import argparse
 import dataclasses
-import importlib.util
 import json
-import os
-import sys
 
 from vulkan.core.nodes import NodeType
-from vulkan.core.policy import PolicyDefinition
-from vulkan.environment.packing import find_definitions
+from vulkan.dagster.workspace import resolve_policy
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):
@@ -27,14 +23,13 @@ def _to_dict(node):
     return node_
 
 
-def extract_node_definitions(file_location):
-    policies = find_definitions(file_location, PolicyDefinition)
-    if len(policies) != 1:
-        raise ValueError("Expected exactly one PolicyDefinition definition in the module")
+def extract_node_definitions(file_location, components_base_dir):
+    resolved_policy = resolve_policy(file_location, components_base_dir)
 
-    obj = policies[0]
     nodes = {
-        name: _to_dict(node) for name, node in obj.node_definitions.items()
+        node.name: _to_dict(node.node_definition()) 
+        for node 
+        in resolved_policy.nodes
     }
     return nodes
 
@@ -42,9 +37,10 @@ def extract_node_definitions(file_location):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--file_location", type=str)
+    parser.add_argument("--components_base_dir", type=str)
     parser.add_argument("--output_file", type=str)
     args = parser.parse_args()
 
-    nodes = extract_node_definitions(args.file_location)
+    nodes = extract_node_definitions(args.file_location, args.components_base_dir)
     with open(args.output_file, "w") as f:
         json.dump(nodes, f, cls=EnhancedJSONEncoder)

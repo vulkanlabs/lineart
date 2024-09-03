@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from inspect import getsource
-from typing import Any
+from typing import Any, Callable
 
 from vulkan.core.dependency import Dependency
 
@@ -138,6 +138,7 @@ class TerminateNode(Node):
         return_status: str,
         dependencies: dict[str, Any],
         description: str | None = None,
+        callback: Callable | None = None,
     ):
         self.return_status = return_status
         assert dependencies is not None, f"Dependencies not set for TERMINATE op {name}"
@@ -147,6 +148,7 @@ class TerminateNode(Node):
             typ=NodeType.TERMINATE,
             dependencies=dependencies,
         )
+        self.callback = callback
 
     def node_definition(self) -> VulkanNodeDefinition:
         return VulkanNodeDefinition(

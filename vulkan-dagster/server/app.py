@@ -67,14 +67,13 @@ def create_workspace(
         # TODO: we're replacing /workspaces with /definitions as a convenience.
         # We could have a more thorough definition of where the defs are stored.
         definition_path = working_dir.replace("/workspaces", "/definitions", 1)
+        _ = _create_init_file(code_entrypoint, definition_path)
         add_workspace_config(
             DAGSTER_HOME,
             name,
             definition_path,
             module_name,
         )
-        # TODO: install the library AND create an init in the definitions folder
-        _ = _create_init_file(code_entrypoint, definition_path)
 
         tmp_path = "/tmp/nodes.json"
         completed_process = subprocess.run(
@@ -83,6 +82,8 @@ def create_workspace(
                 f"{SCRIPTS_PATH}/extract_node_definitions.py",
                 "--file_location",
                 code_entrypoint,
+                "--components_base_dir",
+                f"{DAGSTER_HOME}/components",
                 "--output_file",
                 tmp_path,
             ],
