@@ -75,6 +75,8 @@ function ComponentVersionsTable({ versions }) {
                 <TableRow>
                     <TableHead>ID</TableHead>
                     <TableHead>Tag</TableHead>
+                    <TableHead>Input Schema</TableHead>
+                    <TableHead>Instance Params Schema</TableHead>
                     <TableHead>Criada Em</TableHead>
                 </TableRow>
             </TableHeader>
@@ -87,6 +89,8 @@ function ComponentVersionsTable({ versions }) {
                     >
                         <TableCell>{entry.component_version_id}</TableCell>
                         <TableCell>{entry.alias}</TableCell>
+                        <TableCell>{entry.input_schema}</TableCell>
+                        <TableCell>{entry.instance_params_schema}</TableCell>
                         <TableCell>{entry.created_at}</TableCell>
                     </TableRow>
                 ))}
