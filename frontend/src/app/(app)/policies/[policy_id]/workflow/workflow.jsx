@@ -88,6 +88,7 @@ function LayoutFlow({ policyId, onNodeClick, onPaneClick }) {
     };
 
     const clickNode = (e, node) => {
+        console.log(node);
         resetClick();
 
         if (node.data.type === "COMPONENT") {
@@ -172,12 +173,13 @@ function makeGraphElements(graphData, options) {
         };
 
         if (parent) {
-            nodeConfig.parentId = parent;
+            nodeConfig.parentId = parent.name;
+            nodeConfig.parentReference = parent.metadata.reference;
         }
 
         if (node.node_type === 'COMPONENT') {
             nodeConfig.children = Object.values(node.metadata.nodes).map(
-                (n) => makeNodes(n, options, node.name)
+                (n) => makeNodes(n, options, node)
             );
             nodeConfig.layoutOptions = options;
             nodeConfig.type = "group";

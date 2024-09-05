@@ -22,8 +22,7 @@ function codeSnippet(clickedNode) {
 function NodeParam({ name, value }) {
     return (
         <div className="grid grid-cols-4 my-2">
-            {/* <h1 className="text-lg font-semibold w-[10em]">{name}</h1> */}
-            <div className="col-span-2 text-lg font-semibold">{name}</div>
+            <div className="col-span-2 text-lg font-normal">{name}</div>
             <div className="col-span-2">{value}</div>
         </div>
     );
@@ -49,7 +48,11 @@ function NodeContent({ clickedNode }) {
             {codeSnippet(clickedNode)}
             {clickedNode.parentId && (
                 <div className="mt-5">
-                    <NodeParam name={"Componente"} value={clickedNode.parentId} />
+                    <h1 className="text-lg font-semibold">Componente</h1>
+                    <div className="mt-3">
+                        <NodeParam name={"Instância"} value={clickedNode.parentId} />
+                        <NodeParam name={"Referência"} value={clickedNode.parentReference} />
+                    </div>
                 </div>
             )}
         </div>
