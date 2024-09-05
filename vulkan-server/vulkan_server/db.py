@@ -82,6 +82,7 @@ class ComponentVersion(Base):
     input_schema = Column(String)
     output_schema = Column(String, nullable=True)
     instance_params_schema = Column(String)
+    node_definitions = Column(String)
     repository = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

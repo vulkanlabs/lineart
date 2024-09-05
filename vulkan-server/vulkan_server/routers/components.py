@@ -1,3 +1,5 @@
+import json
+
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
@@ -43,7 +45,7 @@ def list_components(db: Session = Depends(get_db)):
 @router.post("/{component_id}/versions")
 def create_component_version(
     component_id: int,
-    component_config: schemas.ComponentVersionBase,
+    component_config: schemas.ComponentVersionCreate,
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
     ),
@@ -70,13 +72,13 @@ def create_component_version(
         logger.error(msg)
         raise HTTPException(status_code=500, detail=str(e))
 
-    args = {
-        "component_id": component_id,
-        "input_schema": str(data["input_schema"]),
-        "instance_params_schema": str(data["instance_params_schema"]),
+    component = ComponentVersion(
+        component_id=component_id,
+        input_schema=str(data["input_schema"]),
+        instance_params_schema=str(data["instance_params_schema"]),
+        node_definitions=json.dumps(data["node_definitions"]),
         **component_config.model_dump(),
-    }
-    component = ComponentVersion(**args)
+    )
     db.add(component)
     db.commit()
     logger.info(f"Creating component {component_config.alias}")
@@ -93,6 +95,23 @@ def list_component_versions(component_id: int, db: Session = Depends(get_db)):
     if len(versions) == 0:
         return Response(status_code=204)
     return versions
+
+
+@router.get(
+    "/{component_id}/versions/{component_version_id}",
+    response_model=schemas.ComponentVersion,
+)
+def get_component_version(
+    component_id: int, component_version_id: int, db: Session = Depends(get_db)
+):
+    component_version = (
+        db.query(ComponentVersion)
+        .filter_by(component_version_id=component_version_id)
+        .first()
+    )
+    if component_version is None:
+        return Response(status_code=204)
+    return component_version
 
 
 @router.get(

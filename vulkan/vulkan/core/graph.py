@@ -95,3 +95,16 @@ def _flatten_nodes(nodes: list[Node]) -> list[Node]:
         else:
             flattened_nodes.append(node)
     return flattened_nodes
+
+
+def extract_node_definitions(nodes: list[Node]) -> dict:
+    return {node.name: _to_dict(node.node_definition()) for node in nodes}
+
+
+def _to_dict(node: VulkanNodeDefinition):
+    node_ = node.__dict__.copy()
+    if node.node_type == NodeType.COMPONENT.value:
+        node_["metadata"]["nodes"] = {
+            name: _to_dict(n) for name, n in node.metadata["nodes"].items()
+        }
+    return node_

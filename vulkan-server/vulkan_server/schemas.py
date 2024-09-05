@@ -37,16 +37,18 @@ class Component(ComponentBase):
         from_attributes = True
 
 
-class ComponentVersionBase(BaseModel):
+class ComponentVersionCreate(BaseModel):
     alias: str
     repository: str
 
 
-class ComponentVersion(ComponentVersionBase):
+class ComponentVersion(BaseModel):
     component_id: int
     component_version_id: int
+    alias: str
     input_schema: str
     instance_params_schema: str
+    node_definitions: str
     created_at: datetime
     output_schema: str | None = None
 
