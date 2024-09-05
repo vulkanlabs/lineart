@@ -80,7 +80,8 @@ class ComponentVersion(Base):
     component_id = Column(Integer, ForeignKey("component.component_id"))
     alias = Column(String)
     input_schema = Column(String)
-    output_schema = Column(String)
+    output_schema = Column(String, nullable=True)
+    instance_params_schema = Column(String)
     repository = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

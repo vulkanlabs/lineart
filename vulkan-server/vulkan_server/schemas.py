@@ -39,15 +39,16 @@ class Component(ComponentBase):
 
 class ComponentVersionBase(BaseModel):
     alias: str
-    input_schema: str
-    output_schema: str
     repository: str
 
 
 class ComponentVersion(ComponentVersionBase):
     component_id: int
     component_version_id: int
+    input_schema: str
+    instance_params_schema: str
     created_at: datetime
+    output_schema: str | None = None
 
     class Config:
         from_attributes = True

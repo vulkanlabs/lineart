@@ -44,21 +44,6 @@ def main():
         required=True,
         help="Alias for the version of the component",
     )
-    # TODO: demand input and output schemas after implementing logic in the server
-    component.add_argument(
-        "--input_schema",
-        type=str,
-        required=False,
-        default="",
-        help="Input schema of the component",
-    )
-    component.add_argument(
-        "--output_schema",
-        type=str,
-        required=False,
-        default="",
-        help="Output schema of the component",
-    )
     component.add_argument(
         "--repository_path", type=str, required=True, help="Path to repository"
     )
@@ -90,8 +75,6 @@ def main():
             SERVER_URL,
             args.name,
             args.version,
-            args.input_schema,
-            args.output_schema,
             args.repository_path,
         )
         logging.info(f"Created component {args.name}")
@@ -176,8 +159,6 @@ def create_component(
     server_url: str,
     name: str,
     version: str,
-    input_schema: str,
-    output_schema: str,
     repository: str,
 ):
     if not os.path.exists(repository):
@@ -196,8 +177,6 @@ def create_component(
         f"{server_url}/components/{component_id}/versions",
         json={
             "alias": alias,
-            "input_schema": input_schema,
-            "output_schema": output_schema,
             "repository": base64.b64encode(repository).decode("ascii"),
         },
     )

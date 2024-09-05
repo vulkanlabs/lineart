@@ -4,7 +4,13 @@ from typing import Callable
 from vulkan.core.component import ComponentInstance
 from vulkan.core.dependency import INPUT_NODE
 from vulkan.core.graph import Graph
-from vulkan.core.nodes import InputNode, Node, TerminateNode
+from vulkan.core.nodes import (
+    Node,
+    NodeType,
+    InputNode,
+    TerminateNode,
+    VulkanNodeDefinition,
+)
 
 
 @dataclass
@@ -85,3 +91,16 @@ def _make_input_node(input_schema) -> InputNode:
         description="Input node",
         schema=input_schema,
     )
+
+
+def extract_node_definitions(policy: Policy) -> dict:
+    return {node.name: _to_dict(node.node_definition()) for node in policy.nodes}
+
+
+def _to_dict(node: VulkanNodeDefinition):
+    node_ = node.__dict__.copy()
+    if node.node_type == NodeType.COMPONENT.value:
+        node_["metadata"]["nodes"] = {
+            name: _to_dict(n) for name, n in node.metadata["nodes"].items()
+        }
+    return node_

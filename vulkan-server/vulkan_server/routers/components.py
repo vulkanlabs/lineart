@@ -7,7 +7,6 @@ from vulkan_server.db import (
     Component,
     ComponentVersion,
     ComponentVersionDependency,
-    DBSession,
     Policy,
     PolicyVersion,
     get_db,
@@ -48,6 +47,7 @@ def create_component_version(
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
     ),
+    db: Session = Depends(get_db),
 ):
     try:
         logger.info(
@@ -64,17 +64,22 @@ def create_component_version(
         )
         if response.status_code != 200:
             raise ValueError(f"Failed to create component: {response.status_code}")
+        data = response.json()
     except Exception as e:
         msg = f"Failed to create component {component_config.alias}"
         logger.error(msg)
         raise HTTPException(status_code=500, detail=str(e))
 
-    with DBSession() as db:
-        args = {"component_id": component_id, **component_config.model_dump()}
-        component = ComponentVersion(**args)
-        db.add(component)
-        db.commit()
-        logger.info(f"Creating component {component_config.alias}")
+    args = {
+        "component_id": component_id,
+        "input_schema": str(data["input_schema"]),
+        "instance_params_schema": str(data["instance_params_schema"]),
+        **component_config.model_dump(),
+    }
+    component = ComponentVersion(**args)
+    db.add(component)
+    db.commit()
+    logger.info(f"Creating component {component_config.alias}")
 
     return {"status": "success"}
 

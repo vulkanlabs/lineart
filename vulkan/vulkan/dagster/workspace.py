@@ -2,12 +2,6 @@ import os
 
 from dagster import Definitions, EnvVar, IOManagerDefinition
 
-from vulkan.core.component import (
-    ComponentDefinition,
-    ComponentGraph,
-    check_all_parameters_specified,
-)
-from vulkan.core.policy import Policy, PolicyDefinition
 from vulkan.dagster.io_manager import (
     DB_CONFIG_KEY,
     PUBLISH_IO_MANAGER_KEY,
@@ -17,7 +11,7 @@ from vulkan.dagster.io_manager import (
 )
 from vulkan.dagster.policy import DagsterFlow
 from vulkan.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
-from vulkan.environment.packing import find_definitions, find_package_entrypoint
+from vulkan.environment.loaders import resolve_policy
 
 
 def make_workspace_definition(
@@ -65,45 +59,6 @@ def make_workspace_definition(
         resources={},
     )
     return definition
-
-
-def resolve_policy(file_location: str, components_base_dir: str) -> Policy:
-    policy_defs = find_definitions(file_location, PolicyDefinition)
-    if len(policy_defs) != 1:
-        raise ValueError(
-            f"Expected only one PolicyDefinition in the module, found {len(policy_defs)}"
-        )
-    policy_def: PolicyDefinition = policy_defs[0]
-
-    # TODO: We're not handling installing the component packages.
-    # This will lead to errors if components have dependencies.
-    components = []
-    for component_instance in policy_def.components:
-        alias = component_instance.alias()
-        file_location = find_package_entrypoint(
-            os.path.join(components_base_dir, alias)
-        )
-        component_definition = extract_component_definition(file_location)
-
-        check_all_parameters_specified(component_definition, component_instance)
-        component = ComponentGraph.from_spec(component_definition, component_instance)
-        components.append(component)
-
-    policy = Policy(
-        policy_def.nodes,
-        policy_def.input_schema,
-        policy_def.output_callback,
-        components,
-    )
-    return policy
-
-
-def extract_component_definition(file_location):
-    definitions = find_definitions(file_location, ComponentDefinition)
-    if len(definitions) == 1:
-        return definitions[0]
-    msg = f"Expected only one component definition, found {len(definitions)} in module"
-    raise ValueError(msg)
 
 
 def add_workspace_config(

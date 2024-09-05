@@ -1,5 +1,5 @@
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from vulkan.core.dependency import Dependency
@@ -16,7 +16,7 @@ class InstanceParam:
 class ComponentDefinition:
     nodes: list[Node]
     input_schema: dict[str, type]
-    instance_params_schema: dict[str, type]
+    instance_params_schema: dict[str, type] = field(default_factory=dict)
 
 
 @dataclass
@@ -24,7 +24,7 @@ class ComponentInstanceConfig:
     name: str
     description: str
     dependencies: dict[str, Dependency]
-    instance_params: dict[str, Any]
+    instance_params: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, data: dict) -> "ComponentInstanceConfig":
@@ -149,6 +149,7 @@ class ComponentGraph(Node, Graph):
             dependencies=self.node_dependencies(),
             metadata={
                 "nodes": {n.name: n.node_definition() for n in self.nodes},
+                "reference": self.reference,
             },
         )
 
