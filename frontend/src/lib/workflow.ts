@@ -89,6 +89,7 @@ export default async function layoutGraph(
     options: Dict = defaultElkOptions,
 ): Promise<[NodeLayoutConfig[], EdgeLayoutConfig[]]> {
     const [nodes, edges] = makeGraphElements(graphData, options);
+    console.log(nodes, edges);
     const elk = new ELK();
 
     let modifiedNodes = nodes.filter((node: NodeLayoutConfig) => {
@@ -108,6 +109,7 @@ export default async function layoutGraph(
         return !(fromChildOfClosedComponent || toChildOfClosedComponent);
     });
 
+    console.log(nodes, edges);
     const [layoutedNodes, layoutedEdges] = await getLayoutedElements(
         modifiedNodes,
         modifiedEdges,
@@ -195,7 +197,10 @@ function makeGraphElements(
             return [];
         }
 
-        function __makeEdges(node: any, isComponentIO: boolean = false): EdgeLayoutConfig[] {
+        function __makeEdges(
+            node: NodeDefinition,
+            isComponentIO: boolean = false,
+        ): EdgeLayoutConfig[] {
             return node.dependencies.flatMap((dep: any) => {
                 // TODO: If `dep` is an object, it means that it comes from
                 // a specific output of a node. For now, we discard it, as
@@ -221,7 +226,7 @@ function makeGraphElements(
                 // an edge between the Component and the target node.
                 const depNode = nodesMap[dep];
 
-                if (depNode.parentId) {
+                if (depNode?.parentId) {
                     edge.fromComponentChild = true;
                     edge.fromComponent = depNode.parentId;
 

@@ -11,7 +11,7 @@ export async function fetchComponents(serverUrl: string) {
         .catch((error) => {
             throw Error("Error fetching components", { cause: error });
         });
-};
+}
 
 export async function fetchPolicies(serverUrl: string): Promise<any[]> {
     return fetch(new URL("/policies", serverUrl))
@@ -19,12 +19,12 @@ export async function fetchPolicies(serverUrl: string): Promise<any[]> {
             if (response.status === 204) {
                 return [];
             }
-            return response.json()
+            return response.json();
         })
         .catch((error) => {
             throw new Error("Error fetching policies", { cause: error });
         });
-};
+}
 
 export async function fetchPolicy(serverUrl: string, policyId: number) {
     return fetch(new URL(`/policies/${policyId}`, serverUrl))
@@ -42,57 +42,79 @@ export async function fetchPolicyVersions(serverUrl: string, policyId: number) {
         });
 }
 
-
 export async function fetchComponentVersions(serverUrl: string, componentId: number) {
     return fetch(new URL(`/components/${componentId}/versions`, serverUrl))
-        .then((response) => response.json().catch((error) => {
-            throw new Error("Error parsing response", { cause: error });
-        }))
+        .then((response) =>
+            response.json().catch((error) => {
+                throw new Error("Error parsing response", { cause: error });
+            }),
+        )
         .catch((error) => {
-            throw new Error(`Error fetching component versions for component ${componentId}`, { cause: error });
+            throw new Error(`Error fetching component versions for component ${componentId}`, {
+                cause: error,
+            });
         });
 }
 
-
-
-export async function fetchComponentVersionUsage(
-    serverUrl: string, componentId: number,
+export async function fetchComponentVersion(
+    serverUrl: string,
+    componentId: number,
+    componentVersionId: number,
 ) {
+    return fetch(new URL(`/components/${componentId}/versions/${componentVersionId}`, serverUrl))
+        .then((response) => response.json())
+        .catch((error) => {
+            throw new Error(`Error fetching component version ${componentVersionId}`, {
+                cause: error,
+            });
+        });
+}
+
+export async function fetchComponentVersionUsage(serverUrl: string, componentId: number) {
     return fetch(new URL(`/components/${componentId}/usage`, serverUrl))
-        .then((response) => response.json().catch((error) => {
-            throw new Error("Error parsing response", { cause: error });
-        }))
+        .then((response) =>
+            response.json().catch((error) => {
+                throw new Error("Error parsing response", { cause: error });
+            }),
+        )
         .catch((error) => {
-            throw new Error(`Error fetching component usage for component ${componentId}`, { cause: error });
+            throw new Error(`Error fetching component usage for component ${componentId}`, {
+                cause: error,
+            });
         });
 }
 
-export async function fetchPolicyVersionComponents(
-    serverUrl: string, policyVersionId: number,
-) {
+export async function fetchPolicyVersionComponents(serverUrl: string, policyVersionId: number) {
     return fetch(new URL(`/policyVersions/${policyVersionId}/components`, serverUrl))
-        .then((response) => response.json().catch((error) => {
-            throw new Error("Error parsing response", { cause: error });
-        }))
+        .then((response) =>
+            response.json().catch((error) => {
+                throw new Error("Error parsing response", { cause: error });
+            }),
+        )
         .catch((error) => {
             throw new Error(
                 `Error fetching component usage for policy version ${policyVersionId}`,
-                { cause: error });
+                { cause: error },
+            );
         });
 }
 
 const formatISODate = (date: Date) => formatISO(date, { representation: "date" });
 
 export async function fetchRunsCount(
-    serverUrl: string, policyId: number, startDate: Date, endDate: Date, groupByStatus: boolean = false,
+    serverUrl: string,
+    policyId: number,
+    startDate: Date,
+    endDate: Date,
+    groupByStatus: boolean = false,
 ) {
     return fetch(
-        (new URL(`/policies/${policyId}/runs/count?`, serverUrl)).toString()
-        + new URLSearchParams({
-            start_date: formatISODate(startDate),
-            end_date: formatISODate(endDate),
-            group_by_status: groupByStatus.toString(),
-        })
+        new URL(`/policies/${policyId}/runs/count?`, serverUrl).toString() +
+            new URLSearchParams({
+                start_date: formatISODate(startDate),
+                end_date: formatISODate(endDate),
+                group_by_status: groupByStatus.toString(),
+            }),
     )
         .then((response) => response.json())
         .catch((error) => {
@@ -101,35 +123,44 @@ export async function fetchRunsCount(
 }
 
 export async function fetchRunDurationStats(
-    serverUrl: string, policyId: number, startDate: Date, endDate: Date,
+    serverUrl: string,
+    policyId: number,
+    startDate: Date,
+    endDate: Date,
 ) {
     return fetch(
-        (new URL(`/policies/${policyId}/runs/duration?`, serverUrl)).toString()
-        + new URLSearchParams({
-            start_date: formatISODate(startDate),
-            end_date: formatISODate(endDate),
-        })
+        new URL(`/policies/${policyId}/runs/duration?`, serverUrl).toString() +
+            new URLSearchParams({
+                start_date: formatISODate(startDate),
+                end_date: formatISODate(endDate),
+            }),
     )
         .then((response) => response.json())
         .catch((error) => {
-            throw new Error(`Error fetching run duration stats for policy ${policyId}`, { cause: error });
+            throw new Error(`Error fetching run duration stats for policy ${policyId}`, {
+                cause: error,
+            });
         });
 }
 
-
 export async function fetchRunDurationByStatus(
-    serverUrl: string, policyId: number, startDate: Date, endDate: Date,
+    serverUrl: string,
+    policyId: number,
+    startDate: Date,
+    endDate: Date,
 ) {
     return fetch(
-        (new URL(`/policies/${policyId}/runs/duration/by_status?`, serverUrl)).toString()
-        + new URLSearchParams({
-            start_date: formatISODate(startDate),
-            end_date: formatISODate(endDate),
-        })
+        new URL(`/policies/${policyId}/runs/duration/by_status?`, serverUrl).toString() +
+            new URLSearchParams({
+                start_date: formatISODate(startDate),
+                end_date: formatISODate(endDate),
+            }),
     )
         .then((response) => response.json())
         .catch((error) => {
-            throw new Error(`Error fetching run duration stats for policy ${policyId}`, { cause: error });
+            throw new Error(`Error fetching run duration stats for policy ${policyId}`, {
+                cause: error,
+            });
         });
 }
 
@@ -138,8 +169,7 @@ export async function fetchPolicyVersionData(serverUrl: string, policyId: number
     const policyVersionId = await fetch(policyUrl)
         .then((res) => res.json())
         .catch((error) => {
-            throw new Error("Failed to fetch policy version id for policy",
-                { cause: error });
+            throw new Error("Failed to fetch policy version id for policy", { cause: error });
         })
         .then((response) => {
             if (response.active_policy_version_id === null) {
@@ -147,7 +177,6 @@ export async function fetchPolicyVersionData(serverUrl: string, policyId: number
             }
             return response.active_policy_version_id;
         });
-
 
     if (policyVersionId === null) {
         throw new Error(`Policy ${policyId} has no active version`);
