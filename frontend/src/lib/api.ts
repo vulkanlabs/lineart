@@ -132,3 +132,32 @@ export async function fetchRunDurationByStatus(
             throw new Error(`Error fetching run duration stats for policy ${policyId}`, { cause: error });
         });
 }
+
+export async function fetchPolicyVersionData(serverUrl: string, policyId: number) {
+    const policyUrl = new URL(`/policies/${policyId}`, serverUrl);
+    const policyVersionId = await fetch(policyUrl)
+        .then((res) => res.json())
+        .catch((error) => {
+            throw new Error("Failed to fetch policy version id for policy",
+                { cause: error });
+        })
+        .then((response) => {
+            if (response.active_policy_version_id === null) {
+                throw new Error(`Policy ${policyId} has no active version`);
+            }
+            return response.active_policy_version_id;
+        });
+
+
+    if (policyVersionId === null) {
+        throw new Error(`Policy ${policyId} has no active version`);
+    }
+
+    const versionUrl = new URL(`/policyVersions/${policyVersionId}`, serverUrl);
+    const data = await fetch(versionUrl)
+        .then((res) => res.json())
+        .catch((error) => {
+            throw new Error("Failed to fetch graph data", { cause: error });
+        });
+    return data;
+}
