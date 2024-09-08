@@ -13,12 +13,12 @@ import {
 import { roundUp } from "@/lib/chart";
 
 const runStatusChartConfig = {
-    SUCCESS: {
-        label: "Success",
-        color: "hsl(var(--chart-1))",
-    },
     FAILURE: {
         label: "Failure",
+        color: "hsl(var(--chart-1))",
+    },
+    SUCCESS: {
+        label: "Success",
         color: "hsl(var(--chart-2))",
     },
     STARTED: {

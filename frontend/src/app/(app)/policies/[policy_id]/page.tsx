@@ -128,22 +128,20 @@ export default function Page({ params }) {
                 </div>
                 {/* Note: This is ugly, but not defining height or using h-full
                           causes the graph to not render. */}
-                <div className="flex h-3/4 w-3/4">
-                    <div className="grid grid-cols-2 flex-shrink gap-4">
-                        {graphDefinitions.map((graphDefinition) => (
-                            <div key={graphDefinition.name} className="h-full min-w-full">
-                                <h3 className="text-lg">{graphDefinition.name}</h3>
-                                {
-                                    graphDefinition.data.length === 0
-                                        ? <EmptyChart />
-                                        : <graphDefinition.component chartData={graphDefinition.data} />
-                                }
-                            </div>
-                        ))}
-                    </div>
+                <div className="grid grid-cols-2 gap-4 w-full px-16 overflow-y-scroll">
+                    {graphDefinitions.map((graphDefinition) => (
+                        <div key={graphDefinition.name} className="col-span-1 px-8 pb-8">
+                            <h3 className="text-lg">{graphDefinition.name}</h3>
+                            {
+                                graphDefinition.data.length === 0
+                                    ? <EmptyChart />
+                                    : <graphDefinition.component chartData={graphDefinition.data} />
+                            }
+                        </div>
+                    ))}
                 </div>
-            </div>
-        </div >
+            </div >
+        </div>
     );
 }
 
