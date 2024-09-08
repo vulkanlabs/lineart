@@ -14,7 +14,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 from vulkan.core.run import RunStatus
-from vulkan.environment.config import PackagingMode
 
 Base = declarative_base()
 

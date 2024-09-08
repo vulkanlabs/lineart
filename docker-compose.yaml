@@ -7,19 +7,9 @@ services:
         PYTHON_VERSION: "3.12"
         VULKAN_SERVER_DB_PATH: "/app/vulkan-server/db.sqlite3"
     env_file:
-      - ".env"
+      - "images/app.env"
     ports:
       - "6001:6001"
-  echo:
-    image: kennethreitz/httpbin
-    env_file:
-      - ".env"
-  testdata:
-    build:
-      context: .
-      dockerfile: images/testdata.Dockerfile
-      args:
-        PYTHON_VERSION: "3.12"
   dagster:
     build: 
       context: .
@@ -37,6 +27,7 @@ services:
       - "3001:3001"
     env_file:
       - ".env"
+      - "images/dagster.env"
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
@@ -59,3 +50,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+  # Mock services
+  echo:
+    image: kennethreitz/httpbin
+    env_file:
+      - "images/echo.env"
+  testdata:
+    build:
+      context: .
+      dockerfile: images/testdata.Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
