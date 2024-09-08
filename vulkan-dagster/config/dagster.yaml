@@ -13,8 +13,8 @@ storage:
       hostname: run-db
       port: 5432
       username:
-        env: DAGSTER_POSTGRES_USER
+        env: VULKAN_DB_USER
       password:
-        env: DAGSTER_POSTGRES_PASSWORD
+        env: VULKAN_DB_PASSWORD
       db_name:
-        env: DAGSTER_POSTGRES_DB
+        env: VULKAN_DB_DATABASE
