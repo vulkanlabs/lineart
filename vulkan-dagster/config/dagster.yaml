@@ -10,8 +10,10 @@ telemetry:
 storage:
   postgres:
     postgres_db:
-      hostname: run-db
-      port: 5432
+      hostname:
+        env: VULKAN_DB_HOST
+      port: 
+        env: VULKAN_DB_PORT
       username:
         env: VULKAN_DB_USER
       password:

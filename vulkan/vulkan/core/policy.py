@@ -4,13 +4,7 @@ from typing import Callable
 from vulkan.core.component import ComponentInstance
 from vulkan.core.dependency import INPUT_NODE
 from vulkan.core.graph import Graph
-from vulkan.core.nodes import (
-    Node,
-    NodeType,
-    InputNode,
-    TerminateNode,
-    VulkanNodeDefinition,
-)
+from vulkan.core.nodes import InputNode, Node, TerminateNode
 
 
 @dataclass

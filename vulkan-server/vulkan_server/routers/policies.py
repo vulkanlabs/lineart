@@ -333,12 +333,7 @@ def run_duration_stats_by_policy(
     )
     policy_version_ids = [v.policy_version_id for v in policy_versions]
 
-    duration_seconds = (
-        24
-        * 60
-        * 60
-        * (F.julianday(Run.last_updated_at) - F.julianday(Run.created_at))
-    )
+    duration_seconds = F.extract("epoch", Run.last_updated_at - Run.created_at)
     date_clause = F.DATE(Run.created_at).label("date")
 
     query = (
@@ -372,12 +367,7 @@ def run_duration_stats_by_policy_status(
     )
     policy_version_ids = [v.policy_version_id for v in policy_versions]
 
-    duration_seconds = (
-        24
-        * 60
-        * 60
-        * (F.julianday(Run.last_updated_at) - F.julianday(Run.created_at))
-    )
+    duration_seconds = F.extract("epoch", Run.last_updated_at - Run.created_at)
     date_clause = F.DATE(Run.created_at).label("date")
 
     query = (

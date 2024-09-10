@@ -128,7 +128,7 @@ export default function Page({ params }) {
                 </div>
                 {/* Note: This is ugly, but not defining height or using h-full
                           causes the graph to not render. */}
-                <div className="grid grid-cols-2 gap-4 w-full px-16 overflow-y-scroll">
+                <div className="grid grid-cols-2 gap-4 w-[85%] px-16 overflow-y-scroll">
                     {graphDefinitions.map((graphDefinition) => (
                         <div key={graphDefinition.name} className="col-span-1 px-8 pb-8">
                             <h3 className="text-lg">{graphDefinition.name}</h3>
