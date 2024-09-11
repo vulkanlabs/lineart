@@ -1,8 +1,7 @@
-.PHONY: init_db
-init_db:
-	rm server/example.db
-	poetry run python server/db.py
-
+.PHONY: clean
+clean:
+	docker-compose down --volumes --remove-orphans
+	
 .PHONY: images
 images:
 	docker-compose build --no-cache
