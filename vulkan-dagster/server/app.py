@@ -19,7 +19,7 @@ app = FastAPI()
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
-DAGSTER_HOME = os.getenv("DAGSTER_HOME")
+VULKAN_HOME = os.getenv("VULKAN_HOME")
 VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
 SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
 
@@ -39,7 +39,7 @@ def create_workspace(
 
     try:
         workspace_path = unpack_workspace(
-            f"{DAGSTER_HOME}/workspaces", name, repository
+            f"{VULKAN_HOME}/workspaces", name, repository
         )
 
         config = VulkanWorkspaceConfig.from_workspace(workspace_path)
@@ -65,7 +65,7 @@ def create_workspace(
         raise HTTPException(status_code=500, detail=e)
 
     add_workspace_config(
-        DAGSTER_HOME,
+        VULKAN_HOME,
         name,
         definition_path,
         module_name,
@@ -84,7 +84,7 @@ def create_component(
     alias: Annotated[str, Form()],
     repository: Annotated[str, Form()],
 ):
-    base_dir = f"{DAGSTER_HOME}/components"
+    base_dir = f"{VULKAN_HOME}/components"
     component_path = os.path.join(base_dir, alias)
     if os.path.exists(component_path):
         raise HTTPException(
@@ -159,7 +159,7 @@ def _resolve_policy(workspace_name, code_entrypoint, workspace_path):
             "--file_location",
             code_entrypoint,
             "--components_base_dir",
-            f"{DAGSTER_HOME}/components",
+            f"{VULKAN_HOME}/components",
             "--output_file",
             tmp_path,
         ],
@@ -219,7 +219,7 @@ def _install_components(workspace_name, required_components):
 def _create_init_file(code_entrypoint, working_dir) -> str:
     os.makedirs(working_dir, exist_ok=True)
     init_path = os.path.join(working_dir, "__init__.py")
-    components_base_dir = os.path.join(DAGSTER_HOME, "components")
+    components_base_dir = os.path.join(VULKAN_HOME, "components")
 
     init_contents = f"""
 from vulkan.dagster.workspace import make_workspace_definition

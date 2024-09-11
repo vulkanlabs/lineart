@@ -22,6 +22,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    volumes:
+      - postgres_data_app_db:/var/lib/postgresql/data
   dagster:
     build: 
       context: .
@@ -30,7 +32,7 @@ services:
         PYTHON_VERSION: "3.12"
         DAGSTER_HOME: /opt/dagster
         DAGSTER_PORT: 3000
-        VULKAN_HOME: /opt
+        VULKAN_HOME: /opt/vulkan
         VULKAN_PORT: 3001
         VULKAN_SCRIPTS_PATH: /opt/scripts
         VULKAN_VENVS_PATH: /opt/venvs
@@ -43,6 +45,9 @@ services:
     depends_on:
       dagster-db:
         condition: service_healthy
+    volumes:
+      - dagster_vulkan_home:/opt/vulkan
+      - dagster_venvs:/opt/venvs
   dagster-db:
     build:
       context: .
@@ -57,6 +62,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    volumes:
+      - postgres_data_dagster_db:/var/lib/postgresql/data
   # Mock services
   echo:
     image: kennethreitz/httpbin
@@ -68,3 +75,9 @@ services:
       dockerfile: images/testdata.Dockerfile
       args:
         PYTHON_VERSION: "3.12"
+
+volumes:
+  postgres_data_app_db:
+  postgres_data_dagster_db:
+  dagster_vulkan_home:
+  dagster_venvs:

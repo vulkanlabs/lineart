@@ -9,11 +9,11 @@ venv_name=${VULKAN_VENVS_PATH}/${component_alias}
 uv venv ${venv_name}
 source ${venv_name}/bin/activate
 
-uv pip install $DAGSTER_HOME/components/${component_alias}
+uv pip install ${VULKAN_HOME}/components/${component_alias}
 
 python ${scripts_path}/load_component_definition.py \
     --alias ${component_alias} \
-    --components_base_dir $DAGSTER_HOME/components \
+    --components_base_dir ${VULKAN_HOME}/components \
     --output_file ${tmp_path}
 
 deactivate
