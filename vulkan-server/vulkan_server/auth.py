@@ -14,7 +14,7 @@ def get_project_id(
     db: Session = Depends(get_db),
 ) -> str:
     project_user = (
-        db.query(ProjectUser, User).filter_by(User.user_auth_id == x_user_id).first()
+        db.query(ProjectUser).join(User).filter(User.user_auth_id == x_user_id).first()
     )
     if project_user is None:
         raise HTTPException(
