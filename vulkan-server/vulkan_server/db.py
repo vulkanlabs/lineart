@@ -60,6 +60,29 @@ class DagsterWorkspaceStatus(enum.Enum):
     CREATION_FAILED = "CREATION_FAILED"
 
 
+class Role(enum.Enum):
+    ADMIN = "ADMIN"
+    MEMBER = "MEMBER"
+
+
+class Project(Base):
+    __tablename__ = "project"
+
+    project_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    project_name = Column(String, unique=True)
+
+
+class RoleAssignment(Base):
+    __tablename__ = "role_assignment"
+
+    role_assignment_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    project_id = Column(Uuid, ForeignKey("project.project_id"))
+    user_id = Column(Uuid, ForeignKey("users.user_id"))
+    role = Column(Enum(Role))
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -71,11 +94,6 @@ class User(Base):
     last_updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-
-
-# Team
-# TeamMembers
-# Roles
 
 
 class Policy(Base):
@@ -98,7 +116,7 @@ class Policy(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
     # Access Control
-    owner_id = Column(Uuid, ForeignKey("users.user_id"))
+    project_id = Column(Uuid, ForeignKey("project.project_id"))
 
 
 class Component(Base):
