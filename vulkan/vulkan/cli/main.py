@@ -3,16 +3,18 @@ import json
 import logging
 import os
 from argparse import ArgumentParser
+from functools import lru_cache
 
 import requests
 import yaml
 
 from vulkan.cli.auth import TOKEN_PATH
+from vulkan.cli.logger import init_logger
 from vulkan.core.component import component_version_alias
 from vulkan.environment.config import VulkanWorkspaceConfig
 from vulkan.environment.packing import pack_workspace
 
-logging.basicConfig(level=logging.DEBUG)
+logger = init_logger(__name__)
 
 
 def main():
@@ -91,13 +93,18 @@ def config_environment():
     pass
 
 
+@lru_cache(maxsize=1)
 def _retrieve_credentials():
     if not os.path.exists(TOKEN_PATH):
         raise FileNotFoundError(f"Credentials path not found: {TOKEN_PATH}")
 
     with open(TOKEN_PATH, "r") as fp:
         creds = json.load(fp)
-    return creds
+
+    return {
+        "x-stack-access-token": creds["access_token"],
+        "x-stack-refresh-token": creds["refresh_token"],
+    }
 
 
 def create_policy(server_url, name, description, input_schema):
@@ -182,7 +189,12 @@ def create_component(
     if not os.path.isdir(repository):
         raise ValueError(f"Path is not a directory: {repository}")
 
-    response = requests.post(f"{server_url}/components", json={"name": name})
+    response = requests.post(
+        f"{server_url}/components",
+        json={"name": name},
+        headers=_retrieve_credentials(),
+    )
+    logger.debug(response.json())
     component_id = response.json()["component_id"]
 
     alias = component_version_alias(name, version)

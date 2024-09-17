@@ -9,9 +9,9 @@ from vulkan.cli.logger import init_logger
 TOKEN_PATH = os.path.expanduser("~/.config/vulkan/user.json")
 # TODO: This should handled by a Vulkan public API.
 # That way we abstract the auth provider away.
-AUTH_SIGNIN_URL = os.get_env("AUTH_SIGNIN_URL")
-STACK_PUBLISHABLE_CLIENT_KEY = os.get_env("STACK_PUBLISHABLE_CLIENT_KEY")
-STACK_PROJECT_ID = os.get_env("STACK_PROJECT_ID")
+AUTH_SIGNIN_URL = os.getenv("AUTH_SIGNIN_URL")
+STACK_PUBLISHABLE_CLIENT_KEY = os.getenv("STACK_PUBLISHABLE_CLIENT_KEY")
+STACK_PROJECT_ID = os.getenv("STACK_PROJECT_ID")
 
 
 logger = init_logger(__name__)
