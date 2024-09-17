@@ -79,7 +79,7 @@ class User(Base):
 class Policy(Base):
     __tablename__ = "policy"
 
-    policy_id = Column(Integer, primary_key=True, autoincrement=True)
+    policy_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     name = Column(String)
     description = Column(String)
     input_schema = Column(String, nullable=True)
@@ -123,8 +123,8 @@ class ComponentVersion(Base):
 class PolicyVersion(Base):
     __tablename__ = "policy_version"
 
-    policy_version_id = Column(Integer, primary_key=True, autoincrement=True)
-    policy_id = Column(Integer, ForeignKey("policy.policy_id"))
+    policy_version_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    policy_id = Column(Uuid, ForeignKey("policy.policy_id"))
     alias = Column(String)
     status = Column(Enum(PolicyVersionStatus))
     repository = Column(String)
@@ -134,6 +134,8 @@ class PolicyVersion(Base):
     last_updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    # Access Control
+    owner_id = Column(Uuid, ForeignKey("users.user_id"))
 
 
 class ComponentVersionDependency(Base):

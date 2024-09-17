@@ -18,7 +18,6 @@ from vulkan_server.db import (
     ComponentVersionDependency,
     DagsterWorkspace,
     DagsterWorkspaceStatus,
-    DBSession,
     Policy,
     PolicyVersion,
     PolicyVersionStatus,
@@ -37,7 +36,7 @@ router = APIRouter(
 
 @router.get("/", response_model=list[schemas.Policy])
 def list_policies(
-    user_id=Depends(get_user_id),
+    user_id: str = Depends(get_user_id),
     db: Session = Depends(get_db),
 ):
     policies = db.query(Policy).filter_by(owner_id=user_id).all()
@@ -50,7 +49,7 @@ def list_policies(
 @router.post("/")
 def create_policy(
     config: schemas.PolicyBase,
-    user_id=Depends(get_user_id),
+    user_id: str = Depends(get_user_id),
     db: Session = Depends(get_db),
 ):
     policy = Policy(owner_id=user_id, **config.model_dump())
@@ -61,8 +60,12 @@ def create_policy(
 
 
 @router.get("/{policy_id}", response_model=schemas.Policy)
-def get_policy(policy_id, db: Session = Depends(get_db)):
-    policy = db.query(Policy).filter_by(policy_id=policy_id).first()
+def get_policy(
+    policy_id: str,
+    user_id: str = Depends(get_user_id),
+    db: Session = Depends(get_db),
+):
+    policy = db.query(Policy).filter_by(policy_id=policy_id, owner_id=user_id).first()
     if policy is None:
         return Response(status_code=204)
     return policy
@@ -70,57 +73,65 @@ def get_policy(policy_id, db: Session = Depends(get_db)):
 
 @router.put("/{policy_id}")
 def update_policy(
-    policy_id: int,
+    policy_id: str,
     config: schemas.PolicyUpdate,
+    user_id: str = Depends(get_user_id),
+    db: Session = Depends(get_db),
 ):
-    with DBSession() as db:
-        policy = db.query(Policy).filter_by(policy_id=policy_id).first()
-        if policy is None:
-            msg = f"Tried to update non-existent policy {policy_id}"
+    policy = db.query(Policy).filter_by(policy_id=policy_id, owner_id=user_id).first()
+    if policy is None:
+        msg = f"Tried to update non-existent policy {policy_id}"
+        raise HTTPException(status_code=400, detail=msg)
+
+    if (
+        config.active_policy_version_id is not None
+        and config.active_policy_version_id != policy.active_policy_version_id
+    ):
+        policy_version = (
+            db.query(PolicyVersion)
+            .filter_by(
+                policy_version_id=config.active_policy_version_id, owner_id=user_id
+            )
+            .first()
+        )
+        if policy_version is None:
+            msg = f"Tried to use non-existent version {config.active_policy_version_id} for policy {policy_id}"
             raise HTTPException(status_code=400, detail=msg)
 
-        if (
-            config.active_policy_version_id is not None
-            and config.active_policy_version_id != policy.active_policy_version_id
-        ):
-            policy_version = (
-                db.query(PolicyVersion)
-                .filter_by(policy_version_id=config.active_policy_version_id)
-                .first()
-            )
-            if policy_version is None:
-                msg = f"Tried to use non-existent version {config.active_policy_version_id} for policy {policy_id}"
-                raise HTTPException(status_code=400, detail=msg)
+        if policy_version.status != PolicyVersionStatus.VALID:
+            msg = f"Tried to use invalid version {config.active_policy_version_id} for policy {policy_id}"
+            raise HTTPException(status_code=400, detail=msg)
 
-            if policy_version.status != PolicyVersionStatus.VALID:
-                msg = f"Tried to use invalid version {config.active_policy_version_id} for policy {policy_id}"
-                raise HTTPException(status_code=400, detail=msg)
+        policy.active_policy_version_id = config.active_policy_version_id
 
-            policy.active_policy_version_id = config.active_policy_version_id
+    if config.name is not None and config.name != policy.name:
+        policy.name = config.name
+    if config.description is not None and config.description != policy.description:
+        policy.description = config.description
 
-        if config.name is not None and config.name != policy.name:
-            policy.name = config.name
-        if config.description is not None and config.description != policy.description:
-            policy.description = config.description
-
-        db.commit()
-        msg = f"Policy {policy_id} updated: active version set to {config.active_policy_version_id}"
-        logger.info(msg)
-        return {
-            "policy_id": policy.policy_id,
-            "active_policy_version_id": policy.active_policy_version_id,
-        }
+    db.commit()
+    msg = f"Policy {policy_id} updated: active version set to {config.active_policy_version_id}"
+    logger.info(msg)
+    return {
+        "policy_id": policy.policy_id,
+        "active_policy_version_id": policy.active_policy_version_id,
+    }
 
 
 @router.get(
     "/{policy_id}/versions",
     response_model=list[schemas.PolicyVersion],
 )
-def list_policy_versions(policy_id: int, db: Session = Depends(get_db)):
+def list_policy_versions(
+    policy_id: str,
+    user_id: str = Depends(get_user_id),
+    db: Session = Depends(get_db),
+):
     policy_versions = (
         db.query(PolicyVersion)
         .filter_by(
             policy_id=policy_id,
+            owner_id=user_id,
             status=PolicyVersionStatus.VALID,
         )
         .all()
@@ -131,8 +142,14 @@ def list_policy_versions(policy_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{policy_id}/runs", response_model=list[schemas.Run])
-def list_runs_by_policy(policy_id: int, db: Session = Depends(get_db)):
-    policy_versions = db.query(PolicyVersion).filter_by(policy_id=policy_id).all()
+def list_runs_by_policy(
+    policy_id: str,
+    user_id: str = Depends(get_user_id),
+    db: Session = Depends(get_db),
+):
+    policy_versions = (
+        db.query(PolicyVersion).filter_by(policy_id=policy_id, owner_id=user_id).all()
+    )
     policy_version_ids = [v.policy_version_id for v in policy_versions]
     runs = db.query(Run).filter(Run.policy_version_id.in_(policy_version_ids)).all()
     if len(runs) == 0:
@@ -142,8 +159,9 @@ def list_runs_by_policy(policy_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{policy_id}/runs")
 def create_run_by_policy(
-    policy_id: int,
+    policy_id: str,
     execution_config_str: Annotated[str, Body(embed=True)],
+    user_id: str = Depends(get_user_id),
     db: Session = Depends(get_db),
     dagster_client=Depends(get_dagster_client),
     server_config: definitions.VulkanServerConfig = Depends(
@@ -155,7 +173,7 @@ def create_run_by_policy(
     except Exception as e:
         HTTPException(status_code=400, detail=e)
 
-    policy = db.query(Policy).filter_by(policy_id=policy_id).first()
+    policy = db.query(Policy).filter_by(policy_id=policy_id, owner_id=user_id).first()
     if policy is None:
         raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
     if policy.active_policy_version_id is None:
@@ -166,7 +184,7 @@ def create_run_by_policy(
 
     version = (
         db.query(PolicyVersion)
-        .filter_by(policy_version_id=policy.active_policy_version_id)
+        .filter_by(policy_version_id=policy.active_policy_version_id, owner_id=user_id)
         .first()
     )
 
@@ -188,8 +206,10 @@ def create_run_by_policy(
 
 @router.post("/{policy_id}/versions")
 def create_policy_version(
-    policy_id: int,
+    policy_id: str,
     config: schemas.PolicyVersionCreate,
+    user_id: str = Depends(get_user_id),
+    db: Session = Depends(get_db),
     dagster_client=Depends(get_dagster_client),
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
@@ -202,81 +222,83 @@ def create_policy_version(
         # unique version of the code.
         config.alias = config.repository_version
 
-    with DBSession() as db:
-        policy = db.query(Policy).filter_by(policy_id=policy_id).first()
-        if policy is None:
-            msg = f"Tried to create a version for non-existent policy {policy_id}"
-            raise HTTPException(status_code=400, detail=msg)
+    policy = db.query(Policy).filter_by(policy_id=policy_id, owner_id=user_id).first()
+    if policy is None:
+        msg = f"Tried to create a version for non-existent policy {policy_id}"
+        raise HTTPException(status_code=400, detail=msg)
 
-        version = PolicyVersion(
-            policy_id=policy_id,
-            alias=config.alias,
+    version = PolicyVersion(
+        policy_id=policy_id,
+        alias=config.alias,
+        repository=config.repository,
+        repository_version=config.repository_version,
+        status=PolicyVersionStatus.INVALID,
+        owner_id=user_id,
+    )
+    db.add(version)
+    db.commit()
+
+    version_name = definitions.version_name(policy_id, version.policy_version_id)
+    try:
+        graph, required_components = _create_policy_version_workspace(
+            db=db,
+            server_url=server_config.vulkan_dagster_server_url,
+            policy_version_id=version.policy_version_id,
+            name=version_name,
             repository=config.repository,
-            repository_version=config.repository_version,
-            status=PolicyVersionStatus.INVALID,
         )
-        db.add(version)
-        db.commit()
 
-        version_name = definitions.version_name(policy_id, version.policy_version_id)
-        try:
-            graph, required_components = _create_policy_version_workspace(
-                db=db,
-                server_url=server_config.vulkan_dagster_server_url,
-                policy_version_id=version.policy_version_id,
-                name=version_name,
-                repository=config.repository,
+        if required_components:
+            matched = (
+                db.query(ComponentVersion)
+                .filter(ComponentVersion.alias.in_(required_components))
+                .all()
             )
+            missing = set(required_components) - set([m.alias for m in matched])
+            if missing:
+                msg = f"Missing components: {missing}"
+                raise HTTPException(status_code=400, detail=msg)
 
-            if required_components:
-                matched = (
-                    db.query(ComponentVersion)
-                    .filter(ComponentVersion.alias.in_(required_components))
-                    .all()
+            for m in matched:
+                dependency = ComponentVersionDependency(
+                    component_version_id=m.component_version_id,
+                    policy_version_id=version.policy_version_id,
                 )
-                missing = set(required_components) - set([m.alias for m in matched])
-                if missing:
-                    msg = f"Missing components: {missing}"
-                    raise HTTPException(status_code=400, detail=msg)
+                db.add(dependency)
 
-                for m in matched:
-                    dependency = ComponentVersionDependency(
-                        component_version_id=m.component_version_id,
-                        policy_version_id=version.policy_version_id,
-                    )
-                    db.add(dependency)
-
-        except Exception as e:
-            msg = f"Failed to create workspace for policy {policy_id} version {config.alias}"
-            logger.error(msg)
-            logger.error(e)
-            raise HTTPException(status_code=500, detail=e)
-        finally:
-            db.commit()
-
-        msg = f"Creating version {version.policy_version_id} ({config.alias}) for policy {policy_id}"
-        logger.info(msg)
-
-        loaded_repos = update_repository(dagster_client)
-        if loaded_repos.get(version_name, False) is False:
-            msg = f"Failed to load repository {version_name}"
-            logger.error(msg)
-            logger.error(f"Repository load status: {loaded_repos}")
-            raise HTTPException(status_code=500, detail=msg)
-
-        version.status = PolicyVersionStatus.VALID
-        version.graph_definition = json.dumps(graph)
+    except Exception as e:
+        msg = (
+            f"Failed to create workspace for policy {policy_id} version {config.alias}"
+        )
+        logger.error(msg)
+        logger.error(e)
+        raise HTTPException(status_code=500, detail=e)
+    finally:
         db.commit()
 
-        msg = f"Policy version {config.alias} created for policy {policy_id} with status {version.status}"
-        logger.info(msg)
+    msg = f"Creating version {version.policy_version_id} ({config.alias}) for policy {policy_id}"
+    logger.info(msg)
 
-        return {
-            "policy_id": policy_id,
-            "policy_version_id": version.policy_version_id,
-            "alias": version.alias,
-            "status": version.status.value,
-        }
+    loaded_repos = update_repository(dagster_client)
+    if loaded_repos.get(version_name, False) is False:
+        msg = f"Failed to load repository {version_name}"
+        logger.error(msg)
+        logger.error(f"Repository load status: {loaded_repos}")
+        raise HTTPException(status_code=500, detail=msg)
+
+    version.status = PolicyVersionStatus.VALID
+    version.graph_definition = json.dumps(graph)
+    db.commit()
+
+    msg = f"Policy version {config.alias} created for policy {policy_id} with status {version.status}"
+    logger.info(msg)
+
+    return {
+        "policy_id": policy_id,
+        "policy_version_id": version.policy_version_id,
+        "alias": version.alias,
+        "status": version.status.value,
+    }
 
 
 def _create_policy_version_workspace(
@@ -330,7 +352,7 @@ def _validate_date_range(
 
 @router.get("/{policy_id}/runs/duration", response_model=list[Any])
 def run_duration_stats_by_policy(
-    policy_id: int,
+    policy_id: str,
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
     db: Session = Depends(get_db),
@@ -364,7 +386,7 @@ def run_duration_stats_by_policy(
 
 @router.get("/{policy_id}/runs/duration/by_status", response_model=list[Any])
 def run_duration_stats_by_policy_status(
-    policy_id: int,
+    policy_id: str,
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
     db: Session = Depends(get_db),
@@ -400,7 +422,7 @@ def run_duration_stats_by_policy_status(
 
 @router.get("/{policy_id}/runs/count", response_model=list[Any])
 def count_runs_by_policy(
-    policy_id: int,
+    policy_id: str,
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
     group_by_status: bool = False,
