@@ -41,6 +41,9 @@ STACK_SECRET_SERVER_KEY = os.getenv("STACK_SECRET_SERVER_KEY")
 async def auth_user(request: Request, call_next):
     x_stack_access_token = request.headers.get("x-stack-access-token")
     x_stack_refresh_token = request.headers.get("x-stack-refresh-token")
+    # TODO: This leaves some endpoints unprotected. We should add a list of
+    # endpoints that should be authenticated through a diffent method (i.e.,
+    # for internal API calls).
     if not x_stack_access_token or not x_stack_refresh_token:
         return await call_next(request)
 
@@ -56,7 +59,7 @@ async def auth_user(request: Request, call_next):
     user_id = response.json()["id"]
 
     if user_id is None:
-        return HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=401, detail="Unauthorized")
     logger.info(request.headers)
     # Create a new headers object with the user id entry.
     # We add this both to the headers and the scope for consistency.
