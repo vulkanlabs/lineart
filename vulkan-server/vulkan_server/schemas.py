@@ -3,6 +3,50 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class ProjectBase(BaseModel):
+    name: str
+
+
+class Project(ProjectBase):
+    project_id: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class UserBase(BaseModel):
+    user_auth_id: str
+    email: str
+    name: str
+
+
+class User(UserBase):
+    user_id: str
+    created_at: datetime
+    last_updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ProjectUserCreate(BaseModel):
+    user_id: str
+    role: str
+
+
+class ProjectUserBase(ProjectUserCreate):
+    project_id: str
+
+
+class ProjectUser(ProjectUserBase):
+    project_user_id: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class PolicyBase(BaseModel):
     name: str
     description: str
@@ -32,7 +76,7 @@ class ComponentBase(BaseModel):
 
 class Component(ComponentBase):
     component_id: str
-    owner_id: str
+    project_id: str
 
     class Config:
         from_attributes = True
@@ -52,7 +96,7 @@ class ComponentVersion(BaseModel):
     node_definitions: str
     created_at: datetime
     output_schema: str | None = None
-    owner_id: str
+    project_id: str
 
     class Config:
         from_attributes = True

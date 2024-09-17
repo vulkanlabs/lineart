@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from vulkan_server import definitions, schemas
-from vulkan_server.auth import get_user_id
+from vulkan_server.auth import get_project_id
 from vulkan_server.db import (
     Component,
     ComponentVersion,
@@ -29,10 +29,10 @@ router = APIRouter(
 @router.post("/", response_model=schemas.Component)
 def create_component(
     config: schemas.ComponentBase,
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    component = Component(owner_id=user_id, **config.model_dump())
+    component = Component(project_id=project_id, **config.model_dump())
     db.add(component)
     db.commit()
     logger.info(f"Creating component {config.name}")
@@ -41,10 +41,10 @@ def create_component(
 
 @router.get("/", response_model=list[schemas.Component])
 def list_components(
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    components = db.query(Component).filter_by(owner_id=user_id).all()
+    components = db.query(Component).filter_by(project_id=project_id).all()
     if len(components) == 0:
         return Response(status_code=204)
     return components
@@ -54,7 +54,7 @@ def list_components(
 def create_component_version(
     component_id: str,
     component_config: schemas.ComponentVersionCreate,
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
     ),
@@ -86,7 +86,7 @@ def create_component_version(
         input_schema=str(data["input_schema"]),
         instance_params_schema=str(data["instance_params_schema"]),
         node_definitions=json.dumps(data["node_definitions"]),
-        owner_id=user_id,
+        project_id=project_id,
         **component_config.model_dump(),
     )
     db.add(component)
@@ -102,12 +102,12 @@ def create_component_version(
 )
 def list_component_versions(
     component_id: str,
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     versions = (
         db.query(ComponentVersion)
-        .filter_by(component_id=component_id, owner_id=user_id)
+        .filter_by(component_id=component_id, project_id=project_id)
         .all()
     )
     if len(versions) == 0:
@@ -122,12 +122,12 @@ def list_component_versions(
 def get_component_version(
     component_id: str,
     component_version_id: str,
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     component_version = (
         db.query(ComponentVersion)
-        .filter_by(component_version_id=component_version_id, owner_id=user_id)
+        .filter_by(component_version_id=component_version_id, project_id=project_id)
         .first()
     )
     if component_version is None:
@@ -162,7 +162,7 @@ def list_component_usage(
 
 def list_component_version_usage(
     component_version_id: str,
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ) -> list[schemas.ComponentVersionDependencyExpanded]:
     component_version_uses = (
@@ -180,7 +180,7 @@ def list_component_version_usage(
             ComponentVersion.component_id,
             Component.name,
         )
-        .filter_by(component_version_id=component_version_id, owner_id=user_id)
+        .filter_by(component_version_id=component_version_id, project_id=project_id)
         .first()
     )
 

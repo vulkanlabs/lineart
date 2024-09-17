@@ -9,7 +9,7 @@ from sqlalchemy import func as F
 from sqlalchemy.orm import Session
 
 from vulkan_server import definitions, schemas
-from vulkan_server.auth import get_user_id
+from vulkan_server.auth import get_project_id
 from vulkan_server.dagster.client import get_dagster_client
 from vulkan_server.dagster.launch_run import launch_run
 from vulkan_server.dagster.trigger_run import update_repository
@@ -36,10 +36,10 @@ router = APIRouter(
 
 @router.get("/", response_model=list[schemas.Policy])
 def list_policies(
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    policies = db.query(Policy).filter_by(owner_id=user_id).all()
+    policies = db.query(Policy).filter_by(project_id=project_id).all()
     if len(policies) == 0:
         return Response(status_code=204)
     return policies
@@ -48,10 +48,10 @@ def list_policies(
 @router.post("/")
 def create_policy(
     config: schemas.PolicyBase,
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    policy = Policy(owner_id=user_id, **config.model_dump())
+    policy = Policy(project_id=project_id, **config.model_dump())
     db.add(policy)
     db.commit()
     logger.info(f"Policy {config.name} created")
@@ -61,10 +61,10 @@ def create_policy(
 @router.get("/{policy_id}", response_model=schemas.Policy)
 def get_policy(
     policy_id: str,
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    policy = db.query(Policy).filter_by(policy_id=policy_id, owner_id=user_id).first()
+    policy = db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
     if policy is None:
         return Response(status_code=204)
     return policy
@@ -74,10 +74,10 @@ def get_policy(
 def update_policy(
     policy_id: str,
     config: schemas.PolicyUpdate,
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    policy = db.query(Policy).filter_by(policy_id=policy_id, owner_id=user_id).first()
+    policy = db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
     if policy is None:
         msg = f"Tried to update non-existent policy {policy_id}"
         raise HTTPException(status_code=400, detail=msg)
@@ -89,7 +89,7 @@ def update_policy(
         policy_version = (
             db.query(PolicyVersion)
             .filter_by(
-                policy_version_id=config.active_policy_version_id, owner_id=user_id
+                policy_version_id=config.active_policy_version_id, project_id=project_id
             )
             .first()
         )
@@ -123,14 +123,14 @@ def update_policy(
 )
 def list_policy_versions(
     policy_id: str,
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     policy_versions = (
         db.query(PolicyVersion)
         .filter_by(
             policy_id=policy_id,
-            owner_id=user_id,
+            project_id=project_id,
             status=PolicyVersionStatus.VALID,
         )
         .all()
@@ -143,11 +143,11 @@ def list_policy_versions(
 @router.get("/{policy_id}/runs", response_model=list[schemas.Run])
 def list_runs_by_policy(
     policy_id: str,
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     policy_versions = (
-        db.query(PolicyVersion).filter_by(policy_id=policy_id, owner_id=user_id).all()
+        db.query(PolicyVersion).filter_by(policy_id=policy_id, project_id=project_id).all()
     )
     policy_version_ids = [v.policy_version_id for v in policy_versions]
     runs = db.query(Run).filter(Run.policy_version_id.in_(policy_version_ids)).all()
@@ -160,7 +160,7 @@ def list_runs_by_policy(
 def create_run_by_policy(
     policy_id: str,
     execution_config_str: Annotated[str, Body(embed=True)],
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     dagster_client=Depends(get_dagster_client),
     server_config: definitions.VulkanServerConfig = Depends(
@@ -172,7 +172,7 @@ def create_run_by_policy(
     except Exception as e:
         HTTPException(status_code=400, detail=e)
 
-    policy = db.query(Policy).filter_by(policy_id=policy_id, owner_id=user_id).first()
+    policy = db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
     if policy is None:
         raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
     if policy.active_policy_version_id is None:
@@ -183,7 +183,9 @@ def create_run_by_policy(
 
     version = (
         db.query(PolicyVersion)
-        .filter_by(policy_version_id=policy.active_policy_version_id, owner_id=user_id)
+        .filter_by(
+            policy_version_id=policy.active_policy_version_id, project_id=project_id
+        )
         .first()
     )
 
@@ -207,7 +209,7 @@ def create_run_by_policy(
 def create_policy_version(
     policy_id: str,
     config: schemas.PolicyVersionCreate,
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     dagster_client=Depends(get_dagster_client),
     server_config: definitions.VulkanServerConfig = Depends(
@@ -221,7 +223,7 @@ def create_policy_version(
         # unique version of the code.
         config.alias = config.repository_version
 
-    policy = db.query(Policy).filter_by(policy_id=policy_id, owner_id=user_id).first()
+    policy = db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
     if policy is None:
         msg = f"Tried to create a version for non-existent policy {policy_id}"
         raise HTTPException(status_code=400, detail=msg)
@@ -232,7 +234,7 @@ def create_policy_version(
         repository=config.repository,
         repository_version=config.repository_version,
         status=PolicyVersionStatus.INVALID,
-        owner_id=user_id,
+        project_id=project_id,
     )
     db.add(version)
     db.commit()

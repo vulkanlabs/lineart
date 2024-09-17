@@ -69,13 +69,14 @@ class Project(Base):
     __tablename__ = "project"
 
     project_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    project_name = Column(String, unique=True)
+    name = Column(String, unique=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-class RoleAssignment(Base):
-    __tablename__ = "role_assignment"
+class ProjectUser(Base):
+    __tablename__ = "project_user"
 
-    role_assignment_id = Column(
+    project_user_id = Column(
         Uuid, primary_key=True, server_default=func.gen_random_uuid()
     )
     project_id = Column(Uuid, ForeignKey("project.project_id"))
@@ -124,7 +125,7 @@ class Component(Base):
 
     component_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     name = Column(String)
-    owner_id = Column(Uuid, ForeignKey("users.user_id"))
+    project_id = Column(Uuid, ForeignKey("project.project_id"))
 
 
 class ComponentVersion(Base):
@@ -141,7 +142,7 @@ class ComponentVersion(Base):
     node_definitions = Column(String)
     repository = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    owner_id = Column(Uuid, ForeignKey("users.user_id"))
+    project_id = Column(Uuid, ForeignKey("project.project_id"))
 
 
 class PolicyVersion(Base):
@@ -161,7 +162,7 @@ class PolicyVersion(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
     # Access Control
-    owner_id = Column(Uuid, ForeignKey("users.user_id"))
+    project_id = Column(Uuid, ForeignKey("project.project_id"))
 
 
 class ComponentVersionDependency(Base):

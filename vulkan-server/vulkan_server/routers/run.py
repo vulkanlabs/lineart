@@ -8,7 +8,7 @@ from vulkan_server import schemas
 from vulkan_server.db import DBSession, Run, StepMetadata, get_db
 from vulkan_server.logger import init_logger
 
-logger = init_logger("policies")
+logger = init_logger("runs")
 router = APIRouter(
     prefix="/runs",
     tags=["runs"],

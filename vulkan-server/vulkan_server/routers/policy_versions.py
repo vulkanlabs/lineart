@@ -5,7 +5,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from vulkan_server import definitions, schemas
-from vulkan_server.auth import get_user_id
+from vulkan_server.auth import get_project_id
 from vulkan_server.dagster.client import get_dagster_client
 from vulkan_server.dagster.launch_run import launch_run
 from vulkan_server.db import (
@@ -30,12 +30,12 @@ router = APIRouter(
 @router.get("/{policy_version_id}", response_model=schemas.PolicyVersion)
 def get_policy_version(
     policy_version_id: str,
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     policy_version = (
         db.query(PolicyVersion)
-        .filter_by(policy_version_id=policy_version_id, owner_id=user_id)
+        .filter_by(policy_version_id=policy_version_id, project_id=project_id)
         .first()
     )
     if policy_version is None:
@@ -50,7 +50,7 @@ def create_run_by_policy_version(
     config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
     ),
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     dagster_client=Depends(get_dagster_client),
 ):
@@ -61,7 +61,7 @@ def create_run_by_policy_version(
 
     version = (
         db.query(PolicyVersion)
-        .filter_by(policy_version_id=policy_version_id, owner_id=user_id)
+        .filter_by(policy_version_id=policy_version_id, project_id=project_id)
         .first()
     )
     if version is None:
@@ -97,12 +97,12 @@ def list_runs_by_policy_version(policy_version_id: str, db: Session = Depends(ge
 )
 def list_dependencies_by_policy_version(
     policy_version_id: str,
-    user_id: str = Depends(get_user_id),
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     policy_version = (
         db.query(PolicyVersion)
-        .filter_by(policy_version_id=policy_version_id, owner_id=user_id)
+        .filter_by(policy_version_id=policy_version_id, project_id=project_id)
         .first()
     )
     if policy_version is None:
