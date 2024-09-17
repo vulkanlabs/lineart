@@ -27,6 +27,22 @@ router = APIRouter(
 )
 
 
+@router.get("/{policy_version_id}", response_model=schemas.PolicyVersion)
+def get_policy_version(
+    policy_version_id: str,
+    user_id: str = Depends(get_user_id),
+    db: Session = Depends(get_db),
+):
+    policy_version = (
+        db.query(PolicyVersion)
+        .filter_by(policy_version_id=policy_version_id, owner_id=user_id)
+        .first()
+    )
+    if policy_version is None:
+        return Response(status_code=204)
+    return policy_version
+
+
 @router.post("/{policy_version_id}/runs")
 def create_run_by_policy_version(
     policy_version_id: str,
@@ -80,10 +96,14 @@ def list_runs_by_policy_version(policy_version_id: str, db: Session = Depends(ge
     response_model=list[schemas.ComponentVersionDependencyExpanded],
 )
 def list_dependencies_by_policy_version(
-    policy_version_id: str, db: Session = Depends(get_db)
+    policy_version_id: str,
+    user_id: str = Depends(get_user_id),
+    db: Session = Depends(get_db),
 ):
     policy_version = (
-        db.query(PolicyVersion).filter_by(policy_version_id=policy_version_id).first()
+        db.query(PolicyVersion)
+        .filter_by(policy_version_id=policy_version_id, owner_id=user_id)
+        .first()
     )
     if policy_version is None:
         raise ValueError(f"Policy version {policy_version_id} not found")
@@ -128,19 +148,3 @@ def list_dependencies_by_policy_version(
         )
 
     return dependencies
-
-
-@router.get("/{policy_version_id}", response_model=schemas.PolicyVersion)
-def get_policy_version(
-    policy_version_id: str,
-    user_id: str = Depends(get_user_id),
-    db: Session = Depends(get_db),
-):
-    policy_version = (
-        db.query(PolicyVersion)
-        .filter_by(policy_version_id=policy_version_id, owner_id=user_id)
-        .first()
-    )
-    if policy_version is None:
-        return Response(status_code=204)
-    return policy_version

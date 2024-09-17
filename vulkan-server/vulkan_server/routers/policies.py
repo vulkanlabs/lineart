@@ -45,7 +45,6 @@ def list_policies(
     return policies
 
 
-# TODO: Use this as the model for authenticating routes
 @router.post("/")
 def create_policy(
     config: schemas.PolicyBase,
@@ -240,6 +239,8 @@ def create_policy_version(
 
     version_name = definitions.version_name(policy_id, version.policy_version_id)
     try:
+        # TODO: We need to resolve required components before installing.
+        # This way we can check if the user has access to components used.
         graph, required_components = _create_policy_version_workspace(
             db=db,
             server_url=server_config.vulkan_dagster_server_url,

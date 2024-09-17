@@ -78,7 +78,8 @@ def create_workspace(
         "workspace_path": workspace_path,
     }
 
-
+# TODO: We need to segregate workspaces to enable users to 
+# create components without colliding with other users' components.
 @app.post("/components", response_model=schemas.ComponentConfig)
 def create_component(
     alias: Annotated[str, Form()],

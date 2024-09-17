@@ -141,7 +141,6 @@ def get_component_version(
 )
 def list_component_usage(
     component_id: str,
-    user_id: str = Depends(get_user_id),
     db: Session = Depends(get_db),
 ):
     component_versions = (
@@ -181,7 +180,7 @@ def list_component_version_usage(
             ComponentVersion.component_id,
             Component.name,
         )
-        .filter_by(component_version_id=component_version_id)
+        .filter_by(component_version_id=component_version_id, owner_id=user_id)
         .first()
     )
 
