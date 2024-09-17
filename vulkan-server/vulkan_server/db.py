@@ -102,14 +102,15 @@ class Policy(Base):
 class Component(Base):
     __tablename__ = "component"
 
-    component_id = Column(Integer, primary_key=True, autoincrement=True)
+    component_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     name = Column(String)
+    owner_id = Column(Uuid, ForeignKey("users.user_id"))
 
 
 class ComponentVersion(Base):
     __tablename__ = "component_version"
 
-    component_version_id = Column(Integer, primary_key=True, autoincrement=True)
+    component_version_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     component_id = Column(Integer, ForeignKey("component.component_id"))
     alias = Column(String)
     input_schema = Column(String)
@@ -118,6 +119,7 @@ class ComponentVersion(Base):
     node_definitions = Column(String)
     repository = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    owner_id = Column(Uuid, ForeignKey("users.user_id"))
 
 
 class PolicyVersion(Base):

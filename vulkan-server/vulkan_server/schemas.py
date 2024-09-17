@@ -31,7 +31,8 @@ class ComponentBase(BaseModel):
 
 
 class Component(ComponentBase):
-    component_id: int
+    component_id: str
+    owner_id: str
 
     class Config:
         from_attributes = True
@@ -43,23 +44,24 @@ class ComponentVersionCreate(BaseModel):
 
 
 class ComponentVersion(BaseModel):
-    component_id: int
-    component_version_id: int
+    component_id: str
+    component_version_id: str
     alias: str
     input_schema: str
     instance_params_schema: str
     node_definitions: str
     created_at: datetime
     output_schema: str | None = None
+    owner_id: str
 
     class Config:
         from_attributes = True
 
 
 class ComponentVersionDependencyExpanded(BaseModel):
-    component_id: int
+    component_id: str
     component_name: str
-    component_version_id: int
+    component_version_id: str
     component_version_alias: str
     policy_id: int
     policy_version_id: int
