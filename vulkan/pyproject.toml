@@ -14,4 +14,4 @@ dependencies = [
 ]
 
 [project.scripts]
-vulkan = "vulkan.cli.main:main"
+vulkan = "vulkan.cli.main:cli"
