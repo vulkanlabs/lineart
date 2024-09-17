@@ -4,11 +4,12 @@ from typing import Annotated, Any
 
 import pandas as pd
 import requests
-from fastapi import APIRouter, Body, Depends, Header, HTTPException, Response
+from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy import func as F
 from sqlalchemy.orm import Session
 
 from vulkan_server import definitions, schemas
+from vulkan_server.auth import get_user_id
 from vulkan_server.dagster.client import get_dagster_client
 from vulkan_server.dagster.launch_run import launch_run
 from vulkan_server.dagster.trigger_run import update_repository
@@ -22,7 +23,6 @@ from vulkan_server.db import (
     PolicyVersion,
     PolicyVersionStatus,
     Run,
-    User,
     get_db,
 )
 from vulkan_server.logger import init_logger
@@ -33,22 +33,6 @@ router = APIRouter(
     tags=["policies"],
     responses={404: {"description": "Not found"}},
 )
-
-
-def get_user_id(
-    x_user_id: Annotated[str, Header()],
-    db: Session = Depends(get_db),
-) -> str:
-    if x_user_id is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    user = db.query(User).filter_by(user_auth_id=x_user_id).first()
-    if user is None:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve user. Contact the administrator.",
-        )
-    return user.user_id
 
 
 @router.get("/", response_model=list[schemas.Policy])

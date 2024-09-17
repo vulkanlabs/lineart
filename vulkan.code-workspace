@@ -18,6 +18,7 @@
 		"files.autoSave": "afterDelay",
 		"[python]": {
 			"editor.formatOnType": true,
+			"editor.formatOnSave": true,
 			"editor.codeActionsOnSave": {
 				"source.organizeImports": "explicit",
 				"source.fixAll": "explicit"
