@@ -4,7 +4,7 @@ from typing import Annotated, Any
 
 import pandas as pd
 import requests
-from fastapi import APIRouter, Body, Depends, HTTPException, Response
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Response
 from sqlalchemy import func as F
 from sqlalchemy.orm import Session
 
@@ -22,6 +22,7 @@ from vulkan_server.db import (
     PolicyVersion,
     PolicyVersionStatus,
     Run,
+    User,
     get_db,
 )
 from vulkan_server.logger import init_logger
@@ -34,22 +35,45 @@ router = APIRouter(
 )
 
 
+def get_user_id(
+    x_user_id: Annotated[str, Header()],
+    db: Session = Depends(get_db),
+) -> str:
+    if x_user_id is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    user = db.query(User).filter_by(user_auth_id=x_user_id).first()
+    if user is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve user. Contact the administrator.",
+        )
+    return user.user_id
+
+
 @router.get("/", response_model=list[schemas.Policy])
-def list_policies(db: Session = Depends(get_db)):
-    policies = db.query(Policy).all()
+def list_policies(
+    user_id=Depends(get_user_id),
+    db: Session = Depends(get_db),
+):
+    policies = db.query(Policy).filter_by(owner_id=user_id).all()
     if len(policies) == 0:
         return Response(status_code=204)
     return policies
 
 
+# TODO: Use this as the model for authenticating routes
 @router.post("/")
-def create_policy(config: schemas.PolicyBase):
-    with DBSession() as db:
-        policy = Policy(**config.model_dump())
-        db.add(policy)
-        db.commit()
-        logger.info(f"Policy {config.name} created")
-        return {"policy_id": policy.policy_id, "name": policy.name}
+def create_policy(
+    config: schemas.PolicyBase,
+    user_id=Depends(get_user_id),
+    db: Session = Depends(get_db),
+):
+    policy = Policy(owner_id=user_id, **config.model_dump())
+    db.add(policy)
+    db.commit()
+    logger.info(f"Policy {config.name} created")
+    return {"policy_id": policy.policy_id, "name": policy.name}
 
 
 @router.get("/{policy_id}", response_model=schemas.Policy)

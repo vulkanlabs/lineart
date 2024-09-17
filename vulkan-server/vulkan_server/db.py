@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Uuid,
     create_engine,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -22,12 +23,20 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_DATABASE = os.getenv("DB_DATABASE")
-if DB_USER is None or DB_PASSWORD is None or DB_HOST is None or DB_PORT is None or DB_DATABASE is None:
+if (
+    DB_USER is None
+    or DB_PASSWORD is None
+    or DB_HOST is None
+    or DB_PORT is None
+    or DB_DATABASE is None
+):
     raise ValueError(
         "Please set the following environment variables: DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_DATABASE"
     )
 
-connection_str = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_DATABASE}"
+connection_str = (
+    f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_DATABASE}"
+)
 engine = create_engine(connection_str, echo=True)
 DBSession = sessionmaker(bind=engine)
 
@@ -51,6 +60,22 @@ class DagsterWorkspaceStatus(enum.Enum):
     CREATION_FAILED = "CREATION_FAILED"
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    user_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    user_auth_id = Column(String, unique=True)
+    email = Column(String, unique=True)
+    name = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    
+# Team
+# TeamMembers
+# Roles
+
 class Policy(Base):
     __tablename__ = "policy"
 
@@ -70,6 +95,8 @@ class Policy(Base):
     last_updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    # Access Control
+    owner_id = Column(Uuid, ForeignKey("users.user_id"))
 
 
 class Component(Base):

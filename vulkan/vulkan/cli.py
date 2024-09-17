@@ -98,6 +98,9 @@ def create_policy(server_url, name, description, input_schema):
             "input_schema": input_schema,
             "output_schema": "",
         },
+        headers={
+            # TODO: this should come from a user config
+        }
     )
     assert response.status_code == 200, "Failed to create policy"
     policy_id = response.json()["policy_id"]
