@@ -71,10 +71,12 @@ class User(Base):
     last_updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    
+
+
 # Team
 # TeamMembers
 # Roles
+
 
 class Policy(Base):
     __tablename__ = "policy"
@@ -87,7 +89,7 @@ class Policy(Base):
     # We might want to have a split between versions.
     # I don't know a good way to do that yet.
     active_policy_version_id = Column(
-        Integer,
+        Uuid,
         ForeignKey("policy_version.policy_version_id"),
         nullable=True,
     )
@@ -110,8 +112,10 @@ class Component(Base):
 class ComponentVersion(Base):
     __tablename__ = "component_version"
 
-    component_version_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    component_id = Column(Integer, ForeignKey("component.component_id"))
+    component_version_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    component_id = Column(Uuid, ForeignKey("component.component_id"))
     alias = Column(String)
     input_schema = Column(String)
     output_schema = Column(String, nullable=True)
@@ -125,7 +129,9 @@ class ComponentVersion(Base):
 class PolicyVersion(Base):
     __tablename__ = "policy_version"
 
-    policy_version_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    policy_version_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
     policy_id = Column(Uuid, ForeignKey("policy.policy_id"))
     alias = Column(String)
     status = Column(Enum(PolicyVersionStatus))
@@ -146,9 +152,9 @@ class ComponentVersionDependency(Base):
     component_version_dependency_id = Column(
         Integer, primary_key=True, autoincrement=True
     )
-    policy_version_id = Column(Integer, ForeignKey("policy_version.policy_version_id"))
+    policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
     component_version_id = Column(
-        Integer, ForeignKey("component_version.component_version_id")
+        Uuid, ForeignKey("component_version.component_version_id")
     )
 
 
@@ -156,7 +162,9 @@ class DagsterWorkspace(Base):
     __tablename__ = "dagster_workspace"
 
     policy_version_id = Column(
-        Integer, ForeignKey("policy_version.policy_version_id"), primary_key=True
+        Uuid,
+        ForeignKey("policy_version.policy_version_id"),
+        primary_key=True,
     )
     status = Column(Enum(DagsterWorkspaceStatus))
     path = Column(String, nullable=True)
@@ -168,7 +176,7 @@ class Run(Base):
     __tablename__ = "run"
 
     run_id = Column(Integer, primary_key=True, autoincrement=True)
-    policy_version_id = Column(Integer, ForeignKey("policy.policy_id"))
+    policy_version_id = Column(Uuid, ForeignKey("policy.policy_id"))
     status = Column(Enum(RunStatus))
     result = Column(String, nullable=True)
     dagster_run_id = Column(String, nullable=True)

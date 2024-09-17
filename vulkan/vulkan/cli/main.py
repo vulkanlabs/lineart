@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 import os
 from argparse import ArgumentParser
@@ -6,6 +7,7 @@ from argparse import ArgumentParser
 import requests
 import yaml
 
+from vulkan.cli.auth import TOKEN_PATH
 from vulkan.core.component import component_version_alias
 from vulkan.environment.config import VulkanWorkspaceConfig
 from vulkan.environment.packing import pack_workspace
@@ -89,6 +91,15 @@ def config_environment():
     pass
 
 
+def _retrieve_credentials():
+    if not os.path.exists(TOKEN_PATH):
+        raise FileNotFoundError(f"Credentials path not found: {TOKEN_PATH}")
+
+    with open(TOKEN_PATH, "r") as fp:
+        creds = json.load(fp)
+    return creds
+
+
 def create_policy(server_url, name, description, input_schema):
     response = requests.post(
         f"{server_url}/policies",
@@ -98,9 +109,7 @@ def create_policy(server_url, name, description, input_schema):
             "input_schema": input_schema,
             "output_schema": "",
         },
-        headers={
-            # TODO: this should come from a user config
-        }
+        headers=_retrieve_credentials(),
     )
     assert response.status_code == 200, "Failed to create policy"
     policy_id = response.json()["policy_id"]
@@ -149,7 +158,11 @@ def create_policy_version(
     }
 
     # TODO: send repository as file upload
-    response = requests.post(f"{server_url}/policies/{policy_id}/versions", json=body)
+    response = requests.post(
+        f"{server_url}/policies/{policy_id}/versions",
+        json=body,
+        headers=_retrieve_credentials(),
+    )
     assert (
         response.status_code == 200
     ), f"Failed to create policy version: {response.content}"
@@ -182,6 +195,7 @@ def create_component(
             "alias": alias,
             "repository": base64.b64encode(repository).decode("ascii"),
         },
+        headers=_retrieve_credentials(),
     )
     assert (
         response.status_code == 200
@@ -194,6 +208,7 @@ def register_active_version(server_url, policy_id, policy_version_id):
     response = requests.put(
         f"{server_url}/policies/{policy_id}",
         json={"active_policy_version_id": policy_version_id},
+        headers=_retrieve_credentials(),
     )
     assert response.status_code == 200, "Failed to activate policy version"
 
