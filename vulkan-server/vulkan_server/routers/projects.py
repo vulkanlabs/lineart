@@ -1,34 +1,31 @@
-import json
 from typing import Annotated
 
-import requests
-from fastapi import APIRouter, Body, Depends, HTTPException, Response
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from vulkan_server import definitions, schemas
-from vulkan_server.auth import get_project_id
+from vulkan_server import schemas
 from vulkan_server.db import (
-    User,
     Project,
     ProjectUser,
+    User,
     get_db,
 )
 from vulkan_server.logger import init_logger
 
-logger = init_logger("project")
+logger = init_logger("projects")
 router = APIRouter(
-    prefix="/project",
-    tags=["project"],
+    prefix="/projects",
+    tags=["projects"],
     responses={404: {"description": "Not found"}},
 )
 
 
 @router.post("/", response_model=schemas.Project)
 def create_project(
-    project: schemas.ProjectBase,
+    name: Annotated[str, Body(embed=True)],
     db: Session = Depends(get_db),
 ):
-    project = Project(**project.model_dump())
+    project = Project(name=name)
     db.add(project)
     db.commit()
     return project

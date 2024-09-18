@@ -28,6 +28,9 @@ app.add_middleware(
 app.include_router(routers.components.router)
 app.include_router(routers.policies.router)
 app.include_router(routers.policy_versions.router)
+app.include_router(routers.projects.router)
+app.include_router(routers.runs.router)
+app.include_router(routers.users.router)
 
 
 logger = init_logger("vulkan_server")
@@ -56,7 +59,7 @@ async def auth_user(request: Request, call_next):
         "x-stack-refresh-token": x_stack_refresh_token,
     }
     response = requests.get(url, headers=headers)
-    user_id = response.json()["id"]
+    user_id = response.json().get("id", None)
 
     if user_id is None:
         raise HTTPException(status_code=401, detail="Unauthorized")

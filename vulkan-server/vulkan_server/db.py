@@ -73,6 +73,19 @@ class Project(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    user_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    user_auth_id = Column(String, unique=True)
+    email = Column(String, unique=True)
+    name = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class ProjectUser(Base):
     __tablename__ = "project_user"
 
@@ -82,15 +95,6 @@ class ProjectUser(Base):
     project_id = Column(Uuid, ForeignKey("project.project_id"))
     user_id = Column(Uuid, ForeignKey("users.user_id"))
     role = Column(Enum(Role))
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    user_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    user_auth_id = Column(String, unique=True)
-    email = Column(String, unique=True)
-    name = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -169,7 +173,7 @@ class ComponentVersionDependency(Base):
     __tablename__ = "component_version_dependency"
 
     component_version_dependency_id = Column(
-        Integer, primary_key=True, autoincrement=True
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
     )
     policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
     component_version_id = Column(
@@ -194,7 +198,7 @@ class DagsterWorkspace(Base):
 class Run(Base):
     __tablename__ = "run"
 
-    run_id = Column(Integer, primary_key=True, autoincrement=True)
+    run_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     policy_version_id = Column(Uuid, ForeignKey("policy.policy_id"))
     status = Column(Enum(RunStatus))
     result = Column(String, nullable=True)
@@ -208,9 +212,11 @@ class Run(Base):
 class StepMetadata(Base):
     __tablename__ = "step_metadata"
 
-    step_metadata_id = Column(Integer, primary_key=True, autoincrement=True)
+    step_metadata_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    run_id = Column(Integer, ForeignKey("run.run_id"))
+    run_id = Column(Uuid, ForeignKey("run.run_id"))
     step_name = Column(String)
     node_type = Column(String)
     start_time = Column(Float)

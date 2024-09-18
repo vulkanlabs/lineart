@@ -1,14 +1,12 @@
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel
 
 
-class ProjectBase(BaseModel):
+class Project(BaseModel):
+    project_id: UUID
     name: str
-
-
-class Project(ProjectBase):
-    project_id: str
     created_at: datetime
 
     class Config:
@@ -16,13 +14,13 @@ class Project(ProjectBase):
 
 
 class UserBase(BaseModel):
-    user_auth_id: str
+    user_auth_id: UUID
     email: str
     name: str
 
 
 class User(UserBase):
-    user_id: str
+    user_id: UUID
     created_at: datetime
     last_updated_at: datetime
 
@@ -31,17 +29,18 @@ class User(UserBase):
 
 
 class ProjectUserCreate(BaseModel):
-    user_id: str
+    user_id: UUID
     role: str
 
 
 class ProjectUserBase(ProjectUserCreate):
-    project_id: str
+    project_id: UUID
 
 
 class ProjectUser(ProjectUserBase):
-    project_user_id: str
+    project_user_id: UUID
     created_at: datetime
+    last_updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -62,7 +61,7 @@ class PolicyUpdate(BaseModel):
 
 
 class Policy(PolicyBase):
-    policy_id: int
+    policy_id: UUID
     created_at: datetime
     last_updated_at: datetime
 
@@ -75,8 +74,8 @@ class ComponentBase(BaseModel):
 
 
 class Component(ComponentBase):
-    component_id: str
-    project_id: str
+    component_id: UUID
+    project_id: UUID
 
     class Config:
         from_attributes = True
@@ -88,8 +87,8 @@ class ComponentVersionCreate(BaseModel):
 
 
 class ComponentVersion(BaseModel):
-    component_id: str
-    component_version_id: str
+    component_id: UUID
+    component_version_id: UUID
     alias: str
     input_schema: str
     instance_params_schema: str
@@ -103,18 +102,18 @@ class ComponentVersion(BaseModel):
 
 
 class ComponentVersionDependencyExpanded(BaseModel):
-    component_id: str
+    component_id: UUID
     component_name: str
-    component_version_id: str
+    component_version_id: UUID
     component_version_alias: str
-    policy_id: int
-    policy_version_id: int
+    policy_id: UUID
+    policy_version_id: UUID
     policy_name: str
     policy_version_alias: str
 
 
 class PolicyVersionBase(BaseModel):
-    policy_id: int
+    policy_id: UUID
     alias: str | None = None
 
 
@@ -124,7 +123,7 @@ class PolicyVersionCreate(PolicyVersionBase):
 
 
 class PolicyVersion(PolicyVersionBase):
-    policy_version_id: int
+    policy_version_id: UUID
     graph_definition: str
     created_at: datetime
     last_updated_at: datetime
@@ -134,8 +133,8 @@ class PolicyVersion(PolicyVersionBase):
 
 
 class Run(BaseModel):
-    run_id: int
-    policy_version_id: int
+    run_id: UUID
+    policy_version_id: UUID
     status: str
     result: str | None = None
     created_at: datetime
@@ -154,8 +153,8 @@ class StepMetadataBase(BaseModel):
 
 
 class StepMetadata(StepMetadataBase):
-    step_metadata_id: int
-    run_id: int
+    step_metadata_id: UUID
+    run_id: UUID
     created_at: datetime
 
     class Config:
