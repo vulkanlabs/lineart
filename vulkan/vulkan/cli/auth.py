@@ -16,10 +16,7 @@ def retrieve_credentials():
     with open(TOKEN_PATH, "r") as fp:
         creds = json.load(fp)
 
-    return {
-        "x-stack-access-token": creds["access_token"],
-        "x-stack-refresh-token": creds["refresh_token"],
-    }
+    return creds
 
 
 def ensure_write(path: str, data: dict):

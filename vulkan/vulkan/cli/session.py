@@ -1,9 +1,8 @@
 from requests import Session
 
-from vulkan.cli.auth import retrieve_credentials
 
 
-def init_session() -> Session:
+def init_session(headers: dict) -> Session:
     session = Session()
-    session.headers.update(retrieve_credentials())
+    session.headers.update(headers)
     return session
