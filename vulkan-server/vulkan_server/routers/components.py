@@ -141,10 +141,13 @@ def get_component_version(
 )
 def list_component_usage(
     component_id: str,
+    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     component_versions = (
-        db.query(ComponentVersion).filter_by(component_id=component_id).all()
+        db.query(ComponentVersion)
+        .filter_by(component_id=component_id, project_id=project_id)
+        .all()
     )
     if len(component_versions) == 0:
         return Response(status_code=204)
@@ -152,7 +155,7 @@ def list_component_usage(
     usage = []
     for component_version in component_versions:
         version_usage = list_component_version_usage(
-            component_version.component_version_id, db
+            component_version.component_version_id, project_id, db
         )
         if len(version_usage) > 0:
             usage.extend(version_usage)
@@ -161,9 +164,7 @@ def list_component_usage(
 
 
 def list_component_version_usage(
-    component_version_id: str,
-    project_id: str = Depends(get_project_id),
-    db: Session = Depends(get_db),
+    component_version_id: str, project_id: str, db: Session
 ) -> list[schemas.ComponentVersionDependencyExpanded]:
     component_version_uses = (
         db.query(ComponentVersionDependency)
