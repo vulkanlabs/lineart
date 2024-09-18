@@ -1,8 +1,11 @@
 'use client';
+
 import Link from "next/link";
 import { ChartSpline, Users2, Code2, ListTree, Section } from "lucide-react";
 import { useEffect, useState } from 'react';
 import { usePathname } from "next/navigation";
+import { useUser } from "@stackframe/stack";
+
 import { fetchComponents, fetchPolicy, fetchPolicyVersionComponents } from "@/lib/api";
 
 
@@ -101,10 +104,10 @@ function SidebarNav() {
 
 function PoliciesSidebarNav() {
     const [components, setComponents] = useState([]);
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    const user = useUser();
 
     useEffect(() => {
-        fetchComponents(serverUrl)
+        fetchComponents(user)
             .then((data) => {
                 const componentData = data.map(
                     (component: { component_id: number, name: string }) => ({
@@ -113,7 +116,7 @@ function PoliciesSidebarNav() {
                     }));
                 setComponents(componentData);
             })
-    }, [serverUrl]);
+    }, []);
 
     const sections: Array<SidebarSectionProps> = [
         SectionDefinitions.get("teams"),
@@ -125,15 +128,16 @@ function PoliciesSidebarNav() {
     );
 };
 
-function PolicyDetailsSidebar({ policyId }: { policyId: number }) {
+function PolicyDetailsSidebar({ policyId }: { policyId: string }) {
     const [currentPolicy, setCurrentPolicy] = useState(null);
     const [components, setComponents] = useState([]);
+    const user = useUser();
 
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const pathname = usePathname();
 
     useEffect(() => {
-        fetchPolicy(serverUrl, policyId)
+        fetchPolicy(user, policyId)
             .then((policy) => setCurrentPolicy(policy))
             .catch((error) => {
                 console.error(error);
@@ -147,7 +151,7 @@ function PolicyDetailsSidebar({ policyId }: { policyId: number }) {
         if (!currentPolicy || !currentPolicy.active_policy_version_id) {
             return;
         }
-        fetchPolicyVersionComponents(serverUrl, currentPolicy.active_policy_version_id)
+        fetchPolicyVersionComponents(user, currentPolicy.active_policy_version_id)
             .then((dependencies) => {
                 const componentData = dependencies.map(
                     (dep) => ({
@@ -213,7 +217,7 @@ function EmptySidebarSection({ text }: { text: string }) {
 }
 
 
-function extractPolicyId(path: string): number | null {
+function extractPolicyId(path: string): string | null {
     if (!path.startsWith("/policies/")) {
         return null;
     }
@@ -221,5 +225,5 @@ function extractPolicyId(path: string): number | null {
     if (parts.length < 3) {
         return null;
     }
-    return parseInt(parts[2]);
+    return parts[2];
 }
