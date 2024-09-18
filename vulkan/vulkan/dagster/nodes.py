@@ -2,16 +2,26 @@ import time
 from abc import ABC, abstractmethod
 from enum import Enum
 from traceback import format_exception_only
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 
 import requests
-from dagster import In, OpDefinition, OpExecutionContext, Out, Output
+from dagster import (
+    DynamicOut,
+    DynamicOutput,
+    In,
+    OpDefinition,
+    OpExecutionContext,
+    Out,
+    Output,
+)
 
 from vulkan.core.exceptions import UserCodeException
 from vulkan.core.nodes import (
     BranchNode,
+    Collect,
     HTTPConnectionNode,
     InputNode,
+    Map,
     Node,
     TerminateNode,
     TransformNode,
@@ -342,12 +352,115 @@ class DagsterInput(InputNode, DagsterNode):
         )
 
 
-NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
+class DagsterMap(Map, DagsterNode):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        func: callable,
+        dependencies: dict[str, Any],
+        hidden: bool = False,
+    ):
+        super().__init__(
+            name=name,
+            description=description,
+            func=func,
+            dependencies=dependencies,
+            hidden=hidden,
+        )
+
+    def op(self) -> OpDefinition:
+        def fn(context, inputs):
+            start_time = time.time()
+            error = None
+            try:
+                result = self.func(context, **inputs)
+                assert isinstance(
+                    result, Iterable
+                ), f"DynamicTransform functions must return an iterable, got: {result}"
+                context.log.info(f"Returning {len(result)} outputs")
+                for i, e in enumerate(result):
+                    yield DynamicOutput(
+                        e,
+                        mapping_key=str(i),
+                        output_name="result",
+                    )
+            except Exception as e:
+                error = ("\n").join(format_exception_only(type(e), e))
+                raise UserCodeException(self.name) from e
+            finally:
+                end_time = time.time()
+                metadata = StepMetadata(
+                    self.type.value,
+                    start_time,
+                    end_time,
+                    error,
+                )
+                yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+
+        node_op = OpDefinition(
+            compute_fn=fn,
+            name=self.name,
+            ins={k: In() for k in self.dependencies.keys()},
+            outs={
+                "result": DynamicOut(),
+                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
+            },
+            # We expose the configuration in transform nodes
+            # to allow the callback function in terminate nodes to
+            # access it. In the future, we may separate terminate nodes.
+            required_resource_keys={RUN_CONFIG_KEY},
+        )
+
+        return node_op
+
+    @classmethod
+    def from_spec(cls, node: Map):
+        return cls(
+            name=node.name,
+            description=node.description,
+            func=node.func,
+            dependencies=node.dependencies,
+            hidden=node.hidden,
+        )
+
+
+class DagsterCollect(Collect, DagsterTransformNodeMixin):
+    def __init__(
+        self,
+        name: str,
+        func: callable,
+        description: str,
+        dependencies: dict[str, Any],
+        hidden: bool = False,
+    ):
+        super().__init__(
+            name=name,
+            description=description,
+            func=func,
+            dependencies=dependencies,
+            hidden=hidden,
+        )
+
+    @classmethod
+    def from_spec(cls, node: Collect):
+        return cls(
+            name=node.name,
+            description=node.description,
+            func=node.func,
+            dependencies=node.dependencies,
+            hidden=node.hidden,
+        )
+
+
+_NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
     TransformNode: DagsterTransform,
     TerminateNode: DagsterTerminate,
     BranchNode: DagsterBranch,
     HTTPConnectionNode: DagsterHTTPConnection,
     InputNode: DagsterInput,
+    Collect: DagsterCollect,
+    Map: DagsterMap,
 }
 
 
@@ -357,7 +470,7 @@ def to_dagster_nodes(nodes: list[Node]) -> list[DagsterNode]:
 
 def to_dagster_node(node: Node) -> DagsterNode:
     typ = type(node)
-    impl_type = NODE_TYPE_MAP.get(typ)
+    impl_type = _NODE_TYPE_MAP.get(typ)
     if impl_type is None:
         msg = f"Node type {typ} has no known Dagster implementation"
         raise ValueError(msg)

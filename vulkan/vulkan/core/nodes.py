@@ -14,6 +14,8 @@ class NodeType(Enum):
     COMPONENT = "COMPONENT"
     BRANCH = "BRANCH"
     INPUT = "INPUT"
+    MAP = "MAP"
+    COLLECT = "COLLECT"
 
 
 @dataclass
@@ -213,5 +215,68 @@ class InputNode(Node):
             node_type=self.type.value,
             metadata={
                 "schema": {k: t.__name__ for k, t in self.schema.items()},
+            },
+        )
+
+
+
+class Map(Node):
+    def __init__(
+        self,
+        name: str,
+        func: callable,
+        dependencies: dict[str, Any],
+        description: str | None = None,
+        hidden: bool = False,
+    ):
+        super().__init__(
+            name=name,
+            description=description,
+            typ=NodeType.MAP,
+            dependencies=dependencies,
+            hidden=hidden,
+        )
+        self.func = func
+
+    def node_definition(self) -> VulkanNodeDefinition:
+        return VulkanNodeDefinition(
+            name=self.name,
+            description=self.description,
+            node_type=self.type.value,
+            hidden=self.hidden,
+            dependencies=self.node_dependencies(),
+            metadata={
+                "source": getsource(self.func),
+            },
+        )
+    
+class Collect(Node):
+    def __init__(
+        self,
+        name: str,
+        func: callable,
+        dependencies: dict[str, Dependency],
+        description: str | None = None,
+        hidden: bool = False,
+    ):
+        """Collect dynamic outputs from a Map dynamic node."""
+        super().__init__(
+            name=name,
+            description=description,
+            typ=NodeType.COLLECT,
+            dependencies=dependencies,
+            hidden=hidden,
+        )
+        self.func = func
+
+    def node_definition(self) -> VulkanNodeDefinition:
+        return VulkanNodeDefinition(
+            name=self.name,
+            description=self.description,
+            node_type=self.type.value,
+            hidden=self.hidden,
+            dependencies=self.node_dependencies(),
+            metadata={
+                "source": getsource(self.func),
             },
         )
