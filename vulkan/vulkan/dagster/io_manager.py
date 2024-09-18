@@ -24,7 +24,7 @@ class PostgreSQLIOManager(IOManager):
         password: str,
         database: str,
         table: str,
-        run_id: int,
+        run_id: str,
     ):
         self.table = table
         self.run_id = run_id

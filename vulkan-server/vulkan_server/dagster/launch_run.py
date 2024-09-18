@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
 from vulkan.dagster.policy import DEFAULT_POLICY_NAME
@@ -10,7 +12,7 @@ def launch_run(
     dagster_client,
     server_url: str,
     execution_config: dict,
-    policy_version_id: str,
+    policy_version_id: UUID,
     version_name: str,
     db: Session,
 ):
@@ -43,7 +45,7 @@ def trigger_dagster_job(
     server_url,
     execution_config: dict,
     version_name: str,
-    run_id: str,
+    run_id: UUID,
 ):
     # Trigger the Dagster job with Policy and Run IDs as inputs
     execution_config["resources"] = {

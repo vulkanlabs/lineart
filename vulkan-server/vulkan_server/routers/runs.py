@@ -17,7 +17,7 @@ router = APIRouter(
 
 
 @router.get("/{run_id}", response_model=schemas.Run)
-def get_run(run_id: int, db: Session = Depends(get_db)):
+def get_run(run_id: str, db: Session = Depends(get_db)):
     run = db.query(Run).filter_by(run_id=run_id).first()
     if run is None:
         raise HTTPException(status_code=400, detail=f"Run {run_id} not found")
@@ -26,7 +26,7 @@ def get_run(run_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{run_id}", response_model=schemas.Run)
 def update_run(
-    run_id: int,
+    run_id: str,
     status: Annotated[str, Body()],
     result: Annotated[str, Body()],
     db: Session = Depends(get_db),
@@ -47,7 +47,7 @@ def update_run(
 
 
 @router.post("/{run_id}/metadata")
-def publish_metadata(run_id: int, config: schemas.StepMetadataBase):
+def publish_metadata(run_id: str, config: schemas.StepMetadataBase):
     try:
         with DBSession() as db:
             args = {"run_id": run_id, **config.model_dump()}

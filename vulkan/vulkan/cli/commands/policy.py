@@ -62,7 +62,7 @@ def trigger_run(ctx: Context, policy_id: str, data: str, timeout: int):
                 }
             }
         },
-        "ops": {"input_node": {"config": data}},
+        "ops": {"input_node": {"config": json.loads(data)}},
     }
 
     response = ctx.session.post(
@@ -79,7 +79,7 @@ def trigger_run(ctx: Context, policy_id: str, data: str, timeout: int):
     success = False
     # Poll the API until the job is completed
     step_size = 3
-    for _ in range(timeout, step=step_size):
+    for _ in range(0, timeout, step_size):
         response = ctx.session.get(f"{ctx.server_url}/runs/{run_id}")
         ctx.logger.debug(response.json())
         try:
