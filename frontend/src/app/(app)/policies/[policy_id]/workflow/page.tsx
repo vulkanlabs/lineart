@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useUser } from "@stackframe/stack";
 
 import WorkflowFrame from "@/components/workflow/frame";
 import WorkflowSidebar from "@/components/workflow/sidebar";
@@ -8,10 +9,10 @@ import { fetchPolicyVersionData } from "@/lib/api";
 
 export default function Page({ params }) {
     const [clickedNode, setClickedNode] = useState([]);
+    const user = useUser();
 
-    async function loadData(policyId) {
-        const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-        const data = await fetchPolicyVersionData(serverUrl, policyId).then((data) => {
+    async function loadData(policyId: string) {
+        const data = await fetchPolicyVersionData(user, policyId).then((data) => {
             return JSON.parse(data.graph_definition);
         });
         return data;

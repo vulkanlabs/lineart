@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
+import { useUser } from "@stackframe/stack";
 
 import {
     Table,
@@ -15,22 +16,21 @@ import {
 
 import { fetchComponentVersions, fetchComponentVersionUsage } from "@/lib/api";
 
-
 export default function Page({ params }) {
     const [componentVersions, setComponentVersions] = useState([]);
     const [componentVersionDependencies, setComponentVersionDependencies] = useState([]);
+    const user = useUser();
 
     const refreshTime = 15000;
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
 
     const refreshComponentVersions = async () => {
-        fetchComponentVersions(serverUrl, params.component_id)
+        fetchComponentVersions(user, params.component_id)
             .then((data) => setComponentVersions(data))
             .catch((error) => console.error(error));
     };
 
     const refreshComponentVersionDependencies = async () => {
-        const dependencies = fetchComponentVersionUsage(serverUrl, params.component_id)
+        fetchComponentVersionUsage(user, params.component_id)
             .then((data) => setComponentVersionDependencies(data))
             .catch((error) => console.error(error));
     };
@@ -64,7 +64,6 @@ export default function Page({ params }) {
     );
 }
 
-
 function ComponentVersionsTable({ versions }) {
     const router = useRouter();
 
@@ -85,7 +84,11 @@ function ComponentVersionsTable({ versions }) {
                     <TableRow
                         key={entry.component_version_id}
                         className="cursor-pointer"
-                        onClick={() => router.push(`/components/${entry.component_id}/versions/${entry.component_version_id}/workflow`)}
+                        onClick={() =>
+                            router.push(
+                                `/components/${entry.component_id}/versions/${entry.component_version_id}/workflow`,
+                            )
+                        }
                     >
                         <TableCell>{entry.component_version_id}</TableCell>
                         <TableCell>{entry.alias}</TableCell>
@@ -95,10 +98,9 @@ function ComponentVersionsTable({ versions }) {
                     </TableRow>
                 ))}
             </TableBody>
-        </Table >
+        </Table>
     );
 }
-
 
 function ComponentVersionDependenciesTable({ entries }) {
     const router = useRouter();
@@ -118,9 +120,7 @@ function ComponentVersionDependenciesTable({ entries }) {
             </TableHeader>
             <TableBody>
                 {entries.map((entry) => (
-                    <TableRow
-                        key={entry.component_version_id + entry.policy_version_id}
-                    >
+                    <TableRow key={entry.component_version_id + entry.policy_version_id}>
                         <TableCell>{entry.component_version_id}</TableCell>
                         <TableCell>{entry.component_version_alias}</TableCell>
                         <TableCell>{entry.policy_id}</TableCell>
@@ -130,6 +130,6 @@ function ComponentVersionDependenciesTable({ entries }) {
                     </TableRow>
                 ))}
             </TableBody>
-        </Table >
+        </Table>
     );
 }

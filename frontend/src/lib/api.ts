@@ -1,172 +1,118 @@
+import { error } from "console";
 import { formatISO } from "date-fns";
 
-export async function fetchComponents(serverUrl: string) {
-    return fetch(new URL("/components", serverUrl))
-        .then((response) => {
-            if (response.status === 204) {
-                return [];
-            }
-            return response.json();
-        })
-        .catch((error) => {
-            throw Error("Error fetching components", { cause: error });
-        });
+import { CurrentUser, CurrentInternalUser } from "@stackframe/stack";
+
+type StackUser = CurrentUser | CurrentInternalUser;
+
+export async function getAuthHeaders(user: StackUser) {
+    const { accessToken, refreshToken } = await user.getAuthJson();
+    const headers = {
+        "x-stack-access-token": accessToken,
+        "x-stack-refresh-token": refreshToken,
+    };
+    return headers;
 }
 
-export async function fetchPolicies(serverUrl: string): Promise<any[]> {
-    return fetch(new URL("/policies", serverUrl))
-        .then((response) => {
-            if (response.status === 204) {
-                return [];
-            }
-            return response.json();
-        })
-        .catch((error) => {
-            throw new Error("Error fetching policies", { cause: error });
-        });
-}
-
-export async function fetchPolicy(serverUrl: string, policyId: number) {
-    return fetch(new URL(`/policies/${policyId}`, serverUrl))
-        .then((response) => response.json())
-        .catch((error) => {
-            throw new Error(`Error fetching policy ${policyId}`, { cause: error });
-        });
-}
-
-export async function fetchPolicyVersions(serverUrl: string, policyId: number) {
-    return fetch(new URL(`/policies/${policyId}/versions`, serverUrl))
-        .then((response) => response.json())
-        .catch((error) => {
-            throw new Error(`Error fetching versions for policy ${policyId}`, { cause: error });
-        });
-}
-
-export async function fetchComponentVersions(serverUrl: string, componentId: number) {
-    return fetch(new URL(`/components/${componentId}/versions`, serverUrl))
+export async function fetchServerData({
+    user,
+    endpoint,
+    label,
+}: {
+    user: StackUser;
+    endpoint: string;
+    label?: string;
+}) {
+    const headers = await getAuthHeaders(user);
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    return fetch(new URL(endpoint, serverUrl), { headers })
         .then((response) =>
             response.json().catch((error) => {
                 throw new Error("Error parsing response", { cause: error });
             }),
         )
         .catch((error) => {
-            throw new Error(`Error fetching component versions for component ${componentId}`, {
+            const baseMsg = "Error fetching data";
+            const errorMsg = label ? `${baseMsg}: ${label}` : baseMsg;
+            throw new Error(errorMsg, {
                 cause: error,
             });
         });
+}
+
+export async function fetchComponents(user: StackUser): Promise<any[]> {
+    return fetchServerData({
+        user: user,
+        endpoint: "/components",
+        label: "list of components",
+    });
+}
+
+export async function fetchPolicies(user: StackUser): Promise<any[]> {
+    return fetchServerData({
+        user: user,
+        endpoint: "/policies",
+        label: "list of policies",
+    });
+}
+
+export async function fetchPolicy(user: StackUser, policyId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/policies/${policyId}`,
+        label: `policy ${policyId}`,
+    });
+}
+
+export async function fetchPolicyVersions(user: StackUser, policyId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/policies/${policyId}/versions`,
+        label: `versions for policy ${policyId}`,
+    });
+}
+
+export async function fetchComponentVersions(user: StackUser, componentId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/components/${componentId}/versions`,
+        label: `component versions for component ${componentId}`,
+    });
 }
 
 export async function fetchComponentVersion(
-    serverUrl: string,
-    componentId: number,
-    componentVersionId: number,
+    user: StackUser,
+    componentId: string,
+    componentVersionId: string,
 ) {
-    return fetch(new URL(`/components/${componentId}/versions/${componentVersionId}`, serverUrl))
-        .then((response) => response.json())
-        .catch((error) => {
-            throw new Error(`Error fetching component version ${componentVersionId}`, {
-                cause: error,
-            });
-        });
+    return fetchServerData({
+        user: user,
+        endpoint: `/components/${componentId}/versions/${componentVersionId}`,
+        label: `component version ${componentVersionId}`,
+    });
 }
 
-export async function fetchComponentVersionUsage(serverUrl: string, componentId: number) {
-    return fetch(new URL(`/components/${componentId}/usage`, serverUrl))
-        .then((response) =>
-            response.json().catch((error) => {
-                throw new Error("Error parsing response", { cause: error });
-            }),
-        )
-        .catch((error) => {
-            throw new Error(`Error fetching component usage for component ${componentId}`, {
-                cause: error,
-            });
-        });
+export async function fetchComponentVersionUsage(user: StackUser, componentId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/components/${componentId}/usage`,
+        label: `component usage for component ${componentId}`,
+    });
 }
 
-export async function fetchPolicyVersionComponents(serverUrl: string, policyVersionId: number) {
-    return fetch(new URL(`/policyVersions/${policyVersionId}/components`, serverUrl))
-        .then((response) =>
-            response.json().catch((error) => {
-                throw new Error("Error parsing response", { cause: error });
-            }),
-        )
-        .catch((error) => {
-            throw new Error(
-                `Error fetching component usage for policy version ${policyVersionId}`,
-                { cause: error },
-            );
-        });
+export async function fetchPolicyVersionComponents(user: StackUser, policyVersionId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/policyVersions/${policyVersionId}/components`,
+        label: `component usage for policy version ${policyVersionId}`,
+    });
 }
 
-const formatISODate = (date: Date) => formatISO(date, { representation: "date" });
-
-export async function fetchRunsCount(
-    serverUrl: string,
-    policyId: number,
-    startDate: Date,
-    endDate: Date,
-    groupByStatus: boolean = false,
-) {
-    return fetch(
-        new URL(`/policies/${policyId}/runs/count?`, serverUrl).toString() +
-            new URLSearchParams({
-                start_date: formatISODate(startDate),
-                end_date: formatISODate(endDate),
-                group_by_status: groupByStatus.toString(),
-            }),
-    )
-        .then((response) => response.json())
-        .catch((error) => {
-            throw new Error(`Error fetching runs count for policy ${policyId}`, { cause: error });
-        });
-}
-
-export async function fetchRunDurationStats(
-    serverUrl: string,
-    policyId: number,
-    startDate: Date,
-    endDate: Date,
-) {
-    return fetch(
-        new URL(`/policies/${policyId}/runs/duration?`, serverUrl).toString() +
-            new URLSearchParams({
-                start_date: formatISODate(startDate),
-                end_date: formatISODate(endDate),
-            }),
-    )
-        .then((response) => response.json())
-        .catch((error) => {
-            throw new Error(`Error fetching run duration stats for policy ${policyId}`, {
-                cause: error,
-            });
-        });
-}
-
-export async function fetchRunDurationByStatus(
-    serverUrl: string,
-    policyId: number,
-    startDate: Date,
-    endDate: Date,
-) {
-    return fetch(
-        new URL(`/policies/${policyId}/runs/duration/by_status?`, serverUrl).toString() +
-            new URLSearchParams({
-                start_date: formatISODate(startDate),
-                end_date: formatISODate(endDate),
-            }),
-    )
-        .then((response) => response.json())
-        .catch((error) => {
-            throw new Error(`Error fetching run duration stats for policy ${policyId}`, {
-                cause: error,
-            });
-        });
-}
-
-export async function fetchPolicyVersionData(serverUrl: string, policyId: number) {
+export async function fetchPolicyVersionData(user: StackUser, policyId: string) {
+    const headers = await getAuthHeaders(user);
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const policyUrl = new URL(`/policies/${policyId}`, serverUrl);
-    const policyVersionId = await fetch(policyUrl)
+    const policyVersionId = await fetch(policyUrl, { headers })
         .then((res) => res.json())
         .catch((error) => {
             throw new Error("Failed to fetch policy version id for policy", { cause: error });
@@ -183,10 +129,70 @@ export async function fetchPolicyVersionData(serverUrl: string, policyId: number
     }
 
     const versionUrl = new URL(`/policyVersions/${policyVersionId}`, serverUrl);
-    const data = await fetch(versionUrl)
+    const data = await fetch(versionUrl, { headers })
         .then((res) => res.json())
         .catch((error) => {
             throw new Error("Failed to fetch graph data", { cause: error });
         });
     return data;
+}
+
+// UNAUTHENTICATED CALLS:
+// ----------------------
+
+const formatISODate = (date: Date) => formatISO(date, { representation: "date" });
+
+export async function fetchRunsCount(
+    policyId: string,
+    startDate: Date,
+    endDate: Date,
+    groupByStatus: boolean = false,
+) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    return fetch(
+        new URL(`/policies/${policyId}/runs/count?`, serverUrl).toString() +
+            new URLSearchParams({
+                start_date: formatISODate(startDate),
+                end_date: formatISODate(endDate),
+                group_by_status: groupByStatus.toString(),
+            }),
+    )
+        .then((response) => response.json())
+        .catch((error) => {
+            throw new Error(`Error fetching runs count for policy ${policyId}`, { cause: error });
+        });
+}
+
+export async function fetchRunDurationStats(policyId: string, startDate: Date, endDate: Date) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    return fetch(
+        new URL(`/policies/${policyId}/runs/duration?`, serverUrl).toString() +
+            new URLSearchParams({
+                start_date: formatISODate(startDate),
+                end_date: formatISODate(endDate),
+            }),
+    )
+        .then((response) => response.json())
+        .catch((error) => {
+            throw new Error(`Error fetching run duration stats for policy ${policyId}`, {
+                cause: error,
+            });
+        });
+}
+
+export async function fetchRunDurationByStatus(policyId: string, startDate: Date, endDate: Date) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    return fetch(
+        new URL(`/policies/${policyId}/runs/duration/by_status?`, serverUrl).toString() +
+            new URLSearchParams({
+                start_date: formatISODate(startDate),
+                end_date: formatISODate(endDate),
+            }),
+    )
+        .then((response) => response.json())
+        .catch((error) => {
+            throw new Error(`Error fetching run duration stats for policy ${policyId}`, {
+                cause: error,
+            });
+        });
 }
