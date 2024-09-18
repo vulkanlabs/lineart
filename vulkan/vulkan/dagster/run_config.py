@@ -2,7 +2,7 @@ from dagster import ConfigurableResource
 
 
 class VulkanRunConfig(ConfigurableResource):
-    run_id: int
+    run_id: str
     server_url: str
 
 

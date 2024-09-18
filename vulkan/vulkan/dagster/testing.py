@@ -7,7 +7,7 @@ from vulkan.dagster.policy import DagsterFlow
 from vulkan.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
 
 _TEST_RESOURCES = {
-    RUN_CONFIG_KEY: VulkanRunConfig(policy_id=1, run_id=1, server_url=""),
+    RUN_CONFIG_KEY: VulkanRunConfig(policy_id="1", run_id="1", server_url=""),
     PUBLISH_IO_MANAGER_KEY: mem_io_manager,
 }
 

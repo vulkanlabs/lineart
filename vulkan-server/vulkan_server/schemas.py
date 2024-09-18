@@ -51,13 +51,13 @@ class PolicyBase(BaseModel):
     description: str
     input_schema: str
     output_schema: str
-    active_policy_version_id: int | None = None
+    active_policy_version_id: UUID | None = None
 
 
 class PolicyUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
-    active_policy_version_id: int | None = None
+    active_policy_version_id: UUID | None = None
 
 
 class Policy(PolicyBase):
@@ -95,7 +95,7 @@ class ComponentVersion(BaseModel):
     node_definitions: str
     created_at: datetime
     output_schema: str | None = None
-    project_id: str
+    project_id: UUID
 
     class Config:
         from_attributes = True

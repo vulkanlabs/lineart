@@ -31,7 +31,9 @@ def create_component(
         json={"name": name},
     )
     ctx.logger.debug(response.json())
-    component_id = response.json()["component_id"]
+    data = response.json()
+    ctx.logger.debug(data)
+    component_id = data["component_id"]
 
     alias = component_version_alias(name, version)
 

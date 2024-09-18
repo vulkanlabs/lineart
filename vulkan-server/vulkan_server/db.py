@@ -199,7 +199,7 @@ class Run(Base):
     __tablename__ = "run"
 
     run_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    policy_version_id = Column(Uuid, ForeignKey("policy.policy_id"))
+    policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
     status = Column(Enum(RunStatus))
     result = Column(String, nullable=True)
     dagster_run_id = Column(String, nullable=True)

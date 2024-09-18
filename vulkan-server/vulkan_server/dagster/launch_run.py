@@ -10,7 +10,7 @@ def launch_run(
     dagster_client,
     server_url: str,
     execution_config: dict,
-    policy_version_id: int,
+    policy_version_id: str,
     version_name: str,
     db: Session,
 ):
@@ -43,13 +43,13 @@ def trigger_dagster_job(
     server_url,
     execution_config: dict,
     version_name: str,
-    run_id: int,
+    run_id: str,
 ):
     # Trigger the Dagster job with Policy and Run IDs as inputs
     execution_config["resources"] = {
         "vulkan_run_config": {
             "config": {
-                "run_id": run_id,
+                "run_id": str(run_id),
                 "server_url": server_url,
             }
         }
