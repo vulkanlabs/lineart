@@ -20,7 +20,7 @@ def make_workspace_definition(
 ) -> Definitions:
     resources = {
         RUN_CONFIG_KEY: VulkanRunConfig(
-            run_id=0,
+            run_id="tmpid",
             server_url="tmpurl",
         ),
         DB_CONFIG_KEY: DBConfig(
