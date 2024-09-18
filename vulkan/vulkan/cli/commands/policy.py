@@ -3,6 +3,7 @@ import time
 
 import click
 
+from vulkan.cli import client
 from vulkan.cli.context import Context, pass_context
 
 
@@ -16,34 +17,21 @@ def policy():
 @click.option("--name", type=str, required=True, help="Name of the policy")
 @click.option("--description", type=str, default="", help="Description of the policy")
 def create(ctx: Context, name: str, description: str):
-    input_schema = "{}"
-    response = ctx.session.post(
-        f"{ctx.server_url}/policies",
-        json={
-            "name": name,
-            "description": description,
-            "input_schema": input_schema,
-            "output_schema": "",
-        },
+    return client.policy.create_policy(
+        ctx,
+        name,
+        description,
+        input_schema="{}",
+        output_schema="",
     )
-    if response.status_code != 200:
-        raise ValueError(f"Failed to create policy: {response.content}")
-    policy_id = response.json()["policy_id"]
-    ctx.logger.info(f"Created policy {name} with id {policy_id}")
-    return policy_id
 
 
 @policy.command()
 @pass_context
 @click.option("--policy_id", type=str)
 @click.option("--policy_version_id", type=str)
-def register_active_version(ctx: Context, policy_id: str, policy_version_id: str):
-    response = ctx.session.put(
-        f"{ctx.server_url}/policies/{policy_id}",
-        json={"active_policy_version_id": policy_version_id},
-    )
-    if response.status_code != 200:
-        raise ValueError("Failed to activate policy version")
+def set_active_version(ctx: Context, policy_id: str, policy_version_id: str):
+    return client.policy.set_active_version(ctx, policy_id, policy_version_id)
 
 
 @policy.command()
@@ -92,3 +80,17 @@ def trigger_run(ctx: Context, policy_id: str, data: str, timeout: int):
         time.sleep(step_size)
 
     assert success, f"Run {run_id} for policy {policy_id} did not complete successfully"
+
+
+@policy.command()
+@pass_context
+@click.option("--policy_id", type=str, required=True, help="Id of the policy")
+@click.option("--name", type=str, required=True, help="Name of the policy")
+@click.option("--repository_path", type=str, required=True, help="Path to repository")
+def create_version(
+    ctx: Context,
+    policy_id: str,
+    name: str,
+    repository_path: str,
+):
+    return client.policy.create_policy_version(ctx, policy_id, name, repository_path)

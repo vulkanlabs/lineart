@@ -8,7 +8,6 @@ from vulkan.cli.context import LoginContext, pass_login_context
 
 # TODO: This should handled by a Vulkan public API.
 # That way we abstract the auth provider away.
-AUTH_SIGNIN_URL = os.getenv("AUTH_SIGNIN_URL")
 STACK_PUBLISHABLE_CLIENT_KEY = os.getenv("STACK_PUBLISHABLE_CLIENT_KEY")
 STACK_PROJECT_ID = os.getenv("STACK_PROJECT_ID")
 
@@ -21,9 +20,8 @@ def login(ctx: LoginContext):
         "x-stack-project-id": STACK_PROJECT_ID,
         "x-stack-access-type": "client",
     }
-    ctx.logger.debug("Logging in...")
     if os.path.exists(TOKEN_PATH):
-        ctx.logger.info("Checking for existing session.")
+        ctx.logger.info("Checking for existing session...")
         current_creds = retrieve_credentials()
         # 1. Check if there's an active session
         headers = default_headers.copy()
@@ -41,8 +39,7 @@ def login(ctx: LoginContext):
             ctx.logger.info("You are already signed in.")
             return
         else:
-            ctx.logger.debug("Existing session is invalid.")
-            ctx.logger.debug(f"Response: {response.content}")
+            ctx.logger.debug(f"Existing session is invalid: {response.content}")
 
         # 2. Check if the refresh token is still valid
         headers = default_headers.copy()
@@ -81,7 +78,7 @@ def _base_login(ctx: LoginContext, headers: dict):
         show_default=False,
     )
     response = requests.post(
-        AUTH_SIGNIN_URL,
+        "https://api.stack-auth.com/api/v1/auth/password/sign-in",
         json={"email": username, "password": password},
         # TODO: move to internal vulkan API
         headers=headers,

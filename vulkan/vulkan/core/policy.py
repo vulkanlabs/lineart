@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from vulkan.core.component import ComponentInstance
-from vulkan.core.dependency import INPUT_NODE
+from vulkan.core.dependency import INPUT_NODE, Dependency
 from vulkan.core.graph import Graph
-from vulkan.core.nodes import InputNode, Node, TerminateNode
+from vulkan.core.nodes import InputNode, Node, NodeType, TerminateNode
 
 
 @dataclass
@@ -21,12 +21,26 @@ class PolicyDefinition:
         self._validate_node_dependencies()
 
     def _validate_node_dependencies(self):
-        nodes = {node.name: node.dependencies for node in self.nodes}
+        nodes = {node.name: (node, node.dependencies) for node in self.nodes}
         nodes.update({c.config.name: c.config.dependencies for c in self.components})
 
-        for node_name, dependencies in nodes.items():
+        for node_name, (node, dependencies) in nodes.items():
             if dependencies is None:
                 continue
+
+            # Ensure that COLLECT nodes have a single dependency
+            # if node.type == NodeType.COLLECT:
+            #     msg = (
+            #         f"Node {node_name} is a COLLECT node and must have a "
+            #         "single dependency"
+            #     )
+            #     if len(dependencies) != 1:
+            #         raise ValueError(msg)
+            #     dep = list(dependencies.values())[0]
+            #     (dep_node, _) = nodes.get(dep.node)
+            #     if dep_node is None or dep_node.type != NodeType.MAP:
+            #         raise ValueError(msg)
+
             for dep in dependencies.values():
                 if dep.node == INPUT_NODE:
                     # Input nodes are added to the graph after validation.
@@ -38,6 +52,17 @@ class PolicyDefinition:
                         "that is not in the graph"
                     )
                     raise ValueError(msg)
+
+                # Ensure that MAP nodes are only depended upon by COLLECT nodes
+                # if (
+                #     nodes[dep.node][0].type == NodeType.MAP
+                #     and node.type != NodeType.COLLECT
+                # ):
+                #     msg = (
+                #         f"Node {dep.node} is a MAP node and must only be "
+                #         f"depended upon by COLLECT nodes, not by {node_name}"
+                #     )
+                #     raise ValueError(msg)
 
 
 class Policy(Graph):

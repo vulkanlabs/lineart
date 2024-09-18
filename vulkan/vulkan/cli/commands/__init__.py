@@ -1,1 +1,1 @@
-from . import component, login, policy, policy_version
+from . import component, login, policy
