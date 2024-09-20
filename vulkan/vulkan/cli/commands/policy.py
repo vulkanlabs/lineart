@@ -85,12 +85,12 @@ def trigger_run(ctx: Context, policy_id: str, data: str, timeout: int):
 @policy.command()
 @pass_context
 @click.option("--policy_id", type=str, required=True, help="Id of the policy")
-@click.option("--name", type=str, required=True, help="Name of the policy")
+@click.option("--version_name", type=str, required=True, help="Name of the policy version")
 @click.option("--repository_path", type=str, required=True, help="Path to repository")
 def create_version(
     ctx: Context,
     policy_id: str,
-    name: str,
+    version_name: str,
     repository_path: str,
 ):
-    return client.policy.create_policy_version(ctx, policy_id, name, repository_path)
+    return client.policy.create_policy_version(ctx, policy_id, version_name, repository_path)

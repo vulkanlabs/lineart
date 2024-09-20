@@ -43,7 +43,7 @@ def set_active_version(ctx: Context, policy_id: str, policy_version_id: str):
 def create_policy_version(
     ctx: Context,
     policy_id: str,
-    name: str,
+    version_name: str,
     repository_path: str,
 ):
     # TODO: at the moment we assume repository is a path in local disk,
@@ -72,12 +72,12 @@ def create_policy_version(
     # to validate the user config
     _ = VulkanWorkspaceConfig.from_dict(config_data)
 
-    repository = pack_workspace(name, repository_path)
-    ctx.logger.info(f"Creating workspace {name}")
+    repository = pack_workspace(version_name, repository_path)
+    ctx.logger.info(f"Creating workspace {version_name}")
 
     body = {
         "policy_id": policy_id,
-        "alias": name,
+        "alias": version_name,
         "repository": base64.b64encode(repository).decode("ascii"),
         "repository_version": "0.0.1",  # TODO: get/gen a hash
     }
@@ -92,5 +92,5 @@ def create_policy_version(
 
     policy_version_id = response.json()["policy_version_id"]
     ctx.logger.debug(response.json())
-    ctx.logger.info(f"Created workspace {name} with policy version {policy_version_id}")
+    ctx.logger.info(f"Created workspace {version_name} with policy version {policy_version_id}")
     return policy_version_id
