@@ -1,37 +1,17 @@
-"use client";
+import { stackServerApp } from "@/stack";
 
-import React, { useState } from "react";
-import { useUser } from "@stackframe/stack";
-
-import WorkflowFrame from "@/components/workflow/frame";
-import WorkflowSidebar from "@/components/workflow/sidebar";
+import WorkflowPage from "@/components/workflow/workflow";
 import { fetchPolicyVersionData } from "@/lib/api";
 
-export default function Page({ params }) {
-    const [clickedNode, setClickedNode] = useState([]);
-    const user = useUser();
-
-    async function loadData(policyId: string) {
-        const data = await fetchPolicyVersionData(user, policyId).then((data) => {
+export default async function Page({ params }) {
+    const user = await stackServerApp.getUser();
+    const graphData = await fetchPolicyVersionData(user, params.policy_id)
+        .then((data) => {
             return JSON.parse(data.graph_definition);
+        })
+        .catch((error) => {
+            console.error(error);
         });
-        return data;
-    }
 
-    return (
-        <div className="w-full h-full grid grid-cols-12">
-            <div className="col-span-8">
-                <div className="w-full h-full">
-                    <WorkflowFrame
-                        dataLoader={() => loadData(params.policy_id)}
-                        onNodeClick={(_, node) => setClickedNode(node)}
-                        onPaneClick={() => setClickedNode([])}
-                    />
-                </div>
-            </div>
-            <div className="col-span-4">
-                <WorkflowSidebar clickedNode={clickedNode} />
-            </div>
-        </div>
-    );
+    return <WorkflowPage graphData={graphData} />;
 }

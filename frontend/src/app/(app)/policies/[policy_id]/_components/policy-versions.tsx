@@ -1,0 +1,67 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+
+import {
+    Table,
+    TableBody,
+    TableCaption,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+
+export default function PolicyVersionsTable({ policyVersions }: { policyVersions: any[] }) {
+    const router = useRouter();
+
+    return (
+        <div>
+            <h1 className="text-lg font-semibold md:text-2xl">Versões</h1>
+            <Table>
+                <TableCaption>Versões disponíveis.</TableCaption>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Tag</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Criada Em</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {policyVersions.map((policyVersion) => (
+                        <TableRow
+                            key={policyVersion.policy_version_id}
+                            className="cursor-pointer"
+                            onClick={() =>
+                                router.push(`/policies/${policyVersion.policy_id}/workflow`)
+                            }
+                        >
+                            <TableCell>{policyVersion.policy_version_id}</TableCell>
+                            <TableCell>{policyVersion.alias}</TableCell>
+                            <TableCell>
+                                <VersionStatus value={policyVersion.status} />
+                            </TableCell>
+                            <TableCell>{policyVersion.created_at}</TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
+}
+
+function VersionStatus({ value }) {
+    const getColor = (status: string) => {
+        switch (status) {
+            case "ativa":
+                return "bg-green-200";
+            case "inativa":
+                return "bg-gray-200";
+            default:
+                return "bg-gray-200";
+        }
+    };
+
+    return <p className={`w-fit p-[0.3em] rounded-lg ${getColor(value)}`}>{value}</p>;
+}

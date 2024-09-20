@@ -18,31 +18,23 @@ import "@xyflow/react/dist/style.css";
 import { nodeTypes } from "@/components/workflow/nodes";
 import layoutGraph from "@/lib/workflow";
 
-function VulkanWorkflow({ dataLoader, onNodeClick, onPaneClick }) {
-    const [graphData, setGraphData] = useState([]);
+function VulkanWorkflow({ graphData, onNodeClick, onPaneClick }) {
     const [componentsState, setComponentsState] = useState([]);
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const { fitView } = useReactFlow();
 
     const loadAndLayout = () => {
-        dataLoader().then((data) => {
-            setGraphData(data);
-            console.log(data);
+        const components = Object.values(graphData).filter((node) => node.node_type === "COMPONENT");
+        const states = components.map((c) => ({ [c.name]: { isOpen: false } }));
+        const componentsState = Object.assign({}, ...states);
+        setComponentsState(componentsState);
+        console.log(componentsState);
 
-            const components = Object.values(data).filter((node) => node.node_type === "COMPONENT");
-            const states = components.map((c) => ({ [c.name]: { isOpen: false } }));
-            const componentsState = Object.assign({}, ...states);
-            setComponentsState(componentsState);
-            console.log(componentsState);
-
-            layoutGraph(data, componentsState).then(
-                ([layoutedNodes, layoutedEdges]) => {
-                    setNodes(layoutedNodes);
-                    setEdges(layoutedEdges);
-                    window.requestAnimationFrame(() => fitView());
-                },
-            );
+        layoutGraph(graphData, componentsState).then(([layoutedNodes, layoutedEdges]) => {
+            setNodes(layoutedNodes);
+            setEdges(layoutedEdges);
+            window.requestAnimationFrame(() => fitView());
         });
     };
 
@@ -70,12 +62,10 @@ function VulkanWorkflow({ dataLoader, onNodeClick, onPaneClick }) {
             newComponentsState[node.id].isOpen = !newComponentsState[node.id].isOpen;
             setComponentsState(newComponentsState);
 
-            layoutGraph(graphData, newComponentsState).then(
-                ([layoutedNodes, layoutedEdges]) => {
-                    setNodes(layoutedNodes);
-                    setEdges(layoutedEdges);
-                },
-            );
+            layoutGraph(graphData, newComponentsState).then(([layoutedNodes, layoutedEdges]) => {
+                setNodes(layoutedNodes);
+                setEdges(layoutedEdges);
+            });
             onNodeClick(e, []);
             return;
         }
@@ -115,11 +105,11 @@ function VulkanWorkflow({ dataLoader, onNodeClick, onPaneClick }) {
     );
 }
 
-export default function WorkflowFrame({ dataLoader, onNodeClick, onPaneClick }) {
+export default function WorkflowFrame({ graphData, onNodeClick, onPaneClick }) {
     return (
         <ReactFlowProvider>
             <VulkanWorkflow
-                dataLoader={dataLoader}
+                graphData={graphData}
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
             />
