@@ -11,6 +11,37 @@ steps:
       - NEXT_PUBLIC_STACK_PROJECT_ID=${_NEXT_PUBLIC_STACK_PROJECT_ID}
       - NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=${_NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY}
       - STACK_SECRET_SERVER_KEY=${_STACK_SECRET_SERVER_KEY}
+  
+  # Build the Container Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/${PROJECT_ID}/${_SERVICE_NAME}:${COMMIT_SHA}', '.']
+    env:
+      - NEXT_PUBLIC_STACK_PROJECT_ID=${_NEXT_PUBLIC_STACK_PROJECT_ID}
+      - NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=${_NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY}
+      - STACK_SECRET_SERVER_KEY=${_STACK_SECRET_SERVER_KEY}
+  
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/${PROJECT_ID}/${_SERVICE_NAME}:${COMMIT_SHA}']
+    
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+    - 'run'
+    - 'deploy'
+    - '${_SERVICE_NAME}'
+    - '--image'
+    - 'gcr.io/${PROJECT_ID}/${_SERVICE_NAME}:${COMMIT_SHA}'
+    - '--region'
+    - '${_SERVICE_REGION}'
+
+images:
+- 'gcr.io/${PROJECT_ID}/${_SERVICE_NAME}:${COMMIT_SHA}'
 
 options:
   logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _SERVICE_NAME: sketch-frontend
+  _SERVICE_REGION: us-central1
