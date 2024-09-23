@@ -1,0 +1,11 @@
+steps:
+  - name: 'npm-install'
+    entrypoint: 'npm'
+    args: ['install']
+  - name: 'npm-build'
+    entrypoint: 'npm'
+    args: ['run', 'build']
+    env:
+      - NEXT_PUBLIC_STACK_PROJECT_ID=${_NEXT_PUBLIC_STACK_PROJECT_ID}
+      - NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=${_NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY}
+      - STACK_SECRET_SERVER_KEY=${_STACK_SECRET_SERVER_KEY}
