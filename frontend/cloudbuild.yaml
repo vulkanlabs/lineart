@@ -1,8 +1,10 @@
 steps:
   - name: 'node'
+    dir: 'frontend'
     entrypoint: 'npm'
     args: ['install']
   - name: 'node'
+    dir: 'frontend'
     entrypoint: 'npm'
     args: ['run', 'build']
     env:
