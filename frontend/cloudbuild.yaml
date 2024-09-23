@@ -1,13 +1,4 @@
 steps:
-  - name: 'node'
-    dir: 'frontend'
-    entrypoint: 'npm'
-    args: ['run', 'build']
-    env:
-      - NEXT_PUBLIC_STACK_PROJECT_ID=${_NEXT_PUBLIC_STACK_PROJECT_ID}
-      - NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=${_NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY}
-      - STACK_SECRET_SERVER_KEY=${_STACK_SECRET_SERVER_KEY}
-  
   # Build the Container Image
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/${PROJECT_ID}/${_SERVICE_NAME}:${COMMIT_SHA}', '.']
