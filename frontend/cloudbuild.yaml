@@ -1,8 +1,8 @@
 steps:
-  - name: 'npm-install'
+  - name: 'node'
     entrypoint: 'npm'
     args: ['install']
-  - name: 'npm-build'
+  - name: 'node'
     entrypoint: 'npm'
     args: ['run', 'build']
     env:
