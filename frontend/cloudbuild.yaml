@@ -2,10 +2,6 @@ steps:
   - name: 'node'
     dir: 'frontend'
     entrypoint: 'npm'
-    args: ['install']
-  - name: 'node'
-    dir: 'frontend'
-    entrypoint: 'npm'
     args: ['run', 'build']
     env:
       - NEXT_PUBLIC_STACK_PROJECT_ID=${_NEXT_PUBLIC_STACK_PROJECT_ID}
@@ -16,6 +12,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/${PROJECT_ID}/${_SERVICE_NAME}:${COMMIT_SHA}', '.']
     env:
+      - NEXT_PUBLIC_VULKAN_SERVER_URL=${_NEXT_PUBLIC_VULKAN_SERVER_URL}
       - NEXT_PUBLIC_STACK_PROJECT_ID=${_NEXT_PUBLIC_STACK_PROJECT_ID}
       - NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=${_NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY}
       - STACK_SECRET_SERVER_KEY=${_STACK_SECRET_SERVER_KEY}
@@ -23,7 +20,7 @@ steps:
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/${PROJECT_ID}/${_SERVICE_NAME}:${COMMIT_SHA}']
-    
+
   # Deploy container image to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
