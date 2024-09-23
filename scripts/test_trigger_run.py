@@ -7,7 +7,7 @@ import requests
 from dotenv import load_dotenv
 
 
-def run_policy(url: str, policy_id: int, data: dict):
+def run_policy(url: str, policy_id: str, data: dict):
     # Call the function to trigger the Dagster job
     execution_config = {
         "execution": {
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     load_dotenv()
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", type=str, help="Data as a JSON string")
-    parser.add_argument("--policy_id", type=int, help="Policy ID to run")
+    parser.add_argument("--policy_id", type=str, help="Policy ID to run")
     args = parser.parse_args()
 
     server_url = f"http://localhost:{os.getenv('APP_PORT')}"
