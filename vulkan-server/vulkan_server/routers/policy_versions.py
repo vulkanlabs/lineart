@@ -19,7 +19,7 @@ from vulkan_server.db import (
 )
 from vulkan_server.logger import init_logger
 
-logger = init_logger("polivyVersions")
+logger = init_logger("policyVersions")
 router = APIRouter(
     prefix="/policyVersions",
     tags=["policyVersions"],
