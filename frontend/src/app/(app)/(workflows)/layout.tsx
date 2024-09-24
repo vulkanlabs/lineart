@@ -30,7 +30,7 @@ export default function Layout({ children }) {
     const title = { name: "Workflows", icon: Network, path: "/policies" };
 
     return (
-        <PageLayout title={title} sidebarSections={sections}>
+        <PageLayout title={title} sidebarSections={sections} retractable>
             {children}
         </PageLayout>
     );
