@@ -15,6 +15,12 @@ import {
 export default function PolicyVersionsTable({ policyVersions }: { policyVersions: any[] }) {
     const router = useRouter();
 
+    function goToVersion(policyVersion: any) {
+        const policy = policyVersion.policy_id;
+        const version = policyVersion.policy_version_id;
+        router.push(`/policies/${policy}/versions/${version}/workflow`);
+    }
+
     return (
         <div>
             <h1 className="text-lg font-semibold md:text-2xl">Versões</h1>
@@ -33,9 +39,7 @@ export default function PolicyVersionsTable({ policyVersions }: { policyVersions
                         <TableRow
                             key={policyVersion.policy_version_id}
                             className="cursor-pointer"
-                            onClick={() =>
-                                router.push(`/policies/${policyVersion.policy_id}/workflow`)
-                            }
+                            onClick={() => goToVersion(policyVersion)}
                         >
                             <TableCell>{policyVersion.policy_version_id}</TableCell>
                             <TableCell>{policyVersion.alias}</TableCell>

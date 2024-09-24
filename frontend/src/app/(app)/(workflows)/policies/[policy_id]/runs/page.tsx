@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
+import { stackServerApp } from "@/stack";
 
 import {
     Table,
@@ -11,32 +9,17 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { fetchPolicyRuns } from "@/lib/api";
 
-
-export default function Page({ params }) {
-    const [runs, setRuns] = useState([]);
-
-    const baseUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-
-    const fetchRuns = async () => {
-        try {
-            const response = await fetch(new URL(`/policies/${params.policy_id}/runs`, baseUrl));
-            const data = await response.json();
-            setRuns(data);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    useEffect(() => {
-        fetchRuns();
-        const runsInterval = setInterval(fetchRuns, 2000);
-        return () => clearInterval(runsInterval);
-    }, []);
+export default async function Page({ params }) {
+    const user = await stackServerApp.getUser();
+    const runs = await fetchPolicyRuns(user, params.policy_id).catch((error) => {
+        console.error(error);
+        return [];
+    });
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-
             <div>
                 <div className="flex items-center">
                     <h1 className="text-lg font-semibold md:text-2xl">Execuções</h1>
@@ -46,7 +29,6 @@ export default function Page({ params }) {
         </div>
     );
 }
-
 
 function RunStatus({ value }) {
     const getColor = (status) => {
@@ -60,13 +42,8 @@ function RunStatus({ value }) {
         }
     };
 
-    return (
-        <p className={`w-fit p-[0.3em] rounded-lg ${getColor(value)}`}>
-            {value}
-        </p>
-    );
+    return <p className={`w-fit p-[0.3em] rounded-lg ${getColor(value)}`}>{value}</p>;
 }
-
 
 function RunsTable({ runs }) {
     return (
@@ -86,14 +63,16 @@ function RunsTable({ runs }) {
                     <TableRow key={run.run_id}>
                         <TableCell>{run.run_id}</TableCell>
                         <TableCell>{run.policy_version_id}</TableCell>
-                        <TableCell><RunStatus value={run.status} /></TableCell>
-                        <TableCell>{run.result == null || run.result == "" ? "-" : run.result}</TableCell>
+                        <TableCell>
+                            <RunStatus value={run.status} />
+                        </TableCell>
+                        <TableCell>
+                            {run.result == null || run.result == "" ? "-" : run.result}
+                        </TableCell>
                         <TableCell>{run.created_at}</TableCell>
                     </TableRow>
-
                 ))}
             </TableBody>
-        </Table >
+        </Table>
     );
-
 }

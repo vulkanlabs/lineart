@@ -29,7 +29,7 @@ export async function fetchServerData({
         .then((response) =>
             response.json().catch((error) => {
                 throw new Error("Error parsing response", { cause: error });
-            }),
+            })
         )
         .catch((error) => {
             const baseMsg = "Error fetching data";
@@ -38,14 +38,6 @@ export async function fetchServerData({
                 cause: error,
             });
         });
-}
-
-export async function fetchComponents(user: StackUser): Promise<any[]> {
-    return fetchServerData({
-        user: user,
-        endpoint: "/components",
-        label: "list of components",
-    });
 }
 
 type Policy = {
@@ -75,11 +67,51 @@ export async function fetchPolicy(user: StackUser, policyId: string) {
     });
 }
 
+export async function fetchPolicyRuns(user: StackUser, policyId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/policies/${policyId}/runs`,
+        label: `runs for policy ${policyId}`,
+    });
+}
+
 export async function fetchPolicyVersions(user: StackUser, policyId: string) {
     return fetchServerData({
         user: user,
         endpoint: `/policies/${policyId}/versions`,
         label: `versions for policy ${policyId}`,
+    });
+}
+
+export async function fetchPolicyVersion(user: StackUser, policyVersionId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/policyVersions/${policyVersionId}`,
+        label: `policy version ${policyVersionId}`,
+    });
+}
+
+export async function fetchPolicyVersionComponents(user: StackUser, policyVersionId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/policyVersions/${policyVersionId}/components`,
+        label: `component usage for policy version ${policyVersionId}`,
+    });
+}
+
+export async function fetchComponents(user: StackUser): Promise<any[]> {
+    return fetchServerData({
+        user: user,
+        endpoint: "/components",
+        label: "list of components",
+    });
+}
+
+export async function fetchComponent(user: StackUser, componentId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/components/${componentId}`,
+        label: `component ${componentId}`,
     });
 }
 
@@ -109,43 +141,6 @@ export async function fetchComponentVersionUsage(user: StackUser, componentId: s
         endpoint: `/components/${componentId}/usage`,
         label: `component usage for component ${componentId}`,
     });
-}
-
-export async function fetchPolicyVersionComponents(user: StackUser, policyVersionId: string) {
-    return fetchServerData({
-        user: user,
-        endpoint: `/policyVersions/${policyVersionId}/components`,
-        label: `component usage for policy version ${policyVersionId}`,
-    });
-}
-
-export async function fetchPolicyVersionData(user: StackUser, policyId: string) {
-    const headers = await getAuthHeaders(user);
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    const policyUrl = new URL(`/policies/${policyId}`, serverUrl);
-    const policyVersionId = await fetch(policyUrl, { headers })
-        .then((res) => res.json())
-        .catch((error) => {
-            throw new Error("Failed to fetch policy version id for policy", { cause: error });
-        })
-        .then((response) => {
-            if (response.active_policy_version_id === null) {
-                throw new Error(`Policy ${policyId} has no active version`);
-            }
-            return response.active_policy_version_id;
-        });
-
-    if (policyVersionId === null) {
-        throw new Error(`Policy ${policyId} has no active version`);
-    }
-
-    const versionUrl = new URL(`/policyVersions/${policyVersionId}`, serverUrl);
-    const data = await fetch(versionUrl, { headers })
-        .then((res) => res.json())
-        .catch((error) => {
-            throw new Error("Failed to fetch graph data", { cause: error });
-        });
-    return data;
 }
 
 // UNAUTHENTICATED CALLS:

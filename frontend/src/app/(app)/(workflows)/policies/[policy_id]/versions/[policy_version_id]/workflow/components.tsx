@@ -1,29 +1,26 @@
 "use client";
 
-import {
-    Logs,
-    Network,
-    FolderCog,
-} from "lucide-react";
+import { Logs, Network, FolderCog } from "lucide-react";
 import { SidebarSectionProps, Sidebar } from "@/components/page-layout";
 
-export function LocalSidebar({ policyData }) {
+export function LocalSidebar({ policyVersion }) {
+    const baseUrl = `/policies/${policyVersion.policy_id}/versions/${policyVersion.policy_version_id}`;
     const sidebarSections: SidebarSectionProps[] = [
         {
             name: "Workflow",
             icon: Network,
-            path: `/policies/${policyData.policy_id}/workflow`,
+            path: `${baseUrl}/workflow`,
         },
         {
             name: "Resources",
             icon: FolderCog,
-            path: `/policies/${policyData.policy_id}/runs`,
+            path: `${baseUrl}/resources`,
             disabled: true,
         },
         {
             name: "Logs",
             icon: Logs,
-            path: "/logs",
+            path: `${baseUrl}/logs`,
             disabled: true,
         },
     ];

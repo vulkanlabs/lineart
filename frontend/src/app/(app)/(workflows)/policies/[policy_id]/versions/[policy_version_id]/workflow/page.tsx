@@ -1,23 +1,21 @@
 import { stackServerApp } from "@/stack";
 
 import WorkflowPage from "@/components/workflow/workflow";
-import { fetchPolicy, fetchPolicyVersionData } from "@/lib/api";
+import { fetchPolicyVersion } from "@/lib/api";
 import { LocalSidebar } from "./components";
 
 export default async function Page({ params }) {
     const user = await stackServerApp.getUser();
-    const policyData = await fetchPolicy(user, params.policy_id);
-    const graphData = await fetchPolicyVersionData(user, params.policy_id)
-        .then((data) => {
-            return JSON.parse(data.graph_definition);
-        })
-        .catch((error) => {
+    const policyVersion = await fetchPolicyVersion(user, params.policy_version_id).catch(
+        (error) => {
             console.error(error);
-        });
+        },
+    );
+    const graphData = JSON.parse(policyVersion.graph_definition);
 
     return (
         <div className="flex flex-row w-full h-full">
-            <LocalSidebar policyData={policyData} />
+            <LocalSidebar policyVersion={policyVersion} />
             <WorkflowPage graphData={graphData} />
         </div>
     );
