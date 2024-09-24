@@ -9,6 +9,7 @@ import {
 } from "@/lib/api";
 import PolicyMetrics from "./_components/policy-metrics";
 import PolicyVersionsTable from "./_components/policy-versions";
+import { LocalNavbar, LocalSidebar } from "./_components/navigation";
 
 export default async function Page({ params }) {
     const policyId = params.policy_id;
@@ -28,9 +29,14 @@ export default async function Page({ params }) {
     });
 
     return (
-        <div className="flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-            <PolicyVersionsTable policyVersions={policyVersionsData} />
-            <PolicyMetrics policyId={policyId} />
+        <div className="flex flex-row w-full h-full overflow-scroll">
+            <LocalSidebar policyData={policyData} />
+            <div className="flex flex-col w-full h-full overflow-scroll">
+                <div className="flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+                    <PolicyVersionsTable policyVersions={policyVersionsData} />
+                    <PolicyMetrics policyId={policyId} />
+                </div>
+            </div>
         </div>
     );
 }

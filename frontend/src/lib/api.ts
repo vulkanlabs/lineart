@@ -48,7 +48,18 @@ export async function fetchComponents(user: StackUser): Promise<any[]> {
     });
 }
 
-export async function fetchPolicies(user: StackUser): Promise<any[]> {
+type Policy = {
+    policy_id: string;
+    name: string;
+    description: string;
+    input_schema: string;
+    output_schema: string;
+    active_policy_version_id?: string;
+    created_at: string;
+    last_updated_at: string;
+};
+
+export async function fetchPolicies(user: StackUser): Promise<Policy[]> {
     return fetchServerData({
         user: user,
         endpoint: "/policies",
