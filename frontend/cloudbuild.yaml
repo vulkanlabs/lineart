@@ -4,7 +4,7 @@ steps:
     args: [
       'build', 
       '-t', 
-      'gcr.io/${PROJECT_ID}/${_SERVICE_NAME}:${COMMIT_SHA}', 
+      '${_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_SERVICE_NAME}:${COMMIT_SHA}', 
       '-f', 
       'images/vulkan-web-app.Dockerfile', 
       '--build-arg', 'NEXT_PUBLIC_VULKAN_SERVER_URL=${_NEXT_PUBLIC_VULKAN_SERVER_URL}',
@@ -16,7 +16,7 @@ steps:
   
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/${PROJECT_ID}/${_SERVICE_NAME}:${COMMIT_SHA}']
+    args: ['push', '${_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_SERVICE_NAME}:${COMMIT_SHA}']
 
   # Deploy container image to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -26,16 +26,18 @@ steps:
     - 'deploy'
     - '${_SERVICE_NAME}'
     - '--image'
-    - 'gcr.io/${PROJECT_ID}/${_SERVICE_NAME}:${COMMIT_SHA}'
+    - '${_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_SERVICE_NAME}:${COMMIT_SHA}'
     - '--region'
     - '${_SERVICE_REGION}'
 
 images:
-- 'gcr.io/${PROJECT_ID}/${_SERVICE_NAME}:${COMMIT_SHA}'
+- '${_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_SERVICE_NAME}:${COMMIT_SHA}'
 
 options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
+  _REPOSITORY_LOCATION: us-central1
+  _REPOSITORY_NAME: docker-images
   _SERVICE_NAME: sketch-frontend
   _SERVICE_REGION: us-central1
