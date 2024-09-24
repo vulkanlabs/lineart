@@ -50,6 +50,22 @@ def list_components(
     return components
 
 
+@router.get("/{component_id}", response_model=schemas.Component)
+def get_component(
+    component_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    component = (
+        db.query(Component)
+        .filter_by(component_id=component_id, project_id=project_id)
+        .first()
+    )
+    if component is None:
+        return Response(status_code=204)
+    return component
+
+
 @router.post("/{component_id}/versions")
 def create_component_version(
     component_id: str,
