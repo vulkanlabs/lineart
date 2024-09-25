@@ -27,6 +27,7 @@ export default async function Page({ params }) {
         }
     });
 
+    // TODO: fetch PolicyMetrics data in the server
     return (
         <div className="flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
             <PolicyVersionsTable policyVersions={policyVersionsData} />

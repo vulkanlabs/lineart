@@ -75,7 +75,7 @@ export default function PolicyMetrics({ policyId }: { policyId: string }) {
     ];
 
     return (
-        <div>
+        <div className="overflow-scroll">
             <div className="flex gap-4 pb-4">
                 <h1 className="text-lg font-semibold md:text-2xl">Métricas</h1>
                 <div>
