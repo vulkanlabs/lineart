@@ -16,9 +16,8 @@ export default function PolicyVersionsTable({ policyVersions }: { policyVersions
     const router = useRouter();
 
     function goToVersion(policyVersion: any) {
-        const policy = policyVersion.policy_id;
         const version = policyVersion.policy_version_id;
-        router.push(`/policies/${policy}/versions/${version}/workflow`);
+        router.push(`/policyVersions/${version}/workflow`);
     }
 
     return (

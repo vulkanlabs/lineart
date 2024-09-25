@@ -2,15 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import {
-    GitCompare,
-    Undo2,
-    FlaskConical,
-    GitBranch,
-    ChartColumnStacked,
-    Layers,
-} from "lucide-react";
-
-import {
     Table,
     TableBody,
     TableCaption,
@@ -19,7 +10,6 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { SidebarSectionProps, Sidebar } from "@/components/page-layout";
 
 export function ComponentVersionsTable({ versions }) {
     const router = useRouter();
@@ -88,32 +78,5 @@ export function ComponentVersionDependenciesTable({ entries }) {
                 ))}
             </TableBody>
         </Table>
-    );
-}
-
-export function LocalNavbar({ component }: { component?: any }) {
-    const router = useRouter();
-
-    function handleBackClick() {
-        router.back();
-    }
-
-    return (
-        <div className="border-b-2">
-            <div className="flex flex-row h-[3.75rem] gap-4">
-                <div
-                    onClick={handleBackClick}
-                    className="flex flex-row px-6 border-r-2 items-center cursor-pointer"
-                >
-                    <Undo2 />
-                </div>
-                {component && (
-                    <div className="flex py-4 gap-2 items-center">
-                        <h1 className="text-xl text-wrap font-semibold">Component:</h1>
-                        <h1 className="text-base text-wrap font-normal">{component.name}</h1>
-                    </div>
-                )}
-            </div>
-        </div>
     );
 }

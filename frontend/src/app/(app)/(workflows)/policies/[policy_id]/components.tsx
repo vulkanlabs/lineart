@@ -1,29 +1,49 @@
 "use client";
+import { GitCompare, FlaskConical, GitBranch, ChartColumnStacked, Layers } from "lucide-react";
 
-import { useRouter } from "next/navigation";
-import { Undo2 } from "lucide-react";
+import { SidebarSectionProps, PageLayout } from "@/components/page-layout";
+import { InnerNavbarSectionProps, InnerNavbar } from "@/components/inner-navbar";
 
-export function LocalNavbar({ policyData }) {
-    const router = useRouter();
-
-    function handleBackClick() {
-        router.back();
-    }
-
+export function RouteLayout({ policy, children }) {
+    const sections: SidebarSectionProps[] = [
+        {
+            name: "Versions",
+            icon: GitBranch,
+            path: `/policies/${policy.policy_id}/versions`,
+        },
+        {
+            name: "Runs",
+            icon: Layers,
+            path: `/policies/${policy.policy_id}/runs`,
+        },
+        {
+            name: "Experiments",
+            icon: FlaskConical,
+            path: `/policies/${policy.policy_id}/experiments`,
+            disabled: true,
+        },
+        {
+            name: "Backtests",
+            icon: GitCompare,
+            path: `/policies/${policy.policy_id}/backtests`,
+            disabled: true,
+        },
+        {
+            name: "Metrics",
+            icon: ChartColumnStacked,
+            path: `/policies/${policy.policy_id}/metrics`,
+            disabled: true,
+        },
+    ];
+    const innerNavbarSections: InnerNavbarSectionProps[] = [
+        { key: "Policy:", value: policy.name },
+    ];
     return (
-        <div className="border-b-2">
-            <div className="flex flex-row gap-4">
-                <div
-                    onClick={handleBackClick}
-                    className="flex flex-row px-6 border-r-2 items-center cursor-pointer"
-                >
-                    <Undo2 />
-                </div>
-                <div className="flex py-4 gap-2 items-center">
-                    <h1 className="text-xl text-wrap font-semibold">Policy:</h1>
-                    <h1 className="text-base text-wrap font-normal">{policyData.name}</h1>
-                </div>
-            </div>
+        <div className="flex flex-col w-full h-full">
+            <InnerNavbar backRoute="/policies" sections={innerNavbarSections} />
+            <PageLayout sidebar={{ sections, retractable: true }} content={{ scrollable: true }}>
+                {children}
+            </PageLayout>
         </div>
     );
 }

@@ -21,34 +21,45 @@ export type SidebarSectionProps = {
     disabled?: boolean;
 };
 
+export type SidebarProps = {
+    title?: SidebarTitleProps;
+    sections: SidebarSectionProps[];
+    retractable?: boolean;
+};
+
+export type PageContentProps = {
+    scrollable?: boolean;
+};
+
 export function PageLayout({
-    title,
-    sidebarSections,
-    retractable,
+    sidebar,
+    content,
     children,
 }: {
-    title?: SidebarTitleProps;
-    sidebarSections: SidebarSectionProps[];
-    retractable?: boolean;
+    sidebar: SidebarProps;
+    content?: PageContentProps;
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex h-full w-full">
-            <Sidebar title={title} sections={sidebarSections} retractable={retractable} />
-            <div className="flex flex-col w-full h-full overflow-scroll">{children}</div>
+        <div className="flex flex-row w-full h-full overflow-scroll">
+            <Sidebar
+                title={sidebar.title}
+                sections={sidebar.sections}
+                retractable={sidebar.retractable}
+            />
+            <div
+                className={cn(
+                    "flex flex-col w-full h-full",
+                    content?.scrollable ? "overflow-scroll" : "overflow-clip",
+                )}
+            >
+                {children}
+            </div>
         </div>
     );
 }
 
-export function Sidebar({
-    title,
-    sections,
-    retractable,
-}: {
-    title?: SidebarTitleProps;
-    sections: SidebarSectionProps[];
-    retractable?: boolean;
-}) {
+export function Sidebar({ title, sections, retractable }: SidebarProps) {
     const [expandOnHover, setExpandOnHover] = useState(false);
     const [isMouseOver, setIsMouseOver] = useState(true);
     const [isExpanded, setIsExpanded] = useState(true);
@@ -62,7 +73,7 @@ export function Sidebar({
         setIsExpanded(true);
         setIsMouseOver(true);
     }
-    
+
     function mouseLeaveEvent() {
         if (!retractable) return;
         if (!expandOnHover) return;

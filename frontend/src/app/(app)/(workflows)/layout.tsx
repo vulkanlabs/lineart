@@ -1,5 +1,5 @@
 "use client";
-import { SidebarSectionProps, PageLayout } from "@/components/page-layout";
+import { SidebarSectionProps, SidebarProps, PageLayout } from "@/components/page-layout";
 import { Network, Workflow, Puzzle, ArrowDownUp, Logs } from "lucide-react";
 
 export default function Layout({ children }) {
@@ -28,9 +28,10 @@ export default function Layout({ children }) {
         },
     ];
     const title = { name: "Workflows", icon: Network, path: "/policies" };
+    const sidebar: SidebarProps = { title, sections, retractable: true };
 
     return (
-        <PageLayout title={title} sidebarSections={sections} retractable>
+        <PageLayout sidebar={sidebar} content={{ scrollable: false }}>
             {children}
         </PageLayout>
     );
