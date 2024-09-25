@@ -2,16 +2,10 @@ steps:
   # Build the Container Image
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
-    args: 
-    - -cx
-    - docker build \
-      -t ${_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_SERVICE_NAME}:${COMMIT_SHA} \
-      -f images/vulkan-web-app.Dockerfile \
-      --build-arg', 'NEXT_PUBLIC_VULKAN_SERVER_URL=${_NEXT_PUBLIC_VULKAN_SERVER_URL} \
-      --build-arg', 'NEXT_PUBLIC_STACK_PROJECT_ID=${_NEXT_PUBLIC_STACK_PROJECT_ID} \
-      --build-arg', 'NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=${_NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY} \
-      --build-arg', 'STACK_SECRET_SERVER_KEY=${_STACK_SECRET_SERVER_KEY} \
-      .
+    args: [
+      '-cx',
+      'docker build -t ${_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_SERVICE_NAME}:${COMMIT_SHA} -f images/vulkan-web-app.Dockerfile --build-arg NEXT_PUBLIC_VULKAN_SERVER_URL=${_NEXT_PUBLIC_VULKAN_SERVER_URL} --build-arg NEXT_PUBLIC_STACK_PROJECT_ID=${_NEXT_PUBLIC_STACK_PROJECT_ID} --build-arg NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=${_NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY} --build-arg STACK_SECRET_SERVER_KEY=${_STACK_SECRET_SERVER_KEY} .'
+    ]
     secretEnv: ['_STACK_SECRET_SERVER_KEY']
   
   # Push the container image to Container Registry
