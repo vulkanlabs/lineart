@@ -49,21 +49,28 @@ def create_policy_version(
     # TODO: at the moment we assume repository is a path in local disk,
     # but this could be a remote repository in git etc
     if not os.path.exists(repository_path):
-        raise FileNotFoundError(f"Path does not exist: {repository_path}")
+        ctx.logger.error(f"Repository path does not exist: {repository_path}")
+        return
     if not os.path.isdir(repository_path):
-        raise ValueError(f"Path is not a directory: {repository_path}")
-
-    if not os.path.exists(repository_path):
-        msg = f"Path does not exist - resolved to: {repository_path}"
-        raise FileNotFoundError(msg)
-    if not os.path.isdir(repository_path):
-        msg = f"Path is not a directory - resolved to: {repository_path}"
-        raise ValueError(msg)
+        ctx.logger.error(f"Repository path is not a directory: {repository_path}")
+        return
 
     # TODO: check that the code path is a valid python package or module
+    pyproject_path = os.path.join(repository_path, "pyproject.toml")
+    if not os.path.exists(pyproject_path):
+        ctx.logger.error(f"File pyproject.toml not found in path: {repository_path}/. ")
+        ctx.logger.error(
+            "A pyproject.toml file must be specified at the root level of the repository."
+        )
+        return
+
     config_path = os.path.join(repository_path, "vulkan.yaml")
     if not os.path.exists(config_path):
-        raise FileNotFoundError(f"Config file not found: {config_path}")
+        ctx.logger.error(f"Config file not found: {config_path}")
+        ctx.logger.error(
+            "A vulkan.yaml file must be specified at the root level of the repository."
+        )
+        return
 
     with open(config_path, "r") as fn:
         config_data = yaml.safe_load(fn)
@@ -73,7 +80,8 @@ def create_policy_version(
     _ = VulkanWorkspaceConfig.from_dict(config_data)
 
     repository = pack_workspace(version_name, repository_path)
-    ctx.logger.info(f"Creating workspace {version_name}")
+    # TODO: improve UX by showing a loading animation
+    ctx.logger.info(f"Creating workspace {version_name}. This may take a while...")
 
     body = {
         "policy_id": policy_id,
@@ -92,5 +100,7 @@ def create_policy_version(
 
     policy_version_id = response.json()["policy_version_id"]
     ctx.logger.debug(response.json())
-    ctx.logger.info(f"Created workspace {version_name} with policy version {policy_version_id}")
+    ctx.logger.info(
+        f"Created workspace {version_name} with policy version {policy_version_id}"
+    )
     return policy_version_id
