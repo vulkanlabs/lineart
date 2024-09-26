@@ -9,10 +9,12 @@ EXPOSE ${DAGSTER_PORT}
 
 ARG VULKAN_HOME
 ARG VULKAN_PORT
+ARG VULKAN_SERVER_PATH
 ARG VULKAN_SCRIPTS_PATH
 ARG VULKAN_VENVS_PATH
 ENV VULKAN_HOME=${VULKAN_HOME}
 ENV VULKAN_PORT=${VULKAN_PORT}
+ENV VULKAN_SERVER_PATH=${VULKAN_SERVER_PATH}
 ENV VULKAN_SCRIPTS_PATH=${VULKAN_SCRIPTS_PATH}
 ENV VULKAN_VENVS_PATH=${VULKAN_VENVS_PATH}
 EXPOSE ${VULKAN_PORT}
@@ -28,8 +30,8 @@ COPY vulkan /tmp/vulkan
 RUN uv pip install --system /tmp/vulkan && pytest /tmp/vulkan 
 
 # Install vulkan-dagster-server
-COPY vulkan-dagster ${VULKAN_HOME}/vulkan-dagster
-RUN uv pip install --system ${VULKAN_HOME}/vulkan-dagster
+COPY vulkan-dagster ${VULKAN_SERVER_PATH}/vulkan-dagster
+RUN uv pip install --system ${VULKAN_SERVER_PATH}/vulkan-dagster
 
 COPY vulkan-dagster/config/dagster.yaml ${DAGSTER_HOME}/
 COPY vulkan-dagster/config/workspace.yaml ${VULKAN_HOME}/
