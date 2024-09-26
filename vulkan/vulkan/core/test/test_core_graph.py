@@ -2,16 +2,11 @@ from enum import Enum
 
 import pytest
 
-from vulkan.core.component import (
-    ComponentDefinition,
-    ComponentGraph,
-    ComponentInstance,
-    InstanceParam,
-    check_all_parameters_specified,
-)
-from vulkan.core.dependency import Dependency
+from vulkan.core.component import ComponentGraph, check_all_parameters_specified
 from vulkan.core.graph import Graph
-from vulkan.core.nodes import (
+from vulkan.spec.component import ComponentDefinition, ComponentInstance, InstanceParam
+from vulkan.spec.dependency import Dependency
+from vulkan.spec.nodes import (
     BranchNode,
     HTTPConnectionNode,
     InputNode,

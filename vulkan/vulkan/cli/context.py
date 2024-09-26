@@ -17,13 +17,23 @@ class LoginContext:
     def __init__(self):
         self.logger = init_logger(__name__)
 
+        # TODO: This should handled by a Vulkan public API.
+        # That way we abstract the auth provider away.
+        self.stack_client_key = os.getenv("STACK_PUBLISHABLE_CLIENT_KEY")
+        self.stack_project_id = os.getenv("STACK_PROJECT_ID")
+        if self.stack_client_key is None or self.stack_project_id is None:
+            raise click.ClickException(
+                "STACK_PUBLISHABLE_CLIENT_KEY and STACK_PROJECT_ID environment variables are required"
+            )
+
 
 class Context:
     def __init__(self):
-        self.server_url = os.getenv(
-            "VULKAN_SERVER_URL",
-            "http://localhost:6001",
-        )
+        self.server_url = os.getenv("VULKAN_SERVER_URL")
+        if self.server_url is None:
+            raise click.ClickException(
+                "VULKAN_SERVER_URL environment variable is not set"
+            )
 
         self.logger = init_logger(__name__)
         creds = retrieve_credentials()

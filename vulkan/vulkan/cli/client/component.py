@@ -2,7 +2,7 @@ import base64
 import os
 
 from vulkan.cli.context import Context
-from vulkan.core.component import component_version_alias
+from vulkan.spec.component import component_version_alias
 from vulkan.environment.packing import pack_workspace
 
 

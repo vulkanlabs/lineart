@@ -1,5 +1,5 @@
-from vulkan.core.dependency import Dependency
-from vulkan.core.nodes import TransformNode
+from vulkan.spec.dependency import Dependency
+from vulkan.spec.nodes import TransformNode
 
 
 def test_transform_node():

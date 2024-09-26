@@ -6,18 +6,13 @@ import requests
 from vulkan.cli.auth import TOKEN_PATH, ensure_write, retrieve_credentials
 from vulkan.cli.context import LoginContext, pass_login_context
 
-# TODO: This should handled by a Vulkan public API.
-# That way we abstract the auth provider away.
-STACK_PUBLISHABLE_CLIENT_KEY = os.getenv("STACK_PUBLISHABLE_CLIENT_KEY")
-STACK_PROJECT_ID = os.getenv("STACK_PROJECT_ID")
-
 
 @click.command()
 @pass_login_context
 def login(ctx: LoginContext):
     default_headers = {
-        "x-stack-publishable-client-key": STACK_PUBLISHABLE_CLIENT_KEY,
-        "x-stack-project-id": STACK_PROJECT_ID,
+        "x-stack-publishable-client-key": ctx.stack_client_key,
+        "x-stack-project-id": ctx.stack_project_id,
         "x-stack-access-type": "client",
     }
     if os.path.exists(TOKEN_PATH):

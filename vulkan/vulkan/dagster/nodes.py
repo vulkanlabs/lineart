@@ -16,7 +16,11 @@ from dagster import (
 )
 
 from vulkan.core.exceptions import UserCodeException
-from vulkan.core.nodes import (
+from vulkan.core.run import RunStatus
+from vulkan.core.step_metadata import StepMetadata
+from vulkan.dagster.io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
+from vulkan.dagster.run_config import RUN_CONFIG_KEY
+from vulkan.spec.nodes import (
     BranchNode,
     Collect,
     HTTPConnectionNode,
@@ -26,10 +30,6 @@ from vulkan.core.nodes import (
     TerminateNode,
     TransformNode,
 )
-from vulkan.core.run import RunStatus
-from vulkan.core.step_metadata import StepMetadata
-from vulkan.dagster.io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
-from vulkan.dagster.run_config import RUN_CONFIG_KEY
 
 
 # TODO: we should review how to require users to define the possible return

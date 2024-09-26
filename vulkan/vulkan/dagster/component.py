@@ -1,7 +1,7 @@
 from vulkan.core.component import ComponentGraph
-from vulkan.core.dependency import Dependency
-from vulkan.core.nodes import Node
 from vulkan.dagster.nodes import to_dagster_nodes
+from vulkan.spec.dependency import Dependency
+from vulkan.spec.nodes import Node
 
 
 class DagsterComponent(ComponentGraph):

@@ -1,4 +1,4 @@
-ARG POSTGRES_VERSION
+ARG POSTGRES_VERSION="16.3"
 FROM postgres:${POSTGRES_VERSION}
 
 # Copy the SQL file into the container

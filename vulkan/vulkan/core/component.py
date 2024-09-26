@@ -1,75 +1,10 @@
 from copy import deepcopy
-from dataclasses import dataclass, field
 from typing import Any
 
-from vulkan.core.dependency import Dependency
 from vulkan.core.graph import Graph
-from vulkan.core.nodes import Node, NodeType, TransformNode, VulkanNodeDefinition
-
-
-@dataclass
-class InstanceParam:
-    name: str
-
-
-@dataclass
-class ComponentDefinition:
-    nodes: list[Node]
-    input_schema: dict[str, type]
-    instance_params_schema: dict[str, type] = field(default_factory=dict)
-
-
-@dataclass
-class ComponentInstanceConfig:
-    name: str
-    description: str
-    dependencies: dict[str, Dependency]
-    instance_params: dict[str, Any] = field(default_factory=dict)
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "ComponentInstanceConfig":
-        return cls(
-            name=data["name"],
-            description=data["description"],
-            dependencies={
-                k: Dependency.from_dict(v) if isinstance(v, dict) else v
-                for k, v in data["dependencies"].items()
-            },
-            instance_params=data.get("instance_params"),
-        )
-
-
-@dataclass
-class ComponentInstance:
-    name: str
-    version: str
-    config: ComponentInstanceConfig | dict
-    input_schema: dict | None = None
-    output_schema: dict | None = None
-
-    def __post_init__(self):
-        if not isinstance(self.name, str) or self.name == "":
-            raise ValueError("name must be provided")
-        if not isinstance(self.version, str) or self.version == "":
-            raise ValueError("version must be provided")
-
-        if not isinstance(self.config, (ComponentInstanceConfig, dict)):
-            raise ValueError("config must be `ComponentInstanceConfig` or dict")
-        if isinstance(self.config, dict):
-            self.config = ComponentInstanceConfig.from_dict(self.config)
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "ComponentInstance":
-        return cls(
-            name=data["name"],
-            version=data["version"],
-            config=ComponentInstanceConfig.from_dict(data["config"]),
-            input_schema=data.get("input_schema"),
-            output_schema=data.get("output_schema"),
-        )
-
-    def alias(self) -> str:
-        return component_version_alias(self.name, self.version)
+from vulkan.spec.component import ComponentDefinition, ComponentInstance, InstanceParam
+from vulkan.spec.dependency import Dependency
+from vulkan.spec.nodes import Node, NodeType, TransformNode, VulkanNodeDefinition
 
 
 class ComponentGraph(Node, Graph):
@@ -203,10 +138,6 @@ def _apply_instance_params(
             setattr(node, param_name, value)
 
     return node
-
-
-def component_version_alias(name: str, version: str):
-    return f"{name}:{version}"
 
 
 def _make_input_node(name: str, dependencies: dict[str, Dependency]) -> list[Node]:

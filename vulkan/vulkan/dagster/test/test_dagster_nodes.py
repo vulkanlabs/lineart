@@ -3,11 +3,11 @@ from enum import Enum
 
 from pytest_httpserver import HTTPServer
 
-from vulkan.core.dependency import Dependency
-from vulkan.core.nodes import HTTPConnectionNode, NodeType, TerminateNode, TransformNode
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.dagster.nodes import to_dagster_node
 from vulkan.dagster.testing import run_test_job
+from vulkan.spec.dependency import Dependency
+from vulkan.spec.nodes import HTTPConnectionNode, NodeType, TerminateNode, TransformNode
 
 
 def test_http_connection(httpserver: HTTPServer):

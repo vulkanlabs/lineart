@@ -1,7 +1,7 @@
 from abc import ABC
 
-from .dependency import Dependency
-from .nodes import Node, NodeType, VulkanNodeDefinition
+from vulkan.spec.dependency import Dependency
+from vulkan.spec.nodes import Node, NodeType, VulkanNodeDefinition
 
 
 class Graph(ABC):

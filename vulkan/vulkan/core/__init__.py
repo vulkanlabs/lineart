@@ -1,6 +1,2 @@
-from . import component
-from . import exceptions
-from . import graph
-from . import nodes
-from . import run
-from . import step_metadata
+from ..spec import component, nodes
+from . import exceptions, graph, run, step_metadata

@@ -9,12 +9,12 @@ from dagster import (
 )
 from dagster._core.definitions.dependency import DynamicCollectDependencyDefinition
 
-from vulkan.core.dependency import Dependency
-from vulkan.core.nodes import NodeType
 from vulkan.core.run import RunStatus
 from vulkan.dagster.io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
 from vulkan.dagster.nodes import to_dagster_nodes
 from vulkan.dagster.run_config import RUN_CONFIG_KEY
+from vulkan.spec.dependency import Dependency
+from vulkan.spec.nodes import NodeType
 
 DEFAULT_POLICY_NAME = "default_policy"
 
@@ -100,7 +100,7 @@ def _as_dagster_dependencies(
         if node_type != NodeType.COLLECT
         else DynamicCollectDependencyDefinition
     )
-    
+
     for k, v in dependencies.items():
         # Check if the dependency specifies an output name or a key
         if v.output is not None:
