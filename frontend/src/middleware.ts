@@ -10,7 +10,15 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    // TODO: Add more paths to the matcher
-    // Match all paths except /, stack path, and static paths
-    matcher: ["/policies/:path*", "/components/:path*"],
+    matcher: [
+        /*
+         * Match all request paths except for the ones starting with:
+         * - handler (StackHandler routes)
+         * - login (login page)
+         * - _next/static (static files)
+         * - _next/image (image optimization files)
+         * - favicon.ico, sitemap.xml, robots.txt (metadata files)
+         */
+        "/((?!handler|login|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+    ],
 };

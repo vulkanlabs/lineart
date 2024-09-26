@@ -23,7 +23,7 @@ function NodeParam({ name, value }) {
     return (
         <div className="grid grid-cols-4 my-2">
             <div className="col-span-2 text-lg font-normal">{name}</div>
-            <div className="col-span-2">{value}</div>
+            <div className="col-span-2 overflow-scroll">{value}</div>
         </div>
     );
 }

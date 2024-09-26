@@ -23,7 +23,7 @@ function NodeBase({ icon, data, width, height, isOutput = false }) {
                 <div style={{ height: height }} className="flex flex-row items-center border-r">
                     <div className="mx-2">{icon}</div>
                 </div>
-                <div className="pl-2 w-full">{data.label}</div>
+                <div className="pl-2 w-full overflow-hidden text-ellipsis">{data.label}</div>
             </div>
             {isOutput ? null : <Handle type="source" position={Position.Bottom} />}
         </div>
