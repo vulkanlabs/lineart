@@ -58,6 +58,7 @@ class DagsterWorkspaceStatus(enum.Enum):
     OK = "OK"
     CREATION_PENDING = "CREATION_PENDING"
     CREATION_FAILED = "CREATION_FAILED"
+    INSTALL_FAILED = "INSTALL_FAILED"
 
 
 class Role(enum.Enum):

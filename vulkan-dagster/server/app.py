@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import subprocess
+from dataclasses import dataclass
 from shutil import rmtree
 from typing import Annotated
 from time import time
@@ -24,7 +25,7 @@ VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
 SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
 
 
-@app.post("/workspaces")
+@app.post("/workspaces/create")
 def create_workspace(
     name: Annotated[str, Body()],
     repository: Annotated[str, Body()],
@@ -32,33 +33,56 @@ def create_workspace(
     """
     Create the dagster workspace and venv used to run a policy version.
 
-
     """
     repository = base64.b64decode(repository)
     logger.info(f"Creating workspace: {name} (python_module)")
 
     try:
-        workspace_path = unpack_workspace(
-            f"{VULKAN_HOME}/workspaces", name, repository
-        )
+        workspace_path = unpack_workspace(f"{VULKAN_HOME}/workspaces", name, repository)
+        code_location = _get_code_location(workspace_path)
 
-        config = VulkanWorkspaceConfig.from_workspace(workspace_path)
-        working_dir, module_name = get_working_directory(config, workspace_path)
-        code_path = os.path.join(working_dir, module_name)
-        code_entrypoint = find_package_entrypoint(code_path)
+        _create_venv_for_workspace(name, workspace_path)
+
+        required_components = _get_required_components(
+            name, code_location.entrypoint, workspace_path
+        )
+    except Exception as e:
+        logger.error(f"Failed create workspace: {e}")
+        raise HTTPException(status_code=500, detail=e)
+
+    logger.info(f"Created workspace at: {workspace_path}")
+
+    return {
+        "required_components": required_components,
+        "workspace_path": workspace_path,
+    }
+
+
+@app.post("/workspaces/install")
+def install_workspace(
+    name: Annotated[str, Body()],
+    workspace_path: Annotated[str, Body()],
+    required_components: Annotated[list[str], Body()],
+):
+    """
+    Install components, resolve policy definition and add workspace to Dagster.
+
+    """
+    logger.info(f"Installing workspace: {name}")
+
+    try:
+        _install_components(name, required_components)
+
+        code_location = _get_code_location(workspace_path)
+        resolved_graph = _resolve_policy(name, code_location.entrypoint, workspace_path)
 
         # TODO: we're replacing /workspaces with /definitions as a convenience.
         # We could have a more thorough definition of where the defs are stored.
-        definition_path = working_dir.replace("/workspaces", "/definitions", 1)
-        _ = _create_init_file(code_entrypoint, definition_path)
-
-        _create_venv_for_workspace(name, workspace_path)
-        required_components = _get_required_components(
-            name, code_entrypoint, workspace_path
+        definition_path = code_location.working_dir.replace(
+            "/workspaces", "/definitions", 1
         )
-        _install_components(name, required_components)
 
-        resolved_graph = _resolve_policy(name, code_entrypoint, workspace_path)
+        _ = _create_init_file(code_location.entrypoint, definition_path)
 
     except Exception as e:
         logger.error(f"Failed create workspace: {e}")
@@ -68,17 +92,14 @@ def create_workspace(
         VULKAN_HOME,
         name,
         definition_path,
-        module_name,
+        code_location.module_name,
     )
-    logger.info(f"Created workspace at: {workspace_path}")
+    logger.info(f"Successfully installed workspace: {name}")
 
-    return {
-        "graph": resolved_graph,
-        "required_components": required_components,
-        "workspace_path": workspace_path,
-    }
+    return {"graph": resolved_graph}
 
-# TODO: We need to segregate workspaces to enable users to 
+
+# TODO: We need to segregate workspaces to enable users to
 # create components without colliding with other users' components.
 @app.post("/components", response_model=schemas.ComponentConfig)
 def create_component(
@@ -215,6 +236,25 @@ def _install_components(workspace_name, required_components):
         )
         if completed_process.returncode != 0:
             raise Exception(f"Failed to install component: {component}")
+
+
+@dataclass
+class VulkanCodeLocation:
+    working_dir: str
+    module_name: str
+    entrypoint: str
+
+
+def _get_code_location(workspace_path):
+    config = VulkanWorkspaceConfig.from_workspace(workspace_path)
+    working_dir, module_name = get_working_directory(config, workspace_path)
+    code_path = os.path.join(working_dir, module_name)
+    entrypoint = find_package_entrypoint(code_path)
+    return VulkanCodeLocation(
+        working_dir=working_dir,
+        module_name=module_name,
+        entrypoint=entrypoint,
+    )
 
 
 def _create_init_file(code_entrypoint, working_dir) -> str:

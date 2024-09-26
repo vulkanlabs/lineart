@@ -95,8 +95,20 @@ def create_policy_version(
         f"{ctx.server_url}/policies/{policy_id}/versions",
         json=body,
     )
+    if response.status_code == 400:
+        detail = response.json().get("detail", {})
+        if detail.get("error") == "MISSING_COMPONENTS":
+            ctx.logger.error(
+                "Missing components. Please install the following components and "
+                f"try again: {detail['metadata']['components']}"
+            )
+            return
+        ctx.logger.error(f"Bad request: {detail}")
+        return
+    
     if response.status_code != 200:
-        raise ValueError(f"Failed to create policy version: {response.content}")
+        ctx.logger.error(f"Failed to create policy version: {response.content}")
+        return
 
     policy_version_id = response.json()["policy_version_id"]
     ctx.logger.debug(response.json())

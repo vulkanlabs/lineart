@@ -64,7 +64,9 @@ def get_policy(
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    policy = db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    policy = (
+        db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    )
     if policy is None:
         return Response(status_code=204)
     return policy
@@ -77,7 +79,9 @@ def update_policy(
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    policy = db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    policy = (
+        db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    )
     if policy is None:
         msg = f"Tried to update non-existent policy {policy_id}"
         raise HTTPException(status_code=400, detail=msg)
@@ -109,7 +113,7 @@ def update_policy(
         policy.description = config.description
 
     db.commit()
-    msg = f"Policy {policy_id} updated: active version set to {config.active_policy_version_id}"
+    msg = f"Policy {policy_id} updated"
     logger.info(msg)
     return {
         "policy_id": policy.policy_id,
@@ -147,7 +151,9 @@ def list_runs_by_policy(
     db: Session = Depends(get_db),
 ):
     policy_versions = (
-        db.query(PolicyVersion).filter_by(policy_id=policy_id, project_id=project_id).all()
+        db.query(PolicyVersion)
+        .filter_by(policy_id=policy_id, project_id=project_id)
+        .all()
     )
     policy_version_ids = [v.policy_version_id for v in policy_versions]
     runs = db.query(Run).filter(Run.policy_version_id.in_(policy_version_ids)).all()
@@ -172,7 +178,9 @@ def create_run_by_policy(
     except Exception as e:
         HTTPException(status_code=400, detail=e)
 
-    policy = db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    policy = (
+        db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    )
     if policy is None:
         raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
     if policy.active_policy_version_id is None:
@@ -223,7 +231,9 @@ def create_policy_version(
         # unique version of the code.
         config.alias = config.repository_version
 
-    policy = db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    policy = (
+        db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    )
     if policy is None:
         msg = f"Tried to create a version for non-existent policy {policy_id}"
         raise HTTPException(status_code=400, detail=msg)
@@ -243,7 +253,7 @@ def create_policy_version(
     try:
         # TODO: We need to resolve required components before installing.
         # This way we can check if the user has access to components used.
-        graph, required_components = _create_policy_version_workspace(
+        workspace, required_components = _create_policy_version_workspace(
             db=db,
             server_url=server_config.vulkan_dagster_server_url,
             policy_version_id=version.policy_version_id,
@@ -257,10 +267,15 @@ def create_policy_version(
                 .filter(ComponentVersion.alias.in_(required_components))
                 .all()
             )
-            missing = set(required_components) - set([m.alias for m in matched])
+            missing = list(set(required_components) - set([m.alias for m in matched]))
             if missing:
-                msg = f"Missing components: {missing}"
-                raise HTTPException(status_code=400, detail=msg)
+                msg = f"The following components are not defined: {missing}"
+                detail = {
+                    "error": "MISSING_COMPONENTS",
+                    "msg": msg,
+                    "metadata": {"components": missing},
+                }
+                raise HTTPException(status_code=400, detail=detail)
 
             for m in matched:
                 dependency = ComponentVersionDependency(
@@ -268,14 +283,22 @@ def create_policy_version(
                     policy_version_id=version.policy_version_id,
                 )
                 db.add(dependency)
+
+        graph = _install_policy_version_workspace(
+            db=db,
+            server_url=server_config.vulkan_dagster_server_url,
+            name=version_name,
+            required_components=required_components,
+            workspace=workspace,
+        )
     except HTTPException as e:
-        msg = f"Failed to create workspace for policy {policy_id} version {config.alias}"
+        msg = (
+            f"Failed to create workspace for policy {policy_id} version {config.alias}"
+        )
         logger.error(msg)
         raise e
     except Exception as e:
-        msg = (
-            f"Failed to create workspace for policy {policy_id} version {config.alias}: details: {e}"
-        )
+        msg = f"Failed to create workspace for policy {policy_id} version {config.alias}: details: {e}"
         raise HTTPException(status_code=500, detail=msg)
     finally:
         db.commit()
@@ -319,7 +342,7 @@ def _create_policy_version_workspace(
     db.add(workspace)
     db.commit()
 
-    server_url = f"{server_url}/workspaces"
+    server_url = f"{server_url}/workspaces/create"
     response = requests.post(
         server_url,
         json={"name": name, "repository": repository},
@@ -337,10 +360,42 @@ def _create_policy_version_workspace(
     response_data = response.json()
     workspace_path = response_data["workspace_path"]
     workspace.workspace_path = workspace_path
+    db.commit()
+
+    return workspace, response_data["required_components"]
+
+
+def _install_policy_version_workspace(
+    db: Session,
+    server_url: str,
+    name: str,
+    required_components: list[str],
+    workspace: DagsterWorkspace,
+):
+    server_url = f"{server_url}/workspaces/install"
+    response = requests.post(
+        server_url,
+        json={
+            "name": name,
+            "workspace_path": workspace.workspace_path,
+            "required_components": required_components,
+        },
+    )
+    status_code = response.status_code
+    if status_code != 200:
+        workspace.status = DagsterWorkspaceStatus.INSTALL_FAILED
+        db.commit()
+        try:
+            error_msg = response.json()["message"]
+        except requests.exceptions.JSONDecodeError:
+            error_msg = f"Status code: {status_code}"
+        raise ValueError(f"Failed to install workspace: {error_msg}")
+
     workspace.status = DagsterWorkspaceStatus.OK
     db.commit()
 
-    return response_data["graph"], response_data["required_components"]
+    response_data = response.json()
+    return response_data["graph"]
 
 
 def _validate_date_range(
