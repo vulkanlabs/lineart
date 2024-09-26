@@ -268,14 +268,15 @@ def create_policy_version(
                     policy_version_id=version.policy_version_id,
                 )
                 db.add(dependency)
-
+    except HTTPException as e:
+        msg = f"Failed to create workspace for policy {policy_id} version {config.alias}"
+        logger.error(msg)
+        raise e
     except Exception as e:
         msg = (
-            f"Failed to create workspace for policy {policy_id} version {config.alias}"
+            f"Failed to create workspace for policy {policy_id} version {config.alias}: details: {e}"
         )
-        logger.error(msg)
-        logger.error(e)
-        raise HTTPException(status_code=500, detail=e)
+        raise HTTPException(status_code=500, detail=msg)
     finally:
         db.commit()
 
