@@ -49,28 +49,26 @@ def create_policy_version(
     # TODO: at the moment we assume repository is a path in local disk,
     # but this could be a remote repository in git etc
     if not os.path.exists(repository_path):
-        ctx.logger.error(f"Repository path does not exist: {repository_path}")
-        return
+        raise FileNotFoundError(f"Repository path does not exist: {repository_path}")
     if not os.path.isdir(repository_path):
-        ctx.logger.error(f"Repository path is not a directory: {repository_path}")
-        return
+        msg = f"Repository path is not a directory: {repository_path}"
+        ctx.logger.error(msg)
+        raise ValueError()
 
     # TODO: check that the code path is a valid python package or module
     pyproject_path = os.path.join(repository_path, "pyproject.toml")
     if not os.path.exists(pyproject_path):
-        ctx.logger.error(f"File pyproject.toml not found in path: {repository_path}/. ")
-        ctx.logger.error(
+        raise FileNotFoundError(
+            f"File pyproject.toml not found in path: {repository_path}/.\n"
             "A pyproject.toml file must be specified at the root level of the repository."
         )
-        return
 
     config_path = os.path.join(repository_path, "vulkan.yaml")
     if not os.path.exists(config_path):
-        ctx.logger.error(f"Config file not found: {config_path}")
-        ctx.logger.error(
+        raise FileNotFoundError(
+            f"Config file not found: {config_path}"
             "A vulkan.yaml file must be specified at the root level of the repository."
         )
-        return
 
     with open(config_path, "r") as fn:
         config_data = yaml.safe_load(fn)
@@ -98,17 +96,14 @@ def create_policy_version(
     if response.status_code == 400:
         detail = response.json().get("detail", {})
         if detail.get("error") == "MISSING_COMPONENTS":
-            ctx.logger.error(
+            raise ValueError(
                 "Missing components. Please install the following components and "
                 f"try again: {detail['metadata']['components']}"
             )
-            return
-        ctx.logger.error(f"Bad request: {detail}")
-        return
-    
+        raise ValueError(f"Bad request: {detail}")
+
     if response.status_code != 200:
-        ctx.logger.error(f"Failed to create policy version: {response.content}")
-        return
+        raise ValueError(f"Failed to create policy version: {response.content}")
 
     policy_version_id = response.json()["policy_version_id"]
     ctx.logger.debug(response.json())
