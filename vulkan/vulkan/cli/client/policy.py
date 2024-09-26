@@ -51,9 +51,7 @@ def create_policy_version(
     if not os.path.exists(repository_path):
         raise FileNotFoundError(f"Repository path does not exist: {repository_path}")
     if not os.path.isdir(repository_path):
-        msg = f"Repository path is not a directory: {repository_path}"
-        ctx.logger.error(msg)
-        raise ValueError()
+        raise ValueError(f"Repository path is not a directory: {repository_path}")
 
     # TODO: check that the code path is a valid python package or module
     pyproject_path = os.path.join(repository_path, "pyproject.toml")
