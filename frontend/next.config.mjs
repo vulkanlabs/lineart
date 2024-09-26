@@ -6,6 +6,8 @@ const nextConfig = {
             static: 3600,
         },
     },
+    output: "standalone",
 };
+
 
 export default nextConfig;
