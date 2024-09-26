@@ -54,7 +54,7 @@ def login(ctx: LoginContext):
             creds.update(data)
             ensure_write(TOKEN_PATH, creds)
             ctx.logger.debug("Refreshed session from existing token.")
-            ctx.logger.info("You are already signed in.")
+            ctx.logger.info("Sign-in successful.")
             return
         else:
             ctx.logger.debug("Failed to refresh session. Signing in again.")
@@ -83,7 +83,7 @@ def _base_login(ctx: LoginContext, headers: dict):
             f"Failed to sign in: status {response.status_code} \n"
             + f"{response.content}"
         )
-        raise ValueError(f"Failed to sign in: {response.content}")
+        return
     data = response.json()
     ensure_write(TOKEN_PATH, data)
-    ctx.logger.info("You are now signed in.")
+    ctx.logger.info("Sign-in successful.")

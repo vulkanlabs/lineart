@@ -23,7 +23,8 @@ class LoginContext:
         self.stack_project_id = os.getenv("STACK_PROJECT_ID")
         if self.stack_client_key is None or self.stack_project_id is None:
             raise click.ClickException(
-                "STACK_PUBLISHABLE_CLIENT_KEY and STACK_PROJECT_ID environment variables are required"
+                "STACK_PUBLISHABLE_CLIENT_KEY and STACK_PROJECT_ID "
+                "environment variables are required for Vulkan authentication"
             )
 
 
