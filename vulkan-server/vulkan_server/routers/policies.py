@@ -4,16 +4,17 @@ from typing import Annotated, Any
 
 import pandas as pd
 import requests
+import sqlalchemy.exc
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy import func as F
 from sqlalchemy.orm import Session
-
 from vulkan.core.exceptions import (
     UNHANDLED_ERROR_NAME,
     VULKAN_INTERNAL_EXCEPTIONS,
     ComponentNotFoundException,
     VulkanInternalException,
 )
+from vulkan.core.run import RunStatus
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
@@ -76,7 +77,7 @@ def get_policy(
         db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
     )
     if policy is None:
-        return Response(status_code=204)
+        return Response(status_code=404)
     return policy
 
 
@@ -92,7 +93,7 @@ def update_policy(
     )
     if policy is None:
         msg = f"Tried to update non-existent policy {policy_id}"
-        raise HTTPException(status_code=400, detail=msg)
+        raise HTTPException(status_code=404, detail=msg)
 
     if (
         config.active_policy_version_id is not None
@@ -107,7 +108,7 @@ def update_policy(
         )
         if policy_version is None:
             msg = f"Tried to use non-existent version {config.active_policy_version_id} for policy {policy_id}"
-            raise HTTPException(status_code=400, detail=msg)
+            raise HTTPException(status_code=404, detail=msg)
 
         if policy_version.status != PolicyVersionStatus.VALID:
             msg = f"Tried to use invalid version {config.active_policy_version_id} for policy {policy_id}"
@@ -184,13 +185,39 @@ def create_run_by_policy(
     try:
         execution_config = json.loads(execution_config_str)
     except Exception as e:
-        HTTPException(status_code=400, detail=e)
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "UNHANDLED_EXCEPTION",
+                "msg": f"Invalid execution config: {str(e)}",
+            },
+        )
 
-    policy = (
-        db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
-    )
+    try:
+        policy = (
+            db.query(Policy)
+            .filter_by(policy_id=policy_id, project_id=project_id)
+            .first()
+        )
+    except sqlalchemy.exc.DataError:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "UNHANDLED_EXCEPTION",
+                "msg": f"Invalid policy_id: {policy_id}",
+            },
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "UNHANDLED_EXCEPTION",
+                "msg": f"Failed to get policy: {str(e)}",
+            },
+        )
+
     if policy is None:
-        raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
+        raise HTTPException(status_code=404, detail=f"Policy {policy_id} not found")
     if policy.active_policy_version_id is None:
         raise HTTPException(
             status_code=400,
@@ -205,7 +232,7 @@ def create_run_by_policy(
         .first()
     )
 
-    run = launch_run(
+    run, error_msg = launch_run(
         dagster_client=dagster_client,
         server_url=server_config.server_url,
         execution_config=execution_config,
@@ -215,8 +242,11 @@ def create_run_by_policy(
         ),
         db=db,
     )
-    if run is None:
-        raise HTTPException(status_code=500, detail="Failed to launch run")
+    if run.status == RunStatus.FAILURE:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to launch run: {error_msg}",
+        )
 
     return {"policy_id": policy.policy_id, "run_id": run.run_id}
 

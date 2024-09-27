@@ -20,7 +20,7 @@ router = APIRouter(
 def get_run(run_id: str, db: Session = Depends(get_db)):
     run = db.query(Run).filter_by(run_id=run_id).first()
     if run is None:
-        raise HTTPException(status_code=400, detail=f"Run {run_id} not found")
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     return run
 
 
@@ -33,7 +33,7 @@ def update_run(
 ):
     run = db.query(Run).filter_by(run_id=run_id).first()
     if run is None:
-        raise HTTPException(status_code=400, detail=f"Run {run_id} not found")
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
 
     try:
         status = RunStatus(status)

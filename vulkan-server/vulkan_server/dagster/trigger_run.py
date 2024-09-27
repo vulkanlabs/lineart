@@ -14,19 +14,14 @@ def trigger_dagster_job(
     job_name: str,
     run_config: dict,
 ):
-    try:
-        response = client.submit_job_execution(
-            repository_location_name=repository_location_name,
-            repository_name=_DEFAULT_REPOSITORY_NAME,
-            job_name=job_name,
-            run_config=run_config,
-        )
-        # Process the response if needed
-        return response
-    except Exception as e:
-        # Handle exceptions
-        print(f"Error triggering job: {e}")
-        return None
+    response = client.submit_job_execution(
+        repository_location_name=repository_location_name,
+        repository_name=_DEFAULT_REPOSITORY_NAME,
+        job_name=job_name,
+        run_config=run_config,
+    )
+    # Process the response if needed
+    return response
 
 
 def update_repository(client: DagsterGraphQLClient) -> dict[str, bool]:

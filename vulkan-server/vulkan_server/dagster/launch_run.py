@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
+import json
 from vulkan.dagster.policy import DEFAULT_POLICY_NAME
 
 from vulkan_server.dagster import trigger_run
@@ -20,24 +21,28 @@ def launch_run(
     db.add(run)
     db.commit()
 
+    error_msg = ""
     # TODO: We should separate dagster and core db functionality to ensure its
     # easy to migrate to other execution engines.
-    dagster_run_id = trigger_dagster_job(
-        dagster_client=dagster_client,
-        server_url=server_url,
-        execution_config=execution_config,
-        version_name=version_name,
-        run_id=run.run_id,
-    )
-    if dagster_run_id is None:
+    try:
+        dagster_run_id = trigger_dagster_job(
+            dagster_client=dagster_client,
+            server_url=server_url,
+            execution_config=execution_config,
+            version_name=version_name,
+            run_id=run.run_id,
+        )
+        run.status = RunStatus.STARTED
+        run.dagster_run_id = dagster_run_id
+    except Exception as e:
         run.status = RunStatus.FAILURE
-        db.commit()
-        return None
+        error_list = e.args[1]
+        error_details = error_list[0]
+        error_msg = f"Failed to trigger job: {error_details['message']}"
 
-    run.status = RunStatus.STARTED
-    run.dagster_run_id = dagster_run_id
     db.commit()
-    return run
+
+    return run, error_msg
 
 
 def trigger_dagster_job(
