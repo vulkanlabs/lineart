@@ -74,7 +74,7 @@ def get_component(
         .first()
     )
     if component is None:
-        return Response(status_code=204)
+        return Response(status_code=404)
     return component
 
 
@@ -174,7 +174,7 @@ def get_component_version(
         .first()
     )
     if component_version is None:
-        return Response(status_code=204)
+        return Response(status_code=404)
     return component_version
 
 

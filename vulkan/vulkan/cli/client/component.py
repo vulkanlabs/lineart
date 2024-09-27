@@ -2,7 +2,7 @@ import base64
 import os
 
 from vulkan.cli.context import Context
-from vulkan.environment.packing import pack_workspace
+from vulkan.spec.environment.packing import pack_workspace
 
 
 def create_component(ctx: Context, name: str) -> str:

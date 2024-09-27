@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
+from vulkan.core.run import RunStatus
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
@@ -66,9 +67,9 @@ def create_run_by_policy_version(
     )
     if version is None:
         msg = f"Policy version {policy_version_id} not found"
-        raise HTTPException(status_code=400, detail=msg)
+        raise HTTPException(status_code=404, detail=msg)
 
-    run = launch_run(
+    run, error_msg = launch_run(
         dagster_client=dagster_client,
         server_url=config.server_url,
         execution_config=execution_config,
@@ -78,8 +79,11 @@ def create_run_by_policy_version(
         ),
         db=db,
     )
-    if run is None:
-        raise HTTPException(status_code=500, detail="Error triggering job")
+    if run.status == RunStatus.FAILURE:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error triggering job: {error_msg}",
+        )
     return {"policy_id": version.policy_id, "run_id": run.run_id}
 
 
@@ -127,7 +131,11 @@ def list_dependencies_by_policy_version(
         )
 
         if component_version is None:
-            raise ValueError(f"Component version {use.component_version_id} not found")
+            msg = (
+                f"Component version {use.component_version_id} not found, "
+                f"but used by policy version {policy_version_id}"
+            )
+            raise HTTPException(status_code=500, detail=msg)
 
         component = (
             db.query(Component)

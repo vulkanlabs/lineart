@@ -1,5 +1,5 @@
-import json
 import dataclasses
+import json
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):

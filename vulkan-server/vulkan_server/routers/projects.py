@@ -39,7 +39,7 @@ def add_user_to_project(
 ):
     user = db.query(User).filter_by(user_id=config.user_id).first()
     if not user:
-        raise HTTPException(status_code=400, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found")
 
     project_user = ProjectUser(project_id=project_id, **config.model_dump())
     db.add(project_user)

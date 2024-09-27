@@ -4,8 +4,9 @@ import os
 import yaml
 
 from vulkan.cli.context import Context
-from vulkan.environment.config import VulkanWorkspaceConfig
-from vulkan.environment.packing import pack_workspace
+from vulkan.spec.environment.config import VulkanWorkspaceConfig
+from vulkan.spec.environment.packing import pack_workspace, find_package_entrypoint
+from vulkan.spec.environment.loaders import load_policy_definition
 
 
 def create_policy(
@@ -74,7 +75,8 @@ def create_policy_version(
     # TODO: we aren't currently usign this, but it can become handy in the future
     # to validate the user config
     _ = VulkanWorkspaceConfig.from_dict(config_data)
-
+    _ = load_policy_definition(find_package_entrypoint(repository_path))
+    
     repository = pack_workspace(version_name, repository_path)
     # TODO: improve UX by showing a loading animation
     ctx.logger.info(f"Creating workspace {version_name}. This may take a while...")
@@ -106,6 +108,7 @@ def create_policy_version(
                 "entrypoint (imported on __init__.py, if mode=python_package)."
             )
         if error == "InvalidDefinitionError":
+            ctx.logger.debug(detail)
             raise ValueError(
                 "The PolicyDefinition instance was improperly configured. "
                 "It may be missing a node or have missing/invalid attributes."

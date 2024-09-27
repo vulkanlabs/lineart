@@ -88,6 +88,7 @@ def find_definitions(file_location, typ):
 
 
 def _import_module_from_file(file_location: str):
+    print(file_location)
     spec = importlib.util.spec_from_file_location("user.policy", file_location)
     module = importlib.util.module_from_spec(spec)
     sys.modules["user.policy"] = module
