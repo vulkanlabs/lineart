@@ -82,7 +82,7 @@ class Component(ComponentBase):
 
 
 class ComponentVersionCreate(BaseModel):
-    alias: str
+    version_name: str
     repository: str
 
 

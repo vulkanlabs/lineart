@@ -129,7 +129,7 @@ class Component(Base):
     __tablename__ = "component"
 
     component_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    name = Column(String)
+    name = Column(String, unique=True)
     project_id = Column(Uuid, ForeignKey("project.project_id"))
 
 

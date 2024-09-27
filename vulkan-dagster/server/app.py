@@ -123,10 +123,12 @@ def create_component(
     base_dir = f"{VULKAN_HOME}/components"
     component_path = os.path.join(base_dir, alias)
     if os.path.exists(component_path):
-        raise HTTPException(
-            status_code=409,
-            detail="Component already exists",
-        )
+        detail = {
+            "error": "VulkanInternalException",
+            "exit_status": ConflictingDefinitionsError().exit_status,
+            "msg": f"Component version {alias} already exists",
+        }
+        raise HTTPException(status_code=409, detail=detail)
 
     logger.info(f"Creating component: {alias}")
     repository = base64.b64decode(repository)
