@@ -2,9 +2,11 @@ import os
 
 from vulkan.core.component import ComponentGraph, check_all_parameters_specified
 from vulkan.core.policy import Policy
-from vulkan.spec.component import ComponentDefinition
-from vulkan.spec.environment.packing import find_definitions, find_package_entrypoint
-from vulkan.spec.policy import load_policy_definition
+from vulkan.spec.environment.loaders import (
+    load_component_definition,
+    load_policy_definition,
+)
+from vulkan.spec.environment.packing import find_package_entrypoint
 
 
 def resolve_policy(file_location: str, components_base_dir: str) -> Policy:
@@ -29,19 +31,3 @@ def resolve_policy(file_location: str, components_base_dir: str) -> Policy:
         components,
     )
     return policy
-
-
-def load_component_definition_from_alias(
-    alias: str, components_base_dir: str
-) -> ComponentDefinition:
-    file_location = find_package_entrypoint(os.path.join(components_base_dir, alias))
-    return load_component_definition(file_location)
-
-
-def load_component_definition(file_location: str) -> ComponentDefinition:
-    definitions = find_definitions(file_location, ComponentDefinition)
-    if len(definitions) != 1:
-        raise ValueError(
-            f"Expected only one ComponentDefinition in the module, found {len(definitions)}"
-        )
-    return definitions[0]

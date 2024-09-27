@@ -1,13 +1,7 @@
 from dataclasses import dataclass, field
 
-from vulkan.exceptions import (
-    ConflictingDefinitionsError,
-    DefinitionNotFoundException,
-    InvalidDefinitionError,
-)
 from vulkan.spec.component import ComponentInstance
 from vulkan.spec.dependency import INPUT_NODE
-from vulkan.spec.environment.packing import find_definitions
 from vulkan.spec.nodes import Node
 
 
@@ -43,19 +37,3 @@ class PolicyDefinition:
                         "that is not in the graph"
                     )
                     raise ValueError(msg)
-
-
-def load_policy_definition(file_location: str) -> PolicyDefinition:
-    try:
-        definitions = find_definitions(file_location, PolicyDefinition)
-    except Exception as e:
-        raise InvalidDefinitionError(e)
-
-    if len(definitions) == 0:
-        raise DefinitionNotFoundException("Failed to load the PolicyDefinition")
-
-    if len(definitions) > 1:
-        raise ConflictingDefinitionsError(
-            f"Expected only one PolicyDefinition in the module, found {len(definitions)}"
-        )
-    return definitions[0]
