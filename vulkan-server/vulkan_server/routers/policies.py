@@ -8,6 +8,8 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy import func as F
 from sqlalchemy.orm import Session
 
+from vulkan.core.exceptions import DefinitionNotFoundException
+
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.dagster.client import get_dagster_client
@@ -297,6 +299,9 @@ def create_policy_version(
         )
         logger.error(msg)
         raise e
+    except DefinitionNotFoundException as e:
+        detail = {"error": "DEFINITION_NOT_FOUND", "msg": str(e)}
+        raise HTTPException(status_code=400, detail=detail)
     except Exception as e:
         msg = f"Failed to create workspace for policy {policy_id} version {config.alias}: details: {e}"
         raise HTTPException(status_code=500, detail=msg)
@@ -351,6 +356,9 @@ def _create_policy_version_workspace(
     if status_code != 200:
         workspace.status = DagsterWorkspaceStatus.CREATION_FAILED
         db.commit()
+        detail = response.json().get("detail", {})
+        if detail.get("error") == "DEFINITION_NOT_FOUND":
+            raise DefinitionNotFoundException(detail.get("msg"))
         try:
             error_msg = response.json()["message"]
         except requests.exceptions.JSONDecodeError:

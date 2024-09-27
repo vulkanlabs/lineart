@@ -93,10 +93,16 @@ def create_policy_version(
     )
     if response.status_code == 400:
         detail = response.json().get("detail", {})
-        if detail.get("error") == "MISSING_COMPONENTS":
+        error = detail.get("error")
+        if error == "MISSING_COMPONENTS":
             raise ValueError(
                 "Missing components. Please install the following components and "
                 f"try again: {detail['metadata']['components']}"
+            )
+        if error == "DEFINITION_NOT_FOUND":
+            raise ValueError(
+                "A PolicyDefinition instance was not found in the specified repository.\n"
+                "Make sure it is accessible on the main module's top level."
             )
         raise ValueError(f"Bad request: {detail}")
 
