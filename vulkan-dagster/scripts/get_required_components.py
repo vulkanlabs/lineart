@@ -2,6 +2,7 @@ import argparse
 import json
 import sys
 
+from vulkan.core.exceptions import VulkanInternalException
 from vulkan.environment.encoders import EnhancedJSONEncoder
 from vulkan.environment.loaders import load_policy_definition
 
@@ -14,8 +15,8 @@ if __name__ == "__main__":
 
     try:
         policy_definition = load_policy_definition(args.file_location)
-    except Exception as e:
-        sys.exit(3)
+    except VulkanInternalException as e:
+        sys.exit(e.exit_status)
 
     required_components = {
         "required_components": [c.alias() for c in policy_definition.components]

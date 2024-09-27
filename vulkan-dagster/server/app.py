@@ -5,14 +5,19 @@ import os
 import subprocess
 from dataclasses import dataclass
 from shutil import rmtree
-from typing import Annotated
 from time import time
+from typing import Annotated
 
 from fastapi import Body, FastAPI, Form, HTTPException
+from vulkan.core.exceptions import (
+    ConflictingDefinitionsError,
+    DefinitionNotFoundException,
+    InvalidDefinitionError,
+    VulkanInternalException,
+)
 from vulkan.dagster.workspace import add_workspace_config
 from vulkan.environment.config import VulkanWorkspaceConfig, get_working_directory
 from vulkan.environment.packing import find_package_entrypoint, unpack_workspace
-from vulkan.core.exceptions import DefinitionNotFoundException
 
 from . import schemas
 
@@ -47,8 +52,12 @@ def create_workspace(
         required_components = _get_required_components(
             name, code_location.entrypoint, workspace_path
         )
-    except DefinitionNotFoundException as e:
-        detail = {"error": "DEFINITION_NOT_FOUND", "msg": str(e)}
+    except VulkanInternalException as e:
+        detail = {
+            "error": "VulkanInternalException",
+            "exit_status": e.exit_status,
+            "msg": str(e),
+        }
         logger.error(f"Failed to create workspace: {e}")
         raise HTTPException(status_code=400, detail=detail)
     except Exception as e:
@@ -169,10 +178,15 @@ def _get_required_components(workspace_name, code_entrypoint, workspace_path):
         cwd=workspace_path,
         capture_output=True,
     )
-    if completed_process.returncode == 3:
+    exit_status = completed_process.returncode
+    if exit_status == DefinitionNotFoundException().exit_status:
         raise DefinitionNotFoundException("Failed to load the PolicyDefinition")
+    if exit_status == ConflictingDefinitionsError().exit_status:
+        raise ConflictingDefinitionsError("Found multiple PolicyDefinitions")
+    if exit_status == InvalidDefinitionError().exit_status:
+        raise InvalidDefinitionError("PolicyDefinition is invalid")
 
-    if completed_process.returncode != 0 or not os.path.exists(tmp_path):
+    if exit_status != 0 or not os.path.exists(tmp_path):
         msg = f"Failed to get the required components: {completed_process.stderr}"
         raise Exception(msg)
 

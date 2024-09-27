@@ -8,7 +8,12 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy import func as F
 from sqlalchemy.orm import Session
 
-from vulkan.core.exceptions import DefinitionNotFoundException
+from vulkan.core.exceptions import (
+    UNHANDLED_ERROR_NAME,
+    VULKAN_INTERNAL_EXCEPTIONS,
+    ComponentNotFoundException,
+    VulkanInternalException,
+)
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
@@ -26,6 +31,7 @@ from vulkan_server.db import (
     Run,
     get_db,
 )
+from vulkan_server.exceptions import ExceptionHandler
 from vulkan_server.logger import init_logger
 
 logger = init_logger("policies")
@@ -226,6 +232,13 @@ def create_policy_version(
         definitions.get_vulkan_server_config
     ),
 ):
+    handler = ExceptionHandler(
+        logger=logger,
+        base_msg=(
+            f"Failed to create workspace for policy {policy_id} version {config.alias}"
+        ),
+    )
+
     logger.info(f"Creating policy version for policy {policy_id}")
     if config.alias is None:
         # We can use the repo version as an easy alias or generate one.
@@ -238,7 +251,7 @@ def create_policy_version(
     )
     if policy is None:
         msg = f"Tried to create a version for non-existent policy {policy_id}"
-        raise HTTPException(status_code=400, detail=msg)
+        handler.raise_exception(400, UNHANDLED_ERROR_NAME, msg)
 
     version = PolicyVersion(
         policy_id=policy_id,
@@ -253,8 +266,6 @@ def create_policy_version(
 
     version_name = definitions.version_name(policy_id, version.policy_version_id)
     try:
-        # TODO: We need to resolve required components before installing.
-        # This way we can check if the user has access to components used.
         workspace, required_components = _create_policy_version_workspace(
             db=db,
             server_url=server_config.vulkan_dagster_server_url,
@@ -271,13 +282,10 @@ def create_policy_version(
             )
             missing = list(set(required_components) - set([m.alias for m in matched]))
             if missing:
-                msg = f"The following components are not defined: {missing}"
-                detail = {
-                    "error": "MISSING_COMPONENTS",
-                    "msg": msg,
-                    "metadata": {"components": missing},
-                }
-                raise HTTPException(status_code=400, detail=detail)
+                raise ComponentNotFoundException(
+                    msg=f"The following components are not defined: {missing}",
+                    metadata={"components": missing},
+                )
 
             for m in matched:
                 dependency = ComponentVersionDependency(
@@ -293,37 +301,35 @@ def create_policy_version(
             required_components=required_components,
             workspace=workspace,
         )
-    except HTTPException as e:
-        msg = (
-            f"Failed to create workspace for policy {policy_id} version {config.alias}"
-        )
-        logger.error(msg)
-        raise e
-    except DefinitionNotFoundException as e:
-        detail = {"error": "DEFINITION_NOT_FOUND", "msg": str(e)}
-        raise HTTPException(status_code=400, detail=detail)
+    except VulkanInternalException as e:
+        error_name = VULKAN_INTERNAL_EXCEPTIONS[e.exit_status].__name__
+        handler.raise_exception(400, error_name, str(e), e.metadata)
     except Exception as e:
-        msg = f"Failed to create workspace for policy {policy_id} version {config.alias}: details: {e}"
-        raise HTTPException(status_code=500, detail=msg)
+        handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
     finally:
         db.commit()
 
-    msg = f"Creating version {version.policy_version_id} ({config.alias}) for policy {policy_id}"
-    logger.info(msg)
+    logger.info(
+        f"Creating version {version.policy_version_id} ({config.alias}) "
+        f"for policy {policy_id}"
+    )
 
     loaded_repos = update_repository(dagster_client)
     if loaded_repos.get(version_name, False) is False:
-        msg = f"Failed to load repository {version_name}"
-        logger.error(msg)
-        logger.error(f"Repository load status: {loaded_repos}")
-        raise HTTPException(status_code=500, detail=msg)
+        msg = (
+            f"Failed to load repository {version_name}.\n"
+            f"Repository load status: {loaded_repos}"
+        )
+        handler.raise_exception(500, UNHANDLED_ERROR_NAME, msg)
 
     version.status = PolicyVersionStatus.VALID
     version.graph_definition = json.dumps(graph)
     db.commit()
 
-    msg = f"Policy version {config.alias} created for policy {policy_id} with status {version.status}"
-    logger.info(msg)
+    logger.info(
+        f"Policy version {config.alias} created for policy {policy_id} with "
+        f"status {version.status}"
+    )
 
     return {
         "policy_id": policy_id,
@@ -356,9 +362,13 @@ def _create_policy_version_workspace(
     if status_code != 200:
         workspace.status = DagsterWorkspaceStatus.CREATION_FAILED
         db.commit()
+
         detail = response.json().get("detail", {})
-        if detail.get("error") == "DEFINITION_NOT_FOUND":
-            raise DefinitionNotFoundException(detail.get("msg"))
+        if detail.get("error") == "VulkanInternalException":
+            raise VULKAN_INTERNAL_EXCEPTIONS[detail.get("exit_status")](
+                msg=detail.get("msg")
+            )
+
         try:
             error_msg = response.json()["message"]
         except requests.exceptions.JSONDecodeError:

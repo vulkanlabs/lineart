@@ -94,15 +94,26 @@ def create_policy_version(
     if response.status_code == 400:
         detail = response.json().get("detail", {})
         error = detail.get("error")
-        if error == "MISSING_COMPONENTS":
+        if error == "ComponentNotFoundException":
             raise ValueError(
-                "Missing components. Please install the following components and "
-                f"try again: {detail['metadata']['components']}"
+                "Missing components. Please install the following components "
+                f"and try again: {detail['metadata']['components']}"
             )
-        if error == "DEFINITION_NOT_FOUND":
+        if error == "DefinitionNotFoundException":
             raise ValueError(
-                "A PolicyDefinition instance was not found in the specified repository.\n"
-                "Make sure it is accessible on the main module's top level."
+                "No PolicyDefinition instance was found in the specified "
+                "repository. Make sure it is accessible on the configured "
+                "entrypoint (imported on __init__.py, if mode=python_package)."
+            )
+        if error == "InvalidDefinitionError":
+            raise ValueError(
+                "The PolicyDefinition instance was improperly configured. "
+                "It may be missing a node or have missing/invalid attributes."
+            )
+        if error == "ConflictingDefinitionsError":
+            raise ValueError(
+                "More than one PolicyDefinition instances was found in the "
+                "specified repository."
             )
         raise ValueError(f"Bad request: {detail}")
 

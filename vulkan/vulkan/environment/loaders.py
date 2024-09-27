@@ -1,6 +1,11 @@
 import os
 
 from vulkan.core.component import ComponentGraph, check_all_parameters_specified
+from vulkan.core.exceptions import (
+    DefinitionNotFoundException,
+    InvalidDefinitionError,
+    ConflictingDefinitionsError,
+)
 from vulkan.core.policy import Policy
 from vulkan.environment.packing import find_definitions, find_package_entrypoint
 from vulkan.spec.component import ComponentDefinition
@@ -32,9 +37,16 @@ def resolve_policy(file_location: str, components_base_dir: str) -> Policy:
 
 
 def load_policy_definition(file_location: str) -> PolicyDefinition:
-    definitions = find_definitions(file_location, PolicyDefinition)
-    if len(definitions) != 1:
-        raise ValueError(
+    try:
+        definitions = find_definitions(file_location, PolicyDefinition)
+    except Exception as e:
+        raise InvalidDefinitionError(e)
+
+    if len(definitions) == 0:
+        raise DefinitionNotFoundException("Failed to load the PolicyDefinition")
+
+    if len(definitions) > 1:
+        raise ConflictingDefinitionsError(
             f"Expected only one PolicyDefinition in the module, found {len(definitions)}"
         )
     return definitions[0]
