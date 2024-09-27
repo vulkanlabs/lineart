@@ -40,4 +40,3 @@ def load_component_definition(file_location: str) -> ComponentDefinition:
             f"Expected only one ComponentDefinition in the module, found {len(definitions)}"
         )
     return definitions[0]
-    return definitions[0]

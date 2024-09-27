@@ -3,7 +3,7 @@ import json
 
 from vulkan.core.graph import extract_node_definitions
 from vulkan.environment.encoders import EnhancedJSONEncoder
-from vulkan.environment.loaders import load_component_definition_from_alias
+from vulkan.spec.environment.loaders import load_component_definition_from_alias
 
 
 if __name__ == "__main__":

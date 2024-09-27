@@ -2,10 +2,9 @@ import argparse
 import json
 import sys
 
-from vulkan.core.exceptions import VulkanInternalException
 from vulkan.environment.encoders import EnhancedJSONEncoder
-from vulkan.environment.loaders import load_policy_definition
-
+from vulkan.spec.environment.loaders import load_policy_definition
+from vulkan.exceptions import VulkanInternalException
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
