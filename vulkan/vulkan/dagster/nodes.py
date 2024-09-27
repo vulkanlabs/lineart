@@ -15,11 +15,11 @@ from dagster import (
     Output,
 )
 
-from vulkan.core.exceptions import UserCodeException
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.dagster.io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
 from vulkan.dagster.run_config import RUN_CONFIG_KEY
+from vulkan.exceptions import UserCodeException
 from vulkan.spec.nodes import (
     BranchNode,
     Collect,
