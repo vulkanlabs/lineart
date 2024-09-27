@@ -5,6 +5,7 @@ import click
 
 from vulkan.cli import client
 from vulkan.cli.context import Context, pass_context
+from vulkan.cli.exceptions import log_exceptions
 
 
 @click.group()
@@ -87,6 +88,7 @@ def trigger_run(ctx: Context, policy_id: str, data: str, timeout: int):
 @click.option("--policy_id", type=str, required=True, help="Id of the policy")
 @click.option("--version_name", type=str, required=True, help="Name of the policy version")
 @click.option("--repository_path", type=str, required=True, help="Path to repository")
+@log_exceptions
 def create_version(
     ctx: Context,
     policy_id: str,
