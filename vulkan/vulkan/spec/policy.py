@@ -16,7 +16,6 @@ class PolicyDefinition(GraphDefinition):
         if not callable(self.output_callback):
             raise ValueError("Output callback must be a callable")
 
-        self.nodes = self.nodes.update(
-            {c.config.name: c.config.dependencies for c in self.components}
-        )
-        self.validate_node_dependencies()
+        nodes = {node.name: node.dependencies for node in self.nodes}
+        nodes.update({c.config.name: c.config.dependencies for c in self.components})
+        self.validate_node_dependencies(nodes)

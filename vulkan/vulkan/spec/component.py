@@ -18,7 +18,8 @@ class ComponentDefinition(GraphDefinition):
     instance_params_schema: dict[str, type] = field(default_factory=dict)
 
     def __post_init__(self):
-        self.validate_node_dependencies()
+        nodes = {node.name: node.dependencies for node in self.nodes}
+        self.validate_node_dependencies(nodes)
 
 
 @dataclass

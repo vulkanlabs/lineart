@@ -1,16 +1,20 @@
 from dataclasses import dataclass
 
-from vulkan.spec.dependency import INPUT_NODE
+from vulkan.spec.dependency import INPUT_NODE, Dependency
 from vulkan.spec.nodes import Node
+
+Dependencies = dict[str, Dependency]
+"""Map of a node's input variables to dependencies on other nodes' outputs."""
+NodeDependencies = dict[str, Dependencies]
+"""Map of node names to their dependencies."""
 
 
 @dataclass
 class GraphDefinition:
     nodes: list[Node]
 
-    def validate_node_dependencies(self):
-        nodes = {node.name: node.dependencies for node in self.nodes}
-
+    @staticmethod
+    def validate_node_dependencies(nodes: NodeDependencies):
         for node_name, dependencies in nodes.items():
             if dependencies is None:
                 continue
