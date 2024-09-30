@@ -7,7 +7,6 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import "@/app/globals.css";
 import { SquareChevronLeft, SquareChevronRight } from "lucide-react";
-import { set } from "date-fns";
 
 export type SidebarTitleProps = {
     name: string;

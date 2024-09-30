@@ -63,28 +63,28 @@ type SidebarSectionItemProps = {
 
 const SectionDefinitions: Map<string, SidebarSectionProps> = new Map([
     ["teams", {
-        name: "Times",
+        name: "Teams",
         icon: Users2,
         path: "/teams",
-        emptySectionMsg: "Ainda não tem nada aqui."
+        emptySectionMsg: "There is nothing here yet."
     }],
     ["components", {
-        name: "Componentes",
+        name: "Components",
         icon: Code2,
         path: "/components",
-        emptySectionMsg: "Seus componentes ficam aqui. Crie um novo para começar."
+        emptySectionMsg: "Your components will be shown here."
     }],
     ["policies", {
-        name: "Políticas",
+        name: "Policies",
         icon: Code2,
         path: "/policies",
-        emptySectionMsg: "Suas políticas ficarão aqui. Crie uma nova para começar."
+        emptySectionMsg: "Your policies will be shown here."
     }],
     ["monitoring", {
-        name: "Monitoramento",
+        name: "Monitoring",
         icon: ChartSpline,
         path: ``,
-        emptySectionMsg: "Ainda não tem nada aqui."
+        emptySectionMsg: "There is nothing here yet."
     },]
 ]);
 
@@ -97,7 +97,7 @@ function SidebarNav() {
     ];
 
     return (
-        <SidebarMenu title="Navegação" sections={sections} />
+        <SidebarMenu title="Navigation" sections={sections} />
     );
 }
 
@@ -124,7 +124,7 @@ function PoliciesSidebarNav() {
     ];
 
     return (
-        <SidebarMenu title="Políticas" sections={sections} />
+        <SidebarMenu title="Policies" sections={sections} />
     );
 };
 
@@ -171,7 +171,7 @@ function PolicyDetailsSidebar({ policyId }: { policyId: string }) {
     ];
 
     return (
-        <SidebarMenu title={currentPolicy ? currentPolicy.name : "Política"} sections={sections} />
+        <SidebarMenu title={currentPolicy ? currentPolicy.name : "Policy"} sections={sections} />
     );
 }
 

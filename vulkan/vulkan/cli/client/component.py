@@ -18,6 +18,9 @@ def create_component(ctx: Context, name: str) -> str:
     ), f"Failed to create component version: {response.content}"
     data = response.json()
     ctx.logger.debug(data)
+    if response.status_code != 200:
+        raise ValueError(f"Failed to create component: {response.content}")
+
     component_id = data["component_id"]
 
     return component_id

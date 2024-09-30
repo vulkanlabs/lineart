@@ -88,10 +88,20 @@ def find_definitions(file_location, typ):
 
 
 def _import_module_from_file(file_location: str):
-    print(file_location)
-    spec = importlib.util.spec_from_file_location("user.policy", file_location)
+    name = _as_letters(abs(hash(file_location)))
+    spec = importlib.util.spec_from_file_location(f"{name}.policy", file_location)
+    if spec is None:
+        raise ValueError(f"Failed to import module from file: {file_location}")
+
     module = importlib.util.module_from_spec(spec)
-    sys.modules["user.policy"] = module
+    sys.modules[f"{name}.policy"] = module
     spec.loader.exec_module(module)
 
     return module
+
+def _as_letters(n: int) -> str:
+    result = ''
+    while n > 0:
+        n, r = divmod(n - 1, 26)
+        result += chr(r + ord('a'))
+    return result

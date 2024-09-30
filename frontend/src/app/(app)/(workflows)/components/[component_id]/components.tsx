@@ -16,14 +16,14 @@ export function ComponentVersionsTable({ versions }) {
 
     return (
         <Table>
-            <TableCaption>Versões disponíveis.</TableCaption>
+            <TableCaption>Available versions.</TableCaption>
             <TableHeader>
                 <TableRow>
                     <TableHead>ID</TableHead>
                     <TableHead>Tag</TableHead>
                     <TableHead>Input Schema</TableHead>
                     <TableHead>Instance Params Schema</TableHead>
-                    <TableHead>Criada Em</TableHead>
+                    <TableHead>Created At</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -54,15 +54,15 @@ export function ComponentVersionDependenciesTable({ entries }) {
 
     return (
         <Table>
-            <TableCaption>Políticas que usam este componente.</TableCaption>
+            <TableCaption>Policies that use this Component.</TableCaption>
             <TableHeader>
                 <TableRow>
-                    <TableHead>ID do Componente</TableHead>
-                    <TableHead>Versão do Componente</TableHead>
-                    <TableHead>ID da Política</TableHead>
-                    <TableHead>Nome da Política</TableHead>
-                    <TableHead>Versão da Política</TableHead>
-                    <TableHead>Tag da Versão</TableHead>
+                    <TableHead>Component ID</TableHead>
+                    <TableHead>Component Version</TableHead>
+                    <TableHead>Policy ID</TableHead>
+                    <TableHead>Policy Name</TableHead>
+                    <TableHead>Policy Version</TableHead>
+                    <TableHead>Version Tag</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>

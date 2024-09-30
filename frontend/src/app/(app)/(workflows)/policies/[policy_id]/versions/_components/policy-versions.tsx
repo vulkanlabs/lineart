@@ -22,15 +22,15 @@ export default function PolicyVersionsTable({ policyVersions }: { policyVersions
 
     return (
         <div>
-            <h1 className="text-lg font-semibold md:text-2xl">Versões</h1>
+            <h1 className="text-lg font-semibold md:text-2xl">Versions</h1>
             <Table>
-                <TableCaption>Versões disponíveis.</TableCaption>
+                <TableCaption>Available versions.</TableCaption>
                 <TableHeader>
                     <TableRow>
                         <TableHead>ID</TableHead>
                         <TableHead>Tag</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Criada Em</TableHead>
+                        <TableHead>Created At</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -57,9 +57,9 @@ export default function PolicyVersionsTable({ policyVersions }: { policyVersions
 function VersionStatus({ value }) {
     const getColor = (status: string) => {
         switch (status) {
-            case "ativa":
+            case "active":
                 return "bg-green-200";
-            case "inativa":
+            case "inactive":
                 return "bg-gray-200";
             default:
                 return "bg-gray-200";
