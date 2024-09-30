@@ -5,8 +5,8 @@ import yaml
 
 from vulkan.cli.context import Context
 from vulkan.spec.environment.config import VulkanWorkspaceConfig
-from vulkan.spec.environment.packing import pack_workspace, find_package_entrypoint
 from vulkan.spec.environment.loaders import load_policy_definition
+from vulkan.spec.environment.packing import find_package_entrypoint, pack_workspace
 
 
 def create_policy(
@@ -75,8 +75,15 @@ def create_policy_version(
     # TODO: we aren't currently usign this, but it can become handy in the future
     # to validate the user config
     _ = VulkanWorkspaceConfig.from_dict(config_data)
-    _ = load_policy_definition(find_package_entrypoint(repository_path))
-    
+
+    try:
+        entrypoint = find_package_entrypoint(repository_path)
+    except ValueError as e:
+        raise ValueError(
+            f"Failed to find entrypoint in repository: {repository_path}\n{e}"
+        )
+    _ = load_policy_definition(entrypoint)
+
     repository = pack_workspace(version_name, repository_path)
     # TODO: improve UX by showing a loading animation
     ctx.logger.info(f"Creating workspace {version_name}. This may take a while...")

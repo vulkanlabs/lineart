@@ -2,10 +2,12 @@ import base64
 import os
 
 from vulkan.cli.context import Context
+from vulkan.cli.exceptions import log_exceptions
 from vulkan.spec.component import component_version_alias
 from vulkan.spec.environment.packing import pack_workspace
 
 
+@log_exceptions
 def create_component(ctx: Context, name: str) -> str:
     response = ctx.session.post(
         f"{ctx.server_url}/components",
@@ -14,6 +16,9 @@ def create_component(ctx: Context, name: str) -> str:
     ctx.logger.debug(response.json())
     data = response.json()
     ctx.logger.debug(data)
+    if response.status_code != 200:
+        raise ValueError(f"Failed to create component: {response.content}")
+
     component_id = data["component_id"]
 
     return component_id

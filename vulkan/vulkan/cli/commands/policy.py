@@ -67,6 +67,7 @@ def trigger_run(ctx: Context, policy_id: str, data: str, timeout: int):
     "--version_name", type=str, required=True, help="Name of the policy version"
 )
 @click.option("--repository_path", type=str, required=True, help="Path to repository")
+# @log_exceptions
 def create_version(
     ctx: Context,
     policy_id: str,

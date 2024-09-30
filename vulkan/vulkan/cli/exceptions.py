@@ -15,5 +15,6 @@ def log_exceptions(func):
             log_error = ctx.logger.error if ctx else click.echo
             for msg in str(e).split("\n"):
                 log_error(msg)
+            raise e
 
     return wrapper
