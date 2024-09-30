@@ -7,13 +7,13 @@ from dataclasses import dataclass
 from time import time
 from typing import Annotated
 
-from fastapi import Body, FastAPI, Form, HTTPException
+from fastapi import Body, FastAPI, Form
+
 from vulkan.dagster.workspace import add_workspace_config
 from vulkan.exceptions import (
     ConflictingDefinitionsError,
     DefinitionNotFoundException,
     InvalidDefinitionError,
-    VulkanInternalException,
 )
 from vulkan.spec.environment.config import VulkanWorkspaceConfig, get_working_directory
 from vulkan.spec.environment.packing import find_package_entrypoint, unpack_workspace
@@ -43,26 +43,17 @@ def create_workspace(
     repository = base64.b64decode(repository)
     logger.info(f"Creating workspace: {name} (python_module)")
 
-    try:
+    with ExecutionContext(logger) as ctx:
         workspace_path = unpack_workspace(f"{VULKAN_HOME}/workspaces", name, repository)
+        ctx.register_asset(workspace_path)
+
+        venv_path = _create_venv_for_workspace(name, workspace_path)
+        ctx.register_asset(venv_path)
+
         code_location = _get_code_location(workspace_path)
-
-        _create_venv_for_workspace(name, workspace_path)
-
         required_components = _get_required_components(
             name, code_location.entrypoint, workspace_path
         )
-    except VulkanInternalException as e:
-        detail = {
-            "error": "VulkanInternalException",
-            "exit_status": e.exit_status,
-            "msg": str(e),
-        }
-        logger.error(f"Failed to create workspace: {e}")
-        raise HTTPException(status_code=400, detail=detail)
-    except Exception as e:
-        logger.error(f"Failed to create workspace: {e}")
-        raise HTTPException(status_code=500, detail=e)
 
     logger.info(f"Created workspace at: {workspace_path}")
 
@@ -84,7 +75,7 @@ def install_workspace(
     """
     logger.info(f"Installing workspace: {name}")
 
-    try:
+    with ExecutionContext(logger):
         _install_components(name, required_components)
 
         code_location = _get_code_location(workspace_path)
@@ -95,12 +86,7 @@ def install_workspace(
         definition_path = code_location.working_dir.replace(
             "/workspaces", "/definitions", 1
         )
-
         _ = _create_init_file(code_location.entrypoint, definition_path)
-
-    except Exception as e:
-        logger.error(f"Failed create workspace: {e}")
-        raise HTTPException(status_code=500, detail=e)
 
     add_workspace_config(
         VULKAN_HOME,
@@ -139,11 +125,12 @@ def create_component(
 
 
 def _create_venv_for_workspace(workspace_name, workspace_path):
+    venv_path = f"{VENVS_PATH}/{workspace_name}"
     completed_process = subprocess.run(
         [
             "bash",
             f"{SCRIPTS_PATH}/create_venv.sh",
-            workspace_name,
+            venv_path,
             workspace_path,
         ],
         capture_output=True,
@@ -151,6 +138,7 @@ def _create_venv_for_workspace(workspace_name, workspace_path):
     if completed_process.returncode != 0:
         msg = f"Failed to create virtual environment: {completed_process.stderr}"
         raise Exception(msg)
+    return venv_path
 
 
 def _get_required_components(workspace_name, code_entrypoint, workspace_path):

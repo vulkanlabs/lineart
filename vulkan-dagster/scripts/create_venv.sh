@@ -1,10 +1,9 @@
 set -ex
-name=$1
+venv_path=$1
 workspace_path=$2
 
-venv_name=${VULKAN_VENVS_PATH}/${name}
-uv venv ${venv_name}
-source ${venv_name}/bin/activate
+uv venv ${venv_path}
+source ${venv_path}/bin/activate
 # TODO: This is a hack to install vulkan package from local source
 uv pip install /tmp/vulkan/
 
