@@ -5,7 +5,7 @@ import pytest
 from vulkan.core.component import ComponentGraph, check_all_parameters_specified
 from vulkan.core.graph import Graph
 from vulkan.spec.component import ComponentDefinition, ComponentInstance, InstanceParam
-from vulkan.spec.dependency import Dependency
+from vulkan.spec.dependency import Dependency, INPUT_NODE
 from vulkan.spec.nodes import (
     BranchNode,
     HTTPConnectionNode,
@@ -113,7 +113,7 @@ def test_core_graph_with_component_definition():
         method="GET",
         headers={},
         params={},
-        dependencies={"body": Dependency("body")},
+        dependencies={"body": Dependency(INPUT_NODE)},
         url=InstanceParam("server_url"),
     )
 
