@@ -4,6 +4,8 @@ import sys
 import tarfile
 from shutil import unpack_archive
 
+from vulkan.exceptions import UserImportException
+
 _ARCHIVE_FORMAT = "gztar"
 _TAR_FLAGS = "w:gz"
 _EXCLUDE_PATHS = [".git", ".venv", ".vscode"]
@@ -95,7 +97,11 @@ def _import_module_from_file(file_location: str):
 
     module = importlib.util.module_from_spec(spec)
     sys.modules[f"{name}.policy"] = module
-    spec.loader.exec_module(module)
+    
+    try:
+        spec.loader.exec_module(module)
+    except (ModuleNotFoundError, ImportError) as e:
+        raise UserImportException(f"Failed to load module: {e}")
 
     return module
 

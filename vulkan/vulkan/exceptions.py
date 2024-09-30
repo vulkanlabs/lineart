@@ -4,6 +4,11 @@ class UserCodeException(Exception):
         super().__init__(f"User code in node {node_name} raised an exception")
 
 
+class UserImportException(Exception):
+    def __init__(self, msg: str):
+        super().__init__(f"Import-related issue from user code: {msg}")
+
+
 class VulkanInternalException(Exception):
     def __init__(
         self, exit_status: int, msg: str | None = None, metadata: dict | None = None

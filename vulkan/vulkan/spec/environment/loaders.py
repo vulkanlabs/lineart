@@ -1,6 +1,7 @@
 import os
 
 from vulkan.exceptions import (
+    UserImportException,
     ConflictingDefinitionsError,
     DefinitionNotFoundException,
     InvalidDefinitionError,
@@ -13,6 +14,8 @@ from vulkan.spec.policy import PolicyDefinition
 def load_single_definition(file_location: str, definition_type: type):
     try:
         definitions = find_definitions(file_location, definition_type)
+    except UserImportException as e:
+        raise e
     except Exception as e:
         raise InvalidDefinitionError(e)
 

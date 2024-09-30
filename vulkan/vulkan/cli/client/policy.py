@@ -7,6 +7,7 @@ from vulkan.cli.context import Context
 from vulkan.spec.environment.config import VulkanWorkspaceConfig
 from vulkan.spec.environment.loaders import load_policy_definition
 from vulkan.spec.environment.packing import find_package_entrypoint, pack_workspace
+from vulkan.exceptions import UserImportException
 
 
 def create_policy(
@@ -65,7 +66,7 @@ def create_policy_version(
     config_path = os.path.join(repository_path, "vulkan.yaml")
     if not os.path.exists(config_path):
         raise FileNotFoundError(
-            f"Config file not found: {config_path}"
+            f"Config file not found: {config_path}.\n"
             "A vulkan.yaml file must be specified at the root level of the repository."
         )
 
@@ -82,7 +83,12 @@ def create_policy_version(
         raise ValueError(
             f"Failed to find entrypoint in repository: {repository_path}\n{e}"
         )
-    _ = load_policy_definition(entrypoint)
+    
+    try:
+        _ = load_policy_definition(entrypoint)
+    except UserImportException as e:
+        ctx.logger.warning("Failed to import module from entrypoint.")
+        ctx.logger.warning(str(e))
 
     repository = pack_workspace(version_name, repository_path)
     # TODO: improve UX by showing a loading animation
@@ -118,7 +124,9 @@ def create_policy_version(
             ctx.logger.debug(detail)
             raise ValueError(
                 "The PolicyDefinition instance was improperly configured. "
-                "It may be missing a node or have missing/invalid attributes."
+                "It may be missing a node or have missing/invalid attributes. "
+                "It could also be that an imported python package wasn't specified "
+                "as a dependency in the pyproject.toml file."
             )
         if error == "ConflictingDefinitionsError":
             raise ValueError(
