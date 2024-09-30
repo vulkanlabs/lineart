@@ -6,6 +6,9 @@ from vulkan.spec.environment.packing import pack_workspace
 
 
 def create_component(ctx: Context, name: str) -> str:
+    if " " in name:
+        raise ValueError("Component name cannot contain spaces.")
+    
     response = ctx.session.post(
         f"{ctx.server_url}/components",
         json={"name": name},

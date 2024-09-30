@@ -4,7 +4,7 @@ import requests
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
-from vulkan.core.exceptions import (
+from vulkan.exceptions import (
     UNHANDLED_ERROR_NAME,
     VULKAN_INTERNAL_EXCEPTIONS,
     VulkanInternalException,
@@ -115,6 +115,7 @@ def create_component_version(
                 raise VULKAN_INTERNAL_EXCEPTIONS[detail.get("exit_status")](
                     msg=detail.get("msg")
                 )
+            raise Exception(detail.get("msg"))
 
         data = response.json()
     except VulkanInternalException as e:

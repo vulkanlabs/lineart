@@ -10,20 +10,27 @@ from vulkan.spec.environment.packing import find_definitions, find_package_entry
 from vulkan.spec.policy import PolicyDefinition
 
 
-def load_policy_definition(file_location: str) -> PolicyDefinition:
+def load_single_definition(file_location: str, definition_type: type):
     try:
-        definitions = find_definitions(file_location, PolicyDefinition)
+        definitions = find_definitions(file_location, definition_type)
     except Exception as e:
         raise InvalidDefinitionError(e)
 
     if len(definitions) == 0:
-        raise DefinitionNotFoundException("Failed to load the PolicyDefinition")
+        raise DefinitionNotFoundException(
+            f"Failed to load the {definition_type.__name__}"
+        )
 
     if len(definitions) > 1:
         raise ConflictingDefinitionsError(
-            f"Expected only one PolicyDefinition in the module, found {len(definitions)}"
+            f"Expected only one {definition_type.__name__} in the module, "
+            f"found {len(definitions)}"
         )
     return definitions[0]
+
+
+def load_policy_definition(file_location: str) -> PolicyDefinition:
+    return load_single_definition(file_location, PolicyDefinition)
 
 
 def load_component_definition_from_alias(
@@ -34,9 +41,4 @@ def load_component_definition_from_alias(
 
 
 def load_component_definition(file_location: str) -> ComponentDefinition:
-    definitions = find_definitions(file_location, ComponentDefinition)
-    if len(definitions) != 1:
-        raise ValueError(
-            f"Expected only one ComponentDefinition in the module, found {len(definitions)}"
-        )
-    return definitions[0]
+    return load_single_definition(file_location, ComponentDefinition)

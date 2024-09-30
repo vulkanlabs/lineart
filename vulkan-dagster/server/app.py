@@ -4,22 +4,22 @@ import logging
 import os
 import subprocess
 from dataclasses import dataclass
-from shutil import rmtree
 from time import time
 from typing import Annotated
 
 from fastapi import Body, FastAPI, Form, HTTPException
 from vulkan.dagster.workspace import add_workspace_config
-from vulkan.spec.environment.config import VulkanWorkspaceConfig, get_working_directory
-from vulkan.spec.environment.packing import find_package_entrypoint, unpack_workspace
 from vulkan.exceptions import (
     ConflictingDefinitionsError,
     DefinitionNotFoundException,
     InvalidDefinitionError,
     VulkanInternalException,
 )
+from vulkan.spec.environment.config import VulkanWorkspaceConfig, get_working_directory
+from vulkan.spec.environment.packing import find_package_entrypoint, unpack_workspace
 
 from . import schemas
+from .context import ExecutionContext
 
 app = FastAPI()
 
@@ -121,33 +121,20 @@ def create_component(
     repository: Annotated[str, Form()],
 ):
     base_dir = f"{VULKAN_HOME}/components"
-    component_path = os.path.join(base_dir, alias)
-    if os.path.exists(component_path):
-        detail = {
-            "error": "VulkanInternalException",
-            "exit_status": ConflictingDefinitionsError().exit_status,
-            "msg": f"Component version {alias} already exists",
-        }
-        raise HTTPException(status_code=409, detail=detail)
+    logger.info(f"Creating component version: {alias}")
 
-    logger.info(f"Creating component: {alias}")
-    repository = base64.b64decode(repository)
+    with ExecutionContext(logger) as ctx:
+        if os.path.exists(os.path.join(base_dir, alias)):
+            raise ConflictingDefinitionsError("Component version already exists")
 
-    try:
+        repository = base64.b64decode(repository)
         component_path = unpack_workspace(base_dir, alias, repository)
+        logger.info(f"Unpacked and stored component spec at: {component_path}")
+        ctx.register_asset(component_path)
+
         definition = _load_component_definition(alias)
         logger.info(f"Loaded component definition: {definition}")
-    except Exception as e:
-        logger.error(f"Failed create component: {e}")
-        if os.path.exists(component_path):
-            rmtree(component_path)
 
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to create component",
-        )
-
-    logger.info(f"Created component at: {component_path}")
     return definition
 
 
@@ -235,12 +222,16 @@ def _load_component_definition(component_alias):
         ],
         capture_output=True,
     )
-    if completed_process.returncode != 0:
-        msg = f"Failed to load component: {completed_process.stderr}"
-        raise Exception(msg)
+    exit_status = completed_process.returncode
+    if exit_status == DefinitionNotFoundException().exit_status:
+        raise DefinitionNotFoundException("Failed to load the ComponentDefinition")
+    if exit_status == ConflictingDefinitionsError().exit_status:
+        raise ConflictingDefinitionsError("Found multiple ComponentDefinitions")
+    if exit_status == InvalidDefinitionError().exit_status:
+        raise InvalidDefinitionError("ComponentDefinition is invalid")
 
-    if not os.path.exists(tmp_path):
-        msg = "Failed to load component: ComponentDefinition instance not found"
+    if exit_status != 0 or not os.path.exists(tmp_path):
+        msg = f"Failed to load the ComponentDefinition: {completed_process.stderr}"
         raise Exception(msg)
 
     return _load_and_remove(tmp_path)
