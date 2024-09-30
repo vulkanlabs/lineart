@@ -21,9 +21,9 @@ export default async function Page({ params }) {
 
     policyVersionsData.forEach((policyVersion) => {
         if (policyVersion.policy_version_id === policyData.active_policy_version_id) {
-            policyVersion.status = "ativa";
+            policyVersion.status = "active";
         } else {
-            policyVersion.status = "inativa";
+            policyVersion.status = "inactive";
         }
     });
 

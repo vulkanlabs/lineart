@@ -21,7 +21,7 @@ export default async function Page({ params }) {
     return (
         <div className="flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
             <div className="flex items-center">
-                <h1 className="text-lg font-semibold md:text-2xl">Execuções</h1>
+                <h1 className="text-lg font-semibold md:text-2xl">Runs</h1>
             </div>
             <RunsTable runs={runs} />
         </div>
@@ -46,14 +46,14 @@ function RunStatus({ value }) {
 function RunsTable({ runs }) {
     return (
         <Table>
-            <TableCaption>Execuções</TableCaption>
+            <TableCaption>Runs</TableCaption>
             <TableHeader>
                 <TableRow>
                     <TableHead>ID</TableHead>
-                    <TableHead>Versão</TableHead>
+                    <TableHead>Version</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Resultado</TableHead>
-                    <TableHead>Criada Em</TableHead>
+                    <TableHead>Result</TableHead>
+                    <TableHead>Created At</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>

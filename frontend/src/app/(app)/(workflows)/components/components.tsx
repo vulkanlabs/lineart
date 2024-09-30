@@ -20,8 +20,8 @@ export default function ComponentPageContent({ components }) {
                 <ComponentsTable components={components} />
             ) : (
                 <EmptyAssetTable
-                    title="Você ainda não tem componentes criados"
-                    description="Crie um componente para começar"
+                    title="You don't have any components yet."
+                    description="Create a component to start using it in your workflows."
                 />
             )}
         </div>
@@ -33,12 +33,12 @@ function ComponentsTable({ components }) {
 
     return (
         <Table>
-            <TableCaption>Lista dos seus componentes criados.</TableCaption>
+            <TableCaption>List of your components.</TableCaption>
             <TableHeader>
                 <TableRow>
                     <TableHead>ID</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Descrição</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>

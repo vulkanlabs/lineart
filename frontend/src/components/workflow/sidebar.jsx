@@ -6,7 +6,7 @@ function codeSnippet(clickedNode) {
     if (clickedNode.data.hasOwnProperty("source")) {
         return (
             <div className="my-5">
-                <h1 className="text-lg font-semibold">Código</h1>
+                <h1 className="text-lg font-semibold">Source Code</h1>
                 <div className="mt-3 rounded overflow-auto">
                     <SyntaxHighlighter language="python" style={atomOneDark}>
                         {clickedNode.data.source}
@@ -33,7 +33,7 @@ function NodeContent({ clickedNode }) {
     if (clickedNode.length === 0) {
         return (
             <div className="flex flex-col px-5">
-                <h1 className="mt-5 text-lg font-semibold">Nenhum nó selecionado</h1>
+                <h1 className="mt-5 text-lg font-semibold">No node selected</h1>
             </div>
         );
     }
@@ -41,17 +41,17 @@ function NodeContent({ clickedNode }) {
     return (
         <div className="flex flex-col px-5">
             <div className="mt-5">
-                <NodeParam name={"Nome"} value={clickedNode.data.label} />
-                <NodeParam name={"Tipo"} value={clickedNode.data.type} />
-                <NodeParam name={"Descrição"} value={clickedNode.data.description} />
+                <NodeParam name={"Name"} value={clickedNode.data.label} />
+                <NodeParam name={"Type"} value={clickedNode.data.type} />
+                <NodeParam name={"Description"} value={clickedNode.data.description} />
             </div>
             {codeSnippet(clickedNode)}
             {clickedNode.parentId && (
                 <div className="mt-5">
-                    <h1 className="text-lg font-semibold">Componente</h1>
+                    <h1 className="text-lg font-semibold">Component</h1>
                     <div className="mt-3">
-                        <NodeParam name={"Instância"} value={clickedNode.parentId} />
-                        <NodeParam name={"Referência"} value={clickedNode.parentReference} />
+                        <NodeParam name={"Instance"} value={clickedNode.parentId} />
+                        <NodeParam name={"Reference"} value={clickedNode.parentReference} />
                     </div>
                 </div>
             )}
