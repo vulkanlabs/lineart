@@ -231,21 +231,21 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
     def _fn(self, context, **kwargs):
         vulkan_run_config = context.resources.vulkan_run_config
         context.log.info(f"Terminating with status {self.return_status}")
-        if self.callback is None:
-            raise ValueError(f"Callback function not set for op {self.name}")
 
         terminated = self._terminate(context, self.return_status)
         if not terminated:
             raise ValueError("Failed to terminate run")
 
-        reported = self.callback(
-            context=context,
-            run_id=vulkan_run_config.run_id,
-            return_status=self.return_status,
-            **kwargs,
-        )
-        if not reported:
-            raise ValueError("Callback function failed")
+        if self.callback is not None:
+            reported = self.callback(
+                context=context,
+                run_id=vulkan_run_config.run_id,
+                return_status=self.return_status,
+                **kwargs,
+            )
+            if not reported:
+                raise ValueError("Callback function failed")
+
         return self.return_status.value
 
     def _terminate(
