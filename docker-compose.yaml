@@ -7,6 +7,7 @@ services:
         PYTHON_VERSION: "3.12"
     env_file:
       - images/app.env
+      - .env
     ports:
       - "6001:6001"
     depends_on:
@@ -41,8 +42,8 @@ services:
       - "3000:3000"
       - "3001:3001"
     env_file:
-      - .env
       - images/dagster.env
+      - .env
     depends_on:
       dagster-db:
         condition: service_healthy
