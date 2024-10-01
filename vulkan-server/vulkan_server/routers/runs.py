@@ -1,5 +1,4 @@
 import pickle
-from collections import defaultdict
 from typing import Annotated
 
 import sqlalchemy
@@ -31,6 +30,22 @@ def get_run_data(
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
 
+    steps = db.query(StepMetadata).filter_by(run_id=run_id).all()
+    if len(steps) == 0:
+        return {"run_id": run_id, "last_updated_at": run.last_updated_at, "data": {}}
+
+    metadata = {
+        step.step_name: {
+            "step_name": step.step_name,
+            "node_type": step.node_type,
+            "start_time": step.start_time,
+            "end_time": step.end_time,
+            "error": step.error,
+            "extra": step.extra,
+        }
+        for step in steps
+    }
+
     dagster_db = get_dagster_db()
     with dagster_db.connect() as conn:
         q = sqlalchemy.text("""
@@ -45,13 +60,14 @@ def get_run_data(
         # TODO: on a separate query, we can get the step metadata to
         # enrich the results with node type, execution times etc.
 
-        data = defaultdict(dict)
+        steps_data = {}
         for result in results:
             step_name, object_name, value = result
+            meta = metadata.pop(step_name, None)
             if object_name != "result":
                 # This is a branch node output.
                 # The object_name represents the path taken.
-                data[step_name] = object_name
+                value = object_name
             else:
                 try:
                     value = pickle.loads(value)
@@ -60,13 +76,13 @@ def get_run_data(
                         status_code=500,
                         detail=f"Failed to unpickle data for {step_name}.{object_name}",
                     )
-                data[step_name] = value
+
+            steps_data[step_name] = {"output": value, "metadata": meta}
 
     return {
         "run_id": run_id,
         "last_updated_at": run.last_updated_at,
-        "data": data,
-        # "metadata": metadata,
+        "steps": steps_data,
     }
 
 

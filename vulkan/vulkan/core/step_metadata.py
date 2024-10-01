@@ -8,4 +8,4 @@ class StepMetadata:
     start_time: float
     end_time: float
     error: str | None = None
-    data: dict[str, Any] | None = None
+    extra: dict[str, Any] | None = None

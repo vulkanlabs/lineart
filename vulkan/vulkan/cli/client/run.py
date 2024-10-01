@@ -52,3 +52,15 @@ def trigger_run_by_policy_id(
         time.sleep(time_step)
 
     return run_id, success
+
+
+def get_run_data(ctx: Context, run_id: str):
+    response = ctx.session.get(f"{ctx.server_url}/runs/{run_id}/data")
+    if response.status_code == 404:
+        msg = f"No run with id {run_id} found.\nCheck the run id and try again."
+        raise ValueError(msg)
+    if response.status_code != 200:
+        msg = f"Error fetching run data for run {run_id}. \n{response.text}"
+        raise ValueError
+
+    return response.json()

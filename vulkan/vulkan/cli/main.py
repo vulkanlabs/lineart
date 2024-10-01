@@ -12,8 +12,9 @@ def cli():
 
 
 cli.add_command(commands.login.login)
-cli.add_command(commands.policy.policy)
 cli.add_command(commands.component.component)
+cli.add_command(commands.policy.policy)
+cli.add_command(commands.run.run)
 
 
 def config_environment():
