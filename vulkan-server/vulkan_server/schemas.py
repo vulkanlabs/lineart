@@ -151,7 +151,7 @@ class StepMetadataBase(BaseModel):
     start_time: float
     end_time: float
     error: str | None = None
-    data: str | None = None
+    extra: dict | None = None
 
 
 class StepMetadata(StepMetadataBase):
@@ -162,11 +162,14 @@ class StepMetadata(StepMetadataBase):
     class Config:
         from_attributes = True
 
+class _StepDetails(BaseModel):
+    output: Any | None
+    metadata: StepMetadataBase | None
 
 class RunData(BaseModel):
     run_id: UUID
     last_updated_at: datetime
-    data: Any
+    steps: dict[str, _StepDetails]
 
     class Config:
         from_attributes = True

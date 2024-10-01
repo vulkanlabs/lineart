@@ -2,6 +2,7 @@ import enum
 import os
 
 from sqlalchemy import (
+    JSON,
     Column,
     DateTime,
     Enum,
@@ -224,7 +225,7 @@ class StepMetadata(Base):
     start_time = Column(Float)
     end_time = Column(Float)
     error = Column(String, nullable=True)
-    data = Column(String, nullable=True)
+    extra = Column(JSON, nullable=True)
 
 
 if __name__ == "__main__":

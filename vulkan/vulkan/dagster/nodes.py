@@ -122,7 +122,7 @@ class DagsterHTTPConnection(HTTPConnectionNode, DagsterNode):
                 start_time=start_time,
                 end_time=end_time,
                 error=error,
-                data={
+                extra={
                     "status_code": response.status_code,
                     "url": self.url,
                     "method": self.method,
@@ -320,7 +320,7 @@ class DagsterBranch(BranchNode, DagsterNode):
                     start_time,
                     end_time,
                     error,
-                    data={"choices": self.outputs},
+                    extra={"choices": self.outputs},
                 )
                 yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 
