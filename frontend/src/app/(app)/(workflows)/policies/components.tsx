@@ -22,12 +22,12 @@ export default function PoliciesPage({ policies }: { policies: any[] }) {
     return (
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
             <div className="flex items-center">
-                <h1 className="text-lg font-semibold md:text-2xl">Políticas</h1>
+                <h1 className="text-lg font-semibold md:text-2xl">Policies</h1>
             </div>
             <div>
                 {policies.length > 0 ? <PolicyTable policies={policies} /> : <EmptyPolicyTable />}
                 <Button className="mt-4" onClick={() => setShowForm(true)}>
-                    Criar Política
+                    Create Policy
                 </Button>
                 <Button className="mt-4" onClick={() => router.refresh()}>
                     Refresh
@@ -43,14 +43,14 @@ export function PolicyTable({ policies }) {
 
     return (
         <Table>
-            <TableCaption>A lista das suas políticas criadas.</TableCaption>
+            <TableCaption>Your policies.</TableCaption>
             <TableHeader>
                 <TableRow>
                     <TableHead>ID</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Versão Ativa</TableHead>
-                    <TableHead>Última Atualização</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Active Version</TableHead>
+                    <TableHead>Last Updated At</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -84,10 +84,10 @@ function EmptyPolicyTable() {
             <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm">
                 <div className="flex flex-col items-center gap-1 text-center">
                     <h3 className="text-2xl font-bold tracking-tight">
-                        Você não tem nenhuma política criada.
+                        You have no policies yet.
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                        Crie uma política para começar a tomar decisões.
+                        Create a Policy to start making decisions.
                     </p>
                 </div>
             </div>

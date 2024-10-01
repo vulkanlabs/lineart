@@ -22,22 +22,30 @@ class LoginContext:
         self.stack_client_key = os.getenv("STACK_PUBLISHABLE_CLIENT_KEY")
         self.stack_project_id = os.getenv("STACK_PROJECT_ID")
         if self.stack_client_key is None or self.stack_project_id is None:
-            raise click.ClickException(
+            msg = (
                 "STACK_PUBLISHABLE_CLIENT_KEY and STACK_PROJECT_ID "
                 "environment variables are required for Vulkan authentication"
             )
+            self.logger.fatal(msg)
+            raise click.Abort()
 
 
 class Context:
     def __init__(self):
+        self.logger = init_logger(__name__)
         self.server_url = os.getenv("VULKAN_SERVER_URL")
         if self.server_url is None:
-            raise click.ClickException(
-                "VULKAN_SERVER_URL environment variable is not set"
-            )
+            self.logger("VULKAN_SERVER_URL environment variable is not set")
+            raise click.Abort()
 
-        self.logger = init_logger(__name__)
-        creds = retrieve_credentials()
+        try:
+            creds = retrieve_credentials()
+        except FileNotFoundError:
+            self.logger.fatal(
+                "No credentials found. Sign in with `vulkan login` and try again."
+            )
+            raise click.Abort()
+
         self.session = init_session(
             headers={
                 "x-stack-access-token": creds["access_token"],

@@ -1,39 +1,33 @@
 from dataclasses import dataclass, field
+from typing import Callable
 
 from vulkan.spec.component import ComponentInstance
-from vulkan.spec.dependency import INPUT_NODE
-from vulkan.spec.nodes import Node
+from vulkan.spec.graph import GraphDefinition
+from vulkan.spec.nodes import Node, NodeType
 
 
 @dataclass
-class PolicyDefinition:
+class PolicyDefinition(GraphDefinition):
     nodes: list[Node]
     input_schema: dict[str, type]
-    output_callback: callable
+    output_callback: Callable | None = None
     components: list[ComponentInstance] = field(default_factory=list)
 
     def __post_init__(self):
-        if not callable(self.output_callback):
-            raise ValueError("Output callback must be a callable")
+        if self.output_callback is not None:
+            if not callable(self.output_callback):
+                raise ValueError("Output callback must be a callable")
 
-        self._validate_node_dependencies()
+        self.validate_nodes()
 
-    def _validate_node_dependencies(self):
         nodes = {node.name: node.dependencies for node in self.nodes}
         nodes.update({c.config.name: c.config.dependencies for c in self.components})
+        self.validate_node_dependencies(nodes)
 
-        for node_name, dependencies in nodes.items():
-            if dependencies is None:
-                continue
-
-            for dep in dependencies.values():
-                if dep.node == INPUT_NODE:
-                    # Input nodes are added to the graph after validation.
-                    continue
-
-                if dep.node not in nodes.keys():
-                    msg = (
-                        f"Node {node_name} has a dependency {dep.node} "
-                        "that is not in the graph"
-                    )
-                    raise ValueError(msg)
+    def validate_nodes(self):
+        # TODO: we should assert that all leaves are terminate nodes
+        terminate_nodes = [
+            node for node in self.nodes if node.type == NodeType.TERMINATE
+        ]
+        if len(terminate_nodes) == 0:
+            raise ValueError("No terminate node found in policy.")

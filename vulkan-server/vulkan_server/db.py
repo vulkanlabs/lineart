@@ -2,12 +2,12 @@ import enum
 import os
 
 from sqlalchemy import (
+    JSON,
     Column,
     DateTime,
     Enum,
     Float,
     ForeignKey,
-    Integer,
     String,
     Uuid,
     create_engine,
@@ -58,6 +58,7 @@ class DagsterWorkspaceStatus(enum.Enum):
     OK = "OK"
     CREATION_PENDING = "CREATION_PENDING"
     CREATION_FAILED = "CREATION_FAILED"
+    INSTALL_FAILED = "INSTALL_FAILED"
 
 
 class Role(enum.Enum):
@@ -128,7 +129,7 @@ class Component(Base):
     __tablename__ = "component"
 
     component_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    name = Column(String)
+    name = Column(String, unique=True)
     project_id = Column(Uuid, ForeignKey("project.project_id"))
 
 
@@ -207,6 +208,8 @@ class Run(Base):
     last_updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    # Access Control
+    project_id = Column(Uuid, ForeignKey("project.project_id"))
 
 
 class StepMetadata(Base):
@@ -222,6 +225,7 @@ class StepMetadata(Base):
     start_time = Column(Float)
     end_time = Column(Float)
     error = Column(String, nullable=True)
+    extra = Column(JSON, nullable=True)
 
 
 if __name__ == "__main__":

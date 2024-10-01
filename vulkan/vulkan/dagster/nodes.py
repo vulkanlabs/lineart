@@ -15,11 +15,11 @@ from dagster import (
     Output,
 )
 
-from vulkan.core.exceptions import UserCodeException
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.dagster.io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
 from vulkan.dagster.run_config import RUN_CONFIG_KEY
+from vulkan.exceptions import UserCodeException
 from vulkan.spec.nodes import (
     BranchNode,
     Collect,
@@ -70,10 +70,14 @@ class DagsterHTTPConnection(HTTPConnectionNode, DagsterNode):
             compute_fn=self.run,
             name=self.name,
             ins={k: In() for k in self.dependencies.keys()},
-            outs={"result": Out()},
+            outs={
+                "result": Out(),
+                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
+            },
         )
 
     def run(self, context, inputs):
+        start_time = time.time()
         context.log.debug(f"Requesting {self.url}")
         body = inputs.get("body", None)
         context.log.debug(f"Body: {body}")
@@ -100,13 +104,31 @@ class DagsterHTTPConnection(HTTPConnectionNode, DagsterNode):
         response = requests.Session().send(req)
         context.log.debug(f"Response: {response}")
 
-        if response.status_code == 200:
-            yield Output(response.content)
-        else:
+        error = None
+        try:
+            response.raise_for_status()
+            if response.status_code == 200:
+                yield Output(response.content)
+        except requests.exceptions.RequestException as e:
             context.log.error(
                 f"Failed op {self.name} with status {response.status_code}"
             )
-            raise Exception("Connection failed")
+            error = ("\n").join(format_exception_only(type(e), e))
+            raise e
+        finally:
+            end_time = time.time()
+            metadata = StepMetadata(
+                node_type=self.type.value,
+                start_time=start_time,
+                end_time=end_time,
+                error=error,
+                extra={
+                    "status_code": response.status_code,
+                    "url": self.url,
+                    "method": self.method,
+                },
+            )
+            yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 
     @classmethod
     def from_spec(cls, node: HTTPConnectionNode):
@@ -209,21 +231,21 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
     def _fn(self, context, **kwargs):
         vulkan_run_config = context.resources.vulkan_run_config
         context.log.info(f"Terminating with status {self.return_status}")
-        if self.callback is None:
-            raise ValueError(f"Callback function not set for op {self.name}")
 
         terminated = self._terminate(context, self.return_status)
         if not terminated:
             raise ValueError("Failed to terminate run")
 
-        reported = self.callback(
-            context=context,
-            run_id=vulkan_run_config.run_id,
-            return_status=self.return_status,
-            **kwargs,
-        )
-        if not reported:
-            raise ValueError("Callback function failed")
+        if self.callback is not None:
+            reported = self.callback(
+                context=context,
+                run_id=vulkan_run_config.run_id,
+                return_status=self.return_status,
+                **kwargs,
+            )
+            if not reported:
+                raise ValueError("Callback function failed")
+
         return self.return_status.value
 
     def _terminate(
@@ -298,7 +320,7 @@ class DagsterBranch(BranchNode, DagsterNode):
                     start_time,
                     end_time,
                     error,
-                    {"choices": self.outputs},
+                    extra={"choices": self.outputs},
                 )
                 yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 

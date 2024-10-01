@@ -4,6 +4,13 @@ import requests
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
+from vulkan.exceptions import (
+    UNHANDLED_ERROR_NAME,
+    VULKAN_INTERNAL_EXCEPTIONS,
+    VulkanInternalException,
+)
+from vulkan.spec.component import component_version_alias
+
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.db import (
@@ -14,6 +21,7 @@ from vulkan_server.db import (
     PolicyVersion,
     get_db,
 )
+from vulkan_server.exceptions import ExceptionHandler
 from vulkan_server.logger import init_logger
 
 logger = init_logger("components")
@@ -32,11 +40,15 @@ def create_component(
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    component = Component(project_id=project_id, **config.model_dump())
-    db.add(component)
+    component = db.query(Component).filter_by(name=config.name).first()
+    if component is not None:
+        raise HTTPException(status_code=409, detail="Component already exists")
+
+    new_component = Component(project_id=project_id, **config.model_dump())
+    db.add(new_component)
     db.commit()
     logger.info(f"Creating component {config.name}")
-    return component
+    return new_component
 
 
 @router.get("/", response_model=list[schemas.Component])
@@ -62,7 +74,7 @@ def get_component(
         .first()
     )
     if component is None:
-        return Response(status_code=204)
+        return Response(status_code=404)
     return component
 
 
@@ -76,6 +88,17 @@ def create_component_version(
     ),
     db: Session = Depends(get_db),
 ):
+    component = (
+        db.query(Component)
+        .filter_by(component_id=component_id, project_id=project_id)
+        .first()
+    )
+    if component is None:
+        raise HTTPException(status_code=404, detail="Component not found")
+
+    alias = component_version_alias(component.name, component_config.version_name)
+    handler = ExceptionHandler(logger, f"Failed to create component version {alias}")
+
     try:
         logger.info(
             f"config: {server_config.vulkan_dagster_server_url}, {server_config.server_url}"
@@ -84,18 +107,22 @@ def create_component_version(
         # TODO: add input and output schemas and handle them in the endpoint
         response = requests.post(
             server_url,
-            data={
-                "alias": component_config.alias,
-                "repository": component_config.repository,
-            },
+            data={"alias": alias, "repository": component_config.repository},
         )
         if response.status_code != 200:
-            raise ValueError(f"Failed to create component: {response.status_code}")
+            detail = response.json().get("detail", {})
+            if detail.get("error") == "VulkanInternalException":
+                raise VULKAN_INTERNAL_EXCEPTIONS[detail.get("exit_status")](
+                    msg=detail.get("msg")
+                )
+            raise Exception(detail.get("msg"))
+
         data = response.json()
+    except VulkanInternalException as e:
+        error_name = VULKAN_INTERNAL_EXCEPTIONS[e.exit_status].__name__
+        handler.raise_exception(400, error_name, str(e), e.metadata)
     except Exception as e:
-        msg = f"Failed to create component {component_config.alias}"
-        logger.error(msg)
-        raise HTTPException(status_code=500, detail=str(e))
+        handler.raise_exception(status_code=500, error=UNHANDLED_ERROR_NAME, msg=str(e))
 
     component = ComponentVersion(
         component_id=component_id,
@@ -103,11 +130,12 @@ def create_component_version(
         instance_params_schema=str(data["instance_params_schema"]),
         node_definitions=json.dumps(data["node_definitions"]),
         project_id=project_id,
-        **component_config.model_dump(),
+        alias=alias,
+        repository=component_config.repository,
     )
     db.add(component)
     db.commit()
-    logger.info(f"Creating component {component_config.alias}")
+    logger.info(f"Creating component {alias}")
 
     return {"status": "success"}
 
@@ -147,7 +175,7 @@ def get_component_version(
         .first()
     )
     if component_version is None:
-        return Response(status_code=204)
+        return Response(status_code=404)
     return component_version
 
 

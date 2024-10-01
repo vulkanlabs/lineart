@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from vulkan.spec.dependency import Dependency
+from vulkan.spec.graph import GraphDefinition
 from vulkan.spec.nodes import Node
 
 
@@ -11,10 +12,14 @@ class InstanceParam:
 
 
 @dataclass
-class ComponentDefinition:
+class ComponentDefinition(GraphDefinition):
     nodes: list[Node]
     input_schema: dict[str, type]
     instance_params_schema: dict[str, type] = field(default_factory=dict)
+
+    def __post_init__(self):
+        nodes = {node.name: node.dependencies for node in self.nodes}
+        self.validate_node_dependencies(nodes)
 
 
 @dataclass

@@ -1,10 +1,10 @@
 import json
-import time
 
 import click
 
 from vulkan.cli import client
 from vulkan.cli.context import Context, pass_context
+from vulkan.cli.exceptions import log_exceptions
 
 
 @click.group()
@@ -39,58 +39,41 @@ def set_active_version(ctx: Context, policy_id: str, policy_version_id: str):
 @click.option("--policy_id", type=str)
 @click.option("--data", type=str)
 @click.option("--timeout", type=int, default=15)
+@log_exceptions
 def trigger_run(ctx: Context, policy_id: str, data: str, timeout: int):
     # Call the function to trigger the Dagster job
-    execution_config = {
-        "execution": {
-            "config": {
-                "multiprocess": {
-                    "max_concurrent": 5,
-                    "retries": {"disabled": {}},
-                }
-            }
-        },
-        "ops": {"input_node": {"config": json.loads(data)}},
-    }
+    try:
+        input_data = json.loads(data)
+    except TypeError as e:
+        raise ValueError(f"Invalid JSON data provided: {data}\nError: {e}")
 
-    response = ctx.session.post(
-        f"{ctx.server_url}/policies/{policy_id}/runs",
-        json={"execution_config_str": json.dumps(execution_config)},
-    )
-    ctx.logger.debug(response.json())
-
-    # Get the run status
-    run_id = response.json()["run_id"]
-    response = ctx.session.get(f"{ctx.server_url}/runs/{run_id}")
-    ctx.logger.debug(response.json())
-
-    success = False
-    # Poll the API until the job is completed
-    step_size = 3
-    for _ in range(0, timeout, step_size):
-        response = ctx.session.get(f"{ctx.server_url}/runs/{run_id}")
-        ctx.logger.debug(response.json())
-        try:
-            status = response.json()["status"]
-            if status == "SUCCESS":
-                success = True
-                break
-        except (KeyError, json.decoder.JSONDecodeError):
-            continue
-        time.sleep(step_size)
-
-    assert success, f"Run {run_id} for policy {policy_id} did not complete successfully"
+    try:
+        run_id, success = client.run.trigger_run_by_policy_id(
+            ctx=ctx,
+            policy_id=policy_id,
+            input_data=input_data,
+            timeout=timeout,
+            time_step=5,
+        )
+        ctx.logger.info(f"Run {run_id} {'completed successfully' if success else 'failed'}")
+    except Exception as e:
+        raise ValueError(f"Error triggering run: {e}")
 
 
 @policy.command()
 @pass_context
 @click.option("--policy_id", type=str, required=True, help="Id of the policy")
-@click.option("--version_name", type=str, required=True, help="Name of the policy version")
+@click.option(
+    "--version_name", type=str, required=True, help="Name of the policy version"
+)
 @click.option("--repository_path", type=str, required=True, help="Path to repository")
+@log_exceptions
 def create_version(
     ctx: Context,
     policy_id: str,
     version_name: str,
     repository_path: str,
 ):
-    return client.policy.create_policy_version(ctx, policy_id, version_name, repository_path)
+    return client.policy.create_policy_version(
+        ctx, policy_id, version_name, repository_path
+    )

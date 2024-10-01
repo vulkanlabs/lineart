@@ -4,9 +4,17 @@ from typing import Annotated, Any
 
 import pandas as pd
 import requests
+import sqlalchemy.exc
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy import func as F
 from sqlalchemy.orm import Session
+from vulkan.core.run import RunStatus
+from vulkan.exceptions import (
+    UNHANDLED_ERROR_NAME,
+    VULKAN_INTERNAL_EXCEPTIONS,
+    ComponentNotFoundException,
+    VulkanInternalException,
+)
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
@@ -24,6 +32,7 @@ from vulkan_server.db import (
     Run,
     get_db,
 )
+from vulkan_server.exceptions import ExceptionHandler
 from vulkan_server.logger import init_logger
 
 logger = init_logger("policies")
@@ -64,9 +73,11 @@ def get_policy(
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    policy = db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    policy = (
+        db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    )
     if policy is None:
-        return Response(status_code=204)
+        return Response(status_code=404)
     return policy
 
 
@@ -77,10 +88,12 @@ def update_policy(
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    policy = db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    policy = (
+        db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    )
     if policy is None:
         msg = f"Tried to update non-existent policy {policy_id}"
-        raise HTTPException(status_code=400, detail=msg)
+        raise HTTPException(status_code=404, detail=msg)
 
     if (
         config.active_policy_version_id is not None
@@ -95,7 +108,7 @@ def update_policy(
         )
         if policy_version is None:
             msg = f"Tried to use non-existent version {config.active_policy_version_id} for policy {policy_id}"
-            raise HTTPException(status_code=400, detail=msg)
+            raise HTTPException(status_code=404, detail=msg)
 
         if policy_version.status != PolicyVersionStatus.VALID:
             msg = f"Tried to use invalid version {config.active_policy_version_id} for policy {policy_id}"
@@ -109,7 +122,7 @@ def update_policy(
         policy.description = config.description
 
     db.commit()
-    msg = f"Policy {policy_id} updated: active version set to {config.active_policy_version_id}"
+    msg = f"Policy {policy_id} updated"
     logger.info(msg)
     return {
         "policy_id": policy.policy_id,
@@ -147,7 +160,9 @@ def list_runs_by_policy(
     db: Session = Depends(get_db),
 ):
     policy_versions = (
-        db.query(PolicyVersion).filter_by(policy_id=policy_id, project_id=project_id).all()
+        db.query(PolicyVersion)
+        .filter_by(policy_id=policy_id, project_id=project_id)
+        .all()
     )
     policy_version_ids = [v.policy_version_id for v in policy_versions]
     runs = db.query(Run).filter(Run.policy_version_id.in_(policy_version_ids)).all()
@@ -170,11 +185,39 @@ def create_run_by_policy(
     try:
         execution_config = json.loads(execution_config_str)
     except Exception as e:
-        HTTPException(status_code=400, detail=e)
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "UNHANDLED_EXCEPTION",
+                "msg": f"Invalid execution config: {str(e)}",
+            },
+        )
 
-    policy = db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    try:
+        policy = (
+            db.query(Policy)
+            .filter_by(policy_id=policy_id, project_id=project_id)
+            .first()
+        )
+    except sqlalchemy.exc.DataError:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "UNHANDLED_EXCEPTION",
+                "msg": f"Invalid policy_id: {policy_id}",
+            },
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "UNHANDLED_EXCEPTION",
+                "msg": f"Failed to get policy: {str(e)}",
+            },
+        )
+
     if policy is None:
-        raise HTTPException(status_code=400, detail=f"Policy {policy_id} not found")
+        raise HTTPException(status_code=404, detail=f"Policy {policy_id} not found")
     if policy.active_policy_version_id is None:
         raise HTTPException(
             status_code=400,
@@ -189,7 +232,7 @@ def create_run_by_policy(
         .first()
     )
 
-    run = launch_run(
+    run, error_msg = launch_run(
         dagster_client=dagster_client,
         server_url=server_config.server_url,
         execution_config=execution_config,
@@ -198,9 +241,13 @@ def create_run_by_policy(
             version.policy_id, version.policy_version_id
         ),
         db=db,
+        project_id=project_id,
     )
-    if run is None:
-        raise HTTPException(status_code=500, detail="Failed to launch run")
+    if run.status == RunStatus.FAILURE:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to launch run: {error_msg}",
+        )
 
     return {"policy_id": policy.policy_id, "run_id": run.run_id}
 
@@ -216,6 +263,13 @@ def create_policy_version(
         definitions.get_vulkan_server_config
     ),
 ):
+    handler = ExceptionHandler(
+        logger=logger,
+        base_msg=(
+            f"Failed to create workspace for policy {policy_id} version {config.alias}"
+        ),
+    )
+
     logger.info(f"Creating policy version for policy {policy_id}")
     if config.alias is None:
         # We can use the repo version as an easy alias or generate one.
@@ -223,10 +277,12 @@ def create_policy_version(
         # unique version of the code.
         config.alias = config.repository_version
 
-    policy = db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    policy = (
+        db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    )
     if policy is None:
         msg = f"Tried to create a version for non-existent policy {policy_id}"
-        raise HTTPException(status_code=400, detail=msg)
+        handler.raise_exception(400, UNHANDLED_ERROR_NAME, msg)
 
     version = PolicyVersion(
         policy_id=policy_id,
@@ -241,9 +297,7 @@ def create_policy_version(
 
     version_name = definitions.version_name(policy_id, version.policy_version_id)
     try:
-        # TODO: We need to resolve required components before installing.
-        # This way we can check if the user has access to components used.
-        graph, required_components = _create_policy_version_workspace(
+        workspace, required_components = _create_policy_version_workspace(
             db=db,
             server_url=server_config.vulkan_dagster_server_url,
             policy_version_id=version.policy_version_id,
@@ -257,10 +311,12 @@ def create_policy_version(
                 .filter(ComponentVersion.alias.in_(required_components))
                 .all()
             )
-            missing = set(required_components) - set([m.alias for m in matched])
+            missing = list(set(required_components) - set([m.alias for m in matched]))
             if missing:
-                msg = f"Missing components: {missing}"
-                raise HTTPException(status_code=400, detail=msg)
+                raise ComponentNotFoundException(
+                    msg=f"The following components are not defined: {missing}",
+                    metadata={"components": missing},
+                )
 
             for m in matched:
                 dependency = ComponentVersionDependency(
@@ -269,32 +325,42 @@ def create_policy_version(
                 )
                 db.add(dependency)
 
-    except Exception as e:
-        msg = (
-            f"Failed to create workspace for policy {policy_id} version {config.alias}"
+        graph = _install_policy_version_workspace(
+            db=db,
+            server_url=server_config.vulkan_dagster_server_url,
+            name=version_name,
+            required_components=required_components,
+            workspace=workspace,
         )
-        logger.error(msg)
-        logger.error(e)
-        raise HTTPException(status_code=500, detail=e)
+    except VulkanInternalException as e:
+        error_name = VULKAN_INTERNAL_EXCEPTIONS[e.exit_status].__name__
+        handler.raise_exception(400, error_name, str(e), e.metadata)
+    except Exception as e:
+        handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
     finally:
         db.commit()
 
-    msg = f"Creating version {version.policy_version_id} ({config.alias}) for policy {policy_id}"
-    logger.info(msg)
+    logger.info(
+        f"Creating version {version.policy_version_id} ({config.alias}) "
+        f"for policy {policy_id}"
+    )
 
     loaded_repos = update_repository(dagster_client)
     if loaded_repos.get(version_name, False) is False:
-        msg = f"Failed to load repository {version_name}"
-        logger.error(msg)
-        logger.error(f"Repository load status: {loaded_repos}")
-        raise HTTPException(status_code=500, detail=msg)
+        msg = (
+            f"Failed to load repository {version_name}.\n"
+            f"Repository load status: {loaded_repos}"
+        )
+        handler.raise_exception(500, UNHANDLED_ERROR_NAME, msg)
 
     version.status = PolicyVersionStatus.VALID
     version.graph_definition = json.dumps(graph)
     db.commit()
 
-    msg = f"Policy version {config.alias} created for policy {policy_id} with status {version.status}"
-    logger.info(msg)
+    logger.info(
+        f"Policy version {config.alias} created for policy {policy_id} with "
+        f"status {version.status}"
+    )
 
     return {
         "policy_id": policy_id,
@@ -318,7 +384,7 @@ def _create_policy_version_workspace(
     db.add(workspace)
     db.commit()
 
-    server_url = f"{server_url}/workspaces"
+    server_url = f"{server_url}/workspaces/create"
     response = requests.post(
         server_url,
         json={"name": name, "repository": repository},
@@ -327,6 +393,13 @@ def _create_policy_version_workspace(
     if status_code != 200:
         workspace.status = DagsterWorkspaceStatus.CREATION_FAILED
         db.commit()
+
+        detail = response.json().get("detail", {})
+        if detail.get("error") == "VulkanInternalException":
+            raise VULKAN_INTERNAL_EXCEPTIONS[detail.get("exit_status")](
+                msg=detail.get("msg")
+            )
+
         try:
             error_msg = response.json()["message"]
         except requests.exceptions.JSONDecodeError:
@@ -336,10 +409,42 @@ def _create_policy_version_workspace(
     response_data = response.json()
     workspace_path = response_data["workspace_path"]
     workspace.workspace_path = workspace_path
+    db.commit()
+
+    return workspace, response_data["required_components"]
+
+
+def _install_policy_version_workspace(
+    db: Session,
+    server_url: str,
+    name: str,
+    required_components: list[str],
+    workspace: DagsterWorkspace,
+):
+    server_url = f"{server_url}/workspaces/install"
+    response = requests.post(
+        server_url,
+        json={
+            "name": name,
+            "workspace_path": workspace.workspace_path,
+            "required_components": required_components,
+        },
+    )
+    status_code = response.status_code
+    if status_code != 200:
+        workspace.status = DagsterWorkspaceStatus.INSTALL_FAILED
+        db.commit()
+        try:
+            error_msg = response.json()["message"]
+        except requests.exceptions.JSONDecodeError:
+            error_msg = f"Status code: {status_code}"
+        raise ValueError(f"Failed to install workspace: {error_msg}")
+
     workspace.status = DagsterWorkspaceStatus.OK
     db.commit()
 
-    return response_data["graph"], response_data["required_components"]
+    response_data = response.json()
+    return response_data["graph"]
 
 
 def _validate_date_range(

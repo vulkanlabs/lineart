@@ -1,8 +1,9 @@
 import os
 
 import requests
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from vulkan_server import routers
 from vulkan_server.logger import init_logger
@@ -62,7 +63,7 @@ async def auth_user(request: Request, call_next):
     user_id = response.json().get("id", None)
 
     if user_id is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        return JSONResponse(content="Unauthorized", status_code=401)
     logger.info(request.headers)
     # Create a new headers object with the user id entry.
     # We add this both to the headers and the scope for consistency.

@@ -11,16 +11,18 @@ class Policy(Graph):
         self,
         nodes: list[Node],
         input_schema: dict[str, type],
-        output_callback: Callable,
+        output_callback: Callable | None = None,
         components: list[ComponentInstance] | None = None,
     ):
-        assert callable(output_callback), "Output callback must be a callable"
         self.output_callback = output_callback
+        
+        if output_callback is not None:
+            assert callable(output_callback), "Output callback must be a callable"
+            nodes = self._with_output_callback(nodes)
 
         if components is None:
             components = []
 
-        nodes = self._with_output_callback(nodes)
         all_nodes = [_make_input_node(input_schema), *nodes, *components]
 
         self.components = components

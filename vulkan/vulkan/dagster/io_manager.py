@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pickle import dumps, loads
 from typing import Any
 
@@ -132,10 +132,7 @@ class PublishMetadataIOManager(IOManager):
                 self._url,
                 json={
                     "step_name": context.step_key,
-                    "node_type": obj.node_type,
-                    "start_time": obj.start_time,
-                    "end_time": obj.end_time,
-                    "error": obj.error,
+                    **asdict(obj),
                 },
             )
             if response.status_code != 200:

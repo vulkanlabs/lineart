@@ -31,7 +31,6 @@ export function PolicyForm({ display, closeFunc }) {
     }
 
     function onSubmit(values) {
-        console.log(values);
         fetch("http://localhost:6001/policies", {
             method: "POST",
             headers: {
@@ -40,7 +39,6 @@ export function PolicyForm({ display, closeFunc }) {
             body: JSON.stringify(values),
             mode: "cors",
         }).then((response) => {
-            console.log(response);
             console.log(response.json());
             closeFunc();
         }).catch((error) => {
@@ -56,20 +54,20 @@ export function PolicyForm({ display, closeFunc }) {
             <Card>
                 <CardHeader>
                     <Button variant="destructive" className="mt-0 mr-0 w-[2em] h-[2em]" onClick={closeFunc}>X</Button>
-                    <CardTitle>Criar Nova Política</CardTitle>
-                    <CardDescription>Define uma nova política</CardDescription>
+                    <CardTitle>Create a New Policy</CardTitle>
+                    <CardDescription>Configure your new Policy</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-2">
                             <FormField control={form.control} name="name" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Nome</FormLabel>
+                                    <FormLabel>Name</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Nova Política 1" {...field} />
+                                        <Input placeholder="New Policy 1" {...field} />
                                     </FormControl>
                                     <FormDescription>
-                                        O nome da política.
+                                        Name of the Policy.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
@@ -78,15 +76,15 @@ export function PolicyForm({ display, closeFunc }) {
                                 <FormItem>
                                     <FormLabel>Description</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Uma política interessante" {...field} />
+                                        <Input placeholder="An interesting policy" {...field} />
                                     </FormControl>
                                     <FormDescription>
-                                        Descrição sucinta da política.
+                                        A short description of the Policy.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <Button type="submit" className="w-fit">Criar Política</Button>
+                            <Button type="submit" className="w-fit">Create Policy</Button>
                         </form>
                     </Form>
                 </CardContent>

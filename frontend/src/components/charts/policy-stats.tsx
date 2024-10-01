@@ -34,7 +34,7 @@ const runStatusChartConfig = {
 export function RunsChart({ chartData }) {
     const chartConfig = {
         count: {
-            label: "Execuções",
+            label: "Runs",
             color: "#2563eb",
         },
     } satisfies ChartConfig;
@@ -88,15 +88,15 @@ export function RunsByStatusChart({ chartData }) {
 export function RunDurationStatsChart({ chartData }) {
     const chartConfig = {
         min_duration: {
-            label: "Mínimo",
+            label: "Min",
             color: "hsl(var(--chart-1))",
         },
         max_duration: {
-            label: "Máximo",
+            label: "Max",
             color: "hsl(var(--chart-2))",
         },
         avg_duration: {
-            label: "Média",
+            label: "Average",
             color: "hsl(var(--chart-3))",
         }
     } satisfies ChartConfig;

@@ -25,3 +25,7 @@ uv.lock
 # cache
 .pytest_cache/
 .ruff_cache/
+
+# local env files
+.env*
+!.env.example

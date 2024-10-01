@@ -53,22 +53,22 @@ export default function PolicyMetrics({ policyId }: { policyId: string }) {
 
     const graphDefinitions = [
         {
-            name: "Execuções",
+            name: "Runs",
             data: runsCount,
             component: RunsChart,
         },
         {
-            name: "Execuções por Status",
+            name: "Runs by Status",
             data: runsByStatus,
             component: RunsByStatusChart,
         },
         {
-            name: "Duração (segundos)",
+            name: "Duration (seconds)",
             data: runDurationStats,
             component: RunDurationStatsChart,
         },
         {
-            name: "Duração Média por Status (segundos)",
+            name: "Average Duration by Status (seconds)",
             data: runDurationByStatus,
             component: AvgDurationByStatusChart,
         },
@@ -77,7 +77,7 @@ export default function PolicyMetrics({ policyId }: { policyId: string }) {
     return (
         <div className="overflow-scroll">
             <div className="flex gap-4 pb-4">
-                <h1 className="text-lg font-semibold md:text-2xl">Métricas</h1>
+                <h1 className="text-lg font-semibold md:text-2xl">Metrics</h1>
                 <div>
                     <DatePickerWithRange date={dateRange} setDate={setDateRange} />
                 </div>
@@ -103,7 +103,7 @@ export default function PolicyMetrics({ policyId }: { policyId: string }) {
 function EmptyChart() {
     return (
         <div className="flex items-center justify-center h-full w-full">
-            <p className="text-sm font-semibold text-gray-500">Nenhuma execução registrada.</p>
+            <p className="text-sm font-semibold text-gray-500">No runs found.</p>
         </div>
     );
 }

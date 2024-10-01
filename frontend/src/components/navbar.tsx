@@ -11,8 +11,8 @@ export default function Navbar() {
 
     const sections = [
         // { name: "Dashboard", path: "/dashboard" },
-        { name: "Políticas", path: "/policies" },
-        { name: "Componentes", path: "/components" },
+        { name: "Policies", path: "/policies" },
+        { name: "Components", path: "/components" },
         // { name: "Integrações", path: "/integrations" },
     ];
 

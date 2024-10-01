@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -82,7 +83,7 @@ class Component(ComponentBase):
 
 
 class ComponentVersionCreate(BaseModel):
-    alias: str
+    version_name: str
     repository: str
 
 
@@ -150,12 +151,25 @@ class StepMetadataBase(BaseModel):
     start_time: float
     end_time: float
     error: str | None = None
+    extra: dict | None = None
 
 
 class StepMetadata(StepMetadataBase):
     step_metadata_id: UUID
     run_id: UUID
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class _StepDetails(BaseModel):
+    output: Any | None
+    metadata: StepMetadataBase | None
+
+class RunData(BaseModel):
+    run_id: UUID
+    last_updated_at: datetime
+    steps: dict[str, _StepDetails]
 
     class Config:
         from_attributes = True
