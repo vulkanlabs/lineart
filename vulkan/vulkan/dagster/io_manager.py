@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 from pickle import dumps, loads
 from typing import Any
@@ -136,6 +137,7 @@ class PublishMetadataIOManager(IOManager):
                     "start_time": obj.start_time,
                     "end_time": obj.end_time,
                     "error": obj.error,
+                    "data": json.dumps(obj.data) if obj.data else None,
                 },
             )
             if response.status_code != 200:

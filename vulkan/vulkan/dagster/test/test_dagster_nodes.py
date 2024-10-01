@@ -30,8 +30,9 @@ def test_http_connection(httpserver: HTTPServer):
     dagster_op = dagster_node.op()
     assert len(dagster_op.ins) == 1
     assert set(dagster_op.outs.keys()) == {
+        "metadata",
         "result"
-    }, "Should have a single output named 'result'"
+    }, "Should have two outputs named 'metadata' and 'result'"
 
     httpserver.expect_oneshot_request(
         "/",

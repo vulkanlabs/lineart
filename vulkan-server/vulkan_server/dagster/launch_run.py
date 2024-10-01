@@ -16,8 +16,9 @@ def launch_run(
     policy_version_id: UUID,
     version_name: str,
     db: Session,
+    project_id: str,
 ):
-    run = Run(policy_version_id=policy_version_id, status=RunStatus.PENDING)
+    run = Run(policy_version_id=policy_version_id, status=RunStatus.PENDING, project_id=project_id)
     db.add(run)
     db.commit()
 

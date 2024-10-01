@@ -78,6 +78,7 @@ def create_run_by_policy_version(
             version.policy_id, version.policy_version_id
         ),
         db=db,
+        project_id=project_id,
     )
     if run.status == RunStatus.FAILURE:
         raise HTTPException(

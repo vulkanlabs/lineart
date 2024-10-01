@@ -7,7 +7,6 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
-    Integer,
     String,
     Uuid,
     create_engine,
@@ -208,6 +207,8 @@ class Run(Base):
     last_updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    # Access Control
+    project_id = Column(Uuid, ForeignKey("project.project_id"))
 
 
 class StepMetadata(Base):
@@ -223,6 +224,7 @@ class StepMetadata(Base):
     start_time = Column(Float)
     end_time = Column(Float)
     error = Column(String, nullable=True)
+    data = Column(String, nullable=True)
 
 
 if __name__ == "__main__":

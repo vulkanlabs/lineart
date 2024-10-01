@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -7,4 +8,4 @@ class StepMetadata:
     start_time: float
     end_time: float
     error: str | None = None
-    metadata: dict[str, str] | None = None
+    data: dict[str, Any] | None = None

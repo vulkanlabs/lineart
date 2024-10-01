@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -150,12 +151,22 @@ class StepMetadataBase(BaseModel):
     start_time: float
     end_time: float
     error: str | None = None
+    data: str | None = None
 
 
 class StepMetadata(StepMetadataBase):
     step_metadata_id: UUID
     run_id: UUID
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RunData(BaseModel):
+    run_id: UUID
+    last_updated_at: datetime
+    data: Any
 
     class Config:
         from_attributes = True
