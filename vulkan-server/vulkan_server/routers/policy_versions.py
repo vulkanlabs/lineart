@@ -1,6 +1,7 @@
 import json
 from typing import Annotated
 
+import requests
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
@@ -13,6 +14,7 @@ from vulkan_server.db import (
     Component,
     ComponentVersion,
     ComponentVersionDependency,
+    DagsterWorkspace,
     Policy,
     PolicyVersion,
     Run,
@@ -42,6 +44,65 @@ def get_policy_version(
     if policy_version is None:
         return Response(status_code=204)
     return policy_version
+
+
+@router.delete("/{policy_version_id}")
+def delete_policy_version(
+    policy_version_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+    server_config: definitions.VulkanServerConfig = Depends(
+        definitions.get_vulkan_server_config
+    ),
+):
+    # TODO: ensure this function can only be executed by ADMIN level users
+    policy_version = (
+        db.query(PolicyVersion)
+        .filter_by(policy_version_id=policy_version_id, project_id=project_id)
+        .first()
+    )
+    if policy_version is None or policy_version.archived:
+        msg = f"Tried to delete non-existent policy version {policy_version_id}"
+        raise HTTPException(status_code=404, detail=msg)
+
+    policy = (
+        db.query(Policy)
+        .filter_by(policy_id=policy_version.policy_id, project_id=project_id)
+        .first()
+    )
+    if policy.active_policy_version_id == policy_version.policy_version_id:
+        msg = (
+            f"Cannot delete the active version of a policy ({policy.policy_id})"
+        )
+        raise HTTPException(status_code=400, detail=msg)
+
+    workspace = (
+        db.query(DagsterWorkspace)
+        .filter_by(policy_version_id=policy_version_id)
+        .first()
+    )
+
+    name = definitions.version_name(policy_version.policy_id, policy_version_id)
+    server_url = server_config.vulkan_dagster_server_url
+    response = requests.post(
+        f"{server_url}/workspaces/delete",
+        json={"name": name, "workspace_path": workspace.path},
+    )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Error deleting policy version {policy_version_id}: "
+                f"{response.content}"
+            ),
+        )
+
+    db.delete(workspace)
+    policy_version.archived = True
+    db.commit()
+
+    logger.info(f"Deleted policy version {policy_version_id}")
+    return {"policy_version_id": policy_version_id}
 
 
 @router.post("/{policy_version_id}/runs")
