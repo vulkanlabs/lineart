@@ -12,6 +12,9 @@
 		},
 		{
 			"path": "vulkan-dagster",
+		},
+		{
+			"path": "vulkan-public",
 		}
 	],
 	"settings": {

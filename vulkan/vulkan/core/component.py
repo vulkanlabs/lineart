@@ -2,9 +2,9 @@ from copy import deepcopy
 from typing import Any
 
 from vulkan.core.graph import Graph
-from vulkan.spec.component import ComponentDefinition, ComponentInstance, InstanceParam
-from vulkan.spec.dependency import Dependency
-from vulkan.spec.nodes import Node, NodeType, TransformNode, VulkanNodeDefinition
+from vulkan_public.spec.component import ComponentDefinition, ComponentInstance, InstanceParam
+from vulkan_public.spec.dependency import Dependency
+from vulkan_public.spec.nodes import Node, NodeType, TransformNode, VulkanNodeDefinition
 
 
 class ComponentGraph(Node, Graph):

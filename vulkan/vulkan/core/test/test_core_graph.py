@@ -1,18 +1,22 @@
 from enum import Enum
 
 import pytest
-
-from vulkan.core.component import ComponentGraph, check_all_parameters_specified
-from vulkan.core.graph import Graph
-from vulkan.spec.component import ComponentDefinition, ComponentInstance, InstanceParam
-from vulkan.spec.dependency import Dependency, INPUT_NODE
-from vulkan.spec.nodes import (
+from vulkan_public.spec.component import (
+    ComponentDefinition,
+    ComponentInstance,
+    InstanceParam,
+)
+from vulkan_public.spec.dependency import INPUT_NODE, Dependency
+from vulkan_public.spec.nodes import (
     BranchNode,
     HTTPConnectionNode,
     InputNode,
     TerminateNode,
     TransformNode,
 )
+
+from vulkan.core.component import ComponentGraph, check_all_parameters_specified
+from vulkan.core.graph import Graph
 
 
 class DummyStatus(Enum):

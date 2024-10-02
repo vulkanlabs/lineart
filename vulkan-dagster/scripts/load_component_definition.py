@@ -4,8 +4,8 @@ import sys
 
 from vulkan.core.graph import extract_node_definitions
 from vulkan.environment.encoders import EnhancedJSONEncoder
-from vulkan.exceptions import VulkanInternalException
-from vulkan.spec.environment.loaders import load_component_definition_from_alias
+from vulkan_public.exceptions import VulkanInternalException
+from vulkan_public.spec.environment.loaders import load_component_definition_from_alias
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

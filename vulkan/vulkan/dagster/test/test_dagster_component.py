@@ -1,9 +1,10 @@
 from enum import Enum
 
+from vulkan_public.spec.dependency import Dependency
+from vulkan_public.spec.nodes import BranchNode, TransformNode
+
 from vulkan.core.component import ComponentGraph
 from vulkan.dagster.testing import run_test_job
-from vulkan.spec.dependency import Dependency
-from vulkan.spec.nodes import BranchNode, TransformNode
 
 
 class ReturnStatus(Enum):

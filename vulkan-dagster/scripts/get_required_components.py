@@ -3,8 +3,8 @@ import json
 import sys
 
 from vulkan.environment.encoders import EnhancedJSONEncoder
-from vulkan.spec.environment.loaders import load_policy_definition
-from vulkan.exceptions import VulkanInternalException
+from vulkan_public.exceptions import VulkanInternalException
+from vulkan_public.spec.environment.loaders import load_policy_definition
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -1,12 +1,13 @@
 import os
 
-from vulkan.core.component import ComponentGraph, check_all_parameters_specified
-from vulkan.core.policy import Policy
-from vulkan.spec.environment.loaders import (
+from vulkan_public.spec.environment.loaders import (
     load_component_definition,
     load_policy_definition,
 )
-from vulkan.spec.environment.packing import find_package_entrypoint
+from vulkan_public.spec.environment.packing import find_package_entrypoint
+
+from vulkan.core.component import ComponentGraph, check_all_parameters_specified
+from vulkan.core.policy import Policy
 
 
 def resolve_policy(file_location: str, components_base_dir: str) -> Policy:

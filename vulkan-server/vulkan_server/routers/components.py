@@ -3,13 +3,12 @@ import json
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-
-from vulkan.exceptions import (
+from vulkan_public.exceptions import (
     UNHANDLED_ERROR_NAME,
     VULKAN_INTERNAL_EXCEPTIONS,
     VulkanInternalException,
 )
-from vulkan.spec.component import component_version_alias
+from vulkan_public.spec.component import component_version_alias
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id

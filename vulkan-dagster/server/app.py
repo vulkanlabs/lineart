@@ -8,15 +8,20 @@ from time import time
 from typing import Annotated
 
 from fastapi import Body, FastAPI, Form
-
 from vulkan.dagster.workspace import add_workspace_config
-from vulkan.exceptions import (
+from vulkan_public.exceptions import (
     ConflictingDefinitionsError,
     DefinitionNotFoundException,
     InvalidDefinitionError,
 )
-from vulkan.spec.environment.config import VulkanWorkspaceConfig, get_working_directory
-from vulkan.spec.environment.packing import find_package_entrypoint, unpack_workspace
+from vulkan_public.spec.environment.config import (
+    VulkanWorkspaceConfig,
+    get_working_directory,
+)
+from vulkan_public.spec.environment.packing import (
+    find_package_entrypoint,
+    unpack_workspace,
+)
 
 from . import schemas
 from .context import ExecutionContext

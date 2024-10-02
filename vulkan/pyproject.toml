@@ -11,7 +11,11 @@ dependencies = [
     "pytest>=8.3.2",
     "pytest-httpserver>=1.1.0",
     "coloredlogs>=14.0",
+    "vulkan-public",
 ]
 
-[project.scripts]
-vulkan = "vulkan.cli.main:cli"
+[tool.uv.sources]
+vulkan-public = { path = "../vulkan-public" }
+
+# [project.scripts]
+# vulkan = "vulkan.cli.main:cli"

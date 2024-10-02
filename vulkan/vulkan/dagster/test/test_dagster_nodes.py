@@ -2,12 +2,17 @@ import json
 from enum import Enum
 
 from pytest_httpserver import HTTPServer
+from vulkan_public.spec.dependency import Dependency
+from vulkan_public.spec.nodes import (
+    HTTPConnectionNode,
+    NodeType,
+    TerminateNode,
+    TransformNode,
+)
 
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.dagster.nodes import to_dagster_node
 from vulkan.dagster.testing import run_test_job
-from vulkan.spec.dependency import Dependency
-from vulkan.spec.nodes import HTTPConnectionNode, NodeType, TerminateNode, TransformNode
 
 
 def test_http_connection(httpserver: HTTPServer):
@@ -31,7 +36,7 @@ def test_http_connection(httpserver: HTTPServer):
     assert len(dagster_op.ins) == 1
     assert set(dagster_op.outs.keys()) == {
         "metadata",
-        "result"
+        "result",
     }, "Should have two outputs named 'metadata' and 'result'"
 
     httpserver.expect_oneshot_request(

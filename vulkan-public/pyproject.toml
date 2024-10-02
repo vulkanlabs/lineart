@@ -1,0 +1,16 @@
+[project]
+name = "vulkan_public"
+version = "0.1.0"
+description = ""
+authors = []
+readme = "README.md"
+dependencies = [
+    "pytest>=8.3.2",
+    "pytest-httpserver>=1.1.0",
+    "coloredlogs>=14.0",
+    "requests>=2.26.0",
+]
+
+[project.scripts]
+vulkan = "vulkan_public.cli.main:cli"
+

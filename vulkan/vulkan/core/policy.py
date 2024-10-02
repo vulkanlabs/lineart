@@ -1,9 +1,9 @@
 from typing import Callable
 
 from vulkan.core.graph import Graph
-from vulkan.spec.component import ComponentInstance
-from vulkan.spec.nodes import InputNode, Node, TerminateNode
-from vulkan.spec.policy import PolicyDefinition
+from vulkan_public.spec.component import ComponentInstance
+from vulkan_public.spec.nodes import InputNode, Node, TerminateNode
+from vulkan_public.spec.policy import PolicyDefinition
 
 
 class Policy(Graph):

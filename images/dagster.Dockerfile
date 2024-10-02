@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip install uv
 
+COPY vulkan-public /tmp/vulkan-public
 COPY vulkan /tmp/vulkan
 RUN uv pip install --system /tmp/vulkan && pytest /tmp/vulkan 
 

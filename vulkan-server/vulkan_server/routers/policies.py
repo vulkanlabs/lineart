@@ -9,7 +9,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy import func as F
 from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
-from vulkan.exceptions import (
+from vulkan_public.exceptions import (
     UNHANDLED_ERROR_NAME,
     VULKAN_INTERNAL_EXCEPTIONS,
     ComponentNotFoundException,
