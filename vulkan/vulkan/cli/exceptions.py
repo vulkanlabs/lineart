@@ -11,10 +11,18 @@ def log_exceptions(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            ctx = args[0] if len(args) > 0 and isinstance(args[0], Context) else None
-            log_error = ctx.logger.error if ctx else click.echo
+            log_error = click.echo
+            verbose = False
+
+            if len(args) > 0 and isinstance(args[0], Context):
+                ctx = args[0]
+                log_error = ctx.logger.error
+                verbose = ctx.verbose
+
             for msg in str(e).split("\n"):
                 log_error(msg)
-            raise e
+
+            if verbose:
+                raise e
 
     return wrapper

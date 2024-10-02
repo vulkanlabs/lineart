@@ -42,6 +42,13 @@ def set_active_version(ctx: Context, policy_id: str, policy_version_id: str):
         raise ValueError("Failed to activate policy version")
 
 
+def delete_policy(ctx: Context, policy_id: str):
+    response = ctx.session.delete(f"{ctx.server_url}/policies/{policy_id}")
+    if response.status_code != 200:
+        raise ValueError(f"Failed to delete policy: {response.content}")
+    ctx.logger.info(f"Deleted policy {policy_id}")
+
+
 def create_policy_version(
     ctx: Context,
     policy_id: str,
@@ -83,7 +90,7 @@ def create_policy_version(
         raise ValueError(
             f"Failed to find entrypoint in repository: {repository_path}\n{e}"
         )
-    
+
     try:
         _ = load_policy_definition(entrypoint)
     except UserImportException as e:
@@ -144,3 +151,15 @@ def create_policy_version(
         f"Created workspace {version_name} with policy version {policy_version_id}"
     )
     return policy_version_id
+
+
+def delete_policy_version(
+    ctx: Context,
+    policy_version_id: str,
+):
+    response = ctx.session.delete(
+        f"{ctx.server_url}/policyVersions/{policy_version_id}"
+    )
+    if response.status_code != 200:
+        raise ValueError(f"Failed to delete policy version: {response.content}")
+    ctx.logger.info(f"Deleted policy version {policy_version_id}")
