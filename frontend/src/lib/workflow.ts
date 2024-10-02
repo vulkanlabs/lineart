@@ -89,7 +89,6 @@ export default async function layoutGraph(
     options: Dict = defaultElkOptions,
 ): Promise<[NodeLayoutConfig[], EdgeLayoutConfig[]]> {
     const [nodes, edges] = makeGraphElements(graphData, options);
-    console.log(nodes, edges);
     const elk = new ELK();
 
     let modifiedNodes = nodes.filter((node: NodeLayoutConfig) => {
@@ -109,7 +108,6 @@ export default async function layoutGraph(
         return !(fromChildOfClosedComponent || toChildOfClosedComponent);
     });
 
-    console.log(nodes, edges);
     const [layoutedNodes, layoutedEdges] = await getLayoutedElements(
         modifiedNodes,
         modifiedEdges,
@@ -124,7 +122,6 @@ export default async function layoutGraph(
         const toOpenComponent = edge.isComponentIO && componentsState[edge.target]?.isOpen;
         return !(fromOpenComponent || toOpenComponent);
     });
-    console.log(layoutedNodes, filteredEdges);
 
     return [layoutedNodes, filteredEdges];
 }

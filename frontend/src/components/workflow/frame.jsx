@@ -29,7 +29,6 @@ function VulkanWorkflow({ graphData, onNodeClick, onPaneClick }) {
         const states = components.map((c) => ({ [c.name]: { isOpen: false } }));
         const componentsState = Object.assign({}, ...states);
         setComponentsState(componentsState);
-        console.log(componentsState);
 
         layoutGraph(graphData, componentsState).then(([layoutedNodes, layoutedEdges]) => {
             setNodes(layoutedNodes);
@@ -54,7 +53,6 @@ function VulkanWorkflow({ graphData, onNodeClick, onPaneClick }) {
     };
 
     const clickNode = (e, node) => {
-        console.log(node);
         resetClick();
 
         if (node.data.type === "COMPONENT") {

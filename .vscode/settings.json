@@ -3,6 +3,7 @@
         "vulkan/": true,
         "vulkan-server/": true,
         "vulkan-dagster/": true,
+        "vulkan-public/": true,
     },
     "python.defaultInterpreterPath": "vulkan/.venv/bin/python",
     "[javascript]": {

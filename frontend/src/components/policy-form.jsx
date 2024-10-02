@@ -39,7 +39,6 @@ export function PolicyForm({ display, closeFunc }) {
             body: JSON.stringify(values),
             mode: "cors",
         }).then((response) => {
-            console.log(response.json());
             closeFunc();
         }).catch((error) => {
             console.error(error);

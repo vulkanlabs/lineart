@@ -126,7 +126,6 @@ export function RunDurationStatsChart({ chartData }) {
 
 
 export function AvgDurationByStatusChart({ chartData }) {
-    console.log(chartData);
     return (
         <ChartContainer config={runStatusChartConfig} className="h-full w-full" >
             <LineChart accessibilityLayer data={chartData}>
