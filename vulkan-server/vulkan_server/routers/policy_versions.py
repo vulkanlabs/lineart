@@ -73,9 +73,7 @@ def delete_policy_version(
         .first()
     )
     if policy.active_policy_version_id == policy_version.policy_version_id:
-        msg = (
-            f"Cannot delete the active version of a policy ({policy.policy_id})"
-        )
+        msg = f"Cannot delete the active version of a policy ({policy.policy_id})"
         raise HTTPException(status_code=400, detail=msg)
 
     workspace = (
@@ -122,11 +120,19 @@ def create_run_by_policy_version(
     try:
         execution_config = json.loads(execution_config_str)
     except Exception as e:
-        HTTPException(status_code=400, detail=e)
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "UNHANDLED_EXCEPTION",
+                "msg": f"Invalid execution config: {str(e)}",
+            },
+        )
 
     version = (
         db.query(PolicyVersion)
-        .filter_by(policy_version_id=policy_version_id, project_id=project_id)
+        .filter_by(
+            policy_version_id=policy_version_id, project_id=project_id, archived=False
+        )
         .first()
     )
     if version is None:
@@ -147,9 +153,9 @@ def create_run_by_policy_version(
     if run.status == RunStatus.FAILURE:
         raise HTTPException(
             status_code=500,
-            detail=f"Error triggering job: {error_msg}",
+            detail=f"Failed to launch run: {error_msg}",
         )
-    return {"policy_id": version.policy_id, "run_id": run.run_id}
+    return {"policy_version_id": version.policy_version_id, "run_id": run.run_id}
 
 
 @router.get("/{policy_version_id}/runs", response_model=list[schemas.Run])
