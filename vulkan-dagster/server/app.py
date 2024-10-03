@@ -8,8 +8,9 @@ from shutil import rmtree
 from time import time
 from typing import Annotated
 
+import yaml
 from fastapi import Body, FastAPI, Form
-from vulkan.dagster.workspace import add_workspace_config
+from vulkan.dagster.workspace import add_workspace_config, remove_workspace_config
 from vulkan.exceptions import (
     ConflictingDefinitionsError,
     DefinitionNotFoundException,
@@ -108,6 +109,7 @@ def delete_workspace(
         rmtree(definition_path)
         rmtree(workspace_path)
         rmtree(f"{VENVS_PATH}/{name}")
+        remove_workspace_config(VULKAN_HOME, name)
 
     logger.info(f"Successfully deleted workspace: {name}")
 

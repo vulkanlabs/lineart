@@ -1,5 +1,6 @@
 import os
 
+import yaml
 from dagster import Definitions, EnvVar, IOManagerDefinition
 
 from vulkan.dagster.io_manager import (
@@ -71,11 +72,26 @@ def add_workspace_config(
         init_path = os.path.join(working_directory, "__init__.py")
         ws.write(
             (
-                "  - python_file:\n"
-                # f"      module_name: {module_name}\n"
-                f"      relative_path: {init_path}\n"
-                f"      working_directory: {working_directory}\n"
-                f"      executable_path: /opt/venvs/{name}/bin/python\n"
-                f"      location_name: {name}\n"
+                "- python_file:\n"
+                # f"    module_name: {module_name}\n"
+                f"    relative_path: {init_path}\n"
+                f"    working_directory: {working_directory}\n"
+                f"    executable_path: /opt/venvs/{name}/bin/python\n"
+                f"    location_name: {name}\n"
             )
         )
+
+
+def remove_workspace_config(base_dir: str, name: str):
+    path = os.path.join(base_dir, "workspace.yaml")
+
+    with open(path, "r") as fn:
+        workspace_config = yaml.safe_load(fn)
+
+    load_from = []
+    for location in workspace_config["load_from"]:
+            if location.get("python_file", {}).get("location_name") != name:
+                load_from.append(location)
+
+    with open(path, "w") as fn:
+        yaml.dump(dict(load_from=load_from), fn)

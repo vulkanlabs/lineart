@@ -5,6 +5,7 @@ import requests
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
+from vulkan_server.dagster.trigger_run import update_repository
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
@@ -54,6 +55,7 @@ def delete_policy_version(
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
     ),
+    dagster_client=Depends(get_dagster_client),
 ):
     # TODO: ensure this function can only be executed by ADMIN level users
     policy_version = (
@@ -96,6 +98,7 @@ def delete_policy_version(
                 f"{response.content}"
             ),
         )
+    update_repository(dagster_client)
 
     db.delete(workspace)
     policy_version.archived = True
@@ -109,7 +112,7 @@ def delete_policy_version(
 def create_run_by_policy_version(
     policy_version_id: str,
     execution_config_str: Annotated[str, Body(embed=True)],
-    config: definitions.VulkanServerConfig = Depends(
+    server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
     ),
     project_id: str = Depends(get_project_id),
@@ -132,7 +135,7 @@ def create_run_by_policy_version(
 
     run, error_msg = launch_run(
         dagster_client=dagster_client,
-        server_url=config.server_url,
+        server_url=server_config.server_url,
         execution_config=execution_config,
         policy_version_id=version.policy_version_id,
         version_name=definitions.version_name(
