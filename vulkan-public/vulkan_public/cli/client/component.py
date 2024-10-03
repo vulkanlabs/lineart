@@ -26,6 +26,14 @@ def create_component(ctx: Context, name: str) -> str:
     return component_id
 
 
+def delete_component(ctx: Context, component_id: str):
+    response = ctx.session.delete(f"{ctx.server_url}/components/{component_id}")
+    assert (
+        response.status_code == 200
+    ), f"Failed to delete component: {response.content}"
+    ctx.logger.info(f"Deleted component {component_id}")
+
+
 def create_component_version(
     ctx: Context,
     component_id: str,
@@ -52,3 +60,19 @@ def create_component_version(
 
     ctx.logger.info("Component version was successfully created.")
     return response.json()
+
+
+def delete_component_version(
+    ctx: Context,
+    component_id: str,
+    component_version_id: str,
+):
+    response = ctx.session.delete(
+        f"{ctx.server_url}/components/{component_id}/versions/{component_version_id}"
+    )
+    assert (
+        response.status_code == 200
+    ), f"Failed to delete component version: {response.content}"
+    ctx.logger.info(
+        f"Deleted component version {component_version_id}"
+    )

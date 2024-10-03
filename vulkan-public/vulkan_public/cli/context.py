@@ -54,5 +54,13 @@ class Context:
         )
 
 
-pass_context = click.make_pass_decorator(Context, ensure=True)
+class CliContext(Context):
+
+    def __init__(self):
+        super().__init__()
+        ctx = click.get_current_context()
+        self.verbose = ctx.obj.get("verbose", False)
+
+
+pass_context = click.make_pass_decorator(CliContext, ensure=True)
 pass_login_context = click.make_pass_decorator(LoginContext, ensure=True)

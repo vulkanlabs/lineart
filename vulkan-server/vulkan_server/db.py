@@ -3,6 +3,7 @@ import os
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     Column,
     DateTime,
     Enum,
@@ -66,6 +67,21 @@ class Role(enum.Enum):
     MEMBER = "MEMBER"
 
 
+class TimedUpdateMixin:
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class AuthorizationMixin:
+    project_id = Column(Uuid, ForeignKey("project.project_id"))
+
+
+class ArchivableMixin:
+    archived = Column(Boolean, default=False)
+
+
 class Project(Base):
     __tablename__ = "project"
 
@@ -74,35 +90,26 @@ class Project(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-class User(Base):
+class User(TimedUpdateMixin, Base):
     __tablename__ = "users"
 
     user_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     user_auth_id = Column(String, unique=True)
     email = Column(String, unique=True)
     name = Column(String)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    last_updated_at = Column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
 
 
-class ProjectUser(Base):
+class ProjectUser(TimedUpdateMixin, AuthorizationMixin, Base):
     __tablename__ = "project_user"
 
     project_user_id = Column(
         Uuid, primary_key=True, server_default=func.gen_random_uuid()
     )
-    project_id = Column(Uuid, ForeignKey("project.project_id"))
     user_id = Column(Uuid, ForeignKey("users.user_id"))
     role = Column(Enum(Role))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    last_updated_at = Column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
 
 
-class Policy(Base):
+class Policy(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base):
     __tablename__ = "policy"
 
     policy_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
@@ -117,23 +124,17 @@ class Policy(Base):
         ForeignKey("policy_version.policy_version_id"),
         nullable=True,
     )
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    last_updated_at = Column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-    # Access Control
-    project_id = Column(Uuid, ForeignKey("project.project_id"))
 
 
-class Component(Base):
+class Component(AuthorizationMixin, ArchivableMixin, Base):
     __tablename__ = "component"
 
     component_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     name = Column(String, unique=True)
-    project_id = Column(Uuid, ForeignKey("project.project_id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-class ComponentVersion(Base):
+class ComponentVersion(AuthorizationMixin, ArchivableMixin, Base):
     __tablename__ = "component_version"
 
     component_version_id = Column(
@@ -147,10 +148,9 @@ class ComponentVersion(Base):
     node_definitions = Column(String)
     repository = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    project_id = Column(Uuid, ForeignKey("project.project_id"))
 
 
-class PolicyVersion(Base):
+class PolicyVersion(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base):
     __tablename__ = "policy_version"
 
     policy_version_id = Column(
@@ -162,12 +162,6 @@ class PolicyVersion(Base):
     repository = Column(String)
     repository_version = Column(String)
     graph_definition = Column(String)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    last_updated_at = Column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-    # Access Control
-    project_id = Column(Uuid, ForeignKey("project.project_id"))
 
 
 class ComponentVersionDependency(Base):
@@ -182,7 +176,7 @@ class ComponentVersionDependency(Base):
     )
 
 
-class DagsterWorkspace(Base):
+class DagsterWorkspace(TimedUpdateMixin, Base):
     __tablename__ = "dagster_workspace"
 
     policy_version_id = Column(
@@ -192,11 +186,9 @@ class DagsterWorkspace(Base):
     )
     status = Column(Enum(DagsterWorkspaceStatus))
     path = Column(String, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    last_updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
-class Run(Base):
+class Run(TimedUpdateMixin, AuthorizationMixin, Base):
     __tablename__ = "run"
 
     run_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
@@ -204,12 +196,6 @@ class Run(Base):
     status = Column(Enum(RunStatus))
     result = Column(String, nullable=True)
     dagster_run_id = Column(String, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    last_updated_at = Column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-    # Access Control
-    project_id = Column(Uuid, ForeignKey("project.project_id"))
 
 
 class StepMetadata(Base):

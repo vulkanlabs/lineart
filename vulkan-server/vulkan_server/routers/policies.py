@@ -130,6 +130,34 @@ def update_policy(
     }
 
 
+@router.delete("/{policy_id}")
+def delete_policy(
+    policy_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    policy = (
+        db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+    )
+    if policy is None or policy.archived:
+        msg = f"Tried to delete non-existent policy {policy_id}"
+        raise HTTPException(status_code=404, detail=msg)
+
+    policy_versions = (
+        db.query(PolicyVersion)
+        .filter_by(policy_id=policy_id, project_id=project_id, archived=False)
+        .all()
+    )
+    if len(policy_versions) > 0:
+        msg = f"Policy {policy_id} has associated versions, delete them first"
+        raise HTTPException(status_code=400, detail=msg)
+
+    policy.archived = True
+    db.commit()
+    logger.info(f"Policy {policy_id} deleted")
+    return {"policy_id": policy_id}
+
+
 @router.get(
     "/{policy_id}/versions",
     response_model=list[schemas.PolicyVersion],
@@ -407,8 +435,7 @@ def _create_policy_version_workspace(
         raise ValueError(f"Failed to create workspace: {error_msg}")
 
     response_data = response.json()
-    workspace_path = response_data["workspace_path"]
-    workspace.workspace_path = workspace_path
+    workspace.path = response_data["workspace_path"]
     db.commit()
 
     return workspace, response_data["required_components"]
@@ -426,7 +453,7 @@ def _install_policy_version_workspace(
         server_url,
         json={
             "name": name,
-            "workspace_path": workspace.workspace_path,
+            "workspace_path": workspace.path,
             "required_components": required_components,
         },
     )

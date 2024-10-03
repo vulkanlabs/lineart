@@ -77,6 +77,36 @@ def get_component(
     return component
 
 
+@router.delete("/{component_id}")
+def delete_component(
+    component_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    component = (
+        db.query(Component)
+        .filter_by(component_id=component_id, project_id=project_id)
+        .first()
+    )
+    if component is None or component.archived:
+        msg = f"Tried to delete non-existent component {component_id}"
+        raise HTTPException(status_code=404, detail=msg)
+
+    component_versions = (
+        db.query(ComponentVersion)
+        .filter_by(component_id=component_id, project_id=project_id, archived=False)
+        .all()
+    )
+    if len(component_versions) > 0:
+        msg = f"Component {component_id} has associated versions, delete them first"
+        raise HTTPException(status_code=400, detail=msg)
+
+    component.archived = True
+    db.commit()
+    logger.info(f"Deleted component {component_id}")
+    return {"component_id": component_id}
+
+
 @router.post("/{component_id}/versions")
 def create_component_version(
     component_id: str,
@@ -176,6 +206,62 @@ def get_component_version(
     if component_version is None:
         return Response(status_code=404)
     return component_version
+
+
+@router.delete("/{component_id}/versions/{component_version_id}")
+def delete_component_version(
+    component_id: str,
+    component_version_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+    server_config: definitions.VulkanServerConfig = Depends(
+        definitions.get_vulkan_server_config
+    ),
+):
+    # TODO: ensure this function can only be executed by ADMIN level users
+    component_version = (
+        db.query(ComponentVersion)
+        .filter_by(component_version_id=component_version_id, project_id=project_id)
+        .first()
+    )
+    if component_version is None or component_version.archived:
+        msg = f"Tried to delete non-existent component version {component_version_id}"
+        raise HTTPException(status_code=404, detail=msg)
+
+    component_version_uses = (
+        db.query(ComponentVersionDependency, PolicyVersion)
+        .join(PolicyVersion)
+        .filter(
+            ComponentVersionDependency.component_version_id == component_version_id,
+            PolicyVersion.archived == False,  # noqa: E712
+        )
+        .all()
+    )
+    if len(component_version_uses) > 0:
+        msg = (
+            f"Component version {component_version_id} is used by one or "
+            "more policy versions"
+        )
+        raise HTTPException(status_code=400, detail=msg)
+
+    server_url = server_config.vulkan_dagster_server_url
+    response = requests.post(
+        f"{server_url}/components/delete",
+        json={"alias": component_version.alias},
+    )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Error deleting component version {component_version_id}: "
+                f"{response.content}"
+            ),
+        )
+
+    component_version.archived = True
+    db.commit()
+    logger.info(f"Deleted component version {component_version_id}")
+    return {"component_version_id": component_version_id}
 
 
 @router.get(

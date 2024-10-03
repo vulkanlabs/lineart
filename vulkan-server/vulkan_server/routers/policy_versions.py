@@ -1,9 +1,11 @@
 import json
 from typing import Annotated
 
+import requests
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
+from vulkan_server.dagster.trigger_run import update_repository
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
@@ -13,6 +15,7 @@ from vulkan_server.db import (
     Component,
     ComponentVersion,
     ComponentVersionDependency,
+    DagsterWorkspace,
     Policy,
     PolicyVersion,
     Run,
@@ -44,11 +47,70 @@ def get_policy_version(
     return policy_version
 
 
+@router.delete("/{policy_version_id}")
+def delete_policy_version(
+    policy_version_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+    server_config: definitions.VulkanServerConfig = Depends(
+        definitions.get_vulkan_server_config
+    ),
+    dagster_client=Depends(get_dagster_client),
+):
+    # TODO: ensure this function can only be executed by ADMIN level users
+    policy_version = (
+        db.query(PolicyVersion)
+        .filter_by(policy_version_id=policy_version_id, project_id=project_id)
+        .first()
+    )
+    if policy_version is None or policy_version.archived:
+        msg = f"Tried to delete non-existent policy version {policy_version_id}"
+        raise HTTPException(status_code=404, detail=msg)
+
+    policy = (
+        db.query(Policy)
+        .filter_by(policy_id=policy_version.policy_id, project_id=project_id)
+        .first()
+    )
+    if policy.active_policy_version_id == policy_version.policy_version_id:
+        msg = f"Cannot delete the active version of a policy ({policy.policy_id})"
+        raise HTTPException(status_code=400, detail=msg)
+
+    workspace = (
+        db.query(DagsterWorkspace)
+        .filter_by(policy_version_id=policy_version_id)
+        .first()
+    )
+
+    name = definitions.version_name(policy_version.policy_id, policy_version_id)
+    server_url = server_config.vulkan_dagster_server_url
+    response = requests.post(
+        f"{server_url}/workspaces/delete",
+        json={"name": name, "workspace_path": workspace.path},
+    )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Error deleting policy version {policy_version_id}: "
+                f"{response.content}"
+            ),
+        )
+    update_repository(dagster_client)
+
+    db.delete(workspace)
+    policy_version.archived = True
+    db.commit()
+
+    logger.info(f"Deleted policy version {policy_version_id}")
+    return {"policy_version_id": policy_version_id}
+
+
 @router.post("/{policy_version_id}/runs")
 def create_run_by_policy_version(
     policy_version_id: str,
     execution_config_str: Annotated[str, Body(embed=True)],
-    config: definitions.VulkanServerConfig = Depends(
+    server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
     ),
     project_id: str = Depends(get_project_id),
@@ -58,11 +120,19 @@ def create_run_by_policy_version(
     try:
         execution_config = json.loads(execution_config_str)
     except Exception as e:
-        HTTPException(status_code=400, detail=e)
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "UNHANDLED_EXCEPTION",
+                "msg": f"Invalid execution config: {str(e)}",
+            },
+        )
 
     version = (
         db.query(PolicyVersion)
-        .filter_by(policy_version_id=policy_version_id, project_id=project_id)
+        .filter_by(
+            policy_version_id=policy_version_id, project_id=project_id, archived=False
+        )
         .first()
     )
     if version is None:
@@ -71,7 +141,7 @@ def create_run_by_policy_version(
 
     run, error_msg = launch_run(
         dagster_client=dagster_client,
-        server_url=config.server_url,
+        server_url=server_config.server_url,
         execution_config=execution_config,
         policy_version_id=version.policy_version_id,
         version_name=definitions.version_name(
@@ -83,9 +153,9 @@ def create_run_by_policy_version(
     if run.status == RunStatus.FAILURE:
         raise HTTPException(
             status_code=500,
-            detail=f"Error triggering job: {error_msg}",
+            detail=f"Failed to launch run: {error_msg}",
         )
-    return {"policy_id": version.policy_id, "run_id": run.run_id}
+    return {"policy_version_id": version.policy_version_id, "run_id": run.run_id}
 
 
 @router.get("/{policy_version_id}/runs", response_model=list[schemas.Run])

@@ -4,11 +4,12 @@ import logging
 import os
 import subprocess
 from dataclasses import dataclass
+from shutil import rmtree
 from time import time
 from typing import Annotated
 
 from fastapi import Body, FastAPI, Form
-from vulkan.dagster.workspace import add_workspace_config
+from vulkan.dagster.workspace import add_workspace_config, remove_workspace_config
 from vulkan_public.exceptions import (
     ConflictingDefinitionsError,
     DefinitionNotFoundException,
@@ -86,11 +87,7 @@ def install_workspace(
         code_location = _get_code_location(workspace_path)
         resolved_graph = _resolve_policy(name, code_location.entrypoint, workspace_path)
 
-        # TODO: we're replacing /workspaces with /definitions as a convenience.
-        # We could have a more thorough definition of where the defs are stored.
-        definition_path = code_location.working_dir.replace(
-            "/workspaces", "/definitions", 1
-        )
+        definition_path = _get_definition_path(code_location)
         _ = _create_init_file(code_location.entrypoint, definition_path)
 
     add_workspace_config(
@@ -102,6 +99,26 @@ def install_workspace(
     logger.info(f"Successfully installed workspace: {name}")
 
     return {"graph": resolved_graph}
+
+
+@app.post("/workspaces/delete")
+def delete_workspace(
+    name: Annotated[str, Body()],
+    workspace_path: Annotated[str, Body()],
+):
+    logger.info(f"Deleting workspace: {name}")
+
+    with ExecutionContext(logger):
+        code_location = _get_code_location(workspace_path)
+        definition_path = _get_definition_path(code_location)
+        rmtree(definition_path)
+        rmtree(workspace_path)
+        rmtree(f"{VENVS_PATH}/{name}")
+        remove_workspace_config(VULKAN_HOME, name)
+
+    logger.info(f"Successfully deleted workspace: {name}")
+
+    return {"workspace_path": workspace_path}
 
 
 # TODO: We need to segregate workspaces to enable users to
@@ -127,6 +144,21 @@ def create_component(
         logger.info(f"Loaded component definition: {definition}")
 
     return definition
+
+
+@app.post("/components/delete")
+def delete_component(
+    alias: Annotated[str, Body(embed=True)],
+):
+    base_dir = f"{VULKAN_HOME}/components"
+    logger.info(f"Deleting component version: {alias}")
+
+    with ExecutionContext(logger):
+        rmtree(os.path.join(base_dir, alias))
+
+    logger.info(f"Successfully deleted component version: {alias}")
+
+    return {"component_alias": alias}
 
 
 def _create_venv_for_workspace(workspace_name, workspace_path):
@@ -279,6 +311,12 @@ definitions = make_workspace_definition("{code_entrypoint}", "{components_base_d
         fp.write(init_contents)
 
     return init_path
+
+
+def _get_definition_path(code_location):
+    # TODO: we're replacing /workspaces with /definitions as a convenience.
+    # We could have a more thorough definition of where the defs are stored.
+    return code_location.working_dir.replace("/workspaces", "/definitions", 1)
 
 
 def _load_and_remove(file_path):
