@@ -20,9 +20,20 @@ class GraphDefinition:
 
     nodes: list[Node]
 
+    def __post_init__(self):
+        self._validate_nodes(self.nodes)
+
+    def _validate_nodes(nodes: list[Node]):
+        for node in nodes:
+            if not isinstance(node, Node):
+                raise ValueError("All elements must be of type `Node`")
+
+            if node.name == INPUT_NODE:
+                raise ValueError(f"Node name `{INPUT_NODE}` is reserved")
+
     @staticmethod
-    def validate_node_dependencies(nodes: NodeDependencies):
-        for node_name, dependencies in nodes.items():
+    def validate_node_dependencies(node_dependencies: NodeDependencies):
+        for node_name, dependencies in node_dependencies.items():
             if dependencies is None:
                 continue
 
@@ -31,7 +42,7 @@ class GraphDefinition:
                     # Input nodes are added to the graph after validation.
                     continue
 
-                if dep.node not in nodes.keys():
+                if dep.node not in node_dependencies.keys():
                     msg = (
                         f"Node {node_name} has a dependency {dep.node} "
                         "that is not in the graph"

@@ -9,10 +9,24 @@ class Dependency:
     1. When a single string is passed, it is assumed that the dependency is
          the entire output of the node with the same name.
     2. When node and output are specified, we interpret that the dependency
-        is on the `output` product of `node`.
+        is on the `output` product of `node`. This is currently only used
+        in branching nodes, where the user can specify which output to use.
+        That is, if a branch has two possible outputs (eg left and right),
+        the user can specify which one to use as
+        `Dependency(node="branch", output="left")`.
     3. When key is specified, the dependency is on the `key` entry of the
         given node. This allows the user to access an internal dictionary
         entry of the node, which can simplify data retrieval.
+        Note that this will break if the node does not return a dictionary.
+
+    An example of each scenario:
+
+    ```
+    x: Dependency("node")  # Depends on the entire output of "node"
+    x: Dependency(node="node", output="condition")  # Depends on "node.condition"
+    x: Dependency(node="node", key="key")  # Depends on "node['key']"
+    ```
+
     """
 
     node: str
