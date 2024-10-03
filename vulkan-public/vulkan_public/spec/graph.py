@@ -11,6 +11,13 @@ NodeDependencies = dict[str, Dependencies]
 
 @dataclass
 class GraphDefinition:
+    """Specifies a graph via the nodes and the dependencies between them.
+
+    Internal convenience used to share common functionality between different
+    types of graphs.
+    Should not be used directly.
+    """
+
     nodes: list[Node]
 
     @staticmethod
