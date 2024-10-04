@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { subDays } from "date-fns";
 
-import { fetchRunsCount, fetchRunDurationStats, fetchRunDurationByStatus } from "@/lib/api";
 import { DatePickerWithRange } from "@/components/charts/date-picker";
 import {
     RunsChart,
@@ -12,7 +11,13 @@ import {
     AvgDurationByStatusChart,
 } from "@/components/charts/policy-stats";
 
-export default function PolicyMetrics({ policyId }: { policyId: string }) {
+export default function PolicyMetrics({
+    policyId,
+    dataLoader,
+}: {
+    policyId: string;
+    dataLoader: any;
+}) {
     const [runsCount, setRunsCount] = useState([]);
     const [runsByStatus, setRunsByStatus] = useState([]);
     const [runDurationStats, setRunDurationStats] = useState([]);
@@ -26,26 +31,13 @@ export default function PolicyMetrics({ policyId }: { policyId: string }) {
         if (!dateRange || !dateRange.from || !dateRange.to) {
             return;
         }
-        fetchRunsCount(policyId, dateRange.from, dateRange.to)
-            .then((data) => setRunsCount(data))
-            .catch((error) => {
-                console.error(error);
-            });
-
-        fetchRunsCount(policyId, dateRange.from, dateRange.to, true)
-            .then((data) => setRunsByStatus(data))
-            .catch((error) => {
-                console.error(error);
-            });
-
-        fetchRunDurationStats(policyId, dateRange.from, dateRange.to)
-            .then((data) => setRunDurationStats(data))
-            .catch((error) => {
-                console.error(error);
-            });
-
-        fetchRunDurationByStatus(policyId, dateRange.from, dateRange.to)
-            .then((data) => setRunDurationByStatus(data))
+        dataLoader({ policyId, dateRange })
+            .then((data) => {
+                setRunsCount(data.runsCount);
+                setRunsByStatus(data.runsByStatus);
+                setRunDurationStats(data.runDurationStats);
+                setRunDurationByStatus(data.runDurationByStatus);
+            })
             .catch((error) => {
                 console.error(error);
             });

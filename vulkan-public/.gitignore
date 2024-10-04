@@ -12,6 +12,7 @@ build/
 # VS Code
 *.code-workspace
 !vulkan.code-workspace
+.vscode/
 
 # uv build artifacts
 uv.lock

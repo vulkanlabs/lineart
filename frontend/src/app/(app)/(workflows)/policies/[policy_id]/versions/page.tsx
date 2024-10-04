@@ -1,14 +1,9 @@
 import { stackServerApp } from "@/stack";
 
-import {
-    fetchPolicy,
-    fetchPolicyVersions,
-    fetchRunsCount,
-    fetchRunDurationStats,
-    fetchRunDurationByStatus,
-} from "@/lib/api";
+import { fetchPolicy, fetchPolicyVersions } from "@/lib/api";
 import PolicyMetrics from "./_components/policy-metrics";
 import PolicyVersionsTable from "./_components/policy-versions";
+import { fetchMetricsData } from "@/lib/actions";
 
 export default async function Page({ params }) {
     const policyId = params.policy_id;
@@ -27,11 +22,13 @@ export default async function Page({ params }) {
         }
     });
 
-    // TODO: fetch PolicyMetrics data in the server
     return (
         <div className="flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-            <PolicyVersionsTable policyVersions={policyVersionsData} />
-            <PolicyMetrics policyId={policyId} />
+            <div>
+                <h1 className="text-lg font-semibold md:text-2xl">Versions</h1>
+                <PolicyVersionsTable policyVersions={policyVersionsData} />
+            </div>
+            <PolicyMetrics policyId={policyId} dataLoader={fetchMetricsData} />
         </div>
     );
 }
