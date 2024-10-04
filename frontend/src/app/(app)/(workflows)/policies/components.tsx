@@ -26,13 +26,13 @@ export default function PoliciesPage({ policies }: { policies: any[] }) {
             </div>
             <div>
                 {policies.length > 0 ? <PolicyTable policies={policies} /> : <EmptyPolicyTable />}
-                <Button className="mt-4" onClick={() => setShowForm(true)}>
+                {/* <Button className="mt-4" onClick={() => setShowForm(true)}>
                     Create Policy
-                </Button>
+                </Button> */}
                 <Button className="mt-4" onClick={() => router.refresh()}>
                     Refresh
                 </Button>
-                <PolicyForm display={showForm} closeFunc={() => setShowForm(false)} />
+                {/* <PolicyForm display={showForm} closeFunc={() => setShowForm(false)} /> */}
             </div>
         </main>
     );
@@ -83,9 +83,7 @@ function EmptyPolicyTable() {
         <div>
             <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm">
                 <div className="flex flex-col items-center gap-1 text-center">
-                    <h3 className="text-2xl font-bold tracking-tight">
-                        You have no policies yet.
-                    </h3>
+                    <h3 className="text-2xl font-bold tracking-tight">You have no policies yet.</h3>
                     <p className="text-sm text-muted-foreground">
                         Create a Policy to start making decisions.
                     </p>
