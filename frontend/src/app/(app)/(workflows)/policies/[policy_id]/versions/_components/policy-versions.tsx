@@ -21,8 +21,6 @@ export default function PolicyVersionsTable({ policyVersions }: { policyVersions
     }
 
     return (
-        <div>
-            <h1 className="text-lg font-semibold md:text-2xl">Versions</h1>
             <Table>
                 <TableCaption>Available versions.</TableCaption>
                 <TableHeader>
@@ -50,7 +48,6 @@ export default function PolicyVersionsTable({ policyVersions }: { policyVersions
                     ))}
                 </TableBody>
             </Table>
-        </div>
     );
 }
 

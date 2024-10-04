@@ -1,4 +1,3 @@
-import { error } from "console";
 import { formatISO } from "date-fns";
 
 import { CurrentUser, CurrentInternalUser } from "@stackframe/stack";
