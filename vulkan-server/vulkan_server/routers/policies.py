@@ -328,6 +328,7 @@ def create_policy_version(
         workspace, required_components = _create_policy_version_workspace(
             db=db,
             server_url=server_config.vulkan_dagster_server_url,
+            project_id=project_id,
             policy_version_id=version.policy_version_id,
             name=version_name,
             repository=config.repository,
@@ -356,6 +357,7 @@ def create_policy_version(
         graph = _install_policy_version_workspace(
             db=db,
             server_url=server_config.vulkan_dagster_server_url,
+            project_id=project_id,
             name=version_name,
             required_components=required_components,
             workspace=workspace,
@@ -401,6 +403,7 @@ def create_policy_version(
 def _create_policy_version_workspace(
     db: Session,
     server_url: str,
+    project_id: str,
     policy_version_id: int,
     name: str,
     repository: str,
@@ -415,7 +418,7 @@ def _create_policy_version_workspace(
     server_url = f"{server_url}/workspaces/create"
     response = requests.post(
         server_url,
-        json={"name": name, "repository": repository},
+        json={"name": name, "project_id": project_id, "repository": repository},
     )
     status_code = response.status_code
     if status_code != 200:
@@ -444,6 +447,7 @@ def _create_policy_version_workspace(
 def _install_policy_version_workspace(
     db: Session,
     server_url: str,
+    project_id: str,
     name: str,
     required_components: list[str],
     workspace: DagsterWorkspace,
@@ -453,6 +457,7 @@ def _install_policy_version_workspace(
         server_url,
         json={
             "name": name,
+            "project_id": project_id,
             "workspace_path": workspace.path,
             "required_components": required_components,
         },

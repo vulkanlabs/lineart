@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import subprocess
-from dataclasses import dataclass
 from shutil import rmtree
 from time import time
 from typing import Annotated
@@ -15,17 +14,11 @@ from vulkan_public.exceptions import (
     DefinitionNotFoundException,
     InvalidDefinitionError,
 )
-from vulkan_public.spec.environment.config import (
-    VulkanWorkspaceConfig,
-    get_working_directory,
-)
-from vulkan_public.spec.environment.packing import (
-    find_package_entrypoint,
-    unpack_workspace,
-)
+from vulkan_public.spec.environment.packing import unpack_workspace
 
 from . import schemas
 from .context import ExecutionContext
+from .workspace import VulkanCodeLocation, get_code_location
 
 app = FastAPI()
 
@@ -40,6 +33,7 @@ SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
 @app.post("/workspaces/create")
 def create_workspace(
     name: Annotated[str, Body()],
+    project_id: Annotated[str, Body()],
     repository: Annotated[str, Body()],
 ):
     """
@@ -47,7 +41,7 @@ def create_workspace(
 
     """
     repository = base64.b64decode(repository)
-    logger.info(f"Creating workspace: {name} (python_module)")
+    logger.info(f"[{project_id}] Creating workspace: {name} (python_module)")
 
     with ExecutionContext(logger) as ctx:
         workspace_path = unpack_workspace(f"{VULKAN_HOME}/workspaces", name, repository)
@@ -56,10 +50,8 @@ def create_workspace(
         venv_path = _create_venv_for_workspace(name, workspace_path)
         ctx.register_asset(venv_path)
 
-        code_location = _get_code_location(workspace_path)
-        required_components = _get_required_components(
-            name, code_location.entrypoint, workspace_path
-        )
+        code_location = get_code_location(workspace_path)
+        required_components = _get_required_components(code_location, name)
 
     logger.info(f"Created workspace at: {workspace_path}")
 
@@ -72,6 +64,7 @@ def create_workspace(
 @app.post("/workspaces/install")
 def install_workspace(
     name: Annotated[str, Body()],
+    project_id: Annotated[str, Body()],
     workspace_path: Annotated[str, Body()],
     required_components: Annotated[list[str], Body()],
 ):
@@ -79,16 +72,17 @@ def install_workspace(
     Install components, resolve policy definition and add workspace to Dagster.
 
     """
-    logger.info(f"Installing workspace: {name}")
+    logger.info(f"[{project_id}] Installing workspace: {name}")
 
     with ExecutionContext(logger):
-        _install_components(name, required_components)
+        components_base_dir = _get_components_base_dir(project_id)
+        _install_components(name, components_base_dir, required_components)
 
-        code_location = _get_code_location(workspace_path)
-        resolved_graph = _resolve_policy(name, code_location.entrypoint, workspace_path)
+        code_location = get_code_location(workspace_path)
+        resolved_graph = _resolve_policy(code_location, name, components_base_dir)
 
         definition_path = _get_definition_path(code_location)
-        _ = _create_init_file(code_location.entrypoint, definition_path)
+        _ = _create_init_file(project_id, code_location.entrypoint, definition_path)
 
     add_workspace_config(
         VULKAN_HOME,
@@ -104,12 +98,13 @@ def install_workspace(
 @app.post("/workspaces/delete")
 def delete_workspace(
     name: Annotated[str, Body()],
+    project_id: Annotated[str, Body()],
     workspace_path: Annotated[str, Body()],
 ):
-    logger.info(f"Deleting workspace: {name}")
+    logger.info(f"[{project_id}] Deleting workspace: {name}")
 
     with ExecutionContext(logger):
-        code_location = _get_code_location(workspace_path)
+        code_location = get_code_location(workspace_path)
         definition_path = _get_definition_path(code_location)
         rmtree(definition_path)
         rmtree(workspace_path)
@@ -126,10 +121,11 @@ def delete_workspace(
 @app.post("/components", response_model=schemas.ComponentConfig)
 def create_component(
     alias: Annotated[str, Form()],
+    project_id: Annotated[str, Form()],
     repository: Annotated[str, Form()],
 ):
-    base_dir = f"{VULKAN_HOME}/components"
-    logger.info(f"Creating component version: {alias}")
+    base_dir = _get_components_base_dir(project_id)
+    logger.info(f"[{project_id}] Creating component version: {alias}")
 
     with ExecutionContext(logger) as ctx:
         if os.path.exists(os.path.join(base_dir, alias)):
@@ -140,7 +136,7 @@ def create_component(
         logger.info(f"Unpacked and stored component spec at: {component_path}")
         ctx.register_asset(component_path)
 
-        definition = _load_component_definition(alias)
+        definition = _load_component_definition(base_dir, alias)
         logger.info(f"Loaded component definition: {definition}")
 
     return definition
@@ -148,9 +144,10 @@ def create_component(
 
 @app.post("/components/delete")
 def delete_component(
-    alias: Annotated[str, Body(embed=True)],
+    alias: Annotated[str, Body()],
+    project_id: Annotated[str, Body()],
 ):
-    base_dir = f"{VULKAN_HOME}/components"
+    base_dir = _get_components_base_dir(project_id)
     logger.info(f"Deleting component version: {alias}")
 
     with ExecutionContext(logger):
@@ -178,18 +175,18 @@ def _create_venv_for_workspace(workspace_name, workspace_path):
     return venv_path
 
 
-def _get_required_components(workspace_name, code_entrypoint, workspace_path):
+def _get_required_components(code_location: VulkanCodeLocation, workspace_name: str):
     tmp_path = f"/tmp/{workspace_name}-{str(time())}.json"
     completed_process = subprocess.run(
         [
             f"{VENVS_PATH}/{workspace_name}/bin/python",
             f"{SCRIPTS_PATH}/get_required_components.py",
             "--file_location",
-            code_entrypoint,
+            code_location.entrypoint,
             "--output_file",
             tmp_path,
         ],
-        cwd=workspace_path,
+        cwd=code_location.working_dir,
         capture_output=True,
     )
     exit_status = completed_process.returncode
@@ -208,20 +205,22 @@ def _get_required_components(workspace_name, code_entrypoint, workspace_path):
     return data["required_components"]
 
 
-def _resolve_policy(workspace_name, code_entrypoint, workspace_path):
+def _resolve_policy(
+    code_location: VulkanCodeLocation, workspace_name: str, components_base_dir: str
+):
     tmp_path = f"/tmp/{workspace_name}-{str(time())}.json"
     completed_process = subprocess.run(
         [
             f"{VENVS_PATH}/{workspace_name}/bin/python",
             f"{SCRIPTS_PATH}/resolve_policy.py",
             "--file_location",
-            code_entrypoint,
+            code_location.entrypoint,
             "--components_base_dir",
-            f"{VULKAN_HOME}/components",
+            components_base_dir,
             "--output_file",
             tmp_path,
         ],
-        cwd=workspace_path,
+        cwd=code_location.working_dir,
         capture_output=True,
     )
     if completed_process.returncode != 0:
@@ -235,13 +234,13 @@ def _resolve_policy(workspace_name, code_entrypoint, workspace_path):
     return _load_and_remove(tmp_path)
 
 
-def _load_component_definition(component_alias):
+def _load_component_definition(components_base_dir, component_alias):
     tmp_path = f"/tmp/{component_alias}-{str(time())}.json"
     completed_process = subprocess.run(
         [
             "bash",
             f"{SCRIPTS_PATH}/load_component_definition.sh",
-            SCRIPTS_PATH,
+            components_base_dir,
             component_alias,
             tmp_path,
         ],
@@ -262,45 +261,27 @@ def _load_component_definition(component_alias):
     return _load_and_remove(tmp_path)
 
 
-def _install_components(workspace_name, required_components):
+def _install_components(workspace_name, components_base_dir, required_components):
     logger.info(f"Installing components for workspace: {workspace_name}")
-    for component in required_components:
+    for component_alias in required_components:
+        component_path = os.path.join(components_base_dir, component_alias)
         completed_process = subprocess.run(
             [
                 "bash",
                 f"{SCRIPTS_PATH}/install_component.sh",
-                component,
                 workspace_name,
+                component_path,
             ],
             capture_output=True,
         )
         if completed_process.returncode != 0:
-            raise Exception(f"Failed to install component: {component}")
+            raise Exception(f"Failed to install component: {component_alias}")
 
 
-@dataclass
-class VulkanCodeLocation:
-    working_dir: str
-    module_name: str
-    entrypoint: str
-
-
-def _get_code_location(workspace_path):
-    config = VulkanWorkspaceConfig.from_workspace(workspace_path)
-    working_dir, module_name = get_working_directory(config, workspace_path)
-    code_path = os.path.join(working_dir, module_name)
-    entrypoint = find_package_entrypoint(code_path)
-    return VulkanCodeLocation(
-        working_dir=working_dir,
-        module_name=module_name,
-        entrypoint=entrypoint,
-    )
-
-
-def _create_init_file(code_entrypoint, working_dir) -> str:
+def _create_init_file(project_id, code_entrypoint, working_dir) -> str:
     os.makedirs(working_dir, exist_ok=True)
     init_path = os.path.join(working_dir, "__init__.py")
-    components_base_dir = os.path.join(VULKAN_HOME, "components")
+    components_base_dir = _get_components_base_dir(project_id)
 
     init_contents = f"""
 from vulkan.dagster.workspace import make_workspace_definition
@@ -317,6 +298,10 @@ def _get_definition_path(code_location):
     # TODO: we're replacing /workspaces with /definitions as a convenience.
     # We could have a more thorough definition of where the defs are stored.
     return code_location.working_dir.replace("/workspaces", "/definitions", 1)
+
+
+def _get_components_base_dir(project_id: str) -> str:
+    return f"{VULKAN_HOME}/components/{project_id}"
 
 
 def _load_and_remove(file_path):

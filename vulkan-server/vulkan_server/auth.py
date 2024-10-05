@@ -21,4 +21,4 @@ def get_project_id(
             status_code=500,
             detail="Failed to retrieve user. Contact the administrator.",
         )
-    return project_user.project_id
+    return str(project_user.project_id)

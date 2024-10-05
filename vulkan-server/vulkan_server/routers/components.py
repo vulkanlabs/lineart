@@ -39,7 +39,9 @@ def create_component(
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    component = db.query(Component).filter_by(name=config.name).first()
+    component = (
+        db.query(Component).filter_by(name=config.name, project_id=project_id).first()
+    )
     if component is not None:
         raise HTTPException(status_code=409, detail="Component already exists")
 
@@ -136,7 +138,11 @@ def create_component_version(
         # TODO: add input and output schemas and handle them in the endpoint
         response = requests.post(
             server_url,
-            data={"alias": alias, "repository": component_config.repository},
+            data={
+                "alias": alias,
+                "project_id": project_id,
+                "repository": component_config.repository,
+            },
         )
         if response.status_code != 200:
             detail = response.json().get("detail", {})
@@ -247,7 +253,7 @@ def delete_component_version(
     server_url = server_config.vulkan_dagster_server_url
     response = requests.post(
         f"{server_url}/components/delete",
-        json={"alias": component_version.alias},
+        json={"alias": component_version.alias, "project_id": project_id},
     )
     if response.status_code != 200:
         raise HTTPException(
