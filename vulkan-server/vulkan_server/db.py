@@ -10,6 +10,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     String,
+    UniqueConstraint,
     Uuid,
     create_engine,
 )
@@ -130,8 +131,12 @@ class Component(AuthorizationMixin, ArchivableMixin, Base):
     __tablename__ = "component"
 
     component_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    name = Column(String, unique=True)
+    name = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("project_id", "name", name="unique_component_name"),
+    )
 
 
 class ComponentVersion(AuthorizationMixin, ArchivableMixin, Base):
