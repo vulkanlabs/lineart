@@ -19,8 +19,13 @@ class LoginContext:
 
         # TODO: This should handled by a Vulkan public API.
         # That way we abstract the auth provider away.
-        self.stack_client_key = os.getenv("STACK_PUBLISHABLE_CLIENT_KEY")
-        self.stack_project_id = os.getenv("STACK_PROJECT_ID")
+        self.stack_client_key = os.getenv(
+            "STACK_PUBLISHABLE_CLIENT_KEY",
+            "pck_cw8v2eeb9ke3de0amj9vrm6x8bzj7vr32hrbqywrspre8",
+        )
+        self.stack_project_id = os.getenv(
+            "STACK_PROJECT_ID", "a80771c2-8a92-47c1-98ad-df4f06952640"
+        )
         if self.stack_client_key is None or self.stack_project_id is None:
             msg = (
                 "STACK_PUBLISHABLE_CLIENT_KEY and STACK_PROJECT_ID "
@@ -33,9 +38,9 @@ class LoginContext:
 class Context:
     def __init__(self):
         self.logger = init_logger(__name__)
-        self.server_url = os.getenv("VULKAN_SERVER_URL")
+        self.server_url = os.getenv("VULKAN_SERVER_URL", "http://34.42.163.92:6001")
         if self.server_url is None:
-            self.logger("VULKAN_SERVER_URL environment variable is not set")
+            self.logger.info("VULKAN_SERVER_URL environment variable is not set")
             raise click.Abort()
 
         try:
@@ -55,7 +60,6 @@ class Context:
 
 
 class CliContext(Context):
-
     def __init__(self):
         super().__init__()
         ctx = click.get_current_context()

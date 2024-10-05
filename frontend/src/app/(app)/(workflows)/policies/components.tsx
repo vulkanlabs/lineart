@@ -13,7 +13,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { PolicyForm } from "@/components/policy-form";
+// import { PolicyForm } from "@/components/policy-form";
 
 export default function PoliciesPage({ policies }: { policies: any[] }) {
     const [showForm, setShowForm] = useState(false);
