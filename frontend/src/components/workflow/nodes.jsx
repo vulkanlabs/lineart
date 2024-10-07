@@ -1,9 +1,9 @@
 import Image from 'next/image';
 import { Handle, Position } from '@xyflow/react';
 
-import { Split, Blocks } from "lucide-react";
-import HttpIcon from '@mui/icons-material/Http';
-import OutputIcon from '@mui/icons-material/Output';
+import { Split, Blocks, Link, ArrowRightFromLine } from "lucide-react";
+// import HttpIcon from '@mui/icons-material/Http';
+// import OutputIcon from '@mui/icons-material/Output';
 
 import { cn } from "@/lib/utils";
 import PythonLogo from "/public/python-logo.png";
@@ -31,7 +31,7 @@ function NodeBase({ icon, data, width, height, isOutput = false }) {
 }
 
 export function HTTPConnectionNode({ data, width, height }) {
-    const icon = <HttpIcon className="max-h-5 max-w-5" />;
+    const icon = <Link className="max-h-5 max-w-5" />;
 
     return (
         <NodeBase icon={icon} data={data} width={width} height={height} />
@@ -55,7 +55,7 @@ export function BranchNode({ data, width, height }) {
 }
 
 export function TerminateNode({ data, width, height }) {
-    const icon = <OutputIcon className="max-h-5 max-w-5" />;
+    const icon = <ArrowRightFromLine className="max-h-5 max-w-5" />;
 
     return (
         <NodeBase icon={icon} data={data} width={width} height={height} isOutput />

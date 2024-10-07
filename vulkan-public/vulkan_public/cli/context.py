@@ -38,7 +38,7 @@ class LoginContext:
 class Context:
     def __init__(self):
         self.logger = init_logger(__name__)
-        self.server_url = os.getenv("VULKAN_SERVER_URL", "http://34.42.163.92:6001")
+        self.server_url = os.getenv("VULKAN_SERVER_URL", "http://34.132.4.82:6001")
         if self.server_url is None:
             self.logger.info("VULKAN_SERVER_URL environment variable is not set")
             raise click.Abort()
