@@ -8,7 +8,8 @@ from time import time
 from typing import Annotated
 
 from fastapi import Body, FastAPI, Form
-from vulkan.dagster.workspace import add_workspace_config, remove_workspace_config
+from vulkan.dagster.workspace import DagsterWorkspaceManager
+from vulkan.environment.workspace import VulkanCodeLocation
 from vulkan_public.exceptions import (
     ConflictingDefinitionsError,
     DefinitionNotFoundException,
@@ -18,7 +19,6 @@ from vulkan_public.spec.environment.packing import unpack_workspace
 
 from . import schemas
 from .context import ExecutionContext
-from .workspace import VulkanCodeLocation, get_code_location
 
 app = FastAPI()
 
@@ -44,13 +44,14 @@ def create_workspace(
     logger.info(f"[{project_id}] Creating workspace: {name} (python_module)")
 
     with ExecutionContext(logger) as ctx:
+        # TODO: handle resources below through VulkanWorkspaceManager
         workspace_path = unpack_workspace(f"{VULKAN_HOME}/workspaces", name, repository)
         ctx.register_asset(workspace_path)
 
         venv_path = _create_venv_for_workspace(name, workspace_path)
         ctx.register_asset(venv_path)
 
-        code_location = get_code_location(workspace_path)
+        code_location = VulkanCodeLocation.from_workspace(workspace_path)
         required_components = _get_required_components(code_location, name)
 
     logger.info(f"Created workspace at: {workspace_path}")
@@ -73,23 +74,22 @@ def install_workspace(
 
     """
     logger.info(f"[{project_id}] Installing workspace: {name}")
+    code_location = VulkanCodeLocation.from_workspace(workspace_path)
+    dw = DagsterWorkspaceManager(
+        project_id=project_id, base_dir=VULKAN_HOME, code_location=code_location
+    )
 
     with ExecutionContext(logger):
+        # TODO: handle resources below through VulkanWorkspaceManager
         components_base_dir = _get_components_base_dir(project_id)
         _install_components(name, components_base_dir, required_components)
+        # -----
 
-        code_location = get_code_location(workspace_path)
+        # TODO: rename _resolve_policy -> get_node_definitions
         resolved_graph = _resolve_policy(code_location, name, components_base_dir)
+        _ = dw.create_init_file(components_base_dir)
 
-        definition_path = _get_definition_path(code_location)
-        _ = _create_init_file(project_id, code_location.entrypoint, definition_path)
-
-    add_workspace_config(
-        VULKAN_HOME,
-        name,
-        definition_path,
-        code_location.module_name,
-    )
+    dw.add_workspace_config(name)
     logger.info(f"Successfully installed workspace: {name}")
 
     return {"graph": resolved_graph}
@@ -104,12 +104,15 @@ def delete_workspace(
     logger.info(f"[{project_id}] Deleting workspace: {name}")
 
     with ExecutionContext(logger):
-        code_location = get_code_location(workspace_path)
-        definition_path = _get_definition_path(code_location)
-        rmtree(definition_path)
+        code_location = VulkanCodeLocation.from_workspace(workspace_path)
+        dw = DagsterWorkspaceManager(
+            project_id=project_id, base_dir=VULKAN_HOME, code_location=code_location
+        )
+        dw.delete_resources(name)
+
+        # TODO: handle these resources through VulkanWorkspaceManager
         rmtree(workspace_path)
         rmtree(f"{VENVS_PATH}/{name}")
-        remove_workspace_config(VULKAN_HOME, name)
 
     logger.info(f"Successfully deleted workspace: {name}")
 
@@ -276,28 +279,6 @@ def _install_components(workspace_name, components_base_dir, required_components
         )
         if completed_process.returncode != 0:
             raise Exception(f"Failed to install component: {component_alias}")
-
-
-def _create_init_file(project_id, code_entrypoint, working_dir) -> str:
-    os.makedirs(working_dir, exist_ok=True)
-    init_path = os.path.join(working_dir, "__init__.py")
-    components_base_dir = _get_components_base_dir(project_id)
-
-    init_contents = f"""
-from vulkan.dagster.workspace import make_workspace_definition
-                 
-definitions = make_workspace_definition("{code_entrypoint}", "{components_base_dir}")
-"""
-    with open(init_path, "w") as fp:
-        fp.write(init_contents)
-
-    return init_path
-
-
-def _get_definition_path(code_location):
-    # TODO: we're replacing /workspaces with /definitions as a convenience.
-    # We could have a more thorough definition of where the defs are stored.
-    return code_location.working_dir.replace("/workspaces", "/definitions", 1)
 
 
 def _get_components_base_dir(project_id: str) -> str:

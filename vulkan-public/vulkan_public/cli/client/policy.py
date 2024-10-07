@@ -4,7 +4,7 @@ import os
 import yaml
 
 from vulkan_public.cli.context import Context
-from vulkan_public.spec.environment.config import VulkanWorkspaceConfig
+from vulkan_public.spec.environment.config import UserWorkspaceConfig
 from vulkan_public.spec.environment.loaders import load_policy_definition
 from vulkan_public.spec.environment.packing import find_package_entrypoint, pack_workspace
 from vulkan_public.exceptions import UserImportException
@@ -82,7 +82,7 @@ def create_policy_version(
 
     # TODO: we aren't currently usign this, but it can become handy in the future
     # to validate the user config
-    _ = VulkanWorkspaceConfig.from_dict(config_data)
+    _ = UserWorkspaceConfig.from_dict(config_data)
 
     try:
         entrypoint = find_package_entrypoint(repository_path)

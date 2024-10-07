@@ -1,4 +1,5 @@
 import os
+from shutil import rmtree
 
 import yaml
 from dagster import Definitions, EnvVar, IOManagerDefinition
@@ -13,6 +14,7 @@ from vulkan.dagster.io_manager import (
 from vulkan.dagster.policy import DagsterFlow
 from vulkan.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
 from vulkan.environment.loaders import resolve_policy
+from vulkan.environment.workspace import VulkanCodeLocation
 
 
 def make_workspace_definition(
@@ -62,36 +64,73 @@ def make_workspace_definition(
     return definition
 
 
-def add_workspace_config(
-    base_dir: str,
-    name: str,
-    working_directory: str,
-    module_name: str,
-):
-    with open(os.path.join(base_dir, "workspace.yaml"), "a") as ws:
-        init_path = os.path.join(working_directory, "__init__.py")
-        ws.write(
-            (
-                "- python_file:\n"
-                # f"    module_name: {module_name}\n"
-                f"    relative_path: {init_path}\n"
-                f"    working_directory: {working_directory}\n"
-                f"    executable_path: /opt/venvs/{name}/bin/python\n"
-                f"    location_name: {name}\n"
+class DagsterWorkspaceManager:
+    def __init__(
+        self,
+        project_id: str,
+        base_dir: str,
+        code_location: VulkanCodeLocation,
+    ) -> None:
+        self.project_id = project_id
+        self.base_dir = base_dir
+        self.code_location = code_location
+
+    @property
+    def definitions_path(self):
+        return self._get_definitions_path()
+
+    def add_workspace_config(self, name: str):
+        with open(os.path.join(self.base_dir, "workspace.yaml"), "a") as ws:
+            init_path = os.path.join(self.definitions_path, "__init__.py")
+            ws.write(
+                (
+                    "- python_file:\n"
+                    f"    relative_path: {init_path}\n"
+                    f"    working_directory: {self.definitions_path}\n"
+                    f"    executable_path: /opt/venvs/{name}/bin/python\n"
+                    f"    location_name: {name}\n"
+                )
             )
-        )
 
+    def remove_workspace_config(self, name: str):
+        path = os.path.join(self.base_dir, "workspace.yaml")
 
-def remove_workspace_config(base_dir: str, name: str):
-    path = os.path.join(base_dir, "workspace.yaml")
+        with open(path, "r") as fn:
+            workspace_config = yaml.safe_load(fn)
 
-    with open(path, "r") as fn:
-        workspace_config = yaml.safe_load(fn)
-
-    load_from = []
-    for location in workspace_config["load_from"]:
+        load_from = []
+        for location in workspace_config["load_from"]:
             if location.get("python_file", {}).get("location_name") != name:
                 load_from.append(location)
 
-    with open(path, "w") as fn:
-        yaml.dump(dict(load_from=load_from), fn)
+        with open(path, "w") as fn:
+            yaml.dump(dict(load_from=load_from), fn)
+
+    def create_init_file(self, components_base_dir: str) -> str:
+        os.makedirs(self.definitions_path, exist_ok=True)
+        init_path = os.path.join(self.definitions_path, "__init__.py")
+
+        init_contents = DAGSTER_ENTRYPOINT.format(
+            code_entrypoint=self.code_location.entrypoint,
+            components_base_dir=components_base_dir,
+        )
+        with open(init_path, "w") as fp:
+            fp.write(init_contents)
+
+        return init_path
+
+    def delete_resources(self, name: str):
+        rmtree(self.definitions_path)
+        self.remove_workspace_config(self.base_dir, name)
+
+    def _get_definitions_path(self):
+        # TODO: we're replacing /workspaces with /definitions as a convenience.
+        # We could have a more thorough definition of where the defs are stored.
+        return self.code_location.working_dir.replace("/workspaces", "/definitions", 1)
+
+
+DAGSTER_ENTRYPOINT = """
+from vulkan.dagster.workspace import make_workspace_definition
+                
+definitions = make_workspace_definition("{code_entrypoint}", "{components_base_dir}")
+"""
