@@ -13,8 +13,10 @@ from vulkan_public.spec.environment.packing import (
 from vulkan_public.exceptions import UserImportException
 
 
-def list_policies(ctx: Context):
-    response = ctx.session.get(f"{ctx.server_url}/policies")
+def list_policies(ctx: Context, include_archived: bool = False):
+    response = ctx.session.get(
+        f"{ctx.server_url}/policies", params={"include_archived": include_archived}
+    )
     if response.status_code != 200:
         raise ValueError(f"Failed to list policies: {response.content}")
     return response.json()
@@ -69,8 +71,11 @@ def delete_policy(ctx: Context, policy_id: str):
     ctx.logger.info(f"Deleted policy {policy_id}")
 
 
-def list_policy_versions(ctx: Context, policy_id: str):
-    response = ctx.session.get(f"{ctx.server_url}/policies/{policy_id}/versions")
+def list_policy_versions(ctx: Context, policy_id: str, include_archived: bool = False):
+    response = ctx.session.get(
+        f"{ctx.server_url}/policies/{policy_id}/versions",
+        params={"include_archived": include_archived},
+    )
     if response.status_code != 200:
         raise ValueError(f"Failed to list policy versions: {response.content}")
     return response.json()

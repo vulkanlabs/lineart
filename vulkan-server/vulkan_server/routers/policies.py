@@ -46,9 +46,14 @@ router = APIRouter(
 @router.get("/", response_model=list[schemas.Policy])
 def list_policies(
     project_id: str = Depends(get_project_id),
+    include_archived: bool = False,
     db: Session = Depends(get_db),
 ):
-    policies = db.query(Policy).filter_by(project_id=project_id).all()
+    filters = dict(project_id=project_id)
+    if not include_archived:
+        filters["archived"] = False
+    
+    policies = db.query(Policy).filter_by(**filters).all()
     if len(policies) == 0:
         return Response(status_code=204)
     return policies
@@ -167,18 +172,19 @@ def delete_policy(
 )
 def list_policy_versions(
     policy_id: str,
+    include_archived: bool = False,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    policy_versions = (
-        db.query(PolicyVersion)
-        .filter_by(
-            policy_id=policy_id,
-            project_id=project_id,
-            status=PolicyVersionStatus.VALID,
-        )
-        .all()
+    filters = dict(
+        policy_id=policy_id,
+        project_id=project_id,
+        status=PolicyVersionStatus.VALID,
     )
+    if not include_archived:
+        filters["archived"] = False
+
+    policy_versions = db.query(PolicyVersion).filter_by(**filters).all()
     if len(policy_versions) == 0:
         return Response(status_code=204)
     return policy_versions

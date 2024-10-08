@@ -5,8 +5,11 @@ from vulkan_public.cli.context import Context
 from vulkan_public.spec.environment.packing import pack_workspace
 
 
-def list_components(ctx: Context):
-    response = ctx.session.get(f"{ctx.server_url}/components")
+def list_components(ctx: Context, include_archived: bool = False):
+    response = ctx.session.get(
+        f"{ctx.server_url}/components",
+        params={"include_archived": include_archived},
+    )
     assert response.status_code == 200, f"Failed to list components: {response.content}"
     return response.json()
 
@@ -35,8 +38,13 @@ def delete_component(ctx: Context, component_id: str):
     ctx.logger.info(f"Deleted component {component_id}")
 
 
-def list_component_versions(ctx: Context, component_id: str):
-    response = ctx.session.get(f"{ctx.server_url}/components/{component_id}/versions")
+def list_component_versions(
+    ctx: Context, component_id: str, include_archived: bool = False
+):
+    response = ctx.session.get(
+        f"{ctx.server_url}/components/{component_id}/versions",
+        params={"include_archived": include_archived},
+    )
     assert (
         response.status_code == 200
     ), f"Failed to list component versions: {response.content}"

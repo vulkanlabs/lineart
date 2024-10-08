@@ -15,9 +15,10 @@ def component():
 
 @component.command()
 @pass_context
+@click.option("--all", is_flag=True, default=False, help="Include archived components")
 @log_exceptions
-def list(ctx: Context):
-    data = client.component.list_components(ctx)
+def list(ctx: Context, all: bool):
+    data = client.component.list_components(ctx, all)
     keys = ["project_id", "component_id", "name", "archived", "created_at"]
     summary = [OrderedDict([(k, d[k]) for k in keys]) for d in data]
     tab = tabulate(summary, headers="keys", tablefmt="pretty")
@@ -53,12 +54,16 @@ def delete(
 @component.command()
 @pass_context
 @click.option("--component_id", type=str, required=True, help="ID of the component")
+@click.option(
+    "--all", is_flag=True, default=False, help="Include archived component versions"
+)
 @log_exceptions
 def list_versions(
     ctx: Context,
     component_id: str,
+    all: bool,
 ):
-    data = client.component.list_component_versions(ctx, component_id)
+    data = client.component.list_component_versions(ctx, component_id, all)
     keys = ["project_id", "component_version_id", "alias", "archived", "created_at"]
     summary = [OrderedDict([(k, d[k]) for k in keys]) for d in data]
     tab = tabulate(summary, headers="keys", tablefmt="pretty")

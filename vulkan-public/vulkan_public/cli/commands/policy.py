@@ -16,9 +16,10 @@ def policy():
 
 @policy.command()
 @pass_context
+@click.option("--all", is_flag=True, default=False, help="Include archived policies")
 @log_exceptions
-def list(ctx: Context):
-    data = client.policy.list_policies(ctx)
+def list(ctx: Context, all: bool):
+    data = client.policy.list_policies(ctx, all)
     keys = [
         "project_id",
         "policy_id",
@@ -133,9 +134,12 @@ def trigger_run_by_version(
 @policy.command()
 @pass_context
 @click.option("--policy_id", type=str)
+@click.option(
+    "--all", is_flag=True, default=False, help="Include archived policy versions"
+)
 @log_exceptions
-def list_versions(ctx: Context, policy_id: str):
-    data = client.policy.list_policy_versions(ctx, policy_id)
+def list_versions(ctx: Context, policy_id: str, all: bool):
+    data = client.policy.list_policy_versions(ctx, policy_id, all)
     keys = [
         "project_id",
         "policy_id",

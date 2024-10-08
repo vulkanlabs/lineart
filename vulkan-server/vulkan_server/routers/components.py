@@ -57,9 +57,14 @@ def create_component(
 @router.get("/", response_model=list[schemas.Component])
 def list_components(
     project_id: str = Depends(get_project_id),
+    include_archived: bool = False,
     db: Session = Depends(get_db),
 ):
-    components = db.query(Component).filter_by(project_id=project_id).all()
+    filters = dict(project_id=project_id)
+    if not include_archived:
+        filters["archived"] = False
+
+    components = db.query(Component).filter_by(**filters).all()
     if len(components) == 0:
         return Response(status_code=204)
     return components
@@ -183,14 +188,15 @@ def create_component_version(
 )
 def list_component_versions(
     component_id: str,
+    include_archived: bool = False,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    versions = (
-        db.query(ComponentVersion)
-        .filter_by(component_id=component_id, project_id=project_id)
-        .all()
-    )
+    filters = dict(component_id=component_id, project_id=project_id)
+    if not include_archived:
+        filters["archived"] = False
+
+    versions = db.query(ComponentVersion).filter_by(**filters).all()
     if len(versions) == 0:
         return Response(status_code=204)
     return versions
