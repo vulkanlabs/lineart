@@ -116,6 +116,9 @@ def update_policy(
 
         policy.active_policy_version_id = config.active_policy_version_id
 
+    if config.active_policy_version_id is None:
+        policy.active_policy_version_id = None
+
     if config.name is not None and config.name != policy.name:
         policy.name = config.name
     if config.description is not None and config.description != policy.description:

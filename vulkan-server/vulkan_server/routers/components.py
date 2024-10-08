@@ -40,7 +40,9 @@ def create_component(
     db: Session = Depends(get_db),
 ):
     component = (
-        db.query(Component).filter_by(name=config.name, project_id=project_id).first()
+        db.query(Component)
+        .filter_by(name=config.name, project_id=project_id, archived=False)
+        .first()
     )
     if component is not None:
         raise HTTPException(status_code=409, detail="Component already exists")
@@ -48,7 +50,7 @@ def create_component(
     new_component = Component(project_id=project_id, **config.model_dump())
     db.add(new_component)
     db.commit()
-    logger.info(f"Creating component {config.name}")
+    logger.info(f"Created component {config.name}")
     return new_component
 
 
