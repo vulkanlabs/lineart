@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 // import { PolicyForm } from "@/components/policy-form";
+import { ShortenedID } from "@/components/shortened-id";
 
 export default function PoliciesPage({ policies }: { policies: any[] }) {
     const [showForm, setShowForm] = useState(false);
@@ -60,14 +61,14 @@ export function PolicyTable({ policies }) {
                         className="cursor-pointer"
                         onClick={() => router.push(`/policies/${policy.policy_id}/versions`)}
                     >
-                        <TableCell>{policy.policy_id}</TableCell>
+                        <TableCell><ShortenedID id={policy.policy_id} /></TableCell>
                         <TableCell>{policy.name}</TableCell>
                         <TableCell>
                             {policy.description.length > 0 ? policy.description : "-"}
                         </TableCell>
                         <TableCell>
                             {policy.active_policy_version_id !== null
-                                ? policy.active_policy_version_id
+                                ? <ShortenedID id={policy.active_policy_version_id} />
                                 : "-"}
                         </TableCell>
                         <TableCell>{policy.last_updated_at}</TableCell>

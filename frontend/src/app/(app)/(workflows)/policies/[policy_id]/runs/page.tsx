@@ -1,4 +1,6 @@
 import { stackServerApp } from "@/stack";
+import { formatDistanceStrict } from "date-fns";
+import { ShortenedID } from "@/components/shortened-id";
 
 import {
     Table,
@@ -50,17 +52,22 @@ function RunsTable({ runs }) {
             <TableHeader>
                 <TableRow>
                     <TableHead>ID</TableHead>
-                    <TableHead>Version</TableHead>
+                    <TableHead>Version ID</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Result</TableHead>
                     <TableHead>Created At</TableHead>
+                    <TableHead>Duration</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
                 {runs.map((run) => (
                     <TableRow key={run.run_id}>
-                        <TableCell>{run.run_id}</TableCell>
-                        <TableCell>{run.policy_version_id}</TableCell>
+                        <TableCell>
+                            <ShortenedID id={run.run_id} />
+                        </TableCell>
+                        <TableCell>
+                            <ShortenedID id={run.policy_version_id} />
+                        </TableCell>
                         <TableCell>
                             <RunStatus value={run.status} />
                         </TableCell>
@@ -68,6 +75,9 @@ function RunsTable({ runs }) {
                             {run.result == null || run.result == "" ? "-" : run.result}
                         </TableCell>
                         <TableCell>{run.created_at}</TableCell>
+                        <TableCell>
+                            {formatDistanceStrict(run.last_updated_at, run.created_at)}
+                        </TableCell>
                     </TableRow>
                 ))}
             </TableBody>
