@@ -458,7 +458,6 @@ def _install_policy_version_workspace(
         json={
             "name": name,
             "project_id": project_id,
-            "workspace_path": workspace.path,
             "required_components": required_components,
         },
     )

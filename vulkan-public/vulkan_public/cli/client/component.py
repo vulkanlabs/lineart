@@ -13,16 +13,11 @@ def create_component(ctx: Context, name: str) -> str:
         f"{ctx.server_url}/components",
         json={"name": name},
     )
-    assert (
-        response.status_code == 200
-    ), f"Failed to create component version: {response.content}"
-    data = response.json()
-    ctx.logger.debug(data)
     if response.status_code != 200:
         raise ValueError(f"Failed to create component: {response.content}")
-
-    component_id = data["component_id"]
-
+    
+    component_id = response.json()["component_id"]
+    ctx.logger.info(f"Created component {name} with id {component_id}")
     return component_id
 
 
@@ -46,7 +41,6 @@ def create_component_version(
         raise ValueError(f"Path is not a directory: {repository_path}")
 
     repository_path = pack_workspace(component_id, repository_path)
-    ctx.logger.info(f"Creating component version {version_name}")
     response = ctx.session.post(
         f"{ctx.server_url}/components/{component_id}/versions",
         json={
@@ -58,8 +52,12 @@ def create_component_version(
         response.status_code == 200
     ), f"Failed to create component version: {response.content}"
 
-    ctx.logger.info("Component version was successfully created.")
-    return response.json()
+    component_version_id = response.json()["component_version_id"]
+    ctx.logger.info(
+        f"Created component version {component_version_id} ({version_name}) "
+        f"for component {component_id}."
+    )
+    return component_version_id
 
 
 def delete_component_version(
@@ -73,6 +71,4 @@ def delete_component_version(
     assert (
         response.status_code == 200
     ), f"Failed to delete component version: {response.content}"
-    ctx.logger.info(
-        f"Deleted component version {component_version_id}"
-    )
+    ctx.logger.info(f"Deleted component version {component_version_id}")

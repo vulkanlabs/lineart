@@ -86,7 +86,7 @@ def delete_policy_version(
     server_url = server_config.vulkan_dagster_server_url
     response = requests.post(
         f"{server_url}/workspaces/delete",
-        json={"name": name, "workspace_path": workspace.path},
+        json={"project_id": project_id, "name": name},
     )
     if response.status_code != 200:
         raise HTTPException(

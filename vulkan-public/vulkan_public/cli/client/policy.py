@@ -6,16 +6,19 @@ import yaml
 from vulkan_public.cli.context import Context
 from vulkan_public.spec.environment.config import UserWorkspaceConfig
 from vulkan_public.spec.environment.loaders import load_policy_definition
-from vulkan_public.spec.environment.packing import find_package_entrypoint, pack_workspace
+from vulkan_public.spec.environment.packing import (
+    find_package_entrypoint,
+    pack_workspace,
+)
 from vulkan_public.exceptions import UserImportException
 
 
 def create_policy(
     ctx: Context,
     name: str,
-    description: str,
     input_schema: str,
     output_schema: str,
+    description: str = "",
 ):
     response = ctx.session.post(
         f"{ctx.server_url}/policies",
@@ -28,6 +31,7 @@ def create_policy(
     )
     if response.status_code != 200:
         raise ValueError(f"Failed to create policy: {response.content}")
+
     policy_id = response.json()["policy_id"]
     ctx.logger.info(f"Created policy {name} with id {policy_id}")
     return policy_id

@@ -22,6 +22,9 @@ class VulkanCodeLocation:
     @classmethod
     def from_workspace(cls, workspace_path: str) -> "VulkanCodeLocation":
         file_path = os.path.join(workspace_path, VULKAN_CONFIG_FILENAME)
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Config file not found: {file_path}")
+
         with open(file_path, "r") as fn:
             config_data = yaml.safe_load(fn)
 

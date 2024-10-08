@@ -172,7 +172,7 @@ def create_component_version(
     db.commit()
     logger.info(f"Creating component {alias}")
 
-    return {"status": "success"}
+    return {"component_version_id": component.component_version_id}
 
 
 @router.get(
