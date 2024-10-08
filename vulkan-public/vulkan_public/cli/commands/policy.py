@@ -1,6 +1,8 @@
 import json
+from collections import OrderedDict
 
 import click
+from tabulate import tabulate
 
 from vulkan_public.cli import client
 from vulkan_public.cli.context import Context, pass_context
@@ -10,6 +12,25 @@ from vulkan_public.cli.exceptions import log_exceptions
 @click.group()
 def policy():
     pass
+
+
+@policy.command()
+@pass_context
+@log_exceptions
+def list(ctx: Context):
+    data = client.policy.list_policies(ctx)
+    keys = [
+        "project_id",
+        "policy_id",
+        "name",
+        "active_policy_version_id",
+        "archived",
+        "created_at",
+        "last_updated_at",
+    ]
+    summary = [OrderedDict([(k, d[k]) for k in keys]) for d in data]
+    tab = tabulate(summary, headers="keys", tablefmt="pretty")
+    ctx.logger.info(f"\n{tab}")
 
 
 @policy.command()
@@ -32,6 +53,13 @@ def create(ctx: Context, name: str, description: str):
 @click.option("--policy_version_id", type=str)
 def set_active_version(ctx: Context, policy_id: str, policy_version_id: str):
     return client.policy.set_active_version(ctx, policy_id, policy_version_id)
+
+
+@policy.command()
+@pass_context
+@click.option("--policy_id", type=str)
+def unset_active_version(ctx: Context, policy_id: str):
+    return client.policy.unset_active_version(ctx, policy_id)
 
 
 @policy.command()
@@ -100,6 +128,25 @@ def trigger_run_by_version(
         )
     except Exception as e:
         raise ValueError(f"Error triggering run: {e}")
+
+
+@policy.command()
+@pass_context
+@click.option("--policy_id", type=str)
+@log_exceptions
+def list_versions(ctx: Context, policy_id: str):
+    data = client.policy.list_policy_versions(ctx, policy_id)
+    keys = [
+        "project_id",
+        "policy_id",
+        "policy_version_id",
+        "alias",
+        "archived",
+        "created_at",
+    ]
+    summary = [OrderedDict([(k, d[k]) for k in keys]) for d in data]
+    tab = tabulate(summary, headers="keys", tablefmt="pretty")
+    ctx.logger.info(f"\n{tab}")
 
 
 @policy.command()
