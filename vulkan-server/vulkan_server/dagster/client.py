@@ -1,9 +1,11 @@
 import os
 
 import sqlalchemy
+from dagster._core.events.log import EventLogEntry
 from sqlalchemy import Engine, create_engine
 
 from vulkan_server.dagster.trigger_run import create_dagster_client
+from vulkan_server.schemas import LogEntry
 
 
 def get_dagster_client():
@@ -34,7 +36,6 @@ def _get_dagster_db() -> Engine:
 
     connection_str = f"postgresql+psycopg2://{DAGSTER_DB_USER}:{DAGSTER_DB_PASSWORD}@{DAGSTER_DB_HOST}:{DAGSTER_DB_PORT}/{DAGSTER_DB_DATABASE}"
     engine = create_engine(connection_str, echo=True)
-    # DBSession = sessionmaker(bind=engine)
 
     return engine
 
@@ -43,7 +44,7 @@ class DagsterDataClient:
     def __init__(self):
         self.engine = _get_dagster_db()
 
-    def get_run_data(self, run_id: str):
+    def get_run_data(self, run_id: str) -> list[tuple[str, str, str]]:
         with self.engine.connect() as conn:
             q = sqlalchemy.text(
                 """
@@ -54,3 +55,76 @@ class DagsterDataClient:
             )
             results = conn.execute(q, {"run_id": run_id}).fetchall()
         return results
+
+    def get_run_logs(self, run_id: str) -> list[LogEntry]:
+        with self.engine.connect() as conn:
+            q = sqlalchemy.text("""
+            SELECT timestamp,
+                   step_key,
+                   event
+              FROM event_logs
+             WHERE run_id = :run_id
+            """)
+
+            logs = conn.execute(q, {"run_id": run_id}).fetchall()
+
+        if len(logs) == 0:
+            return []
+
+        processed_logs = []
+        for entry in logs:
+            try:
+                processed_entry = _process_log_entry(entry)
+            except ValueError as e:
+                msg = f"Error retrieving logs for run {run_id}: {e}"
+                raise ValueError(msg)
+
+            if processed_entry is not None:
+                processed_logs.append(processed_entry)
+
+        return processed_logs
+
+
+def _process_log_entry(entry) -> LogEntry:
+    timestamp, step_key, event = entry
+    parsed_event = EventLogEntry.from_json(event)
+    event_source = "DAGSTER" if parsed_event.is_dagster_event else "USER"
+
+    if event_source == "USER":
+        message = parsed_event.user_message
+        log_level = parsed_event.level
+        if isinstance(log_level, int):
+            log_level = _PYTHON_LOG_LEVELS[log_level]
+
+        event_content = {
+            "log_type": "LOG",
+            "message": message,
+            "level": log_level,
+        }
+    elif event_source == "DAGSTER":
+        event_content = {
+            "log_type": parsed_event.dagster_event_type,
+            "message": parsed_event.message,
+            # For future reference, `parsed_event` is an instance of `EventLogEntry`
+            # containing a `dagster_event` attribute. At the time, we won't
+            # use any of the event-specific data.
+            # "content": parsed_event.to_json(),
+        }
+    else:
+        raise ValueError(f"Unknown event source: {event_source}")
+
+    return {
+        "timestamp": timestamp,
+        "step_key": step_key,
+        "source": event_source,
+        "event": event_content,
+    }
+
+
+_PYTHON_LOG_LEVELS = {
+    10: "DEBUG",
+    20: "INFO",
+    30: "WARNING",
+    40: "ERROR",
+    50: "CRITICAL",
+}

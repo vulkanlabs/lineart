@@ -84,6 +84,22 @@ def get_run_data(
 # For the outputs, it's the same as the endpoint above.
 
 
+@router.get("/{run_id}/logs", response_model=schemas.RunLogs)
+def get_run_logs(run_id: str, db: Session = Depends(get_db)):
+    run = db.query(Run).filter_by(run_id=run_id).first()
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+    dagster_data_client = DagsterDataClient()
+    logs = dagster_data_client.get_run_logs(run.dagster_run_id)
+    return {
+        "run_id": run_id,
+        "status": run.status,
+        "last_updated_at": run.last_updated_at,
+        "logs": logs,
+    }
+
+
 @router.get("/{run_id}", response_model=schemas.Run)
 def get_run(run_id: str, db: Session = Depends(get_db)):
     run = db.query(Run).filter_by(run_id=run_id).first()

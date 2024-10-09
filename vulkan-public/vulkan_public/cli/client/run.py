@@ -127,3 +127,15 @@ def get_run_data(ctx: Context, run_id: str):
         raise ValueError
 
     return response.json()
+
+
+def get_run_logs(ctx: Context, run_id: str):
+    response = ctx.session.get(f"{ctx.server_url}/runs/{run_id}/logs")
+    if response.status_code == 404:
+        msg = f"No run with id {run_id} found.\nCheck the run id and try again."
+        raise ValueError(msg)
+    if response.status_code != 200:
+        msg = f"Error fetching logs for run {run_id}. \n{response.text}"
+        raise ValueError
+
+    return response.json()

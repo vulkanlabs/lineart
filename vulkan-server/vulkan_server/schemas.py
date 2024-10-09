@@ -169,9 +169,11 @@ class StepMetadata(StepMetadataBase):
     class Config:
         from_attributes = True
 
+
 class _StepDetails(BaseModel):
     output: Any | None
     metadata: StepMetadataBase | None
+
 
 class RunData(BaseModel):
     run_id: UUID
@@ -181,3 +183,28 @@ class RunData(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserLogDetails(BaseModel):
+    log_type: str = "LOG"
+    message: str
+    level: str
+
+
+class DagsterLogDetails(BaseModel):
+    log_type: str
+    message: str
+
+
+class LogEntry(BaseModel):
+    timestamp: datetime
+    step_key: str | None
+    source: str
+    event: UserLogDetails | DagsterLogDetails
+
+
+class RunLogs(BaseModel):
+    run_id: UUID
+    status: str
+    last_updated_at: datetime
+    logs: list[LogEntry]
