@@ -1,4 +1,7 @@
+from collections import OrderedDict
+
 import click
+from tabulate import tabulate
 
 from vulkan_public.cli import client
 from vulkan_public.cli.context import Context, pass_context
@@ -8,6 +11,18 @@ from vulkan_public.cli.exceptions import log_exceptions
 @click.group()
 def component():
     pass
+
+
+@component.command()
+@pass_context
+@click.option("--all", is_flag=True, default=False, help="Include archived components")
+@log_exceptions
+def list(ctx: Context, all: bool):
+    data = client.component.list_components(ctx, all)
+    keys = ["project_id", "component_id", "name", "archived", "created_at"]
+    summary = [OrderedDict([(k, d[k]) for k in keys]) for d in data]
+    tab = tabulate(summary, headers="keys", tablefmt="pretty")
+    ctx.logger.info(f"\n{tab}")
 
 
 @component.command()
@@ -34,6 +49,25 @@ def delete(
     )
     ctx.logger.info(f"Deleting component {component_id}")
     return client.component.delete_component(ctx, component_id)
+
+
+@component.command()
+@pass_context
+@click.option("--component_id", type=str, required=True, help="ID of the component")
+@click.option(
+    "--all", is_flag=True, default=False, help="Include archived component versions"
+)
+@log_exceptions
+def list_versions(
+    ctx: Context,
+    component_id: str,
+    all: bool,
+):
+    data = client.component.list_component_versions(ctx, component_id, all)
+    keys = ["project_id", "component_version_id", "alias", "archived", "created_at"]
+    summary = [OrderedDict([(k, d[k]) for k in keys]) for d in data]
+    tab = tabulate(summary, headers="keys", tablefmt="pretty")
+    ctx.logger.info(f"\n{tab}")
 
 
 @component.command()

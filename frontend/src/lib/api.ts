@@ -28,7 +28,7 @@ export async function fetchServerData({
         .then((response) =>
             response.json().catch((error) => {
                 throw new Error("Error parsing response", { cause: error });
-            })
+            }),
         )
         .catch((error) => {
             const baseMsg = "Error fetching data";
@@ -50,10 +50,13 @@ type Policy = {
     last_updated_at: string;
 };
 
-export async function fetchPolicies(user: StackUser): Promise<Policy[]> {
+export async function fetchPolicies(
+    user: StackUser,
+    includeArchived: boolean = false,
+): Promise<Policy[]> {
     return fetchServerData({
         user: user,
-        endpoint: "/policies",
+        endpoint: `/policies?include_archived=${includeArchived}`,
         label: "list of policies",
     });
 }
@@ -74,10 +77,14 @@ export async function fetchPolicyRuns(user: StackUser, policyId: string) {
     });
 }
 
-export async function fetchPolicyVersions(user: StackUser, policyId: string) {
+export async function fetchPolicyVersions(
+    user: StackUser,
+    policyId: string,
+    includeArchived: boolean = false,
+) {
     return fetchServerData({
         user: user,
-        endpoint: `/policies/${policyId}/versions`,
+        endpoint: `/policies/${policyId}/versions?include_archived=${includeArchived}`,
         label: `versions for policy ${policyId}`,
     });
 }
@@ -98,10 +105,13 @@ export async function fetchPolicyVersionComponents(user: StackUser, policyVersio
     });
 }
 
-export async function fetchComponents(user: StackUser): Promise<any[]> {
+export async function fetchComponents(
+    user: StackUser,
+    includeArchived: boolean = false,
+): Promise<any[]> {
     return fetchServerData({
         user: user,
-        endpoint: "/components",
+        endpoint: `/components?include_archived=${includeArchived}`,
         label: "list of components",
     });
 }
@@ -114,10 +124,14 @@ export async function fetchComponent(user: StackUser, componentId: string) {
     });
 }
 
-export async function fetchComponentVersions(user: StackUser, componentId: string) {
+export async function fetchComponentVersions(
+    user: StackUser,
+    componentId: string,
+    includeArchived: boolean = false,
+) {
     return fetchServerData({
         user: user,
-        endpoint: `/components/${componentId}/versions`,
+        endpoint: `/components/${componentId}/versions?include_archived=${includeArchived}`,
         label: `component versions for component ${componentId}`,
     });
 }

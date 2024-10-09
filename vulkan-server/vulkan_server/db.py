@@ -10,7 +10,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     String,
-    UniqueConstraint,
+    Index,
     Uuid,
     create_engine,
 )
@@ -127,15 +127,23 @@ class Policy(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base):
     )
 
 
-class Component(AuthorizationMixin, ArchivableMixin, Base):
+class Component(AuthorizationMixin, Base):
     __tablename__ = "component"
 
     component_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     name = Column(String)
+    archived = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
-        UniqueConstraint("project_id", "name", name="unique_component_name"),
+        Index(
+            "unique_component_name",
+            "project_id",
+            "name",
+            "archived",
+            unique=True,
+            postgresql_where=(archived == False), # noqa: E712
+        ),
     )
 
 

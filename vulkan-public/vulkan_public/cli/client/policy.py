@@ -4,18 +4,30 @@ import os
 import yaml
 
 from vulkan_public.cli.context import Context
-from vulkan_public.spec.environment.config import VulkanWorkspaceConfig
+from vulkan_public.spec.environment.config import UserWorkspaceConfig
 from vulkan_public.spec.environment.loaders import load_policy_definition
-from vulkan_public.spec.environment.packing import find_package_entrypoint, pack_workspace
+from vulkan_public.spec.environment.packing import (
+    find_package_entrypoint,
+    pack_workspace,
+)
 from vulkan_public.exceptions import UserImportException
+
+
+def list_policies(ctx: Context, include_archived: bool = False):
+    response = ctx.session.get(
+        f"{ctx.server_url}/policies", params={"include_archived": include_archived}
+    )
+    if response.status_code != 200:
+        raise ValueError(f"Failed to list policies: {response.content}")
+    return response.json()
 
 
 def create_policy(
     ctx: Context,
     name: str,
-    description: str,
     input_schema: str,
     output_schema: str,
+    description: str = "",
 ):
     response = ctx.session.post(
         f"{ctx.server_url}/policies",
@@ -28,6 +40,7 @@ def create_policy(
     )
     if response.status_code != 200:
         raise ValueError(f"Failed to create policy: {response.content}")
+
     policy_id = response.json()["policy_id"]
     ctx.logger.info(f"Created policy {name} with id {policy_id}")
     return policy_id
@@ -42,11 +55,30 @@ def set_active_version(ctx: Context, policy_id: str, policy_version_id: str):
         raise ValueError("Failed to activate policy version")
 
 
+def unset_active_version(ctx: Context, policy_id: str):
+    response = ctx.session.put(
+        f"{ctx.server_url}/policies/{policy_id}",
+        json={"active_policy_version_id": None},
+    )
+    if response.status_code != 200:
+        raise ValueError("Failed to unset active version")
+
+
 def delete_policy(ctx: Context, policy_id: str):
     response = ctx.session.delete(f"{ctx.server_url}/policies/{policy_id}")
     if response.status_code != 200:
         raise ValueError(f"Failed to delete policy: {response.content}")
     ctx.logger.info(f"Deleted policy {policy_id}")
+
+
+def list_policy_versions(ctx: Context, policy_id: str, include_archived: bool = False):
+    response = ctx.session.get(
+        f"{ctx.server_url}/policies/{policy_id}/versions",
+        params={"include_archived": include_archived},
+    )
+    if response.status_code != 200:
+        raise ValueError(f"Failed to list policy versions: {response.content}")
+    return response.json()
 
 
 def create_policy_version(
@@ -82,7 +114,7 @@ def create_policy_version(
 
     # TODO: we aren't currently usign this, but it can become handy in the future
     # to validate the user config
-    _ = VulkanWorkspaceConfig.from_dict(config_data)
+    _ = UserWorkspaceConfig.from_dict(config_data)
 
     try:
         entrypoint = find_package_entrypoint(repository_path)
