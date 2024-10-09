@@ -156,6 +156,30 @@ export async function fetchComponentVersionUsage(user: StackUser, componentId: s
     });
 }
 
+export async function fetchRun(user: StackUser, runId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/runs/${runId}`,
+        label: `run ${runId}`,
+    });
+}
+
+export async function fetchRunsData(user: StackUser, runId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/runs/${runId}/data`,
+        label: `data for run ${runId}`,
+    });
+}
+
+export async function fetchRunLogs(user: StackUser, runId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/runs/${runId}/logs`,
+        label: `logs for run ${runId}`,
+    });
+}
+
 // UNAUTHENTICATED CALLS:
 // ----------------------
 

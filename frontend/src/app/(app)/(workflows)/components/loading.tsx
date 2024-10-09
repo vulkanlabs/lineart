@@ -1,7 +1,5 @@
+import Loader from "@/components/loader";
+
 export default function Loading() {
-    // You can use any loading indicator here
-    return <>
-      Loading Components...
-    </>;
-  }
-  
+    return <Loader />;
+}

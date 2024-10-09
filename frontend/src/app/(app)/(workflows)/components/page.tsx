@@ -6,7 +6,7 @@ import ComponentPageContent from "./components";
 export default async function Page() {
     const user = await stackServerApp.getUser();
     const components = await fetchComponents(user).catch((error) => {
-        console.error("Error fetching components", error);
+        console.error(error);
         return [];
     });
 

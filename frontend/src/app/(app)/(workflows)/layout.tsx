@@ -31,7 +31,7 @@ export default function Layout({ children }) {
     const sidebar: SidebarProps = { title, sections, retractable: true };
 
     return (
-        <PageLayout sidebar={sidebar} content={{ scrollable: false }}>
+        <PageLayout sidebar={sidebar} content={{ scrollable: true }}>
             {children}
         </PageLayout>
     );
