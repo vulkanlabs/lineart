@@ -175,6 +175,7 @@ class _StepDetails(BaseModel):
 
 class RunData(BaseModel):
     run_id: UUID
+    status: str
     last_updated_at: datetime
     steps: dict[str, _StepDetails]
 

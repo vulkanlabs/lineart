@@ -1,6 +1,7 @@
 import os
 
-from sqlalchemy import create_engine, Engine
+import sqlalchemy
+from sqlalchemy import Engine, create_engine
 
 from vulkan_server.dagster.trigger_run import create_dagster_client
 
@@ -13,7 +14,7 @@ def get_dagster_client():
     return dagster_client
 
 
-def get_dagster_db() -> Engine:
+def _get_dagster_db() -> Engine:
     DAGSTER_DB_USER = os.getenv("DAGSTER_DB_USER")
     DAGSTER_DB_PASSWORD = os.getenv("DAGSTER_DB_PASSWORD")
     DAGSTER_DB_HOST = os.getenv("DAGSTER_DB_HOST")
@@ -36,3 +37,20 @@ def get_dagster_db() -> Engine:
     # DBSession = sessionmaker(bind=engine)
 
     return engine
+
+
+class DagsterDataClient:
+    def __init__(self):
+        self.engine = _get_dagster_db()
+
+    def get_run_data(self, run_id: str):
+        with self.engine.connect() as conn:
+            q = sqlalchemy.text(
+                """
+            SELECT step_name, object_name, value
+              FROM objects
+             WHERE run_id = :run_id
+            """
+            )
+            results = conn.execute(q, {"run_id": run_id}).fetchall()
+        return results
