@@ -71,6 +71,13 @@ def delete_policy(ctx: Context, policy_id: str):
     ctx.logger.info(f"Deleted policy {policy_id}")
 
 
+def list_runs_by_policy(ctx: Context, policy_id: str):
+    response = ctx.session.get(f"{ctx.server_url}/policies/{policy_id}/runs")
+    if response.status_code != 200:
+        raise ValueError(f"Failed to list runs: {response.content}")
+    return response.json()
+
+
 def list_policy_versions(ctx: Context, policy_id: str, include_archived: bool = False):
     response = ctx.session.get(
         f"{ctx.server_url}/policies/{policy_id}/versions",
@@ -195,3 +202,10 @@ def delete_policy_version(
     if response.status_code != 200:
         raise ValueError(f"Failed to delete policy version: {response.content}")
     ctx.logger.info(f"Deleted policy version {policy_version_id}")
+
+
+def get_policy_version_graph(ctx: Context, policy_version_id: str):
+    response = ctx.session.get(f"{ctx.server_url}/policyVersions/{policy_version_id}")
+    if response.status_code != 200:
+        raise ValueError(f"Failed to get policy version graph: {response.content}")
+    return response.json()["graph_definition"]

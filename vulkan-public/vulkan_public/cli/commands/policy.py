@@ -103,32 +103,12 @@ def trigger_run(ctx: Context, policy_id: str, data: str, timeout: int):
 
 @policy.command()
 @pass_context
-@click.option("--policy_version_id", type=str, required=True)
-@click.option("--data", type=str, required=True)
-@click.option("--timeout", type=int, default=15)
+@click.option("--policy_id", type=str, required=True, help="Id of the policy")
 @log_exceptions
-def trigger_run_by_version(
-    ctx: Context, policy_version_id: str, data: str, timeout: int
-):
-    # Call the function to trigger the Dagster job
-    try:
-        input_data = json.loads(data)
-    except TypeError as e:
-        raise ValueError(f"Invalid JSON data provided: {data}\nError: {e}")
-
-    try:
-        run_id, success = client.run.trigger_run_by_policy_version_id(
-            ctx=ctx,
-            policy_version_id=policy_version_id,
-            input_data=input_data,
-            timeout=timeout,
-            time_step=5,
-        )
-        ctx.logger.info(
-            f"Run {run_id} {'completed successfully' if success else 'failed'}"
-        )
-    except Exception as e:
-        raise ValueError(f"Error triggering run: {e}")
+def list_runs(ctx: Context, policy_id: str):
+    data = client.policy.list_runs_by_policy(ctx, policy_id)
+    tab = tabulate(data, headers="keys", tablefmt="pretty")
+    ctx.logger.info(f"\n{tab}")
 
 
 @policy.command()
