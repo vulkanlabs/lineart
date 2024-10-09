@@ -50,22 +50,22 @@ def create(ctx: Context, name: str, description: str):
 
 @policy.command()
 @pass_context
-@click.option("--policy_id", type=str)
-@click.option("--policy_version_id", type=str)
+@click.option("--policy_id", type=str, required=True)
+@click.option("--policy_version_id", type=str, required=True)
 def set_active_version(ctx: Context, policy_id: str, policy_version_id: str):
     return client.policy.set_active_version(ctx, policy_id, policy_version_id)
 
 
 @policy.command()
 @pass_context
-@click.option("--policy_id", type=str)
+@click.option("--policy_id", type=str, required=True)
 def unset_active_version(ctx: Context, policy_id: str):
     return client.policy.unset_active_version(ctx, policy_id)
 
 
 @policy.command()
 @pass_context
-@click.option("--policy_id", type=str)
+@click.option("--policy_id", type=str, required=True)
 @log_exceptions
 def delete(ctx, policy_id: str):
     click.confirm(f"Are you sure you want to delete policy {policy_id}?", abort=True)
@@ -75,8 +75,8 @@ def delete(ctx, policy_id: str):
 
 @policy.command()
 @pass_context
-@click.option("--policy_id", type=str)
-@click.option("--data", type=str)
+@click.option("--policy_id", type=str, required=True)
+@click.option("--data", type=str, required=True)
 @click.option("--timeout", type=int, default=15)
 @log_exceptions
 def trigger_run(ctx: Context, policy_id: str, data: str, timeout: int):
@@ -103,8 +103,8 @@ def trigger_run(ctx: Context, policy_id: str, data: str, timeout: int):
 
 @policy.command()
 @pass_context
-@click.option("--policy_version_id", type=str)
-@click.option("--data", type=str)
+@click.option("--policy_version_id", type=str, required=True)
+@click.option("--data", type=str, required=True)
 @click.option("--timeout", type=int, default=15)
 @log_exceptions
 def trigger_run_by_version(
@@ -133,7 +133,7 @@ def trigger_run_by_version(
 
 @policy.command()
 @pass_context
-@click.option("--policy_id", type=str)
+@click.option("--policy_id", type=str, required=True)
 @click.option(
     "--all", is_flag=True, default=False, help="Include archived policy versions"
 )
