@@ -13,7 +13,7 @@ def run():
 
 
 @run.command()
-@click.argument("run_id")
+@click.argument("run_id", type=str, required=True)
 @pass_context
 @log_exceptions
 def data(ctx: Context, run_id: str):

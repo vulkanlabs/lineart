@@ -63,6 +63,8 @@ class PolicyUpdate(BaseModel):
 
 class Policy(PolicyBase):
     policy_id: UUID
+    project_id: UUID
+    archived: bool
     created_at: datetime
     last_updated_at: datetime
 
@@ -77,6 +79,8 @@ class ComponentBase(BaseModel):
 class Component(ComponentBase):
     component_id: UUID
     project_id: UUID
+    archived: bool
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -97,6 +101,7 @@ class ComponentVersion(BaseModel):
     created_at: datetime
     output_schema: str | None = None
     project_id: UUID
+    archived: bool
 
     class Config:
         from_attributes = True
@@ -126,6 +131,8 @@ class PolicyVersionCreate(PolicyVersionBase):
 class PolicyVersion(PolicyVersionBase):
     policy_version_id: UUID
     graph_definition: str
+    project_id: UUID
+    archived: bool
     created_at: datetime
     last_updated_at: datetime
 
