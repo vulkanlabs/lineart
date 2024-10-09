@@ -13,28 +13,15 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-// import { PolicyForm } from "@/components/policy-form";
 
 export default function PoliciesPage({ policies }: { policies: any[] }) {
-    const [showForm, setShowForm] = useState(false);
     const router = useRouter();
 
     return (
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-            <div className="flex items-center">
-                <h1 className="text-lg font-semibold md:text-2xl">Policies</h1>
-            </div>
-            <div>
-                {policies.length > 0 ? <PolicyTable policies={policies} /> : <EmptyPolicyTable />}
-                {/* <Button className="mt-4" onClick={() => setShowForm(true)}>
-                    Create Policy
-                </Button> */}
-                <Button className="mt-4" onClick={() => router.refresh()}>
-                    Refresh
-                </Button>
-                {/* <PolicyForm display={showForm} closeFunc={() => setShowForm(false)} /> */}
-            </div>
-        </main>
+        <div>
+            <Button onClick={() => router.refresh()}>Refresh</Button>
+            {policies.length > 0 ? <PolicyTable policies={policies} /> : <EmptyPolicyTable />}
+        </div>
     );
 }
 
