@@ -14,19 +14,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import type {
-    NodeDependency,
-    NodeDefinition,
-    GraphDefinition,
-    RunStepMetadata,
-    RunStep,
-    RunSteps,
-    RunData,
-    RunNode,
-    RunLogEvent,
-    RunLog,
-    RunLogs,
-} from "../types";
+import type { NodeDependency, NodeDefinition, RunStep, RunNode } from "../types";
 import { nodeTypes } from "./nodes";
 
 function VulkanWorkflow({
@@ -92,6 +80,8 @@ function VulkanWorkflow({
             onPaneClick={clickPane}
             nodeTypes={nodeTypes}
             connectionLineType={ConnectionLineType.SmoothStep}
+            minZoom={0.1}
+            maxZoom={2}
             fitViewOptions={{ maxZoom: 1 }}
             fitView
         >

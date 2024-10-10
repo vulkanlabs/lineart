@@ -2,19 +2,7 @@
 import React, { useState } from "react";
 
 import { WorkflowFrame, NodeLayoutConfig } from "./frame";
-import type {
-    NodeDependency,
-    NodeDefinition,
-    GraphDefinition,
-    RunStepMetadata,
-    RunStep,
-    RunSteps,
-    RunData,
-    RunNode,
-    RunLogEvent,
-    RunLog,
-    RunLogs,
-} from "../types";
+import type { RunStepMetadata, RunNode, RunLogs } from "../types";
 
 export default function RunPageContent({
     runGraph,
@@ -38,7 +26,7 @@ export default function RunPageContent({
                             />
                         </div>
                     </div>
-                    <div className="col-span-4 border-l-2">
+                    <div className="col-span-4 border-l-2 overflow-auto">
                         <WorkflowSidebar clickedNode={clickedNode} />
                     </div>
                 </div>
@@ -58,13 +46,26 @@ function LogsTable({
     clickedNode: NodeLayoutConfig | null;
 }) {
     const filteredLogs = runLogs.logs.filter(
-        (log) => clickedNode === null || log.step_key === clickedNode.id
+        (log) => clickedNode === null || log.step_key === clickedNode.id,
     );
 
+    function formatDateTime(timestamp: string): string {
+        const date = new Date(timestamp);
+        return date.toLocaleString();
+    }
+
     return (
-        <div className="flex flex-row w-full h-full overflow-scroll">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+        <div className="flex flex-row w-full h-full overflow-y-auto">
+            <table className="min-w-full divide-y divide-gray-200 border-collapse">
+                <colgroup>
+                    <col style={{ width: "15%" }} />
+                    <col style={{ width: "20%" }} />
+                    <col style={{ width: "10%" }} />
+                    <col style={{ width: "15%" }} />
+                    <col style={{ width: "30%" }} />
+                    <col style={{ width: "10%" }} />
+                </colgroup>
+                <thead className="bg-gray-50 sticky top-0">
                     <tr>
                         <TableHeader>Timestamp</TableHeader>
                         <TableHeader>Step Key</TableHeader>
@@ -93,29 +94,24 @@ function LogsTable({
 
 function TableHeader({ children }) {
     return (
-        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        <th className="xl:text-xs xl:px-4 xl:py-2 2xl:px-6 2xl:py-4 2xl:text-sm text-left border-r-2 font-medium text-gray-500 uppercase tracking-wider sticky top-0">
             {children}
         </th>
     );
 }
 
 function TableCell({ children }) {
-    return <td className="px-6 py-4 whitespace-normal text-sm text-gray-500">{children}</td>;
+    return (
+        <td className="xl:text-xs xl:px-4 xl:py-2 2xl:px-6 2xl:py-4 2xl:text-sm border-r-2 whitespace-normal text-gray-500">
+            {children}
+        </td>
+    );
 }
 
 function WorkflowSidebar({ clickedNode }: { clickedNode: NodeLayoutConfig | null }) {
     return (
-        <div className="h-full bg-white border-l-2">
+        <div className="h-full bg-white border-l-2 overflow-auto">
             <NodeContent clickedNode={clickedNode} />
-        </div>
-    );
-}
-
-function NodeParam({ name, value }) {
-    return (
-        <div className="grid grid-cols-4 my-2">
-            <div className="col-span-2 text-lg font-normal">{name}</div>
-            <div className="col-span-2 overflow-scroll">{value}</div>
         </div>
     );
 }
@@ -129,23 +125,43 @@ function NodeContent({ clickedNode }: { clickedNode: NodeLayoutConfig | null }) 
         );
     }
 
+    const content = [
+        {
+            name: "Name",
+            value: clickedNode.data.label,
+        },
+        {
+            name: "Type",
+            value: clickedNode.data.type,
+        },
+        {
+            name: "Duration",
+            value: clickedNode.data?.run?.metadata
+                ? getRunDuration(clickedNode.data.run.metadata)
+                : "",
+        },
+    ];
+
     return (
-        <div className="flex flex-col px-5">
-            <div className="mt-5">
-                <NodeParam name={"Name"} value={clickedNode.data.label} />
-                <NodeParam name={"Type"} value={clickedNode.data.type} />
-                <NodeParam
-                    name={"Duration"}
-                    value={
-                        clickedNode.data?.run?.metadata
-                            ? getRunDuration(clickedNode.data.run.metadata)
-                            : ""
-                    }
-                />
-                <NodeParam
-                    name={"Output"}
-                    value={clickedNode.data?.run ? JSON.stringify(clickedNode.data.run.output) : ""}
-                />
+        <div className="flex flex-col p-5 gap-4 overflow-auto">
+            <h1 className="text-lg font-semibold">Node details</h1>
+            <div className="flex flex-row gap-12">
+                <div>
+                    {content.map(({ name }) => (
+                        <div className="py-1 text-lg font-normal">{name}</div>
+                    ))}
+                </div>
+                <div>
+                    {content.map(({ value }) => (
+                        <div className="py-1 text-lg font-light">{value}</div>
+                    ))}
+                </div>
+            </div>
+            <h1 className="text-lg font-semibold">Output</h1>
+            <div className="bg-slate-100 rounded overflow-auto">
+                <pre className="p-5 text-xs">
+                    {JSON.stringify(clickedNode.data.run?.output, null, 2)}
+                </pre>
             </div>
         </div>
     );

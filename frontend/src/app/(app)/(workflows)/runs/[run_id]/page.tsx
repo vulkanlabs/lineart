@@ -6,19 +6,7 @@ import { fetchPolicyVersion, fetchRun, fetchRunsData, fetchRunLogs } from "@/lib
 import Loader from "@/components/loader";
 
 import RunPageContent from "./components/content";
-import type {
-    NodeDependency,
-    NodeDefinition,
-    GraphDefinition,
-    RunStepMetadata,
-    RunStep,
-    RunSteps,
-    RunData,
-    RunNode,
-    RunLogEvent,
-    RunLog,
-    RunLogs,
-} from "./types";
+import type { NodeDefinition, GraphDefinition, RunData, RunNode, RunLogs } from "./types";
 
 export default async function Page({ params }) {
     const innerNavbarSections: InnerNavbarSectionProps[] = [{ key: "Run:", value: params.run_id }];
