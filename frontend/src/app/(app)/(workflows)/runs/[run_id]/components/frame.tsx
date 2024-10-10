@@ -4,6 +4,7 @@ import React, { useState, useLayoutEffect, useCallback } from "react";
 import {
     ReactFlow,
     ReactFlowProvider,
+    Controls,
     ConnectionLineType,
     Background,
     BackgroundVariant,
@@ -12,16 +13,28 @@ import {
     useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+
+import type {
+    NodeDependency,
+    NodeDefinition,
+    GraphDefinition,
+    RunStepMetadata,
+    RunStep,
+    RunSteps,
+    RunData,
+    RunNode,
+    RunLogEvent,
+    RunLog,
+    RunLogs,
+} from "../types";
 import { nodeTypes } from "./nodes";
 
 function VulkanWorkflow({
-    graphData,
-    runsData,
+    runGraph,
     onNodeClick,
     onPaneClick,
 }: {
-    graphData: any;
-    runsData: any;
+    runGraph: RunNode[];
     onNodeClick: any;
     onPaneClick: any;
 }) {
@@ -30,16 +43,9 @@ function VulkanWorkflow({
     const { fitView } = useReactFlow();
 
     const loadAndLayout = () => {
-        layoutGraph(graphData).then(([layoutedNodes, layoutedEdges]) => {
-            const _nodes = layoutedNodes.map((node) => {
-                node.data.run = runsData.steps[node.id];
-                return node;
-            });
-            console.log("Runs Data", runsData);
-            setNodes(_nodes);
+        layoutGraph(runGraph).then(([layoutedNodes, layoutedEdges]) => {
+            setNodes(layoutedNodes);
             setEdges(layoutedEdges);
-            console.log("Edges", layoutedEdges);
-            console.log("Nodes", layoutedNodes);
             window.requestAnimationFrame(() => fitView());
         });
     };
@@ -90,16 +96,16 @@ function VulkanWorkflow({
             fitView
         >
             <Background color="#ccc" variant={BackgroundVariant.Dots} />
+            <Controls />
         </ReactFlow>
     );
 }
 
-export default function WorkflowFrame({ graphData, runsData, onNodeClick, onPaneClick }) {
+export function WorkflowFrame({ runGraph, onNodeClick, onPaneClick }) {
     return (
         <ReactFlowProvider>
             <VulkanWorkflow
-                graphData={graphData}
-                runsData={runsData}
+                runGraph={runGraph}
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
             />
@@ -107,26 +113,18 @@ export default function WorkflowFrame({ graphData, runsData, onNodeClick, onPane
     );
 }
 
-interface NodeDefinition {
-    name: string;
-    node_type: string;
-    description: string;
-    dependencies: string[];
-    hidden: boolean;
-    metadata: any;
-}
-
 interface Dict {
     [key: string]: string | number | boolean;
 }
 
-interface NodeLayoutConfig {
+export interface NodeLayoutConfig {
     id: string;
     data: {
         label: string;
         description: string;
         type: string;
-        dependencies: string[];
+        dependencies: NodeDependency[] | null;
+        run: RunStep | null;
     };
     width: number;
     height: number;
@@ -163,12 +161,7 @@ const NodeTypeMapping = {
     INPUT: "entry",
 };
 
-function makeNode(node: NodeDefinition): NodeLayoutConfig[] {
-    if (node.node_type === "COMPONENT") {
-        const innerNodes = Object.values(node.metadata.nodes);
-        return innerNodes.flatMap((n: NodeDefinition) => makeNode(n));
-    }
-
+function makeNode(node: RunNode): NodeLayoutConfig {
     // TODO: Make the node width and height dynamic.
     const nodeWidth = 210;
     const nodeHeight = 42;
@@ -180,6 +173,7 @@ function makeNode(node: NodeDefinition): NodeLayoutConfig[] {
             description: node.description,
             type: node.node_type,
             dependencies: node.dependencies,
+            run: node.run,
         },
         type: "default",
 
@@ -197,10 +191,10 @@ function makeNode(node: NodeDefinition): NodeLayoutConfig[] {
         nodeConfig.sourcePosition = "right";
     }
 
-    return [nodeConfig];
+    return nodeConfig;
 }
 
-function makeEdges(node: NodeDefinition): any[] {
+function makeEdges(node: RunNode): any[] {
     if (node.dependencies === null) {
         return [];
     }
@@ -224,18 +218,12 @@ function makeEdges(node: NodeDefinition): any[] {
         });
     }
 
-    if (node.node_type == "COMPONENT") {
-        const innerNodes = Object.values(node.metadata.nodes);
-        return innerNodes.flatMap((n: NodeDefinition) => makeEdges(n));
-    }
-
     return __makeEdges(node);
 }
 
-async function layoutGraph(graphData: Dict) {
-    const rawNodes = Object.values(graphData);
-    const structuredNodes = rawNodes.flatMap((node: any) => makeNode(node));
-    const edges = rawNodes.flatMap((node: any) => makeEdges(node));
+async function layoutGraph(runGraph: RunNode[]): Promise<[NodeLayoutConfig[], EdgeLayoutConfig[]]> {
+    const structuredNodes = runGraph.map((node) => makeNode(node));
+    const edges = runGraph.flatMap((node) => makeEdges(node));
     const elk = new ELK();
 
     const [layoutedNodes, layoutedEdges] = await getLayoutedElements(

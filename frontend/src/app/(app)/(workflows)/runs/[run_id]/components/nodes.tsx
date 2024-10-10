@@ -3,12 +3,16 @@ import { Handle, Position } from "@xyflow/react";
 import { cn } from "@/lib/utils";
 
 function NodeBase({ data, width, height, isOutput = false }) {
+    const status = data.run ? data.run.metadata?.error ? "error" : "success" : "skipped";
     return (
         <div
             style={{ width: width, height: height }}
             className={cn(
                 "bg-white border border-black rounded-sm hover:border-2 text-xs",
-                data?.clicked ? "border-yellow-400 border-2" : "",
+                status === "error" ? "bg-red-400 border-red-400" : "",
+                status === "success" ? "bg-green-400 border-green-400" : "",
+                status === "skipped" ? "bg-gray-400 border-gray-400" : "",
+                data.clicked ? "border-yellow-400 border-2" : "",
             )}
         >
             <Handle type="target" position={Position.Left} />
