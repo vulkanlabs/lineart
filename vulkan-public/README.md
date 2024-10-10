@@ -22,7 +22,7 @@ While you can use a shared library to do that, it's possible to define a workflo
 Components can be configured on instantiation, and can have some configuration done on the definition.
 A simple example would be defining a component for querying an API: you can write the logic to query and treat data, configure the server parameters (endpoint, method, etc), and a user can later specify the data to be queried or the credentials to use.
 
-We provide a couple of simple examples in `sample-user-policies/components`.
+We provide a couple of simple examples in `sample-user-policies/examples/components`.
 
 ## Installation
 
@@ -67,18 +67,18 @@ The script below creates a sample policy:
 ```bash
 vulkan policy create --name my-policy
 
-# INFO Created policy my-policy with id a39b55f1-449f-4631-8dd8-1e9789df2097
+# INFO Created policy my-policy with id <POLICY_ID>
 
 vulkan policy create-version \
-    --policy_id a39b55f1-449f-4631-8dd8-1e9789df2097 \
+    --policy_id <POLICY_ID> \
     --version_name "my-first-policy-version" \
-    --repository_path sample-user-policy/integration/base
+    --repository_path sample-user-policy/examples/policies/base
 
-# INFO Created workspace my-first-policy-version with policy version abfe1a8f-8a37-4504-abe7-a40200be399b
+# INFO Created workspace my-first-policy-version with policy version <POLICY_VERSION_ID>
 
 vulkan policy set-active-version \
-    --policy_id a39b55f1-449f-4631-8dd8-1e9789df2097 \
-    --policy_version_id abfe1a8f-8a37-4504-abe7-a40200be399b
+    --policy_id <POLICY_ID> \
+    --policy_version_id <POLICY_VERSION_ID>
 ```
 
 ### Triggering a Policy Run
