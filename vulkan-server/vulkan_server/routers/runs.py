@@ -45,6 +45,7 @@ def get_run_data(
     if len(steps) == 0:
         return run_data
 
+    results_by_name = {result[0]: (result[1], result[2]) for result in results}
     metadata = {
         step.step_name: {
             "step_name": step.step_name,
@@ -57,23 +58,25 @@ def get_run_data(
         for step in steps
     }
     # Parse step data taking metadata into context
-    for result in results:
-        step_name, object_name, value = result
-        meta = metadata.pop(step_name, None)
-        if object_name != "result":
-            # This is a branch node output.
-            # The object_name represents the path taken.
-            value = object_name
-        else:
-            try:
-                value = pickle.loads(value)
-            except pickle.UnpicklingError:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Failed to unpickle data for {step_name}.{object_name}",
-                )
+    for step_name, step_metadata in metadata.items():
+        value = None
 
-        run_data["steps"][step_name] = {"output": value, "metadata": meta}
+        if step_name in results_by_name:
+            object_name, value = results_by_name[step_name]
+            if object_name != "result":
+                # This is a branch node output.
+                # The object_name represents the path taken.
+                value = object_name
+            else:
+                try:
+                    value = pickle.loads(value)
+                except pickle.UnpicklingError:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Failed to unpickle data for {step_name}.{object_name}",
+                    )
+
+        run_data["steps"][step_name] = {"output": value, "metadata": step_metadata}
 
     return run_data
 

@@ -38,11 +38,12 @@ def list(ctx: Context, all: bool):
 @pass_context
 @click.option("--name", type=str, required=True, help="Name of the policy")
 @click.option("--description", type=str, default="", help="Description of the policy")
+@log_exceptions
 def create(ctx: Context, name: str, description: str):
     return client.policy.create_policy(
         ctx,
-        name,
-        description,
+        name=name,
+        description=description,
         input_schema="{}",
         output_schema="",
     )
@@ -148,7 +149,10 @@ def create_version(
     repository_path: str,
 ):
     return client.policy.create_policy_version(
-        ctx, policy_id, version_name, repository_path
+        ctx,
+        policy_id=policy_id,
+        version_name=version_name,
+        repository_path=repository_path,
     )
 
 
