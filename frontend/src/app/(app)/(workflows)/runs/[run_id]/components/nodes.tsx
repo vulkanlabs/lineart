@@ -1,9 +1,19 @@
-import { Handle, Position } from "@xyflow/react";
+import { Handle, NodeTypes, Position } from "@xyflow/react";
 
 import { cn } from "@/lib/utils";
 
-function NodeBase({ data, width, height, isOutput = false }) {
-    const status = data.run ? data.run.metadata?.error ? "error" : "success" : "skipped";
+function NodeBase({
+    data,
+    width,
+    height,
+    isOutput = false,
+}: {
+    data: any;
+    width?: number;
+    height?: number;
+    isOutput?: boolean;
+}) {
+    const status = data.run ? (data.run.metadata?.error ? "error" : "success") : "skipped";
     return (
         <div
             style={{ width: width, height: height }}
@@ -24,15 +34,31 @@ function NodeBase({ data, width, height, isOutput = false }) {
     );
 }
 
-export function CommonNode({ data, width, height }) {
+export function CommonNode({
+    data,
+    width,
+    height,
+}: {
+    data: any;
+    width?: number;
+    height?: number;
+}) {
     return <NodeBase data={data} width={width} height={height} />;
 }
 
-export function TerminateNode({ data, width, height }) {
+export function TerminateNode({
+    data,
+    width,
+    height,
+}: {
+    data: any;
+    width?: number;
+    height?: number;
+}) {
     return <NodeBase data={data} width={width} height={height} isOutput />;
 }
 
-export function InputNode({ width, height }) {
+export function InputNode({ width, height }: { width?: number; height?: number }) {
     return (
         <div
             style={{ width: width, height: height, backgroundColor: "black", color: "white" }}
@@ -49,4 +75,4 @@ export const nodeTypes = {
     common: CommonNode,
     entry: InputNode,
     terminate: TerminateNode,
-};
+} satisfies NodeTypes;
