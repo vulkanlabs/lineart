@@ -6,8 +6,15 @@ import { fetchPolicies } from "@/lib/api";
 export default async function Page() {
     const user = await stackServerApp.getUser();
     const policies = await fetchPolicies(user).catch((error) => {
-        console.error("Failed to fetch policies", error);
+        console.error(error);
         return [];
     });
-    return <PoliciesPage policies={policies} />;
+    return (
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+            <div className="flex items-center">
+                <h1 className="text-lg font-semibold md:text-2xl">Policies</h1>
+            </div>
+            <PoliciesPage policies={policies} />
+        </main>
+    );
 }

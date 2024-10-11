@@ -1,14 +1,13 @@
 import pickle
 from typing import Annotated
 
-import sqlalchemy
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
 
 from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
-from vulkan_server.dagster.client import get_dagster_db
+from vulkan_server.dagster.client import DagsterDataClient
 from vulkan_server.db import DBSession, Run, StepMetadata, get_db
 from vulkan_server.logger import init_logger
 
@@ -30,10 +29,23 @@ def get_run_data(
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
 
+    run_data = {
+        "run_id": run_id,
+        "status": run.status,
+        "last_updated_at": run.last_updated_at,
+        "steps": {},
+    }
+
+    dagster_data_client = DagsterDataClient()
+    results = dagster_data_client.get_run_data(run_id)
+    if len(results) == 0:
+        return run_data
+
     steps = db.query(StepMetadata).filter_by(run_id=run_id).all()
     if len(steps) == 0:
-        return {"run_id": run_id, "last_updated_at": run.last_updated_at, "data": {}}
+        return run_data
 
+    results_by_name = {result[0]: (result[1], result[2]) for result in results}
     metadata = {
         step.step_name: {
             "step_name": step.step_name,
@@ -45,25 +57,12 @@ def get_run_data(
         }
         for step in steps
     }
+    # Parse step data taking metadata into context
+    for step_name, step_metadata in metadata.items():
+        value = None
 
-    dagster_db = get_dagster_db()
-    with dagster_db.connect() as conn:
-        q = sqlalchemy.text("""
-        SELECT step_name, object_name, value 
-            FROM objects 
-            WHERE run_id = :run_id
-        """)
-        results = conn.execute(q, {"run_id": run_id}).fetchall()
-        if len(results) == 0:
-            return {"run_id": run_id, "data": {}}
-
-        # TODO: on a separate query, we can get the step metadata to
-        # enrich the results with node type, execution times etc.
-
-        steps_data = {}
-        for result in results:
-            step_name, object_name, value = result
-            meta = metadata.pop(step_name, None)
+        if step_name in results_by_name:
+            object_name, value = results_by_name[step_name]
             if object_name != "result":
                 # This is a branch node output.
                 # The object_name represents the path taken.
@@ -77,19 +76,31 @@ def get_run_data(
                         detail=f"Failed to unpickle data for {step_name}.{object_name}",
                     )
 
-            steps_data[step_name] = {"output": value, "metadata": meta}
+        run_data["steps"][step_name] = {"output": value, "metadata": step_metadata}
 
-    return {
-        "run_id": run_id,
-        "last_updated_at": run.last_updated_at,
-        "steps": steps_data,
-    }
+    return run_data
 
 
 # TODO: Add a separate route with inputs and outputs
 # This requires leveraging the graph structure to extract the dependencies
 # and then get dependency outputs from the run.
 # For the outputs, it's the same as the endpoint above.
+
+
+@router.get("/{run_id}/logs", response_model=schemas.RunLogs)
+def get_run_logs(run_id: str, db: Session = Depends(get_db)):
+    run = db.query(Run).filter_by(run_id=run_id).first()
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+    dagster_data_client = DagsterDataClient()
+    logs = dagster_data_client.get_run_logs(run.dagster_run_id)
+    return {
+        "run_id": run_id,
+        "status": run.status,
+        "last_updated_at": run.last_updated_at,
+        "logs": logs,
+    }
 
 
 @router.get("/{run_id}", response_model=schemas.Run)

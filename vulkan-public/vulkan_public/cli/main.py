@@ -25,6 +25,7 @@ def cli(ctx: click.core.Context, verbose: bool):
 cli.add_command(commands.login.login)
 cli.add_command(commands.component.component)
 cli.add_command(commands.policy.policy)
+cli.add_command(commands.policy_version.policy_version)
 cli.add_command(commands.run.run)
 
 

@@ -2,8 +2,6 @@ import Image from 'next/image';
 import { Handle, Position } from '@xyflow/react';
 
 import { Split, Blocks, Link, ArrowRightFromLine } from "lucide-react";
-// import HttpIcon from '@mui/icons-material/Http';
-// import OutputIcon from '@mui/icons-material/Output';
 
 import { cn } from "@/lib/utils";
 import PythonLogo from "/public/python-logo.png";

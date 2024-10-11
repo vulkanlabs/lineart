@@ -12,10 +12,14 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 
 export default function ComponentPageContent({ components }) {
+    const router = useRouter();
+
     return (
         <div>
+            <Button onClick={() => router.refresh()}>Refresh</Button>
             {components.length > 0 ? (
                 <ComponentsTable components={components} />
             ) : (

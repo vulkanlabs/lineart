@@ -11,6 +11,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { ShortenedID } from "@/components/shortened-id";
 
 export default function PolicyVersionsTable({ policyVersions }: { policyVersions: any[] }) {
     const router = useRouter();
@@ -21,33 +22,35 @@ export default function PolicyVersionsTable({ policyVersions }: { policyVersions
     }
 
     return (
-            <Table>
-                <TableCaption>Available versions.</TableCaption>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Tag</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Created At</TableHead>
+        <Table>
+            <TableCaption>Available versions.</TableCaption>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Tag</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created At</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {policyVersions.map((policyVersion) => (
+                    <TableRow
+                        key={policyVersion.policy_version_id}
+                        className="cursor-pointer"
+                        onClick={() => goToVersion(policyVersion)}
+                    >
+                        <TableCell>
+                            <ShortenedID id={policyVersion.policy_version_id} />
+                        </TableCell>
+                        <TableCell>{policyVersion.alias}</TableCell>
+                        <TableCell>
+                            <VersionStatus value={policyVersion.status} />
+                        </TableCell>
+                        <TableCell>{policyVersion.created_at}</TableCell>
                     </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {policyVersions.map((policyVersion) => (
-                        <TableRow
-                            key={policyVersion.policy_version_id}
-                            className="cursor-pointer"
-                            onClick={() => goToVersion(policyVersion)}
-                        >
-                            <TableCell>{policyVersion.policy_version_id}</TableCell>
-                            <TableCell>{policyVersion.alias}</TableCell>
-                            <TableCell>
-                                <VersionStatus value={policyVersion.status} />
-                            </TableCell>
-                            <TableCell>{policyVersion.created_at}</TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+                ))}
+            </TableBody>
+        </Table>
     );
 }
 
