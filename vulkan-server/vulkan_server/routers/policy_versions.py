@@ -1,26 +1,27 @@
 import json
-from typing import Annotated
+from typing import Annotated, Any
 
 import requests
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-from vulkan.core.run import RunStatus
-from vulkan_server.dagster.trigger_run import update_repository
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.dagster.client import get_dagster_client
-from vulkan_server.dagster.launch_run import launch_run
+from vulkan_server.dagster.launch_run import create_run
+from vulkan_server.dagster.trigger_run import update_repository
 from vulkan_server.db import (
     Component,
     ComponentVersion,
     ComponentVersionDependency,
+    ConfigurationValue,
     DagsterWorkspace,
     Policy,
     PolicyVersion,
     Run,
     get_db,
 )
+from vulkan_server.exceptions import VulkanServerException
 from vulkan_server.logger import init_logger
 
 logger = init_logger("policyVersions")
@@ -109,7 +110,7 @@ def delete_policy_version(
 @router.post("/{policy_version_id}/runs")
 def create_run_by_policy_version(
     policy_version_id: str,
-    execution_config_str: Annotated[str, Body(embed=True)],
+    input_data: Annotated[str, Body(embed=True)],
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
     ),
@@ -118,20 +119,49 @@ def create_run_by_policy_version(
     dagster_client=Depends(get_dagster_client),
 ):
     try:
-        execution_config = json.loads(execution_config_str)
+        input_data_obj = json.loads(input_data)
     except Exception as e:
         raise HTTPException(
             status_code=400,
             detail={
-                "error": "UNHANDLED_EXCEPTION",
-                "msg": f"Invalid execution config: {str(e)}",
+                "error": "INVALID_INPUT_DATA",
+                "msg": f"Invalid input data: {str(e)}",
             },
         )
 
+    try:
+        run = create_run(
+            db=db,
+            dagster_client=dagster_client,
+            server_url=server_config.vulkan_dagster_server_url,
+            policy_version_id=policy_version_id,
+            project_id=project_id,
+            input_data=input_data_obj,
+        )
+    except VulkanServerException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={
+                "error": e.error_code,
+                "msg": e.msg,
+            },
+        )
+
+    return {"policy_version_id": policy_version_id, "run_id": run.run_id}
+
+
+@router.get("/{policy_version_id}/variables", response_model=dict[str, str | None])
+def list_config_variables(
+    policy_version_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
     version = (
         db.query(PolicyVersion)
         .filter_by(
-            policy_version_id=policy_version_id, project_id=project_id, archived=False
+            policy_version_id=policy_version_id,
+            project_id=project_id,
+            archived=False,
         )
         .first()
     )
@@ -139,23 +169,63 @@ def create_run_by_policy_version(
         msg = f"Policy version {policy_version_id} not found"
         raise HTTPException(status_code=404, detail=msg)
 
-    run, error_msg = launch_run(
-        dagster_client=dagster_client,
-        server_url=server_config.server_url,
-        execution_config=execution_config,
-        policy_version_id=version.policy_version_id,
-        version_name=definitions.version_name(
-            version.policy_id, version.policy_version_id
-        ),
-        db=db,
-        project_id=project_id,
+    required_variables = version.variables
+    variables = (
+        db.query(ConfigurationValue)
+        .filter_by(policy_version_id=policy_version_id)
+        .all()
     )
-    if run.status == RunStatus.FAILURE:
+    variable_map = {v.key: v.value for v in variables}
+    return {v: variable_map.get(v, None) for v in required_variables}
+
+
+@router.put("/{policy_version_id}/variables")
+def set_config_variables(
+    policy_version_id: str,
+    variables: Annotated[Any, Body(embed=True)],
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    try:
+        variables_obj = json.loads(variables)
+    except Exception as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to launch run: {error_msg}",
+            status_code=400,
+            detail={
+                "error": "INVALID_VARIABLES",
+                "msg": f"Invalid variables: {str(e)}",
+            },
         )
-    return {"policy_version_id": version.policy_version_id, "run_id": run.run_id}
+
+    version = (
+        db.query(PolicyVersion)
+        .filter_by(
+            policy_version_id=policy_version_id,
+            project_id=project_id,
+            archived=False,
+        )
+        .first()
+    )
+    if version is None:
+        msg = f"Policy version {policy_version_id} not found" 
+        raise HTTPException(status_code=404, detail=msg)
+
+    for key, value in variables_obj.items():
+        config_value = (
+            db.query(ConfigurationValue)
+            .filter_by(policy_version_id=policy_version_id, key=key)
+            .first()
+        )
+        if config_value is None:
+            config_value = ConfigurationValue(
+                policy_version_id=policy_version_id, key=key, value=value
+            )
+            db.add(config_value)
+        else:
+            config_value.value = value
+
+    db.commit()
+    return {"policy_version_id": policy_version_id, "variables": variables_obj}
 
 
 @router.get("/{policy_version_id}/runs", response_model=list[schemas.Run])

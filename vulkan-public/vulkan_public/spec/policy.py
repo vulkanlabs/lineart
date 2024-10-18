@@ -53,6 +53,7 @@ class PolicyDefinition(GraphDefinition):
     input_schema: dict[str, type]
     output_callback: Callable | None = None
     components: list[ComponentInstance] = field(default_factory=list)
+    config_variables: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         if self.output_callback is not None:
@@ -65,6 +66,11 @@ class PolicyDefinition(GraphDefinition):
         nodes.update({c.config.name: c.config.dependencies for c in self.components})
         self.validate_node_dependencies(nodes)
 
+        if POLICY_CONFIG_KEY in self.input_schema:
+            raise ValueError(
+                f"Reserved key '{POLICY_CONFIG_KEY}' is not allowed in input schema."
+            )
+
     def validate_nodes(self):
         # TODO: we should assert that all leaves are terminate nodes
         terminate_nodes = [
@@ -72,3 +78,6 @@ class PolicyDefinition(GraphDefinition):
         ]
         if len(terminate_nodes) == 0:
             raise ValueError("No terminate node found in policy.")
+
+
+POLICY_CONFIG_KEY = "vulkan_policy_config"

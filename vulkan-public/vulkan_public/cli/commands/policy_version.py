@@ -47,3 +47,23 @@ def trigger_run(ctx: Context, policy_version_id: str, data: str, timeout: int):
 def show_graph(ctx: Context, policy_version_id: str):
     response = client.policy.get_policy_version_graph(ctx, policy_version_id)
     click.echo(json.dumps(json.loads(response), indent=2))
+
+
+@policy_version.command()
+@pass_context
+@click.option("--policy_version_id", type=str, required=True)
+@click.argument("variables", type=str, required=True)
+@log_exceptions
+def set_variables(ctx: Context, policy_version_id: str, variables: str):
+    variables = json.loads(variables)
+    response = client.policy_version.set_variables(ctx, policy_version_id, variables)
+    click.echo(json.dumps(response, indent=2))
+
+
+@policy_version.command()
+@pass_context
+@click.option("--policy_version_id", type=str, required=True)
+@log_exceptions
+def list_variables(ctx: Context, policy_version_id: str):
+    response = client.policy_version.list_variables(ctx, policy_version_id)
+    click.echo(json.dumps(response, indent=2))

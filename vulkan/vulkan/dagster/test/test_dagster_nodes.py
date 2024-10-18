@@ -13,10 +13,10 @@ from vulkan_public.spec.nodes import (
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.dagster.nodes import to_dagster_node
 from vulkan.dagster.testing import run_test_job
-
+from vulkan_public.spec.policy import POLICY_CONFIG_KEY
 
 def test_http_connection(httpserver: HTTPServer):
-    test_req_data = {"key": "value"}
+    test_req_data = {"key": "value", POLICY_CONFIG_KEY: {}}
     test_resp_data = {"resp_key": "resp_value"}
 
     node = HTTPConnectionNode(

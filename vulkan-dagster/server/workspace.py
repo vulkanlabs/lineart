@@ -46,8 +46,8 @@ class VulkanWorkspaceManager:
         )
         return workspace_path
 
-    def get_required_components(self) -> list[str]:
-        return _get_required_components(self.code_location, self.workspace_name)
+    def get_policy_definition_settings(self) -> list[str]:
+        return _get_policy_definition_settings(self.code_location, self.workspace_name)
 
     def create_venv(self) -> str:
         return _create_venv_for_workspace(self.venv_path, self.workspace_path)
@@ -102,7 +102,7 @@ def _create_venv_for_workspace(venv_path, workspace_path):
     return venv_path
 
 
-def _get_required_components(code_location: VulkanCodeLocation, workspace_name: str):
+def _get_policy_definition_settings(code_location: VulkanCodeLocation, workspace_name: str):
     tmp_path = f"/tmp/{workspace_name}-{str(time())}.json"
     completed_process = subprocess.run(
         [
@@ -129,7 +129,7 @@ def _get_required_components(code_location: VulkanCodeLocation, workspace_name: 
         raise Exception(msg)
 
     data = _load_and_remove(tmp_path)
-    return data["required_components"]
+    return data
 
 
 def _get_node_definitions(

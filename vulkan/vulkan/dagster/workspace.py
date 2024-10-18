@@ -22,10 +22,9 @@ def make_workspace_definition(
     components_base_dir: str,
 ) -> Definitions:
     resources = {
-        RUN_CONFIG_KEY: VulkanRunConfig(
-            run_id="tmpid",
-            server_url="tmpurl",
-        ),
+        # Vulkan Configurable Resources
+        RUN_CONFIG_KEY: VulkanRunConfig.configure_at_launch(),
+        # Run DB
         DB_CONFIG_KEY: DBConfig(
             host=EnvVar("VULKAN_DB_HOST"),
             port=EnvVar("VULKAN_DB_PORT"),
@@ -34,6 +33,7 @@ def make_workspace_definition(
             database=EnvVar("VULKAN_DB_DATABASE"),
             object_table=EnvVar("VULKAN_DB_OBJECT_TABLE"),
         ),
+        # IO Managers
         "io_manager": IOManagerDefinition(
             resource_fn=postgresql_io_manager,
             required_resource_keys={RUN_CONFIG_KEY, DB_CONFIG_KEY},
