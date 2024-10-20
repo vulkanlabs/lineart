@@ -48,35 +48,3 @@ export function ComponentVersionsTable({ versions }) {
         </Table>
     );
 }
-
-export function ComponentVersionDependenciesTable({ entries }) {
-    const router = useRouter();
-
-    return (
-        <Table>
-            <TableCaption>Policies that use this Component.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Component ID</TableHead>
-                    <TableHead>Component Version</TableHead>
-                    <TableHead>Policy ID</TableHead>
-                    <TableHead>Policy Name</TableHead>
-                    <TableHead>Policy Version</TableHead>
-                    <TableHead>Version Tag</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {entries.map((entry) => (
-                    <TableRow key={entry.component_version_id + entry.policy_version_id}>
-                        <TableCell>{entry.component_version_id}</TableCell>
-                        <TableCell>{entry.component_version_alias}</TableCell>
-                        <TableCell>{entry.policy_id}</TableCell>
-                        <TableCell>{entry.policy_name}</TableCell>
-                        <TableCell>{entry.policy_version_id}</TableCell>
-                        <TableCell>{entry.policy_version_alias}</TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
-}

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 
 import WorkflowFrame from "@/components/workflow/frame";
-import WorkflowSidebar, { VulkanNode } from "@/components/workflow/sidebar";
+import WorkflowSidebar, { type VulkanNode } from "@/components/workflow/sidebar";
 
 export default function WorkflowPage({ graphData }) {
     const [clickedNode, setClickedNode] = useState<VulkanNode>(null);
@@ -14,7 +14,7 @@ export default function WorkflowPage({ graphData }) {
                 <div className="w-full h-full">
                     <WorkflowFrame
                         graphData={graphData}
-                        onNodeClick={(_, node: VulkanNode) => setClickedNode(node)}
+                        onNodeClick={(_: any, node: VulkanNode) => setClickedNode(node)}
                         onPaneClick={() => setClickedNode(null)}
                     />
                 </div>

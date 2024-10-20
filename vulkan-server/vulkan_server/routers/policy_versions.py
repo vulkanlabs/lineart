@@ -150,7 +150,10 @@ def create_run_by_policy_version(
     return {"policy_version_id": policy_version_id, "run_id": run.run_id}
 
 
-@router.get("/{policy_version_id}/variables", response_model=dict[str, str | None])
+@router.get(
+    "/{policy_version_id}/variables",
+    response_model=list[schemas.ConfigurationVariables],
+)
 def list_config_variables(
     policy_version_id: str,
     project_id: str = Depends(get_project_id),
@@ -175,14 +178,24 @@ def list_config_variables(
         .filter_by(policy_version_id=policy_version_id)
         .all()
     )
-    variable_map = {v.key: v.value for v in variables}
-    return {v: variable_map.get(v, None) for v in required_variables}
+
+    variable_map = {v.key: v for v in variables}
+    result = []
+    for variable_name in required_variables:
+        entry = {"name": variable_name}
+        if variable_name in variable_map:
+            entry["value"] = variable_map[variable_name].value
+            entry["created_at"] = variable_map[variable_name].created_at
+            entry["last_updated_at"] = variable_map[variable_name].last_updated_at
+        result.append(entry)
+
+    return result
 
 
 @router.put("/{policy_version_id}/variables")
 def set_config_variables(
     policy_version_id: str,
-    variables: Annotated[dict[str, str], Body()],
+    variables: Annotated[list[schemas.ConfigurationVariablesBase], Body(embed=True)],
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):

@@ -25,7 +25,9 @@ function VulkanWorkflow({ graphData, onNodeClick, onPaneClick }) {
     const { fitView } = useReactFlow();
 
     const loadAndLayout = () => {
-        const components = Object.values(graphData).filter((node) => node.node_type === "COMPONENT");
+        const components = Object.values(graphData).filter(
+            (node) => node.node_type === "COMPONENT",
+        );
         const states = components.map((c) => ({ [c.name]: { isOpen: false } }));
         const componentsState = Object.assign({}, ...states);
         setComponentsState(componentsState);
