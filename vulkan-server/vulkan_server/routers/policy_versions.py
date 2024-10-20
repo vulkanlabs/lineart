@@ -1,5 +1,5 @@
 import json
-from typing import Annotated, Any
+from typing import Annotated
 
 import requests
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
@@ -133,7 +133,7 @@ def create_run_by_policy_version(
         run = create_run(
             db=db,
             dagster_client=dagster_client,
-            server_url=server_config.vulkan_dagster_server_url,
+            server_url=server_config.server_url,
             policy_version_id=policy_version_id,
             project_id=project_id,
             input_data=input_data_obj,
@@ -182,21 +182,10 @@ def list_config_variables(
 @router.put("/{policy_version_id}/variables")
 def set_config_variables(
     policy_version_id: str,
-    variables: Annotated[Any, Body(embed=True)],
+    variables: Annotated[dict[str, str], Body()],
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    try:
-        variables_obj = json.loads(variables)
-    except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "INVALID_VARIABLES",
-                "msg": f"Invalid variables: {str(e)}",
-            },
-        )
-
     version = (
         db.query(PolicyVersion)
         .filter_by(
@@ -207,10 +196,10 @@ def set_config_variables(
         .first()
     )
     if version is None:
-        msg = f"Policy version {policy_version_id} not found" 
+        msg = f"Policy version {policy_version_id} not found"
         raise HTTPException(status_code=404, detail=msg)
 
-    for key, value in variables_obj.items():
+    for key, value in variables.items():
         config_value = (
             db.query(ConfigurationValue)
             .filter_by(policy_version_id=policy_version_id, key=key)
@@ -225,7 +214,7 @@ def set_config_variables(
             config_value.value = value
 
     db.commit()
-    return {"policy_version_id": policy_version_id, "variables": variables_obj}
+    return {"policy_version_id": policy_version_id, "variables": variables}
 
 
 @router.get("/{policy_version_id}/runs", response_model=list[schemas.Run])

@@ -10,19 +10,19 @@ from vulkan_server.schemas import LogEntry
 
 
 def get_dagster_client() -> DagsterGraphQLClient:
-    DAGSTER_URL = os.getenv("DAGSTER_SERVER_URL")
-    DAGSTER_PORT = os.getenv("DAGSTER_SERVER_PORT")
-    if DAGSTER_URL is None or DAGSTER_PORT is None:
+    DAGSTER_HOST = os.getenv("DAGSTER_HOST")
+    DAGSTER_PORT = os.getenv("DAGSTER_PORT")
+    if DAGSTER_HOST is None or DAGSTER_PORT is None:
         raise ValueError(
             "Please set the following environment variables: "
-            "DAGSTER_SERVER_URL, DAGSTER_SERVER_PORT"
+            "DAGSTER_HOST, DAGSTER_PORT"
         )
     try:
         DAGSTER_PORT = int(DAGSTER_PORT)
     except ValueError:
-        raise ValueError("DAGSTER_SERVER_PORT must be an integer")
+        raise ValueError("DAGSTER_PORT must be an integer")
 
-    dagster_client = create_dagster_client(DAGSTER_URL, DAGSTER_PORT)
+    dagster_client = create_dagster_client(DAGSTER_HOST, DAGSTER_PORT)
     return dagster_client
 
 

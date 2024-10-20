@@ -264,7 +264,7 @@ def create_run_by_policy(
         run = create_run(
             db=db,
             dagster_client=dagster_client,
-            server_url=server_config.vulkan_dagster_server_url,
+            server_url=server_config.server_url,
             policy_version_id=policy.active_policy_version_id,
             project_id=project_id,
             input_data=input_data_obj,

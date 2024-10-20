@@ -15,6 +15,7 @@ def set_variables(
     policy_version_id: str,
     variables: dict[str, str],
 ):
+    ctx.logger.info(f"Setting variables: {variables}")
     response = ctx.session.put(
         f"{ctx.server_url}/policyVersions/{policy_version_id}/variables",
         json=variables,

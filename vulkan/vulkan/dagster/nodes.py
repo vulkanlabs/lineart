@@ -333,7 +333,6 @@ class DagsterBranch(BranchNode, DagsterNode):
                 METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
                 **branch_paths,
             },
-            required_resource_keys={POLICY_CONFIG_KEY},
         )
         return node_op
 
