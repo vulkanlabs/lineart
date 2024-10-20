@@ -7,6 +7,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { ShortenedID } from "@/components/shortened-id";
+
 import { LinkIcon } from "lucide-react";
 import Link from "next/link";
 
@@ -38,11 +40,17 @@ export function ComponentVersionDependenciesTable({ entries }: { entries: Compon
             <TableBody>
                 {entries.map((entry) => (
                     <TableRow key={entry.component_version_id + entry.policy_version_id}>
-                        <TableCell>{entry.component_version_id}</TableCell>
+                        <TableCell>
+                            <ShortenedID id={entry.component_version_id} />
+                        </TableCell>
                         <TableCell>{entry.component_version_alias}</TableCell>
-                        <TableCell>{entry.policy_id}</TableCell>
+                        <TableCell>
+                            <ShortenedID id={entry.policy_id} />
+                        </TableCell>
                         <TableCell>{entry.policy_name}</TableCell>
-                        <TableCell>{entry.policy_version_id}</TableCell>
+                        <TableCell>
+                            <ShortenedID id={entry.policy_version_id} />
+                        </TableCell>
                         <TableCell>{entry.policy_version_alias}</TableCell>
                     </TableRow>
                 ))}
@@ -73,8 +81,12 @@ export function PolicyVersionComponentDependenciesTable({
                     <TableRow key={entry.component_version_id + entry.policy_version_id}>
                         <TableCell>{entry.component_name}</TableCell>
                         <TableCell>{entry.component_version_alias}</TableCell>
-                        <TableCell>{entry.component_id}</TableCell>
-                        <TableCell>{entry.component_version_id}</TableCell>
+                        <TableCell>
+                            <ShortenedID id={entry.component_id} />
+                        </TableCell>
+                        <TableCell>
+                            <ShortenedID id={entry.component_version_id} />
+                        </TableCell>
                         <TableCell>
                             <Link href={`/components/`}>
                                 <LinkIcon />

@@ -13,6 +13,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { ShortenedID } from "@/components/shortened-id";
 
 export default function ComponentPageContent({ components }) {
     const router = useRouter();
@@ -52,7 +53,9 @@ function ComponentsTable({ components }) {
                         className="cursor-pointer"
                         onClick={() => router.push(`/components/${entry.component_id}`)}
                     >
-                        <TableCell>{entry.component_id}</TableCell>
+                        <TableCell>
+                            <ShortenedID id={entry.component_id} />
+                        </TableCell>
                         <TableCell>{entry.name}</TableCell>
                         <TableCell> - </TableCell>
                     </TableRow>

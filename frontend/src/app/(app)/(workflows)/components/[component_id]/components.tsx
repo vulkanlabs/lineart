@@ -10,6 +10,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { ShortenedID } from "@/components/shortened-id";
 
 export function ComponentVersionsTable({ versions }) {
     const router = useRouter();
@@ -37,7 +38,9 @@ export function ComponentVersionsTable({ versions }) {
                             )
                         }
                     >
-                        <TableCell>{entry.component_version_id}</TableCell>
+                        <TableCell>
+                            <ShortenedID id={entry.component_version_id} />
+                        </TableCell>
                         <TableCell>{entry.alias}</TableCell>
                         <TableCell>{entry.input_schema}</TableCell>
                         <TableCell>{entry.instance_params_schema}</TableCell>
