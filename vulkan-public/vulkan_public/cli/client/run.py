@@ -70,7 +70,7 @@ class RunLauncher:
 
     def _launch_run_by_policy_version_id(self, policy_version_id: str):
         response = self.__launch_run(
-            url=f"{self.ctx.server_url}/policyVersions/{policy_version_id}/runs"
+            url=f"{self.ctx.server_url}/policy-versions/{policy_version_id}/runs"
         )
         if response.status_code == 404:
             msg = (

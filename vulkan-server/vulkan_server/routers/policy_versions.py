@@ -23,10 +23,10 @@ from vulkan_server.db import (
 )
 from vulkan_server.logger import init_logger
 
-logger = init_logger("policyVersions")
+logger = init_logger("policy-versions")
 router = APIRouter(
-    prefix="/policyVersions",
-    tags=["policyVersions"],
+    prefix="/policy-versions",
+    tags=["policy-versions"],
     responses={404: {"description": "Not found"}},
 )
 

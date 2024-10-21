@@ -4,13 +4,13 @@ import os
 import yaml
 
 from vulkan_public.cli.context import Context
+from vulkan_public.exceptions import UserImportException
 from vulkan_public.spec.environment.config import UserWorkspaceConfig
 from vulkan_public.spec.environment.loaders import load_policy_definition
 from vulkan_public.spec.environment.packing import (
     find_package_entrypoint,
     pack_workspace,
 )
-from vulkan_public.exceptions import UserImportException
 
 
 def list_policies(ctx: Context, include_archived: bool = False):
@@ -197,7 +197,7 @@ def delete_policy_version(
     policy_version_id: str,
 ):
     response = ctx.session.delete(
-        f"{ctx.server_url}/policyVersions/{policy_version_id}"
+        f"{ctx.server_url}/policy-versions/{policy_version_id}"
     )
     if response.status_code != 200:
         raise ValueError(f"Failed to delete policy version: {response.content}")
@@ -205,7 +205,7 @@ def delete_policy_version(
 
 
 def get_policy_version_graph(ctx: Context, policy_version_id: str):
-    response = ctx.session.get(f"{ctx.server_url}/policyVersions/{policy_version_id}")
+    response = ctx.session.get(f"{ctx.server_url}/policy-versions/{policy_version_id}")
     if response.status_code != 200:
         raise ValueError(f"Failed to get policy version graph: {response.content}")
     return response.json()["graph_definition"]
