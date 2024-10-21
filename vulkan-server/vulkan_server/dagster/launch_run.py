@@ -4,6 +4,8 @@ from dagster_graphql import DagsterGraphQLClient
 from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
 from vulkan.dagster.policy import DEFAULT_POLICY_NAME
+from vulkan.dagster.run_config import RUN_CONFIG_KEY
+from vulkan_public.constants import POLICY_CONFIG_KEY
 
 from vulkan_server import definitions
 from vulkan_server.dagster import trigger_run
@@ -135,13 +137,13 @@ def trigger_dagster_job(
     execution_config = {
         "ops": {"input_node": {"config": input_data}},
         "resources": {
-            "vulkan_run_config": {
+            RUN_CONFIG_KEY: {
                 "config": {
                     "run_id": str(run_id),
                     "server_url": server_url,
                 }
             },
-            "vulkan_policy_config": {"config": {"variables": config_variables}},
+            POLICY_CONFIG_KEY: {"config": {"variables": config_variables}},
         },
     }
 
