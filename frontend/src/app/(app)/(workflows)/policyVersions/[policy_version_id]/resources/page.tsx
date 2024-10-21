@@ -14,9 +14,9 @@ export default async function Page({ params }) {
     return (
         <div className="flex flex-col p-8 gap-8">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight">Configurable Variables</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Configuration Variables</h1>
                 <Suspense fallback={<Loader />}>
-                    <ConfigurableVariablesSection
+                    <ConfigVariablesSection
                         user={user}
                         policy_version_id={params.policy_version_id}
                     />
@@ -33,7 +33,7 @@ export default async function Page({ params }) {
     );
 }
 
-async function ConfigurableVariablesSection({
+async function ConfigVariablesSection({
     user,
     policy_version_id,
 }: {
