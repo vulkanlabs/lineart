@@ -179,7 +179,7 @@ def list_config_variables(
         .all()
     )
 
-    variable_map = {v.key: v for v in variables}
+    variable_map = {v.name: v for v in variables}
     result = []
     for variable_name in required_variables:
         entry = {"name": variable_name}
@@ -195,7 +195,7 @@ def list_config_variables(
 @router.put("/{policy_version_id}/variables")
 def set_config_variables(
     policy_version_id: str,
-    variables: Annotated[list[schemas.ConfigurationVariablesBase], Body(embed=True)],
+    variables: Annotated[list[schemas.ConfigurationVariablesBase], Body()],
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
@@ -212,19 +212,22 @@ def set_config_variables(
         msg = f"Policy version {policy_version_id} not found"
         raise HTTPException(status_code=404, detail=msg)
 
-    for key, value in variables.items():
+    for v in variables:
         config_value = (
             db.query(ConfigurationValue)
-            .filter_by(policy_version_id=policy_version_id, key=key)
+            .filter_by(policy_version_id=policy_version_id, name=v.name)
             .first()
         )
+
         if config_value is None:
             config_value = ConfigurationValue(
-                policy_version_id=policy_version_id, key=key, value=value
+                policy_version_id=policy_version_id,
+                name=v.name,
+                value=v.value,
             )
             db.add(config_value)
         else:
-            config_value.value = value
+            config_value.value = v.value
 
     db.commit()
     return {"policy_version_id": policy_version_id, "variables": variables}

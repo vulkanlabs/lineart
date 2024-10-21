@@ -200,15 +200,15 @@ class ConfigurationValue(AuthorizationMixin, TimedUpdateMixin, Base):
     )
     policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
 
-    key = Column(String)
+    name = Column(String)
     value = Column(String, nullable=True)
     nullable = Column(Boolean)
 
     __table_args__ = (
         Index(
-            "unique_policy_version_key",
+            "unique_policy_version_name",
             "policy_version_id",
-            "key",
+            "name",
             unique=True,
         ),
         CheckConstraint(

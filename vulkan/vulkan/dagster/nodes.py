@@ -14,6 +14,7 @@ from dagster import (
     Out,
     Output,
 )
+from vulkan_public.constants import POLICY_CONFIG_KEY
 from vulkan_public.exceptions import UserCodeException
 from vulkan_public.spec.nodes import (
     BranchNode,
@@ -74,6 +75,7 @@ class DagsterHTTPConnection(HTTPConnectionNode, DagsterNode):
                 "result": Out(),
                 METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
             },
+            required_resource_keys={POLICY_CONFIG_KEY},
         )
 
     def run(self, context, inputs):
@@ -176,7 +178,7 @@ class DagsterTransformNodeMixin(DagsterNode):
             # We expose the configuration in transform nodes
             # to allow the callback function in terminate nodes to
             # access it. In the future, we may separate terminate nodes.
-            required_resource_keys={RUN_CONFIG_KEY},
+            required_resource_keys={RUN_CONFIG_KEY, POLICY_CONFIG_KEY},
         )
 
         return node_op
@@ -333,6 +335,7 @@ class DagsterBranch(BranchNode, DagsterNode):
                 METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
                 **branch_paths,
             },
+            required_resource_keys={POLICY_CONFIG_KEY},
         )
         return node_op
 
@@ -431,7 +434,7 @@ class DagsterMap(Map, DagsterNode):
             # We expose the configuration in transform nodes
             # to allow the callback function in terminate nodes to
             # access it. In the future, we may separate terminate nodes.
-            required_resource_keys={RUN_CONFIG_KEY},
+            required_resource_keys={RUN_CONFIG_KEY, POLICY_CONFIG_KEY},
         )
 
         return node_op
@@ -464,12 +467,16 @@ class DagsterCollect(Collect, DagsterTransformNodeMixin):
             hidden=hidden,
         )
 
+    @staticmethod
+    def _collect(context, entries, **kwargs):
+        return entries
+
     @classmethod
     def from_spec(cls, node: Collect):
         return cls(
             name=node.name,
             description=node.description,
-            func=node.func,
+            func=DagsterCollect._collect,
             dependencies=node.dependencies,
             hidden=node.hidden,
         )

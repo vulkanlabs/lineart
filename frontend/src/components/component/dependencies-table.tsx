@@ -12,7 +12,7 @@ import { ShortenedID } from "@/components/shortened-id";
 import { LinkIcon } from "lucide-react";
 import Link from "next/link";
 
-export type ComponentDependency = {
+type ComponentDependency = {
     component_name: string;
     component_id: string;
     component_version_id: string;

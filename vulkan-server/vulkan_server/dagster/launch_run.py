@@ -4,7 +4,6 @@ from dagster_graphql import DagsterGraphQLClient
 from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
 from vulkan.dagster.policy import DEFAULT_POLICY_NAME
-from vulkan_public.spec.policy import POLICY_CONFIG_KEY
 
 from vulkan_server import definitions
 from vulkan_server.dagster import trigger_run
@@ -55,7 +54,7 @@ def create_run(
     )
     if run.status == RunStatus.FAILURE:
         raise UnhandledException(f"Failed to launch run: {error_msg}")
-    
+
     return run
 
 
@@ -69,11 +68,11 @@ def _get_config_variables(
         db.query(ConfigurationValue)
         .filter(
             (ConfigurationValue.policy_version_id == policy_version_id)
-            & (ConfigurationValue.key.in_(variables))
+            & (ConfigurationValue.name.in_(variables))
         )
         .all()
     )
-    config_variables = {v.key: v.value for v in results}
+    config_variables = {v.name: v.value for v in results}
 
     missing_variables = set(variables) - set(config_variables.keys())
     return config_variables, missing_variables
@@ -133,11 +132,8 @@ def trigger_dagster_job(
     input_data: dict,
     config_variables: dict[str, str],
 ):
-    # Trigger the Dagster job with Policy and Run IDs as inputs
-    input_with_config = input_data
-    input_with_config[POLICY_CONFIG_KEY] = config_variables
     execution_config = {
-        "ops": {"input_node": {"config": input_with_config}},
+        "ops": {"input_node": {"config": input_data}},
         "resources": {
             "vulkan_run_config": {
                 "config": {
@@ -145,6 +141,7 @@ def trigger_dagster_job(
                     "server_url": server_url,
                 }
             },
+            "vulkan_policy_config": {"config": {"variables": config_variables}},
         },
     }
 
