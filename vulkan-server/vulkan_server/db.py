@@ -3,6 +3,7 @@ import os
 
 from sqlalchemy import (
     JSON,
+    ARRAY,
     Boolean,
     Column,
     DateTime,
@@ -10,6 +11,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     String,
+    Integer,
     Index,
     Uuid,
     create_engine,
@@ -142,7 +144,7 @@ class Component(AuthorizationMixin, Base):
             "name",
             "archived",
             unique=True,
-            postgresql_where=(archived == False), # noqa: E712
+            postgresql_where=(archived == False),  # noqa: E712
         ),
     )
 
@@ -225,6 +227,41 @@ class StepMetadata(Base):
     end_time = Column(Float)
     error = Column(String, nullable=True)
     extra = Column(JSON, nullable=True)
+
+
+class DataSource(TimedUpdateMixin, AuthorizationMixin, Base):
+    __tablename__ = "data_source"
+
+    data_source_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    name = Column(String)
+    description = Column(String, nullable=True)
+    keys = Column(ARRAY(String))
+    request_url = Column(String)
+    request_method = Column(String)
+    request_headers = Column(JSON, nullable=True)
+    request_params = Column(JSON, nullable=True)
+    request_timeout = Column(Float, nullable=True)
+    caching_enabled = Column(Boolean)
+    caching_ttl = Column(Integer, nullable=True)
+    retry_max_retries = Column(Integer, nullable=True)
+    retry_backoff_factor = Column(Float, nullable=True)
+    retry_status_forcelist = Column(ARRAY(Integer), nullable=True)
+    # Attribute name 'metadata' is reserved when using the Declarative API.
+    config_metadata = Column(JSON, nullable=True)
+
+
+class DataObject(AuthorizationMixin, Base):
+    __tablename__ = "data_object"
+
+    key = Column(String, primary_key=True)
+    data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
+    # TODO: search how to store value in bytes
+    value = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # TODO: forbid updates to this table
 
 
 if __name__ == "__main__":

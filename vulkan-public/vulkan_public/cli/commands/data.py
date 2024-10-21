@@ -1,0 +1,55 @@
+import json
+
+import click
+from tabulate import tabulate
+
+from vulkan_public.cli import client
+from vulkan_public.cli.context import Context, pass_context
+from vulkan_public.cli.exceptions import log_exceptions
+
+
+@click.group()
+def data():
+    pass
+
+
+@data.command()
+@pass_context
+@log_exceptions
+def list_sources(ctx: Context):
+    data = client.data.list_data_sources(ctx)
+    keys = [
+        "project_id",
+        "data_source_id",
+        "name",
+        "created_at",
+        "last_updated_at",
+    ]
+    summary = [dict([(k, d[k]) for k in keys]) for d in data]
+    tab = tabulate(summary, headers="keys", tablefmt="pretty")
+    ctx.logger.info(f"\n{tab}")
+
+
+@data.command()
+@pass_context
+@click.option(
+    "--config_path", type=str, required=True, help="Path to the data source config file"
+)
+@log_exceptions
+def create_source(
+    ctx: Context,
+    config_path: str,
+):
+    return client.data.create_data_source(ctx, config_path)
+
+
+@data.command()
+@pass_context
+@click.option("--data_source_id", type=str, required=True, help="Data source ID")
+@log_exceptions
+def get_source(
+    ctx: Context,
+    data_source_id: str,
+):
+    data_source = client.data.get_data_source(ctx, data_source_id)
+    click.echo(json.dumps(data_source, indent=4))

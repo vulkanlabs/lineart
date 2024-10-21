@@ -27,6 +27,7 @@ cli.add_command(commands.component.component)
 cli.add_command(commands.policy.policy)
 cli.add_command(commands.policy_version.policy_version)
 cli.add_command(commands.run.run)
+cli.add_command(commands.data.data)
 
 
 def config_environment():

@@ -3,6 +3,7 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
+from vulkan_public.schemas import DataSourceCreate
 
 
 class Project(BaseModel):
@@ -143,6 +144,7 @@ class PolicyVersion(PolicyVersionBase):
 class Run(BaseModel):
     run_id: UUID
     policy_version_id: UUID
+    project_id: UUID
     status: str
     result: str | None = None
     created_at: datetime
@@ -208,3 +210,10 @@ class RunLogs(BaseModel):
     status: str
     last_updated_at: datetime
     logs: list[LogEntry]
+
+
+class DataSource(DataSourceCreate):
+    data_source_id: UUID
+    project_id: UUID
+    created_at: datetime
+    last_updated_at: datetime
