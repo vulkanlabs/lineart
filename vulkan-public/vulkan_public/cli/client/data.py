@@ -40,3 +40,11 @@ def get_data_source(ctx: Context, data_source_id: str) -> dict:
     response = ctx.session.get(f"{ctx.server_url}/data-sources/{data_source_id}")
     assert response.status_code == 200, f"Failed to get data source: {response.content}"
     return response.json()
+
+
+def list_data_objects(ctx: Context, data_source_id: str) -> list[dict]:
+    response = ctx.session.get(
+        f"{ctx.server_url}/data-sources/{data_source_id}/objects"
+    )
+    assert response.status_code == 200, f"Failed to get data object: {response.content}"
+    return response.json()

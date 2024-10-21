@@ -13,6 +13,7 @@ from vulkan.dagster.io_manager import (
 )
 from vulkan.dagster.policy import DagsterFlow
 from vulkan.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
+from vulkan.dagster.resources import DATA_CLIENT_KEY, VulkanDataClient
 from vulkan.environment.loaders import resolve_policy
 from vulkan.environment.workspace import VulkanCodeLocation
 
@@ -21,11 +22,9 @@ def make_workspace_definition(
     file_location: str,
     components_base_dir: str,
 ) -> Definitions:
+    run_config = VulkanRunConfig.configure_at_launch()
     resources = {
-        RUN_CONFIG_KEY: VulkanRunConfig(
-            run_id="tmpid",
-            server_url="tmpurl",
-        ),
+        RUN_CONFIG_KEY: run_config,
         DB_CONFIG_KEY: DBConfig(
             host=EnvVar("VULKAN_DB_HOST"),
             port=EnvVar("VULKAN_DB_PORT"),
@@ -42,6 +41,7 @@ def make_workspace_definition(
             resource_fn=metadata_io_manager,
             required_resource_keys={RUN_CONFIG_KEY},
         ),
+        DATA_CLIENT_KEY: VulkanDataClient(run_config=run_config),
     }
 
     # Up to this point, everything should be defined in terms of core elements.

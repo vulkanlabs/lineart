@@ -53,3 +53,18 @@ def get_source(
 ):
     data_source = client.data.get_data_source(ctx, data_source_id)
     click.echo(json.dumps(data_source, indent=4))
+
+
+@data.command()
+@pass_context
+@click.option("--data_source_id", type=str, required=True, help="Data source ID")
+@log_exceptions
+def list_objects(
+    ctx: Context,
+    data_source_id: str,
+):
+    data = client.data.list_data_objects(ctx, data_source_id)
+    keys = ["project_id", "data_source_id", "key", "created_at"]
+    summary = [dict([(k, d[k]) for k in keys]) for d in data]
+    tab = tabulate(summary, headers="keys", tablefmt="pretty")
+    ctx.logger.info(f"\n{tab}")

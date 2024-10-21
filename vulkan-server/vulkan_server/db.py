@@ -10,6 +10,7 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    LargeBinary,
     String,
     Integer,
     Index,
@@ -235,7 +236,7 @@ class DataSource(TimedUpdateMixin, AuthorizationMixin, Base):
     data_source_id = Column(
         Uuid, primary_key=True, server_default=func.gen_random_uuid()
     )
-    name = Column(String)
+    name = Column(String, unique=True)
     description = Column(String, nullable=True)
     keys = Column(ARRAY(String))
     request_url = Column(String)
@@ -255,13 +256,23 @@ class DataSource(TimedUpdateMixin, AuthorizationMixin, Base):
 class DataObject(AuthorizationMixin, Base):
     __tablename__ = "data_object"
 
-    key = Column(String, primary_key=True)
+    data_object_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
     data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
-    # TODO: search how to store value in bytes
-    value = Column(String)
+    key = Column(String)
+    value = Column(LargeBinary)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # TODO: forbid updates to this table
+
+
+class RunDataCache(Base):
+    __tablename__ = "run_data_cache"
+
+    key = Column(String, primary_key=True)
+    data_object_id = Column(Uuid, ForeignKey("data_object.data_object_id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 if __name__ == "__main__":

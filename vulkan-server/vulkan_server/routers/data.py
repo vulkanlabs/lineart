@@ -1,4 +1,3 @@
-import base64
 from typing import Annotated
 
 import requests
@@ -10,7 +9,7 @@ from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.data.broker import DataBroker
 from vulkan_server.data.io import DataSourceModelSerializer
-from vulkan_server.db import DataSource, get_db
+from vulkan_server.db import DataObject, DataSource, get_db
 from vulkan_server.logger import init_logger
 
 logger = init_logger("data")
@@ -38,6 +37,10 @@ def create_data_source(
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
+    ds = db.query(DataSource).filter_by(name=config.name).first()
+    if ds is not None:
+        raise HTTPException(status_code=400, detail="Data source already exists")
+
     data_source: DataSource = DataSourceModelSerializer.serialize(config, project_id)
     db.add(data_source)
     db.commit()
@@ -63,6 +66,32 @@ def get_data_source(
     return response
 
 
+@sources.get("/{data_source_id}/objects")
+def list_data_objects(
+    data_source_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    data_source = (
+        db.query(DataSource)
+        .filter_by(data_source_id=data_source_id, project_id=project_id)
+        .first()
+    )
+    if data_source is None:
+        raise HTTPException(status_code=404, detail="Data source not found")
+
+    data_objects = db.query(DataObject).filter_by(data_source_id=data_source_id).all()
+    return [
+        dict(
+            project_id=do.project_id,
+            data_source_id=do.data_source_id,
+            key=do.key,
+            created_at=do.created_at,
+        )
+        for do in data_objects
+    ]
+
+
 broker = APIRouter(
     prefix="/data-broker",
     tags=["data-broker"],
@@ -72,12 +101,12 @@ broker = APIRouter(
 
 @broker.post("/")
 def get_data_object(
-    data_source_id: Annotated[str, Body(embed=True)],
+    data_source: Annotated[str, Body(embed=True)],
     request_body: Annotated[dict, Body(embed=True)],
     db: Session = Depends(get_db),
 ):
     # TODO: Control access to the data source by project_id
-    data_source = db.query(DataSource).filter_by(data_source_id=data_source_id).first()
+    data_source = db.query(DataSource).filter_by(name=data_source).first()
     if data_source is None:
         raise HTTPException(status_code=404, detail="Data source not found")
 
@@ -85,15 +114,12 @@ def get_data_object(
     broker = DataBroker(db, spec)
 
     try:
-        # TODO: handle different types of data
         data = broker.get_data(request_body)
-        value = base64.b64decode(data.value)
     except requests.exceptions.RequestException as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to fetch data: {str(e)}",
-        )
+        logger.error(str(e))
+        raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
+        logger.error(str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
-    return {"data": value}
+    return data.value
