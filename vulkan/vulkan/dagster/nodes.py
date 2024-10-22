@@ -32,7 +32,7 @@ from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.dagster.io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
 from vulkan.dagster.resources import DATA_CLIENT_KEY, VulkanDataClient
-from vulkan.dagster.run_config import RUN_CONFIG_KEY
+from vulkan.dagster.run_config import RUN_CONFIG_KEY, VulkanPolicyConfig
 
 
 # TODO: we should review how to require users to define the possible return
@@ -171,26 +171,34 @@ class DagsterDataInput(DataInputNode, DagsterNode):
                 "result": Out(),
                 METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
             },
-            required_resource_keys={DATA_CLIENT_KEY},
+            required_resource_keys={POLICY_CONFIG_KEY, DATA_CLIENT_KEY},
         )
 
     def run(self, context, inputs):
         start_time = time.time()
         client: VulkanDataClient = getattr(context.resources, DATA_CLIENT_KEY)
-
-        # TODO: get run-time params from the context to configure the request
+        env: VulkanPolicyConfig = getattr(context.resources, POLICY_CONFIG_KEY)
 
         body = inputs.get("body", None)
         context.log.debug(f"Body: {body}")
 
-        response = client.get_data(source=self.source, body=body)
+        response = client.get_data(source=self.source, body=body, env=env)
         context.log.debug(f"Response: {response}")
 
         error = None
+        extra = dict(data_source=self.source, status_code=response.status_code)
+
         try:
             response.raise_for_status()
             if response.status_code == 200:
-                yield Output(response.json())
+                data = response.json()
+                response_metadata = {
+                    "data_object_id": data.get("data_object_id"),
+                    "request_key": data.get("key"),
+                    "origin": data.get("origin"),
+                }
+                extra.update({"response_metadata": response_metadata})
+                yield Output(data["value"])
         except requests.exceptions.RequestException as e:
             context.log.error(
                 f"Failed op {self.name} with status {response.status_code}"
@@ -204,10 +212,7 @@ class DagsterDataInput(DataInputNode, DagsterNode):
                 start_time=start_time,
                 end_time=end_time,
                 error=error,
-                extra={
-                    "data_source": self.source,
-                    "status_code": response.status_code,
-                },
+                extra=extra,
             )
             yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 

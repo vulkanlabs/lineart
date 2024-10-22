@@ -19,7 +19,7 @@ class DataBroker:
         self.db = db
         self.spec = spec
 
-    def get_data(self, request_body: dict) -> DataObject:
+    def get_data(self, request_body: dict) -> schemas.DataBrokerResponse:
         cache = CacheManager(self.db, self.spec)
         key = make_cache_key(self.spec, request_body)
 
@@ -28,7 +28,12 @@ class DataBroker:
             data = cache.get_data(key)
 
             if data is not None:
-                return data
+                return schemas.DataBrokerResponse(
+                    data_object_id=data.data_object_id,
+                    origin=schemas.DataObjectOrigin.CACHE,
+                    key=key,
+                    value=data.value,
+                )
 
         logger.debug(
             f"Request: body {request_body}\n headers {self.spec.request.headers} \n"
@@ -52,7 +57,12 @@ class DataBroker:
             if self.spec.caching.enabled:
                 cache.set_cache(key, data.data_object_id)
 
-            return data
+            return schemas.DataBrokerResponse(
+                data_object_id=data.data_object_id,
+                origin=schemas.DataObjectOrigin.REQUEST,
+                key=key,
+                value=data.value,
+            )
 
 
 class CacheManager:

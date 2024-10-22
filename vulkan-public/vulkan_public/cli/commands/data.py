@@ -18,13 +18,7 @@ def data():
 @log_exceptions
 def list_sources(ctx: Context):
     data = client.data.list_data_sources(ctx)
-    keys = [
-        "project_id",
-        "data_source_id",
-        "name",
-        "created_at",
-        "last_updated_at",
-    ]
+    keys = ["data_source_id", "name", "created_at", "last_updated_at"]
     summary = [dict([(k, d[k]) for k in keys]) for d in data]
     tab = tabulate(summary, headers="keys", tablefmt="pretty")
     ctx.logger.info(f"\n{tab}")
@@ -45,7 +39,7 @@ def create_source(
 
 @data.command()
 @pass_context
-@click.option("--data_source_id", type=str, required=True, help="Data source ID")
+@click.argument("data_source_id", type=str, required=True)
 @log_exceptions
 def get_source(
     ctx: Context,
@@ -57,14 +51,14 @@ def get_source(
 
 @data.command()
 @pass_context
-@click.option("--data_source_id", type=str, required=True, help="Data source ID")
+@click.argument("data_source_id", type=str, required=True)
 @log_exceptions
 def list_objects(
     ctx: Context,
     data_source_id: str,
 ):
     data = client.data.list_data_objects(ctx, data_source_id)
-    keys = ["project_id", "data_source_id", "key", "created_at"]
+    keys = ["data_source_id", "data_object_id", "key", "created_at"]
     summary = [dict([(k, d[k]) for k in keys]) for d in data]
     tab = tabulate(summary, headers="keys", tablefmt="pretty")
     ctx.logger.info(f"\n{tab}")

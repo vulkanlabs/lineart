@@ -1,3 +1,4 @@
+from enum import Enum
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -227,3 +228,27 @@ class DataSource(DataSourceCreate):
     project_id: UUID
     created_at: datetime
     last_updated_at: datetime
+
+
+class DataObject(BaseModel):
+    data_object_id: UUID
+    data_source_id: UUID
+    project_id: UUID
+    key: str
+    value: Any
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DataObjectOrigin(Enum):
+    REQUEST = "REQUEST"
+    CACHE = "CACHE"
+
+
+class DataBrokerResponse(BaseModel):
+    data_object_id: UUID
+    origin: DataObjectOrigin
+    key: str
+    value: Any

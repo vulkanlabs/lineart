@@ -7,7 +7,7 @@ from vulkan.dagster.run_config import VulkanRunConfig
 class VulkanDataClient(ConfigurableResource):
     run_config: ResourceDependency[VulkanRunConfig]
 
-    def get_data(self, source: str, body: dict) -> requests.Response:
+    def get_data(self, source: str, body: dict, env: dict) -> requests.Response:
         response = requests.post(
             f"{self.run_config.server_url}/data-broker",
             json={

@@ -221,7 +221,7 @@ class DataInputNode(Node):
             node_type=self.type.value,
             dependencies=self.node_dependencies(),
             metadata={
-                "source": self.source,
+                "data_source": self.source,
             },
         )
 

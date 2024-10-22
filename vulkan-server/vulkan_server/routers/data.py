@@ -83,13 +83,34 @@ def list_data_objects(
     data_objects = db.query(DataObject).filter_by(data_source_id=data_source_id).all()
     return [
         dict(
-            project_id=do.project_id,
+            data_object_id=do.data_object_id,
             data_source_id=do.data_source_id,
+            project_id=do.project_id,
             key=do.key,
             created_at=do.created_at,
         )
         for do in data_objects
     ]
+
+
+@sources.get(
+    "/{data_source_id}/objects/{data_object_id}", response_model=schemas.DataObject
+)
+def get_data_object(
+    data_source_id: str,
+    data_object_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    data_object = (
+        db.query(DataObject)
+        .filter_by(data_object_id=data_object_id, project_id=project_id)
+        .first()
+    )
+    if data_object is None:
+        raise HTTPException(status_code=404, detail="Data object not found")
+    
+    return data_object
 
 
 broker = APIRouter(
@@ -99,8 +120,8 @@ broker = APIRouter(
 )
 
 
-@broker.post("/")
-def get_data_object(
+@broker.post("/", response_model=schemas.DataBrokerResponse)
+def request_data_from_broker(
     data_source: Annotated[str, Body(embed=True)],
     request_body: Annotated[dict, Body(embed=True)],
     db: Session = Depends(get_db),
@@ -122,4 +143,4 @@ def get_data_object(
         logger.error(str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
-    return data.value
+    return data
