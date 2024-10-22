@@ -141,6 +141,16 @@ class PolicyVersion(PolicyVersionBase):
         from_attributes = True
 
 
+class ConfigurationVariablesBase(BaseModel):
+    name: str
+    value: str | None
+
+
+class ConfigurationVariables(ConfigurationVariablesBase):
+    created_at: datetime
+    last_updated_at: datetime
+
+
 class Run(BaseModel):
     run_id: UUID
     policy_version_id: UUID

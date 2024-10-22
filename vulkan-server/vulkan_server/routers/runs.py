@@ -111,6 +111,21 @@ def get_run(run_id: str, db: Session = Depends(get_db)):
     return run
 
 
+@router.post("/{run_id}/metadata")
+def publish_metadata(run_id: str, config: schemas.StepMetadataBase):
+    try:
+        with DBSession() as db:
+            args = {"run_id": run_id, **config.model_dump()}
+            meta = StepMetadata(**args)
+            db.add(meta)
+            db.commit()
+            return {"status": "success"}
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=e)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
+
+
 @router.put("/{run_id}", response_model=schemas.Run)
 def update_run(
     run_id: str,
@@ -131,18 +146,3 @@ def update_run(
     run.result = result
     db.commit()
     return run
-
-
-@router.post("/{run_id}/metadata")
-def publish_metadata(run_id: str, config: schemas.StepMetadataBase):
-    try:
-        with DBSession() as db:
-            args = {"run_id": run_id, **config.model_dump()}
-            meta = StepMetadata(**args)
-            db.add(meta)
-            db.commit()
-            return {"status": "success"}
-    except KeyError as e:
-        raise HTTPException(status_code=400, detail=e)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=e)

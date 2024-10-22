@@ -97,6 +97,14 @@ export async function fetchPolicyVersion(user: StackUser, policyVersionId: strin
     });
 }
 
+export async function fetchPolicyVersionVariables(user: StackUser, policyVersionId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/policyVersions/${policyVersionId}/variables`,
+        label: `variables for policy version ${policyVersionId}`,
+    });
+}
+
 export async function fetchPolicyVersionComponents(user: StackUser, policyVersionId: string) {
     return fetchServerData({
         user: user,

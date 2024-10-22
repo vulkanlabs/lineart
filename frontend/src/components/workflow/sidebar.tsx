@@ -1,8 +1,18 @@
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { atomOneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import SyntaxHighlighter from "react-syntax-highlighter";
+import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
+export type VulkanNode = {
+    data: {
+        label: string;
+        type: string;
+        description: string;
+        source?: string;
+    };
+    parentId?: string;
+    parentReference?: string;
+};
 
-function codeSnippet(clickedNode) {
+function codeSnippet(clickedNode?: VulkanNode) {
     if (clickedNode.data.hasOwnProperty("source")) {
         return (
             <div className="my-5">
@@ -18,7 +28,6 @@ function codeSnippet(clickedNode) {
     return null;
 }
 
-
 function NodeParam({ name, value }) {
     return (
         <div className="grid grid-cols-4 my-2">
@@ -28,9 +37,8 @@ function NodeParam({ name, value }) {
     );
 }
 
-
-function NodeContent({ clickedNode }) {
-    if (clickedNode.length === 0) {
+function NodeContent({ clickedNode }: { clickedNode: VulkanNode }) {
+    if (clickedNode == null || clickedNode.data == null) {
         return (
             <div className="flex flex-col px-5">
                 <h1 className="mt-5 text-lg font-semibold">No node selected</h1>
@@ -59,8 +67,7 @@ function NodeContent({ clickedNode }) {
     );
 }
 
-
-export default function WorkflowSidebar({ clickedNode }) {
+export default function WorkflowSidebar({ clickedNode }: { clickedNode?: VulkanNode }) {
     return (
         <div className="h-full bg-white border-l-2">
             <NodeContent clickedNode={clickedNode} />

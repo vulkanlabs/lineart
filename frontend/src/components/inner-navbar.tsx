@@ -34,7 +34,7 @@ export function InnerNavbar({
                     <Undo2 />
                 </div>
                 {sections.map((section) => (
-                    <div className="flex py-4 gap-2 items-center">
+                    <div className="flex py-4 gap-2 items-center" key={section.key}>
                         <h1 className="text-base text-wrap font-semibold">{section.key}</h1>
                         <h1 className="text-base text-wrap font-normal">{section.value}</h1>
                     </div>

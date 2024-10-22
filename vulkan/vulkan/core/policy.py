@@ -1,9 +1,10 @@
 from typing import Callable
 
-from vulkan.core.graph import Graph
 from vulkan_public.spec.component import ComponentInstance
 from vulkan_public.spec.nodes import InputNode, Node, TerminateNode
 from vulkan_public.spec.policy import PolicyDefinition
+
+from vulkan.core.graph import Graph
 
 
 class Policy(Graph):
@@ -15,7 +16,6 @@ class Policy(Graph):
         components: list[ComponentInstance] | None = None,
     ):
         self.output_callback = output_callback
-        
         if output_callback is not None:
             assert callable(output_callback), "Output callback must be a callable"
             nodes = self._with_output_callback(nodes)

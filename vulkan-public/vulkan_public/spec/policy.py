@@ -53,6 +53,7 @@ class PolicyDefinition(GraphDefinition):
     input_schema: dict[str, type]
     output_callback: Callable | None = None
     components: list[ComponentInstance] = field(default_factory=list)
+    config_variables: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         if self.output_callback is not None:

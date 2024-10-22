@@ -66,7 +66,7 @@ async def auth_user(request: Request, call_next):
 
     if user_id is None:
         return JSONResponse(content="Unauthorized", status_code=401)
-    logger.info(request.headers)
+
     # Create a new headers object with the user id entry.
     # We add this both to the headers and the scope for consistency.
     headers = request.headers.mutablecopy()
