@@ -188,6 +188,22 @@ export async function fetchRunLogs(user: StackUser, runId: string) {
     });
 }
 
+export async function fetchDataSources(user: StackUser) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/data-sources`,
+        label: `data sources`,
+    });
+}
+
+export async function fetchDataSource(user: StackUser, dataSourceId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/data-sources/${dataSourceId}`,
+        label: `data source ${dataSourceId}`,
+    });
+}
+
 // UNAUTHENTICATED CALLS:
 // ----------------------
 

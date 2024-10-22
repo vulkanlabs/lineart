@@ -64,7 +64,7 @@ async function ComponentsSection({
         },
     );
 
-    return components.length > 0 ? (
+    return components?.length > 0 ? (
         <PolicyVersionComponentDependenciesTable entries={components} />
     ) : (
         <EmptyVariablesTable />
