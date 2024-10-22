@@ -8,7 +8,6 @@ import sqlalchemy.exc
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy import func as F
 from sqlalchemy.orm import Session
-from vulkan.core.run import RunStatus
 from vulkan_public.exceptions import (
     UNHANDLED_ERROR_NAME,
     VULKAN_INTERNAL_EXCEPTIONS,
@@ -19,7 +18,7 @@ from vulkan_public.exceptions import (
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.dagster.client import get_dagster_client
-from vulkan_server.dagster.launch_run import launch_run
+from vulkan_server.dagster.launch_run import create_run
 from vulkan_server.dagster.trigger_run import update_repository
 from vulkan_server.db import (
     ComponentVersion,
@@ -32,7 +31,7 @@ from vulkan_server.db import (
     Run,
     get_db,
 )
-from vulkan_server.exceptions import ExceptionHandler
+from vulkan_server.exceptions import ExceptionHandler, VulkanServerException
 from vulkan_server.logger import init_logger
 
 logger = init_logger("policies")
@@ -52,7 +51,7 @@ def list_policies(
     filters = dict(project_id=project_id)
     if not include_archived:
         filters["archived"] = False
-    
+
     policies = db.query(Policy).filter_by(**filters).all()
     if len(policies) == 0:
         return Response(status_code=204)
@@ -211,7 +210,7 @@ def list_runs_by_policy(
 @router.post("/{policy_id}/runs")
 def create_run_by_policy(
     policy_id: str,
-    execution_config_str: Annotated[str, Body(embed=True)],
+    input_data: Annotated[str, Body(embed=True)],
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     dagster_client=Depends(get_dagster_client),
@@ -220,13 +219,13 @@ def create_run_by_policy(
     ),
 ):
     try:
-        execution_config = json.loads(execution_config_str)
+        input_data_obj = json.loads(input_data)
     except Exception as e:
         raise HTTPException(
             status_code=400,
             detail={
                 "error": "UNHANDLED_EXCEPTION",
-                "msg": f"Invalid execution config: {str(e)}",
+                "msg": f"Invalid input data: {str(e)}",
             },
         )
 
@@ -261,29 +260,22 @@ def create_run_by_policy(
             detail=f"Policy {policy_id} has no active version",
         )
 
-    version = (
-        db.query(PolicyVersion)
-        .filter_by(
-            policy_version_id=policy.active_policy_version_id, project_id=project_id
+    try:
+        run = create_run(
+            db=db,
+            dagster_client=dagster_client,
+            server_url=server_config.server_url,
+            policy_version_id=policy.active_policy_version_id,
+            project_id=project_id,
+            input_data=input_data_obj,
         )
-        .first()
-    )
-
-    run, error_msg = launch_run(
-        dagster_client=dagster_client,
-        server_url=server_config.server_url,
-        execution_config=execution_config,
-        policy_version_id=version.policy_version_id,
-        version_name=definitions.version_name(
-            version.policy_id, version.policy_version_id
-        ),
-        db=db,
-        project_id=project_id,
-    )
-    if run.status == RunStatus.FAILURE:
+    except VulkanServerException as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to launch run: {error_msg}",
+            status_code=e.status_code,
+            detail={
+                "error": e.error_code,
+                "msg": e.msg,
+            },
         )
 
     return {"policy_id": policy.policy_id, "run_id": run.run_id}
@@ -334,14 +326,22 @@ def create_policy_version(
 
     version_name = definitions.version_name(policy_id, version.policy_version_id)
     try:
-        workspace, required_components = _create_policy_version_workspace(
-            db=db,
-            server_url=server_config.vulkan_dagster_server_url,
-            project_id=project_id,
-            policy_version_id=version.policy_version_id,
-            name=version_name,
-            repository=config.repository,
+        workspace, required_components, config_variables = (
+            _create_policy_version_workspace(
+                db=db,
+                server_url=server_config.vulkan_dagster_server_url,
+                project_id=project_id,
+                policy_version_id=version.policy_version_id,
+                name=version_name,
+                repository=config.repository,
+            )
         )
+        if config_variables is not None:
+            if not isinstance(config_variables, list) or not (
+                all(isinstance(i, str) for i in config_variables)
+            ):
+                raise ValueError("config_variables must be a list of strings")
+            version.variables = config_variables
 
         if required_components:
             matched = (
@@ -449,8 +449,13 @@ def _create_policy_version_workspace(
     response_data = response.json()
     workspace.path = response_data["workspace_path"]
     db.commit()
+    policy_settings = response_data["policy_definition_settings"]
 
-    return workspace, response_data["required_components"]
+    return (
+        workspace,
+        policy_settings["required_components"],
+        policy_settings["config_variables"],
+    )
 
 
 def _install_policy_version_workspace(

@@ -15,7 +15,7 @@ class RunLauncher:
         self.ctx = ctx
         self.timeout = timeout
         self.time_step = time_step
-        self.execution_config = {"ops": {"input_node": {"config": input_data}}}
+        self.input_data = input_data
 
     def trigger_run_by_policy_id(self, policy_id: str):
         run_id = self._launch_run_by_policy_id(policy_id)
@@ -88,10 +88,8 @@ class RunLauncher:
         return response.json()["run_id"]
 
     def __launch_run(self, url: str):
-        self.ctx.logger.debug(
-            f"Lanching run with execution config: {self.execution_config}"
-        )
-        body = {"execution_config_str": json.dumps(self.execution_config)}
+        self.ctx.logger.debug(f"Lanching run with input data: {self.input_data}")
+        body = {"input_data": json.dumps(self.input_data)}
         return self.ctx.session.post(url, json=body)
 
 

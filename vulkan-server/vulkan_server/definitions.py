@@ -15,9 +15,17 @@ class VulkanServerConfig:
 
 
 def get_vulkan_server_config() -> VulkanServerConfig:
+    app_host = os.getenv("APP_HOST")
     app_port = os.getenv("APP_PORT")
-    vulkan_dagster_server_url = os.getenv("VULKAN_DAGSTER_SERVER_URL")
+    if app_host is None or app_port is None:
+        raise ValueError("APP_HOST and APP_PORT must be set")
+
+    dagster_host = os.getenv("DAGSTER_HOST")
+    dagster_server_port = os.getenv("DAGSTER_SERVER_PORT")
+    if dagster_host is None or dagster_server_port is None:
+        raise ValueError("DAGSTER_HOST and DAGSTER_SERVER_PORT must be set")
+
     return VulkanServerConfig(
-        server_url=f"http://app:{app_port}",
-        vulkan_dagster_server_url=vulkan_dagster_server_url,
+        server_url=f"http://{app_host}:{app_port}",
+        vulkan_dagster_server_url=f"http://{dagster_host}:{dagster_server_port}",
     )

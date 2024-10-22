@@ -2,15 +2,17 @@ import enum
 import os
 
 from sqlalchemy import (
+    ARRAY,
     JSON,
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     Enum,
     Float,
     ForeignKey,
-    String,
     Index,
+    String,
     Uuid,
     create_engine,
 )
@@ -142,7 +144,7 @@ class Component(AuthorizationMixin, Base):
             "name",
             "archived",
             unique=True,
-            postgresql_where=(archived == False), # noqa: E712
+            postgresql_where=(archived == False),  # noqa: E712
         ),
     )
 
@@ -175,6 +177,7 @@ class PolicyVersion(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base)
     repository = Column(String)
     repository_version = Column(String)
     graph_definition = Column(String)
+    variables = Column(ARRAY(String), nullable=True)
 
 
 class ComponentVersionDependency(Base):
@@ -186,6 +189,32 @@ class ComponentVersionDependency(Base):
     policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
     component_version_id = Column(
         Uuid, ForeignKey("component_version.component_version_id")
+    )
+
+
+class ConfigurationValue(AuthorizationMixin, TimedUpdateMixin, Base):
+    __tablename__ = "configuration_value"
+
+    configuration_value_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
+
+    name = Column(String)
+    value = Column(String, nullable=True)
+    nullable = Column(Boolean)
+
+    __table_args__ = (
+        Index(
+            "unique_policy_version_name",
+            "policy_version_id",
+            "name",
+            unique=True,
+        ),
+        CheckConstraint(
+            sqltext="value IS NOT NULL OR nullable = TRUE",
+            name="value_nullable_only_if_allowed",
+        ),
     )
 
 

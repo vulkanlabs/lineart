@@ -16,7 +16,6 @@ export function RouteLayout({ policy, policyVersion, children }) {
             name: "Resources",
             icon: FolderCog,
             path: `${baseUrl}/resources`,
-            disabled: true,
         },
         {
             name: "Logs",

@@ -3,6 +3,7 @@ from shutil import rmtree
 
 import yaml
 from dagster import Definitions, EnvVar, IOManagerDefinition
+from vulkan_public.constants import POLICY_CONFIG_KEY
 
 from vulkan.dagster.io_manager import (
     DB_CONFIG_KEY,
@@ -12,7 +13,11 @@ from vulkan.dagster.io_manager import (
     postgresql_io_manager,
 )
 from vulkan.dagster.policy import DagsterFlow
-from vulkan.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
+from vulkan.dagster.run_config import (
+    RUN_CONFIG_KEY,
+    VulkanPolicyConfig,
+    VulkanRunConfig,
+)
 from vulkan.environment.loaders import resolve_policy
 from vulkan.environment.workspace import VulkanCodeLocation
 
@@ -22,10 +27,10 @@ def make_workspace_definition(
     components_base_dir: str,
 ) -> Definitions:
     resources = {
-        RUN_CONFIG_KEY: VulkanRunConfig(
-            run_id="tmpid",
-            server_url="tmpurl",
-        ),
+        # Vulkan Configurable Resources
+        RUN_CONFIG_KEY: VulkanRunConfig.configure_at_launch(),
+        POLICY_CONFIG_KEY: VulkanPolicyConfig.configure_at_launch(),
+        # Run DB
         DB_CONFIG_KEY: DBConfig(
             host=EnvVar("VULKAN_DB_HOST"),
             port=EnvVar("VULKAN_DB_PORT"),
@@ -34,6 +39,7 @@ def make_workspace_definition(
             database=EnvVar("VULKAN_DB_DATABASE"),
             object_table=EnvVar("VULKAN_DB_OBJECT_TABLE"),
         ),
+        # IO Managers
         "io_manager": IOManagerDefinition(
             resource_fn=postgresql_io_manager,
             required_resource_keys={RUN_CONFIG_KEY, DB_CONFIG_KEY},

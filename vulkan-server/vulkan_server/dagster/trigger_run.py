@@ -25,7 +25,7 @@ def trigger_dagster_job(
 
 
 def update_repository(client: DagsterGraphQLClient) -> dict[str, bool]:
-    response = client._execute(RELOAD_WORKSPACE_MUTATION)
+    response = client._execute(_RELOAD_WORKSPACE_MUTATION)
     if "reloadWorkspace" not in response.keys():
         raise ValueError(f"Failed to reload workspace: {response}")
     entries = response["reloadWorkspace"]["locationEntries"]
@@ -42,7 +42,7 @@ def _check_location_status(entry: dict) -> bool:
     )
 
 
-RELOAD_WORKSPACE_MUTATION = """
+_RELOAD_WORKSPACE_MUTATION = """
 mutation ReloadWorkspaceMutation {
   reloadWorkspace {
     ... on Workspace {

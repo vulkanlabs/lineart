@@ -1,7 +1,8 @@
 import { stackServerApp } from "@/stack";
 
 import { fetchComponentVersions, fetchComponentVersionUsage } from "@/lib/api";
-import { ComponentVersionsTable, ComponentVersionDependenciesTable } from "./components";
+import { ComponentVersionsTable } from "./components";
+import { ComponentVersionDependenciesTable } from "@/components/component/dependencies-table";
 
 export default async function Page({ params }) {
     const user = await stackServerApp.getUser();

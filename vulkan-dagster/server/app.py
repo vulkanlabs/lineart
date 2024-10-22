@@ -42,12 +42,12 @@ def create_workspace(
         venv_path = vm.create_venv()
         ctx.register_asset(venv_path)
 
-        required_components = vm.get_required_components()
+        policy_definition_settings = vm.get_policy_definition_settings()
 
     logger.info(f"Created workspace at: {workspace_path}")
 
     return {
-        "required_components": required_components,
+        "policy_definition_settings": policy_definition_settings,
         "workspace_path": workspace_path,
     }
 

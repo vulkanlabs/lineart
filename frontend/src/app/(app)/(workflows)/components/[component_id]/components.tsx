@@ -10,6 +10,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { ShortenedID } from "@/components/shortened-id";
 
 export function ComponentVersionsTable({ versions }) {
     const router = useRouter();
@@ -37,43 +38,13 @@ export function ComponentVersionsTable({ versions }) {
                             )
                         }
                     >
-                        <TableCell>{entry.component_version_id}</TableCell>
+                        <TableCell>
+                            <ShortenedID id={entry.component_version_id} />
+                        </TableCell>
                         <TableCell>{entry.alias}</TableCell>
                         <TableCell>{entry.input_schema}</TableCell>
                         <TableCell>{entry.instance_params_schema}</TableCell>
                         <TableCell>{entry.created_at}</TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
-}
-
-export function ComponentVersionDependenciesTable({ entries }) {
-    const router = useRouter();
-
-    return (
-        <Table>
-            <TableCaption>Policies that use this Component.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Component ID</TableHead>
-                    <TableHead>Component Version</TableHead>
-                    <TableHead>Policy ID</TableHead>
-                    <TableHead>Policy Name</TableHead>
-                    <TableHead>Policy Version</TableHead>
-                    <TableHead>Version Tag</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {entries.map((entry) => (
-                    <TableRow key={entry.component_version_id + entry.policy_version_id}>
-                        <TableCell>{entry.component_version_id}</TableCell>
-                        <TableCell>{entry.component_version_alias}</TableCell>
-                        <TableCell>{entry.policy_id}</TableCell>
-                        <TableCell>{entry.policy_name}</TableCell>
-                        <TableCell>{entry.policy_version_id}</TableCell>
-                        <TableCell>{entry.policy_version_alias}</TableCell>
                     </TableRow>
                 ))}
             </TableBody>
