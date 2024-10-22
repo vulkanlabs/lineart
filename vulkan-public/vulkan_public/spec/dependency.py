@@ -58,6 +58,5 @@ class Dependency:
         )
 
 
-# TODO: ensure that the user can't define a node with this name.
 INPUT_NODE = "input_node"
 """Name of the input node of a subgraph. Always created internally."""

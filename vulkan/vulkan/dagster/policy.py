@@ -73,7 +73,6 @@ def _notify_failure(context: HookContext) -> bool:
         context.log.error(msg)
 
 
-# TODO: should we do something like this?
 def _accesses_internal_resources(op: OpDefinition) -> bool:
     INTERNAL_RESOURCE_KEYS = {DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY, "io_manager"}
     return len(INTERNAL_RESOURCE_KEYS.intersection(op.required_resource_keys)) > 0

@@ -22,7 +22,7 @@
     "@radix-ui/react-popover": "^1.1.2",
     "@radix-ui/react-separator": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
-    "@stackframe/stack": "^2.6.11",
+    "@stackframe/stack": "^2.4.8",
     "@xyflow/react": "^12.3.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -45,7 +45,7 @@
   "devDependencies": {
     "@types/node": "22.7.7",
     "babel": "^6.23.0",
-    "eslint": "^9.13.0",
+    "eslint": "^8.0.0",
     "eslint-config-next": "14.2.15",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
