@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -14,7 +14,6 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CurrentUser } from "@stackframe/stack";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,7 +83,20 @@ export function LaunchRunForm({
         })
             .then(async (response) => {
                 if (!response.ok) {
-                    throw new Error("Failed to create Policy");
+                    const responseBody = await response.json();
+                    if (responseBody?.detail) {
+                        const errorMsg = responseBody.detail.msg.replace(
+                            "Failed to launch run: Failed to trigger job: ",
+                            "",
+                        ).replaceAll('"', '\\"').replaceAll("'", '"');
+                        const splicedError = "[" + errorMsg.substring(1, errorMsg.length - 1) + "]";
+                        const errorObj = JSON.parse(splicedError);
+                        const errorObjAsString = JSON.stringify(errorObj, null, 2);
+
+                        throw new Error(errorObjAsString);
+                    }
+
+                    throw new Error("Failed to create Run: " + response, { cause: response });
                 }
                 const data = await response.json();
                 setCreatedRun(data);

@@ -1,12 +1,14 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { LaunchRunForm } from "./components";
+
 import { useUser } from "@stackframe/stack";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@mui/material";
-import { fetchPolicy, fetchPolicyVersion } from "@/lib/api";
+import { fetchPolicyVersion } from "@/lib/api";
+
+import { LaunchRunForm } from "./components";
 
 export default function Page({ params }) {
     const user = useUser();
@@ -96,7 +98,7 @@ function RunCreatedCard({ createdRun }) {
 function RunCreationErrorCard({ error }) {
     console.log(error);
     return (
-        <Card className="flex flex-col w-fit items-center border-red-600 border-2">
+        <Card className="flex flex-col w-fit border-red-600 border-2">
             <CardHeader>
                 <CardTitle>Failed to launch run</CardTitle>
                 <CardDescription>
@@ -104,7 +106,7 @@ function RunCreationErrorCard({ error }) {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <pre>{error.message}</pre>
+                <pre className="text-wrap">{error.message}</pre>
             </CardContent>
         </Card>
     );
