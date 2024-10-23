@@ -18,6 +18,11 @@ export function RouteLayout({ policy, policyVersion, children }) {
             path: `${baseUrl}/resources`,
         },
         {
+            name: "Launcher",
+            icon: FolderCog,
+            path: `${baseUrl}/launcher`,
+        },
+        {
             name: "Logs",
             icon: Logs,
             path: `${baseUrl}/logs`,

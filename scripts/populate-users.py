@@ -36,6 +36,7 @@ def main():
 
     # Create the users
     VULKAN_SERVER_URL = os.getenv("VULKAN_SERVER_URL", "http://localhost:6001")
+    print(f"Using server URL: {VULKAN_SERVER_URL}")
     for _, row in df.iterrows():
         print(f"creating user {row['email']}...")
         try:
