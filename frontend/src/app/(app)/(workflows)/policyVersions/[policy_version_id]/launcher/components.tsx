@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CurrentUser } from "@stackframe/stack";
+import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
     input_data: z.string().refine(ensureJSON, { message: "Not a valid JSON object" }),
@@ -29,6 +30,8 @@ const formSchema = z.object({
 type LaunchRunFormProps = {
     user: CurrentUser;
     policy_version_id: string;
+    defaultInputData: Object;
+    defaultConfigVariables: Object;
     setCreatedRun: (run: any) => void;
     setError: (error: any) => void;
 };
@@ -36,6 +39,8 @@ type LaunchRunFormProps = {
 export function LaunchRunForm({
     user,
     policy_version_id,
+    defaultInputData,
+    defaultConfigVariables,
     setCreatedRun,
     setError,
 }: LaunchRunFormProps) {
@@ -45,10 +50,15 @@ export function LaunchRunForm({
     const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            input_data: "{}",
-            config_variables: "{}",
+            input_data: "",
+            config_variables: "",
         },
     });
+
+    const setDefaults = () => {
+        form.setValue("input_data", JSON.stringify(defaultInputData, null, 4));
+        form.setValue("config_variables", JSON.stringify(defaultConfigVariables, null, 4));
+    };
 
     const [submitting, setSubmitting] = useState(false);
 
@@ -90,10 +100,18 @@ export function LaunchRunForm({
             });
     }
 
-    return <LaunchRunFormCard form={form} onSubmit={onSubmit} submitting={submitting} />;
+    return (
+        <LaunchRunFormCard
+            form={form}
+            onSubmit={onSubmit}
+            submitting={submitting}
+            setDefaults={setDefaults}
+        />
+    );
 }
 
-function LaunchRunFormCard({ form, onSubmit, submitting }) {
+function LaunchRunFormCard({ form, onSubmit, submitting, setDefaults }) {
+    const placeholderText = JSON.stringify({ string_field: "value1", numeric_field: 1 }, null, 2);
     return (
         <Card>
             <CardHeader>
@@ -112,7 +130,11 @@ function LaunchRunFormCard({ form, onSubmit, submitting }) {
                                 <FormItem>
                                     <FormLabel>Input Data</FormLabel>
                                     <FormControl>
-                                        <Input placeholder={`{"field1": "value1"}`} {...field} />
+                                        <Textarea
+                                            className="min-h-40"
+                                            placeholder={placeholderText}
+                                            {...field}
+                                        />
                                     </FormControl>
                                     <FormDescription>
                                         Input data for the run. <br />
@@ -129,7 +151,11 @@ function LaunchRunFormCard({ form, onSubmit, submitting }) {
                                 <FormItem>
                                     <FormLabel>Configuration Variables</FormLabel>
                                     <FormControl>
-                                        <Input placeholder={`{"field1": "value1"}`} {...field} />
+                                        <Textarea
+                                            className="min-h-40"
+                                            placeholder={placeholderText}
+                                            {...field}
+                                        />
                                     </FormControl>
                                     <FormDescription>
                                         Configuration variables for the run. <br />
@@ -144,6 +170,15 @@ function LaunchRunFormCard({ form, onSubmit, submitting }) {
                                 Launch Run
                             </Button>
                             {submitting && <p>Submitting...</p>}
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={setDefaults}
+                                disabled={submitting}
+                                className="bg-gray-200 hover:bg-gray-500"
+                            >
+                                Use Default Values
+                            </Button>
                         </div>
                     </form>
                 </Form>

@@ -6,29 +6,76 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@mui/material";
+import { fetchPolicy, fetchPolicyVersion } from "@/lib/api";
 
 export default function Page({ params }) {
     const user = useUser();
     const [createdRun, setCreatedRun] = useState(null);
     const [error, setError] = useState<Error>(null);
 
-    useEffect(() => {}, [createdRun, error]);
+    const [inputSchema, setInputSchema] = useState<Map<string, string>>(null);
+    const [configVariables, setConfigVariables] = useState<string[]>(null);
+
+    useEffect(() => {
+        const fetchPolicyVersionData = async () => {
+            const policyVersion = await fetchPolicyVersion(user, params.policy_version_id);
+            setConfigVariables(policyVersion.variables);
+
+            const graphDefinition = await JSON.parse(policyVersion.graph_definition);
+            const inputSchema = graphDefinition.input_node.metadata.schema;
+            setInputSchema(inputSchema);
+        };
+
+        fetchPolicyVersionData().catch((error) => {
+            console.log("Failed to fetch policy metadata", error);
+        });
+    }, []);
 
     return (
         <div className="flex flex-col p-8 gap-8">
-            <h1 className="text-2xl font-bold tracking-tight">Launch a Run</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Launcher</h1>
             <div>
                 <LaunchRunForm
                     user={user}
                     policy_version_id={params.policy_version_id}
                     setCreatedRun={setCreatedRun}
                     setError={setError}
+                    defaultInputData={asInputData(inputSchema)}
+                    defaultConfigVariables={asConfigMap(configVariables)}
                 />
             </div>
             {createdRun && <RunCreatedCard createdRun={createdRun} />}
             {error && <RunCreationErrorCard error={error} />}
         </div>
     );
+}
+
+function asInputData(inputSchema: Map<string, string>) {
+    if (!inputSchema) {
+        return {};
+    }
+
+    const defaultValuePerType = Object.fromEntries([
+        ["str", ""],
+        ["int", 0],
+        ["float", 0.0],
+        ["boolean", false],
+        ["dict", {}],
+        ["list", []],
+    ]);
+    return Object.fromEntries(
+        Object.entries(inputSchema).map(([key, value]) => {
+            return [key, defaultValuePerType[value]];
+        }),
+    );
+}
+
+function asConfigMap(configVariables: string[]) {
+    if (!configVariables) {
+        return {};
+    }
+
+    return Object.fromEntries(configVariables.map((key) => [key, ""]));
 }
 
 function RunCreatedCard({ createdRun }) {
