@@ -3,7 +3,7 @@ import logging
 import os
 from typing import Annotated
 
-from fastapi import Body, FastAPI, Form
+from fastapi import Body, FastAPI
 from vulkan.dagster.workspace import DagsterWorkspaceManager
 from vulkan_public.exceptions import ConflictingDefinitionsError
 
@@ -97,9 +97,9 @@ def delete_workspace(
 
 @app.post("/components", response_model=schemas.ComponentConfig)
 def create_component(
-    alias: Annotated[str, Form()],
-    project_id: Annotated[str, Form()],
-    repository: Annotated[str, Form()],
+    alias: Annotated[str, Body()],
+    project_id: Annotated[str, Body()],
+    repository: Annotated[str, Body()],
 ):
     logger.info(f"[{project_id}] Creating component version: {alias}")
     cm = VulkanComponentManager(project_id, alias)

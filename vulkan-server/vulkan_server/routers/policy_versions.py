@@ -1,7 +1,6 @@
 import json
 from typing import Annotated
 
-import requests
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
@@ -23,6 +22,7 @@ from vulkan_server.db import (
 )
 from vulkan_server.exceptions import VulkanServerException
 from vulkan_server.logger import init_logger
+from vulkan_server.services import VulkanDagsterServerClient
 
 logger = init_logger("policy-versions")
 router = APIRouter(
@@ -84,19 +84,18 @@ def delete_policy_version(
     )
 
     name = definitions.version_name(policy_version.policy_id, policy_version_id)
-    server_url = server_config.vulkan_dagster_server_url
-    response = requests.post(
-        f"{server_url}/workspaces/delete",
-        json={"project_id": project_id, "name": name},
+    vulkan_dagster_client = VulkanDagsterServerClient(
+        project_id=project_id, server_url=server_config.vulkan_dagster_server_url
     )
-    if response.status_code != 200:
+
+    try:
+        _ = vulkan_dagster_client.delete_workspace(name)
+    except Exception:
         raise HTTPException(
             status_code=500,
-            detail=(
-                f"Error deleting policy version {policy_version_id}: "
-                f"{response.content}"
-            ),
+            detail=f"Error deleting policy version {policy_version_id}",
         )
+
     update_repository(dagster_client)
 
     db.delete(workspace)

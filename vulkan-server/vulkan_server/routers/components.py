@@ -1,6 +1,5 @@
 import json
 
-import requests
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from vulkan_public.exceptions import (
@@ -22,6 +21,7 @@ from vulkan_server.db import (
 )
 from vulkan_server.exceptions import ExceptionHandler
 from vulkan_server.logger import init_logger
+from vulkan_server.services import VulkanDagsterServerClient
 
 logger = init_logger("components")
 router = APIRouter(
@@ -136,26 +136,15 @@ def create_component_version(
 
     alias = component_version_alias(component.name, component_config.version_name)
     handler = ExceptionHandler(logger, f"Failed to create component version {alias}")
+    vulkan_dagster_client = VulkanDagsterServerClient(
+        project_id=project_id, server_url=server_config.vulkan_dagster_server_url
+    )
 
     try:
-        server_url = f"{server_config.vulkan_dagster_server_url}/components"
         # TODO: add input and output schemas and handle them in the endpoint
-        response = requests.post(
-            server_url,
-            data={
-                "alias": alias,
-                "project_id": project_id,
-                "repository": component_config.repository,
-            },
+        response = vulkan_dagster_client.create_component_version(
+            alias, component_config.repository
         )
-        if response.status_code != 200:
-            detail = response.json().get("detail", {})
-            if detail.get("error") == "VulkanInternalException":
-                raise VULKAN_INTERNAL_EXCEPTIONS[detail.get("exit_status")](
-                    msg=detail.get("msg")
-                )
-            raise Exception(detail.get("msg"))
-
         data = response.json()
     except VulkanInternalException as e:
         error_name = VULKAN_INTERNAL_EXCEPTIONS[e.exit_status].__name__
@@ -255,18 +244,16 @@ def delete_component_version(
         )
         raise HTTPException(status_code=400, detail=msg)
 
-    server_url = server_config.vulkan_dagster_server_url
-    response = requests.post(
-        f"{server_url}/components/delete",
-        json={"alias": component_version.alias, "project_id": project_id},
+    vulkan_dagster_client = VulkanDagsterServerClient(
+        project_id=project_id, server_url=server_config.vulkan_dagster_server_url
     )
-    if response.status_code != 200:
+
+    try:
+        _ = vulkan_dagster_client.delete_component_version(component_version.alias)
+    except Exception:
         raise HTTPException(
             status_code=500,
-            detail=(
-                f"Error deleting component version {component_version_id}: "
-                f"{response.content}"
-            ),
+            detail=f"Error deleting component version {component_version_id}",
         )
 
     component_version.archived = True
