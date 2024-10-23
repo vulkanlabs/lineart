@@ -1,13 +1,18 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LaunchRunForm } from "./components";
 import { useUser } from "@stackframe/stack";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { CardContent } from "@mui/material";
 
 export default function Page({ params }) {
     const user = useUser();
     const [createdRun, setCreatedRun] = useState(null);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<Error>(null);
+
+    useEffect(() => {}, [createdRun, error]);
 
     return (
         <div className="flex flex-col p-8 gap-8">
@@ -19,24 +24,41 @@ export default function Page({ params }) {
                     setCreatedRun={setCreatedRun}
                     setError={setError}
                 />
-                {createdRun && (
-                    <div>
-                        <div className="flex flex-row gap-4">
-                            <h2>Run successfully launched:</h2>
-                            <a href={`/runs/${createdRun.run_id}`}>
-                                <p className="">Run ID: {createdRun.run_id}</p>
-                            </a>
-                        </div>
-                        <pre>{JSON.stringify(createdRun, null, 2)}</pre>
-                    </div>
-                )}
-                {error && (
-                    <div>
-                        <h2>Failed to launch run:</h2>
-                        <pre>{JSON.stringify(error, null, 2)}</pre>
-                    </div>
-                )}
             </div>
+            {createdRun && <RunCreatedCard createdRun={createdRun} />}
+            {error && <RunCreationErrorCard error={error} />}
         </div>
+    );
+}
+
+function RunCreatedCard({ createdRun }) {
+    return (
+        <Card className="flex flex-col w-fit border-green-600 border-2">
+            <CardHeader>
+                <CardTitle>Launched run successfully</CardTitle>
+                <CardDescription>
+                    <Link href={`/runs/${createdRun.run_id}`}>
+                        <Button className="bg-green-600 hover:bg-green-500">View Run</Button>
+                    </Link>
+                </CardDescription>
+            </CardHeader>
+        </Card>
+    );
+}
+
+function RunCreationErrorCard({ error }) {
+    console.log(error);
+    return (
+        <Card className="flex flex-col w-fit items-center border-red-600 border-2">
+            <CardHeader>
+                <CardTitle>Failed to launch run</CardTitle>
+                <CardDescription>
+                    Launch failed with error: <br />
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <pre>{error.message}</pre>
+            </CardContent>
+        </Card>
     );
 }

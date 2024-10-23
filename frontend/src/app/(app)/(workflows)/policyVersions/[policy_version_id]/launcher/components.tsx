@@ -17,7 +17,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CurrentUser } from "@stackframe/stack";
-import { set } from "date-fns";
 
 const formSchema = z.object({
     input_data: z.string().refine(ensureJSON, { message: "Not a valid JSON object" }),
@@ -51,6 +50,8 @@ export function LaunchRunForm({
         },
     });
 
+    const [submitting, setSubmitting] = useState(false);
+
     async function onSubmit(values: z.infer<typeof formSchema>) {
         const { accessToken, refreshToken } = await user.getAuthJson();
         const headers = {
@@ -64,6 +65,7 @@ export function LaunchRunForm({
             config_variables: JSON.parse(values.config_variables),
         };
 
+        setSubmitting(true);
         return fetch(launchUrl, {
             method: "POST",
             headers: headers,
@@ -75,22 +77,23 @@ export function LaunchRunForm({
                     throw new Error("Failed to create Policy");
                 }
                 const data = await response.json();
-                console.log(data);
                 setCreatedRun(data);
                 setError(null);
                 return data;
             })
             .catch((error) => {
-                setError(error);
                 setCreatedRun(null);
-                console.error(error);
+                setError(error);
+            })
+            .finally(() => {
+                setSubmitting(false);
             });
     }
 
-    return <LaunchRunFormCard form={form} onSubmit={onSubmit} />;
+    return <LaunchRunFormCard form={form} onSubmit={onSubmit} submitting={submitting} />;
 }
 
-function LaunchRunFormCard({ form, onSubmit }) {
+function LaunchRunFormCard({ form, onSubmit, submitting }) {
     return (
         <Card>
             <CardHeader>
@@ -137,9 +140,10 @@ function LaunchRunFormCard({ form, onSubmit }) {
                             )}
                         />
                         <div className="flex flex-row gap-4">
-                            <Button type="submit" className="w-fit">
+                            <Button type="submit" disabled={submitting}>
                                 Launch Run
                             </Button>
+                            {submitting && <p>Submitting...</p>}
                         </div>
                     </form>
                 </Form>
