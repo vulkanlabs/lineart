@@ -78,20 +78,31 @@ def delete(ctx, policy_id: str):
 @pass_context
 @click.option("--policy_id", type=str, required=True)
 @click.option("--data", type=str, required=True)
+@click.option("--config_variables", type=str, required=False)
 @click.option("--timeout", type=int, default=15)
 @log_exceptions
-def trigger_run(ctx: Context, policy_id: str, data: str, timeout: int):
+def trigger_run(
+    ctx: Context,
+    policy_id: str,
+    data: str,
+    config_variables: str | None,
+    timeout: int,
+):
     # Call the function to trigger the Dagster job
     try:
         input_data = json.loads(data)
     except TypeError as e:
         raise ValueError(f"Invalid JSON data provided: {data}\nError: {e}")
 
+    if config_variables is not None:
+        config_variables = json.loads(config_variables)
+
     try:
         run_id, success = client.run.trigger_run_by_policy_id(
             ctx=ctx,
             policy_id=policy_id,
             input_data=input_data,
+            config_variables=config_variables,
             timeout=timeout,
             time_step=5,
         )

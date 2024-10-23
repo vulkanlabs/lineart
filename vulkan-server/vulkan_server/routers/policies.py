@@ -210,7 +210,8 @@ def list_runs_by_policy(
 @router.post("/{policy_id}/runs")
 def create_run_by_policy(
     policy_id: str,
-    input_data: Annotated[str, Body(embed=True)],
+    input_data: Annotated[dict, Body()],
+    config_variables: Annotated[dict[str, str], Body(default_factory=list)],
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     dagster_client=Depends(get_dagster_client),
@@ -218,17 +219,6 @@ def create_run_by_policy(
         definitions.get_vulkan_server_config
     ),
 ):
-    try:
-        input_data_obj = json.loads(input_data)
-    except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "UNHANDLED_EXCEPTION",
-                "msg": f"Invalid input data: {str(e)}",
-            },
-        )
-
     try:
         policy = (
             db.query(Policy)
@@ -267,7 +257,8 @@ def create_run_by_policy(
             server_url=server_config.server_url,
             policy_version_id=policy.active_policy_version_id,
             project_id=project_id,
-            input_data=input_data_obj,
+            input_data=input_data,
+            run_config_variables=config_variables,
         )
     except VulkanServerException as e:
         raise HTTPException(

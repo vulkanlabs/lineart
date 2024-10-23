@@ -1,4 +1,3 @@
-import json
 from typing import Annotated
 
 import requests
@@ -110,7 +109,8 @@ def delete_policy_version(
 @router.post("/{policy_version_id}/runs")
 def create_run_by_policy_version(
     policy_version_id: str,
-    input_data: Annotated[str, Body(embed=True)],
+    input_data: Annotated[dict, Body()],
+    config_variables: Annotated[dict[str, str], Body(default_factory=list)],
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
     ),
@@ -119,24 +119,14 @@ def create_run_by_policy_version(
     dagster_client=Depends(get_dagster_client),
 ):
     try:
-        input_data_obj = json.loads(input_data)
-    except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "INVALID_INPUT_DATA",
-                "msg": f"Invalid input data: {str(e)}",
-            },
-        )
-
-    try:
         run = create_run(
             db=db,
             dagster_client=dagster_client,
             server_url=server_config.server_url,
             policy_version_id=policy_version_id,
             project_id=project_id,
-            input_data=input_data_obj,
+            input_data=input_data,
+            run_config_variables=config_variables,
         )
     except VulkanServerException as e:
         raise HTTPException(
