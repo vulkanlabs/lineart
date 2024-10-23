@@ -27,6 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(routers.components.router)
+app.include_router(routers.component_versions.router)
 app.include_router(routers.policies.router)
 app.include_router(routers.policy_versions.router)
 app.include_router(routers.projects.router)

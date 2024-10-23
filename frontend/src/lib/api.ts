@@ -159,7 +159,7 @@ export async function fetchComponentVersion(
 ) {
     return fetchServerData({
         user: user,
-        endpoint: `/components/${componentId}/versions/${componentVersionId}`,
+        endpoint: `/component-versions/${componentVersionId}`,
         label: `component version ${componentVersionId}`,
     });
 }

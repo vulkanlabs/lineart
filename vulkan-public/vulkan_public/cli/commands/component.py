@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import click
 from tabulate import tabulate
 
@@ -19,8 +17,8 @@ def component():
 @log_exceptions
 def list(ctx: Context, all: bool):
     data = client.component.list_components(ctx, all)
-    keys = ["project_id", "component_id", "name", "archived", "created_at"]
-    summary = [OrderedDict([(k, d[k]) for k in keys]) for d in data]
+    keys = ["component_id", "name", "archived", "created_at"]
+    summary = [dict([(k, d[k]) for k in keys]) for d in data]
     tab = tabulate(summary, headers="keys", tablefmt="pretty")
     ctx.logger.info(f"\n{tab}")
 
@@ -38,7 +36,7 @@ def create(
 
 @component.command()
 @pass_context
-@click.option("--component_id", type=str, required=True, help="ID of the component")
+@click.argument("component_id", type=str, required=True)
 @log_exceptions
 def delete(
     ctx: Context,
@@ -53,7 +51,7 @@ def delete(
 
 @component.command()
 @pass_context
-@click.option("--component_id", type=str, required=True, help="ID of the component")
+@click.argument("component_id", type=str, required=True)
 @click.option(
     "--all", is_flag=True, default=False, help="Include archived component versions"
 )
@@ -64,8 +62,8 @@ def list_versions(
     all: bool,
 ):
     data = client.component.list_component_versions(ctx, component_id, all)
-    keys = ["project_id", "component_version_id", "alias", "archived", "created_at"]
-    summary = [OrderedDict([(k, d[k]) for k in keys]) for d in data]
+    keys = ["component_id", "component_version_id", "alias", "archived", "created_at"]
+    summary = [dict([(k, d[k]) for k in keys]) for d in data]
     tab = tabulate(summary, headers="keys", tablefmt="pretty")
     ctx.logger.info(f"\n{tab}")
 
@@ -94,17 +92,10 @@ def create_version(
 
 @component.command()
 @pass_context
-@click.option("--component_id", type=str, required=True, help="ID of the component")
-@click.option(
-    "--component_version_id",
-    type=str,
-    required=True,
-    help="ID of the component version",
-)
+@click.argument("component_version_id", type=str, required=True)
 @log_exceptions
 def delete_version(
     ctx: Context,
-    component_id: str,
     component_version_id: str,
 ):
     click.confirm(
@@ -112,6 +103,4 @@ def delete_version(
         abort=True,
     )
     ctx.logger.info(f"Deleting component version {component_version_id}")
-    return client.component.delete_component_version(
-        ctx, component_id, component_version_id
-    )
+    return client.component.delete_component_version(ctx, component_version_id)

@@ -84,11 +84,10 @@ def create_component_version(
 
 def delete_component_version(
     ctx: Context,
-    component_id: str,
     component_version_id: str,
 ):
     response = ctx.session.delete(
-        f"{ctx.server_url}/components/{component_id}/versions/{component_version_id}"
+        f"{ctx.server_url}/component-versions/{component_version_id}"
     )
     assert (
         response.status_code == 200
