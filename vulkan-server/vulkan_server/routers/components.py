@@ -6,6 +6,7 @@ from vulkan_public.exceptions import (
     UNHANDLED_ERROR_NAME,
     VULKAN_INTERNAL_EXCEPTIONS,
     VulkanInternalException,
+    DataSourceNotFoundException,
 )
 from vulkan_public.spec.component import component_version_alias
 
@@ -17,6 +18,8 @@ from vulkan_server.db import (
     ComponentVersionDependency,
     Policy,
     PolicyVersion,
+    ComponentDataDependency,
+    DataSource,
     get_db,
 )
 from vulkan_server.exceptions import ExceptionHandler
@@ -146,26 +149,56 @@ def create_component_version(
             alias, component_config.repository
         )
         data = response.json()
+
+        component_version = ComponentVersion(
+            component_id=component_id,
+            input_schema=str(data["input_schema"]),
+            instance_params_schema=str(data["instance_params_schema"]),
+            node_definitions=json.dumps(data["node_definitions"]),
+            project_id=project_id,
+            alias=alias,
+            repository=component_config.repository,
+        )
+        db.add(component_version)
+        _add_data_source_dependencies(db, component_version, data["data_sources"])
+        db.commit()
     except VulkanInternalException as e:
         error_name = VULKAN_INTERNAL_EXCEPTIONS[e.exit_status].__name__
         handler.raise_exception(400, error_name, str(e), e.metadata)
     except Exception as e:
         handler.raise_exception(status_code=500, error=UNHANDLED_ERROR_NAME, msg=str(e))
 
-    component = ComponentVersion(
-        component_id=component_id,
-        input_schema=str(data["input_schema"]),
-        instance_params_schema=str(data["instance_params_schema"]),
-        node_definitions=json.dumps(data["node_definitions"]),
-        project_id=project_id,
-        alias=alias,
-        repository=component_config.repository,
-    )
-    db.add(component)
-    db.commit()
-    logger.info(f"Creating component {alias}")
+    return {"component_version_id": component_version.component_version_id}
 
-    return {"component_version_id": component.component_version_id}
+
+def _add_data_source_dependencies(
+    db: Session, component_version: ComponentVersion, data_sources: list[str]
+) -> None:
+    if not data_sources:
+        return
+
+    matched = (
+        db.query(DataSource)
+        .filter(
+            DataSource.name.in_(data_sources),
+            DataSource.project_id == component_version.project_id,
+            DataSource.archived == False,  # noqa: E712
+        )
+        .all()
+    )
+    missing = list(set(data_sources) - set([m.name for m in matched]))
+    if missing:
+        raise DataSourceNotFoundException(
+            msg=f"The following data sources are not defined: {missing}",
+            metadata={"data_sources": missing},
+        )
+
+    for m in matched:
+        dependency = ComponentDataDependency(
+            data_source_id=m.data_source_id,
+            component_version_id=component_version.component_version_id,
+        )
+        db.add(dependency)
 
 
 @router.get(
@@ -342,3 +375,43 @@ def list_component_version_usage(
         )
 
     return dependencies
+
+
+@router.get(
+    "/{component_id}/versions/{component_version_id}",
+    response_model=list[schemas.DataSourceReference],
+)
+def list_data_sources_by_component_version(
+    component_id: str,
+    component_version_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    component_version = (
+        db.query(ComponentVersion)
+        .filter_by(component_version_id=component_version_id, project_id=project_id)
+        .first()
+    )
+    if component_version is None:
+        raise HTTPException(status_code=404, detail="Policy version not found")
+
+    data_source_uses = (
+        db.query(ComponentDataDependency)
+        .filter_by(component_version_id=component_version_id)
+        .all()
+    )
+    if len(data_source_uses) == 0:
+        return Response(status_code=204)
+
+    data_sources = []
+    for use in data_source_uses:
+        ds = db.query(DataSource).filter_by(data_source_id=use.data_source_id).first()
+        data_sources.append(
+            schemas.DataSourceReference(
+                data_source_id=ds.data_source_id,
+                name=ds.name,
+                created_at=ds.created_at,
+            )
+        )
+
+    return data_sources

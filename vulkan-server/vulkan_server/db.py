@@ -264,7 +264,7 @@ class DataSource(TimedUpdateMixin, AuthorizationMixin, Base):
     data_source_id = Column(
         Uuid, primary_key=True, server_default=func.gen_random_uuid()
     )
-    name = Column(String, unique=True)
+    name = Column(String)
     description = Column(String, nullable=True)
     keys = Column(ARRAY(String))
     request_url = Column(String)
@@ -279,6 +279,36 @@ class DataSource(TimedUpdateMixin, AuthorizationMixin, Base):
     retry_status_forcelist = Column(ARRAY(Integer), nullable=True)
     # Attribute name 'metadata' is reserved when using the Declarative API.
     config_metadata = Column(JSON, nullable=True)
+    archived = Column(Boolean, default=False)
+
+    __table_args__ = (
+        Index(
+            "unique_data_source_name",
+            "project_id",
+            "name",
+            "archived",
+            unique=True,
+            postgresql_where=(archived == False),  # noqa: E712
+        ),
+    )
+
+
+class ComponentDataDependency(Base):
+    __tablename__ = "component_data_dependency"
+
+    id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
+    component_version_id = Column(
+        Uuid, ForeignKey("component_version.component_version_id")
+    )
+
+
+class PolicyDataDependency(Base):
+    __tablename__ = "policy_data_dependency"
+
+    id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
+    policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
 
 
 class DataObject(AuthorizationMixin, Base):

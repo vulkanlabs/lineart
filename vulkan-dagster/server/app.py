@@ -69,12 +69,15 @@ def install_workspace(
     with ExecutionContext(logger):
         vm.install_components(required_components)
         _ = dm.create_init_file(vm.components_path)
-        node_definitions = vm.get_node_definitions()
+        definitions = vm.get_policy_definitions()
 
     dm.add_workspace_config(name, VENVS_PATH)
     logger.info(f"Successfully installed workspace: {name}")
 
-    return {"graph": node_definitions}
+    return {
+        "nodes": definitions["nodes"],
+        "data_sources": definitions["data_sources"],
+    }
 
 
 @app.post("/workspaces/delete")

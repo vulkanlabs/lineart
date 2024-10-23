@@ -88,7 +88,7 @@ class RunLauncher:
         return response.json()["run_id"]
 
     def __launch_run(self, url: str):
-        self.ctx.logger.debug(f"Lanching run with input data: {self.input_data}")
+        self.ctx.logger.info(f"Lanching run with input data: {self.input_data}")
         body = {"input_data": json.dumps(self.input_data)}
         return self.ctx.session.post(url, json=body)
 

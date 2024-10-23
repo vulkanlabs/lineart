@@ -7,3 +7,4 @@ class ComponentConfig(BaseModel):
     input_schema: JsonSchemaType
     instance_params_schema: JsonSchemaType
     node_definitions: dict[str, dict]
+    data_sources: list[str]

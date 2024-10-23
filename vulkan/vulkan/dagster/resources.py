@@ -11,7 +11,7 @@ class VulkanDataClient(ConfigurableResource):
         response = requests.post(
             f"{self.run_config.server_url}/data-broker",
             json={
-                "data_source": source,
+                "data_source_name": source,
                 "request_body": body,
             },
         )

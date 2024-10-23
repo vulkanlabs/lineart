@@ -113,6 +113,14 @@ export async function fetchPolicyVersionComponents(user: StackUser, policyVersio
     });
 }
 
+export async function fetchPolicyVersionDataSources(user: StackUser, policyVersionId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/policy-versions/${policyVersionId}/data-sources`,
+        label: `data sources for policy version ${policyVersionId}`,
+    });
+}
+
 export async function fetchComponents(
     user: StackUser,
     includeArchived: boolean = false,

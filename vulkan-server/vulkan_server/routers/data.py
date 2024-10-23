@@ -66,6 +66,15 @@ def get_data_source(
     return response
 
 
+@sources.delete("/{data_source_id}")
+def delete_data_source(
+    data_source_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    pass
+
+
 @sources.get("/{data_source_id}/objects")
 def list_data_objects(
     data_source_id: str,
@@ -122,12 +131,12 @@ broker = APIRouter(
 
 @broker.post("/", response_model=schemas.DataBrokerResponse)
 def request_data_from_broker(
-    data_source: Annotated[str, Body(embed=True)],
+    data_source_name: Annotated[str, Body(embed=True)],
     request_body: Annotated[dict, Body(embed=True)],
     db: Session = Depends(get_db),
 ):
     # TODO: Control access to the data source by project_id
-    data_source = db.query(DataSource).filter_by(name=data_source).first()
+    data_source = db.query(DataSource).filter_by(name=data_source_name).first()
     if data_source is None:
         raise HTTPException(status_code=404, detail="Data source not found")
 

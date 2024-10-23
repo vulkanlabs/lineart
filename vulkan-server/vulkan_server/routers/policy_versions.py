@@ -17,6 +17,8 @@ from vulkan_server.db import (
     DagsterWorkspace,
     Policy,
     PolicyVersion,
+    PolicyDataDependency,
+    DataSource,
     Run,
     get_db,
 )
@@ -301,3 +303,42 @@ def list_dependencies_by_policy_version(
         )
 
     return dependencies
+
+
+@router.get(
+    "/{policy_version_id}/data-sources",
+    response_model=list[schemas.DataSourceReference],
+)
+def list_data_sources_by_policy_version(
+    policy_version_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    policy_version = (
+        db.query(PolicyVersion)
+        .filter_by(policy_version_id=policy_version_id, project_id=project_id)
+        .first()
+    )
+    if policy_version is None:
+        raise HTTPException(status_code=404, detail="Policy version not found")
+
+    data_source_uses = (
+        db.query(PolicyDataDependency)
+        .filter_by(policy_version_id=policy_version_id)
+        .all()
+    )
+    if len(data_source_uses) == 0:
+        return Response(status_code=204)
+
+    data_sources = []
+    for use in data_source_uses:
+        ds = db.query(DataSource).filter_by(data_source_id=use.data_source_id).first()
+        data_sources.append(
+            schemas.DataSourceReference(
+                data_source_id=ds.data_source_id,
+                name=ds.name,
+                created_at=ds.created_at,
+            )
+        )
+
+    return data_sources

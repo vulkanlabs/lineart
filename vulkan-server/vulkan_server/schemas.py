@@ -1,5 +1,5 @@
-from enum import Enum
 from datetime import datetime
+from enum import Enum
 from typing import Any
 from uuid import UUID
 
@@ -228,6 +228,12 @@ class DataSource(DataSourceCreate):
     project_id: UUID
     created_at: datetime
     last_updated_at: datetime
+
+
+class DataSourceReference(BaseModel):
+    data_source_id: UUID
+    name: str
+    created_at: datetime
 
 
 class DataObject(BaseModel):
