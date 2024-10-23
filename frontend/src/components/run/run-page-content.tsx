@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 
 import { WorkflowFrame, NodeLayoutConfig } from "./frame";
-import type { RunStepMetadata, RunNode, RunLogs } from "../types";
+import type { RunStepMetadata, RunNode, RunLogs } from "@/components/run/types";
 
 export default function RunPageContent({
     runGraph,

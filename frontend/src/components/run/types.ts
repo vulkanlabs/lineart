@@ -1,5 +1,3 @@
-import { Node } from "@xyflow/react";
-
 export type NodeDependency = {
     node: string;
     output?: string | null;

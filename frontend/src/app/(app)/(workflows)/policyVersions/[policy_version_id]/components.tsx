@@ -23,10 +23,9 @@ export function RouteLayout({ policy, policyVersion, children }) {
             path: `${baseUrl}/launcher`,
         },
         {
-            name: "Logs",
+            name: "Runs",
             icon: Logs,
-            path: `${baseUrl}/logs`,
-            disabled: true,
+            path: `${baseUrl}/runs`,
         },
     ];
     const innerNavbarSections: InnerNavbarSectionProps[] = [

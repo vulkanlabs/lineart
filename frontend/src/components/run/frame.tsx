@@ -14,7 +14,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import type { NodeDependency, NodeDefinition, RunStep, RunNode } from "../types";
+import type { NodeDependency, NodeDefinition, RunStep, RunNode } from "@/components/run/types";
 import { nodeTypes } from "./nodes";
 
 function VulkanWorkflow({

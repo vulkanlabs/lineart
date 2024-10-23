@@ -86,7 +86,7 @@ function RunCreatedCard({ createdRun }) {
             <CardHeader>
                 <CardTitle>Launched run successfully</CardTitle>
                 <CardDescription>
-                    <Link href={`/runs/${createdRun.run_id}`}>
+                    <Link href={`/policyVersions/${createdRun.policy_version_id}/runs/${createdRun.run_id}`}>
                         <Button className="bg-green-600 hover:bg-green-500">View Run</Button>
                     </Link>
                 </CardDescription>

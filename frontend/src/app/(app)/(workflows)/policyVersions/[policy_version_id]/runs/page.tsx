@@ -1,11 +1,11 @@
 import { stackServerApp } from "@/stack";
 
-import { fetchPolicyRuns } from "@/lib/api";
+import { fetchPolicyVersionRuns } from "@/lib/api";
 import { RunsTable } from "@/components/run/runs-table";
 
 export default async function Page({ params }) {
     const user = await stackServerApp.getUser();
-    const runs = await fetchPolicyRuns(user, params.policy_id).catch((error) => {
+    const runs = await fetchPolicyVersionRuns(user, params.policy_version_id).catch((error) => {
         console.error(error);
         return [];
     });
