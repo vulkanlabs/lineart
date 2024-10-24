@@ -49,7 +49,7 @@ def create_data_source(
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    ds = db.query(DataSource).filter_by(name=config.name).first()
+    ds = db.query(DataSource).filter_by(project_id=project_id, name=config.name).first()
     if ds is not None:
         raise HTTPException(status_code=400, detail="Data source already exists")
 
