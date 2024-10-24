@@ -1,5 +1,5 @@
 "use client";
-import { Logs, Network, FolderCog, Play } from "lucide-react";
+import { Layers, Network, FolderCog, Play } from "lucide-react";
 
 import { SidebarSectionProps, PageLayout } from "@/components/page-layout";
 import { InnerNavbarSectionProps, InnerNavbar } from "@/components/inner-navbar";
@@ -24,7 +24,7 @@ export function RouteLayout({ policy, policyVersion, children }) {
         },
         {
             name: "Runs",
-            icon: Logs,
+            icon: Layers,
             path: `${baseUrl}/runs`,
         },
     ];
@@ -34,7 +34,10 @@ export function RouteLayout({ policy, policyVersion, children }) {
     ];
     return (
         <div className="flex flex-col w-full h-full">
-            <InnerNavbar backRoute={`/policies/${policy.policy_id}/versions`} sections={innerNavbarSections} />
+            <InnerNavbar
+                backRoute={`/policies/${policy.policy_id}/versions`}
+                sections={innerNavbarSections}
+            />
             <PageLayout sidebar={{ sections, retractable: true }} content={{ scrollable: true }}>
                 {children}
             </PageLayout>

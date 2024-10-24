@@ -2,14 +2,16 @@
 import React, { useState } from "react";
 
 import { WorkflowFrame, NodeLayoutConfig } from "./frame";
-import type { RunStepMetadata, RunNode, RunLogs } from "@/components/run/types";
+import type { RunStepMetadata, RunNode, RunLogs, RunData } from "@/components/run/types";
 
 export default function RunPageContent({
     runGraph,
     runLogs,
+    runData,
 }: {
     runGraph: RunNode[];
     runLogs: RunLogs;
+    runData: RunData;
 }) {
     const [clickedNode, setClickedNode] = useState(null);
 
@@ -27,7 +29,7 @@ export default function RunPageContent({
                         </div>
                     </div>
                     <div className="col-span-4 border-l-2 overflow-auto">
-                        <WorkflowSidebar clickedNode={clickedNode} />
+                        <WorkflowSidebar clickedNode={clickedNode} runData={runData} />
                     </div>
                 </div>
             </div>
@@ -108,10 +110,35 @@ function TableCell({ children }) {
     );
 }
 
-function WorkflowSidebar({ clickedNode }: { clickedNode: NodeLayoutConfig | null }) {
+function WorkflowSidebar({
+    clickedNode,
+    runData,
+}: {
+    clickedNode: NodeLayoutConfig | null;
+    runData: RunData;
+}) {
     return (
         <div className="h-full bg-white border-l-2 overflow-auto">
-            <NodeContent clickedNode={clickedNode} />
+            {clickedNode === null ? (
+                <RunInfo runData={runData} />
+            ) : (
+                <NodeContent clickedNode={clickedNode} />
+            )}
+        </div>
+    );
+}
+
+function RunInfo({ runData }: { runData: RunData }) {
+    return (
+        <div className="flex flex-col px-5">
+            <div>
+                <h1 className="mt-5 text-lg font-semibold">Run ID:</h1>
+                <pre className="text-lg font-light">{runData.run_id}</pre>
+            </div>
+            <div>
+                <h1 className="mt-5 text-lg font-semibold">Last Updated:</h1>
+                <pre className="text-lg font-light">{runData.last_updated_at}</pre>
+            </div>
         </div>
     );
 }

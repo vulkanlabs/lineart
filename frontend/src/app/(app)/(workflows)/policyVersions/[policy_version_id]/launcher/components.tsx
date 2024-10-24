@@ -44,7 +44,7 @@ export function LaunchRunForm({
     setError,
 }: LaunchRunFormProps) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    const launchUrl = `${serverUrl}/policyVersions/${policy_version_id}/runs`;
+    const launchUrl = `${serverUrl}/policy-versions/${policy_version_id}/runs`;
 
     const form = useForm({
         resolver: zodResolver(formSchema),

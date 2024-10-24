@@ -4,15 +4,11 @@ import { Suspense } from "react";
 import Loader from "@/components/loader";
 import { RunPage } from "@/components/run/run-page-server";
 
-import { InnerNavbar, InnerNavbarSectionProps } from "@/components/inner-navbar";
-
 export default async function Page({ params }) {
     const user = await stackServerApp.getUser();
-    const innerNavbarSections: InnerNavbarSectionProps[] = [{ key: "Run:", value: params.run_id }];
 
     return (
         <div className="flex flex-col w-full h-full overflow-scroll">
-            <InnerNavbar sections={innerNavbarSections} />
             <Suspense fallback={<Loader />}>
                 <RunPage user={user} runId={params.run_id} />
             </Suspense>

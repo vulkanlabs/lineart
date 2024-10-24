@@ -81,7 +81,7 @@ export async function fetchPolicyRuns(user: StackUser, policyId: string) {
 export async function fetchPolicyVersionRuns(user: StackUser, policyVersionId: string) {
     return fetchServerData({
         user: user,
-        endpoint: `/policyVersions/${policyVersionId}/runs`,
+        endpoint: `/policy-versions/${policyVersionId}/runs`,
         label: `runs for policy version ${policyVersionId}`,
     });
 }
@@ -110,7 +110,7 @@ export async function fetchPolicyVersion(user: StackUser, policyVersionId: strin
 export async function fetchPolicyVersionVariables(user: StackUser, policyVersionId: string) {
     return fetchServerData({
         user: user,
-        endpoint: `/policyVersions/${policyVersionId}/variables`,
+        endpoint: `/policy-versions/${policyVersionId}/variables`,
         label: `variables for policy version ${policyVersionId}`,
     });
 }

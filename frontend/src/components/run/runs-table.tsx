@@ -1,6 +1,6 @@
 "use client";
 import { formatDistanceStrict } from "date-fns";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { ShortenedID } from "@/components/shortened-id";
 
@@ -16,6 +16,7 @@ import {
 
 export function RunsTable({ runs }) {
     const router = useRouter();
+    const pathname = usePathname();
 
     return (
         <Table>
@@ -35,7 +36,7 @@ export function RunsTable({ runs }) {
                     <TableRow
                         key={run.run_id}
                         className="cursor-pointer"
-                        onClick={() => router.push(`/runs/${run.run_id}`)}
+                        onClick={() => router.push(`${pathname}/${run.run_id}`)}
                     >
                         <TableCell>
                             <ShortenedID id={run.run_id} />

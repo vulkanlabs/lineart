@@ -11,7 +11,7 @@ import type {
     RunLogs,
 } from "@/components/run/types";
 
-export async function RunPage({ user, runId}: { user: CurrentUser, runId: string }) {
+export async function RunPage({ user, runId }: { user: CurrentUser; runId: string }) {
     const runLogs: RunLogs = await fetchRunLogs(user, runId).catch((error) => {
         console.error(error);
         return {};
@@ -37,7 +37,7 @@ export async function RunPage({ user, runId}: { user: CurrentUser, runId: string
         };
     });
 
-    return <RunPageContent runGraph={runGraph} runLogs={runLogs} />;
+    return <RunPageContent runGraph={runGraph} runLogs={runLogs} runData={runData} />;
 }
 
 async function getNodeDefinitions(
