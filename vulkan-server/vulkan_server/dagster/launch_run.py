@@ -71,7 +71,7 @@ def _get_policy_config_variables(
     db: Session, policy_version_id: str, variables: list[str] | None
 ) -> dict[str, str]:
     if variables is None or len(variables) == 0:
-        return {}, set()
+        return {}
 
     results = (
         db.query(ConfigurationValue)

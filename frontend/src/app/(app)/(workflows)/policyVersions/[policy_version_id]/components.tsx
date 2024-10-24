@@ -1,5 +1,5 @@
 "use client";
-import { Logs, Network, FolderCog } from "lucide-react";
+import { Logs, Network, FolderCog, Play } from "lucide-react";
 
 import { SidebarSectionProps, PageLayout } from "@/components/page-layout";
 import { InnerNavbarSectionProps, InnerNavbar } from "@/components/inner-navbar";
@@ -19,7 +19,7 @@ export function RouteLayout({ policy, policyVersion, children }) {
         },
         {
             name: "Launcher",
-            icon: FolderCog,
+            icon: Play,
             path: `${baseUrl}/launcher`,
         },
         {

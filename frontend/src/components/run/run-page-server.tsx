@@ -1,4 +1,3 @@
-import { stackServerApp } from "@/stack";
 import { CurrentUser } from "@stackframe/stack";
 
 import { fetchPolicyVersion, fetchRun, fetchRunsData, fetchRunLogs } from "@/lib/api";
