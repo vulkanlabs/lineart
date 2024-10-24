@@ -6,8 +6,11 @@ from vulkan_public.cli.context import Context
 from vulkan_public.schemas import DataSourceCreate
 
 
-def list_data_sources(ctx: Context) -> list[dict]:
-    response = ctx.session.get(f"{ctx.server_url}/data-sources")
+def list_data_sources(ctx: Context, include_archived: bool = False) -> list[dict]:
+    response = ctx.session.get(
+        f"{ctx.server_url}/data-sources",
+        params={"include_archived": include_archived},
+    )
     assert (
         response.status_code == 200
     ), f"Failed to list data sources: {response.content}"
@@ -40,6 +43,14 @@ def get_data_source(ctx: Context, data_source_id: str) -> dict:
     response = ctx.session.get(f"{ctx.server_url}/data-sources/{data_source_id}")
     assert response.status_code == 200, f"Failed to get data source: {response.content}"
     return response.json()
+
+
+def delete_data_source(ctx: Context, data_source_id: str) -> None:
+    response = ctx.session.delete(f"{ctx.server_url}/data-sources/{data_source_id}")
+    assert (
+        response.status_code == 200
+    ), f"Failed to delete data source: {response.content}"
+    ctx.logger.info(f"Deleted data source {data_source_id}")
 
 
 def list_data_objects(ctx: Context, data_source_id: str) -> list[dict]:

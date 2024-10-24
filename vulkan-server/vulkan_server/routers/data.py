@@ -9,7 +9,15 @@ from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.data.broker import DataBroker
 from vulkan_server.data.io import DataSourceModelSerializer
-from vulkan_server.db import DataObject, DataSource, get_db
+from vulkan_server.db import (
+    ComponentDataDependency,
+    ComponentVersion,
+    DataObject,
+    DataSource,
+    PolicyDataDependency,
+    PolicyVersion,
+    get_db,
+)
 from vulkan_server.logger import init_logger
 
 logger = init_logger("data")
@@ -24,9 +32,13 @@ sources = APIRouter(
 @sources.get("/", response_model=list[schemas.DataSource])
 def list_data_sources(
     project_id: str = Depends(get_project_id),
+    include_archived: bool = False,
     db: Session = Depends(get_db),
 ):
-    data_sources = db.query(DataSource).filter_by(project_id=project_id).all()
+    filters = dict(project_id=project_id)
+    if not include_archived:
+        filters["archived"] = False
+    data_sources = db.query(DataSource).filter_by(**filters).all()
     response = [DataSourceModelSerializer.deserialize(ds) for ds in data_sources]
     return response
 
@@ -72,7 +84,55 @@ def delete_data_source(
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    pass
+    # TODO: ensure this function can only be executed by ADMIN level users
+    data_source = (
+        db.query(DataSource)
+        .filter_by(
+            data_source_id=data_source_id,
+            project_id=project_id,
+            archived=False,
+        )
+        .first()
+    )
+    if data_source_id is None:
+        msg = f"Tried to delete non-existent data source {data_source_id}"
+        raise HTTPException(status_code=404, detail=msg)
+
+    ds_component_uses = (
+        db.query(ComponentDataDependency, ComponentVersion)
+        .join(ComponentVersion)
+        .filter(
+            ComponentDataDependency.data_source_id == data_source_id,
+            ComponentVersion.archived == False,  # noqa: E712
+        )
+        .all()
+    )
+    if len(ds_component_uses) > 0:
+        msg = f"Data source {data_source_id} is used by one or more component versions"
+        raise HTTPException(status_code=400, detail=msg)
+
+    ds_policy_uses = (
+        db.query(PolicyDataDependency, PolicyVersion)
+        .join(PolicyVersion)
+        .filter(
+            PolicyDataDependency.data_source_id == data_source_id,
+            PolicyVersion.archived == False,  # noqa: E712
+        )
+        .all()
+    )
+    if len(ds_policy_uses) > 0:
+        msg = f"Data source {data_source_id} is used by one or more policy versions"
+        raise HTTPException(status_code=400, detail=msg)
+
+    objects = db.query(DataObject).filter_by(data_source_id=data_source_id).all()
+    if len(objects) > 0:
+        msg = f"Data source {data_source_id} has associated data objects"
+        raise HTTPException(status_code=400, detail=msg)
+
+    data_source.archived = True
+    db.commit()
+    logger.info(f"Archived data source {data_source_id}")
+    return {"component_version_id": data_source_id}
 
 
 @sources.get("/{data_source_id}/objects")
@@ -118,7 +178,7 @@ def get_data_object(
     )
     if data_object is None:
         raise HTTPException(status_code=404, detail="Data object not found")
-    
+
     return data_object
 
 

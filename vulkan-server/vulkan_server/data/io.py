@@ -1,7 +1,7 @@
 from vulkan_public.schemas import (
+    CachingOptions,
     CachingTTL,
     RequestOptions,
-    CachingOptions,
     RetryPolicy,
 )
 
@@ -55,6 +55,7 @@ class DataSourceModelSerializer:
             ),
             description=data.description,
             metadata=data.config_metadata,
+            archived=data.archived,
             created_at=data.created_at,
             last_updated_at=data.last_updated_at,
         )

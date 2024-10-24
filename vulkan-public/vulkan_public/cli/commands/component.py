@@ -13,7 +13,9 @@ def component():
 
 @component.command()
 @pass_context
-@click.option("--all", is_flag=True, default=False, help="Include archived components")
+@click.option(
+    "--all", "-a", is_flag=True, default=False, help="Include archived components"
+)
 @log_exceptions
 def list(ctx: Context, all: bool):
     data = client.component.list_components(ctx, all)
@@ -53,7 +55,11 @@ def delete(
 @pass_context
 @click.argument("component_id", type=str, required=True)
 @click.option(
-    "--all", is_flag=True, default=False, help="Include archived component versions"
+    "--all",
+    "-a",
+    is_flag=True,
+    default=False,
+    help="Include archived component versions",
 )
 @log_exceptions
 def list_versions(
@@ -62,7 +68,7 @@ def list_versions(
     all: bool,
 ):
     data = client.component.list_component_versions(ctx, component_id, all)
-    keys = ["component_id", "component_version_id", "alias", "archived", "created_at"]
+    keys = ["component_version_id", "component_id", "alias", "archived", "created_at"]
     summary = [dict([(k, d[k]) for k in keys]) for d in data]
     tab = tabulate(summary, headers="keys", tablefmt="pretty")
     ctx.logger.info(f"\n{tab}")

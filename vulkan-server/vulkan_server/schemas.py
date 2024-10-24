@@ -226,6 +226,7 @@ class RunLogs(BaseModel):
 class DataSource(DataSourceCreate):
     data_source_id: UUID
     project_id: UUID
+    archived: bool
     created_at: datetime
     last_updated_at: datetime
 
