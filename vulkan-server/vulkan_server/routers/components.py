@@ -1,11 +1,11 @@
 import json
 
-import requests
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from vulkan_public.exceptions import (
     UNHANDLED_ERROR_NAME,
     VULKAN_INTERNAL_EXCEPTIONS,
+    DataSourceNotFoundException,
     VulkanInternalException,
 )
 from vulkan_public.spec.component import component_version_alias
@@ -14,14 +14,17 @@ from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.db import (
     Component,
+    ComponentDataDependency,
     ComponentVersion,
     ComponentVersionDependency,
+    DataSource,
     Policy,
     PolicyVersion,
     get_db,
 )
 from vulkan_server.exceptions import ExceptionHandler
 from vulkan_server.logger import init_logger
+from vulkan_server.services import VulkanDagsterServerClient
 
 logger = init_logger("components")
 router = APIRouter(
@@ -136,47 +139,66 @@ def create_component_version(
 
     alias = component_version_alias(component.name, component_config.version_name)
     handler = ExceptionHandler(logger, f"Failed to create component version {alias}")
+    vulkan_dagster_client = VulkanDagsterServerClient(
+        project_id=project_id, server_url=server_config.vulkan_dagster_server_url
+    )
 
     try:
-        server_url = f"{server_config.vulkan_dagster_server_url}/components"
         # TODO: add input and output schemas and handle them in the endpoint
-        response = requests.post(
-            server_url,
-            data={
-                "alias": alias,
-                "project_id": project_id,
-                "repository": component_config.repository,
-            },
+        response = vulkan_dagster_client.create_component_version(
+            alias, component_config.repository
         )
-        if response.status_code != 200:
-            detail = response.json().get("detail", {})
-            if detail.get("error") == "VulkanInternalException":
-                raise VULKAN_INTERNAL_EXCEPTIONS[detail.get("exit_status")](
-                    msg=detail.get("msg")
-                )
-            raise Exception(detail.get("msg"))
-
         data = response.json()
+
+        component_version = ComponentVersion(
+            component_id=component_id,
+            input_schema=str(data["input_schema"]),
+            instance_params_schema=str(data["instance_params_schema"]),
+            node_definitions=json.dumps(data["node_definitions"]),
+            project_id=project_id,
+            alias=alias,
+            repository=component_config.repository,
+        )
+        db.add(component_version)
+        _add_data_source_dependencies(db, component_version, data["data_sources"])
+        db.commit()
     except VulkanInternalException as e:
         error_name = VULKAN_INTERNAL_EXCEPTIONS[e.exit_status].__name__
         handler.raise_exception(400, error_name, str(e), e.metadata)
     except Exception as e:
         handler.raise_exception(status_code=500, error=UNHANDLED_ERROR_NAME, msg=str(e))
 
-    component = ComponentVersion(
-        component_id=component_id,
-        input_schema=str(data["input_schema"]),
-        instance_params_schema=str(data["instance_params_schema"]),
-        node_definitions=json.dumps(data["node_definitions"]),
-        project_id=project_id,
-        alias=alias,
-        repository=component_config.repository,
-    )
-    db.add(component)
-    db.commit()
-    logger.info(f"Creating component {alias}")
+    return {"component_version_id": component_version.component_version_id}
 
-    return {"component_version_id": component.component_version_id}
+
+def _add_data_source_dependencies(
+    db: Session, component_version: ComponentVersion, data_sources: list[str]
+) -> None:
+    if not data_sources:
+        return
+
+    matched = (
+        db.query(DataSource)
+        .filter(
+            DataSource.name.in_(data_sources),
+            DataSource.project_id == component_version.project_id,
+            DataSource.archived == False,  # noqa: E712
+        )
+        .all()
+    )
+    missing = list(set(data_sources) - set([m.name for m in matched]))
+    if missing:
+        raise DataSourceNotFoundException(
+            msg=f"The following data sources are not defined: {missing}",
+            metadata={"data_sources": missing},
+        )
+
+    for m in matched:
+        dependency = ComponentDataDependency(
+            data_source_id=m.data_source_id,
+            component_version_id=component_version.component_version_id,
+        )
+        db.add(dependency)
 
 
 @router.get(
@@ -197,82 +219,6 @@ def list_component_versions(
     if len(versions) == 0:
         return Response(status_code=204)
     return versions
-
-
-@router.get(
-    "/{component_id}/versions/{component_version_id}",
-    response_model=schemas.ComponentVersion,
-)
-def get_component_version(
-    component_id: str,
-    component_version_id: str,
-    project_id: str = Depends(get_project_id),
-    db: Session = Depends(get_db),
-):
-    component_version = (
-        db.query(ComponentVersion)
-        .filter_by(component_version_id=component_version_id, project_id=project_id)
-        .first()
-    )
-    if component_version is None:
-        return Response(status_code=404)
-    return component_version
-
-
-@router.delete("/{component_id}/versions/{component_version_id}")
-def delete_component_version(
-    component_id: str,
-    component_version_id: str,
-    project_id: str = Depends(get_project_id),
-    db: Session = Depends(get_db),
-    server_config: definitions.VulkanServerConfig = Depends(
-        definitions.get_vulkan_server_config
-    ),
-):
-    # TODO: ensure this function can only be executed by ADMIN level users
-    component_version = (
-        db.query(ComponentVersion)
-        .filter_by(component_version_id=component_version_id, project_id=project_id)
-        .first()
-    )
-    if component_version is None or component_version.archived:
-        msg = f"Tried to delete non-existent component version {component_version_id}"
-        raise HTTPException(status_code=404, detail=msg)
-
-    component_version_uses = (
-        db.query(ComponentVersionDependency, PolicyVersion)
-        .join(PolicyVersion)
-        .filter(
-            ComponentVersionDependency.component_version_id == component_version_id,
-            PolicyVersion.archived == False,  # noqa: E712
-        )
-        .all()
-    )
-    if len(component_version_uses) > 0:
-        msg = (
-            f"Component version {component_version_id} is used by one or "
-            "more policy versions"
-        )
-        raise HTTPException(status_code=400, detail=msg)
-
-    server_url = server_config.vulkan_dagster_server_url
-    response = requests.post(
-        f"{server_url}/components/delete",
-        json={"alias": component_version.alias, "project_id": project_id},
-    )
-    if response.status_code != 200:
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                f"Error deleting component version {component_version_id}: "
-                f"{response.content}"
-            ),
-        )
-
-    component_version.archived = True
-    db.commit()
-    logger.info(f"Deleted component version {component_version_id}")
-    return {"component_version_id": component_version_id}
 
 
 @router.get(

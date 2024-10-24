@@ -12,6 +12,8 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Index,
+    Integer,
+    LargeBinary,
     String,
     Uuid,
     create_engine,
@@ -254,6 +256,81 @@ class StepMetadata(Base):
     end_time = Column(Float)
     error = Column(String, nullable=True)
     extra = Column(JSON, nullable=True)
+
+
+class DataSource(TimedUpdateMixin, AuthorizationMixin, Base):
+    __tablename__ = "data_source"
+
+    data_source_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    name = Column(String)
+    description = Column(String, nullable=True)
+    keys = Column(ARRAY(String))
+    request_url = Column(String)
+    request_method = Column(String)
+    request_headers = Column(JSON, nullable=True)
+    request_params = Column(JSON, nullable=True)
+    request_timeout = Column(Float, nullable=True)
+    caching_enabled = Column(Boolean)
+    caching_ttl = Column(Integer, nullable=True)
+    retry_max_retries = Column(Integer, nullable=True)
+    retry_backoff_factor = Column(Float, nullable=True)
+    retry_status_forcelist = Column(ARRAY(Integer), nullable=True)
+    # Attribute name 'metadata' is reserved when using the Declarative API.
+    config_metadata = Column(JSON, nullable=True)
+    archived = Column(Boolean, default=False)
+
+    __table_args__ = (
+        Index(
+            "unique_data_source_name",
+            "project_id",
+            "name",
+            "archived",
+            unique=True,
+            postgresql_where=(archived == False),  # noqa: E712
+        ),
+    )
+
+
+class ComponentDataDependency(Base):
+    __tablename__ = "component_data_dependency"
+
+    id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
+    component_version_id = Column(
+        Uuid, ForeignKey("component_version.component_version_id")
+    )
+
+
+class PolicyDataDependency(Base):
+    __tablename__ = "policy_data_dependency"
+
+    id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
+    policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
+
+
+class DataObject(AuthorizationMixin, Base):
+    __tablename__ = "data_object"
+
+    data_object_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
+    key = Column(String)
+    value = Column(LargeBinary)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # TODO: forbid updates to this table
+
+
+class RunDataCache(Base):
+    __tablename__ = "run_data_cache"
+
+    key = Column(String, primary_key=True)
+    data_object_id = Column(Uuid, ForeignKey("data_object.data_object_id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, Body
 
 app = FastAPI()
 
@@ -31,6 +31,17 @@ db = {
         "scr": 1000,
     },
 }
+
+
+@app.get("/")
+def get_data(tax_id: Annotated[str, Body(embed=True)]):
+    entry = db[tax_id]
+    response = {
+        "name": entry["name"],
+        "serasa": entry["serasa"],
+        "scr": entry["scr"],
+    }
+    return response
 
 
 @app.get("/scr")

@@ -1,6 +1,5 @@
 from typing import Annotated
 
-import requests
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
@@ -17,16 +16,19 @@ from vulkan_server.db import (
     DagsterWorkspace,
     Policy,
     PolicyVersion,
+    PolicyDataDependency,
+    DataSource,
     Run,
     get_db,
 )
 from vulkan_server.exceptions import VulkanServerException
 from vulkan_server.logger import init_logger
+from vulkan_server.services import VulkanDagsterServerClient
 
-logger = init_logger("policyVersions")
+logger = init_logger("policy-versions")
 router = APIRouter(
-    prefix="/policyVersions",
-    tags=["policyVersions"],
+    prefix="/policy-versions",
+    tags=["policy-versions"],
     responses={404: {"description": "Not found"}},
 )
 
@@ -83,19 +85,18 @@ def delete_policy_version(
     )
 
     name = definitions.version_name(policy_version.policy_id, policy_version_id)
-    server_url = server_config.vulkan_dagster_server_url
-    response = requests.post(
-        f"{server_url}/workspaces/delete",
-        json={"project_id": project_id, "name": name},
+    vulkan_dagster_client = VulkanDagsterServerClient(
+        project_id=project_id, server_url=server_config.vulkan_dagster_server_url
     )
-    if response.status_code != 200:
+
+    try:
+        _ = vulkan_dagster_client.delete_workspace(name)
+    except Exception:
         raise HTTPException(
             status_code=500,
-            detail=(
-                f"Error deleting policy version {policy_version_id}: "
-                f"{response.content}"
-            ),
+            detail=f"Error deleting policy version {policy_version_id}",
         )
+
     update_repository(dagster_client)
 
     db.delete(workspace)
@@ -292,3 +293,42 @@ def list_dependencies_by_policy_version(
         )
 
     return dependencies
+
+
+@router.get(
+    "/{policy_version_id}/data-sources",
+    response_model=list[schemas.DataSourceReference],
+)
+def list_data_sources_by_policy_version(
+    policy_version_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    policy_version = (
+        db.query(PolicyVersion)
+        .filter_by(policy_version_id=policy_version_id, project_id=project_id)
+        .first()
+    )
+    if policy_version is None:
+        raise HTTPException(status_code=404, detail="Policy version not found")
+
+    data_source_uses = (
+        db.query(PolicyDataDependency)
+        .filter_by(policy_version_id=policy_version_id)
+        .all()
+    )
+    if len(data_source_uses) == 0:
+        return Response(status_code=204)
+
+    data_sources = []
+    for use in data_source_uses:
+        ds = db.query(DataSource).filter_by(data_source_id=use.data_source_id).first()
+        data_sources.append(
+            schemas.DataSourceReference(
+                data_source_id=ds.data_source_id,
+                name=ds.name,
+                created_at=ds.created_at,
+            )
+        )
+
+    return data_sources

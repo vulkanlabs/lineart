@@ -38,11 +38,17 @@ class ComponentNotFoundException(VulkanInternalException):
         super().__init__(exit_status=6, msg=msg, metadata=metadata)
 
 
+class DataSourceNotFoundException(VulkanInternalException):
+    def __init__(self, msg: str | None = None, metadata: dict | None = None):
+        super().__init__(exit_status=7, msg=msg, metadata=metadata)
+
+
 VULKAN_INTERNAL_EXCEPTIONS = {
     3: DefinitionNotFoundException,
     4: InvalidDefinitionError,
     5: ConflictingDefinitionsError,
     6: ComponentNotFoundException,
+    7: DataSourceNotFoundException,
 }
 
 UNHANDLED_ERROR_NAME = "UnhandledError"

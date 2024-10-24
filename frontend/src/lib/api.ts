@@ -101,7 +101,7 @@ export async function fetchPolicyVersions(
 export async function fetchPolicyVersion(user: StackUser, policyVersionId: string) {
     return fetchServerData({
         user: user,
-        endpoint: `/policyVersions/${policyVersionId}`,
+        endpoint: `/policy-versions/${policyVersionId}`,
         label: `policy version ${policyVersionId}`,
     });
 }
@@ -118,8 +118,16 @@ export async function fetchPolicyVersionVariables(user: StackUser, policyVersion
 export async function fetchPolicyVersionComponents(user: StackUser, policyVersionId: string) {
     return fetchServerData({
         user: user,
-        endpoint: `/policyVersions/${policyVersionId}/components`,
+        endpoint: `/policy-versions/${policyVersionId}/components`,
         label: `component usage for policy version ${policyVersionId}`,
+    });
+}
+
+export async function fetchPolicyVersionDataSources(user: StackUser, policyVersionId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/policy-versions/${policyVersionId}/data-sources`,
+        label: `data sources for policy version ${policyVersionId}`,
     });
 }
 
@@ -161,7 +169,7 @@ export async function fetchComponentVersion(
 ) {
     return fetchServerData({
         user: user,
-        endpoint: `/components/${componentId}/versions/${componentVersionId}`,
+        endpoint: `/component-versions/${componentVersionId}`,
         label: `component version ${componentVersionId}`,
     });
 }
@@ -195,6 +203,22 @@ export async function fetchRunLogs(user: StackUser, runId: string) {
         user: user,
         endpoint: `/runs/${runId}/logs`,
         label: `logs for run ${runId}`,
+    });
+}
+
+export async function fetchDataSources(user: StackUser) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/data-sources`,
+        label: `data sources`,
+    });
+}
+
+export async function fetchDataSource(user: StackUser, dataSourceId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/data-sources/${dataSourceId}`,
+        label: `data source ${dataSourceId}`,
     });
 }
 

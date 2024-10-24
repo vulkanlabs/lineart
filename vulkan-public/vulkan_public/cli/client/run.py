@@ -75,7 +75,7 @@ class RunLauncher:
 
     def _launch_run_by_policy_version_id(self, policy_version_id: str):
         response = self.__launch_run(
-            url=f"{self.ctx.server_url}/policyVersions/{policy_version_id}/runs"
+            url=f"{self.ctx.server_url}/policy-versions/{policy_version_id}/runs"
         )
         if response.status_code == 404:
             msg = (
@@ -93,7 +93,7 @@ class RunLauncher:
         return response.json()["run_id"]
 
     def __launch_run(self, url: str):
-        self.ctx.logger.debug(f"Lanching run with input data: {self.input_data}")
+        self.ctx.logger.info(f"Lanching run with input data: {self.input_data}")
         body = {
             "input_data": self.input_data,
             "config_variables": self.config_variables,

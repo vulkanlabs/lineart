@@ -6,6 +6,12 @@ from vulkan.core.graph import extract_node_definitions
 from vulkan.environment.encoders import EnhancedJSONEncoder
 from vulkan_public.exceptions import VulkanInternalException
 from vulkan_public.spec.environment.loaders import load_component_definition_from_alias
+from vulkan_public.spec.nodes import NodeType
+
+
+def _extract_data_sources(nodes):
+    return [n.source for n in nodes if n.type == NodeType.DATA_INPUT]
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -25,6 +31,7 @@ if __name__ == "__main__":
         input_schema=component.input_schema,
         instance_params_schema=component.instance_params_schema,
         node_definitions=extract_node_definitions(component.nodes),
+        data_sources=_extract_data_sources(component.nodes),
     )
 
     with open(args.output_file, "w") as f:

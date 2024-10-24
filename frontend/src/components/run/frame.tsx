@@ -146,6 +146,7 @@ const defaultElkOptions = {
 const NodeTypeMapping = {
     TRANSFORM: "common",
     CONNECTION: "common",
+    DATA_INPUT: "common",
     BRANCH: "common",
     TERMINATE: "terminate",
     INPUT: "entry",

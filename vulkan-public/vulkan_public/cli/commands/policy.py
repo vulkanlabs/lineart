@@ -1,5 +1,4 @@
 import json
-from collections import OrderedDict
 
 import click
 from tabulate import tabulate
@@ -16,12 +15,13 @@ def policy():
 
 @policy.command()
 @pass_context
-@click.option("--all", is_flag=True, default=False, help="Include archived policies")
+@click.option(
+    "--all", "-a", is_flag=True, default=False, help="Include archived policies"
+)
 @log_exceptions
 def list(ctx: Context, all: bool):
     data = client.policy.list_policies(ctx, all)
     keys = [
-        "project_id",
         "policy_id",
         "name",
         "active_policy_version_id",
@@ -29,7 +29,7 @@ def list(ctx: Context, all: bool):
         "created_at",
         "last_updated_at",
     ]
-    summary = [OrderedDict([(k, d[k]) for k in keys]) for d in data]
+    summary = [dict([(k, d[k]) for k in keys]) for d in data]
     tab = tabulate(summary, headers="keys", tablefmt="pretty")
     ctx.logger.info(f"\n{tab}")
 
@@ -127,20 +127,19 @@ def list_runs(ctx: Context, policy_id: str):
 @pass_context
 @click.option("--policy_id", type=str, required=True)
 @click.option(
-    "--all", is_flag=True, default=False, help="Include archived policy versions"
+    "--all", "-a", is_flag=True, default=False, help="Include archived policy versions"
 )
 @log_exceptions
 def list_versions(ctx: Context, policy_id: str, all: bool):
     data = client.policy.list_policy_versions(ctx, policy_id, all)
     keys = [
-        "project_id",
-        "policy_id",
         "policy_version_id",
+        "policy_id",
         "alias",
         "archived",
         "created_at",
     ]
-    summary = [OrderedDict([(k, d[k]) for k in keys]) for d in data]
+    summary = [dict([(k, d[k]) for k in keys]) for d in data]
     tab = tabulate(summary, headers="keys", tablefmt="pretty")
     ctx.logger.info(f"\n{tab}")
 

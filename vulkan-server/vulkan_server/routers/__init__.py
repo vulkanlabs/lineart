@@ -1,1 +1,10 @@
-from . import components, policies, policy_versions, projects, runs, users
+from . import (
+    components,
+    component_versions,
+    data,
+    policies,
+    policy_versions,
+    projects,
+    runs,
+    users,
+)
