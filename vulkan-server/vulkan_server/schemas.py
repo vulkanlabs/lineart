@@ -237,13 +237,16 @@ class DataSourceReference(BaseModel):
     created_at: datetime
 
 
-class DataObject(BaseModel):
+class DataObjectMetadata(BaseModel):
     data_object_id: UUID
     data_source_id: UUID
     project_id: UUID
     key: str
-    value: Any
     created_at: datetime
+
+
+class DataObject(DataObjectMetadata):
+    value: Any
 
     class Config:
         from_attributes = True

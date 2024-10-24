@@ -135,7 +135,9 @@ def delete_data_source(
     return {"component_version_id": data_source_id}
 
 
-@sources.get("/{data_source_id}/objects")
+@sources.get(
+    "/{data_source_id}/objects", response_model=list[schemas.DataObjectMetadata]
+)
 def list_data_objects(
     data_source_id: str,
     project_id: str = Depends(get_project_id),
@@ -151,7 +153,7 @@ def list_data_objects(
 
     data_objects = db.query(DataObject).filter_by(data_source_id=data_source_id).all()
     return [
-        dict(
+        schemas.DataObjectMetadata(
             data_object_id=do.data_object_id,
             data_source_id=do.data_source_id,
             project_id=do.project_id,
