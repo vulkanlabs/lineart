@@ -1,4 +1,6 @@
 import React from "react";
+import { LinkIcon } from "lucide-react";
+import Link from "next/link";
 
 import {
     Table,
@@ -9,7 +11,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-
+import { ShortenedID } from "@/components/shortened-id";
 
 export function ConfigVariablesTable({ variables }) {
     return (
@@ -30,6 +32,41 @@ export function ConfigVariablesTable({ variables }) {
                         <TableCell>{entry.value}</TableCell>
                         <TableCell>{entry.created_at}</TableCell>
                         <TableCell>{entry.last_updated_at}</TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+    );
+}
+
+export function DataSourcesTable({ sources }) {
+    function parseDate(date: string) {
+        return new Date(date).toLocaleString();
+    }
+
+    return (
+        <Table>
+            <TableCaption>Data Sources for this Policy Version.</TableCaption>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Data Source Name</TableHead>
+                    <TableHead>Data Source ID</TableHead>
+                    <TableHead>Created At</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {sources.map((entry) => (
+                    <TableRow key={entry.name}>
+                        <TableCell>{entry.name}</TableCell>
+                        <TableCell>
+                            <ShortenedID id={entry.data_source_id} />
+                        </TableCell>
+                        <TableCell>{parseDate(entry.created_at)}</TableCell>
+                        <TableCell>
+                            <Link href={`/integrations/dataSources/${entry.data_source_id}`}>
+                                <LinkIcon />
+                            </Link>
+                        </TableCell>
                     </TableRow>
                 ))}
             </TableBody>

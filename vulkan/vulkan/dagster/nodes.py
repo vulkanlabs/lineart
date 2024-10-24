@@ -19,6 +19,7 @@ from vulkan_public.exceptions import UserCodeException
 from vulkan_public.spec.nodes import (
     BranchNode,
     Collect,
+    DataInputNode,
     HTTPConnectionNode,
     InputNode,
     Map,
@@ -30,7 +31,8 @@ from vulkan_public.spec.nodes import (
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.dagster.io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
-from vulkan.dagster.run_config import RUN_CONFIG_KEY
+from vulkan.dagster.resources import DATA_CLIENT_KEY, VulkanDataClient
+from vulkan.dagster.run_config import RUN_CONFIG_KEY, VulkanPolicyConfig
 
 
 # TODO: we should review how to require users to define the possible return
@@ -141,6 +143,85 @@ class DagsterHTTPConnection(HTTPConnectionNode, DagsterNode):
             method=node.method,
             headers=node.headers,
             params=node.params,
+            dependencies=node.dependencies,
+        )
+
+
+class DagsterDataInput(DataInputNode, DagsterNode):
+    def __init__(
+        self,
+        name: str,
+        source: str,
+        description: str | None = None,
+        dependencies: dict | None = None,
+    ):
+        super().__init__(
+            name=name,
+            source=source,
+            description=description,
+            dependencies=dependencies,
+        )
+
+    def op(self) -> OpDefinition:
+        return OpDefinition(
+            compute_fn=self.run,
+            name=self.name,
+            ins={k: In() for k in self.dependencies.keys()},
+            outs={
+                "result": Out(),
+                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
+            },
+            required_resource_keys={POLICY_CONFIG_KEY, DATA_CLIENT_KEY},
+        )
+
+    def run(self, context, inputs):
+        start_time = time.time()
+        client: VulkanDataClient = getattr(context.resources, DATA_CLIENT_KEY)
+        env: VulkanPolicyConfig = getattr(context.resources, POLICY_CONFIG_KEY)
+
+        body = inputs.get("body", None)
+        context.log.debug(f"Body: {body}")
+
+        response = client.get_data(source=self.source, body=body, env=env)
+        context.log.debug(f"Response: {response}")
+
+        error = None
+        extra = dict(data_source=self.source, status_code=response.status_code)
+
+        try:
+            response.raise_for_status()
+            if response.status_code == 200:
+                data = response.json()
+                response_metadata = {
+                    "data_object_id": data.get("data_object_id"),
+                    "request_key": data.get("key"),
+                    "origin": data.get("origin"),
+                }
+                extra.update({"response_metadata": response_metadata})
+                yield Output(data["value"])
+        except requests.exceptions.RequestException as e:
+            context.log.error(
+                f"Failed op {self.name} with status {response.status_code}"
+            )
+            error = ("\n").join(format_exception_only(type(e), e))
+            raise e
+        finally:
+            end_time = time.time()
+            metadata = StepMetadata(
+                node_type=self.type.value,
+                start_time=start_time,
+                end_time=end_time,
+                error=error,
+                extra=extra,
+            )
+            yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+
+    @classmethod
+    def from_spec(cls, node: DataInputNode):
+        return cls(
+            name=node.name,
+            source=node.source,
+            description=node.description,
             dependencies=node.dependencies,
         )
 
@@ -487,6 +568,7 @@ _NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
     TerminateNode: DagsterTerminate,
     BranchNode: DagsterBranch,
     HTTPConnectionNode: DagsterHTTPConnection,
+    DataInputNode: DagsterDataInput,
     InputNode: DagsterInput,
     Collect: DagsterCollect,
     Map: DagsterMap,
@@ -505,3 +587,8 @@ def to_dagster_node(node: Node) -> DagsterNode:
         raise ValueError(msg)
 
     return impl_type.from_spec(node)
+
+
+def _format_dagster_name(name: str) -> str:
+    # Replace every character not in regex "^[A-Za-z0-9_]+$" with _
+    return "".join(c if c.isalnum() or c == "_" else "_" for c in name)

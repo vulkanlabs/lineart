@@ -1,8 +1,10 @@
 from datetime import datetime
+from enum import Enum
 from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
+from vulkan_public.schemas import DataSourceCreate
 
 
 class Project(BaseModel):
@@ -153,6 +155,7 @@ class ConfigurationVariables(ConfigurationVariablesBase):
 class Run(BaseModel):
     run_id: UUID
     policy_version_id: UUID
+    project_id: UUID
     status: str
     result: str | None = None
     created_at: datetime
@@ -218,3 +221,44 @@ class RunLogs(BaseModel):
     status: str
     last_updated_at: datetime
     logs: list[LogEntry]
+
+
+class DataSource(DataSourceCreate):
+    data_source_id: UUID
+    project_id: UUID
+    archived: bool
+    created_at: datetime
+    last_updated_at: datetime
+
+
+class DataSourceReference(BaseModel):
+    data_source_id: UUID
+    name: str
+    created_at: datetime
+
+
+class DataObjectMetadata(BaseModel):
+    data_object_id: UUID
+    data_source_id: UUID
+    project_id: UUID
+    key: str
+    created_at: datetime
+
+
+class DataObject(DataObjectMetadata):
+    value: Any
+
+    class Config:
+        from_attributes = True
+
+
+class DataObjectOrigin(Enum):
+    REQUEST = "REQUEST"
+    CACHE = "CACHE"
+
+
+class DataBrokerResponse(BaseModel):
+    data_object_id: UUID
+    origin: DataObjectOrigin
+    key: str
+    value: Any

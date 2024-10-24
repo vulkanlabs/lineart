@@ -17,8 +17,7 @@ export default function Layout({ children }) {
         {
             name: "Integrations",
             icon: ArrowDownUp,
-            path: "/integrations",
-            disabled: true,
+            path: "/integrations/dataSources",
         },
         {
             name: "Logs",

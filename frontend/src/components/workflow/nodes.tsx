@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import { Handle, Position } from '@xyflow/react';
 
-import { Split, Blocks, Link, ArrowRightFromLine } from "lucide-react";
+import { Split, Blocks, ArrowDown01, Link, ArrowRightFromLine } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import PythonLogo from "/public/python-logo.png";
@@ -30,6 +30,14 @@ function NodeBase({ icon, data, width, height, isOutput = false }) {
 
 export function HTTPConnectionNode({ data, width, height }) {
     const icon = <Link className="max-h-5 max-w-5" />;
+
+    return (
+        <NodeBase icon={icon} data={data} width={width} height={height} />
+    );
+}
+
+export function DataInputNode({ data, width, height }) {
+    const icon = <ArrowDown01 className="max-h-5 max-w-5" />;
 
     return (
         <NodeBase icon={icon} data={data} width={width} height={height} />
@@ -99,6 +107,7 @@ export function ComponentNode({ data, width, height }) {
 
 export const nodeTypes = {
     'connection': HTTPConnectionNode,
+    'data-input': DataInputNode,
     'transform': TransformNode,
     'input-node': InputNode,
     'branch': BranchNode,

@@ -30,7 +30,7 @@ export function RouteLayout({ policy, policyVersion, children }) {
     ];
     return (
         <div className="flex flex-col w-full h-full">
-            <InnerNavbar sections={innerNavbarSections} />
+            <InnerNavbar backRoute={`/policies/${policy.policy_id}/versions`} sections={innerNavbarSections} />
             <PageLayout sidebar={{ sections, retractable: true }} content={{ scrollable: true }}>
                 {children}
             </PageLayout>

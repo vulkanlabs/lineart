@@ -57,8 +57,8 @@ class VulkanWorkspaceManager:
             self.workspace_name, self.components_path, required_components
         )
 
-    def get_node_definitions(self):
-        return _get_node_definitions(
+    def get_policy_definitions(self):
+        return _get_policy_definitions(
             self.code_location, self.workspace_name, self.components_path
         )
 
@@ -132,14 +132,14 @@ def _get_policy_definition_settings(code_location: VulkanCodeLocation, workspace
     return data
 
 
-def _get_node_definitions(
+def _get_policy_definitions(
     code_location: VulkanCodeLocation, workspace_name: str, components_base_dir: str
 ):
     tmp_path = f"/tmp/{workspace_name}-{str(time())}.json"
     completed_process = subprocess.run(
         [
             f"{VENVS_PATH}/{workspace_name}/bin/python",
-            f"{SCRIPTS_PATH}/resolve_policy.py",
+            f"{SCRIPTS_PATH}/get_policy_definitions.py",
             "--file_location",
             code_location.entrypoint,
             "--components_base_dir",

@@ -2,11 +2,15 @@ import { Suspense } from "react";
 import { stackServerApp } from "@/stack";
 import { CurrentUser } from "@stackframe/stack";
 
-import { fetchPolicyVersionVariables, fetchPolicyVersionComponents } from "@/lib/api";
+import {
+    fetchPolicyVersionVariables,
+    fetchPolicyVersionComponents,
+    fetchPolicyVersionDataSources,
+} from "@/lib/api";
 import Loader from "@/components/loader";
 import { PolicyVersionComponentDependenciesTable } from "@/components/component/dependencies-table";
 
-import { ConfigVariablesTable, EmptyVariablesTable } from "./components";
+import { ConfigVariablesTable, DataSourcesTable, EmptyVariablesTable } from "./components";
 
 export default async function Page({ params }) {
     const user = await stackServerApp.getUser();
@@ -14,7 +18,7 @@ export default async function Page({ params }) {
     return (
         <div className="flex flex-col p-8 gap-8">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight">Configuration Variables</h1>
+                <h1 className="mb-5 text-2xl font-bold tracking-tight">Configuration Variables</h1>
                 <Suspense fallback={<Loader />}>
                     <ConfigVariablesSection
                         user={user}
@@ -24,9 +28,16 @@ export default async function Page({ params }) {
             </div>
 
             <div>
-                <h1 className="text-2xl font-bold tracking-tight">Components</h1>
+                <h1 className="mb-5 text-2xl font-bold tracking-tight">Components</h1>
                 <Suspense fallback={<Loader />}>
                     <ComponentsSection user={user} policy_version_id={params.policy_version_id} />
+                </Suspense>
+            </div>
+
+            <div>
+                <h1 className="mb-5 text-2xl font-bold tracking-tight">Data Sources</h1>
+                <Suspense fallback={<Loader />}>
+                    <DataSourcesSection user={user} policy_version_id={params.policy_version_id} />
                 </Suspense>
             </div>
         </div>
@@ -64,8 +75,28 @@ async function ComponentsSection({
         },
     );
 
-    return components.length > 0 ? (
+    return components?.length > 0 ? (
         <PolicyVersionComponentDependenciesTable entries={components} />
+    ) : (
+        <EmptyVariablesTable />
+    );
+}
+
+async function DataSourcesSection({
+    user,
+    policy_version_id,
+}: {
+    user: CurrentUser;
+    policy_version_id: string;
+}) {
+    const dataSources = await fetchPolicyVersionDataSources(user, policy_version_id).catch(
+        (error) => {
+            console.error(error);
+        },
+    );
+
+    return dataSources?.length > 0 ? (
+        <DataSourcesTable sources={dataSources} />
     ) : (
         <EmptyVariablesTable />
     );

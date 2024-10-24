@@ -13,6 +13,7 @@ from vulkan.dagster.io_manager import (
     postgresql_io_manager,
 )
 from vulkan.dagster.policy import DagsterFlow
+from vulkan.dagster.resources import DATA_CLIENT_KEY, VulkanDataClient
 from vulkan.dagster.run_config import (
     RUN_CONFIG_KEY,
     VulkanPolicyConfig,
@@ -26,9 +27,10 @@ def make_workspace_definition(
     file_location: str,
     components_base_dir: str,
 ) -> Definitions:
+    run_config = VulkanRunConfig.configure_at_launch()
     resources = {
         # Vulkan Configurable Resources
-        RUN_CONFIG_KEY: VulkanRunConfig.configure_at_launch(),
+        RUN_CONFIG_KEY: run_config,
         POLICY_CONFIG_KEY: VulkanPolicyConfig.configure_at_launch(),
         # Run DB
         DB_CONFIG_KEY: DBConfig(
@@ -48,6 +50,7 @@ def make_workspace_definition(
             resource_fn=metadata_io_manager,
             required_resource_keys={RUN_CONFIG_KEY},
         ),
+        DATA_CLIENT_KEY: VulkanDataClient(run_config=run_config),
     }
 
     # Up to this point, everything should be defined in terms of core elements.
