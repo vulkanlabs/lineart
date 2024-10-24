@@ -75,11 +75,7 @@ async function ComponentsSection({
         },
     );
 
-    return components?.length > 0 ? (
-        <PolicyVersionComponentDependenciesTable entries={components} />
-    ) : (
-        <EmptyVariablesTable />
-    );
+    return <PolicyVersionComponentDependenciesTable entries={components} />;
 }
 
 async function DataSourcesSection({

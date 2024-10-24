@@ -9,6 +9,7 @@ class RunLauncher:
         self,
         ctx: Context,
         input_data: dict,
+        config_variables: dict = None,
         timeout: int = 15,
         time_step: int = 5,
     ):
@@ -16,6 +17,10 @@ class RunLauncher:
         self.timeout = timeout
         self.time_step = time_step
         self.input_data = input_data
+
+        if config_variables is None:
+            config_variables = {}
+        self.config_variables = config_variables
 
     def trigger_run_by_policy_id(self, policy_id: str):
         run_id = self._launch_run_by_policy_id(policy_id)
@@ -89,7 +94,10 @@ class RunLauncher:
 
     def __launch_run(self, url: str):
         self.ctx.logger.info(f"Lanching run with input data: {self.input_data}")
-        body = {"input_data": json.dumps(self.input_data)}
+        body = {
+            "input_data": self.input_data,
+            "config_variables": self.config_variables,
+        }
         return self.ctx.session.post(url, json=body)
 
 
@@ -97,10 +105,11 @@ def trigger_run_by_policy_id(
     ctx: Context,
     policy_id: str,
     input_data: dict,
+    config_variables: dict = None,
     timeout: int = 15,
     time_step: int = 5,
 ):
-    laucher = RunLauncher(ctx, input_data, timeout, time_step)
+    laucher = RunLauncher(ctx, input_data, config_variables, timeout, time_step)
     return laucher.trigger_run_by_policy_id(policy_id)
 
 
@@ -108,10 +117,11 @@ def trigger_run_by_policy_version_id(
     ctx: Context,
     policy_version_id: str,
     input_data: dict,
+    config_variables: dict = None,
     timeout: int = 15,
     time_step: int = 5,
 ):
-    laucher = RunLauncher(ctx, input_data, timeout, time_step)
+    laucher = RunLauncher(ctx, input_data, config_variables, timeout, time_step)
     return laucher.trigger_run_by_policy_version_id(policy_version_id)
 
 

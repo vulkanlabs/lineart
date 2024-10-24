@@ -137,6 +137,7 @@ class PolicyVersion(PolicyVersionBase):
     archived: bool
     created_at: datetime
     last_updated_at: datetime
+    variables: list[str] | None = None
 
     class Config:
         from_attributes = True

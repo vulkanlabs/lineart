@@ -64,6 +64,10 @@ export function PolicyVersionComponentDependenciesTable({
 }: {
     entries: ComponentDependency[];
 }) {
+    if (!entries || entries.length === 0) {
+        return <EmptyDependenciesTable />;
+    }
+
     return (
         <Table>
             <TableCaption>Components used in this Policy Version.</TableCaption>
@@ -96,5 +100,13 @@ export function PolicyVersionComponentDependenciesTable({
                 ))}
             </TableBody>
         </Table>
+    );
+}
+
+function EmptyDependenciesTable() {
+    return (
+        <div className="flex justify-center items-center h-32 text-gray-500">
+            No dependencies found.
+        </div>
     );
 }

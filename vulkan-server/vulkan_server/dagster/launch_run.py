@@ -24,6 +24,7 @@ def create_run(
     policy_version_id: str,
     project_id: str,
     input_data: dict,
+    run_config_variables: dict[str, str],
 ) -> Run:
     version = (
         db.query(PolicyVersion)
@@ -36,8 +37,14 @@ def create_run(
         msg = f"Policy version {policy_version_id} not found"
         raise NotFoundException(msg)
 
-    config_variables, missing = _get_config_variables(
+    policy_config_variables = _get_policy_config_variables(
         db, policy_version_id=policy_version_id, variables=version.variables
+    )
+
+    config_variables, missing = _merge_config_variables(
+        run_config=run_config_variables,
+        policy_config=policy_config_variables,
+        required=version.variables,
     )
     if len(missing) > 0:
         raise VariablesNotSetException(f"Mandatory variables not set: {missing}")
@@ -60,11 +67,11 @@ def create_run(
     return run
 
 
-def _get_config_variables(
+def _get_policy_config_variables(
     db: Session, policy_version_id: str, variables: list[str] | None
-) -> tuple[dict[str, str], set[str]]:
+) -> dict[str, str]:
     if variables is None or len(variables) == 0:
-        return {}, set()
+        return {}
 
     results = (
         db.query(ConfigurationValue)
@@ -74,10 +81,16 @@ def _get_config_variables(
         )
         .all()
     )
-    config_variables = {v.name: v.value for v in results}
+    return {v.name: v.value for v in results}
 
-    missing_variables = set(variables) - set(config_variables.keys())
-    return config_variables, missing_variables
+
+def _merge_config_variables(
+    run_config: dict[str, str], policy_config: dict[str, str], required: list[str]
+) -> tuple[dict[str, str], set[str]]:
+    variables = policy_config.copy()
+    variables.update(run_config)
+    missing_variables = set(required) - set(variables.keys())
+    return variables, missing_variables
 
 
 def launch_run(
@@ -117,9 +130,10 @@ def launch_run(
         run.dagster_run_id = dagster_run_id
     except Exception as e:
         run.status = RunStatus.FAILURE
-        error_list = e.args[1]
-        error_details = error_list[0]
-        error_msg = f"Failed to trigger job: {error_details['message']}"
+        error_msg = f"Failed to trigger job: {str(e)}"
+        # error_list = e.args[1]
+        # error_details = error_list[0]
+        # error_msg = f"Failed to trigger job: {error_details['message']}"
 
     db.commit()
 
