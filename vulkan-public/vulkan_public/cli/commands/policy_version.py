@@ -66,6 +66,17 @@ def show_graph(ctx: Context, policy_version_id: str):
 @click.argument("variables", type=str, required=True)
 @log_exceptions
 def set_variables(ctx: Context, policy_version_id: str, variables: str):
+    """Set values for the variables in the policy version.
+
+    The variables argument should be a list of "name" and "value" pairs:
+    ```
+    '[
+        {"name": "variable_name", "value": "variable_value"},
+        {"name": "variable_name_2", "value": "variable_value_2"},
+        ...
+    ]'
+    ```
+    """
     variables = json.loads(variables)
     response = client.policy_version.set_variables(ctx, policy_version_id, variables)
     click.echo(json.dumps(response, indent=2))

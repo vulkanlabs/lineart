@@ -26,6 +26,13 @@ We provide a couple of simple examples in `sample-user-policies/examples/compone
 
 ## Installation
 
+### Git
+
+You will need to clone a couple of repositories using git.
+
+If you don't have it yet, you can install from this link: [git](https://git-scm.com/downloads).
+
+
 ### [Vulkan](https://github.com/vulkanlabs/vulkan-public) Lib & CLI
 
 The main entrypoint for Vulkan functionality.
@@ -85,6 +92,9 @@ vulkan policy set-active-version \
 
 Its possible to trigger a run for a Policy or for any specific Policy Version.
 In both cases, you only need to pass the ID and the required data. Data should be passed as a JSON string.
+
+You can also trigger runs for a specific Policy Version from the UI page.
+
 ```bash
 # By Policy ID
 vulkan policy trigger-run \
@@ -92,10 +102,14 @@ vulkan policy trigger-run \
     --data '{"key1": "value1", "key2": 2}'
 
 # By Policy Version ID
-vulkan policy trigger-run-by-version \
+vulkan policy-version trigger-run \
     --policy_version_id <POLICY_VERSION_ID> \
     --data '{"key1": "value1", "key2": 2}'
 ```
+
+### Viewing Run results
+
+To view the results, logs and  of a run,
 
 ### Retrieving data from a Run
 
