@@ -28,7 +28,7 @@ export function ComponentVersionsTable({ versions }) {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {versions.map((entry) => (
+                {versions?.map((entry) => (
                     <TableRow
                         key={entry.component_version_id}
                         className="cursor-pointer"

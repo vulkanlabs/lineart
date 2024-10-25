@@ -38,7 +38,7 @@ export function ComponentVersionDependenciesTable({ entries }: { entries: Compon
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {entries.map((entry) => (
+                {entries?.map((entry) => (
                     <TableRow key={entry.component_version_id + entry.policy_version_id}>
                         <TableCell>
                             <ShortenedID id={entry.component_version_id} />
