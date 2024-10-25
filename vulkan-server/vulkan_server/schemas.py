@@ -145,12 +145,12 @@ class PolicyVersion(PolicyVersionBase):
 
 class ConfigurationVariablesBase(BaseModel):
     name: str
-    value: str | None
+    value: str | None = None
 
 
 class ConfigurationVariables(ConfigurationVariablesBase):
-    created_at: datetime
-    last_updated_at: datetime
+    created_at: datetime | None = None
+    last_updated_at: datetime | None = None
 
 
 class Run(BaseModel):
@@ -227,6 +227,7 @@ class RunLogs(BaseModel):
 class DataSource(DataSourceCreate):
     data_source_id: UUID
     project_id: UUID
+    variables: list[str] | None
     archived: bool
     created_at: datetime
     last_updated_at: datetime
@@ -256,6 +257,12 @@ class DataObject(DataObjectMetadata):
 class DataObjectOrigin(Enum):
     REQUEST = "REQUEST"
     CACHE = "CACHE"
+
+
+class DataBrokerRequest(BaseModel):
+    data_source_name: str
+    request_body: dict[str, Any]
+    variables: dict[str, str | None]
 
 
 class DataBrokerResponse(BaseModel):

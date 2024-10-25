@@ -55,7 +55,7 @@ async function ConfigVariablesSection({
         console.error(error);
     });
 
-    return variables.length > 0 ? (
+    return variables?.length > 0 ? (
         <ConfigVariablesTable variables={variables} />
     ) : (
         <EmptyVariablesTable />

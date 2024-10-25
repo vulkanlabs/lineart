@@ -1,11 +1,20 @@
 from pydantic import BaseModel
 
+BaseType = str | int | float | bool
+
+
+class EnvVarConfig(BaseModel):
+    env: BaseType | list[BaseType]
+
+
+ConfigurableMapping = dict[str, BaseType | list[BaseType] | EnvVarConfig]
+
 
 class RequestOptions(BaseModel):
     url: str
     method: str = "GET"
-    headers: dict | None = None
-    params: dict | None = None
+    headers: ConfigurableMapping | None = None
+    params: ConfigurableMapping | None = None
     body_schema: dict | None = None
     timeout: int | None = None
 

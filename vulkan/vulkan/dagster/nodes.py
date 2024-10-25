@@ -182,7 +182,9 @@ class DagsterDataInput(DataInputNode, DagsterNode):
         body = inputs.get("body", None)
         context.log.debug(f"Body: {body}")
 
-        response = client.get_data(source=self.source, body=body, env=env)
+        response = client.get_data(
+            source=self.source, body=body, variables=env.variables
+        )
         context.log.debug(f"Response: {response}")
 
         error = None

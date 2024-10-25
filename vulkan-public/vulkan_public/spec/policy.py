@@ -46,6 +46,10 @@ class PolicyDefinition(GraphDefinition):
         Components are reusable blocks of code that can be used in multiple
         policies. They are defined using a `ComponentDefinition`, and can be
         instantiated multiple times with different configurations.
+    config_variables : list[str], optional
+        The configuration variables that are used to parameterize policy.
+        They provide a way to customize the behavior of the policy without
+        changing the underlying logic.
 
     """
 
@@ -56,9 +60,16 @@ class PolicyDefinition(GraphDefinition):
     config_variables: list[str] = field(default_factory=list)
 
     def __post_init__(self):
+        # TODO: Perform type checking with pydantic.
         if self.output_callback is not None:
             if not callable(self.output_callback):
                 raise ValueError("Output callback must be a callable")
+
+        if self.config_variables:
+            if not isinstance(self.config_variables, list) or not (
+                all(isinstance(i, str) for i in self.config_variables)
+            ):
+                raise ValueError("config_variables must be a list of strings")
 
         self.validate_nodes()
 

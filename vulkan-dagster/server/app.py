@@ -69,14 +69,14 @@ def install_workspace(
     with ExecutionContext(logger):
         vm.install_components(required_components)
         _ = dm.create_init_file(vm.components_path)
-        definitions = vm.get_policy_definitions()
+        settings = vm.get_resolved_policy_settings()
 
     dm.add_workspace_config(name, VENVS_PATH)
     logger.info(f"Successfully installed workspace: {name}")
 
     return {
-        "nodes": definitions["nodes"],
-        "data_sources": definitions["data_sources"],
+        "nodes": settings["nodes"],
+        "data_sources": settings["data_sources"],
     }
 
 

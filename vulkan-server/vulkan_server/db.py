@@ -164,6 +164,7 @@ class ComponentVersion(AuthorizationMixin, ArchivableMixin, Base):
     instance_params_schema = Column(String)
     node_definitions = Column(String)
     repository = Column(String)
+    variables = Column(ARRAY(String), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -279,6 +280,7 @@ class DataSource(TimedUpdateMixin, AuthorizationMixin, Base):
     retry_status_forcelist = Column(ARRAY(Integer), nullable=True)
     # Attribute name 'metadata' is reserved when using the Declarative API.
     config_metadata = Column(JSON, nullable=True)
+    variables = Column(ARRAY(String), nullable=True)
     archived = Column(Boolean, default=False)
 
     __table_args__ = (

@@ -1,8 +1,14 @@
+import logging
+import sys
 from typing import Annotated
 
-from fastapi import FastAPI, Form, Body
+from fastapi import Body, FastAPI, Form, Request
 
 app = FastAPI()
+
+logger = logging.getLogger("uvicorn.error")
+stream_handler = logging.StreamHandler(sys.stdout)
+logger.addHandler(stream_handler)
 
 db = {
     "1": {
@@ -34,13 +40,14 @@ db = {
 
 
 @app.get("/")
-def get_data(tax_id: Annotated[str, Body(embed=True)]):
+def get_data(
+    request: Request, tax_id: Annotated[str, Body(embed=True)], full: bool = False
+):
+    logger.info(f"Request headers: {request.headers}")
     entry = db[tax_id]
-    response = {
-        "name": entry["name"],
-        "serasa": entry["serasa"],
-        "scr": entry["scr"],
-    }
+    response = {"serasa": entry["serasa"], "scr": entry["scr"]}
+    if full:
+        response["name"] = entry["name"]
     return response
 
 

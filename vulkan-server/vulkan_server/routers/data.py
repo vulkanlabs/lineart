@@ -53,7 +53,7 @@ def create_data_source(
     if ds is not None:
         raise HTTPException(status_code=400, detail="Data source already exists")
 
-    data_source: DataSource = DataSourceModelSerializer.serialize(config, project_id)
+    data_source = DataSourceModelSerializer.serialize(config, project_id)
     db.add(data_source)
     db.commit()
 
@@ -193,12 +193,11 @@ broker = APIRouter(
 
 @broker.post("/", response_model=schemas.DataBrokerResponse)
 def request_data_from_broker(
-    data_source_name: Annotated[str, Body(embed=True)],
-    request_body: Annotated[dict, Body(embed=True)],
+    request: schemas.DataBrokerRequest,
     db: Session = Depends(get_db),
 ):
     # TODO: Control access to the data source by project_id
-    data_source = db.query(DataSource).filter_by(name=data_source_name).first()
+    data_source = db.query(DataSource).filter_by(name=request.data_source_name).first()
     if data_source is None:
         raise HTTPException(status_code=404, detail="Data source not found")
 
@@ -206,7 +205,7 @@ def request_data_from_broker(
     broker = DataBroker(db, spec)
 
     try:
-        data = broker.get_data(request_body)
+        data = broker.get_data(request.request_body, request.variables)
     except requests.exceptions.RequestException as e:
         logger.error(str(e))
         raise HTTPException(status_code=502, detail=str(e))

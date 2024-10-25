@@ -13,9 +13,36 @@ class InstanceParam:
 
 @dataclass
 class ComponentDefinition(GraphDefinition):
+    """A component definition specifies the workflow of a component.
+
+    It provides an abstraction to define reusable blocks of code that can be
+    instanced in multiple policies.
+
+    Parameters
+    ----------
+    nodes : list[Node]
+        The nodes that compose the component.
+        Each node represents a step in the workflow, and can be thought of as
+        a function that executes in an isolated environment.
+    input_schema : dict[str, type]
+        The schema for the input of the component.
+        It is a dictionary where the key is the name of the input parameter, and
+        the value is the type of the parameter.
+    instance_params_schema : dict[str, type], optional
+        The schema for the instance parameters the component.
+        Similar to the input schema. It is used to specify the parameters
+        that can be passed to the component when it is instanced.
+    config_variables : list[str], optional
+        The configuration variables that are used to parameterize the component.
+        They provide a way to customize the behavior of the component without
+        changing the underlying logic.
+
+    """
+
     nodes: list[Node]
     input_schema: dict[str, type]
     instance_params_schema: dict[str, type] = field(default_factory=dict)
+    config_variables: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         nodes = {node.name: node.dependencies for node in self.nodes}
@@ -47,8 +74,6 @@ class ComponentInstance:
     name: str
     version: str
     config: ComponentInstanceConfig | dict
-    input_schema: dict | None = None
-    output_schema: dict | None = None
 
     def __post_init__(self):
         if not isinstance(self.name, str) or self.name == "":
@@ -67,8 +92,6 @@ class ComponentInstance:
             name=data["name"],
             version=data["version"],
             config=ComponentInstanceConfig.from_dict(data["config"]),
-            input_schema=data.get("input_schema"),
-            output_schema=data.get("output_schema"),
         )
 
     def alias(self) -> str:
