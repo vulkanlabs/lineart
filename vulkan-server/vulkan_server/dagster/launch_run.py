@@ -89,6 +89,10 @@ def _merge_config_variables(
 ) -> tuple[dict[str, str], set[str]]:
     variables = policy_config.copy()
     variables.update(run_config)
+
+    if not required:
+        return variables, set()
+
     missing_variables = set(required) - set(variables.keys())
     return variables, missing_variables
 

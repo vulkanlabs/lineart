@@ -44,6 +44,16 @@ class NotFoundException(VulkanServerException):
         super().__init__(msg, 404, "NOT_FOUND")
 
 
+class ComponentNotFoundException(VulkanServerException):
+    def __init__(self, msg: str):
+        super().__init__(msg, 404, "COMPONENT_NOT_FOUND")
+
+
+class DataSourceNotFoundException(VulkanServerException):
+    def __init__(self, msg: str):
+        super().__init__(msg, 404, "DATA_SOURCE_NOT_FOUND")
+
+
 # 5xx
 class UnhandledException(VulkanServerException):
     def __init__(self, msg: str):

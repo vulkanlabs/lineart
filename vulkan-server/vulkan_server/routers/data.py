@@ -53,7 +53,7 @@ def create_data_source(
     if ds is not None:
         raise HTTPException(status_code=400, detail="Data source already exists")
 
-    data_source: DataSource = DataSourceModelSerializer.serialize(config, project_id)
+    data_source = DataSourceModelSerializer.serialize(config, project_id)
     db.add(data_source)
     db.commit()
 

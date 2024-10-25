@@ -31,6 +31,7 @@ if __name__ == "__main__":
         input_schema=component.input_schema,
         instance_params_schema=component.instance_params_schema,
         node_definitions=extract_node_definitions(component.nodes),
+        config_variables=component.config_variables,
         data_sources=_extract_data_sources(component.nodes),
     )
 

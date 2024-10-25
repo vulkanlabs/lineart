@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     nodes = extract_node_definitions(resolved_policy.nodes)
     data_sources = _extract_data_sources(resolved_policy.flattened_nodes)
-    definitions = {"nodes": nodes, "data_sources": data_sources}
+    settings = {"nodes": nodes, "data_sources": data_sources}
 
     with open(args.output_file, "w") as f:
-        json.dump(definitions, f, cls=EnhancedJSONEncoder)
+        json.dump(settings, f, cls=EnhancedJSONEncoder)

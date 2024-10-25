@@ -1,10 +1,10 @@
 import json
+from itertools import chain
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from vulkan_public.exceptions import (
     UNHANDLED_ERROR_NAME,
-    VULKAN_INTERNAL_EXCEPTIONS,
     DataSourceNotFoundException,
     VulkanInternalException,
 )
@@ -149,34 +149,42 @@ def create_component_version(
             alias, component_config.repository
         )
         data = response.json()
+        variables = data.get("config_variables", [])
+        data_sources = data.get("data_sources", [])
 
-        component_version = ComponentVersion(
+        version = ComponentVersion(
+            alias=alias,
             component_id=component_id,
+            project_id=project_id,
             input_schema=str(data["input_schema"]),
             instance_params_schema=str(data["instance_params_schema"]),
             node_definitions=json.dumps(data["node_definitions"]),
-            project_id=project_id,
-            alias=alias,
             repository=component_config.repository,
         )
-        db.add(component_version)
-        _add_data_source_dependencies(db, component_version, data["data_sources"])
-        db.commit()
-    except VulkanInternalException as e:
-        error_name = VULKAN_INTERNAL_EXCEPTIONS[e.exit_status].__name__
-        handler.raise_exception(400, error_name, str(e), e.metadata)
-    except Exception as e:
-        handler.raise_exception(status_code=500, error=UNHANDLED_ERROR_NAME, msg=str(e))
+        db.add(version)
 
-    return {"component_version_id": component_version.component_version_id}
+        if data_sources:
+            added_sources = _add_data_source_dependencies(db, version, data_sources)
+            inner_variables = [ds.variables for ds in added_sources if ds.variables]
+            variables += list(chain.from_iterable(inner_variables))
+
+        if variables:
+            version.variables = list(set(variables))
+        db.commit()
+    except Exception as e:
+        # Remove leftover resources from failed creation
+        vulkan_dagster_client.delete_component_version(alias)
+
+        if isinstance(e, VulkanInternalException):
+            handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
+        handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
+
+    return {"component_version_id": version.component_version_id}
 
 
 def _add_data_source_dependencies(
     db: Session, component_version: ComponentVersion, data_sources: list[str]
-) -> None:
-    if not data_sources:
-        return
-
+) -> list[DataSource]:
     matched = (
         db.query(DataSource)
         .filter(
@@ -186,7 +194,7 @@ def _add_data_source_dependencies(
         )
         .all()
     )
-    missing = list(set(data_sources) - set([m.name for m in matched]))
+    missing = list(set(data_sources) - {m.name for m in matched})
     if missing:
         raise DataSourceNotFoundException(
             msg=f"The following data sources are not defined: {missing}",
@@ -199,6 +207,8 @@ def _add_data_source_dependencies(
             component_version_id=component_version.component_version_id,
         )
         db.add(dependency)
+
+    return matched
 
 
 @router.get(

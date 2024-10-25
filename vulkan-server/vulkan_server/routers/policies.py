@@ -1,5 +1,6 @@
 import datetime
 import json
+from itertools import chain
 from typing import Annotated, Any
 
 import pandas as pd
@@ -9,7 +10,6 @@ from sqlalchemy import func as F
 from sqlalchemy.orm import Session
 from vulkan_public.exceptions import (
     UNHANDLED_ERROR_NAME,
-    VULKAN_INTERNAL_EXCEPTIONS,
     ComponentNotFoundException,
     DataSourceNotFoundException,
     VulkanInternalException,
@@ -324,22 +324,19 @@ def create_policy_version(
     )
 
     try:
-        workspace, required_components, config_variables = (
-            _create_policy_version_workspace(
-                db=db,
-                vulkan_dagster_client=vulkan_dagster_client,
-                policy_version_id=version.policy_version_id,
-                name=version_name,
-                repository=config.repository,
-            )
+        workspace, required_components, variables = _create_policy_version_workspace(
+            db=db,
+            vulkan_dagster_client=vulkan_dagster_client,
+            policy_version_id=version.policy_version_id,
+            name=version_name,
+            repository=config.repository,
         )
-        _add_component_dependencies(db, version, required_components)
-        if config_variables is not None:
-            if not isinstance(config_variables, list) or not (
-                all(isinstance(i, str) for i in config_variables)
-            ):
-                raise ValueError("config_variables must be a list of strings")
-            version.variables = config_variables
+        if required_components:
+            added_components = _add_component_dependencies(
+                db, version, required_components
+            )
+            inner_variables = [c.variables for c in added_components if c.variables]
+            variables += list(chain.from_iterable(inner_variables))
 
         graph_definition, data_sources = _install_policy_version_workspace(
             db=db,
@@ -348,11 +345,19 @@ def create_policy_version(
             required_components=required_components,
             workspace=workspace,
         )
-        _add_data_source_dependencies(db, version, data_sources)
-    except VulkanInternalException as e:
-        error_name = VULKAN_INTERNAL_EXCEPTIONS[e.exit_status].__name__
-        handler.raise_exception(400, error_name, str(e), e.metadata)
+        if data_sources:
+            added_sources = _add_data_source_dependencies(db, version, data_sources)
+            inner_variables = [ds.variables for ds in added_sources if ds.variables]
+            variables += list(chain.from_iterable(inner_variables))
+
+        if variables:
+            version.variables = list(set(variables))
     except Exception as e:
+        # Remove leftover resources from failed creation
+        vulkan_dagster_client.delete_workspace(name=version_name)
+
+        if isinstance(e, VulkanInternalException):
+            handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
         handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
     finally:
         db.commit()
@@ -389,10 +394,7 @@ def create_policy_version(
 
 def _add_component_dependencies(
     db: Session, version: PolicyVersion, required_components: list[str]
-) -> None:
-    if not required_components:
-        return
-
+) -> list[ComponentVersion]:
     matched = (
         db.query(ComponentVersion)
         .filter(
@@ -405,8 +407,7 @@ def _add_component_dependencies(
     missing = list(set(required_components) - set([m.alias for m in matched]))
     if missing:
         raise ComponentNotFoundException(
-            msg=f"The following components are not defined: {missing}",
-            metadata={"components": missing},
+            msg=f"The following components are not defined: {missing}"
         )
 
     for m in matched:
@@ -416,13 +417,12 @@ def _add_component_dependencies(
         )
         db.add(dependency)
 
+    return matched
+
 
 def _add_data_source_dependencies(
     db: Session, version: PolicyVersion, data_sources: list[str]
-) -> None:
-    if not data_sources:
-        return
-
+) -> list[DataSource]:
     matched = (
         db.query(DataSource)
         .filter(
@@ -435,8 +435,7 @@ def _add_data_source_dependencies(
     missing = list(set(data_sources) - set([m.name for m in matched]))
     if missing:
         raise DataSourceNotFoundException(
-            msg=f"The following data sources are not defined: {missing}",
-            metadata={"data_sources": missing},
+            msg=f"The following data sources are not defined: {missing}"
         )
 
     for m in matched:
@@ -445,6 +444,8 @@ def _add_data_source_dependencies(
             policy_version_id=version.policy_version_id,
         )
         db.add(dependency)
+
+    return matched
 
 
 def _create_policy_version_workspace(
@@ -477,8 +478,8 @@ def _create_policy_version_workspace(
 
     return (
         workspace,
-        policy_settings["required_components"],
-        policy_settings["config_variables"],
+        policy_settings.get("required_components", []),
+        policy_settings.get("config_variables", []),
     )
 
 
@@ -502,7 +503,7 @@ def _install_policy_version_workspace(
     db.commit()
 
     data = response.json()
-    return data["nodes"], data["data_sources"]
+    return data["nodes"], data.get("data_sources", [])
 
 
 def _validate_date_range(
