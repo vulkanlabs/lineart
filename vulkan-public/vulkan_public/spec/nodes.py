@@ -524,7 +524,7 @@ class Map(Node):
             Mainly for internal use.
 
         """
-        
+
         super().__init__(
             name=name,
             description=description,
@@ -560,7 +560,6 @@ class Collect(Node):
     def __init__(
         self,
         name: str,
-        func: callable,
         dependencies: dict[str, Dependency],
         description: str | None = None,
         hidden: bool = False,
@@ -573,7 +572,6 @@ class Collect(Node):
             dependencies=dependencies,
             hidden=hidden,
         )
-        self.func = func
 
     def node_definition(self) -> VulkanNodeDefinition:
         return VulkanNodeDefinition(
@@ -582,7 +580,5 @@ class Collect(Node):
             node_type=self.type.value,
             hidden=self.hidden,
             dependencies=self.node_dependencies(),
-            metadata={
-                "source": getsource(self.func),
-            },
+            metadata={},
         )
