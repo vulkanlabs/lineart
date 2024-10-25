@@ -16,23 +16,10 @@ class LoginContext:
 
     def __init__(self):
         self.logger = init_logger(__name__)
-
-        # TODO: This should handled by a Vulkan public API.
-        # That way we abstract the auth provider away.
-        self.stack_client_key = os.getenv(
-            "STACK_PUBLISHABLE_CLIENT_KEY",
-            "pck_cw8v2eeb9ke3de0amj9vrm6x8bzj7vr32hrbqywrspre8",
+        self.auth_server_url = os.getenv(
+            "VULKAN_AUTH_URL",
+            "https://engine.vulkan.software",
         )
-        self.stack_project_id = os.getenv(
-            "STACK_PROJECT_ID", "a80771c2-8a92-47c1-98ad-df4f06952640"
-        )
-        if self.stack_client_key is None or self.stack_project_id is None:
-            msg = (
-                "STACK_PUBLISHABLE_CLIENT_KEY and STACK_PROJECT_ID "
-                "environment variables are required for Vulkan authentication"
-            )
-            self.logger.fatal(msg)
-            raise click.Abort()
 
 
 class Context:
@@ -53,8 +40,8 @@ class Context:
 
         self.session = init_session(
             headers={
-                "x-stack-access-token": creds["access_token"],
-                "x-stack-refresh-token": creds["refresh_token"],
+                "x-stack-access-token": creds["accessToken"],
+                "x-stack-refresh-token": creds["refreshToken"],
             }
         )
 

@@ -543,10 +543,10 @@ class DagsterCollect(Collect, DagsterTransformNodeMixin):
         super().__init__(
             name=name,
             description=description,
-            func=func,
             dependencies=dependencies,
             hidden=hidden,
         )
+        self.func = func
 
     @staticmethod
     def _collect(context, entries, **kwargs):
