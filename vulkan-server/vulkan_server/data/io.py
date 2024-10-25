@@ -9,9 +9,6 @@ from vulkan_public.schemas import (
 
 from vulkan_server import schemas
 from vulkan_server.db import DataSource
-from vulkan_server.logger import init_logger
-
-logger = init_logger("data.io")
 
 
 class DataSourceModelSerializer:
