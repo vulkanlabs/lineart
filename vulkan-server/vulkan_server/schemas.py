@@ -259,6 +259,12 @@ class DataObjectOrigin(Enum):
     CACHE = "CACHE"
 
 
+class DataBrokerRequest(BaseModel):
+    data_source_name: str
+    request_body: dict[str, Any]
+    variables: dict[str, str | None]
+
+
 class DataBrokerResponse(BaseModel):
     data_object_id: UUID
     origin: DataObjectOrigin

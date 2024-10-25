@@ -6,6 +6,9 @@ import requests
 from requests.adapters import HTTPAdapter
 from sqlalchemy.orm import Session
 from urllib3.util import Retry
+from vulkan_public.schemas import (
+    EnvVarConfig,
+)
 
 from vulkan_server import schemas
 from vulkan_server.db import DataObject, RunDataCache
@@ -19,9 +22,11 @@ class DataBroker:
         self.db = db
         self.spec = spec
 
-    def get_data(self, request_body: dict) -> schemas.DataBrokerResponse:
+    def get_data(
+        self, request_body: dict, variables: dict
+    ) -> schemas.DataBrokerResponse:
         cache = CacheManager(self.db, self.spec)
-        key = make_cache_key(self.spec, request_body)
+        key = make_cache_key(self.spec, request_body, variables)
 
         if self.spec.caching.enabled:
             logger.debug("Trying to get data from cache")
@@ -39,7 +44,7 @@ class DataBroker:
             f"Request: body {request_body}\n headers {self.spec.request.headers} \n"
             f"url {self.spec.request.url}"
         )
-        req = make_request(self.spec, request_body)
+        req = make_request(self.spec, request_body, variables)
         response = requests.Session().send(req, timeout=self.spec.request.timeout)
         response.raise_for_status()
 
@@ -104,14 +109,18 @@ class CacheManager:
         self.db.commit()
 
 
-def make_cache_key(spec: schemas.DataSource, body: dict) -> str:
+def make_cache_key(spec: schemas.DataSource, body: dict, variables: dict) -> str:
     # TODO: make sure all fields in body are json serializable
-    content = dict(data_source_id=str(spec.data_source_id), body=body)
+    content = dict(
+        data_source_id=str(spec.data_source_id), body=body, variables=variables
+    )
     content_str = json.dumps(content, sort_keys=True)
     return hashlib.md5(content_str.encode("utf-8")).hexdigest()
 
 
-def make_request(spec: schemas.DataSource, body: dict) -> requests.Request:
+def make_request(
+    spec: schemas.DataSource, body: dict, variables: dict
+) -> requests.Request:
     if spec.request.headers.get("Content-Type") == "application/json":
         json = body
         data = None
@@ -129,40 +138,26 @@ def make_request(spec: schemas.DataSource, body: dict) -> requests.Request:
     session.mount("https://", adapter)
     session.mount("http://", adapter)
 
+    headers = configure_fields(spec.request.headers, variables)
+    params = configure_fields(spec.request.params, variables)
+
     req = requests.Request(
         method=spec.request.method,
         url=spec.request.url,
-        headers=spec.request.headers,
-        params=spec.request.params,
+        headers=headers,
+        params=params,
         data=data,
         json=json,
     ).prepare()
     return req
 
 
-def configure_headers(spec: schemas.DataSource) -> dict:
-    headers = spec.request.headers
-    if headers is None:
-        headers = {}
+def configure_fields(spec: dict, variables: dict) -> dict:
+    if spec is None:
+        spec = {}
 
-    # for key, value in headers.items():
-    #     if isinstance(value, ConfigurableParameter):
-    #         headers[key] = value.get_value()
-    #     if isinstance(value, SecretKey):
-    #         headers[key] = value.get_secret()
+    for key, value in spec.items():
+        if isinstance(value, EnvVarConfig):
+            spec[key] = variables[value.env]
 
-    return headers
-
-
-def configure_params(spec: schemas.DataSource) -> dict:
-    params = spec.request.params
-    if params is None:
-        params = {}
-
-    # for key, value in params.items():
-    #     if isinstance(value, ConfigurableParameter):
-    #         params[key] = value.get_value()
-    #     if isinstance(value, SecretKey):
-    #         params[key] = value.get_secret()
-
-    return params
+    return spec
