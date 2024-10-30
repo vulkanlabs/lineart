@@ -1,10 +1,15 @@
 from copy import deepcopy
 from typing import Any
 
-from vulkan.core.graph import Graph
-from vulkan_public.spec.component import ComponentDefinition, ComponentInstance, InstanceParam
+from vulkan_public.spec.component import (
+    ComponentDefinition,
+    ComponentInstance,
+    InstanceParam,
+)
 from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes import Node, NodeType, TransformNode, VulkanNodeDefinition
+
+from vulkan.core.graph import Graph
 
 
 class ComponentGraph(Node, Graph):
@@ -141,6 +146,7 @@ def _apply_instance_params(
 
 
 def _make_input_node(name: str, dependencies: dict[str, Dependency]) -> list[Node]:
+    # FIXME: handle (node, _, key) deps in other places
     def _input_fn(_, **kwargs: dict):
         inputs = {}
         for k, v in dependencies.items():

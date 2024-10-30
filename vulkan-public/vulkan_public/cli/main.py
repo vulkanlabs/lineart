@@ -22,6 +22,7 @@ def cli(ctx: click.core.Context, verbose: bool):
     ctx.obj["verbose"] = verbose
 
 
+cli.add_command(commands.backtest.backtest)
 cli.add_command(commands.login.login)
 cli.add_command(commands.component.component)
 cli.add_command(commands.policy.policy)

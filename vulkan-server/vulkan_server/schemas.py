@@ -4,6 +4,7 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
+from vulkan.backtest.definitions import BacktestStatus, SupportedFileFormat
 from vulkan_public.schemas import DataSourceCreate
 
 
@@ -270,3 +271,23 @@ class DataBrokerResponse(BaseModel):
     origin: DataObjectOrigin
     key: str
     value: Any
+
+
+class BacktestRequest(BaseModel):
+    name: str | None = None
+    policy_version_id: UUID
+    input_file: bytes
+    file_format: SupportedFileFormat
+    config_variables: dict[str, str] | None = None
+    # data_source_map: dict[str, str]
+
+
+class Backtest(BaseModel):
+    backtest_id: UUID
+    policy_version_id: UUID
+    input_file_path: str
+    name: str | None = None
+    status: BacktestStatus
+
+    created_at: datetime
+    last_updated_at: datetime

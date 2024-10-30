@@ -1,7 +1,11 @@
+import json
 from dataclasses import dataclass
+from io import BytesIO
 from typing import Any
 
+import pandas as pd
 from requests import JSONDecodeError, Request, Response, Session
+from vulkan.backtest.definitions import SupportedFileFormat
 from vulkan_public.exceptions import (
     UNHANDLED_ERROR_NAME,
     VULKAN_INTERNAL_EXCEPTIONS,
@@ -138,3 +142,43 @@ def make_vulkan_server_client(
         server_url=server_config.vulkan_dagster_server_url,
         request_config=request_config,
     )
+
+
+class VulkanFileIngestionServiceClient:
+    """Client to interact with the file ingestion service."""
+
+    def __init__(self, project_id: str, server_url: str) -> "None":
+        self.project_id = project_id
+        self.server_url = server_url
+        self.session = Session()
+
+    def validate_and_publish(
+        self,
+        file_format: SupportedFileFormat,
+        content: bytes,
+        schema: str,
+        config_variables: dict[str, str],
+    ) -> tuple[Any, bool]:
+        buf = BytesIO(content)
+        match file_format:
+            case SupportedFileFormat.CSV:
+                data = pd.read_csv(buf)
+            case SupportedFileFormat.PARQUET:
+                data = pd.read_parquet(buf)
+            case _:
+                raise ValueError(f"Unsupported format {file_format}")
+
+        input_schema = json.loads(schema)
+        self._validate_schema(input_schema, data.columns)
+
+        data.to_parquet("/opt/data-sample-test.parquet")
+        return "/opt/vulkan/data-sample-test.parquet", True
+
+    @staticmethod
+    def _validate_schema(schema, columns) -> bool:
+        schema_columns = set(schema.keys())
+        data_columns = set(columns)
+        diff = schema_columns - data_columns
+
+        if len(diff) > 0:
+            raise ValueError(f"Unmatched schema: missing columns {diff}")
