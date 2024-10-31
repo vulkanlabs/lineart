@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
+from sqlalchemy.orm import Session
 from vulkan.backtest.definitions import BacktestStatus, SupportedFileFormat
 
 from vulkan_server import definitions, schemas
@@ -44,7 +45,9 @@ def list_backtests(project_id: str = Depends(get_project_id), db=Depends(get_db)
 
 @router.get("/{backtest_id}", response_model=schemas.Backtest)
 def get_backtest(
-    backtest_id: str, project_id: str = Depends(get_project_id), db=Depends(get_db)
+    backtest_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
 ):
     backtest = (
         db.query(Backtest)
@@ -54,6 +57,19 @@ def get_backtest(
     if backtest is None:
         return Response(status_code=404)
     return backtest
+
+
+# TODO
+@router.put("/{backtest_id}")
+def update_backtest(
+    backtest_id: str,
+    status: BacktestStatus,
+    results_path: str,
+    db: Session = Depends(get_db),
+):
+    # Update job status (success/failure)
+    # To be called from Beam Executor service (not client-facing)
+    return
 
 
 @router.post("/", response_model=schemas.Backtest)
@@ -90,7 +106,7 @@ async def create_backtest(
             file_format=file_format,
             content=content,
             schema=policy.input_schema,
-            # config_variables=config.config_variables,
+            config_variables=config_variables,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail={"msg": str(e)})
@@ -100,9 +116,20 @@ async def create_backtest(
         name=name,
         input_data_path=file_info["file_path"],
         status=BacktestStatus.PENDING,
-        # config_variables=config.config_variables,
+        config_variables=config_variables,
     )
     db.add(backtest)
     db.commit()
+
+    # TODO: Trigger Beam run
+    # trigger_beam_job(
+    #     beam_executor_server_url,
+    #     policy_version_id=policy_version_id,
+    #     backtest_id=backtest.backtest_id,
+    #     data_sources={
+    #         "input_data": backtest.input_data_path,
+    #     },
+    #     config_variables=config_variables,
+    # )
 
     return backtest

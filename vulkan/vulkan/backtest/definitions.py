@@ -4,8 +4,8 @@ from enum import Enum
 class BacktestStatus(Enum):
     PENDING = "PENDING"
     IN_PROGRESS = "IN_PROGRESS"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
+    SUCCESS = "SUCCESS"
+    FAILURE = "FAILURE"
 
 
 class SupportedFileFormat(Enum):
