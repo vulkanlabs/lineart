@@ -1,3 +1,4 @@
+from io import BytesIO
 from dataclasses import dataclass
 from typing import Any
 
@@ -156,17 +157,19 @@ class VulkanFileIngestionServiceClient:
     def validate_and_publish(
         self,
         file_format: SupportedFileFormat,
-        content: bytes,
+        content,
         schema: str,
         # config_variables: dict[str, str] | None = None,
     ) -> tuple[Any, bool]:
         response = self._make_request(
             method="POST",
-            url="/upload",
-            json={
+            url="/file",
+            params={
                 "file_format": file_format.value,
-                "content": str(content),
                 "schema": str(schema),
+            },
+            files={
+                "input_file": BytesIO(content),
             },
             on_error="Failed to upload data",
         )
@@ -174,13 +177,21 @@ class VulkanFileIngestionServiceClient:
         return file_info
 
     def _make_request(
-        self, method: str, url: str, json: dict, on_error: str
+        self,
+        method: str,
+        url: str,
+        on_error: str,
+        json: dict | None = None,
+        files: dict | None = None,
+        params: dict | None = None,
     ) -> Response:
         request = Request(
             method=method,
             url=f"{self.server_url}/{url}",
             # headers=self.request_config.headers,
             json=json,
+            params=params,
+            files=files,
         ).prepare()
         response = self.session.send(request)
         logger.warning(f"content: {response.content}")

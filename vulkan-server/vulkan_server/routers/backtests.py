@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
-from vulkan.backtest.definitions import BacktestStatus
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
+from vulkan.backtest.definitions import BacktestStatus, SupportedFileFormat
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
@@ -55,21 +57,25 @@ def get_backtest(
 
 
 @router.post("/", response_model=schemas.Backtest)
-def create_backtest(
-    config: schemas.BacktestRequest,
+async def create_backtest(
+    policy_version_id: UUID,
+    input_file: UploadFile,
+    file_format: SupportedFileFormat,
+    name: str | None = None,
+    config_variables: dict[str, str] | None = None,
     project_id: str = Depends(get_project_id),
     db=Depends(get_db),
     file_input_client=Depends(make_file_input_service),
 ):
     policy_version: PolicyVersion = (
         db.query(PolicyVersion)
-        .filter_by(project_id=project_id, policy_version_id=config.policy_version_id)
+        .filter_by(project_id=project_id, policy_version_id=policy_version_id)
         .first()
     )
     if policy_version is None:
         raise HTTPException(
             status_code=400,
-            detail={"msg": f"Invalid policy_version_id {config.policy_version_id}"},
+            detail={"msg": f"Invalid policy_version_id {policy_version_id}"},
         )
 
     policy: Policy = (
@@ -79,9 +85,10 @@ def create_backtest(
     )
 
     try:
+        content = await input_file.read()
         file_info = file_input_client.validate_and_publish(
-            file_format=config.file_format,
-            content=config.input_file,
+            file_format=file_format,
+            content=content,
             schema=policy.input_schema,
             # config_variables=config.config_variables,
         )
@@ -89,8 +96,8 @@ def create_backtest(
         raise HTTPException(status_code=500, detail={"msg": str(e)})
 
     backtest = Backtest(
-        policy_version_id=config.policy_version_id,
-        name=config.name,
+        policy_version_id=policy_version_id,
+        name=name,
         input_data_path=file_info["file_path"],
         status=BacktestStatus.PENDING,
         # config_variables=config.config_variables,

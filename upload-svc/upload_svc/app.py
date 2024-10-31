@@ -4,7 +4,7 @@ from typing import Annotated
 from uuid import uuid4
 
 import pandas as pd
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException, UploadFile
 from vulkan.backtest.definitions import SupportedFileFormat
 
 from upload_svc import schemas
@@ -17,15 +17,16 @@ app = FastAPI()
 
 # TODO: take file as upload stream
 @app.post(
-    "/upload",
+    "/file",
     response_model=schemas.FileIdentifier,
 )
-def validate_and_publish(
-    file_format: Annotated[SupportedFileFormat, Body()],
-    content: Annotated[bytes, Body()],
-    schema: Annotated[str, Body()],
+async def validate_and_publish(
+    file_format: SupportedFileFormat,
+    schema: str,
+    input_file: UploadFile,
     # config_variables: dict[str, str] | None = None,
 ):
+    content = await input_file.read()
     try:
         data = _read_data(content, file_format)
         input_schema = json.loads(schema)
@@ -55,7 +56,7 @@ def _validate_schema(schema, columns) -> bool:
         raise ValueError(f"Unmatched schema: missing columns {diff}")
 
 
-def _read_data(content: bytes, file_format: SupportedFileFormat) -> pd.DataFrame:
+def _read_data(content:bytes, file_format: SupportedFileFormat) -> pd.DataFrame:
     buf = BytesIO(content)
     match file_format:
         case SupportedFileFormat.CSV:
