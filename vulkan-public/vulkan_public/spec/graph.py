@@ -31,6 +31,12 @@ class GraphDefinition:
             if node.name == INPUT_NODE:
                 raise ValueError(f"Node name `{INPUT_NODE}` is reserved")
 
+        names = [node.name for node in nodes]
+        duplicates = set([name for name in names if names.count(name) > 1])
+
+        if duplicates:
+            raise ValueError(f"Duplicate node names found: {duplicates}")
+
     @staticmethod
     def validate_node_dependencies(node_dependencies: NodeDependencies):
         for node_name, dependencies in node_dependencies.items():
