@@ -1,10 +1,9 @@
 import json
 from io import BytesIO
-from typing import Annotated
 from uuid import uuid4
 
 import pandas as pd
-from fastapi import Body, FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException, UploadFile
 from vulkan.backtest.definitions import SupportedFileFormat
 
 from upload_svc import schemas
@@ -15,7 +14,11 @@ logger = init_logger("upload-svc")
 app = FastAPI()
 
 
-# TODO: take file as upload stream
+@app.get("/file/id/{file_id}")
+def get_file_info(file_id: str):
+    return {"file_path": ...}
+
+
 @app.post(
     "/file",
     response_model=schemas.FileIdentifier,
@@ -29,12 +32,19 @@ async def validate_and_publish(
     content = await input_file.read()
     try:
         data = _read_data(content, file_format)
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"msg": str(e), "error": "INVALID_DATA"},
+        )
+
+    try:
         input_schema = json.loads(schema)
         _validate_schema(input_schema, data.columns)
     except Exception as e:
         raise HTTPException(
             status_code=400,
-            detail={"msg": str(e), "error": "INVALID"},
+            detail={"msg": str(e), "error": "INVALID_SCHEMA"},
         )
 
     try:
@@ -52,11 +62,13 @@ def _validate_schema(schema, columns) -> bool:
     data_columns = set(columns)
     diff = schema_columns - data_columns
 
+    # TODO: Check input schema is matched by uploaded data
+
     if len(diff) > 0:
         raise ValueError(f"Unmatched schema: missing columns {diff}")
 
 
-def _read_data(content:bytes, file_format: SupportedFileFormat) -> pd.DataFrame:
+def _read_data(content: bytes, file_format: SupportedFileFormat) -> pd.DataFrame:
     buf = BytesIO(content)
     match file_format:
         case SupportedFileFormat.CSV:

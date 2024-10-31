@@ -1,6 +1,6 @@
 from enum import Enum
 
-from vulkan_public.spec.dependency import Dependency
+from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 from vulkan_public.spec.nodes import BranchNode, TransformNode
 
 from vulkan.core.component import ComponentGraph
@@ -18,7 +18,7 @@ class ExampleComponent(ComponentGraph):
             name="a",
             description="Node A",
             func=lambda _, inputs: inputs,
-            dependencies={"inputs": Dependency("input_node")},
+            dependencies={"inputs": Dependency(INPUT_NODE)},
         )
         node_b = TransformNode(
             name="b",
@@ -34,7 +34,7 @@ class ExampleComponent(ComponentGraph):
 def test_dagster_component():
     input_schema = {"cpf": str}
     component = ExampleComponent(
-        "component", "Component", {"cpf": Dependency("input_node")}
+        "component", "Component", {"cpf": Dependency(INPUT_NODE)}
     )
 
     def branch_fn(context, inputs: dict):

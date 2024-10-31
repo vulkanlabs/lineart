@@ -73,13 +73,13 @@ def test_core_graph_trivial():
 
 def test_core_graph_with_component():
     input_schema = {"cpf": str}
-    input_node = InputNode(name="Input Node", schema=input_schema)
+    input_node = InputNode(name=INPUT_NODE, schema=input_schema)
 
     node_a = TransformNode(
         name="a",
         description="Node A",
         func=lambda inputs: inputs,
-        dependencies={"input": Dependency("input_node")},
+        dependencies={"input": Dependency(INPUT_NODE)},
     )
     node_b = TransformNode(
         name="b",

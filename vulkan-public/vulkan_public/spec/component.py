@@ -3,7 +3,7 @@ from typing import Any
 
 from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.graph import GraphDefinition
-from vulkan_public.spec.nodes import Node
+from vulkan_public.spec.nodes import Node, NodeType
 
 
 @dataclass
@@ -45,8 +45,16 @@ class ComponentDefinition(GraphDefinition):
     config_variables: list[str] = field(default_factory=list)
 
     def __post_init__(self):
+        self.validate_nodes()
         nodes = {node.name: node.dependencies for node in self.nodes}
         self.validate_node_dependencies(nodes)
+    
+    def validate_nodes(self):
+        terminate_nodes = [
+            node for node in self.nodes if node.type == NodeType.TERMINATE
+        ]
+        if len(terminate_nodes) > 0:
+            raise ValueError("A Component cannot have Terminate nodes")
 
 
 @dataclass
