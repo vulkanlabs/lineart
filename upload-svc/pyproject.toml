@@ -7,8 +7,8 @@ readme = "README.md"
 dependencies = [
     "fastapi[standard]>=0.112.1",
     "pandas>=2.2.3",
-    "pyarrow>=18.0.0",
     "vulkan",
+    "pyarrow>=16.1.0",
 ]
 
 

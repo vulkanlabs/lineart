@@ -84,10 +84,14 @@ class PolicyDefinition(GraphDefinition):
         ]
         if len(terminate_nodes) == 0:
             raise ValueError("No terminate node found in policy.")
-        
+
         nodes = {node.name: node for node in self.nodes}
+        components = {c.config.name: c.config for c in self.components}
         for node in self.nodes:
             for dependency in node.dependencies.values():
+                if dependency.node in components:
+                    continue
+
                 if nodes[dependency.node].type == NodeType.TERMINATE:
                     raise ValueError(
                         f"Node {node.name} depends on terminate node {dependency}"
