@@ -285,7 +285,7 @@ class BacktestRequest(BaseModel):
 class Backtest(BaseModel):
     backtest_id: UUID
     policy_version_id: UUID
-    input_file_path: str
+    input_data_path: str
     name: str | None = None
     status: BacktestStatus
 

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
+from vulkan.backtest.definitions import BacktestStatus
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
@@ -71,9 +72,11 @@ def create_backtest(
             detail={"msg": f"Invalid policy_version_id {config.policy_version_id}"},
         )
 
-    policy: Policy = db.query(Policy).filter_by(
-        project_id=project_id, policy_id=policy_version.policy_id
-    ).first()
+    policy: Policy = (
+        db.query(Policy)
+        .filter_by(project_id=project_id, policy_id=policy_version.policy_id)
+        .first()
+    )
 
     try:
         file_id, valid = file_input_client.validate_and_publish(
@@ -95,6 +98,7 @@ def create_backtest(
         policy_version_id=config.policy_version_id,
         name=config.name,
         input_data_path=file_id,
+        status=BacktestStatus.PENDING,
         # config_variables=config.config_variables,
     )
     db.add(backtest)
