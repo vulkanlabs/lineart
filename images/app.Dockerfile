@@ -9,9 +9,9 @@ RUN pip install uv
 RUN uv pip install --system sqlalchemy psycopg2
 
 # TODO: make this dependency explicit to the vulkan package
-COPY vulkan-public /tmp/vulkan-public
-COPY vulkan /tmp/vulkan
-RUN uv pip install --system /tmp/vulkan
+COPY vulkan-public vulkan-public
+COPY vulkan vulkan
+RUN uv pip install --system vulkan
 
 COPY vulkan-server vulkan-server/
 RUN uv pip install --system vulkan-server/

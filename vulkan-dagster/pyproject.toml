@@ -6,7 +6,13 @@ authors = []
 requires-python = ">=3.10"
 dependencies = [
     "fastapi[standard]>=0.112.0",
+    "vulkan",
+    "vulkan-public",
 ]
 
 [tool.setuptools]
 packages = ["server"]
+
+[tool.uv.sources]
+vulkan = { path = "../vulkan" }
+vulkan-public = { path = "../vulkan-public" }
