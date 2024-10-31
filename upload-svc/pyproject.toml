@@ -1,0 +1,17 @@
+[project]
+name = "upload_svc"
+version = "0.1.0"
+description = ""
+authors = []
+readme = "README.md"
+dependencies = [
+    "fastapi[standard]>=0.112.1",
+    "pandas>=2.2.3",
+    "pyarrow>=18.0.0",
+    "vulkan",
+]
+
+
+[tool.uv.sources]
+vulkan = { path = "../vulkan" }
+

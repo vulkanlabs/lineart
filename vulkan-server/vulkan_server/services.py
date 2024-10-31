@@ -1,9 +1,6 @@
-import json
 from dataclasses import dataclass
-from io import BytesIO
 from typing import Any
 
-import pandas as pd
 from requests import JSONDecodeError, Request, Response, Session
 from vulkan.backtest.definitions import SupportedFileFormat
 from vulkan_public.exceptions import (
@@ -12,6 +9,9 @@ from vulkan_public.exceptions import (
 )
 
 from vulkan_server.definitions import VulkanServerConfig
+from vulkan_server.logger import init_logger
+
+logger = init_logger("services")
 
 
 @dataclass
@@ -126,6 +126,7 @@ def _raise_interservice_error(response: Response, message: str) -> None:
         error_msg = f"{message}: {UNHANDLED_ERROR_NAME}"
 
     if detail["error"] == "VulkanInternalException":
+        logger.error(f"Got err: {detail}")
         _exception = VULKAN_INTERNAL_EXCEPTIONS[detail["exit_status"]]
         raise _exception(msg=detail["msg"])
 
@@ -157,28 +158,34 @@ class VulkanFileIngestionServiceClient:
         file_format: SupportedFileFormat,
         content: bytes,
         schema: str,
-        config_variables: dict[str, str],
+        # config_variables: dict[str, str] | None = None,
     ) -> tuple[Any, bool]:
-        buf = BytesIO(content)
-        match file_format:
-            case SupportedFileFormat.CSV:
-                data = pd.read_csv(buf)
-            case SupportedFileFormat.PARQUET:
-                data = pd.read_parquet(buf)
-            case _:
-                raise ValueError(f"Unsupported format {file_format}")
+        response = self._make_request(
+            method="POST",
+            url="/upload",
+            json={
+                "file_format": file_format.value,
+                "content": str(content),
+                "schema": str(schema),
+            },
+            on_error="Failed to upload data",
+        )
+        file_info = response.json()
+        return file_info
 
-        input_schema = json.loads(schema)
-        self._validate_schema(input_schema, data.columns)
+    def _make_request(
+        self, method: str, url: str, json: dict, on_error: str
+    ) -> Response:
+        request = Request(
+            method=method,
+            url=f"{self.server_url}/{url}",
+            # headers=self.request_config.headers,
+            json=json,
+        ).prepare()
+        response = self.session.send(request)
+        logger.warning(f"content: {response.content}")
 
-        data.to_parquet("/opt/data-sample-test.parquet")
-        return "/opt/vulkan/data-sample-test.parquet", True
+        if response.status_code != 200:
+            _raise_interservice_error(response, on_error)
 
-    @staticmethod
-    def _validate_schema(schema, columns) -> bool:
-        schema_columns = set(schema.keys())
-        data_columns = set(columns)
-        diff = schema_columns - data_columns
-
-        if len(diff) > 0:
-            raise ValueError(f"Unmatched schema: missing columns {diff}")
+        return response

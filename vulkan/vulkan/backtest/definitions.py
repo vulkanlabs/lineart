@@ -11,4 +11,3 @@ class BacktestStatus(Enum):
 class SupportedFileFormat(Enum):
     CSV = "CSV"
     PARQUET = "PARQUET"
-    # AVRO = "AVRO"

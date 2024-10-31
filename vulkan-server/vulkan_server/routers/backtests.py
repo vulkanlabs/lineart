@@ -28,7 +28,7 @@ def make_file_input_service(
 ) -> VulkanFileIngestionServiceClient:
     return VulkanFileIngestionServiceClient(
         project_id=project_id,
-        server_url=server_config.server_url,
+        server_url=server_config.upload_service_url,
     )
 
 
@@ -79,25 +79,19 @@ def create_backtest(
     )
 
     try:
-        file_id, valid = file_input_client.validate_and_publish(
+        file_info = file_input_client.validate_and_publish(
             file_format=config.file_format,
             content=config.input_file,
             schema=policy.input_schema,
-            config_variables=config.config_variables,
+            # config_variables=config.config_variables,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail={"msg": str(e)})
 
-    if not valid:
-        raise HTTPException(
-            status_code=400,
-            detail={"msg": "Input data did not match the input schema for the policy"},
-        )
-
     backtest = Backtest(
         policy_version_id=config.policy_version_id,
         name=config.name,
-        input_data_path=file_id,
+        input_data_path=file_info["file_path"],
         status=BacktestStatus.PENDING,
         # config_variables=config.config_variables,
     )
