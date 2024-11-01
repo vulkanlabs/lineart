@@ -55,17 +55,26 @@ def get_backtest(
     return backtest
 
 
-# TODO
 @router.put("/{backtest_id}")
 def update_backtest(
     backtest_id: str,
     status: BacktestStatus,
     results_path: str,
     db: Session = Depends(get_db),
+    project_id: str = Depends(get_project_id),
 ):
-    # Update job status (success/failure)
-    # To be called from Beam Executor service (not client-facing)
-    return
+    backtest = (
+        db.query(Backtest)
+        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .first()
+    )
+    if backtest is None:
+        return Response(status_code=404)
+
+    backtest.status = status
+    backtest.results_path = results_path
+    db.commit()
+    return backtest
 
 
 @router.post("/", response_model=schemas.Backtest)
@@ -123,6 +132,7 @@ async def create_backtest(
         input_data_path=file_info["file_path"],
         status=BacktestStatus.PENDING,
         config_variables=resolved_config,
+        project_id=project_id,
     )
     db.add(backtest)
     db.commit()

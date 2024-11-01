@@ -6,7 +6,7 @@ authors = []
 requires-python = ">=3.10"
 dependencies = [
     "fastapi[standard]>=0.112.0",
-    "vulkan",
+    "vulkan[dagster]",
     "vulkan-public",
 ]
 

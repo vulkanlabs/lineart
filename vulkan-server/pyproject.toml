@@ -1,7 +1,7 @@
 [project]
-name="vulkan_server"
-version="0.1.0"
-description="Vulkan data server"
+name = "vulkan_server"
+version = "0.1.0"
+description = "Vulkan data server"
 dependencies = [
     "fastapi[standard]>=0.112.1",
     "sqlalchemy>=2.0.32",
@@ -11,18 +11,15 @@ dependencies = [
     "dagster-graphql>=1.8.2",
     "pytest>=8.3.2",
     "pytest-httpserver>=1.1.0",
-    "vulkan-public",
-    "vulkan",
     "pandas>=2.2.3",
+    "vulkan-public",
+    "vulkan[dagster]",
 ]
 requires-python = ">=3.10"
 
 [tool.uv]
-dev-dependencies = [
-    "pytest>=8.3.2",
-]
+dev-dependencies = ["pytest>=8.3.2"]
 
 [tool.uv.sources]
 vulkan-public = { path = "../vulkan-public" }
 vulkan = { path = "../vulkan" }
-
