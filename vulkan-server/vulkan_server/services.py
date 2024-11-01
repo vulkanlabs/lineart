@@ -160,6 +160,7 @@ class VulkanFileIngestionServiceClient:
         content,
         schema: str,
     ) -> tuple[Any, bool]:
+        logger.info("Making request to validate and publish file")
         response = self._make_request(
             method="POST",
             url="/file",
