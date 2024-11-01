@@ -8,8 +8,9 @@ from vulkan.dagster.run_config import RUN_CONFIG_KEY
 from vulkan_public.constants import POLICY_CONFIG_KEY
 
 from vulkan_server import definitions
+from vulkan_server.config_variables import resolve_config_variables
 from vulkan_server.dagster import trigger_run
-from vulkan_server.db import ConfigurationValue, PolicyVersion, Run
+from vulkan_server.db import PolicyVersion, Run
 from vulkan_server.exceptions import (
     NotFoundException,
     UnhandledException,
@@ -37,14 +38,11 @@ def create_run(
         msg = f"Policy version {policy_version_id} not found"
         raise NotFoundException(msg)
 
-    policy_config_variables = _get_policy_config_variables(
-        db, policy_version_id=policy_version_id, variables=version.variables
-    )
-
-    config_variables, missing = _merge_config_variables(
-        run_config=run_config_variables,
-        policy_config=policy_config_variables,
-        required=version.variables,
+    config_variables, missing = resolve_config_variables(
+        db=db,
+        policy_version_id=policy_version_id,
+        required_variables=version.variables,
+        run_config_variables=run_config_variables,
     )
     if len(missing) > 0:
         raise VariablesNotSetException(f"Mandatory variables not set: {missing}")
@@ -65,36 +63,6 @@ def create_run(
         raise UnhandledException(f"Failed to launch run: {error_msg}")
 
     return run
-
-
-def _get_policy_config_variables(
-    db: Session, policy_version_id: str, variables: list[str] | None
-) -> dict[str, str]:
-    if variables is None or len(variables) == 0:
-        return {}
-
-    results = (
-        db.query(ConfigurationValue)
-        .filter(
-            (ConfigurationValue.policy_version_id == policy_version_id)
-            & (ConfigurationValue.name.in_(variables))
-        )
-        .all()
-    )
-    return {v.name: v.value for v in results}
-
-
-def _merge_config_variables(
-    run_config: dict[str, str], policy_config: dict[str, str], required: list[str]
-) -> tuple[dict[str, str], set[str]]:
-    variables = policy_config.copy()
-    variables.update(run_config)
-
-    if not required:
-        return variables, set()
-
-    missing_variables = set(required) - set(variables.keys())
-    return variables, missing_variables
 
 
 def launch_run(

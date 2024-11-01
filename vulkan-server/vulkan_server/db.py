@@ -336,7 +336,6 @@ class RunDataCache(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-
 class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
     __tablename__ = "backtest"
 
@@ -345,7 +344,7 @@ class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
     name = Column(String, nullable=True)
     input_data_path = Column(String)
     status = Column(Enum(BacktestStatus))
-    # config_variables = list[ConfigurationValue] | None = None
+    config_variables = Column(JSON, nullable=True)
 
 if __name__ == "__main__":
     Base.metadata.create_all(engine)

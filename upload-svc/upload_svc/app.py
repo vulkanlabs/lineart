@@ -1,17 +1,22 @@
 import json
 from io import BytesIO
-from uuid import uuid4
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from vulkan.backtest.definitions import SupportedFileFormat
 
 from upload_svc import schemas
 from upload_svc.logger import init_logger
+from upload_svc.manager.base import FileManager
+from upload_svc.manager.local import LocalFileManager
 
 logger = init_logger("upload-svc")
 
 app = FastAPI()
+
+
+def _get_file_manager():
+    return LocalFileManager(base_dir="/opt/data")
 
 
 @app.get("/file/id/{file_id}")
@@ -24,10 +29,12 @@ def get_file_info(file_id: str):
     response_model=schemas.FileIdentifier,
 )
 async def validate_and_publish(
+    project_id: str,
     file_format: SupportedFileFormat,
     schema: str,
     input_file: UploadFile,
-    # config_variables: dict[str, str] | None = None,
+    config_variables: dict[str, str] | None = None,
+    manager: FileManager = Depends(_get_file_manager),
 ):
     content = await input_file.read()
     try:
@@ -48,16 +55,16 @@ async def validate_and_publish(
         )
 
     try:
-        file_path = _publish(data)
+        file_path = manager.publish(project_id=project_id, data=data)
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail={"msg": str(e), "error": "FAILED_TO_PUBLISH"},
         )
-    return schemas.FileIdentifier(file_path=file_path, file_id=uuid4())
+    return schemas.FileIdentifier(file_path=file_path)
 
 
-def _validate_schema(schema, columns) -> bool:
+def _validate_schema(schema: dict[str, type], columns: list[str]) -> None:
     schema_columns = set(schema.keys())
     data_columns = set(columns)
     diff = schema_columns - data_columns
@@ -79,9 +86,3 @@ def _read_data(content: bytes, file_format: SupportedFileFormat) -> pd.DataFrame
             raise ValueError(f"Unsupported format {file_format}")
 
     return data
-
-
-def _publish(data: pd.DataFrame) -> str:
-    file_path = "/opt/data-sample-test.parquet"
-    data.to_parquet(file_path)
-    return file_path

@@ -159,14 +159,16 @@ class VulkanFileIngestionServiceClient:
         file_format: SupportedFileFormat,
         content,
         schema: str,
-        # config_variables: dict[str, str] | None = None,
+        config_variables: dict[str, str] | None = None,
     ) -> tuple[Any, bool]:
         response = self._make_request(
             method="POST",
             url="/file",
             params={
+                "project_id": self.project_id,
                 "file_format": file_format.value,
                 "schema": str(schema),
+                "config_variables": config_variables,
             },
             files={
                 "input_file": BytesIO(content),

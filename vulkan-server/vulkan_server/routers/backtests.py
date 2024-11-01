@@ -6,12 +6,8 @@ from vulkan.backtest.definitions import BacktestStatus, SupportedFileFormat
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
-from vulkan_server.db import (
-    Backtest,
-    Policy,
-    PolicyVersion,
-    get_db,
-)
+from vulkan_server.config_variables import resolve_config_variables
+from vulkan_server.db import Backtest, Policy, PolicyVersion, get_db
 from vulkan_server.logger import init_logger
 from vulkan_server.services import VulkanFileIngestionServiceClient
 
@@ -100,13 +96,24 @@ async def create_backtest(
         .first()
     )
 
+    resolved_config, missing = resolve_config_variables(
+        db=db,
+        policy_version_id=policy_version_id,
+        required_variables=policy_version.variables,
+        run_config_variables=config_variables,
+    )
+    if len(missing) > 0:
+        raise HTTPException(
+            status_code=400, detail={"msg": f"Mandatory variables not set: {missing}"}
+        )
+
     try:
         content = await input_file.read()
         file_info = file_input_client.validate_and_publish(
             file_format=file_format,
             content=content,
             schema=policy.input_schema,
-            config_variables=config_variables,
+            config_variables=resolved_config,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail={"msg": str(e)})
@@ -116,7 +123,7 @@ async def create_backtest(
         name=name,
         input_data_path=file_info["file_path"],
         status=BacktestStatus.PENDING,
-        config_variables=config_variables,
+        config_variables=resolved_config,
     )
     db.add(backtest)
     db.commit()
