@@ -113,7 +113,6 @@ async def create_backtest(
             file_format=file_format,
             content=content,
             schema=policy.input_schema,
-            config_variables=resolved_config,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail={"msg": str(e)})

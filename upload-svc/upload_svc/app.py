@@ -19,11 +19,6 @@ def _get_file_manager():
     return LocalFileManager(base_dir="/opt/data")
 
 
-@app.get("/file/id/{file_id}")
-def get_file_info(file_id: str):
-    return {"file_path": ...}
-
-
 @app.post(
     "/file",
     response_model=schemas.FileIdentifier,
@@ -33,7 +28,6 @@ async def validate_and_publish(
     file_format: SupportedFileFormat,
     schema: str,
     input_file: UploadFile,
-    config_variables: dict[str, str] | None = None,
     manager: FileManager = Depends(_get_file_manager),
 ):
     content = await input_file.read()
