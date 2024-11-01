@@ -1,4 +1,5 @@
 import os
+import logging
 from uuid import uuid4
 
 import pandas as pd
@@ -12,6 +13,7 @@ class GCSFileManager(FileManager):
         self.gcp_project = gcp_project
         self.bucket_name = bucket_name
         self.base_path = base_path
+        logging.info(f"Using GCSFileManager with base path: {base_path}")
         self.fs = GCSFileSystem(project=self.gcp_project, access="read_write")
 
     def publish(self, project_id: str, data: pd.DataFrame) -> str:
@@ -21,8 +23,8 @@ class GCSFileManager(FileManager):
             with self.fs.open(filepath, "rb") as f:
                 data.to_parquet(f, index=False)
         except Exception as e:
-            if self.fs.exists(filepath):
-                self.fs.rm(filepath, recursive=True)
+            # if self.fs.exists(filepath):
+            #     self.fs.rm(filepath, recursive=True)
             raise ValueError(f"Failed to publish file: {e}")
 
     def delete(self, project_id: str, filepath: str) -> None:
@@ -39,6 +41,4 @@ class GCSFileManager(FileManager):
             return pd.read_parquet(f)
 
     def _filepath(self, project_id: str, file_id: str) -> str:
-        return os.path.join(
-            self.bucket_name, self.base_path, project_id, file_id
-        )
+        return os.path.join(self.bucket_name, self.base_path, project_id, file_id)

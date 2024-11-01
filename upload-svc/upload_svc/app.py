@@ -56,10 +56,8 @@ async def validate_and_publish(
     input_file: UploadFile,
     manager: FileManager = Depends(_get_file_manager),
 ):
-    logger.info("Receiving file...")
     content = await input_file.read()
     try:
-        logger.info("Reading Data...")
         data = _read_data(content, file_format)
     except Exception as e:
         raise HTTPException(
@@ -67,7 +65,6 @@ async def validate_and_publish(
             detail={"msg": str(e), "error": "INVALID_DATA"},
         )
 
-    logger.info("validating schema...")
     try:
         input_schema = json.loads(schema)
         _validate_schema(input_schema, data.columns)
@@ -77,7 +74,6 @@ async def validate_and_publish(
             detail={"msg": str(e), "error": "INVALID_SCHEMA"},
         )
 
-    logger.info("publishing...")
     try:
         file_path = manager.publish(project_id=project_id, data=data)
     except Exception as e:

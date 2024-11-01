@@ -84,7 +84,7 @@ services:
       args:
         PYTHON_VERSION: "3.12"
     env_file:
-      - .env
+      - "images/upload-svc.env"
   
   # Mock services
   echo:
