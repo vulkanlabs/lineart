@@ -4,6 +4,7 @@
         "vulkan-server/": true,
         "vulkan-dagster/": true,
         "vulkan-public/": true,
+        "upload-svc/": true,
     },
     "python.defaultInterpreterPath": "vulkan/.venv/bin/python",
     "[javascript]": {

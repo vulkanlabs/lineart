@@ -20,6 +20,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
+from vulkan.backtest.definitions import BacktestStatus
 from vulkan.core.run import RunStatus
 
 Base = declarative_base()
@@ -216,7 +217,7 @@ class ConfigurationValue(AuthorizationMixin, TimedUpdateMixin, Base):
         ),
         CheckConstraint(
             sqltext="value IS NOT NULL OR nullable = TRUE",
-            name="value_nullable_only_if_allowed",
+            name="value_null_only_if_allowed",
         ),
     )
 
@@ -333,6 +334,17 @@ class RunDataCache(Base):
     key = Column(String, primary_key=True)
     data_object_id = Column(Uuid, ForeignKey("data_object.data_object_id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
+    __tablename__ = "backtest"
+
+    backtest_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
+    input_data_path = Column(String)
+    status = Column(Enum(BacktestStatus))
+    name = Column(String, nullable=True)
+    config_variables = Column(JSON, nullable=True)
 
 
 if __name__ == "__main__":

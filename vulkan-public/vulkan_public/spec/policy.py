@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from vulkan_public.spec.component import ComponentInstance
+from vulkan_public.spec.dependency import INPUT_NODE
 from vulkan_public.spec.graph import GraphDefinition
 from vulkan_public.spec.nodes import Node, NodeType
 
@@ -84,3 +85,15 @@ class PolicyDefinition(GraphDefinition):
         ]
         if len(terminate_nodes) == 0:
             raise ValueError("No terminate node found in policy.")
+
+        nodes = {node.name: node for node in self.nodes}
+        components = {c.config.name: c.config for c in self.components}
+        for node in self.nodes:
+            for dependency in node.dependencies.values():
+                if dependency.node in components or dependency.node == INPUT_NODE:
+                    continue
+
+                if nodes[dependency.node].type == NodeType.TERMINATE:
+                    raise ValueError(
+                        f"Node {node.name} depends on terminate node {dependency}"
+                    )

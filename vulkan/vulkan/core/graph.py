@@ -1,6 +1,6 @@
 from abc import ABC
+from copy import deepcopy
 
-from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes import Node, NodeType, VulkanNodeDefinition
 
 
@@ -15,10 +15,12 @@ class Graph(ABC):
         ), "Input schema must be a dictionary of str -> type"
 
         self._nodes = nodes
-        self._flattened_nodes = _flatten_nodes(nodes)
+        self._flattened_nodes = flatten_nodes(nodes)
         self._node_definitions = {n.name: n.node_definition() for n in nodes}
         self._dependency_definitions = {n.name: n.node_dependencies() for n in nodes}
-        self._flattened_dependencies = _flatten_dependencies(nodes)
+        self._flattened_dependencies = {
+            node.name: node.dependencies for node in self._flattened_nodes
+        }
         # TODO: where should we validate the input schema?
         self.input_schema = input_schema
 
@@ -43,57 +45,43 @@ class Graph(ABC):
         return self._flattened_dependencies
 
 
-def _flatten_dependencies(nodes: list[Node]) -> dict[str, list[Dependency]]:
+def flatten_nodes(nodes: list[Node]) -> list[Node]:
+    """Get a flattened list of nodes, where component nodes are expanded.
+    
+    Extract the inner nodes of components and update the dependencies of
+    upper level nodes to reflect the flattened structure. Nodes of type
+    `NodeType.COMPONENT` are ignored in the flattened list.
+    """
     all_nodes = {node.name: node for node in nodes}
-    flattened_dependencies = {}
+    flattened_nodes = []
 
     # Flatten nodes without discarding component nodes
     for node in nodes:
         if node.type == NodeType.COMPONENT:
             for component_node in node.nodes:
-                flattened_dependencies[component_node.name] = (
-                    component_node.dependencies
-                )
                 all_nodes[component_node.name] = component_node
 
-    for node in nodes:
+    for node in all_nodes.values():
         if node.type == NodeType.COMPONENT:
-            # Components are treated as "virtual" nodes at the moment
+            # Components are treated as "virtual" nodes
             continue
 
-        dependencies = {}
-        for name, dependency in node.dependencies.items():
-            if dependency.node not in all_nodes.keys():
-                # This handles the case of the input node, which is only
-                # inserted by upper layers.
-                # When we remodel core as a config/spec, we can refactor
-                dependencies[name] = dependency
+        _node = deepcopy(node)
+
+        for dependency in _node.dependencies.values():
+            dep_node = all_nodes.get(dependency.node)
+
+            if dep_node is None:
+                # Skip dependencies on nodes that are automatically
+                # inserted by upper layers (e.g. input nodes)
                 continue
 
-            # TODO: bring this valitation to PolicyDefinition
-            dep_node: Node = all_nodes[dependency.node]
-            if dep_node.type == NodeType.TERMINATE:
-                raise ValueError(
-                    f"Node {node.name} depends on terminate node {dependency}"
-                )
-
             if dep_node.type == NodeType.COMPONENT:
+                # Point dependency to the component's output node
                 dependency.node = dep_node.output_node_name
 
-            dependencies[name] = dependency
+        flattened_nodes.append(_node)
 
-        flattened_dependencies[node.name] = dependencies
-
-    return flattened_dependencies
-
-
-def _flatten_nodes(nodes: list[Node]) -> list[Node]:
-    flattened_nodes = []
-    for node in nodes:
-        if isinstance(node, Graph):
-            flattened_nodes.extend(_flatten_nodes(node.nodes))
-        else:
-            flattened_nodes.append(node)
     return flattened_nodes
 
 

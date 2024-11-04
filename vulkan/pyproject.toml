@@ -5,13 +5,18 @@ description = ""
 authors = []
 readme = "README.md"
 dependencies = [
-    "dagster==1.8.2",
-    "dagster-webserver>=1.8.2",
-    "dagster-postgres>=0.24.2",
     "pytest>=8.3.2",
     "pytest-httpserver>=1.1.0",
     "coloredlogs>=14.0",
     "vulkan-public",
+]
+
+[project.optional-dependencies]
+beam = ["apache-beam[dataframe,gcp]>=2.60.0"]
+dagster = [
+    "dagster==1.8.2",
+    "dagster-webserver>=1.8.2",
+    "dagster-postgres>=0.24.2",
 ]
 
 [tool.uv.sources]

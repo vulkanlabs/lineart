@@ -77,6 +77,14 @@ services:
   #       - STACK_SECRET_SERVER_KEY=${STACK_SECRET_SERVER_KEY}
   #   ports:
   #     - "3002:3000"
+  upload-svc:
+    build:
+      context: .
+      dockerfile: images/upload-svc.Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
+    env_file:
+      - "images/upload-svc.env"
   
   # Mock services
   echo:

@@ -1,4 +1,5 @@
 from . import (
+    backtests,
     components,
     component_versions,
     data,

@@ -26,13 +26,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip install uv
 
-COPY vulkan-public /tmp/vulkan-public
-COPY vulkan /tmp/vulkan
-RUN uv pip install --system /tmp/vulkan && pytest /tmp/vulkan 
-
 # Install vulkan-dagster-server
+COPY vulkan-public ${VULKAN_SERVER_PATH}/vulkan-public
+COPY vulkan ${VULKAN_SERVER_PATH}/vulkan
 COPY vulkan-dagster ${VULKAN_SERVER_PATH}/vulkan-dagster
-RUN uv pip install --system ${VULKAN_SERVER_PATH}/vulkan-dagster
+RUN uv pip install --system --no-cache ${VULKAN_SERVER_PATH}/vulkan-dagster
 
 COPY vulkan-dagster/config/dagster.yaml ${DAGSTER_HOME}/
 COPY vulkan-dagster/config/workspace.yaml ${VULKAN_HOME}/

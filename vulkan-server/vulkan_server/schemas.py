@@ -4,6 +4,7 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
+from vulkan.backtest.definitions import BacktestStatus
 from vulkan_public.schemas import DataSourceCreate
 
 
@@ -270,3 +271,14 @@ class DataBrokerResponse(BaseModel):
     origin: DataObjectOrigin
     key: str
     value: Any
+
+
+class Backtest(BaseModel):
+    backtest_id: UUID
+    policy_version_id: UUID
+    input_data_path: str
+    name: str | None = None
+    status: BacktestStatus
+
+    created_at: datetime
+    last_updated_at: datetime

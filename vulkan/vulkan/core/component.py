@@ -1,10 +1,15 @@
 from copy import deepcopy
 from typing import Any
 
-from vulkan.core.graph import Graph
-from vulkan_public.spec.component import ComponentDefinition, ComponentInstance, InstanceParam
-from vulkan_public.spec.dependency import Dependency
+from vulkan_public.spec.component import (
+    ComponentDefinition,
+    ComponentInstance,
+    InstanceParam,
+)
+from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 from vulkan_public.spec.nodes import Node, NodeType, TransformNode, VulkanNodeDefinition
+
+from vulkan.core.graph import Graph
 
 
 class ComponentGraph(Node, Graph):
@@ -70,7 +75,7 @@ class ComponentGraph(Node, Graph):
 
     @staticmethod
     def make_input_node_name(component_name: str) -> str:
-        return f"{component_name}_input_node"
+        return f"{component_name}_{INPUT_NODE}"
 
     @staticmethod
     def make_output_node_name(component_name: str) -> str:
@@ -141,6 +146,7 @@ def _apply_instance_params(
 
 
 def _make_input_node(name: str, dependencies: dict[str, Dependency]) -> list[Node]:
+    # FIXME: handle (node, _, key) deps in other places
     def _input_fn(_, **kwargs: dict):
         inputs = {}
         for k, v in dependencies.items():
@@ -165,7 +171,7 @@ def _make_input_node(name: str, dependencies: dict[str, Dependency]) -> list[Nod
 def _prefix_node_names(prefix: str, nodes: list[Node]) -> list[Node]:
     _nodes = []
     for node in nodes:
-        # TODO: quick fix. Refactor ASAP.
+        # TODO: Don't change inner attribute directly
         node._name = f"{prefix}_{node.name}"
         _nodes.append(node)
     return _nodes
@@ -176,7 +182,7 @@ def _update_node_dependencies(name: str, nodes: list[Node]) -> list[Node]:
     for node in nodes:
         dependencies = {}
         for k, v in node.dependencies.items():
-            if v.node == "input_node":
+            if v.node == INPUT_NODE:
                 dependencies[k] = Dependency(ComponentGraph.make_input_node_name(name))
             else:
                 v.node = f"{name}_{v.node}"
@@ -187,13 +193,20 @@ def _update_node_dependencies(name: str, nodes: list[Node]) -> list[Node]:
 
 
 def _find_output_node(nodes: list[Node]) -> Node:
+    nodes_map = {node.name: node for node in nodes}
     non_terminal_nodes = []
 
-    for node in nodes:
+    for node in nodes_map.values():
         for dep in node.node_dependencies():
             if dep.node not in non_terminal_nodes:
                 non_terminal_nodes.append(dep.node)
 
-    for node in nodes:
-        if node.name not in non_terminal_nodes:
-            return node
+    output_set = set(nodes_map.keys()) - set(non_terminal_nodes)
+
+    if len(output_set) != 1:
+        raise ValueError(
+            f"A Component must have exactly one output node. Found: {len(output_set)}"
+        )
+
+    output_node_name = output_set.pop()
+    return nodes_map[output_node_name]

@@ -1,13 +1,18 @@
+from io import BytesIO
 from dataclasses import dataclass
 from typing import Any
 
 from requests import JSONDecodeError, Request, Response, Session
+from vulkan.backtest.definitions import SupportedFileFormat
 from vulkan_public.exceptions import (
     UNHANDLED_ERROR_NAME,
     VULKAN_INTERNAL_EXCEPTIONS,
 )
 
 from vulkan_server.definitions import VulkanServerConfig
+from vulkan_server.logger import init_logger
+
+logger = init_logger("services")
 
 
 @dataclass
@@ -122,6 +127,7 @@ def _raise_interservice_error(response: Response, message: str) -> None:
         error_msg = f"{message}: {UNHANDLED_ERROR_NAME}"
 
     if detail["error"] == "VulkanInternalException":
+        logger.error(f"Got err: {detail}")
         _exception = VULKAN_INTERNAL_EXCEPTIONS[detail["exit_status"]]
         raise _exception(msg=detail["msg"])
 
@@ -138,3 +144,60 @@ def make_vulkan_server_client(
         server_url=server_config.vulkan_dagster_server_url,
         request_config=request_config,
     )
+
+
+class VulkanFileIngestionServiceClient:
+    """Client to interact with the file ingestion service."""
+
+    def __init__(self, project_id: str, server_url: str) -> "None":
+        self.project_id = project_id
+        self.server_url = server_url
+        self.session = Session()
+
+    def validate_and_publish(
+        self,
+        file_format: SupportedFileFormat,
+        content,
+        schema: str,
+    ) -> tuple[Any, bool]:
+        logger.info("Making request to validate and publish file")
+        response = self._make_request(
+            method="POST",
+            url="/file",
+            params={
+                "project_id": self.project_id,
+                "file_format": file_format.value,
+                "schema": str(schema),
+            },
+            files={
+                "input_file": BytesIO(content),
+            },
+            on_error="Failed to upload data",
+        )
+        file_info = response.json()
+        return file_info
+
+    def _make_request(
+        self,
+        method: str,
+        url: str,
+        on_error: str,
+        json: dict | None = None,
+        files: dict | None = None,
+        params: dict | None = None,
+    ) -> Response:
+        request = Request(
+            method=method,
+            url=f"{self.server_url}/{url}",
+            # headers=self.request_config.headers,
+            json=json,
+            params=params,
+            files=files,
+        ).prepare()
+        response = self.session.send(request)
+        logger.warning(f"content: {response.content}")
+
+        if response.status_code != 200:
+            _raise_interservice_error(response, on_error)
+
+        return response

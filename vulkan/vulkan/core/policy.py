@@ -1,9 +1,10 @@
 from typing import Callable
 
-from vulkan_public.spec.component import ComponentInstance
+from vulkan_public.spec.dependency import INPUT_NODE
 from vulkan_public.spec.nodes import InputNode, Node, TerminateNode
 from vulkan_public.spec.policy import PolicyDefinition
 
+from vulkan.core.component import ComponentGraph
 from vulkan.core.graph import Graph
 
 
@@ -13,7 +14,7 @@ class Policy(Graph):
         nodes: list[Node],
         input_schema: dict[str, type],
         output_callback: Callable | None = None,
-        components: list[ComponentInstance] | None = None,
+        components: list[ComponentGraph] | None = None,
     ):
         self.output_callback = output_callback
         if output_callback is not None:
@@ -49,7 +50,7 @@ class Policy(Graph):
 
 def _make_input_node(input_schema) -> InputNode:
     return InputNode(
-        name="input_node",
+        name=INPUT_NODE,
         description="Input node",
         schema=input_schema,
     )
