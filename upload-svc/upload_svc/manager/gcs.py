@@ -30,8 +30,8 @@ class GCSFileManager(FileManager):
     def delete(self, project_id: str, public_filepath: str) -> None:
         filepath = self.private_filepath(public_filepath)
         self._ensure_subdir(project_id, filepath)
-        if os.path.exists(filepath):
-            os.remove(filepath)
+        if self.fs.exists(filepath):
+            self.fs.rm(filepath, recursive=True)
 
     def get(self, project_id: str, public_filepath: str) -> pd.DataFrame:
         filepath = self.private_filepath(public_filepath)

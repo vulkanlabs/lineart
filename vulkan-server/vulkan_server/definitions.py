@@ -26,8 +26,13 @@ def get_vulkan_server_config() -> VulkanServerConfig:
     if dagster_host is None or dagster_server_port is None:
         raise ValueError("DAGSTER_HOST and DAGSTER_SERVER_PORT must be set")
 
+    upload_service_host = os.getenv("UPLOAD_SERVICE_HOST")
+    upload_service_port = os.getenv("UPLOAD_SERVICE_PORT")
+    if upload_service_host is None or upload_service_port is None:
+        raise ValueError("UPLOAD_SERVICE_HOST and UPLOAD_SERVICE_PORT must be set")
+
     return VulkanServerConfig(
         server_url=f"http://{app_host}:{app_port}",
         vulkan_dagster_server_url=f"http://{dagster_host}:{dagster_server_port}",
-        upload_service_url="http://upload-svc:8080",
+        upload_service_url=f"http://{upload_service_host}:{upload_service_port}",
     )
