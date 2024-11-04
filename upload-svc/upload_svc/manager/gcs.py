@@ -1,5 +1,4 @@
 import os
-from uuid import uuid4
 
 import pandas as pd
 from gcsfs import GCSFileSystem
@@ -15,7 +14,8 @@ class GCSFileManager(FileManager):
         self.fs = GCSFileSystem(project=self.gcp_project, access="read_write")
 
     def publish(self, project_id: str, data: pd.DataFrame) -> str:
-        filepath = self._filepath(project_id, file_id=str(uuid4()))
+        public_path = self.public_filepath(project_id)
+        filepath = self.private_filepath(public_path)
 
         try:
             with self.fs.open(filepath, "wb") as f:
@@ -25,14 +25,16 @@ class GCSFileManager(FileManager):
                 self.fs.rm(filepath, recursive=True)
             raise ValueError(f"Failed to publish file: {e}")
 
-        return filepath
+        return public_path
 
-    def delete(self, project_id: str, filepath: str) -> None:
+    def delete(self, project_id: str, public_filepath: str) -> None:
+        filepath = self.private_filepath(public_filepath)
         self._ensure_subdir(project_id, filepath)
         if os.path.exists(filepath):
             os.remove(filepath)
 
-    def get(self, project_id: str, filepath: str) -> pd.DataFrame:
+    def get(self, project_id: str, public_filepath: str) -> pd.DataFrame:
+        filepath = self.private_filepath(public_filepath)
         if not self.fs.exists(filepath):
             raise ValueError(f"File not found: {filepath}")
 
@@ -40,5 +42,11 @@ class GCSFileManager(FileManager):
         with self.fs.open(filepath, "rb") as f:
             return pd.read_parquet(f)
 
-    def _filepath(self, project_id: str, file_id: str) -> str:
-        return os.path.join(self.bucket_name, self.base_path, project_id, file_id)
+    def public_filepath(self, project_id: str) -> str:
+        file_id = self._gen_file_id()
+        return f"gs://{self.bucket_name}/{self.base_path}/{project_id}/{file_id}"
+
+    def private_filepath(self, public_filepath: str) -> str:
+        if not public_filepath.startswith("gs://"):
+            raise ValueError(f"Invalid GCS path: {public_filepath}")
+        return public_filepath.replace("gs://", "")
