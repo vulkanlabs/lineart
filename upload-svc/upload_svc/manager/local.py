@@ -7,9 +7,9 @@ from upload_svc.manager.base import FileManager
 
 
 class LocalFileManager(FileManager):
-    def __init__(self, base_dir: str) -> None:
-        self.base_dir = base_dir
-        os.makedirs(self.base_dir, exist_ok=True)
+    def __init__(self, base_path: str) -> None:
+        self.base_path = base_path
+        os.makedirs(self.base_path, exist_ok=True)
 
     def publish(self, project_id: str, data: pd.DataFrame) -> str:
         filepath = self._filepath(project_id, file_id=str(uuid4()))
@@ -37,4 +37,4 @@ class LocalFileManager(FileManager):
         return pd.read_parquet(filepath)
 
     def _filepath(self, project_id: str, file_id: str) -> str:
-        return os.path.join(self.base_dir, project_id, file_id)
+        return os.path.join(self.base_path, project_id, file_id)

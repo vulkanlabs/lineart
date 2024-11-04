@@ -7,6 +7,12 @@ def list_backtests(ctx: Context):
     return response.json()
 
 
+def get_backtest(ctx: Context, backtest_id: str):
+    response = ctx.session.get(f"{ctx.server_url}/backtests/{backtest_id}")
+    assert response.status_code == 200, f"Failed to list backtests: {response.content}"
+    return response.json()
+
+
 def create_backtest(
     ctx: Context, policy_version_id: str, input_file_path: str, file_format: str
 ):

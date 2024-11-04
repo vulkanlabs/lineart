@@ -31,7 +31,7 @@ def make_file_input_service(
     )
 
 
-@router.get("/", response_model=schemas.Backtest)
+@router.get("/", response_model=list[schemas.Backtest])
 def list_backtests(project_id: str = Depends(get_project_id), db=Depends(get_db)):
     results = db.query(Backtest).filter_by(project_id=project_id).all()
     if len(results) == 0:
