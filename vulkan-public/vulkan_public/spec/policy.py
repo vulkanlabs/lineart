@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from vulkan_public.spec.component import ComponentInstance
+from vulkan_public.spec.dependency import INPUT_NODE
 from vulkan_public.spec.graph import GraphDefinition
 from vulkan_public.spec.nodes import Node, NodeType
 
@@ -89,7 +90,7 @@ class PolicyDefinition(GraphDefinition):
         components = {c.config.name: c.config for c in self.components}
         for node in self.nodes:
             for dependency in node.dependencies.values():
-                if dependency.node in components:
+                if dependency.node in components or dependency.node == INPUT_NODE:
                     continue
 
                 if nodes[dependency.node].type == NodeType.TERMINATE:
