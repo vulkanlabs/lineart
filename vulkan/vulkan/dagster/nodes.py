@@ -300,7 +300,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         self,
         name: str,
         description: str,
-        return_status: UserStatus,
+        return_status: UserStatus | str,
         dependencies: dict[str, Any],
         callback: Callable | None = None,
     ):
@@ -314,10 +314,12 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         self.func = self._fn
 
     def _fn(self, context, **kwargs):
+        status = self.return_status
+        result = status.value if isinstance(status, Enum) else status
         vulkan_run_config = context.resources.vulkan_run_config
-        context.log.info(f"Terminating with status {self.return_status}")
+        context.log.info(f"Terminating with status {status}")
 
-        terminated = self._terminate(context, self.return_status)
+        terminated = self._terminate(context, result)
         if not terminated:
             raise ValueError("Failed to terminate run")
 
@@ -325,18 +327,18 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             reported = self.callback(
                 context=context,
                 run_id=vulkan_run_config.run_id,
-                return_status=self.return_status,
+                return_status=status,
                 **kwargs,
             )
             if not reported:
                 raise ValueError("Callback function failed")
 
-        return self.return_status.value
+        return result
 
     def _terminate(
         self,
         context: OpExecutionContext,
-        result: UserStatus,
+        result: str,
     ) -> bool:
         vulkan_run_config = getattr(context.resources, RUN_CONFIG_KEY)
         server_url = vulkan_run_config.server_url
@@ -344,7 +346,6 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
 
         url = f"{server_url}/runs/{run_id}"
         dagster_run_id: str = context.run_id
-        result: str = result.value
         context.log.info(f"Returning status {result} to {url} for run {dagster_run_id}")
         response = requests.put(
             url,
