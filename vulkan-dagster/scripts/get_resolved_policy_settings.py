@@ -2,7 +2,7 @@ import argparse
 import json
 
 from vulkan.core.graph import extract_node_definitions
-from vulkan.dagster.workspace import resolve_policy
+from vulkan.environment.loaders import resolve_policy
 from vulkan.environment.encoders import EnhancedJSONEncoder
 from vulkan_public.spec.nodes import NodeType
 
