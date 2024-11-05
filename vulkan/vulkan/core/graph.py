@@ -1,7 +1,13 @@
 from abc import ABC
 from copy import deepcopy
 
+from graphlib import TopologicalSorter
+from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes import Node, NodeType, VulkanNodeDefinition
+
+GraphNodes = list[Node]
+GraphEdges = dict[str, dict[str, Dependency]]
+"""Mapping of node names to their dependencies"""
 
 
 class Graph(ABC):
@@ -47,7 +53,7 @@ class Graph(ABC):
 
 def flatten_nodes(nodes: list[Node]) -> list[Node]:
     """Get a flattened list of nodes, where component nodes are expanded.
-    
+
     Extract the inner nodes of components and update the dependencies of
     upper level nodes to reflect the flattened structure. Nodes of type
     `NodeType.COMPONENT` are ignored in the flattened list.
@@ -96,3 +102,17 @@ def _to_dict(node: VulkanNodeDefinition):
             name: _to_dict(n) for name, n in node.metadata["nodes"].items()
         }
     return node_
+
+
+def sort_nodes(nodes: GraphNodes, edges: GraphEdges) -> GraphNodes:
+    """Sort nodes topologically based on their dependencies."""
+    nodes = {node.name: node for node in nodes}
+    graph = {
+        name: [dep.node for dep in dependencies.values()]
+        for name, dependencies in edges.items()
+    }
+    sorter = TopologicalSorter(graph)
+
+    # Input nodes may not be included in the nodes list, but will be
+    # referenced as dependencies in the edges list.
+    return [nodes[name] for name in sorter.static_order() if name in nodes]
