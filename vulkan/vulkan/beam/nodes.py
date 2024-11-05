@@ -1,21 +1,15 @@
-from typing import Any
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import apache_beam as beam
-
+from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes import (
     BranchNode,
-    Collect,
     DataInputNode,
-    HTTPConnectionNode,
     InputNode,
-    Map,
     Node,
     TerminateNode,
     TransformNode,
-    NodeType,
 )
-from vulkan_public.spec.dependency import Dependency
 
 
 class BeamNode(ABC):
@@ -28,18 +22,19 @@ class BeamInput(InputNode, BeamNode):
     def __init__(
         self,
         name: str,
-        description: str,
-        schema: dict[str, type],
         source: str,
+        schema: dict[str, type],
+        description: str | None = None,
     ):
         super().__init__(name=name, description=description, schema=schema)
         self.source = source
 
     @classmethod
-    def from_spec(cls, node: InputNode):
+    def from_spec(cls, node: InputNode, source: str):
         return cls(
             name=node.name,
             description=node.description,
+            source=source,
             schema=node.schema,
         )
 
@@ -97,10 +92,11 @@ class BeamTransform(TransformNode, BeamNode):
     def __init__(
         self,
         name: str,
-        description: str,
         func: callable,
         dependencies: dict[str, Dependency],
+        description: str | None = None,
         hidden: bool = False,
+        env: dict | None = None,
     ):
         super().__init__(
             name=name,
@@ -123,15 +119,20 @@ class BeamTransform(TransformNode, BeamNode):
     def op(self):
         return beam.ParDo(BeamTransformFn(self.func, self.dependencies))
 
+    def with_env(self, env: dict) -> "BeamTransform":
+        self.env = env
+        return self
+
 
 class BeamBranch(BranchNode, BeamNode):
     def __init__(
         self,
         name: str,
-        description: str,
         func: callable,
         outputs: list[str],
         dependencies: dict[str, Dependency],
+        description: str | None = None,
+        env: dict | None = None,
     ):
         super().__init__(
             name=name,
@@ -154,22 +155,27 @@ class BeamBranch(BranchNode, BeamNode):
     def op(self):
         return beam.ParDo(BeamTransformFn(self.func, self.dependencies))
 
+    def with_env(self, env: dict) -> "BeamBranch":
+        self.env = env
+        return self
+
 
 class BeamTerminateFn(beam.DoFn):
     def __init__(self, return_status: str):
         self.return_status = return_status
 
     def process(self, element, **kwargs):
-        yield {"key": element[0], "status": self.return_status}
+        yield (element[0], {"status": self.return_status})
+        # yield {"key": element[0], "status": self.return_status}
 
 
 class BeamTerminate(TerminateNode, BeamNode):
     def __init__(
         self,
         name: str,
-        description: str,
         return_status: str,
         dependencies: dict[str, Dependency],
+        description: str | None = None,
     ):
         super().__init__(
             name=name,
@@ -186,7 +192,6 @@ class BeamTerminate(TerminateNode, BeamNode):
             description=node.description,
             return_status=node.return_status,
             dependencies=node.dependencies,
-            callback=node.callback,
         )
 
     def op(self):
@@ -194,7 +199,6 @@ class BeamTerminate(TerminateNode, BeamNode):
 
 
 _NODE_TYPE_MAP: dict[type[Node], type[BeamNode]] = {
-    InputNode: BeamInput,
     DataInputNode: BeamDataInput,
     TransformNode: BeamTransform,
     BranchNode: BeamBranch,
