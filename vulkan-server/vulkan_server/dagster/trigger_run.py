@@ -24,7 +24,7 @@ def trigger_dagster_job(
     return response
 
 
-def update_repository(client: DagsterGraphQLClient) -> dict[str, bool]:
+def _update_repository(client: DagsterGraphQLClient) -> dict[str, bool]:
     response = client._execute(_RELOAD_WORKSPACE_MUTATION)
     if "reloadWorkspace" not in response.keys():
         raise ValueError(f"Failed to reload workspace: {response}")

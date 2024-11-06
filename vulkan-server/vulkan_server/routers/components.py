@@ -10,7 +10,7 @@ from vulkan_public.exceptions import (
 )
 from vulkan_public.spec.component import component_version_alias
 
-from vulkan_server import definitions, schemas
+from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.db import (
     Component,
@@ -24,7 +24,12 @@ from vulkan_server.db import (
 )
 from vulkan_server.exceptions import ExceptionHandler
 from vulkan_server.logger import init_logger
-from vulkan_server.services import VulkanDagsterServerClient
+from vulkan_server.services import (
+    VulkanDagsterServerClient,
+    ResolutionServiceClient,
+    get_dagster_service_client,
+    get_resolution_service_client,
+)
 
 logger = init_logger("components")
 router = APIRouter(
@@ -124,10 +129,13 @@ def create_component_version(
     component_id: str,
     component_config: schemas.ComponentVersionCreate,
     project_id: str = Depends(get_project_id),
-    server_config: definitions.VulkanServerConfig = Depends(
-        definitions.get_vulkan_server_config
-    ),
     db: Session = Depends(get_db),
+    resolution_service: ResolutionServiceClient = Depends(
+        get_resolution_service_client
+    ),
+    dagster_launcher_client: VulkanDagsterServerClient = Depends(
+        get_dagster_service_client
+    ),
 ):
     component = (
         db.query(Component)
@@ -139,13 +147,10 @@ def create_component_version(
 
     alias = component_version_alias(component.name, component_config.version_name)
     handler = ExceptionHandler(logger, f"Failed to create component version {alias}")
-    vulkan_dagster_client = VulkanDagsterServerClient(
-        project_id=project_id, server_url=server_config.vulkan_dagster_server_url
-    )
 
     try:
         # TODO: add input and output schemas and handle them in the endpoint
-        response = vulkan_dagster_client.create_component_version(
+        response = resolution_service.create_component_version(
             alias, component_config.repository
         )
         data = response.json()
@@ -170,10 +175,16 @@ def create_component_version(
 
         if variables:
             version.variables = list(set(variables))
+
+        dagster_launcher_client.create_component_version(
+            alias, component_config.repository
+        )
         db.commit()
     except Exception as e:
         # Remove leftover resources from failed creation
-        vulkan_dagster_client.delete_component_version(alias)
+        resolution_service.delete_component_version(alias)
+        dagster_launcher_client.delete_component_version(alias)
+        
 
         if isinstance(e, VulkanInternalException):
             handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)

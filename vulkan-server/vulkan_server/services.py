@@ -1,15 +1,16 @@
-from io import BytesIO
 from dataclasses import dataclass
+from io import BytesIO
 from typing import Any
 
-from requests import JSONDecodeError, Request, Response, Session
+from fastapi import Depends, Response
+from requests import JSONDecodeError, Request, Session
 from vulkan.backtest.definitions import SupportedFileFormat
-from vulkan_public.exceptions import (
-    UNHANDLED_ERROR_NAME,
-    VULKAN_INTERNAL_EXCEPTIONS,
-)
+from vulkan_public.exceptions import UNHANDLED_ERROR_NAME, VULKAN_INTERNAL_EXCEPTIONS
 
-from vulkan_server.definitions import VulkanServerConfig
+from vulkan_server import definitions
+from vulkan_server.auth import get_project_id
+from vulkan_server.dagster.client import get_dagster_client
+from vulkan_server.dagster.trigger_run import _update_repository
 from vulkan_server.logger import init_logger
 
 logger = init_logger("services")
@@ -28,10 +29,12 @@ class VulkanDagsterServerClient:
         self,
         project_id: str,
         server_url: str,
+        dagster_client: str,
         request_config: VulkanDagsterRequestConfig | None = None,
     ) -> None:
         self.project_id = project_id
         self.server_url = server_url
+        self.dagster_client = dagster_client
         self.session = Session()
 
         if request_config is None:
@@ -64,7 +67,7 @@ class VulkanDagsterServerClient:
         )
         return response
 
-    def create_workspace(self, name: str, repository: str) -> Response:
+    def create_workspace(self, name: str, repository: str, components: list[str]) -> Response:
         response = self._make_request(
             method="POST",
             url="/workspaces/create",
@@ -72,21 +75,9 @@ class VulkanDagsterServerClient:
                 "name": name,
                 "repository": repository,
                 "project_id": self.project_id,
+                "required_components": components,
             },
             on_error="Failed to create workspace",
-        )
-        return response
-
-    def install_workspace(self, name: str, required_components: list[str]) -> Response:
-        response = self._make_request(
-            method="POST",
-            url="/workspaces/install",
-            json={
-                "name": name,
-                "required_components": required_components,
-                "project_id": self.project_id,
-            },
-            on_error="Failed to install workspace",
         )
         return response
 
@@ -118,6 +109,112 @@ class VulkanDagsterServerClient:
 
         return response
 
+    # TODO: this bit should be dagster-specific
+    def update_repository(self, version_name: str) -> None:
+        loaded_repos = _update_repository(self.dagster_client)
+        if loaded_repos.get(version_name, False) is False:
+            msg = (
+                f"Failed to load repository {version_name}.\n"
+                f"Repository load status: {loaded_repos}"
+            )
+            raise ValueError(msg)
+
+
+def get_dagster_service_client(
+    project_id: str = Depends(get_project_id),
+    server_config: definitions.VulkanServerConfig = Depends(
+        definitions.get_vulkan_server_config
+    ),
+    dagster_client=Depends(get_dagster_client),
+) -> VulkanDagsterServerClient:
+    return VulkanDagsterServerClient(
+        project_id=project_id,
+        server_url=server_config.vulkan_dagster_server_url,
+        dagster_client=dagster_client,
+    )
+
+
+class ResolutionServiceClient:
+    """Client to interact with the resolution service."""
+
+    def __init__(
+        self,
+        project_id: str,
+        server_url: str,
+    ) -> None:
+        self.project_id = project_id
+        self.server_url = server_url
+        self.session = Session()
+
+    def create_component_version(
+        self, component_version_alias: str, repository: str
+    ) -> Response:
+        response = self._make_request(
+            method="POST",
+            url="/components",
+            json={
+                "alias": component_version_alias,
+                "repository": repository,
+                "project_id": self.project_id,
+            },
+            on_error="Failed to create component version",
+        )
+        return response
+
+    def delete_component_version(self, component_version_alias: str) -> Response:
+        response = self._make_request(
+            method="POST",
+            url="/components/delete",
+            json={
+                "alias": component_version_alias,
+                "project_id": self.project_id,
+            },
+            on_error="Failed to delete component version",
+        )
+        return response
+
+    def create_workspace(
+        self, name: str, repository: str
+    ) -> Response:
+        response = self._make_request(
+            method="POST",
+            url="/workspaces/create",
+            json={
+                "name": name,
+                "repository": repository,
+                "project_id": self.project_id,
+            },
+            on_error="Failed to create workspace",
+        )
+        return response
+
+    def delete_workspace(self, name: str) -> Response:
+        response = self._make_request(
+            method="POST",
+            url="/workspaces/delete",
+            json={
+                "name": name,
+                "project_id": self.project_id,
+            },
+            on_error="Failed to delete workspace",
+        )
+        return response
+
+    def _make_request(
+        self, method: str, url: str, json: dict, on_error: str
+    ) -> Response:
+        request = Request(
+            method=method,
+            url=f"{self.server_url}/{url}",
+            json=json,
+        ).prepare()
+        response = self.session.send(request)
+
+        if response.status_code != 200:
+            _raise_interservice_error(response, on_error)
+
+        return response
+
 
 def _raise_interservice_error(response: Response, message: str) -> None:
     try:
@@ -134,15 +231,15 @@ def _raise_interservice_error(response: Response, message: str) -> None:
     raise ValueError(error_msg)
 
 
-def make_vulkan_server_client(
-    project_id: str,
-    server_config: VulkanServerConfig,
-    request_config: VulkanDagsterRequestConfig | None = None,
-) -> VulkanDagsterServerClient:
-    return VulkanDagsterServerClient(
+def get_resolution_service_client(
+    project_id: str = Depends(get_project_id),
+    server_config: definitions.VulkanServerConfig = Depends(
+        definitions.get_vulkan_server_config
+    ),
+) -> ResolutionServiceClient:
+    return ResolutionServiceClient(
         project_id=project_id,
-        server_url=server_config.vulkan_dagster_server_url,
-        request_config=request_config,
+        server_url=server_config.resolution_service_url,
     )
 
 
