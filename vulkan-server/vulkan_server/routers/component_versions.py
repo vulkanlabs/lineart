@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
-from vulkan_server import definitions, schemas
+from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.db import (
     ComponentDataDependency,
@@ -12,7 +12,12 @@ from vulkan_server.db import (
     get_db,
 )
 from vulkan_server.logger import init_logger
-from vulkan_server.services import VulkanDagsterServerClient
+from vulkan_server.services import (
+    ResolutionServiceClient,
+    VulkanDagsterServerClient,
+    get_dagster_service_client,
+    get_resolution_service_client,
+)
 
 logger = init_logger("component-versions")
 router = APIRouter(
@@ -22,7 +27,8 @@ router = APIRouter(
 )
 
 
-@router.get("/{component_version_id}",
+@router.get(
+    "/{component_version_id}",
     response_model=schemas.ComponentVersion,
 )
 def get_component_version(
@@ -45,8 +51,11 @@ def delete_component_version(
     component_version_id: str,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
-    server_config: definitions.VulkanServerConfig = Depends(
-        definitions.get_vulkan_server_config
+    resolution_service: ResolutionServiceClient = Depends(
+        get_resolution_service_client
+    ),
+    dagster_launcher_client: VulkanDagsterServerClient = Depends(
+        get_dagster_service_client
     ),
 ):
     # TODO: ensure this function can only be executed by ADMIN level users
@@ -75,12 +84,9 @@ def delete_component_version(
         )
         raise HTTPException(status_code=400, detail=msg)
 
-    vulkan_dagster_client = VulkanDagsterServerClient(
-        project_id=project_id, server_url=server_config.vulkan_dagster_server_url
-    )
-
     try:
-        _ = vulkan_dagster_client.delete_component_version(component_version.alias)
+        _ = resolution_service.delete_component_version(component_version.alias)
+        dagster_launcher_client.delete_component_version(component_version.alias)
     except Exception:
         raise HTTPException(
             status_code=500,
@@ -93,7 +99,8 @@ def delete_component_version(
     return {"component_version_id": component_version_id}
 
 
-@router.get("/{component_version_id}/data-sources",
+@router.get(
+    "/{component_version_id}/data-sources",
     response_model=list[schemas.DataSourceReference],
 )
 def list_data_sources_by_component_version(

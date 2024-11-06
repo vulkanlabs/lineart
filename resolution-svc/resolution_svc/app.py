@@ -4,7 +4,6 @@ import os
 from typing import Annotated
 
 from fastapi import Body, FastAPI
-from vulkan.dagster.workspace import DagsterWorkspaceManager
 from vulkan_public.exceptions import ConflictingDefinitionsError
 
 from . import schemas
@@ -26,7 +25,6 @@ def create_workspace(
     name: Annotated[str, Body()],
     project_id: Annotated[str, Body()],
     repository: Annotated[str, Body()],
-    required_components: Annotated[list[str], Body()],
 ):
     """
     Create the dagster workspace and venv used to run a policy version.
@@ -42,16 +40,23 @@ def create_workspace(
 
         venv_path = vm.create_venv()
         ctx.register_asset(venv_path)
-        logger.info(f"Created workspace at: {workspace_path}")
 
-        dm = DagsterWorkspaceManager(VULKAN_HOME, vm.code_location)
+        policy_definition_settings = vm.get_policy_definition_settings()
+        required_components = policy_definition_settings["required_components"]
+        # TODO Check components are available
+
+        logger.info(f"[{project_id}] Installing workspace: {name}")
         vm.install_components(required_components)
-        _ = dm.create_init_file(vm.components_path)
-        dm.add_workspace_config(name, VENVS_PATH)
-        logger.info(f"Successfully installed workspace: {name}")
+        settings = vm.get_resolved_policy_settings()
+        logger.info(f"[{project_id}] Successfully installed workspace: {name}")
+        # TODO: maybe share with dagster server
 
+    logger.info(f"Created workspace at: {workspace_path}")
     return {
+        "policy_definition_settings": policy_definition_settings,
         "workspace_path": workspace_path,
+        "graph_definition": settings["nodes"],
+        "data_sources": settings["data_sources"],
     }
 
 
@@ -62,10 +67,7 @@ def delete_workspace(
 ):
     logger.info(f"[{project_id}] Deleting workspace: {name}")
     vm = VulkanWorkspaceManager(project_id, name)
-    dm = DagsterWorkspaceManager(VULKAN_HOME, vm.code_location)
-
     with ExecutionContext(logger):
-        dm.delete_resources(name)
         vm.delete_resources()
 
     logger.info(f"Successfully deleted workspace: {name}")

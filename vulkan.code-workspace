@@ -20,8 +20,11 @@
 			"path": "vulkan-public",
 		},
 		{
+			"path": "resolution-svc",
+		},
+		{
 			"path": "upload-svc",
-		}
+		},
 	],
 	"settings": {
 		"files.autoSave": "afterDelay",

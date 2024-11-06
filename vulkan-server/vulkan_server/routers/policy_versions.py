@@ -7,23 +7,27 @@ from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.dagster.client import get_dagster_client
 from vulkan_server.dagster.launch_run import create_run
-from vulkan_server.dagster.trigger_run import update_repository
 from vulkan_server.db import (
     Component,
     ComponentVersion,
     ComponentVersionDependency,
     ConfigurationValue,
     DagsterWorkspace,
-    Policy,
-    PolicyVersion,
-    PolicyDataDependency,
     DataSource,
+    Policy,
+    PolicyDataDependency,
+    PolicyVersion,
     Run,
     get_db,
 )
 from vulkan_server.exceptions import VulkanServerException
 from vulkan_server.logger import init_logger
-from vulkan_server.services import VulkanDagsterServerClient
+from vulkan_server.services import (
+    ResolutionServiceClient,
+    VulkanDagsterServerClient,
+    get_dagster_service_client,
+    get_resolution_service_client,
+)
 
 logger = init_logger("policy-versions")
 router = APIRouter(
@@ -54,10 +58,12 @@ def delete_policy_version(
     policy_version_id: str,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
-    server_config: definitions.VulkanServerConfig = Depends(
-        definitions.get_vulkan_server_config
+    resolution_service: ResolutionServiceClient = Depends(
+        get_resolution_service_client
     ),
-    dagster_client=Depends(get_dagster_client),
+    dagster_launcher_client: VulkanDagsterServerClient = Depends(
+        get_dagster_service_client
+    ),
 ):
     # TODO: ensure this function can only be executed by ADMIN level users
     policy_version = (
@@ -85,19 +91,15 @@ def delete_policy_version(
     )
 
     name = definitions.version_name(policy_version.policy_id, policy_version_id)
-    vulkan_dagster_client = VulkanDagsterServerClient(
-        project_id=project_id, server_url=server_config.vulkan_dagster_server_url
-    )
-
     try:
-        _ = vulkan_dagster_client.delete_workspace(name)
-    except Exception:
+        _ = resolution_service.delete_workspace(name)
+        dagster_launcher_client.delete_workspace(name)
+        dagster_launcher_client.ensure_workspace_removed(name)
+    except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Error deleting policy version {policy_version_id}",
+            detail=f"Error deleting policy version {policy_version_id}: {str(e)}",
         )
-
-    update_repository(dagster_client)
 
     db.delete(workspace)
     policy_version.archived = True

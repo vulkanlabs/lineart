@@ -8,7 +8,6 @@ venv_name=${VULKAN_VENVS_PATH}/${component_alias}
 # Create a temporary virtual environment to load the component definition
 uv venv ${venv_name}
 cd ${venv_name}
-# source bin/activate
 
 uv pip install ${VULKAN_SERVER_PATH}/vulkan
 uv pip install ${components_base_dir}/${component_alias}

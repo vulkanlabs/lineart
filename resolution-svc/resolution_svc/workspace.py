@@ -46,7 +46,7 @@ class VulkanWorkspaceManager:
         )
         return workspace_path
 
-    def get_policy_definition_settings(self) -> list[str]:
+    def get_policy_definition_settings(self) -> dict:
         return _get_policy_definition_settings(self.code_location, self.workspace_name)
 
     def create_venv(self) -> str:
