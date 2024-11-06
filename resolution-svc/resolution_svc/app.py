@@ -4,7 +4,6 @@ import os
 from typing import Annotated
 
 from fastapi import Body, FastAPI
-from vulkan.dagster.workspace import DagsterWorkspaceManager
 from vulkan_public.exceptions import ConflictingDefinitionsError
 
 from . import schemas

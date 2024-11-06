@@ -107,4 +107,4 @@ class ComponentInstance:
 
 
 def component_version_alias(name: str, version: str):
-    return f"{name}:{version}"
+    return f"{name}_{version}"

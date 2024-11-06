@@ -7,12 +7,12 @@ from vulkan_public.spec.environment.loaders import load_policy_definition
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--file_location", type=str)
+    parser.add_argument("--module_name", type=str)
     parser.add_argument("--output_file", type=str)
     args = parser.parse_args()
 
     try:
-        policy_definition = load_policy_definition(args.file_location)
+        policy_definition = load_policy_definition(args.module_name)
     except VulkanInternalException as e:
         sys.exit(e.exit_status)
 

@@ -1,16 +1,11 @@
 import base64
 import os
 
-import yaml
-
 from vulkan_public.cli.context import Context
 from vulkan_public.exceptions import UserImportException
-from vulkan_public.spec.environment.config import UserWorkspaceConfig
 from vulkan_public.spec.environment.loaders import load_policy_definition
-from vulkan_public.spec.environment.packing import (
-    find_package_entrypoint,
-    pack_workspace,
-)
+from vulkan_public.spec.environment.packing import pack_workspace
+from vulkan_public.spec.environment.workspace import VulkanCodeLocation
 
 
 def list_policies(ctx: Context, include_archived: bool = False):
@@ -116,22 +111,9 @@ def create_policy_version(
             "A vulkan.yaml file must be specified at the root level of the repository."
         )
 
-    with open(config_path, "r") as fn:
-        config_data = yaml.safe_load(fn)
-
-    # TODO: we aren't currently usign this, but it can become handy in the future
-    # to validate the user config
-    _ = UserWorkspaceConfig.from_dict(config_data)
-
+    code_location = VulkanCodeLocation.from_workspace(repository_path)
     try:
-        entrypoint = find_package_entrypoint(repository_path)
-    except ValueError as e:
-        raise ValueError(
-            f"Failed to find entrypoint in repository: {repository_path}\n{e}"
-        )
-
-    try:
-        _ = load_policy_definition(entrypoint)
+        _ = load_policy_definition(code_location.module_name)
     except UserImportException as e:
         ctx.logger.warning("Failed to import module from entrypoint.")
         ctx.logger.warning(str(e))
@@ -153,8 +135,9 @@ def create_policy_version(
         json=body,
     )
     if response.status_code == 400:
-        detail = response.json().get("detail", {})
+        detail = response.json().get("detail", "")
         error = detail.get("error")
+        ctx.logger.debug(f"Error: {error}")
         if error == "ComponentNotFoundException":
             raise ValueError(
                 "Missing components. Please install the following components "

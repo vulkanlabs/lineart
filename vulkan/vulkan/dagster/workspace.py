@@ -20,11 +20,11 @@ from vulkan.dagster.run_config import (
     VulkanRunConfig,
 )
 from vulkan.environment.loaders import resolve_policy
-from vulkan.environment.workspace import VulkanCodeLocation
+from vulkan_public.spec.environment.workspace import VulkanCodeLocation
 
 
 def make_workspace_definition(
-    file_location: str,
+    module_name: str,
     components_base_dir: str,
 ) -> Definitions:
     run_config = VulkanRunConfig.configure_at_launch()
@@ -55,7 +55,7 @@ def make_workspace_definition(
 
     # Up to this point, everything should be defined in terms of core elements.
     # Nodes and components should be configured, resolved, checked in core.
-    resolved_policy = resolve_policy(file_location, components_base_dir)
+    resolved_policy = resolve_policy(module_name, components_base_dir)
     # From here, each implementation should handle transforming core to its own
     # needs, ie. Core -> Dagster
     # -> Transform nodes in dagster nodes
@@ -119,7 +119,7 @@ class DagsterWorkspaceManager:
         init_path = os.path.join(definitions_path, "__init__.py")
 
         init_contents = DAGSTER_ENTRYPOINT.format(
-            code_entrypoint=self.code_location.entrypoint,
+            module_name=self.code_location.module_name,
             components_path=components_path,
         )
         with open(init_path, "w") as fp:
@@ -140,5 +140,5 @@ class DagsterWorkspaceManager:
 DAGSTER_ENTRYPOINT = """
 from vulkan.dagster.workspace import make_workspace_definition
                 
-definitions = make_workspace_definition("{code_entrypoint}", "{components_path}")
+definitions = make_workspace_definition("{module_name}", "{components_path}")
 """

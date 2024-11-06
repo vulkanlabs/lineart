@@ -110,8 +110,8 @@ def _get_policy_definition_settings(
         [
             f"{VENVS_PATH}/{workspace_name}/bin/python",
             f"{SCRIPTS_PATH}/get_policy_definition_settings.py",
-            "--file_location",
-            code_location.entrypoint,
+            "--module_name",
+            code_location.module_name,
             "--output_file",
             tmp_path,
         ],
@@ -142,8 +142,8 @@ def _get_resolved_policy_settings(
         [
             f"{VENVS_PATH}/{workspace_name}/bin/python",
             f"{SCRIPTS_PATH}/get_resolved_policy_settings.py",
-            "--file_location",
-            code_location.entrypoint,
+            "--module_name",
+            code_location.module_name,
             "--components_base_dir",
             components_base_dir,
             "--output_file",
