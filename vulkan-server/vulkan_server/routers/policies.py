@@ -35,8 +35,8 @@ from vulkan_server.db import (
 from vulkan_server.exceptions import ExceptionHandler, VulkanServerException
 from vulkan_server.logger import init_logger
 from vulkan_server.services import (
-    VulkanDagsterServerClient,
     ResolutionServiceClient,
+    VulkanDagsterServerClient,
     get_dagster_service_client,
     get_resolution_service_client,
 )
@@ -373,7 +373,7 @@ def create_policy_version(
         dagster_launcher_client.create_workspace(
             version_name, version.repository, components
         )
-        dagster_launcher_client.update_repository(version_name)
+        dagster_launcher_client.ensure_workspace_added(version_name)
         logger.info("Updated repositories")
     except Exception as e:
         if isinstance(e, VulkanInternalException):

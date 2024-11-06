@@ -24,9 +24,9 @@ from vulkan_server.exceptions import VulkanServerException
 from vulkan_server.logger import init_logger
 from vulkan_server.services import (
     ResolutionServiceClient,
-    get_resolution_service_client,
     VulkanDagsterServerClient,
     get_dagster_service_client,
+    get_resolution_service_client,
 )
 
 logger = init_logger("policy-versions")
@@ -94,7 +94,7 @@ def delete_policy_version(
     try:
         _ = resolution_service.delete_workspace(name)
         dagster_launcher_client.delete_workspace(name)
-        dagster_launcher_client.update_repository(name)
+        dagster_launcher_client.ensure_workspace_removed(name)
     except Exception as e:
         raise HTTPException(
             status_code=500,

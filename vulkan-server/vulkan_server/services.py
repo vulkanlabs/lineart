@@ -67,7 +67,9 @@ class VulkanDagsterServerClient:
         )
         return response
 
-    def create_workspace(self, name: str, repository: str, components: list[str]) -> Response:
+    def create_workspace(
+        self, name: str, repository: str, components: list[str]
+    ) -> Response:
         response = self._make_request(
             method="POST",
             url="/workspaces/create",
@@ -110,11 +112,20 @@ class VulkanDagsterServerClient:
         return response
 
     # TODO: this bit should be dagster-specific
-    def update_repository(self, version_name: str) -> None:
+    def ensure_workspace_added(self, version_name: str) -> None:
         loaded_repos = _update_repository(self.dagster_client)
         if loaded_repos.get(version_name, False) is False:
             msg = (
                 f"Failed to load repository {version_name}.\n"
+                f"Repository load status: {loaded_repos}"
+            )
+            raise ValueError(msg)
+
+    def ensure_workspace_removed(self, version_name: str) -> None:
+        loaded_repos = _update_repository(self.dagster_client)
+        if loaded_repos.get(version_name, None) is not None:
+            msg = (
+                f"Failed to remove repository {version_name}.\n"
                 f"Repository load status: {loaded_repos}"
             )
             raise ValueError(msg)
@@ -173,9 +184,7 @@ class ResolutionServiceClient:
         )
         return response
 
-    def create_workspace(
-        self, name: str, repository: str
-    ) -> Response:
+    def create_workspace(self, name: str, repository: str) -> Response:
         response = self._make_request(
             method="POST",
             url="/workspaces/create",
