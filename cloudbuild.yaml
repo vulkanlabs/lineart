@@ -19,7 +19,8 @@ steps:
     - 'upload'
     - '--repository-url'
     - 'https://${_LOCATION}-python.pkg.dev/$PROJECT_ID/${_REPOSITORY}/'
-    - 'dist/*'
+    - '/workspace/vulkan-public/dist/*'
+    - '/workspace/vulkan/dist/*'
 
 options:
   logging: CLOUD_LOGGING_ONLY
