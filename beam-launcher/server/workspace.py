@@ -2,8 +2,8 @@ import os
 import subprocess
 from shutil import rmtree
 
-from vulkan.environment.workspace import VulkanCodeLocation
 from vulkan_public.spec.environment.packing import unpack_workspace
+from vulkan_public.spec.environment.workspace import VulkanCodeLocation
 
 VULKAN_HOME = os.getenv("VULKAN_HOME")
 VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
@@ -38,7 +38,7 @@ class VulkanWorkspaceManager:
         )
         return workspace_path
 
-    def create_venv_for_workspace(self):
+    def create_venv(self):
         process = subprocess.run(
             [
                 "bash",

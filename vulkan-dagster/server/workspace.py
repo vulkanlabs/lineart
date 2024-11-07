@@ -4,7 +4,7 @@ import subprocess
 from shutil import rmtree
 from time import time
 
-from vulkan.environment.workspace import VulkanCodeLocation
+from vulkan_public.spec.environment.workspace import VulkanCodeLocation
 from vulkan_public.exceptions import (
     ConflictingDefinitionsError,
     DefinitionNotFoundException,

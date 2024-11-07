@@ -1,6 +1,7 @@
 import json
 from itertools import chain
 
+import requests
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from vulkan_public.exceptions import (
@@ -10,7 +11,7 @@ from vulkan_public.exceptions import (
 )
 from vulkan_public.spec.component import component_version_alias
 
-from vulkan_server import schemas
+from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.db import (
     Component,
@@ -136,6 +137,9 @@ def create_component_version(
     dagster_launcher_client: VulkanDagsterServerClient = Depends(
         get_dagster_service_client
     ),
+    server_config: definitions.VulkanServerConfig = Depends(
+        definitions.get_vulkan_server_config
+    ),
 ):
     component = (
         db.query(Component)
@@ -189,6 +193,16 @@ def create_component_version(
         if isinstance(e, VulkanInternalException):
             handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
         handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
+
+    # TODO: temporary workaround
+    requests.post(
+        url=f"{server_config.beam_launcher_url}/resources/components",
+        json={
+            "alias": alias,
+            "project_id": project_id,
+            "repository": component_config.repository,
+        },
+    )
 
     return {"component_version_id": version.component_version_id}
 

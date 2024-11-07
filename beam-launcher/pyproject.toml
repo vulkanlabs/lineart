@@ -1,5 +1,5 @@
 [project]
-name = "beam-executor"
+name = "beam-launcher"
 version = "0.1.0"
 description = ""
 authors = []

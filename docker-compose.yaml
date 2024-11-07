@@ -25,6 +25,23 @@ services:
       start_period: 10s
     volumes:
       - postgres_data_app_db:/var/lib/postgresql/data
+  beam-launcher:
+    build:
+      context: .
+      dockerfile: images/beam.Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
+        VULKAN_SERVER_PATH: /app
+        VULKAN_HOME: /opt/vulkan
+        VULKAN_STAGING_PATH: /opt/staging
+        VULKAN_VENVS_PATH: /opt/venvs
+        VULKAN_SCRIPTS_PATH: /app/beam-launcher/scripts
+    env_file:
+      - images/beam.env
+    ports:
+      - "6002:6002"
+    volumes:
+      - ${PWD}/../keys:/opt/keys
   dagster:
     build: 
       context: .

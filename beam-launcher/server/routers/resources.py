@@ -20,15 +20,15 @@ router = APIRouter(
 )
 
 
-@router.post("/resources/workspace")
+@router.post("/workspaces")
 def create_workspace(
-    name: Annotated[str, Body()],
     project_id: Annotated[str, Body()],
+    policy_version_id: Annotated[str, Body()],
     repository: Annotated[str, Body()],
     required_components: Annotated[list[str], Body()],
 ):
-    logger.info(f"[{project_id}] Creating workspace: {name} (python_module)")
-    vm = VulkanWorkspaceManager(project_id, name)
+    logger.info(f"[{project_id}] Creating workspace: {policy_version_id} (python_module)")
+    vm = VulkanWorkspaceManager(project_id, policy_version_id)
 
     with ExecutionContext(logger) as ctx:
         repository = base64.b64decode(repository)
@@ -44,22 +44,22 @@ def create_workspace(
     return {"workspace_path": workspace_path}
 
 
-@router.delete("/resources/workspace")
+@router.delete("/workspaces")
 def delete_workspace(
-    name: Annotated[str, Body()],
+    policy_version_id: Annotated[str, Body()],
     project_id: Annotated[str, Body()],
 ):
-    logger.info(f"[{project_id}] Deleting workspace: {name}")
-    vm = VulkanWorkspaceManager(project_id, name)
+    logger.info(f"[{project_id}] Deleting workspace: {policy_version_id}")
+    vm = VulkanWorkspaceManager(project_id, policy_version_id)
 
     with ExecutionContext(logger):
         vm.delete_resources()
 
-    logger.info(f"Successfully deleted workspace: {name}")
+    logger.info(f"Successfully deleted workspace: {policy_version_id}")
     return {"workspace_path": vm.workspace_path}
 
 
-@router.post("resources/components")
+@router.post("/components")
 def create_component(
     alias: Annotated[str, Body()],
     project_id: Annotated[str, Body()],
@@ -80,7 +80,7 @@ def create_component(
     return {"component_path": component_path}
 
 
-@router.delete("/resources/components")
+@router.delete("/components")
 def delete_component(
     alias: Annotated[str, Body()],
     project_id: Annotated[str, Body()],

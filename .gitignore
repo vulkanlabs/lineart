@@ -29,3 +29,6 @@ uv.lock
 # local env files
 .env*
 !.env.example
+
+# MacOS
+.DS_Store

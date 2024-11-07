@@ -19,5 +19,10 @@ dagster = [
     "dagster-postgres>=0.24.2",
 ]
 
+[tool.uv]
+dev-dependencies = [
+    "apache-beam[dataframe,gcp]>=2.60.0",
+]
+
 [tool.uv.sources]
 vulkan-public = { path = "../vulkan-public" }

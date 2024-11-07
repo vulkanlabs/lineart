@@ -4,6 +4,7 @@ from itertools import chain
 from typing import Annotated, Any
 
 import pandas as pd
+import requests
 import sqlalchemy.exc
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy import func as F
@@ -291,6 +292,9 @@ def create_policy_version(
     dagster_launcher_client: VulkanDagsterServerClient = Depends(
         get_dagster_service_client
     ),
+    server_config: definitions.VulkanServerConfig = Depends(
+        definitions.get_vulkan_server_config
+    ),
 ):
     handler = ExceptionHandler(
         logger=logger,
@@ -386,6 +390,17 @@ def create_policy_version(
     logger.info(
         f"Policy version {config.alias} created for policy {policy_id} with "
         f"status {version.status}"
+    )
+
+    # TODO: temporary workaround
+    requests.post(
+        url=f"{server_config.beam_launcher_url}/resources/workspaces",
+        json={
+            "project_id": project_id,
+            "policy_version_id": str(version.policy_version_id),
+            "repository": config.repository,
+            "required_components": components,
+        },
     )
 
     return {

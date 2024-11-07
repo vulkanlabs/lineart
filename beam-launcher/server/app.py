@@ -1,17 +1,11 @@
+import json
 import logging
 import os
-from typing import Annotated
+import subprocess
 
-from apache_beam.options.pipeline_options import (
-    GoogleCloudOptions,
-    PipelineOptions,
-    StandardOptions,
-)
-from fastapi import Body, FastAPI
-from vulkan.beam.pipeline import BeamPipelineBuilder, DataEntryConfig
-from vulkan.environment.loaders import resolve_policy
+from fastapi import FastAPI
 
-from server import routers
+from server import routers, schemas
 from server.workspace import VulkanWorkspaceManager
 
 app = FastAPI()
@@ -21,46 +15,42 @@ logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
 
-GCP_PROJECT = os.getenv("GCP_PROJECT")
-GCP_DATAFLOW_TEMP_LOCATION = os.getenv("GCP_DATAFLOW_TEMP_LOCATION")
+VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
+SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
 
 
+# TODO: make this endpoint ASYNC
 @app.post("/backtest/launch")
-def launch_backtest(
-    project_id: Annotated[str, Body()],
-    policy_version_id: Annotated[str, Body()],
-    backtest_id: Annotated[str, Body()],
-    data_sources: Annotated[dict[str, str], Body()],
-    config_variables: Annotated[dict[str, str], Body()],
-):
+def launch_backtest(config: schemas.BacktestConfig):
     logger.info(
-        f"[{backtest_id}] Launching run for policy version: {policy_version_id}"
+        f"[{config.backtest_id}] Launching run for policy version: {config.policy_version_id}"
     )
     # prepare user code
 
-    # 0. load policy
-    vm = VulkanWorkspaceManager(project_id, policy_version_id)
-    policy = resolve_policy(vm.code_location.entrypoint, vm.components_path)
-    # 1. build pipeline
-    data_sources = {
-        name: DataEntryConfig(source=source) for name, source in data_sources.items()
-    }
+    # 1. resolve policy and launch pipeline
+    args = [
+        f"{VENVS_PATH}/{config.policy_version_id}/bin/python",
+        f"{SCRIPTS_PATH}/launch_dataflow.py",
+    ]
+    for key, value in config.model_dump().items():
+        args.extend(["--" + key, json.dumps(value)])
+    
+    vm = VulkanWorkspaceManager(config.project_id, config.policy_version_id)
+    args.extend(["--workspace_path", vm.workspace_path])
+    args.extend(["--workspace_name", vm.workspace_name])
+    args.extend(["--module_name", vm.code_location.module_name])
+    args.extend(["--components_path", vm.components_path])
 
-    options = PipelineOptions()
-    options.view_as(StandardOptions).runner = "DataflowRunner"
-    google_cloud_options = options.view_as(GoogleCloudOptions)
-    google_cloud_options.project = GCP_PROJECT
-    google_cloud_options.temp_location = GCP_DATAFLOW_TEMP_LOCATION
+    logger.info(
+        f"[{config.backtest_id}] Launching run for policy version: {config.policy_version_id}"
+    )
+    completed_process = subprocess.run(args, capture_output=True)
 
-    pipeline = BeamPipelineBuilder(
-        policy=policy,
-        data_sources=data_sources,
-        config_variables=config_variables,
-        pipeline_options=options,
-    ).build()
-    # 2. launch pipeline
-    pipeline.run()
-    # 3. pool for status
+    if completed_process.returncode != 0:
+        msg = f"Failed to launch dataflow pipeline: {completed_process.stderr}"
+        raise Exception(msg)
+
+    # 2. pool for status
     # when finished: results written directly to storage
-    # 4. callback server to notify completion, passing: BacktestStatus, results_path
+    # 3. callback server to notify completion, passing: BacktestStatus, results_path
     pass
