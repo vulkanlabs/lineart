@@ -1,0 +1,27 @@
+steps:
+  - name: python
+    entrypoint: pip
+    args: ["install", "--upgrade",  "pip", "build", "twine", "keyrings.google-artifactregistry-auth"]
+
+  - name: python
+    entrypoint: python
+    args: ['-m', 'build']
+    dir: vulkan-public
+
+  - name: python
+    entrypoint: python
+    args: ['-m', 'build']
+    dir: vulkan
+  
+  - name: python
+    entrypoint: python
+    args:
+    - '-m'
+    - 'twine'
+    - 'upload'
+    - '--repository-url'
+    - 'https://${_LOCATION}-python.pkg.dev/$PROJECT_ID/${_REPOSITORY}/'
+    - 'dist/*'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
