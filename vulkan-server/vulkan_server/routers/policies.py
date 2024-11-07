@@ -41,6 +41,8 @@ from vulkan_server.services import (
     get_resolution_service_client,
 )
 
+
+
 logger = init_logger("policies")
 router = APIRouter(
     prefix="/policies",
@@ -330,7 +332,7 @@ def create_policy_version(
         components, variables, graph_definition, data_sources = (
             _create_policy_version_workspace(
                 db=db,
-                vulkan_dagster_client=resolution_service,
+                resolution=resolution_service,
                 policy_version_id=version.policy_version_id,
                 name=version_name,
                 repository=config.repository,
@@ -454,7 +456,7 @@ def _add_data_source_dependencies(
 
 def _create_policy_version_workspace(
     db: Session,
-    vulkan_dagster_client: ResolutionServiceClient,
+    resolution: ResolutionServiceClient,
     policy_version_id: int,
     name: str,
     repository: str,
@@ -467,7 +469,7 @@ def _create_policy_version_workspace(
     db.commit()
 
     try:
-        response = vulkan_dagster_client.create_workspace(
+        response = resolution.create_workspace(
             name=name, repository=repository
         )
         response_data = response.json()

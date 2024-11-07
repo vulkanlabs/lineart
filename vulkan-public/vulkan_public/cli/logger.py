@@ -3,9 +3,9 @@ import logging
 import coloredlogs
 
 
-def init_logger(name: str) -> logging.Logger:
-    # Create a logger object.
+def init_logger(name: str, level: str = "INFO") -> logging.Logger:
     logger = logging.getLogger(name)
+    logger.setLevel(level)
 
     # By default the install() function installs a handler on the root logger,
     # this means that log messages from your code and log messages from the

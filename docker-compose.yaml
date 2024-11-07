@@ -95,11 +95,14 @@ services:
         VULKAN_SERVER_PATH: /opt/server
         VULKAN_SCRIPTS_PATH: /opt/scripts
         VULKAN_VENVS_PATH: /opt/venvs
+        GOOGLE_APPLICATION_CREDENTIALS: /opt/keys/application-default-credentials.json
     env_file:
       - .env
+      - "images/resolution-svc.env"
     volumes:
       - resolution_vulkan_home:/opt/vulkan
       - resolution_venvs:/opt/venvs
+      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   # Mock services
   echo:
     image: kennethreitz/httpbin
