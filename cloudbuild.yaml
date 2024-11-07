@@ -5,13 +5,11 @@ steps:
 
   - name: python
     entrypoint: python
-    args: ['-m', 'build']
-    dir: vulkan-public
+    args: ['-m', 'build', 'vulkan-public']
 
   - name: python
     entrypoint: python
-    args: ['-m', 'build']
-    dir: vulkan
+    args: ['-m', 'build', 'vulkan']
   
   - name: python
     entrypoint: python
