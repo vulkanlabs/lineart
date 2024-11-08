@@ -13,5 +13,4 @@ cd ${workspace_path}
 
 # TODO: This may fail to install the vulkan package
 # while the vulkan library is installed from local.
-# uv pip install -r pyproject.toml 
 uv pip install .
