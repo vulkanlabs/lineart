@@ -1,10 +1,7 @@
 import importlib.util
 import os
-import sys
 import tarfile
 from shutil import unpack_archive
-
-from vulkan_public.exceptions import UserImportException
 
 _ARCHIVE_FORMAT = "gztar"
 _TAR_FLAGS = "w:gz"
@@ -75,11 +72,8 @@ def _find_first_init_file(file_location):
                 return os.path.join(root, file)
 
 
-def find_definitions(file_location, typ):
-    if not os.path.exists(file_location):
-        raise ValueError(f"File not found: {file_location}")
-
-    module = _import_module_from_file(file_location)
+def find_definitions(module_name: str, typ: type):
+    module = importlib.import_module(module_name)
     context = vars(module)
 
     definitions = []
@@ -87,28 +81,3 @@ def find_definitions(file_location, typ):
         if isinstance(obj, typ):
             definitions.append(obj)
     return definitions
-
-
-def _import_module_from_file(file_location: str):
-    name = _as_letters(abs(hash(file_location)))
-    spec = importlib.util.spec_from_file_location(f"{name}.policy", file_location)
-    if spec is None:
-        raise ValueError(f"Failed to import module from file: {file_location}")
-
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[f"{name}.policy"] = module
-
-    try:
-        spec.loader.exec_module(module)
-    except (ModuleNotFoundError, ImportError) as e:
-        raise UserImportException(f"Failed to load module: {e}")
-
-    return module
-
-
-def _as_letters(n: int) -> str:
-    result = ""
-    while n > 0:
-        n, r = divmod(n - 1, 26)
-        result += chr(r + ord("a"))
-    return result

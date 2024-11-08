@@ -1,5 +1,3 @@
-import os
-
 from vulkan_public.exceptions import (
     ConflictingDefinitionsError,
     DefinitionNotFoundException,
@@ -7,18 +5,16 @@ from vulkan_public.exceptions import (
     UserImportException,
 )
 from vulkan_public.spec.component import ComponentDefinition
-from vulkan_public.spec.environment.packing import (
-    find_definitions,
-    find_package_entrypoint,
-)
+from vulkan_public.spec.environment.packing import find_definitions
+from vulkan_public.spec.environment.workspace import VulkanCodeLocation
 from vulkan_public.spec.policy import PolicyDefinition
 
 
-def load_single_definition(file_location: str, definition_type: type):
+def load_single_definition(module_name: str, definition_type: type):
     try:
-        definitions = find_definitions(file_location, definition_type)
-    except UserImportException as e:
-        raise e
+        definitions = find_definitions(module_name, definition_type)
+    except ModuleNotFoundError as e:
+        raise UserImportException(str(e))
     except Exception as e:
         raise InvalidDefinitionError(e)
 
@@ -35,16 +31,16 @@ def load_single_definition(file_location: str, definition_type: type):
     return definitions[0]
 
 
-def load_policy_definition(file_location: str) -> PolicyDefinition:
-    return load_single_definition(file_location, PolicyDefinition)
+def load_policy_definition(module_name: str) -> PolicyDefinition:
+    return load_single_definition(module_name, PolicyDefinition)
 
 
 def load_component_definition_from_alias(
     alias: str, components_base_dir: str
 ) -> ComponentDefinition:
-    file_location = find_package_entrypoint(os.path.join(components_base_dir, alias))
-    return load_component_definition(file_location)
+    code_location = VulkanCodeLocation.from_workspace(f"{components_base_dir}/{alias}")
+    return load_component_definition(code_location.module_name)
 
 
-def load_component_definition(file_location: str) -> ComponentDefinition:
-    return load_single_definition(file_location, ComponentDefinition)
+def load_component_definition(module_name: str) -> ComponentDefinition:
+    return load_single_definition(module_name, ComponentDefinition)

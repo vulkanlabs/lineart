@@ -36,7 +36,7 @@ def login(ctx: LoginContext):
 
 
 def _base_login(ctx: LoginContext):
-    username = click.prompt("Your Vulkan username")
+    username = click.prompt("Your email address", show_default=True)
     password = click.prompt(
         "Your Vulkan password",
         hide_input=True,

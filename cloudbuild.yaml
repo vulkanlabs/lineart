@@ -1,0 +1,26 @@
+steps:
+  - name: python
+    entrypoint: python
+    args: ['-m', 'pip', 'install', '--upgrade',  'pip', 'build', 'twine', 'keyrings.google-artifactregistry-auth', '--user']
+
+  - name: python
+    entrypoint: python
+    args: ['-m', 'build', 'vulkan-public']
+
+  - name: python
+    entrypoint: python
+    args: ['-m', 'build', 'vulkan']
+  
+  - name: python
+    entrypoint: python
+    args:
+    - '-m'
+    - 'twine'
+    - 'upload'
+    - '--repository-url'
+    - 'https://${_LOCATION}-python.pkg.dev/$PROJECT_ID/${_REPOSITORY}/'
+    - '/workspace/vulkan-public/dist/*'
+    - '/workspace/vulkan/dist/*'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

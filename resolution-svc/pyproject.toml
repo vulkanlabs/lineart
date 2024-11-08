@@ -1,0 +1,15 @@
+[project]
+name = "resolution_svc"
+version = "0.1.0"
+description = ""
+authors = []
+readme = "README.md"
+dependencies = [
+    "fastapi[standard]>=0.112.1",
+    "vulkan[dagster]",
+]
+
+
+[tool.uv.sources]
+vulkan = { path = "../vulkan" }
+
