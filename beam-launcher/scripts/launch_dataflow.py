@@ -91,7 +91,7 @@ def create_packages(workspace_path, workspace_name, module_name, components_path
             capture_output=True,
         )
         if process.returncode != 0:
-            raise Exception(f"Failed to create package: {package}")
+            raise Exception(f"Failed to create package: {package}", process.stderr)
 
     packages = [fn for fn in os.listdir(staging_dir) if fn.endswith(".tar.gz")]
     return [os.path.join(staging_dir, fn) for fn in packages]

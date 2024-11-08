@@ -41,7 +41,7 @@ services:
     ports:
       - "6002:6002"
     volumes:
-      - ${PWD}/../keys:/opt/keys
+      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   dagster:
     build: 
       context: .

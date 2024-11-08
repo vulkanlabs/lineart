@@ -1,3 +1,4 @@
+import csv
 import hashlib
 import json
 from dataclasses import dataclass
@@ -14,7 +15,6 @@ from vulkan_public.spec.nodes import (
     InputNode,
     NodeType,
 )
-import csv
 
 from vulkan.beam.nodes import BeamInput, BeamNode, to_beam_node
 from vulkan.core.graph import GraphEdges, GraphNodes, sort_nodes
@@ -102,7 +102,9 @@ def build_pipeline(pipeline, input_node, sorted_nodes) -> BeamPipeline:
     result = builder.build(sorted_nodes)
 
     # TODO: write result to GCS
-    result | "Write Output" >> beam.io.WriteToText("gs://vulkan-dev-temp/output.txt")
+    result | "Write Output" >> beam.io.WriteToText(
+        "gs://vulkan-dev-beam-temp/output.txt"
+    )
 
     return builder.pipeline
 
@@ -119,9 +121,7 @@ def build_local_pipeline(pipeline, input_node, sorted_nodes):
 class ReadGCSInput(beam.PTransform):
     def __init__(self, source: str, schema: dict[str, type] | None = None):
         self.source = source
-
-        fields = list(schema.keys())
-        self.csv_parser = partial(parse_csv_line, fields=fields)
+        self.csv_parser = partial(parse_csv_line, schema)
 
     def expand(self, pcoll):
         return (
@@ -132,10 +132,12 @@ class ReadGCSInput(beam.PTransform):
         )
 
 
-def parse_csv_line(fields, line):
+def parse_csv_line(schema, line):
     """Parse a single line of CSV into a dictionary."""
     reader = csv.reader([line])
-    return dict(zip(fields, next(reader)))
+    fields = list(schema.keys())
+    data = dict(zip(fields, next(reader)))
+    return {k: schema[k](v) for k, v in data.items()}
 
 
 class ReadLocalInput(beam.PTransform):

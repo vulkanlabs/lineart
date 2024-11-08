@@ -8,7 +8,7 @@ dependencies = [
     "pytest>=8.3.2",
     "pytest-httpserver>=1.1.0",
     "coloredlogs>=14.0",
-    "vulkan-public",
+    # "vulkan-public",
 ]
 
 [project.optional-dependencies]
@@ -24,5 +24,5 @@ dev-dependencies = [
     "apache-beam[dataframe,gcp]>=2.60.0",
 ]
 
-[tool.uv.sources]
-vulkan-public = { path = "../vulkan-public" }
+# [tool.uv.sources]
+# vulkan-public = { path = "../vulkan-public", editable = true }
