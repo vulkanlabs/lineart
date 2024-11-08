@@ -1,6 +1,23 @@
 from logging import Logger
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
+from requests import JSONDecodeError
+from vulkan_public.exceptions import UNHANDLED_ERROR_NAME, VULKAN_INTERNAL_EXCEPTIONS
+
+
+def raise_interservice_error(logger: Logger, response: Response, message: str) -> None:
+    try:
+        detail = response.json()["detail"]
+        error_msg = f"{message}: {detail}"
+    except (JSONDecodeError, KeyError):
+        error_msg = f"{message}: {UNHANDLED_ERROR_NAME}"
+
+    if detail["error"] == "VulkanInternalException":
+        logger.error(f"Got err: {detail}")
+        _exception = VULKAN_INTERNAL_EXCEPTIONS[detail["exit_status"]]
+        raise _exception(msg=detail["msg"])
+
+    raise ValueError(error_msg)
 
 
 class ExceptionHandler:

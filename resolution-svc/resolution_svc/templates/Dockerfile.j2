@@ -1,0 +1,18 @@
+FROM python:3.12-slim
+
+WORKDIR /opt
+
+RUN pip install uv
+RUN mkdir /opt/dependencies
+
+{% for dependency in dependencies %}
+COPY {{ dependency.path }} /opt/dependencies/{{ dependency.name }}
+{% endfor %}
+
+RUN uv pip install --system --no-cache 
+
+COPY {{ policy.path }} /opt/policy/
+RUN uv pip install --system --no-cache /opt/policy \
+    {%- for dependency in dependencies -%}
+    /opt/dependencies/{{ dependency.name }} {% if not loop.last %} \ {% endif %}
+    {%- endfor -%}

@@ -11,7 +11,6 @@ cd ${venv_name}
 
 uv pip install ${VULKAN_SERVER_PATH}/vulkan
 uv pip install ${components_base_dir}/${component_alias}
-# bash ${VULKAN_SCRIPTS_PATH}/create_venv.sh ${venv_name} ${components_base_dir}/${component_alias}
 
 ${venv_name}/bin/python ${VULKAN_SCRIPTS_PATH}/load_component_definition.py \
     --alias ${component_alias} \

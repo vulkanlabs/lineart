@@ -67,6 +67,7 @@ services:
     volumes:
       - dagster_vulkan_home:/opt/vulkan
       - dagster_venvs:/opt/venvs
+      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   dagster-db:
     build:
       context: .
@@ -114,9 +115,11 @@ services:
         VULKAN_VENVS_PATH: /opt/venvs
     env_file:
       - .env
+      - "images/resolution-svc.env"
     volumes:
       - resolution_vulkan_home:/opt/vulkan
       - resolution_venvs:/opt/venvs
+      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   # Mock services
   echo:
     image: kennethreitz/httpbin

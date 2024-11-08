@@ -12,10 +12,12 @@ from vulkan_public.exceptions import (
 )
 from vulkan_public.spec.environment.packing import unpack_workspace
 
+# from .template import PackageSpec, render_dockerfile
+
 VULKAN_HOME = os.getenv("VULKAN_HOME")
 VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
 SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
-
+VULKAN_SERVER_PATH = os.getenv("VULKAN_SERVER_PATH")
 WORKSPACES_PATH = f"{VULKAN_HOME}/workspaces"
 
 
@@ -66,9 +68,27 @@ class VulkanWorkspaceManager:
         rmtree(self.workspace_path)
         rmtree(f"{VENVS_PATH}/{self.workspace_name}")
 
+    # def render_dockerfile(self, dependencies: list[str]):
+    #     policy_spec = PackageSpec(name=self.workspace_name, path=self.workspace_path)
+    #     dependency_specs = [
+    #         PackageSpec(name=dep, path=f"{self.components_path}/{dep}")
+    #         for dep in dependencies
+    #     ]
+    #     dockerfile = render_dockerfile(
+    #         VULKAN_SERVER_PATH, policy_spec, dependency_specs
+    #     )
+    #     with open(f"{self.workspace_path}/Dockerfile", "w") as fp:
+    #         fp.write(dockerfile)
+
+    #     return dockerfile
+
 
 class VulkanComponentManager:
-    def __init__(self, project_id: str, component_alias: str) -> None:
+    def __init__(
+        self,
+        project_id: str,
+        component_alias: str,
+    ) -> None:
         self.project_id = project_id
         self.component_alias = component_alias
 
@@ -210,4 +230,5 @@ def _load_and_remove(file_path) -> dict:
     with open(file_path, "r") as fn:
         data = json.load(fn)
     os.remove(file_path)
+    return data
     return data
