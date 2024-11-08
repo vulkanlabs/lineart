@@ -1,15 +1,8 @@
-import json
 import os
 import subprocess
 from shutil import rmtree
-from time import time
 
 from vulkan.artifacts.gcs import GCSArtifactManager
-from vulkan_public.exceptions import (
-    ConflictingDefinitionsError,
-    DefinitionNotFoundException,
-    InvalidDefinitionError,
-)
 from vulkan_public.spec.environment.packing import unpack_workspace
 from vulkan_public.spec.environment.workspace import VulkanCodeLocation
 
@@ -85,38 +78,6 @@ def _create_venv_for_workspace(venv_path, workspace_path):
     return venv_path
 
 
-def _get_policy_definition_settings(
-    code_location: VulkanCodeLocation, workspace_name: str
-):
-    tmp_path = f"/tmp/{workspace_name}-{str(time())}.json"
-    completed_process = subprocess.run(
-        [
-            f"{VENVS_PATH}/{workspace_name}/bin/python",
-            f"{SCRIPTS_PATH}/get_policy_definition_settings.py",
-            "--module_name",
-            code_location.module_name,
-            "--output_file",
-            tmp_path,
-        ],
-        cwd=code_location.working_dir,
-        capture_output=True,
-    )
-    exit_status = completed_process.returncode
-    if exit_status == DefinitionNotFoundException().exit_status:
-        raise DefinitionNotFoundException("Failed to load the PolicyDefinition")
-    if exit_status == ConflictingDefinitionsError().exit_status:
-        raise ConflictingDefinitionsError("Found multiple PolicyDefinitions")
-    if exit_status == InvalidDefinitionError().exit_status:
-        raise InvalidDefinitionError("PolicyDefinition is invalid")
-
-    if exit_status != 0 or not os.path.exists(tmp_path):
-        msg = f"Failed to get the required components: {completed_process.stderr}"
-        raise Exception(msg)
-
-    data = _load_and_remove(tmp_path)
-    return data
-
-
 def _install_components(workspace_name, components_base_dir, required_components):
     for component_alias in required_components:
         component_path = os.path.join(components_base_dir, component_alias)
@@ -131,10 +92,3 @@ def _install_components(workspace_name, components_base_dir, required_components
         )
         if completed_process.returncode != 0:
             raise Exception(f"Failed to install component: {component_alias}")
-
-
-def _load_and_remove(file_path) -> dict:
-    with open(file_path, "r") as fn:
-        data = json.load(fn)
-    os.remove(file_path)
-    return data

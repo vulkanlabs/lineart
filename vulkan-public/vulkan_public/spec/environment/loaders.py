@@ -13,7 +13,7 @@ from vulkan_public.spec.policy import PolicyDefinition
 def load_single_definition(module_name: str, definition_type: type):
     try:
         definitions = find_definitions(module_name, definition_type)
-    except (ModuleNotFoundError) as e:
+    except ModuleNotFoundError as e:
         raise UserImportException(str(e))
     except Exception as e:
         raise InvalidDefinitionError(e)
