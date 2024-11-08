@@ -3,16 +3,13 @@ import logging
 import os
 from typing import Annotated
 
-from fastapi import Body, FastAPI, Depends
+from fastapi import Body, Depends, FastAPI
+from vulkan.artifacts.gcs import GCSArtifactManager
 from vulkan_public.exceptions import ConflictingDefinitionsError
 
 from . import schemas
 from .context import ExecutionContext
-from .workspace import (
-    GCSWorkspaceManager,
-    VulkanComponentManager,
-    VulkanWorkspaceManager,
-)
+from .workspace import VulkanComponentManager, VulkanWorkspaceManager
 
 app = FastAPI()
 
@@ -22,12 +19,21 @@ logger.setLevel(logging.INFO)
 VULKAN_HOME = os.getenv("VULKAN_HOME")
 VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
 SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
-GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
-GCP_BUCKET_NAME = os.getenv("GCP_BUCKET_NAME")
 
 
-def get_gcs_manager():
-    return GCSWorkspaceManager(GCP_PROJECT_ID, GCP_BUCKET_NAME)
+def get_artifact_manager():
+    GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
+    GCP_BUCKET_NAME = os.getenv("GCP_BUCKET_NAME")
+    GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+    if not GCP_PROJECT_ID or not GCP_BUCKET_NAME or not GOOGLE_APPLICATION_CREDENTIALS:
+        raise ValueError("GCP configuration missing")
+
+    return GCSArtifactManager(
+        project_id=GCP_PROJECT_ID,
+        bucket_name=GCP_BUCKET_NAME,
+        token=GOOGLE_APPLICATION_CREDENTIALS,
+    )
 
 
 @app.post("/workspaces/create")
@@ -35,7 +41,7 @@ def create_workspace(
     name: Annotated[str, Body()],
     project_id: Annotated[str, Body()],
     repository: Annotated[str, Body()],
-    gcs: GCSWorkspaceManager = Depends(get_gcs_manager),
+    artifacts: GCSArtifactManager = Depends(get_artifact_manager),
 ):
     """
     Create the dagster workspace and venv used to run a policy version.
@@ -62,7 +68,8 @@ def create_workspace(
         logger.info(f"[{project_id}] Successfully installed workspace: {name}")
         # TODO: maybe share with dagster server
         # vm.render_dockerfile(required_components)
-        gcs.post(project_id, "policy", name, repository)
+        artifact_path = f"{project_id}/policy/{name}.tar.gz"
+        artifacts.post(artifact_path, repository)
 
     logger.info(f"Created workspace at: {workspace_path}")
     return {
@@ -93,10 +100,13 @@ def create_component(
     alias: Annotated[str, Body()],
     project_id: Annotated[str, Body()],
     repository: Annotated[str, Body()],
-    gcs: GCSWorkspaceManager = Depends(get_gcs_manager),
+    artifacts: GCSArtifactManager = Depends(get_artifact_manager),
 ):
     logger.info(f"[{project_id}] Creating component version: {alias}")
-    cm = VulkanComponentManager(project_id, alias,)
+    cm = VulkanComponentManager(
+        project_id,
+        alias,
+    )
 
     with ExecutionContext(logger) as ctx:
         if os.path.exists(os.path.join(cm.components_path, alias)):
@@ -109,7 +119,9 @@ def create_component(
 
         definition = cm.load_component_definition()
         logger.info(f"Loaded component definition: {definition}")
-        gcs.post(project_id, "component", alias, repository)        
+
+        artifact_path = f"{project_id}/component/{alias}.tar.gz"
+        artifacts.post(artifact_path, repository)
 
     return definition
 

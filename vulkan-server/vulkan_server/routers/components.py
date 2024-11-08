@@ -25,8 +25,8 @@ from vulkan_server.db import (
 from vulkan_server.exceptions import ExceptionHandler
 from vulkan_server.logger import init_logger
 from vulkan_server.services import (
-    VulkanDagsterServerClient,
     ResolutionServiceClient,
+    VulkanDagsterServerClient,
     get_dagster_service_client,
     get_resolution_service_client,
 )
@@ -176,15 +176,14 @@ def create_component_version(
         if variables:
             version.variables = list(set(variables))
 
-        dagster_launcher_client.create_component_version(
-            alias, component_config.repository
-        )
+        # dagster_launcher_client.create_component_version(
+        #     alias, component_config.repository
+        # )
         db.commit()
     except Exception as e:
         # Remove leftover resources from failed creation
         resolution_service.delete_component_version(alias)
-        dagster_launcher_client.delete_component_version(alias)
-        
+        # dagster_launcher_client.delete_component_version(alias)
 
         if isinstance(e, VulkanInternalException):
             handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)

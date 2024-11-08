@@ -7,7 +7,6 @@ readme = "README.md"
 dependencies = [
     "fastapi[standard]>=0.112.1",
     "vulkan[dagster]",
-    "gcsfs>=2024.10.0",
 ]
 
 

@@ -86,7 +86,7 @@ def delete_component_version(
 
     try:
         _ = resolution_service.delete_component_version(component_version.alias)
-        dagster_launcher_client.delete_component_version(component_version.alias)
+        # dagster_launcher_client.delete_component_version(component_version.alias)
     except Exception:
         raise HTTPException(
             status_code=500,

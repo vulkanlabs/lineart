@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import subprocess
@@ -9,8 +10,9 @@ from vulkan_public.exceptions import (
     DefinitionNotFoundException,
     InvalidDefinitionError,
 )
-from vulkan_public.spec.environment.workspace import VulkanCodeLocation
 from vulkan_public.spec.environment.packing import unpack_workspace
+from vulkan_public.spec.environment.workspace import VulkanCodeLocation
+from vulkan.artifacts.gcs import GCSArtifactManager
 
 VULKAN_HOME = os.getenv("VULKAN_HOME")
 VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
@@ -40,7 +42,8 @@ class VulkanWorkspaceManager:
             self._code_location = VulkanCodeLocation.from_workspace(self.workspace_path)
         return self._code_location
 
-    def unpack_workspace(self, repository: bytes) -> str:
+    def unpack_workspace(self, artifacts: GCSArtifactManager, name: str) -> str:
+        repository = artifacts.get(f"{self.project_id}/policy/{name}.tar.gz")
         workspace_path = unpack_workspace(
             WORKSPACES_PATH, self.workspace_name, repository
         )
@@ -52,11 +55,19 @@ class VulkanWorkspaceManager:
     def create_venv(self) -> str:
         return _create_venv_for_workspace(self.venv_path, self.workspace_path)
 
-    def install_components(self, required_components: list[str]):
+    def install_components(self, artifacts: GCSArtifactManager, required_components: list[str]):
+        for component in required_components:
+            component_path = f"{self.project_id}/component/{component}.tar.gz"
+            component_code = artifacts.get(component_path)
+            self._unpack_component(component, component_code)
+
         _install_components(
             self.workspace_name, self.components_path, required_components
         )
 
+    def _unpack_component(self, alias: str, repository: bytes) -> str:
+        return unpack_workspace(self.components_path, alias, repository)
+    
     def get_resolved_policy_settings(self):
         return _get_resolved_policy_settings(
             self.code_location, self.workspace_name, self.components_path

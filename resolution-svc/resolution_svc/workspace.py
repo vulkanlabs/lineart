@@ -4,7 +4,6 @@ import subprocess
 from shutil import rmtree
 from time import time
 
-from gcsfs import GCSFileSystem
 from vulkan.environment.workspace import VulkanCodeLocation
 from vulkan_public.exceptions import (
     ConflictingDefinitionsError,
@@ -13,13 +12,12 @@ from vulkan_public.exceptions import (
 )
 from vulkan_public.spec.environment.packing import unpack_workspace
 
-from .template import PackageSpec, render_dockerfile
+# from .template import PackageSpec, render_dockerfile
 
 VULKAN_HOME = os.getenv("VULKAN_HOME")
 VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
 SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
 VULKAN_SERVER_PATH = os.getenv("VULKAN_SERVER_PATH")
-GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 WORKSPACES_PATH = f"{VULKAN_HOME}/workspaces"
 
 
@@ -70,50 +68,19 @@ class VulkanWorkspaceManager:
         rmtree(self.workspace_path)
         rmtree(f"{VENVS_PATH}/{self.workspace_name}")
 
-    def render_dockerfile(self, dependencies: list[str]):
-        policy_spec = PackageSpec(name=self.workspace_name, path=self.workspace_path)
-        dependency_specs = [
-            PackageSpec(name=dep, path=f"{self.components_path}/{dep}")
-            for dep in dependencies
-        ]
-        dockerfile = render_dockerfile(
-            VULKAN_SERVER_PATH, policy_spec, dependency_specs
-        )
-        with open(f"{self.workspace_path}/Dockerfile", "w") as fp:
-            fp.write(dockerfile)
+    # def render_dockerfile(self, dependencies: list[str]):
+    #     policy_spec = PackageSpec(name=self.workspace_name, path=self.workspace_path)
+    #     dependency_specs = [
+    #         PackageSpec(name=dep, path=f"{self.components_path}/{dep}")
+    #         for dep in dependencies
+    #     ]
+    #     dockerfile = render_dockerfile(
+    #         VULKAN_SERVER_PATH, policy_spec, dependency_specs
+    #     )
+    #     with open(f"{self.workspace_path}/Dockerfile", "w") as fp:
+    #         fp.write(dockerfile)
 
-        return dockerfile
-
-
-class GCSWorkspaceManager:
-    def __init__(self, gcp_project: str, bucket_name: str) -> None:
-        self.gcp_project = gcp_project
-        self.bucket_name = bucket_name
-        self.gcs = GCSFileSystem(
-            project=self.gcp_project,
-            access="read_write",
-            token=GOOGLE_APPLICATION_CREDENTIALS,
-        )
-
-    def _bucket_path(self, project_id: str, artifact_type: str, artifact: str) -> str:
-        if artifact_type == "policy":
-            type_prefix = "policies"
-        elif artifact_type == "component":
-            type_prefix = "components"
-        else:
-            raise ValueError(f"Invalid artifact type {artifact_type}")
-
-        return f"{self.bucket_name}/{project_id}/{type_prefix}/{artifact}"
-
-    def post(self, project_id: str, artifact_type: str, name: str, repository: bytes):
-        path = self._bucket_path(project_id, artifact_type, name)
-        with self.gcs.open(path, "wb") as f:
-            f.write(repository)
-
-    def get(self, project_id: str, artifact_type: str, name: str) -> bytes:
-        path = self._bucket_path(project_id, artifact_type, name)
-        with self.gcs.open(path, "rb") as f:
-            return f.read()
+    #     return dockerfile
 
 
 class VulkanComponentManager:
