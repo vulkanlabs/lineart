@@ -79,14 +79,14 @@ vulkan policy create --name my-policy
 vulkan policy create-version \
     --policy_id <POLICY_ID> \
     --version_name "my-first-policy-version" \
-    --repository_path sample-user-policy/examples/policies/base
+    --repository_path sample-user-policy/examples/policies/simple
 
 # INFO Created workspace my-first-policy-version with policy version <POLICY_VERSION_ID>
 
 vulkan policy set-active-version \
     --policy_id <POLICY_ID> \
     --policy_version_id <POLICY_VERSION_ID>
-```
+```****
 
 ### Triggering a Policy Run
 
@@ -99,12 +99,12 @@ You can also trigger runs for a specific Policy Version from the UI page.
 # By Policy ID
 vulkan policy trigger-run \
     --policy_id <POLICY_ID> \
-    --data '{"key1": "value1", "key2": 2}'
+    --data '{"cpf": "000", "scr_score": 200}'
 
 # By Policy Version ID
 vulkan policy-version trigger-run \
     --policy_version_id <POLICY_VERSION_ID> \
-    --data '{"key1": "value1", "key2": 2}'
+    --data '{"cpf": "000", "scr_score": 200}'
 ```
 
 ### Viewing Run results

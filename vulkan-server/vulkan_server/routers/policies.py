@@ -19,6 +19,10 @@ from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.dagster.client import get_dagster_client
 from vulkan_server.dagster.launch_run import create_run
+from vulkan_server.dagster.service_client import (
+    VulkanDagsterServiceClient,
+    get_dagster_service_client,
+)
 from vulkan_server.db import (
     ComponentVersion,
     ComponentVersionDependency,
@@ -36,12 +40,8 @@ from vulkan_server.exceptions import ExceptionHandler, VulkanServerException
 from vulkan_server.logger import init_logger
 from vulkan_server.services import (
     ResolutionServiceClient,
-    VulkanDagsterServerClient,
-    get_dagster_service_client,
     get_resolution_service_client,
 )
-
-
 
 logger = init_logger("policies")
 router = APIRouter(
@@ -290,7 +290,7 @@ def create_policy_version(
     resolution_service: ResolutionServiceClient = Depends(
         get_resolution_service_client
     ),
-    dagster_launcher_client: VulkanDagsterServerClient = Depends(
+    dagster_launcher_client: VulkanDagsterServiceClient = Depends(
         get_dagster_service_client
     ),
 ):
@@ -469,9 +469,7 @@ def _create_policy_version_workspace(
     db.commit()
 
     try:
-        response = resolution.create_workspace(
-            name=name, repository=repository
-        )
+        response = resolution.create_workspace(name=name, repository=repository)
         response_data = response.json()
         workspace.path = response_data["workspace_path"]
         workspace.status = DagsterWorkspaceStatus.OK

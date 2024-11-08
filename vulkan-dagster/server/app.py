@@ -6,12 +6,8 @@ from fastapi import Body, Depends, FastAPI
 from vulkan.artifacts.gcs import GCSArtifactManager
 from vulkan.dagster.workspace import DagsterWorkspaceManager
 
-# from . import schemas
 from .context import ExecutionContext
 from .workspace import VulkanWorkspaceManager
-
-# from vulkan_public.exceptions import ConflictingDefinitionsError
-
 
 app = FastAPI()
 
@@ -85,45 +81,4 @@ def delete_workspace(
         vm.delete_resources()
 
     logger.info(f"Successfully deleted workspace: {name}")
-
     return {"workspace_path": vm.workspace_path}
-
-
-# @app.post("/components", response_model=schemas.ComponentConfig)
-# def create_component(
-#     alias: Annotated[str, Body()],
-#     project_id: Annotated[str, Body()],
-#     repository: Annotated[str, Body()],
-# ):
-#     logger.info(f"[{project_id}] Creating component version: {alias}")
-#     cm = VulkanComponentManager(project_id, alias)
-
-#     with ExecutionContext(logger) as ctx:
-#         if os.path.exists(os.path.join(cm.components_path, alias)):
-#             raise ConflictingDefinitionsError("Component version already exists")
-
-#         repository = base64.b64decode(repository)
-#         component_path = cm.unpack_component(repository)
-#         logger.info(f"Unpacked and stored component spec at: {component_path}")
-#         ctx.register_asset(component_path)
-
-#         definition = cm.load_component_definition()
-#         logger.info(f"Loaded component definition: {definition}")
-
-#     return definition
-
-
-# @app.post("/components/delete")
-# def delete_component(
-#     alias: Annotated[str, Body()],
-#     project_id: Annotated[str, Body()],
-# ):
-#     logger.info(f"Deleting component version: {alias}")
-#     cm = VulkanComponentManager(project_id, alias)
-
-#     with ExecutionContext(logger):
-#         cm.delete_component()
-
-#     logger.info(f"Successfully deleted component version: {alias}")
-
-#     return {"component_alias": alias}

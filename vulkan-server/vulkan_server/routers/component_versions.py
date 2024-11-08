@@ -14,8 +14,6 @@ from vulkan_server.db import (
 from vulkan_server.logger import init_logger
 from vulkan_server.services import (
     ResolutionServiceClient,
-    VulkanDagsterServerClient,
-    get_dagster_service_client,
     get_resolution_service_client,
 )
 
@@ -54,9 +52,6 @@ def delete_component_version(
     resolution_service: ResolutionServiceClient = Depends(
         get_resolution_service_client
     ),
-    dagster_launcher_client: VulkanDagsterServerClient = Depends(
-        get_dagster_service_client
-    ),
 ):
     # TODO: ensure this function can only be executed by ADMIN level users
     component_version = (
@@ -86,7 +81,6 @@ def delete_component_version(
 
     try:
         _ = resolution_service.delete_component_version(component_version.alias)
-        # dagster_launcher_client.delete_component_version(component_version.alias)
     except Exception:
         raise HTTPException(
             status_code=500,
