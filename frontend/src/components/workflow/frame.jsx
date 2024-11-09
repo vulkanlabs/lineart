@@ -16,7 +16,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { nodeTypes } from "@/components/workflow/nodes";
-import layoutGraph from "@/lib/workflow";
+import { makeWorkflow } from "@/lib/workflow/workflow";
 
 function filterHiddenEdges(edges, state) {
     return edges.filter((edge) => {
@@ -43,9 +43,8 @@ function VulkanWorkflow({ graphData, onNodeClick, onPaneClick }) {
         const componentsState = Object.assign({}, ...states);
         setComponentsState(componentsState);
 
-        layoutGraph(graphData, componentsState).then(([layoutedNodes, layoutedEdges]) => {
+        makeWorkflow(graphData, componentsState).then(([layoutedNodes, layoutedEdges]) => {
             const filteredEdges = filterHiddenEdges(layoutedEdges, componentsState);
-            console.log(filteredEdges);
             setNodes(layoutedNodes);
             setEdges(filteredEdges);
             window.requestAnimationFrame(() => fitView());
@@ -75,9 +74,8 @@ function VulkanWorkflow({ graphData, onNodeClick, onPaneClick }) {
             newComponentsState[node.id].isOpen = !newComponentsState[node.id].isOpen;
             setComponentsState(newComponentsState);
 
-            layoutGraph(graphData, newComponentsState).then(([layoutedNodes, layoutedEdges]) => {
+            makeWorkflow(graphData, newComponentsState).then(([layoutedNodes, layoutedEdges]) => {
                 const filteredEdges = filterHiddenEdges(layoutedEdges, newComponentsState);
-                console.log(filteredEdges);
                 setNodes(layoutedNodes);
                 setEdges(filteredEdges);
             });

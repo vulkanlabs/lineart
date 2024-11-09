@@ -1,17 +1,13 @@
 import ELK from "elkjs/lib/elk.bundled.js";
+import {
+    NodeLayoutConfig,
+    NodeDefinition,
+    EdgeLayoutConfig,
+    Dict,
+    GraphDefinition,
+} from "@/lib/workflow/types";
 
-const defaultElkOptions = {
-    "elk.algorithm": "layered",
-    "elk.layered.nodePlacement.strategy": "SIMPLE",
-    "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
-    "elk.layered.spacing.nodeNodeBetweenLayers": 50,
-    "elk.spacing.nodeNode": 80,
-    "elk.aspectRatio": 1.0,
-    "elk.center": true,
-    "elk.direction": "DOWN",
-};
-
-const NodeTypeMapping = {
+export const NodeTypeMapping = {
     TRANSFORM: "transform",
     CONNECTION: "connection",
     DATA_INPUT: "data-input",
@@ -21,101 +17,14 @@ const NodeTypeMapping = {
     COMPONENT: "component",
 };
 
-interface Dict {
-    [key: string]: string | number | boolean;
-}
-
-interface NodeDefinition {
-    name: string;
-    node_type: string;
-    description: string;
-    dependencies: string[];
-    hidden: boolean;
-    metadata: any;
-}
-
-interface NodeDefinitionDict {
-    [key: string]: NodeDefinition;
-}
-
-interface ComponentState {
-    isOpen: boolean;
-}
-
-interface ComponentStateDict {
-    [key: string]: ComponentState;
-}
-
-interface NodeLayoutConfig {
-    id: string;
-    data: {
-        label: string;
-        description: string;
-        type: string;
-        dependencies: string[];
-    };
-    width: number;
-    height: number;
-    type: string;
-    parentId?: string;
-    parentReference?: string;
-    children?: NodeLayoutConfig[];
-    layoutOptions?: Dict;
-    targetPosition?: string;
-    sourcePosition?: string;
-    x?: number;
-    y?: number;
-}
-
-interface EdgeLayoutConfig {
-    id: string;
-    source: string;
-    target: string;
-    isComponentIO: boolean;
-    fromComponentChild?: boolean;
-    fromComponent?: string;
-    toComponentChild?: boolean;
-    toComponent?: string;
-}
-
-/**
- * @param graphData - Raw data with the node definitions.
- * @param componentsState - State of the components (open or closed).
- * @param options - (optional) Layout options for the ELK algorithm.
- * @returns A Promise that returns the layouted nodes and edges of the graph.
- */
-export default async function layoutGraph(
-    graphData: NodeDefinitionDict,
-    componentsState: ComponentStateDict,
-    options: Dict = defaultElkOptions,
+export async function layoutGraph(
+    nodes: NodeLayoutConfig[],
+    edges: EdgeLayoutConfig[],
+    options: Dict,
 ): Promise<[NodeLayoutConfig[], EdgeLayoutConfig[]]> {
-    const [nodes, edges] = makeGraphElements(graphData, options);
     const elk = new ELK();
 
-    let modifiedNodes = nodes.filter((node: NodeLayoutConfig) => {
-        return !node.parentId || componentsState[node.parentId].isOpen;
-    });
-    modifiedNodes.forEach((node: NodeLayoutConfig) => {
-        if (node.data.type === "COMPONENT" && !componentsState[node.id].isOpen) {
-            node.children = [];
-            node.type = NodeTypeMapping.COMPONENT;
-        }
-    });
-    const modifiedEdges = edges.filter((edge: EdgeLayoutConfig) => {
-        const fromChildOfClosedComponent =
-            edge.fromComponentChild && !componentsState[edge.fromComponent].isOpen;
-        const toChildOfClosedComponent =
-            edge.toComponentChild && !componentsState[edge.toComponent].isOpen;
-        return !(fromChildOfClosedComponent || toChildOfClosedComponent);
-    });
-
-    const [layoutedNodes, layoutedEdges] = await getLayoutedElements(
-        modifiedNodes,
-        modifiedEdges,
-        elk,
-        options,
-    );
-
+    const [layoutedNodes, layoutedEdges] = await getLayoutedElements(nodes, edges, elk, options);
     return [layoutedNodes, layoutedEdges];
 }
 
@@ -124,14 +33,14 @@ export default async function layoutGraph(
  * @param options - Layout options for the ELK algorithm.
  * @returns A tuple with the nodes and edges of the graph.
  */
-function makeGraphElements(
-    graphData: { [key: string]: NodeDefinition },
+export function makeGraphElements(
+    graphData: GraphDefinition,
     options: Dict,
 ): [NodeLayoutConfig[], EdgeLayoutConfig[]] {
     const rawNodes = Object.values(graphData);
-    const structuredNodes = rawNodes.map((node: any) => makeNode(node, options));
+    const structuredNodes = structureNodes(rawNodes).map((n) => withLayoutOptions(n, options));
+    const flattenedNodes = structuredNodes.flatMap(flattenNode);
 
-    const flattenedNodes = structuredNodes.flatMap((n: NodeLayoutConfig) => flattenNodes(n));
     const nodesMap = Object.assign({}, ...flattenedNodes);
 
     const edges = rawNodes.flatMap((node: any) => makeEdges(node, nodesMap));
@@ -139,7 +48,12 @@ function makeGraphElements(
     return [structuredNodes, edges];
 }
 
-function makeNode(node: NodeDefinition, options: Dict, parent?: NodeDefinition): NodeLayoutConfig {
+function structureNodes(nodes: NodeDefinition[]): NodeLayoutConfig[] {
+    const structuredNodes = nodes.map((node: any) => makeNode(node));
+    return structuredNodes;
+}
+
+function makeNode(node: NodeDefinition, parent?: NodeDefinition): NodeLayoutConfig {
     // TODO: Make the node width and height dynamic.
     const nodeWidth = 210;
     const nodeHeight = 42;
@@ -166,9 +80,8 @@ function makeNode(node: NodeDefinition, options: Dict, parent?: NodeDefinition):
 
     if (node.node_type === "COMPONENT") {
         nodeConfig.children = Object.values(node.metadata.nodes).map((n: NodeDefinition) =>
-            makeNode(n, options, node),
+            makeNode(n, node),
         );
-        nodeConfig.layoutOptions = options;
         nodeConfig.type = "group";
         return nodeConfig;
     }
@@ -187,6 +100,13 @@ function makeNode(node: NodeDefinition, options: Dict, parent?: NodeDefinition):
     }
 
     return nodeConfig;
+}
+
+function withLayoutOptions(n: NodeLayoutConfig, options: Dict): NodeLayoutConfig {
+    return {
+        ...n,
+        layoutOptions: options,
+    };
 }
 
 function makeEdges(node: NodeDefinition, nodesMap: any): any[] {
@@ -267,15 +187,15 @@ function makeEdges(node: NodeDefinition, nodesMap: any): any[] {
     return __makeEdges(node);
 }
 
-function flattenNodes(node: NodeLayoutConfig): { [key: string]: NodeLayoutConfig }[] {
+export function flattenNode(node: NodeLayoutConfig): { [key: string]: NodeLayoutConfig }[] {
     if (node.children) {
-        const flattenedNodes = node.children.flatMap((n: any) => flattenNodes(n));
+        const flattenedNodes = node.children.flatMap((n: any) => flattenNode(n));
         return [{ [node.id]: node }, ...flattenedNodes];
     }
     return [{ [node.id]: node }];
 }
 
-async function getLayoutedElements(
+export async function getLayoutedElements(
     nodes: NodeLayoutConfig[],
     edges: EdgeLayoutConfig[],
     elk: any,
