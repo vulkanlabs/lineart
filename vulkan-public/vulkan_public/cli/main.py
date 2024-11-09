@@ -29,6 +29,7 @@ cli.add_command(commands.policy.policy)
 cli.add_command(commands.policy_version.policy_version)
 cli.add_command(commands.run.run)
 cli.add_command(commands.data.data)
+cli.add_command(commands.init.init)
 
 
 def config_environment():

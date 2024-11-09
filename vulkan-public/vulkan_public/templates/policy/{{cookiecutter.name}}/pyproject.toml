@@ -1,0 +1,11 @@
+[project]
+name = "{{cookiecutter.name}}"
+version = "{{cookiecutter.version}}"
+description = "{{cookiecutter.description}}"
+{%- if cookiecutter.dependencies %}
+dependencies = [
+{%- for dependency in cookiecutter.dependencies.split(',') %}
+    "{{dependency}}"{{ "," if not loop.last }}
+{%- endfor %}
+]
+{% endif -%}
