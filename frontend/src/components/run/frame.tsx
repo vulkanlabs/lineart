@@ -37,7 +37,14 @@ function VulkanWorkflow({
     const loadAndLayout = () => {
         const filteredNodes = graphNodes
             .filter((node) => node.data.type !== "COMPONENT")
-            .map((n) => withRunNodeProps(n));
+            .map((n) => withRunNodeProps(n))
+            .map((n) => {
+                return {
+                    ...n,
+                    parentId: null,
+                    parentReference: null,
+                };
+            });
 
         const filteredEdges = graphEdges.filter((edge) => {
             return !edge.isComponentIO || edge.fromComponentChild || edge.toComponentChild;

@@ -179,12 +179,16 @@ function NodeContent({ clickedNode }: { clickedNode: RunNodeLayout | null }) {
             <div className="flex flex-row gap-12">
                 <div>
                     {content.map(({ name }) => (
-                        <div className="py-1 text-lg font-normal">{name}</div>
+                        <div className="py-1 text-lg font-normal" key={name}>
+                            {name}
+                        </div>
                     ))}
                 </div>
                 <div>
-                    {content.map(({ value }) => (
-                        <div className="py-1 text-lg font-light">{value}</div>
+                    {content.map(({ name, value }) => (
+                        <div className="py-1 text-lg font-light" key={`${name}-value`}>
+                            {value}
+                        </div>
                     ))}
                 </div>
             </div>
