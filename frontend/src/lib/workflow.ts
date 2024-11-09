@@ -116,15 +116,7 @@ export default async function layoutGraph(
         options,
     );
 
-    // Filter out the edges that come into or frow from open Components
-    // (otherwise ReactFlow will raise several warnings).
-    const filteredEdges = layoutedEdges.filter((edge: EdgeLayoutConfig) => {
-        const fromOpenComponent = edge.isComponentIO && componentsState[edge.source]?.isOpen;
-        const toOpenComponent = edge.isComponentIO && componentsState[edge.target]?.isOpen;
-        return !(fromOpenComponent || toOpenComponent);
-    });
-
-    return [layoutedNodes, filteredEdges];
+    return [layoutedNodes, layoutedEdges];
 }
 
 /**
@@ -136,130 +128,6 @@ function makeGraphElements(
     graphData: { [key: string]: NodeDefinition },
     options: Dict,
 ): [NodeLayoutConfig[], EdgeLayoutConfig[]] {
-    function makeNode(
-        node: NodeDefinition,
-        options: Dict,
-        parent?: NodeDefinition,
-    ): NodeLayoutConfig {
-        // TODO: Make the node width and height dynamic.
-        const nodeWidth = 210;
-        const nodeHeight = 42;
-
-        let nodeConfig: NodeLayoutConfig = {
-            id: node.name,
-            data: {
-                label: node.name,
-                description: node.description,
-                type: node.node_type,
-                dependencies: node.dependencies,
-            },
-            type: "default",
-
-            // Hardcode a width and height for elk to use when layouting.
-            width: nodeWidth,
-            height: nodeHeight,
-        };
-
-        if (parent) {
-            nodeConfig.parentId = parent.name;
-            nodeConfig.parentReference = parent.metadata.reference;
-        }
-
-        if (node.node_type === "COMPONENT") {
-            nodeConfig.children = Object.values(node.metadata.nodes).map((n: NodeDefinition) =>
-                makeNode(n, options, node),
-            );
-            nodeConfig.layoutOptions = options;
-            nodeConfig.type = "group";
-            return nodeConfig;
-        }
-
-        if (Object.keys(NodeTypeMapping).includes(node.node_type)) {
-            nodeConfig.type = NodeTypeMapping[node.node_type];
-        } else {
-            nodeConfig.targetPosition = "top";
-            nodeConfig.sourcePosition = "bottom";
-        }
-
-        if (node.metadata !== null) {
-            Object.entries(node.metadata).map(([key, value]) => {
-                nodeConfig.data[key] = value;
-            });
-        }
-
-        return nodeConfig;
-    }
-
-    function makeEdges(node: NodeDefinition, nodesMap: any): any[] {
-        if (node.dependencies === null) {
-            return [];
-        }
-
-        function __makeEdges(
-            node: NodeDefinition,
-            isComponentIO: boolean = false,
-        ): EdgeLayoutConfig[] {
-            return node.dependencies.flatMap((dep: any) => {
-                // TODO: If `dep` is an object, it means that it comes from
-                // a specific output of a node. For now, we discard it, as
-                // we don't display the node outputs.
-                if (typeof dep === "object" && dep !== null) {
-                    dep = dep.node;
-                }
-
-                let edge: EdgeLayoutConfig = {
-                    id: `${dep}-${node.name}`,
-                    source: dep,
-                    target: node.name,
-                    isComponentIO: isComponentIO,
-                };
-
-                if (nodesMap[node.name].parentId) {
-                    edge.toComponentChild = true;
-                    edge.toComponent = nodesMap[node.name].parentId;
-                }
-
-                // In order for Elk to layout the edges correctly when the
-                // dependency is the output of a Component, we need to add
-                // an edge between the Component and the target node.
-                const depNode = nodesMap[dep];
-
-                if (depNode?.parentId) {
-                    edge.fromComponentChild = true;
-                    edge.fromComponent = depNode.parentId;
-
-                    if (nodesMap[node.name].parentId != depNode.parentId) {
-                        const parentEdge = {
-                            id: `${depNode.parentId}-${node.name}`,
-                            source: depNode.parentId,
-                            target: node.name,
-                            isComponentIO: true,
-                        };
-                        return [edge, parentEdge];
-                    }
-                }
-
-                return edge;
-            });
-        }
-
-        if (node.node_type == "COMPONENT") {
-            const innerNodes = Object.values(node.metadata.nodes);
-            const innerEdges = innerNodes.flatMap((n: any) => makeEdges(n, nodesMap));
-            return [...__makeEdges(node, true), ...innerEdges];
-        }
-
-        return __makeEdges(node);
-    }
-
-    function flattenNodes(node: NodeLayoutConfig): { [key: string]: NodeLayoutConfig }[] {
-        if (node.children) {
-            const flattenedNodes = node.children.flatMap((n: any) => flattenNodes(n));
-            return [{ [node.id]: node }, ...flattenedNodes];
-        }
-        return [{ [node.id]: node }];
-    }
-
     const rawNodes = Object.values(graphData);
     const structuredNodes = rawNodes.map((node: any) => makeNode(node, options));
 
@@ -269,6 +137,142 @@ function makeGraphElements(
     const edges = rawNodes.flatMap((node: any) => makeEdges(node, nodesMap));
 
     return [structuredNodes, edges];
+}
+
+function makeNode(node: NodeDefinition, options: Dict, parent?: NodeDefinition): NodeLayoutConfig {
+    // TODO: Make the node width and height dynamic.
+    const nodeWidth = 210;
+    const nodeHeight = 42;
+
+    let nodeConfig: NodeLayoutConfig = {
+        id: node.name,
+        data: {
+            label: node.name,
+            description: node.description,
+            type: node.node_type,
+            dependencies: node.dependencies,
+        },
+        type: "default",
+
+        // Hardcode a width and height for elk to use when layouting.
+        width: nodeWidth,
+        height: nodeHeight,
+    };
+
+    if (parent) {
+        nodeConfig.parentId = parent.name;
+        nodeConfig.parentReference = parent.metadata.reference;
+    }
+
+    if (node.node_type === "COMPONENT") {
+        nodeConfig.children = Object.values(node.metadata.nodes).map((n: NodeDefinition) =>
+            makeNode(n, options, node),
+        );
+        nodeConfig.layoutOptions = options;
+        nodeConfig.type = "group";
+        return nodeConfig;
+    }
+
+    if (Object.keys(NodeTypeMapping).includes(node.node_type)) {
+        nodeConfig.type = NodeTypeMapping[node.node_type];
+    } else {
+        nodeConfig.targetPosition = "top";
+        nodeConfig.sourcePosition = "bottom";
+    }
+
+    if (node.metadata !== null) {
+        Object.entries(node.metadata).map(([key, value]) => {
+            nodeConfig.data[key] = value;
+        });
+    }
+
+    return nodeConfig;
+}
+
+function makeEdges(node: NodeDefinition, nodesMap: any): any[] {
+    if (node.dependencies === null) {
+        return [];
+    }
+
+    function __makeEdges(node: NodeDefinition): EdgeLayoutConfig[] {
+        return node.dependencies.flatMap((dep: any) => {
+            // TODO: If `dep` is an object, it means that it comes from
+            // a specific output of a node. For now, we discard it, as
+            // we don't display the node outputs.
+            if (typeof dep === "object" && dep !== null) {
+                dep = dep.node;
+            }
+
+            const nodeDef = nodesMap[node.name];
+            const depNode = nodesMap[dep];
+            const isComponentIO =
+                nodeDef.data.type === "COMPONENT" || depNode.data.type === "COMPONENT";
+
+            let edge: EdgeLayoutConfig = {
+                id: `${dep}-${node.name}`,
+                source: dep,
+                target: node.name,
+                isComponentIO: isComponentIO,
+            };
+
+            if (nodeDef.parentId) {
+                edge.toComponentChild = true;
+                edge.toComponent = nodesMap[node.name].parentId;
+            }
+
+            // If the dependency is on the output of a Component, we need to
+            // add an edge from the output node of the component.
+            if (depNode.data.type === "COMPONENT") {
+                const outputNode = depNode.children[depNode.children.length - 1];
+                const childEdge = {
+                    id: `${outputNode.id}-${node.name}`,
+                    source: outputNode.id,
+                    target: node.name,
+                    isComponentIO: isComponentIO,
+                    fromComponentChild: true,
+                    fromComponent: depNode.id,
+                    toComponentChild: edge.toComponentChild,
+                    toComponent: edge.toComponent,
+                };
+                return [edge, childEdge];
+            }
+
+            // If the dependency a child of a Component, add both the edge
+            // and an edge from the parent, used when the component is closed.
+            if (depNode?.parentId) {
+                edge.fromComponentChild = true;
+                edge.fromComponent = depNode.parentId;
+
+                if (nodeDef.parentId != depNode.parentId) {
+                    const parentEdge = {
+                        id: `${depNode.parentId}-${node.name}`,
+                        source: depNode.parentId,
+                        target: node.name,
+                        isComponentIO: isComponentIO,
+                    };
+                    return [edge, parentEdge];
+                }
+            }
+
+            return edge;
+        });
+    }
+
+    if (node.node_type == "COMPONENT") {
+        const innerNodes = Object.values(node.metadata.nodes);
+        const innerEdges = innerNodes.flatMap((n: any) => makeEdges(n, nodesMap));
+        return [...__makeEdges(node), ...innerEdges];
+    }
+
+    return __makeEdges(node);
+}
+
+function flattenNodes(node: NodeLayoutConfig): { [key: string]: NodeLayoutConfig }[] {
+    if (node.children) {
+        const flattenedNodes = node.children.flatMap((n: any) => flattenNodes(n));
+        return [{ [node.id]: node }, ...flattenedNodes];
+    }
+    return [{ [node.id]: node }];
 }
 
 async function getLayoutedElements(

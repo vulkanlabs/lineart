@@ -18,6 +18,17 @@ import "@xyflow/react/dist/style.css";
 import { nodeTypes } from "@/components/workflow/nodes";
 import layoutGraph from "@/lib/workflow";
 
+function filterHiddenEdges(edges, state) {
+    return edges.filter((edge) => {
+        const fromOpenComponent = edge.isComponentIO && state[edge.source]?.isOpen;
+        const toOpenComponent = edge.isComponentIO && state[edge.target]?.isOpen;
+        
+        const fromClosedComponentChild = edge.fromComponentChild && !state[edge.fromComponent]?.isOpen;
+        const toClosedComponentChild = edge.toComponentChild && !state[edge.toComponent]?.isOpen;
+        return !(fromOpenComponent || toOpenComponent || toClosedComponentChild || fromClosedComponentChild);
+    });
+}
+
 function VulkanWorkflow({ graphData, onNodeClick, onPaneClick }) {
     const [componentsState, setComponentsState] = useState([]);
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -33,8 +44,10 @@ function VulkanWorkflow({ graphData, onNodeClick, onPaneClick }) {
         setComponentsState(componentsState);
 
         layoutGraph(graphData, componentsState).then(([layoutedNodes, layoutedEdges]) => {
+            const filteredEdges = filterHiddenEdges(layoutedEdges, componentsState);
+            console.log(filteredEdges);
             setNodes(layoutedNodes);
-            setEdges(layoutedEdges);
+            setEdges(filteredEdges);
             window.requestAnimationFrame(() => fitView());
         });
     };
@@ -63,8 +76,10 @@ function VulkanWorkflow({ graphData, onNodeClick, onPaneClick }) {
             setComponentsState(newComponentsState);
 
             layoutGraph(graphData, newComponentsState).then(([layoutedNodes, layoutedEdges]) => {
+                const filteredEdges = filterHiddenEdges(layoutedEdges, newComponentsState);
+                console.log(filteredEdges);
                 setNodes(layoutedNodes);
-                setEdges(layoutedEdges);
+                setEdges(filteredEdges);
             });
             onNodeClick(e, []);
             return;
