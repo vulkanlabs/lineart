@@ -11,8 +11,6 @@ export async function postLaunchFormAction({
     label?: string;
 }) {
 
-    console.log("Request data", body)
-    console.log("Request headers",headers)
     return fetch(launchUrl, {
         method: "POST",
         headers: {
