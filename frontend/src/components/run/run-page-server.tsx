@@ -3,13 +3,11 @@ import { CurrentUser } from "@stackframe/stack";
 import { fetchPolicyVersion, fetchRun, fetchRunsData, fetchRunLogs } from "@/lib/api";
 
 import RunPageContent from "@/components/run/run-page-content";
-import type {
-    NodeDefinition,
-    GraphDefinition,
-    RunData,
-    RunNode,
-    RunLogs,
-} from "@/components/run/types";
+import type { GraphDefinition, NodeLayoutConfig } from "@/lib/workflow/types";
+import { makeGraphElements } from "@/lib/workflow/graph";
+
+import type { RunData, RunLogs, RunNodeLayout } from "@/components/run/types";
+import { defaultElkOptions } from "@/components/run/options";
 
 export async function RunPage({ user, runId }: { user: CurrentUser; runId: string }) {
     const runLogs: RunLogs = await fetchRunLogs(user, runId).catch((error) => {
@@ -27,34 +25,38 @@ export async function RunPage({ user, runId }: { user: CurrentUser; runId: strin
         return {};
     });
 
-    const flatNodes = await getNodeDefinitions(user, run.policy_version_id);
+    const graphDefinition = await getGraphDefinition(user, run.policy_version_id);
+    const [nodes, edges] = makeGraphElements(graphDefinition, defaultElkOptions);
+    const flatNodes = nodes.reduce((acc: NodeLayoutConfig[], node) => {
+        if (node.data.type === "COMPONENT") {
+            return acc.concat(...node.children);
+        }
 
-    const runGraph: RunNode[] = flatNodes.map((node: NodeDefinition) => {
-        const runStep = runData.steps[node.name];
-        return {
+        return acc.concat(node);
+    }, []);
+
+    const runNodes: RunNodeLayout[] = flatNodes.map((node: NodeLayoutConfig) => {
+        const runNode = {
             ...node,
-            run: runStep,
+            data: {
+                ...node.data,
+                run: runData.steps[node.id] || null,
+            },
         };
+        return runNode;
     });
 
-    return <RunPageContent runGraph={runGraph} runLogs={runLogs} runData={runData} />;
+    return <RunPageContent nodes={runNodes} edges={edges} runLogs={runLogs} runData={runData} />;
 }
 
-async function getNodeDefinitions(
+async function getGraphDefinition(
     user: CurrentUser,
     policyVersionId: string,
-): Promise<NodeDefinition[]> {
+): Promise<GraphDefinition> {
     const policyVersion = await fetchPolicyVersion(user, policyVersionId).catch((error) => {
         console.error(error);
     });
     const graphData: GraphDefinition = JSON.parse(policyVersion.graph_definition);
 
-    const flatNodes: NodeDefinition[] = Object.values(graphData).flatMap((nodeDefinition) => {
-        if (nodeDefinition.node_type === "COMPONENT") {
-            return Object.values(nodeDefinition.metadata.nodes);
-        }
-        return [nodeDefinition];
-    });
-
-    return flatNodes;
+    return graphData;
 }

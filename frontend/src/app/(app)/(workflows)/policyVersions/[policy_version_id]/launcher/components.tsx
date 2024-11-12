@@ -1,9 +1,10 @@
 "use client";
-
+import Link from "next/link";
 import { useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -15,8 +16,49 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CurrentUser } from "@stackframe/stack";
+import { useUser } from "@stackframe/stack";
 import { Textarea } from "@/components/ui/textarea";
+
+export async function LauncherPage({
+    policyVersionId,
+    inputSchema,
+    configVariables,
+    launchFn,
+}: {
+    policyVersionId: string;
+    inputSchema: Map<string, string>;
+    configVariables?: string[];
+    launchFn: any;
+}) {
+    const [createdRun, setCreatedRun] = useState(null);
+    const [error, setError] = useState<Error>(null);
+
+    const user = useUser();
+    const authJson = await user.getAuthJson();
+    const headers = {
+        "x-stack-access-token": authJson.accessToken,
+        "x-stack-refresh-token": authJson.refreshToken,
+    }
+
+    return (
+        <div className="flex flex-col p-8 gap-8">
+            <h1 className="text-2xl font-bold tracking-tight">Launcher</h1>
+            <div>
+                <LaunchRunForm
+                    policy_version_id={policyVersionId}
+                    setCreatedRun={setCreatedRun}
+                    setError={setError}
+                    defaultInputData={asInputData(inputSchema)}
+                    defaultConfigVariables={asConfigMap(configVariables)}
+                    launchFn={launchFn}
+                    headers={headers}
+                />
+            </div>
+            {createdRun && <RunCreatedCard createdRun={createdRun} />}
+            {error && <RunCreationErrorCard error={error} />}
+        </div>
+    );
+}
 
 const formSchema = z.object({
     input_data: z.string().refine(ensureJSON, { message: "Not a valid JSON object" }),
@@ -27,21 +69,23 @@ const formSchema = z.object({
 });
 
 type LaunchRunFormProps = {
-    user: CurrentUser;
     policy_version_id: string;
     defaultInputData: Object;
     defaultConfigVariables: Object;
     setCreatedRun: (run: any) => void;
     setError: (error: any) => void;
+    launchFn: any;
+    headers: any;
 };
 
-export function LaunchRunForm({
-    user,
+function LaunchRunForm({
     policy_version_id,
     defaultInputData,
     defaultConfigVariables,
     setCreatedRun,
     setError,
+    launchFn,
+    headers,
 }: LaunchRunFormProps) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const launchUrl = `${serverUrl}/policy-versions/${policy_version_id}/runs`;
@@ -62,43 +106,16 @@ export function LaunchRunForm({
     const [submitting, setSubmitting] = useState(false);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        const { accessToken, refreshToken } = await user.getAuthJson();
-        const headers = {
-            "x-stack-access-token": accessToken,
-            "x-stack-refresh-token": refreshToken,
-            "Content-Type": "application/json",
-        };
-
         const body = {
             input_data: JSON.parse(values.input_data),
             config_variables: JSON.parse(values.config_variables),
         };
 
         setSubmitting(true);
-        return fetch(launchUrl, {
-            method: "POST",
-            headers: headers,
-            body: JSON.stringify(body),
-            mode: "cors",
-        })
-            .then(async (response) => {
-                if (!response.ok) {
-                    const responseBody = await response.json();
-                    if (responseBody?.detail) {
-                        const errorMsg = responseBody.detail.msg.replace(
-                            "Failed to launch run: Failed to trigger job: ",
-                            "",
-                        ).replaceAll('"', '\\"').replaceAll("'", '"');
-                        const splicedError = "[" + errorMsg.substring(1, errorMsg.length - 1) + "]";
-                        const errorObj = JSON.parse(splicedError);
-                        const errorObjAsString = JSON.stringify(errorObj, null, 2);
-
-                        throw new Error(errorObjAsString);
-                    }
-
-                    throw new Error("Failed to create Run: " + response, { cause: response });
-                }
-                const data = await response.json();
+        setError(null);
+        setCreatedRun(null);
+        launchFn({ launchUrl, body, headers })
+            .then((data) => {
                 setCreatedRun(data);
                 setError(null);
                 return data;
@@ -206,4 +223,66 @@ function ensureJSON(data: string) {
     } catch (e) {
         return false;
     }
+}
+
+function asInputData(inputSchema: Map<string, string>) {
+    if (!inputSchema) {
+        return {};
+    }
+
+    const defaultValuePerType = Object.fromEntries([
+        ["str", ""],
+        ["int", 0],
+        ["float", 0.0],
+        ["boolean", false],
+        ["dict", {}],
+        ["list", []],
+    ]);
+    return Object.fromEntries(
+        Object.entries(inputSchema).map(([key, value]) => {
+            return [key, defaultValuePerType[value]];
+        }),
+    );
+}
+
+function asConfigMap(configVariables: string[]) {
+    if (!configVariables) {
+        return {};
+    }
+
+    return Object.fromEntries(configVariables.map((key) => [key, ""]));
+}
+
+function RunCreatedCard({ createdRun }) {
+    return (
+        <Card className="flex flex-col w-fit border-green-600 border-2">
+            <CardHeader>
+                <CardTitle>Launched run successfully</CardTitle>
+                <CardDescription>
+                    <Link
+                        href={`/policyVersions/${createdRun.policy_version_id}/runs/${createdRun.run_id}`}
+                    >
+                        <Button className="bg-green-600 hover:bg-green-500">View Run</Button>
+                    </Link>
+                </CardDescription>
+            </CardHeader>
+        </Card>
+    );
+}
+
+function RunCreationErrorCard({ error }) {
+    console.log(error);
+    return (
+        <Card className="flex flex-col w-fit border-red-600 border-2">
+            <CardHeader>
+                <CardTitle>Failed to launch run</CardTitle>
+                <CardDescription>
+                    Launch failed with error: <br />
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <pre className="text-wrap">{error.message}</pre>
+            </CardContent>
+        </Card>
+    );
 }

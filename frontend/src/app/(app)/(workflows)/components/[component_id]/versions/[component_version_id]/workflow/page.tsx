@@ -9,11 +9,13 @@ export default async function Page({ params }) {
         user,
         params.component_id,
         params.component_version_id,
-    ).then((data) => {
-        return JSON.parse(data.node_definitions);
-    }).catch((error) => {
-        console.error(error);
-    });
+    )
+        .then((data) => {
+            return JSON.parse(data.node_definitions);
+        })
+        .catch((error) => {
+            console.error(error);
+        });
     // TODO: temporary fix to add input node (ComponentDefinition doesn't have
     // an internally inserted input node).
     graphData["input_node"] = {
@@ -25,7 +27,5 @@ export default async function Page({ params }) {
         metadata: {},
     };
 
-    return (
-        <WorkflowPage graphData={graphData} />
-    );
+    return <WorkflowPage graphData={graphData} />;
 }

@@ -77,10 +77,6 @@ class ComponentGraph(Node, Graph):
     def make_input_node_name(component_name: str) -> str:
         return f"{component_name}_{INPUT_NODE}"
 
-    @staticmethod
-    def make_output_node_name(component_name: str) -> str:
-        return f"{component_name}_output"
-
     def node_definition(self) -> VulkanNodeDefinition:
         return VulkanNodeDefinition(
             name=self.name,
