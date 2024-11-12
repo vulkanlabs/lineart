@@ -1,15 +1,18 @@
 "use client";
 import React, { useState } from "react";
 
-import { WorkflowFrame, NodeLayoutConfig } from "./frame";
-import type { RunStepMetadata, RunNode, RunLogs, RunData } from "@/components/run/types";
+import { WorkflowFrame } from "@/components/run/frame";
+import type { RunStepMetadata, RunLogs, RunData, RunNodeLayout } from "@/components/run/types";
+import { EdgeLayoutConfig, NodeLayoutConfig } from "@/lib/workflow/types";
 
 export default function RunPageContent({
-    runGraph,
+    nodes,
+    edges,
     runLogs,
     runData,
 }: {
-    runGraph: RunNode[];
+    nodes: RunNodeLayout[];
+    edges: EdgeLayoutConfig[];
     runLogs: RunLogs;
     runData: RunData;
 }) {
@@ -22,7 +25,8 @@ export default function RunPageContent({
                     <div className="col-span-8">
                         <div className="w-full h-full">
                             <WorkflowFrame
-                                runGraph={runGraph}
+                                nodes={nodes}
+                                edges={edges}
                                 onNodeClick={(_, node) => setClickedNode(node)}
                                 onPaneClick={() => setClickedNode(null)}
                             />
@@ -114,7 +118,7 @@ function WorkflowSidebar({
     clickedNode,
     runData,
 }: {
-    clickedNode: NodeLayoutConfig | null;
+    clickedNode: RunNodeLayout | null;
     runData: RunData;
 }) {
     return (
@@ -143,7 +147,7 @@ function RunInfo({ runData }: { runData: RunData }) {
     );
 }
 
-function NodeContent({ clickedNode }: { clickedNode: NodeLayoutConfig | null }) {
+function NodeContent({ clickedNode }: { clickedNode: RunNodeLayout | null }) {
     if (clickedNode === null) {
         return (
             <div className="flex flex-col px-5">
@@ -163,7 +167,7 @@ function NodeContent({ clickedNode }: { clickedNode: NodeLayoutConfig | null }) 
         },
         {
             name: "Duration",
-            value: clickedNode.data?.run?.metadata
+            value: clickedNode.data.run?.metadata
                 ? getRunDuration(clickedNode.data.run.metadata)
                 : "",
         },
@@ -175,12 +179,16 @@ function NodeContent({ clickedNode }: { clickedNode: NodeLayoutConfig | null }) 
             <div className="flex flex-row gap-12">
                 <div>
                     {content.map(({ name }) => (
-                        <div className="py-1 text-lg font-normal">{name}</div>
+                        <div className="py-1 text-lg font-normal" key={name}>
+                            {name}
+                        </div>
                     ))}
                 </div>
                 <div>
-                    {content.map(({ value }) => (
-                        <div className="py-1 text-lg font-light">{value}</div>
+                    {content.map(({ name, value }) => (
+                        <div className="py-1 text-lg font-light" key={`${name}-value`}>
+                            {value}
+                        </div>
                     ))}
                 </div>
             </div>

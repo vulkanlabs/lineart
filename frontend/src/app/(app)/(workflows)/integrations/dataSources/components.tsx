@@ -17,7 +17,6 @@ import { ShortenedID } from "@/components/shortened-id";
 
 export default function DataSourcesPage({ dataSources }: { dataSources: any[] }) {
     const router = useRouter();
-    console.log(dataSources);
 
     return (
         <div>

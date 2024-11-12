@@ -1,20 +1,14 @@
-export type NodeDependency = {
-    node: string;
-    output?: string | null;
-    key?: string | null;
-};
+import { NodeLayoutConfig, NodeDependency } from "@/lib/workflow/types";
 
-export type NodeDefinition = {
-    name: string;
-    node_type: string;
-    description: string;
-    dependencies: NodeDependency[] | null;
-    hidden: boolean;
-    metadata: any;
-};
-
-export type GraphDefinition = {
-    [key: string]: NodeDefinition;
+export type RunNodeLayout = NodeLayoutConfig & {
+    draggable?: boolean;
+    data: {
+        label: string;
+        description: string;
+        type: string;
+        dependencies?: NodeDependency[];
+        run?: RunStep | null;
+    };
 };
 
 export type RunStepMetadata = {
@@ -31,7 +25,7 @@ export type RunStep = {
     metadata: RunStepMetadata | null;
 };
 
-export type RunSteps = {
+type RunSteps = {
     [key: string]: RunStep;
 };
 
@@ -41,17 +35,13 @@ export type RunData = {
     steps: RunSteps;
 };
 
-export type RunNode = NodeDefinition & {
-    run: RunStep | null;
-}
-
-export type RunLogEvent = {
+type RunLogEvent = {
     log_type?: string;
     message: string;
     level: string;
 };
 
-export type RunLog = {
+type RunLog = {
     timestamp: string;
     step_key?: string;
     source: string;
