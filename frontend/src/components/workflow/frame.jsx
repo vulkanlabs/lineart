@@ -16,7 +16,18 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { nodeTypes } from "@/components/workflow/nodes";
-import layoutGraph from "@/lib/workflow";
+import { makeWorkflow } from "@/lib/workflow/workflow";
+
+function filterHiddenEdges(edges, state) {
+    return edges.filter((edge) => {
+        const fromOpenComponent = edge.isComponentIO && state[edge.source]?.isOpen;
+        const toOpenComponent = edge.isComponentIO && state[edge.target]?.isOpen;
+        
+        const fromClosedComponentChild = edge.fromComponentChild && !state[edge.fromComponent]?.isOpen;
+        const toClosedComponentChild = edge.toComponentChild && !state[edge.toComponent]?.isOpen;
+        return !(fromOpenComponent || toOpenComponent || toClosedComponentChild || fromClosedComponentChild);
+    });
+}
 
 function VulkanWorkflow({ graphData, onNodeClick, onPaneClick }) {
     const [componentsState, setComponentsState] = useState([]);
@@ -32,9 +43,10 @@ function VulkanWorkflow({ graphData, onNodeClick, onPaneClick }) {
         const componentsState = Object.assign({}, ...states);
         setComponentsState(componentsState);
 
-        layoutGraph(graphData, componentsState).then(([layoutedNodes, layoutedEdges]) => {
+        makeWorkflow(graphData, componentsState).then(([layoutedNodes, layoutedEdges]) => {
+            const filteredEdges = filterHiddenEdges(layoutedEdges, componentsState);
             setNodes(layoutedNodes);
-            setEdges(layoutedEdges);
+            setEdges(filteredEdges);
             window.requestAnimationFrame(() => fitView());
         });
     };
@@ -62,9 +74,10 @@ function VulkanWorkflow({ graphData, onNodeClick, onPaneClick }) {
             newComponentsState[node.id].isOpen = !newComponentsState[node.id].isOpen;
             setComponentsState(newComponentsState);
 
-            layoutGraph(graphData, newComponentsState).then(([layoutedNodes, layoutedEdges]) => {
+            makeWorkflow(graphData, newComponentsState).then(([layoutedNodes, layoutedEdges]) => {
+                const filteredEdges = filterHiddenEdges(layoutedEdges, newComponentsState);
                 setNodes(layoutedNodes);
-                setEdges(layoutedEdges);
+                setEdges(filteredEdges);
             });
             onNodeClick(e, []);
             return;

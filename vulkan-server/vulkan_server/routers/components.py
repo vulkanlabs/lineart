@@ -3,6 +3,7 @@ from itertools import chain
 
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from vulkan_public.exceptions import (
     UNHANDLED_ERROR_NAME,
@@ -298,19 +299,17 @@ def list_component_version_usage(
 
     dependencies = []
     for use in component_version_uses:
-        policy_version = (
-            db.query(
+        query = (
+            select(
                 PolicyVersion.policy_id,
                 PolicyVersion.policy_version_id,
-                Policy.name.label("policy_name"),
                 PolicyVersion.alias.label("policy_version_alias"),
+                Policy.name.label("policy_name"),
             )
-            .filter_by(policy_version_id=use.policy_version_id)
-            .first()
+            .join(Policy, Policy.policy_id == PolicyVersion.policy_id)
+            .where(PolicyVersion.policy_version_id == use.policy_version_id)
         )
-
-        if policy_version is None:
-            raise ValueError(f"Policy version {use.policy_version_id} not found")
+        policy_version = db.execute(query).fetchone()   
 
         dependencies.append(
             schemas.ComponentVersionDependencyExpanded(
