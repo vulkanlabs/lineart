@@ -5,14 +5,15 @@ WORKDIR /opt
 RUN pip install uv
 RUN mkdir /opt/dependencies
 
-{% for dependency in dependencies %}
-COPY {{ dependency.path }} /opt/dependencies/{{ dependency.name }}
-{% endfor %}
+{% if dependencies|length > 0 %}
+COPY \ {% for dependency in dependencies -%}
+{{ dependency.name }} \
+{% endfor -%}
+    /opt/dependencies/
+{% endif %}
 
-RUN uv pip install --system --no-cache 
-
-COPY {{ policy.path }} /opt/policy/
-RUN uv pip install --system --no-cache /opt/policy \
-    {%- for dependency in dependencies -%}
-    /opt/dependencies/{{ dependency.name }} {% if not loop.last %} \ {% endif %}
-    {%- endfor -%}
+COPY {{ policy.name }} /opt/policy/
+RUN uv pip install --system --no-cache /opt/policy {% if dependencies|length > 0 %} \ {% endif %}
+{%- for dependency in dependencies -%}
+/opt/dependencies/{{ dependency.name }} {% if not loop.last %} {% endif %}
+{%- endfor -%}

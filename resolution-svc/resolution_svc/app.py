@@ -9,6 +9,7 @@ from vulkan_public.exceptions import ConflictingDefinitionsError
 
 from . import schemas
 from .context import ExecutionContext
+from .template import GCPBuildConfig, GCPImageBuildManager
 from .workspace import VulkanComponentManager, VulkanWorkspaceManager
 
 app = FastAPI()
@@ -19,6 +20,7 @@ logger.setLevel(logging.INFO)
 VULKAN_HOME = os.getenv("VULKAN_HOME")
 VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
 SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
+VULKAN_SERVER_PATH = os.getenv("VULKAN_SERVER_PATH")
 
 
 def get_artifact_manager():
@@ -36,6 +38,21 @@ def get_artifact_manager():
     )
 
 
+def get_gcp_build_config() -> GCPBuildConfig:
+    GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
+    GCP_REGION = os.getenv("GCP_REGION")
+    GCP_REPOSITORY_NAME = os.getenv("GCP_REPOSITORY_NAME")
+
+    if not GCP_PROJECT_ID or not GCP_REGION or not GCP_REPOSITORY_NAME:
+        raise ValueError("GCP configuration missing")
+
+    return GCPBuildConfig(
+        project_id=GCP_PROJECT_ID,
+        region=GCP_REGION,
+        repository_name=GCP_REPOSITORY_NAME,
+    )
+
+
 @app.post("/workspaces/create")
 def create_workspace(
     name: Annotated[str, Body()],
@@ -49,6 +66,13 @@ def create_workspace(
     """
     logger.info(f"[{project_id}] Creating workspace: {name} (python_module)")
     vm = VulkanWorkspaceManager(project_id, name)
+    image_builder = GCPImageBuildManager(
+        VULKAN_SERVER_PATH,
+        name,
+        vm.workspace_path,
+        vm.components_path,
+        config=get_gcp_build_config(),
+    )
 
     with ExecutionContext(logger) as ctx:
         repository = base64.b64decode(repository)
@@ -66,10 +90,21 @@ def create_workspace(
         vm.install_components(required_components)
         settings = vm.get_resolved_policy_settings()
         logger.info(f"[{project_id}] Successfully installed workspace: {name}")
-        # TODO: maybe share with dagster server
-        # vm.render_dockerfile(required_components)
+
         artifact_path = f"{project_id}/policy/{name}.tar.gz"
         artifacts.post(artifact_path, repository)
+
+        build_context_path = image_builder.prepare_docker_build_context(
+            dependencies=required_components
+        )
+        ctx.register_asset(build_context_path)
+        upload_path = f"build_context/{name}.tar.gz"
+        _ = artifacts.post_file(from_path=build_context_path, to_path=upload_path)
+        image_builder.trigger_cloudbuild_job(
+            bucket_name=artifacts.bucket_name,
+            context_file=upload_path,
+            image_name=name,
+        )
 
     logger.info(f"Created workspace at: {workspace_path}")
     return {
@@ -118,8 +153,6 @@ def create_component(
         ctx.register_asset(component_path)
 
         definition = cm.load_component_definition()
-        logger.info(f"Loaded component definition: {definition}")
-
         artifact_path = f"{project_id}/component/{alias}.tar.gz"
         artifacts.post(artifact_path, repository)
 

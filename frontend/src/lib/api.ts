@@ -77,7 +77,6 @@ export async function fetchPolicyRuns(user: StackUser, policyId: string) {
     });
 }
 
-
 export async function fetchPolicyVersionRuns(user: StackUser, policyVersionId: string) {
     return fetchServerData({
         user: user,
@@ -105,7 +104,6 @@ export async function fetchPolicyVersion(user: StackUser, policyVersionId: strin
         label: `policy version ${policyVersionId}`,
     });
 }
-
 
 export async function fetchPolicyVersionVariables(user: StackUser, policyVersionId: string) {
     return fetchServerData({

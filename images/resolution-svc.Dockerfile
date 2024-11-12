@@ -16,6 +16,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip install uv
 
+# Installing gcloud package
+RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz \
+    && mkdir -p /usr/local/gcloud \
+    && tar -C /usr/local/gcloud -xvf /tmp/google-cloud-sdk.tar.gz \
+    && /usr/local/gcloud/google-cloud-sdk/install.sh
+
+ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
+
 # Install resolution-svc
 COPY vulkan-public ${VULKAN_SERVER_PATH}/vulkan-public
 COPY vulkan ${VULKAN_SERVER_PATH}/vulkan
