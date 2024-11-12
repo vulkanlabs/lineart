@@ -20,18 +20,11 @@ def list_policies(ctx: Context, include_archived: bool = False):
 def create_policy(
     ctx: Context,
     name: str,
-    input_schema: str,
-    output_schema: str,
     description: str = "",
 ):
     response = ctx.session.post(
         f"{ctx.server_url}/policies",
-        json={
-            "name": name,
-            "description": description,
-            "input_schema": input_schema,
-            "output_schema": output_schema,
-        },
+        json={"name": name, "description": description},
     )
     if response.status_code != 200:
         raise ValueError(f"Failed to create policy: {response.content}")

@@ -53,8 +53,6 @@ class ProjectUser(ProjectUserBase):
 class PolicyBase(BaseModel):
     name: str
     description: str
-    input_schema: str
-    output_schema: str
     active_policy_version_id: UUID | None = None
 
 
@@ -133,6 +131,7 @@ class PolicyVersionCreate(PolicyVersionBase):
 
 class PolicyVersion(PolicyVersionBase):
     policy_version_id: UUID
+    input_schema: dict[str, str]
     graph_definition: str
     project_id: UUID
     archived: bool

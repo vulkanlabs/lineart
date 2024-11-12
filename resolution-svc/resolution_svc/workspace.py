@@ -231,4 +231,3 @@ def _load_and_remove(file_path) -> dict:
         data = json.load(fn)
     os.remove(file_path)
     return data
-    return data
