@@ -1,3 +1,4 @@
+import json
 from io import BytesIO
 from typing import Any
 
@@ -117,7 +118,7 @@ class VulkanFileIngestionServiceClient:
         self,
         file_format: SupportedFileFormat,
         content,
-        schema: str,
+        schema: dict,
     ) -> tuple[Any, bool]:
         logger.info("Making request to validate and publish file")
         response = self._make_request(
@@ -126,7 +127,7 @@ class VulkanFileIngestionServiceClient:
             params={
                 "project_id": self.project_id,
                 "file_format": file_format.value,
-                "schema": str(schema),
+                "schema": json.dumps(schema),
             },
             files={
                 "input_file": BytesIO(content),
@@ -160,3 +161,62 @@ class VulkanFileIngestionServiceClient:
             raise_interservice_error(logger, response, on_error)
 
         return response
+
+
+class BeamLauncherClient:
+    def __init__(self, project_id: str, server_url: str) -> None:
+        self.project_id = project_id
+        self.server_url = server_url
+        self.session = Session()
+
+    def launch_job(
+        self,
+        policy_version_id: str,
+        backtest_id: str,
+        data_sources: dict,
+        config_variables: dict | None = None,
+    ) -> Response:
+        response = self._make_request(
+            method="POST",
+            url="/backtest/launch",
+            json={
+                "project_id": self.project_id,
+                "policy_version_id": policy_version_id,
+                "backtest_id": backtest_id,
+                "data_sources": data_sources,
+                "config_variables": config_variables,
+            },
+            on_error="Failed to launch Beam job",
+        )
+        return response
+
+    def _make_request(
+        self,
+        method: str,
+        url: str,
+        json: dict,
+        on_error: str,
+    ) -> Response:
+        request = Request(
+            method=method,
+            url=f"{self.server_url}/{url}",
+            json=json,
+        ).prepare()
+        response = self.session.send(request)
+
+        if response.status_code != 200:
+            raise_interservice_error(logger, response, on_error)
+
+        return response
+
+
+def get_beam_launcher_client(
+    project_id: str = Depends(get_project_id),
+    server_config: definitions.VulkanServerConfig = Depends(
+        definitions.get_vulkan_server_config
+    ),
+) -> BeamLauncherClient:
+    return BeamLauncherClient(
+        project_id=project_id,
+        server_url=server_config.beam_launcher_url,
+    )

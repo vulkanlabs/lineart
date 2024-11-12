@@ -9,13 +9,14 @@ def raise_interservice_error(logger: Logger, response: Response, message: str) -
     try:
         detail = response.json()["detail"]
         error_msg = f"{message}: {detail}"
+
+        if detail["error"] == "VulkanInternalException":
+            logger.error(f"Got err: {detail}")
+            exception = VULKAN_INTERNAL_EXCEPTIONS[detail["exit_status"]]
+            raise exception(msg=detail["msg"])
+
     except (JSONDecodeError, KeyError):
         error_msg = f"{message}: {UNHANDLED_ERROR_NAME}"
-
-    if detail["error"] == "VulkanInternalException":
-        logger.error(f"Got err: {detail}")
-        _exception = VULKAN_INTERNAL_EXCEPTIONS[detail["exit_status"]]
-        raise _exception(msg=detail["msg"])
 
     raise ValueError(error_msg)
 

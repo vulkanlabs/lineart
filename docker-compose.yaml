@@ -103,6 +103,8 @@ services:
         PYTHON_VERSION: "3.12"
     env_file:
       - "images/upload-svc.env"
+    volumes:
+      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   resolution-svc:
     build: 
       context: .

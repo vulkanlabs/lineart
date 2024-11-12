@@ -1,11 +1,13 @@
 import apache_beam as beam
 import numpy as np
-from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.testing.test_pipeline import TestPipeline
 from apache_beam.testing.util import assert_that, equal_to
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 from vulkan_public.spec.nodes import BranchNode, NodeType, TerminateNode, TransformNode
 
+from vulkan.beam.io import (
+    ReadLocalCSV,
+)
 from vulkan.beam.nodes import (
     BeamBranch,
     BeamInput,
@@ -13,7 +15,7 @@ from vulkan.beam.nodes import (
     BeamTransform,
     to_beam_nodes,
 )
-from vulkan.beam.pipeline import ReadGCSInput, __PipelineBuilder, build_local_pipeline
+from vulkan.beam.pipeline import build_pipeline
 from vulkan.core.graph import sort_nodes
 from vulkan.core.policy import Policy
 
@@ -82,9 +84,12 @@ def test_pipeline():
     #     runner=RenderRunner(),
     #     options=beam.options.pipeline_options.PipelineOptions(),
     # ) as p:
-    with TestPipeline() as p:
-        pipe = build_local_pipeline(p, input_node, [branch, approved, denied])
-        pipe | "Print" >> beam.Map(print)
+    with TestPipeline() as pipeline:
+        input_data = pipeline | "Read Input" >> ReadLocalCSV(input_node.source)
+        collections = {INPUT_NODE: input_data}
+
+        output = build_pipeline(pipeline, collections, [branch, approved, denied])
+        output | "Print" >> beam.Map(print)
 
 
 def test_pipeline_from_policy():
@@ -137,55 +142,9 @@ def test_pipeline_from_policy():
     beam_nodes = to_beam_nodes(core_nodes)
     sorted_nodes = sort_nodes(beam_nodes, edges)
 
-    # builder = BeamPipelineBuilder(policy)
-
-    with TestPipeline() as p:
-        pipe = build_local_pipeline(p, beam_input, sorted_nodes)
-        pipe | "Print" >> beam.Map(print)
-
-
-def test_read_from_gcs():
-    input_node = BeamInput(
-        name=INPUT_NODE,
-        schema={"tax_id": str, "score": int},
-        source="gs://vulkan-dev-beam-temp/input_data.csv",
-    )
-
-    def _branch(data):
-        print(data)
-        if data["score"] > 500:
-            return "approved"
-        return "denied"
-
-    branch = BeamBranch(
-        name="branch",
-        func=_branch,
-        outputs=["approved", "denied"],
-        dependencies={"data": Dependency(input_node.name)},
-    )
-
-    approved = BeamTerminate(
-        name="approved",
-        return_status="approved",
-        dependencies={"condition": Dependency(branch.name, "approved")},
-    )
-    denied = BeamTerminate(
-        name="denied",
-        return_status="denied",
-        dependencies={"condition": Dependency(branch.name, "denied")},
-    )
-
-    with beam.Pipeline(options=PipelineOptions()) as pipeline:
-        input_data = pipeline | "Read Input" >> ReadGCSInput(
-            source="gs://vulkan-dev-beam-temp/input_data.csv",
-            schema={"tax_id": str, "score": int},
-        )
+    with TestPipeline() as pipeline:
+        input_data = pipeline | "Read Input" >> ReadLocalCSV(beam_input.source)
         collections = {INPUT_NODE: input_data}
 
-        builder = __PipelineBuilder(pipeline, collections)
-        result = builder.build([branch, approved, denied])
-        result | "Print" >> beam.Map(print)
-
-
-if __name__ == "__main__":
-    test_read_from_gcs()
+        output = build_pipeline(pipeline, collections, sorted_nodes)
+        output | "Print" >> beam.Map(print)

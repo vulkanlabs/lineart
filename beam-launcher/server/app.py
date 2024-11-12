@@ -25,7 +25,6 @@ def launch_backtest(config: schemas.BacktestConfig):
     logger.info(
         f"[{config.backtest_id}] Launching run for policy version: {config.policy_version_id}"
     )
-    # prepare user code
 
     # 1. resolve policy and launch pipeline
     args = [
@@ -33,8 +32,12 @@ def launch_backtest(config: schemas.BacktestConfig):
         f"{SCRIPTS_PATH}/launch_dataflow.py",
     ]
     for key, value in config.model_dump().items():
-        args.extend(["--" + key, json.dumps(value)])
-    
+        if value is None:
+            continue
+        if isinstance(value, dict):
+            value = json.dumps(value)
+        args.extend(["--" + key, value])
+
     vm = VulkanWorkspaceManager(config.project_id, config.policy_version_id)
     args.extend(["--workspace_path", vm.workspace_path])
     args.extend(["--workspace_name", vm.workspace_name])

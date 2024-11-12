@@ -24,6 +24,7 @@ GCP_REGION = os.getenv("GCP_REGION")
 GCP_DATAFLOW_WORKER_SA = os.getenv("GCP_DATAFLOW_WORKER_SA")
 GCP_DATAFLOW_TEMP_LOCATION = os.getenv("GCP_DATAFLOW_TEMP_LOCATION")
 GCP_DATAFLOW_STAGING_LOCATION = os.getenv("GCP_DATAFLOW_STAGING_LOCATION")
+GCP_DATAFLOW_OUTPUT_BUCKET = os.getenv("GCP_DATAFLOW_OUTPUT_BUCKET")
 
 VULKAN_LIB_PATH = os.getenv("VULKAN_LIB_PATH")
 VULKAN_SERVER_PATH = os.getenv("VULKAN_SERVER_PATH")
@@ -68,11 +69,14 @@ def launch_pipeline(
 
     pipeline = BeamPipelineBuilder(
         policy=policy,
+        project_id=project_id,
+        backtest_id=backtest_id,
+        output_bucket=GCP_DATAFLOW_OUTPUT_BUCKET,
         data_sources=data_sources,
         config_variables=config_variables,
         pipeline_options=pipeline_options,
     ).build()
-    # 2. launch pipeline
+
     pipeline.run()
 
 
@@ -113,7 +117,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     data_sources = json.loads(args.data_sources)
-    config_variables = json.loads(args.config_variables)
+    
+    if args.config_variables:
+        config_variables = json.loads(args.config_variables)
+    else:
+        config_variables = None
 
     policy = resolve_policy(args.module_name, args.components_path)
 
