@@ -14,6 +14,7 @@ dependencies = [
     "pandas>=2.2.3",
     "vulkan-public",
     "vulkan[dagster]",
+    "pyarrow>=18.0.0",
 ]
 requires-python = ">=3.10"
 

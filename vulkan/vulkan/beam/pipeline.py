@@ -26,9 +26,7 @@ class BeamPipelineBuilder:
     def __init__(
         self,
         policy: Policy,
-        project_id: str,
-        backtest_id: str,
-        output_bucket: str,
+        output_path: str,
         data_sources: dict[str, DataEntryConfig],
         config_variables: dict[str, str] = {},
         pipeline_options: PipelineOptions | None = None,
@@ -37,7 +35,7 @@ class BeamPipelineBuilder:
         self.edges: GraphEdges = policy.flattened_dependencies
         self._validate_nodes()
 
-        self.output_dir = f"gs://{output_bucket}/{project_id}/{backtest_id}"
+        self.output_path = output_path
         self.data_sources = data_sources
         self.config_variables = config_variables
 
@@ -81,10 +79,10 @@ class BeamPipelineBuilder:
             "status": str,
             input_node.name: input_node.schema,
         }
-        output_path = f"{self.output_dir}/output"
+        output_prefix = self.output_path + "/output"
 
         # Write the output to GCS
-        result | "Write Output" >> WriteParquet(output_path, output_schema)
+        result | "Write Output" >> WriteParquet(output_prefix, output_schema)
 
         return pipeline
 

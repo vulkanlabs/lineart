@@ -17,9 +17,9 @@ logger.setLevel(logging.INFO)
 
 VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
 SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
+GCP_DATAFLOW_OUTPUT_BUCKET = os.getenv("GCP_DATAFLOW_OUTPUT_BUCKET")
 
 
-# TODO: make this endpoint ASYNC
 @app.post("/backtest/launch")
 def launch_backtest(config: schemas.BacktestConfig):
     logger.info(
@@ -27,16 +27,18 @@ def launch_backtest(config: schemas.BacktestConfig):
     )
 
     # 1. resolve policy and launch pipeline
+    bucket = f"gs://{GCP_DATAFLOW_OUTPUT_BUCKET}"
+    output_path = f"{bucket}/{config.project_id}/{config.backtest_id}"
+
     args = [
         f"{VENVS_PATH}/{config.policy_version_id}/bin/python",
         f"{SCRIPTS_PATH}/launch_dataflow.py",
     ]
-    for key, value in config.model_dump().items():
-        if value is None:
-            continue
-        if isinstance(value, dict):
-            value = json.dumps(value)
-        args.extend(["--" + key, value])
+    args.extend(["--output_path", output_path])
+    args.extend(["--data_sources", json.dumps(config.data_sources)])
+
+    if config.config_variables:
+        args.extend(["--config_variables", json.dumps(config.config_variables)])
 
     vm = VulkanWorkspaceManager(config.project_id, config.policy_version_id)
     args.extend(["--workspace_path", vm.workspace_path])
@@ -56,4 +58,4 @@ def launch_backtest(config: schemas.BacktestConfig):
     # 2. pool for status
     # when finished: results written directly to storage
     # 3. callback server to notify completion, passing: BacktestStatus, results_path
-    pass
+    return {"output_path": output_path}
