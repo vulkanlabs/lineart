@@ -9,6 +9,7 @@ venv_name=${VULKAN_VENVS_PATH}/${component_alias}
 uv venv ${venv_name}
 cd ${venv_name}
 
+uv pip install ${VULKAN_SERVER_PATH}/vulkan-public
 uv pip install ${VULKAN_SERVER_PATH}/vulkan
 uv pip install ${components_base_dir}/${component_alias}
 

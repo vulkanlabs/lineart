@@ -1,5 +1,3 @@
-import os
-
 import pandas as pd
 from gcsfs import GCSFileSystem
 
@@ -7,11 +5,15 @@ from upload_svc.manager.base import FileManager
 
 
 class GCSFileManager(FileManager):
-    def __init__(self, gcp_project: str, bucket_name: str, base_path: str) -> None:
+    def __init__(
+        self, gcp_project: str, bucket_name: str, base_path: str, token: str
+    ) -> None:
         self.gcp_project = gcp_project
         self.bucket_name = bucket_name
         self.base_path = base_path
-        self.fs = GCSFileSystem(project=self.gcp_project, access="read_write")
+        self.fs = GCSFileSystem(
+            project=self.gcp_project, access="read_write", token=token
+        )
 
     def publish(self, project_id: str, data: pd.DataFrame) -> str:
         public_path = self.public_filepath(project_id)

@@ -111,6 +111,7 @@ def create_workspace(
         "policy_definition_settings": policy_definition_settings,
         "workspace_path": workspace_path,
         "graph_definition": settings["nodes"],
+        "input_schema": settings["input_schema"],
         "data_sources": settings["data_sources"],
     }
 

@@ -1,12 +1,6 @@
-import csv
-import hashlib
-import json
 from dataclasses import dataclass
-from functools import partial
 
 import apache_beam as beam
-from apache_beam.dataframe import convert
-from apache_beam.dataframe.io import read_csv
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.pipeline import Pipeline as BeamPipeline
 from apache_beam.pvalue import AsSingleton, PCollection
@@ -16,6 +10,7 @@ from vulkan_public.spec.nodes import (
     NodeType,
 )
 
+from vulkan.beam.io import ReadParquet, WriteParquet
 from vulkan.beam.nodes import BeamInput, BeamNode, to_beam_node
 from vulkan.core.graph import GraphEdges, GraphNodes, sort_nodes
 from vulkan.core.policy import Policy
@@ -31,17 +26,18 @@ class BeamPipelineBuilder:
     def __init__(
         self,
         policy: Policy,
+        project_id: str,
+        backtest_id: str,
+        output_bucket: str,
         data_sources: dict[str, DataEntryConfig],
         config_variables: dict[str, str] = {},
         pipeline_options: PipelineOptions | None = None,
     ):
-        # validate the input schema (all rows must be either python pure types
-        # or convertible to python pure types)
-        # Check IO nodes' schemas
         self.nodes: GraphNodes = policy.flattened_nodes
         self.edges: GraphEdges = policy.flattened_dependencies
         self._validate_nodes()
 
+        self.output_dir = f"gs://{output_bucket}/{project_id}/{backtest_id}"
         self.data_sources = data_sources
         self.config_variables = config_variables
 
@@ -62,9 +58,35 @@ class BeamPipelineBuilder:
                 nodes.append(node)
 
         sorted_nodes = sort_nodes(nodes, self.edges)
+        return self.build_pipeline(input_node, sorted_nodes)
 
+    def build_pipeline(self, input_node, sorted_nodes):
+        """Build a Beam pipeline from a list of BeamNodes
+
+        Handles IO steps, reading from and writing to GCS.
+        """
         pipeline = beam.Pipeline(options=self.pipeline_options)
-        return build_pipeline(pipeline, input_node, sorted_nodes)
+
+        # Create the input PCollection and the collections map
+        input_data = pipeline | "Read Input" >> ReadParquet(
+            input_node.source, input_node.schema
+        )
+        collections = {INPUT_NODE: input_data}
+
+        # Build the nodes into the pipeline
+        result = build_pipeline(pipeline, collections, sorted_nodes)
+
+        output_schema = {
+            "key": str,
+            "status": str,
+            input_node.name: input_node.schema,
+        }
+        output_path = f"{self.output_dir}/output"
+
+        # Write the output to GCS
+        result | "Write Output" >> WriteParquet(output_path, output_schema)
+
+        return pipeline
 
     def _make_beam_input(self, node: InputNode) -> BeamInput:
         source = self.data_sources[INPUT_NODE].source
@@ -87,76 +109,9 @@ _IMPLEMENTED_NODETYPES = [
 _CONFIGURABLE_NODETYPES = [NodeType.BRANCH, NodeType.TRANSFORM]
 
 
-def build_pipeline(pipeline, input_node, sorted_nodes) -> BeamPipeline:
-    """Build a Beam pipeline from a list of BeamNodes
-
-    Handles IO steps, reading and writing data to/from GCS.
-    """
-    # TODO: get read options from config
-    input_data = pipeline | "Read Input" >> ReadGCSInput(
-        input_node.source, input_node.schema
-    )
-    collections = {INPUT_NODE: input_data}
-
-    builder = __PipelineBuilder(pipeline, collections)
-    result = builder.build(sorted_nodes)
-
-    # TODO: write result to GCS
-    result | "Write Output" >> beam.io.WriteToText(
-        "gs://vulkan-dev-beam-temp/output.txt"
-    )
-
-    return builder.pipeline
-
-
-def build_local_pipeline(pipeline, input_node, sorted_nodes):
-    """For testing purposes, build a pipeline that reads from a local file"""
-    input_data = pipeline | "Read Input" >> ReadLocalInput(input_node.source)
-    collections = {INPUT_NODE: input_data}
-
+def build_pipeline(pipeline, collections, sorted_nodes) -> BeamPipeline:
     builder = __PipelineBuilder(pipeline, collections)
     return builder.build(sorted_nodes)
-
-
-class ReadGCSInput(beam.PTransform):
-    def __init__(self, source: str, schema: dict[str, type] | None = None):
-        self.source = source
-        self.csv_parser = partial(parse_csv_line, schema)
-
-    def expand(self, pcoll):
-        return (
-            pcoll
-            | "Read From GCS" >> beam.io.ReadFromText(self.source, skip_header_lines=1)
-            | "Parse CSV" >> beam.Map(self.csv_parser)
-            | "Make Key" >> beam.Map(_make_element_key)
-        )
-
-
-def parse_csv_line(schema, line):
-    """Parse a single line of CSV into a dictionary."""
-    reader = csv.reader([line])
-    fields = list(schema.keys())
-    data = dict(zip(fields, next(reader)))
-    return {k: schema[k](v) for k, v in data.items()}
-
-
-class ReadLocalInput(beam.PTransform):
-    def __init__(self, source: str):
-        self.source = source
-
-    def expand(self, pcoll):
-        dataframe = pcoll | "Read Source" >> read_csv(self.source)
-        return (
-            convert.to_pcollection(dataframe)
-            | "To dictionaries" >> beam.Map(lambda x: dict(x._asdict()))
-            | "Make Key" >> beam.Map(_make_element_key)
-        )
-
-
-def _make_element_key(element: dict) -> tuple[str, dict]:
-    content = json.dumps(element, sort_keys=True)
-    key = hashlib.md5(content.encode("utf-8")).hexdigest()
-    return (key, element)
 
 
 class __PipelineBuilder:

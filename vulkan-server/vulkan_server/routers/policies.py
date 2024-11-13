@@ -2,6 +2,7 @@ import datetime
 import json
 from itertools import chain
 from typing import Annotated, Any
+from dataclasses import dataclass
 
 import pandas as pd
 import requests
@@ -333,15 +334,14 @@ def create_policy_version(
     version_name = definitions.version_name(policy_id, version.policy_version_id)
 
     try:
-        components, variables, graph_definition, data_sources = (
-            _create_policy_version_workspace(
-                db=db,
-                resolution=resolution_service,
-                policy_version_id=version.policy_version_id,
-                name=version_name,
-                repository=config.repository,
-            )
+        settings = _create_policy_version_workspace(
+            db=db,
+            resolution=resolution_service,
+            policy_version_id=version.policy_version_id,
+            name=version_name,
+            repository=config.repository,
         )
+        variables = settings.config_variables or []
         logger.info("Workspace created")
     except Exception as e:
         if isinstance(e, VulkanInternalException):
@@ -349,14 +349,18 @@ def create_policy_version(
         handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
 
     try:
-        if components:
-            added_components = _add_component_dependencies(db, version, components)
+        if settings.required_components:
+            added_components = _add_component_dependencies(
+                db, version, settings.required_components
+            )
             inner_variables = [c.variables for c in added_components if c.variables]
             variables += list(chain.from_iterable(inner_variables))
         logger.info("Processed components")
 
-        if data_sources:
-            added_sources = _add_data_source_dependencies(db, version, data_sources)
+        if settings.data_sources:
+            added_sources = _add_data_source_dependencies(
+                db, version, settings.data_sources
+            )
             inner_variables = [ds.variables for ds in added_sources if ds.variables]
             variables += list(chain.from_iterable(inner_variables))
         logger.info("Processed data sources")
@@ -365,7 +369,8 @@ def create_policy_version(
             version.variables = list(set(variables))
         logger.info("Processed variables")
 
-        version.graph_definition = json.dumps(graph_definition)
+        version.input_schema = settings.input_schema
+        version.graph_definition = json.dumps(settings.graph_definition)
     except Exception as e:
         if isinstance(e, VulkanInternalException):
             handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
@@ -377,7 +382,7 @@ def create_policy_version(
     # Dagster-specific
     try:
         dagster_launcher_client.create_workspace(
-            version_name, version.repository, components
+            version_name, version.repository, settings.required_components
         )
         dagster_launcher_client.ensure_workspace_added(version_name)
         logger.info("Updated repositories")
@@ -401,7 +406,7 @@ def create_policy_version(
             "project_id": project_id,
             "policy_version_id": str(version.policy_version_id),
             "repository": config.repository,
-            "required_components": components,
+            "required_components": settings.required_components,
         },
     )
 
@@ -469,13 +474,22 @@ def _add_data_source_dependencies(
     return matched
 
 
+@dataclass
+class PolicyVersionSettings:
+    input_schema: dict[str, str]
+    graph_definition: str
+    required_components: list[str] | None = None
+    config_variables: list[str] | None = None
+    data_sources: list[str] | None = None
+
+
 def _create_policy_version_workspace(
     db: Session,
     resolution: ResolutionServiceClient,
     policy_version_id: int,
     name: str,
     repository: str,
-):
+) -> PolicyVersionSettings:
     workspace = DagsterWorkspace(
         policy_version_id=policy_version_id,
         status=DagsterWorkspaceStatus.CREATION_PENDING,
@@ -494,18 +508,16 @@ def _create_policy_version_workspace(
         db.commit()
         raise e
 
-    graph_definition = response_data["graph_definition"]
-    data_sources = response_data.get("data_sources", [])
-    policy_settings = response_data["policy_definition_settings"]
-    required_components = policy_settings.get("required_components", [])
-    config_variables = policy_settings.get("config_variables", [])
+    definition_settings = response_data["policy_definition_settings"]
 
-    return (
-        required_components,
-        config_variables,
-        graph_definition,
-        data_sources,
+    version_settings = PolicyVersionSettings(
+        input_schema=response_data["input_schema"],
+        graph_definition=response_data["graph_definition"],
+        data_sources=response_data.get("data_sources", []),
+        required_components=definition_settings.get("required_components", []),
+        config_variables=definition_settings.get("config_variables", []),
     )
+    return version_settings
 
 
 def _validate_date_range(

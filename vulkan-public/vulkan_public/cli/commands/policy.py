@@ -40,13 +40,7 @@ def list(ctx: Context, all: bool):
 @click.option("--description", type=str, default="", help="Description of the policy")
 @log_exceptions
 def create(ctx: Context, name: str, description: str):
-    return client.policy.create_policy(
-        ctx,
-        name=name,
-        description=description,
-        input_schema="{}",
-        output_schema="",
-    )
+    return client.policy.create_policy(ctx, name=name, description=description)
 
 
 @policy.command()

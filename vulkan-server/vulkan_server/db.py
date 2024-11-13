@@ -179,7 +179,11 @@ class PolicyVersion(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base)
     status = Column(Enum(PolicyVersionStatus))
     repository = Column(String)
     repository_version = Column(String)
-    graph_definition = Column(String)
+    # The fields below require the policy version to be resolved
+    # first, hence the "nullable=True". With regards to the application,
+    # `input_schema` and `graph_definition` are actually non-nullable.
+    input_schema = Column(JSON, nullable=True)
+    graph_definition = Column(String, nullable=True)
     variables = Column(ARRAY(String), nullable=True)
 
 
