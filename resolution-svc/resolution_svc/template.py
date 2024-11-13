@@ -15,7 +15,9 @@ class PackageSpec:
 
 
 def render_dockerfile(
-    base_dir: str, policy: PackageSpec, dependencies: list[PackageSpec], **kwargs
+    base_dir: str,
+    policy: PackageSpec,
+    dependencies: list[PackageSpec],
 ):
     env = Environment(
         loader=FileSystemLoader(f"{base_dir}/resolution-svc/resolution_svc/templates")
@@ -23,7 +25,9 @@ def render_dockerfile(
     dockerfile_template = env.get_template("Dockerfile.j2")
 
     return dockerfile_template.render(
-        policy=policy, dependencies=dependencies, **kwargs
+        policy=policy,
+        dependencies=dependencies,
+        python_version="3.12",
     )
 
 
@@ -117,6 +121,7 @@ class GCPImageBuildManager:
             json.dump(request, fp)
 
         access_token = _get_access_token()
+        artifact_registry = f"https://cloudbuild.googleapis.com/v1/projects/{self.gcp_project_id}/locations/{self.gcp_region}/builds"
 
         completed_process = subprocess.run(
             [
@@ -127,7 +132,7 @@ class GCPImageBuildManager:
                 request_file_path,
                 "-H",
                 f"Authorization: Bearer {access_token}",
-                f"https://cloudbuild.googleapis.com/v1/projects/{self.gcp_project_id}/locations/{self.gcp_region}/builds",
+                artifact_registry,
             ],
             stdout=subprocess.PIPE,
         )
@@ -162,13 +167,14 @@ def pack_policy_build_context(
     dependencies: list[PackageSpec],
 ) -> bytes:
     basename = f".tmp.{name}"
-    # TODO: In the future we may want to have an ignore list
     filename = f"{basename}.{ARCHIVE_FORMAT}"
     try:
         with tarfile.open(name=filename, mode=TAR_FLAGS) as tf:
+            tf.add(name="vulkan-public", arcname="vulkan-public", filter=_tar_filter_fn)
+            tf.add(name="vulkan", arcname="vulkan", filter=_tar_filter_fn)
+
             tf.add(dockerfile_path, arcname="Dockerfile")
             tf.add(policy.path, arcname=os.path.basename(policy.name))
-
             for dep in dependencies:
                 tf.add(dep.path, arcname=os.path.basename(dep.name))
     except Exception as e:
@@ -178,3 +184,11 @@ def pack_policy_build_context(
         raise RuntimeError(f"Failed to pack policy build context: {e}")
 
     return filename
+
+
+def _tar_filter_fn(info: tarfile.TarInfo) -> tarfile.TarInfo | None:
+    _EXCLUDE_PATHS = [".git", ".venv", ".vscode"]
+    for path in _EXCLUDE_PATHS:
+        if path in info.name:
+            return None
+    return info

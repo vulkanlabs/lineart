@@ -27,6 +27,7 @@ ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 # Install resolution-svc
 COPY vulkan-public ${VULKAN_SERVER_PATH}/vulkan-public
 COPY vulkan ${VULKAN_SERVER_PATH}/vulkan
+
 COPY resolution-svc ${VULKAN_SERVER_PATH}/resolution-svc
 RUN uv pip install --system --no-cache ${VULKAN_SERVER_PATH}/resolution-svc \
     keyring keyrings.google-artifactregistry-auth twine
