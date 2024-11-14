@@ -359,6 +359,7 @@ class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
     backtest_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
     input_data_path = Column(String)
+    output_path = Column(String, nullable=True)
     status = Column(Enum(BacktestStatus))
     name = Column(String, nullable=True)
     config_variables = Column(JSON, nullable=True)

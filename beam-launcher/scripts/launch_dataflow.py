@@ -21,18 +21,16 @@ GCP_REGION = os.getenv("GCP_REGION")
 GCP_DATAFLOW_WORKER_SA = os.getenv("GCP_DATAFLOW_WORKER_SA")
 GCP_DATAFLOW_TEMP_LOCATION = os.getenv("GCP_DATAFLOW_TEMP_LOCATION")
 GCP_DATAFLOW_STAGING_LOCATION = os.getenv("GCP_DATAFLOW_STAGING_LOCATION")
-GCP_DATAFLOW_OUTPUT_BUCKET = os.getenv("GCP_DATAFLOW_OUTPUT_BUCKET")
 
 VULKAN_LIB_PATH = os.getenv("VULKAN_LIB_PATH")
 VULKAN_SERVER_PATH = os.getenv("VULKAN_SERVER_PATH")
 
 
 def launch_pipeline(
-    project_id: str,
-    backtest_id: str,
     image: str,
     data_sources: dict[str, str],
     policy: Policy,
+    output_path: str,
     config_variables: dict[str, str] | None = None,
 ):
     data_sources = {
@@ -59,9 +57,7 @@ def launch_pipeline(
 
     pipeline = BeamPipelineBuilder(
         policy=policy,
-        project_id=project_id,
-        backtest_id=backtest_id,
-        output_bucket=GCP_DATAFLOW_OUTPUT_BUCKET,
+        output_path=output_path,
         data_sources=data_sources,
         config_variables=config_variables,
         pipeline_options=pipeline_options,
@@ -73,9 +69,8 @@ def launch_pipeline(
 if __name__ == "__main__":
     parser = ArgumentParser()
     # Backtest config args
-    parser.add_argument("--project_id", type=str)
-    parser.add_argument("--backtest_id", type=str)
     parser.add_argument("--image", type=str)
+    parser.add_argument("--output_path", type=str)
     parser.add_argument("--data_sources", type=str)
     parser.add_argument("--config_variables", type=str)
     # Code location args
@@ -92,10 +87,9 @@ if __name__ == "__main__":
 
     policy = resolve_policy(args.module_name, args.components_path)
     launch_pipeline(
-        project_id=args.project_id,
-        backtest_id=args.backtest_id,
         data_sources=data_sources,
         config_variables=config_variables,
         policy=policy,
         image=args.image,
+        output_path=args.output_path,
     )
