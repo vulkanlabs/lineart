@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import subprocess
 from argparse import ArgumentParser
 from dataclasses import dataclass
 
@@ -13,7 +12,6 @@ from apache_beam.options.pipeline_options import (
 from vulkan.beam.pipeline import BeamPipelineBuilder, DataEntryConfig
 from vulkan.core.policy import Policy
 from vulkan.environment.loaders import resolve_policy
-from vulkan_public.spec.environment.loaders import load_policy_definition
 
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
@@ -28,7 +26,6 @@ GCP_DATAFLOW_OUTPUT_BUCKET = os.getenv("GCP_DATAFLOW_OUTPUT_BUCKET")
 
 VULKAN_LIB_PATH = os.getenv("VULKAN_LIB_PATH")
 VULKAN_SERVER_PATH = os.getenv("VULKAN_SERVER_PATH")
-VULKAN_STAGING_PATH = os.getenv("VULKAN_STAGING_PATH")
 
 
 @dataclass
@@ -42,19 +39,22 @@ class BacktestConfig:
 
 def launch_pipeline(
     project_id: str,
-    policy_version_id: str,
     backtest_id: str,
+    image: str,
     data_sources: dict[str, str],
     policy: Policy,
-    packages: list[str],
     config_variables: dict[str, str] | None = None,
 ):
     data_sources = {
         name: DataEntryConfig(source=source) for name, source in data_sources.items()
     }
-    extra_packages = [f"--extra_package={package}" for package in packages]
     worker_options = ["--machine_type=n1-standard-4"]
-    flags = extra_packages + worker_options
+    sdk = [
+        "--experiments=use_runner_v2",
+        f"--sdk_container_image={image}",
+        "--sdk_location=container",
+    ]
+    flags = sdk + worker_options
 
     pipeline_options = PipelineOptions(flags)
     pipeline_options.view_as(StandardOptions).runner = "DataflowRunner"
@@ -80,33 +80,12 @@ def launch_pipeline(
     pipeline.run()
 
 
-def create_packages(workspace_path, workspace_name, module_name, components_path):
-    policy_definition = load_policy_definition(module_name)
-    staging_dir = os.path.join(VULKAN_STAGING_PATH, workspace_name)
-    packages = [workspace_path]
-
-    for component_instance in policy_definition.components:
-        alias = component_instance.alias()
-        packages.append(os.path.join(components_path, alias))
-
-    for package in packages:
-        process = subprocess.run(
-            ["python", "-m", "build", package, "--outdir", staging_dir, "--sdist"],
-            capture_output=True,
-        )
-        if process.returncode != 0:
-            raise Exception(f"Failed to create package: {package}", process.stderr)
-
-    packages = [fn for fn in os.listdir(staging_dir) if fn.endswith(".tar.gz")]
-    return [os.path.join(staging_dir, fn) for fn in packages]
-
-
 if __name__ == "__main__":
     parser = ArgumentParser()
     # Backtest config args
     parser.add_argument("--project_id", type=str)
-    parser.add_argument("--policy_version_id", type=str)
     parser.add_argument("--backtest_id", type=str)
+    parser.add_argument("--image", type=str)
     parser.add_argument("--data_sources", type=str)
     parser.add_argument("--config_variables", type=str)
     # Code location args
@@ -117,35 +96,18 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     data_sources = json.loads(args.data_sources)
-    
+
     if args.config_variables:
         config_variables = json.loads(args.config_variables)
     else:
         config_variables = None
 
     policy = resolve_policy(args.module_name, args.components_path)
-
-    user_packages = create_packages(
-        workspace_path=args.workspace_path,
-        workspace_name=args.workspace_name,
-        module_name=args.module_name,
-        components_path=args.components_path,
-    )
-    libs = [fn for fn in os.listdir(VULKAN_LIB_PATH) if fn.endswith(".tar.gz")]
-    vulkan_packages = [os.path.join(VULKAN_LIB_PATH, fn) for fn in libs]
-    packages = user_packages + vulkan_packages
-
     launch_pipeline(
         project_id=args.project_id,
-        policy_version_id=args.policy_version_id,
         backtest_id=args.backtest_id,
         data_sources=data_sources,
         config_variables=config_variables,
         policy=policy,
-        packages=packages,
-    )
-
-    # Remove staging resources for this workspace
-    subprocess.run(
-        ["rm", "-rf", os.path.join(VULKAN_STAGING_PATH, args.workspace_name)]
+        image=args.image,
     )

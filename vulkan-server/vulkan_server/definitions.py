@@ -2,8 +2,8 @@ import os
 from dataclasses import dataclass
 
 
-def version_name(policy_id: int, policy_version_id: int) -> str:
-    return f"policy-{policy_id}-version-{policy_version_id}"
+def version_name(policy_id: str, policy_version_id: str) -> str:
+    return f"{policy_version_id}"
 
 
 @dataclass
@@ -35,7 +35,7 @@ def get_vulkan_server_config() -> VulkanServerConfig:
     resolution_service_url = os.getenv("RESOLUTION_SERVICE_URL")
     if resolution_service_url is None:
         raise ValueError("RESOLUTION_SERVICE_URL must be set")
-    
+
     beam_launcher_url = os.getenv("BEAM_LAUNCHER_URL")
     if beam_launcher_url is None:
         raise ValueError("BEAM_LAUNCHER_URL must be set")

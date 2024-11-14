@@ -61,7 +61,7 @@ class PolicyVersionStatus(enum.Enum):
     INVALID = "INVALID"
 
 
-class DagsterWorkspaceStatus(enum.Enum):
+class WorkspaceStatus(enum.Enum):
     OK = "OK"
     CREATION_PENDING = "CREATION_PENDING"
     CREATION_FAILED = "CREATION_FAILED"
@@ -187,6 +187,30 @@ class PolicyVersion(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base)
     variables = Column(ARRAY(String), nullable=True)
 
 
+class DagsterWorkspace(TimedUpdateMixin, Base):
+    __tablename__ = "dagster_workspace"
+
+    policy_version_id = Column(
+        Uuid,
+        ForeignKey("policy_version.policy_version_id"),
+        primary_key=True,
+    )
+    status = Column(Enum(WorkspaceStatus))
+    path = Column(String, nullable=True)
+
+
+class BeamWorkspace(TimedUpdateMixin, Base):
+    __tablename__ = "beam_workspace"
+
+    policy_version_id = Column(
+        Uuid,
+        ForeignKey("policy_version.policy_version_id"),
+        primary_key=True,
+    )
+    status = Column(Enum(WorkspaceStatus))
+    image = Column(String, nullable=True)
+
+
 class ComponentVersionDependency(Base):
     __tablename__ = "component_version_dependency"
 
@@ -223,18 +247,6 @@ class ConfigurationValue(AuthorizationMixin, TimedUpdateMixin, Base):
             name="value_null_only_if_allowed",
         ),
     )
-
-
-class DagsterWorkspace(TimedUpdateMixin, Base):
-    __tablename__ = "dagster_workspace"
-
-    policy_version_id = Column(
-        Uuid,
-        ForeignKey("policy_version.policy_version_id"),
-        primary_key=True,
-    )
-    status = Column(Enum(DagsterWorkspaceStatus))
-    path = Column(String, nullable=True)
 
 
 class Run(TimedUpdateMixin, AuthorizationMixin, Base):

@@ -8,7 +8,7 @@ from vulkan_public.spec.dependency import INPUT_NODE
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.config_variables import resolve_config_variables
-from vulkan_server.db import Backtest, PolicyVersion, get_db
+from vulkan_server.db import Backtest, BeamWorkspace, PolicyVersion, get_db
 from vulkan_server.logger import init_logger
 from vulkan_server.services import (
     VulkanFileIngestionServiceClient,
@@ -136,9 +136,16 @@ async def create_backtest(
     db.add(backtest)
     db.commit()
 
+    workspace = (
+        db.query(BeamWorkspace)
+        .filter_by(policy_version_id=policy_version_id)
+        .first()
+    )
+
     beam_launcher_client.launch_job(
         policy_version_id=str(policy_version_id),
         backtest_id=str(backtest.backtest_id),
+        image=workspace.image,
         data_sources={
             INPUT_NODE: backtest.input_data_path,
         },

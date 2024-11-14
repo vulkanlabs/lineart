@@ -31,12 +31,13 @@ def launch_backtest(config: schemas.BacktestConfig):
         f"{VENVS_PATH}/{config.policy_version_id}/bin/python",
         f"{SCRIPTS_PATH}/launch_dataflow.py",
     ]
-    for key, value in config.model_dump().items():
-        if value is None:
-            continue
-        if isinstance(value, dict):
-            value = json.dumps(value)
-        args.extend(["--" + key, value])
+
+    args.extend(["--project_id", config.project_id])
+    args.extend(["--backtest_id", config.backtest_id])
+    args.extend(["--image", config.image])
+    args.extend(["--data_sources", json.dumps(config.data_sources)])
+    if config.config_variables:
+        args.extend(["--config_variables", json.dumps(config.config_variables)])
 
     vm = VulkanWorkspaceManager(config.project_id, config.policy_version_id)
     args.extend(["--workspace_path", vm.workspace_path])

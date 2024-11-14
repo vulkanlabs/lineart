@@ -100,7 +100,7 @@ def create_workspace(
         ctx.register_asset(build_context_path)
         upload_path = f"build_context/{name}.tar.gz"
         _ = artifacts.post_file(from_path=build_context_path, to_path=upload_path)
-        image_builder.trigger_cloudbuild_job(
+        image_path = image_builder.trigger_cloudbuild_job(
             bucket_name=artifacts.bucket_name,
             context_file=upload_path,
             image_name=name,
@@ -113,6 +113,7 @@ def create_workspace(
         "graph_definition": settings["nodes"],
         "input_schema": settings["input_schema"],
         "data_sources": settings["data_sources"],
+        "image_path": image_path,
     }
 
 

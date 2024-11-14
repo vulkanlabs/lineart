@@ -86,7 +86,7 @@ class GCPImageBuildManager:
         bucket_name: str,
         context_file: str,
         image_name: str,
-    ) -> None:
+    ) -> str:
         image_path = os.path.join(
             f"{self.gcp_region}-docker.pkg.dev",
             self.gcp_project_id,
@@ -144,7 +144,7 @@ class GCPImageBuildManager:
             msg = f"Failed to trigger job: {completed_process.stderr}"
             raise Exception(msg)
 
-        return None
+        return image_path
 
 
 def _get_access_token() -> str:

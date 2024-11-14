@@ -6,12 +6,9 @@ RUN mkdir /opt/dependencies
 COPY vulkan /opt/dependencies/vulkan
 COPY vulkan-public /opt/dependencies/vulkan-public
 
-{% if dependencies|length > 0 %}
-COPY {% for dependency in dependencies -%}
-{{ dependency.name }} \
-    {% endfor -%}
-/opt/dependencies/
-{% endif %}
+{% for dependency in dependencies %}
+COPY {{ dependency.name }} /opt/dependencies/{{ dependency.name }}
+{% endfor -%}
 
 COPY {{ policy.name }} /opt/policy/
 RUN uv pip install --system --no-cache /opt/dependencies/vulkan-public /opt/dependencies/vulkan \ 
@@ -19,9 +16,8 @@ RUN uv pip install --system --no-cache /opt/dependencies/vulkan-public /opt/depe
 {%- for dependency in dependencies -%}
 /opt/dependencies/{{ dependency.name }} {% if not loop.last %} {% endif %}
 {%- endfor %}
+RUN uv pip install --system --no-cache --extra beam -r /opt/dependencies/vulkan/pyproject.toml
 
-# Install Apache Beam SDK.
-RUN uv pip install --system --no-cache apache-beam[gcp]==2.60.0
 RUN pip check
 
 # Copy files from official SDK image, including script/dependencies.

@@ -173,6 +173,7 @@ class BeamLauncherClient:
         self,
         policy_version_id: str,
         backtest_id: str,
+        image: str,
         data_sources: dict,
         config_variables: dict | None = None,
     ) -> Response:
@@ -183,6 +184,7 @@ class BeamLauncherClient:
                 "project_id": self.project_id,
                 "policy_version_id": policy_version_id,
                 "backtest_id": backtest_id,
+                "image": image,
                 "data_sources": data_sources,
                 "config_variables": config_variables,
             },
