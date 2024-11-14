@@ -11,7 +11,8 @@ from vulkan_public.spec.nodes import (
 )
 
 from vulkan.beam.io import ReadParquet, WriteParquet
-from vulkan.beam.nodes import BeamInput, BeamNode, to_beam_node
+from vulkan.beam.nodes import BeamInput, BeamNode, BeamLogicNode, to_beam_node
+from vulkan.beam.context import make_beam_context
 from vulkan.core.graph import GraphEdges, GraphNodes, sort_nodes
 from vulkan.core.policy import Policy
 
@@ -37,7 +38,7 @@ class BeamPipelineBuilder:
 
         self.output_path = output_path
         self.data_sources = data_sources
-        self.config_variables = config_variables
+        self.context = make_beam_context(config_variables)
 
         self.pipeline_options = pipeline_options
         if not self.pipeline_options:
@@ -51,8 +52,8 @@ class BeamPipelineBuilder:
                 input_node = self._make_beam_input(node)
             else:
                 node = to_beam_node(node)
-                if node.type in _CONFIGURABLE_NODETYPES:
-                    node = node.with_env(self.config_variables)
+                if isinstance(node, BeamLogicNode):
+                    node = node.with_context(self.context)
                 nodes.append(node)
 
         sorted_nodes = sort_nodes(nodes, self.edges)
@@ -104,7 +105,6 @@ _IMPLEMENTED_NODETYPES = [
     NodeType.TRANSFORM,
     NodeType.TERMINATE,
 ]
-_CONFIGURABLE_NODETYPES = [NodeType.BRANCH, NodeType.TRANSFORM]
 
 
 def build_pipeline(pipeline, collections, sorted_nodes) -> BeamPipeline:

@@ -1,3 +1,5 @@
+import json
+
 from vulkan_public.cli.context import Context
 
 
@@ -14,14 +16,18 @@ def get_backtest(ctx: Context, backtest_id: str):
 
 
 def create_backtest(
-    ctx: Context, policy_version_id: str, input_file_path: str, file_format: str
+    ctx: Context,
+    policy_version_id: str,
+    input_file_path: str,
+    file_format: str,
+    config_variables: dict | None = None,
 ):
     response = ctx.session.post(
         f"{ctx.server_url}/backtests",
         params={
             "policy_version_id": policy_version_id,
             "file_format": file_format,
-            "config_variables": {},
+            "config_variables": json.dumps(config_variables),
         },
         files={"input_file": open(input_file_path, "rb")},
     )
