@@ -40,8 +40,6 @@ def launch_backtest(config: schemas.BacktestConfig):
         args.extend(["--config_variables", json.dumps(config.config_variables)])
 
     vm = VulkanWorkspaceManager(config.project_id, config.policy_version_id)
-    args.extend(["--workspace_path", vm.workspace_path])
-    args.extend(["--workspace_name", vm.workspace_name])
     args.extend(["--module_name", vm.code_location.module_name])
     args.extend(["--components_path", vm.components_path])
 

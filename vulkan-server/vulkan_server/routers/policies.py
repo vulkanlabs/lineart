@@ -370,6 +370,7 @@ def create_policy_version(
 
         version.input_schema = settings.input_schema
         version.graph_definition = json.dumps(settings.graph_definition)
+        version.base_worker_image = settings.image_path
     except Exception as e:
         if isinstance(e, VulkanInternalException):
             handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
@@ -412,31 +413,6 @@ def create_policy_version(
         f"Policy version {config.alias} created for policy {policy_id} with "
         f"status {version.status}"
     )
-
-    # Beam-specific
-    # TODO: temporary workaround
-    beam_workspace = BeamWorkspace(
-        policy_version_id=version.policy_version_id,
-        status=WorkspaceStatus.CREATION_PENDING,
-        image=settings.image_path,
-    )
-    db.add(beam_workspace)
-    response = requests.post(
-        url=f"{server_config.beam_launcher_url}/resources/workspaces",
-        json={
-            "project_id": project_id,
-            "policy_version_id": str(version.policy_version_id),
-            "repository": config.repository,
-            "required_components": settings.required_components,
-        },
-    )
-    if response.status_code != 200:
-        beam_workspace.status = WorkspaceStatus.CREATION_FAILED
-        db.commit()
-        handler.raise_exception(500, UNHANDLED_ERROR_NAME, response.json())
-    beam_workspace.status = WorkspaceStatus.OK
-    db.commit()
-    # END of Beam-specific segment
 
     return {
         "policy_id": policy_id,

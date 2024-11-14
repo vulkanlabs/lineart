@@ -15,16 +15,19 @@ from vulkan.environment.loaders import resolve_policy
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
+GCP_PROJECT_ID="vulkan-dev-a8b0"
+GCP_REGION="us-central1"
+GCP_DATAFLOW_WORKER_SA="beam-worker-service-account"
+GCP_DATAFLOW_TEMP_LOCATION="vulkan-dev-beam-temp"
+GCP_DATAFLOW_STAGING_LOCATION="vulkan-dev-beam-temp/staging"
+GCP_DATAFLOW_OUTPUT_BUCKET="vulkan-dev-beam-results"
 
-GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
-GCP_REGION = os.getenv("GCP_REGION")
-GCP_DATAFLOW_WORKER_SA = os.getenv("GCP_DATAFLOW_WORKER_SA")
-GCP_DATAFLOW_TEMP_LOCATION = os.getenv("GCP_DATAFLOW_TEMP_LOCATION")
-GCP_DATAFLOW_STAGING_LOCATION = os.getenv("GCP_DATAFLOW_STAGING_LOCATION")
-GCP_DATAFLOW_OUTPUT_BUCKET = os.getenv("GCP_DATAFLOW_OUTPUT_BUCKET")
-
-VULKAN_LIB_PATH = os.getenv("VULKAN_LIB_PATH")
-VULKAN_SERVER_PATH = os.getenv("VULKAN_SERVER_PATH")
+# GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
+# GCP_REGION = os.getenv("GCP_REGION")
+# GCP_DATAFLOW_WORKER_SA = os.getenv("GCP_DATAFLOW_WORKER_SA")
+# GCP_DATAFLOW_TEMP_LOCATION = os.getenv("GCP_DATAFLOW_TEMP_LOCATION")
+# GCP_DATAFLOW_STAGING_LOCATION = os.getenv("GCP_DATAFLOW_STAGING_LOCATION")
+# GCP_DATAFLOW_OUTPUT_BUCKET = os.getenv("GCP_DATAFLOW_OUTPUT_BUCKET")
 
 
 def launch_pipeline(

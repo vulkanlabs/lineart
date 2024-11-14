@@ -27,3 +27,16 @@ def create_backtest(
     )
     assert response.status_code == 200, f"Failed to create backtest: {response.content}"
     return response.json()
+
+
+def create_workspace(
+    ctx: Context,
+    policy_version_id: str,
+):
+    response = ctx.session.post(
+        f"{ctx.server_url}/backtests/create_workspace",
+        params={"policy_version_id": policy_version_id},
+    )
+
+    assert response.status_code == 200, f"Failed to create backtest: {response.content}"
+    return response.json()

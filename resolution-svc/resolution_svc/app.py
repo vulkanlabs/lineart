@@ -4,12 +4,17 @@ import os
 from typing import Annotated
 
 from fastapi import Body, Depends, FastAPI
+from pydantic.dataclasses import dataclass
 from vulkan.artifacts.gcs import GCSArtifactManager
 from vulkan_public.exceptions import ConflictingDefinitionsError
 
 from . import schemas
 from .context import ExecutionContext
-from .template import GCPBuildConfig, GCPImageBuildManager
+from .template import (
+    GCPBuildManager,
+    prepare_base_image_context,
+    prepare_beam_image_context,
+)
 from .workspace import VulkanComponentManager, VulkanWorkspaceManager
 
 app = FastAPI()
@@ -38,7 +43,7 @@ def get_artifact_manager():
     )
 
 
-def get_gcp_build_config() -> GCPBuildConfig:
+def get_gcp_build_manager() -> GCPBuildManager:
     GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
     GCP_REGION = os.getenv("GCP_REGION")
     GCP_REPOSITORY_NAME = os.getenv("GCP_REPOSITORY_NAME")
@@ -46,10 +51,29 @@ def get_gcp_build_config() -> GCPBuildConfig:
     if not GCP_PROJECT_ID or not GCP_REGION or not GCP_REPOSITORY_NAME:
         raise ValueError("GCP configuration missing")
 
-    return GCPBuildConfig(
-        project_id=GCP_PROJECT_ID,
-        region=GCP_REGION,
-        repository_name=GCP_REPOSITORY_NAME,
+    return GCPBuildManager(
+        gcp_project_id=GCP_PROJECT_ID,
+        gcp_region=GCP_REGION,
+        gcp_repository_name=GCP_REPOSITORY_NAME,
+    )
+
+
+@dataclass
+class ImageBuildConfig:
+    python_version: str
+    beam_sdk_version: str
+    flex_template_base_image: str
+
+
+def get_image_build_config():
+    python_version = os.getenv("VULKAN_PYTHON_VERSION")
+    beam_sdk_version = os.getenv("VULKAN_BEAM_SDK_VERSION")
+    flex_template_base_image = os.getenv("VULKAN_FLEX_TEMPLATE_BASE_IMAGE")
+
+    return ImageBuildConfig(
+        python_version=python_version,
+        beam_sdk_version=beam_sdk_version,
+        flex_template_base_image=flex_template_base_image,
     )
 
 
@@ -59,6 +83,8 @@ def create_workspace(
     project_id: Annotated[str, Body()],
     repository: Annotated[str, Body()],
     artifacts: GCSArtifactManager = Depends(get_artifact_manager),
+    build_manager: GCPBuildManager = Depends(get_gcp_build_manager),
+    image_build_config: ImageBuildConfig = Depends(get_image_build_config),
 ):
     """
     Create the dagster workspace and venv used to run a policy version.
@@ -66,13 +92,6 @@ def create_workspace(
     """
     logger.info(f"[{project_id}] Creating workspace: {name} (python_module)")
     vm = VulkanWorkspaceManager(project_id, name)
-    image_builder = GCPImageBuildManager(
-        VULKAN_SERVER_PATH,
-        name,
-        vm.workspace_path,
-        vm.components_path,
-        config=get_gcp_build_config(),
-    )
 
     with ExecutionContext(logger) as ctx:
         repository = base64.b64decode(repository)
@@ -94,13 +113,19 @@ def create_workspace(
         artifact_path = f"{project_id}/policy/{name}.tar.gz"
         artifacts.post(artifact_path, repository)
 
-        build_context_path = image_builder.prepare_docker_build_context(
-            dependencies=required_components
+        # Build base image
+        build_context_path = prepare_base_image_context(
+            server_path=VULKAN_SERVER_PATH,
+            workspace_name=vm.workspace_name,
+            workspace_path=vm.workspace_path,
+            components_path=vm.components_path,
+            dependencies=required_components,
+            python_version=image_build_config.python_version,
         )
         ctx.register_asset(build_context_path)
         upload_path = f"build_context/{name}.tar.gz"
         _ = artifacts.post_file(from_path=build_context_path, to_path=upload_path)
-        image_path = image_builder.trigger_cloudbuild_job(
+        image_path = build_manager.trigger_cloudbuild_job(
             bucket_name=artifacts.bucket_name,
             context_file=upload_path,
             image_name=name,
@@ -113,6 +138,44 @@ def create_workspace(
         "graph_definition": settings["nodes"],
         "input_schema": settings["input_schema"],
         "data_sources": settings["data_sources"],
+        "image_path": image_path,
+    }
+
+
+@app.post("/workspaces/beam/create")
+def create_beam_workspace(
+    name: Annotated[str, Body()],
+    base_image: Annotated[str, Body()],
+    artifacts: GCSArtifactManager = Depends(get_artifact_manager),
+    build_manager: GCPBuildManager = Depends(get_gcp_build_manager),
+    image_build_config: ImageBuildConfig = Depends(get_image_build_config),
+):
+    """
+    Create the dagster workspace and venv used to run a policy version.
+    """
+    beam_image_name = f"{name}-beam"
+
+    with ExecutionContext(logger) as ctx:
+        # Build base image
+        build_context_path = prepare_beam_image_context(
+            name=beam_image_name,
+            base_image=base_image,
+            server_path=VULKAN_SERVER_PATH,
+            python_version=image_build_config.python_version,
+            beam_sdk_version=image_build_config.beam_sdk_version,
+            flex_template_base_image=image_build_config.flex_template_base_image,
+        )
+        ctx.register_asset(build_context_path)
+        upload_path = f"build_context/{beam_image_name}.tar.gz"
+        _ = artifacts.post_file(from_path=build_context_path, to_path=upload_path)
+        image_path = build_manager.trigger_cloudbuild_job(
+            bucket_name=artifacts.bucket_name,
+            context_file=upload_path,
+            image_name=name,
+            image_tag="beam",
+        )
+
+    return {
         "image_path": image_path,
     }
 

@@ -14,72 +14,16 @@ class PackageSpec:
     path: str
 
 
-def render_dockerfile(
-    base_dir: str,
-    policy: PackageSpec,
-    dependencies: list[PackageSpec],
-):
-    env = Environment(
-        loader=FileSystemLoader(f"{base_dir}/resolution-svc/resolution_svc/templates")
-    )
-    dockerfile_template = env.get_template("Dockerfile.j2")
-
-    return dockerfile_template.render(
-        policy=policy,
-        dependencies=dependencies,
-        python_version="3.12",
-    )
-
-
-@dataclass
-class GCPBuildConfig:
-    project_id: str
-    region: str
-    repository_name: str
-
-
-class GCPImageBuildManager:
+class GCPBuildManager:
     def __init__(
         self,
-        server_path: str,
-        workspace_name: str,
-        workspace_path: str,
-        components_path: str,
-        config: GCPBuildConfig,
+        gcp_project_id: str,
+        gcp_region: str,
+        gcp_repository_name: str,
     ):
-        self.server_path = server_path
-        self.workspace_name = workspace_name
-        self.workspace_path = workspace_path
-        self.components_path = components_path
-
-        self.gcp_region = config.region
-        self.gcp_project_id = config.project_id
-        self.gcp_repository_name = config.repository_name
-
-    def prepare_docker_build_context(self, dependencies: list[str]):
-        policy_spec = PackageSpec(name=self.workspace_name, path=self.workspace_path)
-        dependency_specs = [
-            PackageSpec(name=dep, path=f"{self.components_path}/{dep}")
-            for dep in dependencies
-        ]
-        dockerfile_path = self._render_dockerfile(policy_spec, dependency_specs)
-
-        return pack_policy_build_context(
-            name=self.workspace_name,
-            dockerfile_path=dockerfile_path,
-            policy=policy_spec,
-            dependencies=dependency_specs,
-        )
-
-    def _render_dockerfile(
-        self, policy_spec: PackageSpec, dependency_specs: list[PackageSpec]
-    ) -> str:
-        dockerfile_path = f"{self.workspace_path}/Dockerfile"
-        dockerfile = render_dockerfile(self.server_path, policy_spec, dependency_specs)
-        with open(dockerfile_path, "w") as fp:
-            fp.write(dockerfile)
-
-        return dockerfile_path
+        self.gcp_project_id = gcp_project_id
+        self.gcp_region = gcp_region
+        self.gcp_repository_name = gcp_repository_name
 
     def trigger_cloudbuild_job(
         self,
@@ -93,6 +37,7 @@ class GCPImageBuildManager:
             self.gcp_repository_name,
             f"{image_name}:base",
         )
+
         request = {
             "source": {
                 "storageSource": {
@@ -102,6 +47,7 @@ class GCPImageBuildManager:
             },
             "steps": [
                 {
+                    "id": "base-image",
                     "name": "gcr.io/cloud-builders/docker",
                     "args": [
                         "build",
@@ -109,7 +55,7 @@ class GCPImageBuildManager:
                         image_path,
                         ".",
                     ],
-                }
+                },
             ],
             "images": [image_path],
         }
@@ -160,9 +106,81 @@ def _get_access_token() -> str:
     return completed_process.stdout.decode().strip("\n")
 
 
-def pack_policy_build_context(
+def prepare_base_image_context(
+    server_path: str,
+    workspace_name: str,
+    workspace_path: str,
+    components_path: str,
+    dependencies: list[str],
+    python_version: str,
+):
+    policy_spec = PackageSpec(name=workspace_name, path=workspace_path)
+    dependency_specs = [
+        PackageSpec(name=dep, path=f"{components_path}/{dep}") for dep in dependencies
+    ]
+
+    base_dockerfile_path = f"{workspace_path}/Dockerfile"
+    dockerfile = _render_dockerfile(
+        server_path,
+        template="Dockerfile.j2",
+        python_version=python_version,
+        policy=policy_spec,
+        dependencies=dependency_specs,
+    )
+    with open(base_dockerfile_path, "w") as fp:
+        fp.write(dockerfile)
+
+    return _pack_policy_build_context(
+        name=workspace_name,
+        base_dockerfile=base_dockerfile_path,
+        policy=policy_spec,
+        dependencies=dependency_specs,
+    )
+
+
+def prepare_beam_image_context(
     name: str,
-    dockerfile_path: str,
+    base_image: str,
+    server_path: str,
+    python_version: str,
+    beam_sdk_version: str,
+    flex_template_base_image: str,
+):
+    dockerfile_path = "/tmp/Dockerfile"
+    dockerfile = _render_dockerfile(
+        server_path,
+        template="Beam-Dockerfile.j2",
+        base_image=base_image,
+        python_version=python_version,
+        beam_sdk_version=beam_sdk_version,
+        flex_template_base_image=flex_template_base_image,
+    )
+    with open(dockerfile_path, "w") as fp:
+        fp.write(dockerfile)
+
+    filename = f"/tmp/{name}.{ARCHIVE_FORMAT}"
+    with tarfile.open(name=filename, mode=TAR_FLAGS) as tf:
+        tf.add(name=dockerfile_path, arcname="Dockerfile")
+        tf.add(
+            name=f"{server_path}/resolution-svc/resolution_svc/templates/launch_dataflow.py",
+            arcname="launch_dataflow.py",
+        )
+
+    return filename
+
+
+def _render_dockerfile(base_dir: str, template: str, **kwargs):
+    env = Environment(
+        loader=FileSystemLoader(f"{base_dir}/resolution-svc/resolution_svc/templates")
+    )
+    dockerfile_template = env.get_template(template)
+
+    return dockerfile_template.render(**kwargs)
+
+
+def _pack_policy_build_context(
+    name: str,
+    base_dockerfile: str,
     policy: PackageSpec,
     dependencies: list[PackageSpec],
 ) -> bytes:
@@ -173,7 +191,7 @@ def pack_policy_build_context(
             tf.add(name="vulkan-public", arcname="vulkan-public", filter=_tar_filter_fn)
             tf.add(name="vulkan", arcname="vulkan", filter=_tar_filter_fn)
 
-            tf.add(dockerfile_path, arcname="Dockerfile")
+            tf.add(base_dockerfile, arcname="Dockerfile")
             tf.add(policy.path, arcname=os.path.basename(policy.name))
             for dep in dependencies:
                 tf.add(dep.path, arcname=os.path.basename(dep.name))

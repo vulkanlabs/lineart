@@ -186,6 +186,8 @@ class PolicyVersion(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base)
     graph_definition = Column(String, nullable=True)
     variables = Column(ARRAY(String), nullable=True)
 
+    # Base worker image
+    base_worker_image = Column(String, nullable=True)
 
 class DagsterWorkspace(TimedUpdateMixin, Base):
     __tablename__ = "dagster_workspace"

@@ -11,17 +11,10 @@ COPY {{ dependency.name }} /opt/dependencies/{{ dependency.name }}
 {% endfor -%}
 
 COPY {{ policy.name }} /opt/policy/
-RUN uv pip install --system --no-cache /opt/dependencies/vulkan-public /opt/dependencies/vulkan \ 
+RUN uv pip install --system --no-cache \    
+    /opt/dependencies/vulkan-public \
+    /opt/dependencies/vulkan \ 
     /opt/policy {% if dependencies|length > 0 %} \ {% endif %}
 {%- for dependency in dependencies -%}
 /opt/dependencies/{{ dependency.name }} {% if not loop.last %} {% endif %}
 {%- endfor %}
-RUN uv pip install --system --no-cache --extra beam -r /opt/dependencies/vulkan/pyproject.toml
-
-RUN pip check
-
-# Copy files from official SDK image, including script/dependencies.
-COPY --from=apache/beam_python{{ python_version }}_sdk:2.60.0 /opt/apache/beam /opt/apache/beam
-
-# Set the entrypoint to Apache Beam SDK launcher.
-ENTRYPOINT ["/opt/apache/beam/boot"]
