@@ -25,17 +25,18 @@ class GCPBuildManager:
         self.gcp_region = gcp_region
         self.gcp_repository_name = gcp_repository_name
 
-    def trigger_cloudbuild_job(
+    def trigger_base_cloudbuild_job(
         self,
         bucket_name: str,
         context_file: str,
         image_name: str,
+        image_tag: str,
     ) -> str:
         image_path = os.path.join(
             f"{self.gcp_region}-docker.pkg.dev",
             self.gcp_project_id,
             self.gcp_repository_name,
-            f"{image_name}:base",
+            f"{image_name}:{image_tag}",
         )
 
         request = {
@@ -47,7 +48,7 @@ class GCPBuildManager:
             },
             "steps": [
                 {
-                    "id": "base-image",
+                    "id": "image",
                     "name": "gcr.io/cloud-builders/docker",
                     "args": [
                         "build",
@@ -60,6 +61,67 @@ class GCPBuildManager:
             "images": [image_path],
         }
 
+        return self._trigger_job(image_name, image_path, request)
+
+    def trigger_beam_cloudbuild_job(
+        self,
+        bucket_name: str,
+        context_file: str,
+        image_name: str,
+        image_tag: str,
+    ) -> str:
+        image_path = os.path.join(
+            f"{self.gcp_region}-docker.pkg.dev",
+            self.gcp_project_id,
+            self.gcp_repository_name,
+            f"{image_name}:{image_tag}",
+        )
+
+        request = {
+            "source": {
+                "storageSource": {
+                    "bucket": bucket_name,
+                    "object": context_file,
+                }
+            },
+            "steps": [
+                {
+                    "id": "image",
+                    "name": "gcr.io/cloud-builders/docker",
+                    "args": [
+                        "build",
+                        "-t",
+                        image_path,
+                        ".",
+                    ],
+                },
+                {
+                    "id": "build-flex-template",
+                    "name": "gcr.io/google.com/cloudsdktool/cloud-sdk",
+                    "args": [
+                        "gcloud",
+                        "dataflow",
+                        "flex-template",
+                        "build",
+                        f"gs://{bucket_name}/build-assets/flex-template/{image_name}.json",
+                        "--image",
+                        image_path,
+                        "--sdk-language",
+                        "PYTHON",
+                        "--project",
+                        self.gcp_project_id,
+                    ],
+                    "waitFor": ["image"],
+                },
+            ],
+            "images": [image_path],
+        }
+
+        return self._trigger_job(image_name, image_path, request)
+
+    def _trigger_job(
+        self, image_name: str, image_path: str, request: dict
+    ) -> tuple[str, dict]:
         request_file_path = f"/tmp/{image_name}.request.json"
         if os.path.exists(request_file_path):
             os.remove(request_file_path)
@@ -90,7 +152,9 @@ class GCPBuildManager:
             msg = f"Failed to trigger job: {completed_process.stderr}"
             raise Exception(msg)
 
-        return image_path
+        response = json.loads(completed_process.stdout)
+
+        return image_path, response
 
 
 def _get_access_token() -> str:
@@ -158,7 +222,7 @@ def prepare_beam_image_context(
     with open(dockerfile_path, "w") as fp:
         fp.write(dockerfile)
 
-    filename = f"/tmp/{name}.{ARCHIVE_FORMAT}"
+    filename = f"/tmp/beam-{name}.{ARCHIVE_FORMAT}"
     with tarfile.open(name=filename, mode=TAR_FLAGS) as tf:
         tf.add(name=dockerfile_path, arcname="Dockerfile")
         tf.add(

@@ -3,11 +3,9 @@ import logging
 import os
 from argparse import ArgumentParser
 
-from apache_beam.options.pipeline_options import (
-    GoogleCloudOptions,
-    PipelineOptions,
-    StandardOptions,
-)
+from apache_beam.options.pipeline_options import (GoogleCloudOptions,
+                                                  PipelineOptions,
+                                                  StandardOptions)
 from vulkan.beam.pipeline import BeamPipelineBuilder, DataEntryConfig
 from vulkan.core.policy import Policy
 from vulkan.environment.loaders import resolve_policy
@@ -31,11 +29,10 @@ GCP_DATAFLOW_OUTPUT_BUCKET="vulkan-dev-beam-results"
 
 
 def launch_pipeline(
-    project_id: str,
-    backtest_id: str,
     image: str,
     data_sources: dict[str, str],
     policy: Policy,
+    output_path: str,
     config_variables: dict[str, str] | None = None,
 ):
     data_sources = {
@@ -54,17 +51,15 @@ def launch_pipeline(
     google_cloud_options = pipeline_options.view_as(GoogleCloudOptions)
     google_cloud_options.project = GCP_PROJECT_ID
     google_cloud_options.region = GCP_REGION
-    google_cloud_options.temp_location = f"gs://{GCP_DATAFLOW_TEMP_LOCATION}"
-    google_cloud_options.staging_location = f"gs://{GCP_DATAFLOW_STAGING_LOCATION}"
-    google_cloud_options.service_account_email = (
-        f"{GCP_DATAFLOW_WORKER_SA}@{GCP_PROJECT_ID}.iam.gserviceaccount.com"
-    )
+    # google_cloud_options.temp_location = f"gs://{GCP_DATAFLOW_TEMP_LOCATION}"
+    # google_cloud_options.staging_location = f"gs://{GCP_DATAFLOW_STAGING_LOCATION}"
+    # google_cloud_options.service_account_email = (
+    #     f"{GCP_DATAFLOW_WORKER_SA}@{GCP_PROJECT_ID}.iam.gserviceaccount.com"
+    # )
 
     pipeline = BeamPipelineBuilder(
         policy=policy,
-        project_id=project_id,
-        backtest_id=backtest_id,
-        output_bucket=GCP_DATAFLOW_OUTPUT_BUCKET,
+        output_path=output_path,
         data_sources=data_sources,
         config_variables=config_variables,
         pipeline_options=pipeline_options,
@@ -76,15 +71,14 @@ def launch_pipeline(
 if __name__ == "__main__":
     parser = ArgumentParser()
     # Backtest config args
-    parser.add_argument("--project_id", type=str)
-    parser.add_argument("--backtest_id", type=str)
     parser.add_argument("--image", type=str)
+    parser.add_argument("--output_path", type=str)
     parser.add_argument("--data_sources", type=str)
     parser.add_argument("--config_variables", type=str)
     # Code location args
     parser.add_argument("--module_name", type=str)
     parser.add_argument("--components_path", type=str)
-    args = parser.parse_args()
+    args, unknown_args = parser.parse_known_args()
 
     data_sources = json.loads(args.data_sources)
 
@@ -95,10 +89,9 @@ if __name__ == "__main__":
 
     policy = resolve_policy(args.module_name, args.components_path)
     launch_pipeline(
-        project_id=args.project_id,
-        backtest_id=args.backtest_id,
         data_sources=data_sources,
         config_variables=config_variables,
         policy=policy,
         image=args.image,
+        output_path=args.output_path,
     )

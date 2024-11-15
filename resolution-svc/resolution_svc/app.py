@@ -103,7 +103,6 @@ def create_workspace(
 
         policy_definition_settings = vm.get_policy_definition_settings()
         required_components = policy_definition_settings["required_components"]
-        # TODO Check components are available
 
         logger.info(f"[{project_id}] Installing workspace: {name}")
         vm.install_components(required_components)
@@ -125,10 +124,11 @@ def create_workspace(
         ctx.register_asset(build_context_path)
         upload_path = f"build_context/{name}.tar.gz"
         _ = artifacts.post_file(from_path=build_context_path, to_path=upload_path)
-        image_path = build_manager.trigger_cloudbuild_job(
+        image_path, cloudbuild_job_info = build_manager.trigger_base_cloudbuild_job(
             bucket_name=artifacts.bucket_name,
             context_file=upload_path,
             image_name=name,
+            image_tag="base",
         )
 
     logger.info(f"Created workspace at: {workspace_path}")
@@ -153,12 +153,11 @@ def create_beam_workspace(
     """
     Create the dagster workspace and venv used to run a policy version.
     """
-    beam_image_name = f"{name}-beam"
 
     with ExecutionContext(logger) as ctx:
         # Build base image
         build_context_path = prepare_beam_image_context(
-            name=beam_image_name,
+            name=name,
             base_image=base_image,
             server_path=VULKAN_SERVER_PATH,
             python_version=image_build_config.python_version,
@@ -166,9 +165,9 @@ def create_beam_workspace(
             flex_template_base_image=image_build_config.flex_template_base_image,
         )
         ctx.register_asset(build_context_path)
-        upload_path = f"build_context/{beam_image_name}.tar.gz"
+        upload_path = f"build_context/beam/{name}.tar.gz"
         _ = artifacts.post_file(from_path=build_context_path, to_path=upload_path)
-        image_path = build_manager.trigger_cloudbuild_job(
+        image_path, cloudbuild_job_info = build_manager.trigger_beam_cloudbuild_job(
             bucket_name=artifacts.bucket_name,
             context_file=upload_path,
             image_name=name,
@@ -177,6 +176,7 @@ def create_beam_workspace(
 
     return {
         "image_path": image_path,
+        "cloudbuild_job_info": cloudbuild_job_info,
     }
 
 
