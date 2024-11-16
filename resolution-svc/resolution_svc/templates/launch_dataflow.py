@@ -1,11 +1,8 @@
 import json
 import logging
-import os
 from argparse import ArgumentParser
 
-from apache_beam.options.pipeline_options import (GoogleCloudOptions,
-                                                  PipelineOptions,
-                                                  StandardOptions)
+from apache_beam.options.pipeline_options import PipelineOptions
 from vulkan.beam.pipeline import BeamPipelineBuilder, DataEntryConfig
 from vulkan.core.policy import Policy
 from vulkan.environment.loaders import resolve_policy
@@ -38,19 +35,19 @@ def launch_pipeline(
     data_sources = {
         name: DataEntryConfig(source=source) for name, source in data_sources.items()
     }
-    worker_options = ["--machine_type=n1-standard-4"]
-    sdk = [
-        "--experiments=use_runner_v2",
-        f"--sdk_container_image={image}",
-        "--sdk_location=container",
-    ]
-    flags = sdk + worker_options
+    # worker_options = ["--machine_type=n1-standard-4"]
+    # sdk = [
+        # "--experiments=use_runner_v2",
+        # f"--sdk_container_image={image}",
+        # "--sdk_location=container",
+    # ]
+    # flags = sdk + worker_options
 
-    pipeline_options = PipelineOptions(flags)
-    pipeline_options.view_as(StandardOptions).runner = "DataflowRunner"
-    google_cloud_options = pipeline_options.view_as(GoogleCloudOptions)
-    google_cloud_options.project = GCP_PROJECT_ID
-    google_cloud_options.region = GCP_REGION
+    pipeline_options = PipelineOptions()
+    # pipeline_options.view_as(StandardOptions).runner = "DataflowRunner"
+    # google_cloud_options = pipeline_options.view_as(GoogleCloudOptions)
+    # google_cloud_options.project = GCP_PROJECT_ID
+    # google_cloud_options.region = GCP_REGION
     # google_cloud_options.temp_location = f"gs://{GCP_DATAFLOW_TEMP_LOCATION}"
     # google_cloud_options.staging_location = f"gs://{GCP_DATAFLOW_STAGING_LOCATION}"
     # google_cloud_options.service_account_email = (
