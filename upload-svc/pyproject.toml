@@ -12,9 +12,3 @@ dependencies = [
     "vulkan-public",
     "gcsfs>=2024.10.0",
 ]
-
-
-[tool.uv.sources]
-vulkan = { path = "../vulkan" }
-vulkan-public = { path = "../vulkan-public" }
-

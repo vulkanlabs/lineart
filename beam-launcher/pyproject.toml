@@ -12,7 +12,3 @@ dependencies = [
     "vulkan",
     "vulkan-public",
 ]
-
-[tool.uv.sources]
-vulkan = { path = "../vulkan", editable = true }
-vulkan-public = { path = "../vulkan-public", editable = true }

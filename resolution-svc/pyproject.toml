@@ -11,9 +11,5 @@ dependencies = [
 ]
 
 
-[tool.uv.sources]
-vulkan = { path = "../vulkan" }
-vulkan-public = { path = "../vulkan-public" }
-
 [tool.ruff]
 exclude = ["templates"]
