@@ -1,8 +1,8 @@
 FROM python:{{ python_version }}-slim
 
-RUN pip install uv
-RUN mkdir /opt/dependencies
+RUN pip install uv --no-cache-dir
 
+RUN mkdir /opt/dependencies
 COPY vulkan /opt/dependencies/vulkan
 COPY vulkan-public /opt/dependencies/vulkan-public
 
