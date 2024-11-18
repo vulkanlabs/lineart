@@ -28,6 +28,7 @@ from vulkan_public.spec.nodes import (
     TransformNode,
 )
 
+from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.dagster.io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
@@ -234,7 +235,7 @@ class DagsterTransformNodeMixin(DagsterNode):
             start_time = time.time()
             error = None
             try:
-                result = self.func(context, **inputs)
+                result = self._func(context, **inputs)
             except Exception as e:
                 error = ("\n").join(format_exception_only(type(e), e))
                 raise UserCodeException(self.name) from e
@@ -267,6 +268,17 @@ class DagsterTransformNodeMixin(DagsterNode):
         return node_op
 
 
+def _with_vulkan_context(func: callable) -> callable:
+    def fn(context: OpExecutionContext, **kwargs):
+        if func.__code__.co_varnames[0] == "context":
+            env = getattr(context.resources, POLICY_CONFIG_KEY)
+            ctx = VulkanExecutionContext(logger=context.log, env=env.variables)
+            return func(ctx, **kwargs)
+        return func(**kwargs)
+
+    return fn
+
+
 class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
     def __init__(
         self,
@@ -283,6 +295,7 @@ class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
             dependencies=dependencies,
             hidden=hidden,
         )
+        self._func = _with_vulkan_context(func)
 
     @classmethod
     def from_spec(cls, node: TransformNode):
@@ -311,7 +324,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             dependencies=dependencies,
             callback=callback,
         )
-        self.func = self._fn
+        self._func = self._fn
 
     def _fn(self, context, **kwargs):
         status = self.return_status
@@ -387,13 +400,14 @@ class DagsterBranch(BranchNode, DagsterNode):
             outputs=outputs,
             dependencies=dependencies,
         )
+        self._func = _with_vulkan_context(func)
 
     def op(self) -> OpDefinition:
         def fn(context, inputs):
             start_time = time.time()
             error = None
             try:
-                output = self.func(context, **inputs)
+                output = self._func(context, **inputs)
             except Exception as e:
                 error = format_exception_only(type(e), e)
                 raise UserCodeException(self.name) from e

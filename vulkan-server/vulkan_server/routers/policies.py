@@ -223,7 +223,7 @@ def list_runs_by_policy(
 def create_run_by_policy(
     policy_id: str,
     input_data: Annotated[dict, Body()],
-    config_variables: Annotated[dict[str, str], Body(default_factory=list)],
+    config_variables: Annotated[dict, Body(default_factory=list)],
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     dagster_client=Depends(get_dagster_client),

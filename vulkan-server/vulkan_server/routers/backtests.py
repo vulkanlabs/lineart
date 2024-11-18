@@ -1,3 +1,4 @@
+import json
 import os
 from uuid import UUID
 
@@ -100,7 +101,7 @@ async def create_backtest(
     input_file: UploadFile,
     file_format: SupportedFileFormat,
     name: str | None = None,
-    config_variables: dict[str, str] | None = None,
+    config_variables: str | None = None,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     file_input_client=Depends(make_file_input_service),
@@ -119,6 +120,9 @@ async def create_backtest(
             status_code=400,
             detail={"msg": f"Invalid policy_version_id {policy_version_id}"},
         )
+
+    if config_variables is not None:
+        config_variables = json.loads(config_variables)
 
     resolved_config, missing = resolve_config_variables(
         db=db,
