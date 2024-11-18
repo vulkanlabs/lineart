@@ -21,6 +21,9 @@ dev-dependencies = [
     "pytest-httpserver>=1.1.0",
 ]
 
+[tool.uv.sources]
+vulkan-public = { path = "../vulkan-public" }
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

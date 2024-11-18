@@ -12,7 +12,6 @@ dependencies = [
     "pytest>=8.3.2",
     "pytest-httpserver>=1.1.0",
     "pandas>=2.2.3",
-    "vulkan-public",
     "vulkan[dagster]",
     "pyarrow",
 ]
@@ -20,3 +19,6 @@ requires-python = ">=3.10"
 
 [tool.uv]
 dev-dependencies = ["pytest>=8.3.2"]
+
+[tool.uv.sources]
+vulkan = { path = "../vulkan" }
