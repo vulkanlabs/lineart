@@ -367,6 +367,10 @@ class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
     name = Column(String, nullable=True)
     config_variables = Column(JSON, nullable=True)
 
+    # Run-Specific info
+    gcp_project_id = Column(String, nullable=True)
+    gcp_job_id = Column(String, nullable=True)
+
 
 if __name__ == "__main__":
     Base.metadata.create_all(engine)

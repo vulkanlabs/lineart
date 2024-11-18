@@ -64,7 +64,9 @@ def launch_run(
     )
 
     launch_time = datetime.now()
-    job_name = f"test-run-{policy_version_id}-{launch_time.strftime('%Y%m%d-%H%M%S')}"
+    job_name = (
+        f"policy-{policy_version_id}-time-{launch_time.strftime('%Y%m%d-%H%M%S')}"
+    )
 
     script_params = {
         "output_path": f"{config.output_bucket}/{project_id}/{backtest_id}",
@@ -72,6 +74,7 @@ def launch_run(
         "module_name": module_name,
         "components_path": components_path,
         "image": image,
+        "config_variables": json.dumps(config_variables) if config_variables else "{}",
     }
 
     template_file_gcs_location = os.path.join(
@@ -92,10 +95,15 @@ def launch_run(
     )
 
     response = dataflow_client.launch_flex_template(request=job_request)
-    return {
-        "job_id": response.job.id,
-        "project_id": response.job.project_id,
-        "name": response.job.name,
-        "create_time": response.job.create_time,
-        "current_state": response.job.current_state,
-    }
+    # TODO: check if launch succeeded
+    logger.info(f"Launched backtest {backtest_id} with job id {response.job.id}")
+    return LaunchRunResponse(
+        job_id=response.job.id,
+        project_id=response.job.project_id,
+    )
+
+
+@dataclass
+class LaunchRunResponse:
+    job_id: str
+    project_id: str

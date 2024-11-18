@@ -156,7 +156,6 @@ async def create_backtest(
         db.query(BeamWorkspace).filter_by(policy_version_id=policy_version_id).first()
     )
 
-
     response = launch_run(
         policy_version_id=str(policy_version_id),
         project_id=str(project_id),
@@ -169,6 +168,9 @@ async def create_backtest(
         config_variables=config_variables,
         components_path="/opt/dependencies/",
     )
+    backtest.gcp_project_id = response.project_id
+    backtest.gcp_job_id = response.job_id
+    db.commit()
 
     logger.info(f"Launched run {response}")
 
