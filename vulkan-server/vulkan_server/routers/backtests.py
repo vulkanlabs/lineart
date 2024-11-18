@@ -8,9 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from gcsfs import GCSFileSystem
 from pyarrow import parquet
 from sqlalchemy.orm import Session
+from vulkan.backtest.definitions import BacktestStatus, SupportedFileFormat
 from vulkan_public.spec.dependency import INPUT_NODE
 
-from vulkan.backtest.definitions import BacktestStatus, SupportedFileFormat
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.beam.launcher import launch_run
@@ -105,9 +105,6 @@ async def create_backtest(
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     file_input_client=Depends(make_file_input_service),
-    resolution_service: ResolutionServiceClient = Depends(
-        get_resolution_service_client
-    ),
 ):
     policy_version: PolicyVersion = (
         db.query(PolicyVersion)
@@ -159,16 +156,18 @@ async def create_backtest(
         db.query(BeamWorkspace).filter_by(policy_version_id=policy_version_id).first()
     )
 
+
     response = launch_run(
         policy_version_id=str(policy_version_id),
         project_id=str(project_id),
         backtest_id=str(backtest.backtest_id),
         image=workspace.image,
+        module_name=policy_version.module_name,
         data_sources={
             INPUT_NODE: backtest.input_data_path,
         },
         config_variables=config_variables,
-        module_name=policy_version.module_name,
+        components_path="/opt/dependencies/",
     )
 
     logger.info(f"Launched run {response}")

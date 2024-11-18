@@ -137,7 +137,7 @@ def create_workspace(
     logger.info(f"Created workspace at: {workspace_path}")
     return {
         "policy_definition_settings": policy_definition_settings,
-        "module_name": vm.workspace_name,
+        "module_name": vm.code_location.module_name,
         "workspace_path": workspace_path,
         "graph_definition": settings["nodes"],
         "input_schema": settings["input_schema"],

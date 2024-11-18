@@ -1,9 +1,14 @@
+import json
 import os
 from datetime import datetime
+from typing import Any
 
-from fastapi import Depends
 from google.cloud import dataflow_v1beta3 as dataflow
 from pydantic.dataclasses import dataclass
+
+from vulkan_server.logger import init_logger
+
+logger = init_logger("beam-launcher")
 
 
 @dataclass
@@ -19,36 +24,15 @@ class DataflowConfig:
 
 
 def get_dataflow_config() -> DataflowConfig:
-    GCP_DATAFLOW_SERVICE_ACCOUNT_EMAIL = os.getenv("GCP_DATAFLOW_SERVICE_ACCOUNT_EMAIL")
-    GCP_DATAFLOW_MACHINE_TYPE = os.getenv("GCP_DATAFLOW_MACHINE_TYPE")
-    GCP_DATAFLOW_TEMP_LOCATION = os.getenv("GCP_DATAFLOW_TEMP_LOCATION")
-    GCP_DATAFLOW_STAGING_LOCATION = os.getenv("GCP_DATAFLOW_STAGING_LOCATION")
-    GCP_DATAFLOW_PROJECT = os.getenv("GCP_DATAFLOW_PROJECT")
-    GCP_DATAFLOW_REGION = os.getenv("GCP_DATAFLOW_REGION")
-    GCP_DATAFLOW_OUTPUT_BUCKET = os.getenv("GCP_DATAFLOW_OUTPUT_BUCKET")
-    GCP_DATAFLOW_TEMPLATES_PATH = os.getenv("GCP_DATAFLOW_TEMPLATES_PATH")
-
-    if (
-        GCP_DATAFLOW_SERVICE_ACCOUNT_EMAIL is None
-        or GCP_DATAFLOW_MACHINE_TYPE is None
-        or GCP_DATAFLOW_TEMP_LOCATION is None
-        or GCP_DATAFLOW_STAGING_LOCATION is None
-        or GCP_DATAFLOW_PROJECT is None
-        or GCP_DATAFLOW_REGION is None
-        or GCP_DATAFLOW_OUTPUT_BUCKET is None
-        or GCP_DATAFLOW_TEMPLATES_PATH is None
-    ):
-        raise ValueError("Dataflow configuration is missing")
-
     return DataflowConfig(
-        project=GCP_DATAFLOW_PROJECT,
-        region=GCP_DATAFLOW_REGION,
-        service_account=GCP_DATAFLOW_SERVICE_ACCOUNT_EMAIL,
-        machine_type=GCP_DATAFLOW_MACHINE_TYPE,
-        temp_location=GCP_DATAFLOW_TEMP_LOCATION,
-        staging_location=GCP_DATAFLOW_STAGING_LOCATION,
-        output_bucket=GCP_DATAFLOW_OUTPUT_BUCKET,
-        templates_path=GCP_DATAFLOW_TEMPLATES_PATH,
+        project=os.getenv("GCP_DATAFLOW_PROJECT_ID", None),
+        region=os.getenv("GCP_DATAFLOW_REGION", None),
+        service_account=os.getenv("GCP_DATAFLOW_SERVICE_ACCOUNT_EMAIL", None),
+        machine_type=os.getenv("GCP_DATAFLOW_MACHINE_TYPE", None),
+        temp_location=os.getenv("GCP_DATAFLOW_TEMP_LOCATION", None),
+        staging_location=os.getenv("GCP_DATAFLOW_STAGING_LOCATION", None),
+        output_bucket=os.getenv("GCP_DATAFLOW_OUTPUT_BUCKET", None),
+        templates_path=os.getenv("GCP_DATAFLOW_TEMPLATES_PATH", None),
     )
 
 
@@ -64,19 +48,19 @@ def launch_run(
     module_name: str,
     data_sources: dict,
     components_path: str,
-    dataflow_client=Depends(get_dataflow_client),
-    config=Depends(get_dataflow_config),
+    config_variables: dict[str, Any] | None = None,
 ):
-    environment = (
-        dataflow.FlexTemplateRuntimeEnvironment(
-            num_workers=1,
-            max_workers=5,
-            sdk_container_image=image,
-            temp_location=config.temp_location,
-            staging_location=config.staging_location,
-            machine_type=config.machine_type,
-            service_account_email=config.service_account,
-        ),
+    dataflow_client = get_dataflow_client()
+    config = get_dataflow_config()
+
+    environment = dataflow.FlexTemplateRuntimeEnvironment(
+        num_workers=1,
+        max_workers=5,
+        sdk_container_image=image,
+        temp_location=config.temp_location,
+        staging_location=config.staging_location,
+        machine_type=config.machine_type,
+        service_account_email=config.service_account,
     )
 
     launch_time = datetime.now()
@@ -84,13 +68,15 @@ def launch_run(
 
     script_params = {
         "output_path": f"{config.output_bucket}/{project_id}/{backtest_id}",
-        "data_sources": data_sources,
+        "data_sources": json.dumps(data_sources),
         "module_name": module_name,
         "components_path": components_path,
         "image": image,
     }
 
-    template_file_gcs_location = f"{config.templates_path}/{policy_version_id}.json"
+    template_file_gcs_location = os.path.join(
+        config.templates_path, f"{policy_version_id}.json"
+    )
 
     job_parameters = dataflow.LaunchFlexTemplateParameter(
         job_name=job_name,
