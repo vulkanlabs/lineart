@@ -8,12 +8,7 @@ from cookiecutter.main import cookiecutter
 from vulkan_public.cli.context import Context, pass_context
 
 
-@click.group()
-def init():
-    pass
-
-
-@init.command()
+@click.command()
 @click.option(
     "--output-dir",
     "-o",
@@ -22,7 +17,7 @@ def init():
     help="Directory to create the policy in",
 )
 @pass_context
-def policy(ctx: Context, output_dir: str):
+def init(ctx: Context, output_dir: str):
     click.echo("Configuration for the new policy:")
     name = click.prompt("Name")
     version = click.prompt("Version", default="v0.0.1")
