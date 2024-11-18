@@ -1,8 +1,7 @@
-set -ex 
+set -ex
 
 POLICY_ID=$1
 REGION="us-central1"
-LAUNCHER_SERVICE_ACCOUNT="beam-launcher-service-account@vulkan-dev-a8b0.iam.gserviceaccount.com"
 WORKER_SERVICE_ACCOUNT="beam-worker-service-account@vulkan-dev-a8b0.iam.gserviceaccount.com"
 MACHINE_TYPE="n1-standard-2"
 GCP_DATAFLOW_TEMP_LOCATION="gs://vulkan-dev-beam-temp"

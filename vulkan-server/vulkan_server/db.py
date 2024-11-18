@@ -20,6 +20,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
+
 from vulkan.backtest.definitions import BacktestStatus
 from vulkan.core.run import RunStatus
 
@@ -185,9 +186,11 @@ class PolicyVersion(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base)
     input_schema = Column(JSON, nullable=True)
     graph_definition = Column(String, nullable=True)
     variables = Column(ARRAY(String), nullable=True)
+    module_name = Column(String, nullable=True)
 
     # Base worker image
     base_worker_image = Column(String, nullable=True)
+
 
 class DagsterWorkspace(TimedUpdateMixin, Base):
     __tablename__ = "dagster_workspace"

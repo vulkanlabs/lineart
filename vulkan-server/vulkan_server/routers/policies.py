@@ -365,6 +365,7 @@ def create_policy_version(
 
         version.input_schema = settings.input_schema
         version.graph_definition = json.dumps(settings.graph_definition)
+        version.module_name = settings.module_name
         version.base_worker_image = settings.image_path
     except Exception as e:
         if isinstance(e, VulkanInternalException):
@@ -475,6 +476,7 @@ def _add_data_source_dependencies(
 
 @dataclass
 class PolicyVersionSettings:
+    module_name: str
     input_schema: dict[str, str]
     graph_definition: str
     workspace_path: str
@@ -498,6 +500,7 @@ def _create_policy_version_workspace(
     definition_settings = response_data["policy_definition_settings"]
 
     version_settings = PolicyVersionSettings(
+        module_name=response_data["module_name"],
         input_schema=response_data["input_schema"],
         graph_definition=response_data["graph_definition"],
         data_sources=response_data.get("data_sources", []),

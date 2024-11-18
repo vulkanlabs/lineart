@@ -13,6 +13,7 @@ from vulkan_public.spec.dependency import INPUT_NODE
 from vulkan.backtest.definitions import BacktestStatus, SupportedFileFormat
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
+from vulkan_server.beam.launcher import launch_run
 from vulkan_server.config_variables import resolve_config_variables
 from vulkan_server.db import (
     Backtest,
@@ -25,7 +26,6 @@ from vulkan_server.logger import init_logger
 from vulkan_server.services import (
     ResolutionServiceClient,
     VulkanFileIngestionServiceClient,
-    get_beam_launcher_client,
     get_resolution_service_client,
 )
 
@@ -105,7 +105,6 @@ async def create_backtest(
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     file_input_client=Depends(make_file_input_service),
-    beam_launcher_client=Depends(get_beam_launcher_client),
     resolution_service: ResolutionServiceClient = Depends(
         get_resolution_service_client
     ),
@@ -160,16 +159,19 @@ async def create_backtest(
         db.query(BeamWorkspace).filter_by(policy_version_id=policy_version_id).first()
     )
 
-    response = beam_launcher_client.launch_job(
+    response = launch_run(
         policy_version_id=str(policy_version_id),
+        project_id=str(project_id),
         backtest_id=str(backtest.backtest_id),
         image=workspace.image,
         data_sources={
             INPUT_NODE: backtest.input_data_path,
         },
         config_variables=config_variables,
+        module_name=policy_version.module_name,
     )
-    backtest.output_path = response.json()["output_path"]
+
+    logger.info(f"Launched run {response}")
 
     return backtest
 

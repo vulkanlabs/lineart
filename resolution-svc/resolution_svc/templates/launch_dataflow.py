@@ -1,3 +1,4 @@
+from typing import Any
 import json
 import logging
 from argparse import ArgumentParser
@@ -11,7 +12,7 @@ logger.setLevel(logging.INFO)
 
 def launch_pipeline(
     image: str,
-    data_sources: dict[str, str],
+    data_sources: dict[str, Any],
     module_name: str,
     components_path: str,
     output_path: str,
@@ -20,7 +21,7 @@ def launch_pipeline(
 ):
     policy = resolve_policy(module_name, components_path)
 
-    data_sources = {
+    data_sources_map = {
         name: DataEntryConfig(source=source) for name, source in data_sources.items()
     }
 
@@ -34,7 +35,7 @@ def launch_pipeline(
     pipeline = BeamPipelineBuilder(
         policy=policy,
         output_path=output_path,
-        data_sources=data_sources,
+        data_sources=data_sources_map,
         config_variables=config_variables,
         pipeline_options=pipeline_options,
     ).build()
