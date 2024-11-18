@@ -4,34 +4,44 @@ import subprocess
 from shutil import rmtree
 from time import time
 
-from vulkan.environment.workspace import VulkanCodeLocation
 from vulkan_public.exceptions import (
     ConflictingDefinitionsError,
     DefinitionNotFoundException,
     InvalidDefinitionError,
 )
 from vulkan_public.spec.environment.packing import unpack_workspace
+from vulkan_public.spec.environment.workspace import VulkanCodeLocation
 
-VULKAN_HOME = os.getenv("VULKAN_HOME")
+from .config import VulkanConfig
+
 VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
 SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
-WORKSPACES_PATH = f"{VULKAN_HOME}/workspaces"
 
 
 class VulkanWorkspaceManager:
-    def __init__(self, project_id: str, workspace_name: str) -> None:
+    def __init__(
+        self, project_id: str, workspace_name: str, config: VulkanConfig
+    ) -> None:
         self.project_id = project_id
         self.workspace_name = workspace_name
-        self.workspace_path = f"{WORKSPACES_PATH}/{self.workspace_name}"
         self._code_location = None
+        self.config = config
 
     @property
     def venv_path(self) -> str:
-        return f"{VENVS_PATH}/{self.workspace_name}"
+        return f"{self.config.venvs_path}/{self.workspace_name}"
+
+    @property
+    def workspace_base_path(self) -> str:
+        return f"{self.config.home}/workspaces"
+
+    @property
+    def workspace_path(self) -> str:
+        return f"{self.workspace_base_path}/{self.workspace_name}"
 
     @property
     def components_path(self) -> str:
-        return f"{VULKAN_HOME}/components/{self.project_id}"
+        return f"{self.config.home}/components/{self.project_id}"
 
     @property
     def code_location(self) -> VulkanCodeLocation:
@@ -41,7 +51,7 @@ class VulkanWorkspaceManager:
 
     def unpack_workspace(self, repository: bytes) -> str:
         workspace_path = unpack_workspace(
-            WORKSPACES_PATH, self.workspace_name, repository
+            self.workspace_base_path, self.workspace_name, repository
         )
         return workspace_path
 
@@ -63,7 +73,7 @@ class VulkanWorkspaceManager:
 
     def delete_resources(self):
         rmtree(self.workspace_path)
-        rmtree(f"{VENVS_PATH}/{self.workspace_name}")
+        rmtree(f"{self.config.venvs_path}/{self.workspace_name}")
 
 
 class VulkanComponentManager:
@@ -71,13 +81,15 @@ class VulkanComponentManager:
         self,
         project_id: str,
         component_alias: str,
+        config: VulkanConfig,
     ) -> None:
         self.project_id = project_id
         self.component_alias = component_alias
+        self.config = config
 
     @property
     def components_path(self) -> str:
-        return f"{VULKAN_HOME}/components/{self.project_id}"
+        return f"{self.config.home}/components/{self.project_id}"
 
     def unpack_component(self, repository: bytes) -> str:
         return unpack_workspace(self.components_path, self.component_alias, repository)

@@ -31,7 +31,7 @@ class GCPBuildManager:
         context_file: str,
         image_name: str,
         image_tag: str,
-    ) -> str:
+    ) -> tuple[str, dict]:
         image_path = os.path.join(
             f"{self.gcp_region}-docker.pkg.dev",
             self.gcp_project_id,
@@ -69,7 +69,7 @@ class GCPBuildManager:
         context_file: str,
         image_name: str,
         image_tag: str,
-    ) -> str:
+    ) -> tuple[str, dict]:
         image_path = os.path.join(
             f"{self.gcp_region}-docker.pkg.dev",
             self.gcp_project_id,
@@ -209,7 +209,7 @@ def prepare_beam_image_context(
     python_version: str,
     beam_sdk_version: str,
     flex_template_base_image: str,
-):
+) -> str:
     dockerfile_path = "/tmp/Dockerfile"
     dockerfile = _render_dockerfile(
         server_path,
@@ -247,7 +247,7 @@ def _pack_policy_build_context(
     base_dockerfile: str,
     policy: PackageSpec,
     dependencies: list[PackageSpec],
-) -> bytes:
+) -> str:
     basename = f".tmp.{name}"
     filename = f"{basename}.{ARCHIVE_FORMAT}"
     try:

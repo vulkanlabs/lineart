@@ -194,6 +194,7 @@ def create_backtest_workspace(
         status=WorkspaceStatus.CREATION_PENDING,
     )
     db.add(beam_workspace)
+
     response = requests.post(
         url=f"{resolution_service.server_url}/workspaces/beam/create",
         json={
