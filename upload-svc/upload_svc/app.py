@@ -90,6 +90,11 @@ async def validate_and_publish(
 
 
 def _deserialize_schema(schema: str) -> dict[str, type]:
+    # Schemas are serialized as JSON for API requests. They need to be
+    # deserialized back into Python native types in order to load and
+    # validate the content of uploaded files.
+    # Currently only supporting built-in types, but could be extended to
+    # support custom types in the future.
     return {k: getattr(builtins, v) for k, v in json.loads(schema).items()}
 
 
