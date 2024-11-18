@@ -92,7 +92,7 @@ def delete_data_source(
         )
         .first()
     )
-    if data_source_id is None:
+    if data_source is None:
         msg = f"Tried to delete non-existent data source {data_source_id}"
         raise HTTPException(status_code=404, detail=msg)
 

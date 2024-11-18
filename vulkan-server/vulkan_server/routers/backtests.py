@@ -8,9 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from gcsfs import GCSFileSystem
 from pyarrow import parquet
 from sqlalchemy.orm import Session
-from vulkan.backtest.definitions import BacktestStatus, SupportedFileFormat
 from vulkan_public.spec.dependency import INPUT_NODE
 
+from vulkan.backtest.definitions import BacktestStatus, SupportedFileFormat
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.config_variables import resolve_config_variables
@@ -156,10 +156,9 @@ async def create_backtest(
     db.add(backtest)
     db.commit()
 
-    workspace = (
+    workspace: BeamWorkspace = (
         db.query(BeamWorkspace).filter_by(policy_version_id=policy_version_id).first()
     )
-    db.commit()
 
     response = beam_launcher_client.launch_job(
         policy_version_id=str(policy_version_id),
@@ -240,6 +239,11 @@ def get_backtest_results(
 def load_backtest_results(results_path: str) -> pd.DataFrame:
     token_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     gcp_project = os.environ.get("GCP_PROJECT_ID")
+
+    if token_path is None or gcp_project is None:
+        raise ValueError(
+            "GOOGLE_APPLICATION_CREDENTIALS and GCP_PROJECT_ID must be set"
+        )
 
     fs = GCSFileSystem(project=gcp_project, access="read_write", token=token_path)
     files = fs.ls(results_path)

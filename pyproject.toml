@@ -7,20 +7,15 @@ requires-python = ">=3.12"
 dependencies = ["vulkan", "vulkan-public", "vulkan-server"]
 
 [tool.uv.workspace]
-members = [
-    "vulkan-public",
-    "vulkan",
-    "vulkan-server",
-    "vulkan-dagster",
-    "beam-launcher",
-    "resolution-svc",
-    "upload-svc",
-]
+members = ["vulkan-server", "vulkan-dagster", "resolution-svc", "upload-svc"]
 
 [tool.uv.sources]
-vulkan-public = { workspace = true }
-vulkan = { workspace = true }
 vulkan-server = { workspace = true }
+vulkan-dagster = { workspace = true }
+resolution-svc = { workspace = true }
+upload-svc = { workspace = true }
+vulkan-public = { path = "vulkan-public" }
+vulkan = { path = "vulkan" }
 
 [build-system]
 requires = ["hatchling"]

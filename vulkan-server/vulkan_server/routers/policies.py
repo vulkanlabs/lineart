@@ -5,7 +5,6 @@ from itertools import chain
 from typing import Annotated, Any
 
 import pandas as pd
-import requests
 import sqlalchemy.exc
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy import func as F
@@ -26,7 +25,6 @@ from vulkan_server.dagster.service_client import (
     get_dagster_service_client,
 )
 from vulkan_server.db import (
-    BeamWorkspace,
     ComponentVersion,
     ComponentVersionDependency,
     DagsterWorkspace,
@@ -295,9 +293,6 @@ def create_policy_version(
     ),
     dagster_launcher_client: VulkanDagsterServiceClient = Depends(
         get_dagster_service_client
-    ),
-    server_config: definitions.VulkanServerConfig = Depends(
-        definitions.get_vulkan_server_config
     ),
 ):
     handler = ExceptionHandler(
