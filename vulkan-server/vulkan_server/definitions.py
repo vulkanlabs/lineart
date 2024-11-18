@@ -12,6 +12,7 @@ class VulkanServerConfig:
     vulkan_dagster_server_url: str
     upload_service_url: str
     resolution_service_url: str
+    beam_launcher_url: str
 
     metrics_max_days: int = 30
 
@@ -34,10 +35,15 @@ def get_vulkan_server_config() -> VulkanServerConfig:
     resolution_service_url = os.getenv("RESOLUTION_SERVICE_URL")
     if resolution_service_url is None:
         raise ValueError("RESOLUTION_SERVICE_URL must be set")
+    
+    beam_launcher_url = os.getenv("BEAM_LAUNCHER_URL")
+    if beam_launcher_url is None:
+        raise ValueError("BEAM_LAUNCHER_URL must be set")
 
     return VulkanServerConfig(
         server_url=f"http://{app_host}:{app_port}",
         vulkan_dagster_server_url=f"http://{dagster_host}:{dagster_server_port}",
         upload_service_url=upload_service_url,
         resolution_service_url=resolution_service_url,
+        beam_launcher_url=beam_launcher_url,
     )

@@ -28,6 +28,7 @@ from vulkan_public.spec.nodes import (
     TransformNode,
 )
 
+from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.dagster.io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
@@ -234,7 +235,7 @@ class DagsterTransformNodeMixin(DagsterNode):
             start_time = time.time()
             error = None
             try:
-                result = self.func(context, **inputs)
+                result = self._func(context, **inputs)
             except Exception as e:
                 error = ("\n").join(format_exception_only(type(e), e))
                 raise UserCodeException(self.name) from e
@@ -267,6 +268,17 @@ class DagsterTransformNodeMixin(DagsterNode):
         return node_op
 
 
+def _with_vulkan_context(func: callable) -> callable:
+    def fn(context: OpExecutionContext, **kwargs):
+        if func.__code__.co_varnames[0] == "context":
+            env = getattr(context.resources, POLICY_CONFIG_KEY)
+            ctx = VulkanExecutionContext(logger=context.log, env=env.variables)
+            return func(ctx, **kwargs)
+        return func(**kwargs)
+
+    return fn
+
+
 class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
     def __init__(
         self,
@@ -283,6 +295,7 @@ class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
             dependencies=dependencies,
             hidden=hidden,
         )
+        self._func = _with_vulkan_context(func)
 
     @classmethod
     def from_spec(cls, node: TransformNode):
@@ -300,7 +313,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         self,
         name: str,
         description: str,
-        return_status: UserStatus,
+        return_status: UserStatus | str,
         dependencies: dict[str, Any],
         callback: Callable | None = None,
     ):
@@ -311,13 +324,15 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             dependencies=dependencies,
             callback=callback,
         )
-        self.func = self._fn
+        self._func = self._fn
 
     def _fn(self, context, **kwargs):
+        status = self.return_status
+        result = status.value if isinstance(status, Enum) else status
         vulkan_run_config = context.resources.vulkan_run_config
-        context.log.info(f"Terminating with status {self.return_status}")
+        context.log.info(f"Terminating with status {status}")
 
-        terminated = self._terminate(context, self.return_status)
+        terminated = self._terminate(context, result)
         if not terminated:
             raise ValueError("Failed to terminate run")
 
@@ -325,18 +340,18 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             reported = self.callback(
                 context=context,
                 run_id=vulkan_run_config.run_id,
-                return_status=self.return_status,
+                return_status=status,
                 **kwargs,
             )
             if not reported:
                 raise ValueError("Callback function failed")
 
-        return self.return_status.value
+        return result
 
     def _terminate(
         self,
         context: OpExecutionContext,
-        result: UserStatus,
+        result: str,
     ) -> bool:
         vulkan_run_config = getattr(context.resources, RUN_CONFIG_KEY)
         server_url = vulkan_run_config.server_url
@@ -344,7 +359,6 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
 
         url = f"{server_url}/runs/{run_id}"
         dagster_run_id: str = context.run_id
-        result: str = result.value
         context.log.info(f"Returning status {result} to {url} for run {dagster_run_id}")
         response = requests.put(
             url,
@@ -386,13 +400,14 @@ class DagsterBranch(BranchNode, DagsterNode):
             outputs=outputs,
             dependencies=dependencies,
         )
+        self._func = _with_vulkan_context(func)
 
     def op(self) -> OpDefinition:
         def fn(context, inputs):
             start_time = time.time()
             error = None
             try:
-                output = self.func(context, **inputs)
+                output = self._func(context, **inputs)
             except Exception as e:
                 error = format_exception_only(type(e), e)
                 raise UserCodeException(self.name) from e

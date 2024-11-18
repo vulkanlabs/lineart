@@ -179,7 +179,11 @@ class PolicyVersion(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base)
     status = Column(Enum(PolicyVersionStatus))
     repository = Column(String)
     repository_version = Column(String)
-    graph_definition = Column(String)
+    # The fields below require the policy version to be resolved
+    # first, hence the "nullable=True". With regards to the application,
+    # `input_schema` and `graph_definition` are actually non-nullable.
+    input_schema = Column(JSON, nullable=True)
+    graph_definition = Column(String, nullable=True)
     variables = Column(ARRAY(String), nullable=True)
 
 
@@ -341,6 +345,7 @@ class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
     backtest_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
     input_data_path = Column(String)
+    output_path = Column(String, nullable=True)
     status = Column(Enum(BacktestStatus))
     name = Column(String, nullable=True)
     config_variables = Column(JSON, nullable=True)

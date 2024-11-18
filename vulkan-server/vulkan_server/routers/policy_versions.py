@@ -115,7 +115,7 @@ def delete_policy_version(
 def create_run_by_policy_version(
     policy_version_id: str,
     input_data: Annotated[dict, Body()],
-    config_variables: Annotated[dict[str, str], Body(default_factory=dict)],
+    config_variables: Annotated[dict, Body(default_factory=dict)],
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
     ),

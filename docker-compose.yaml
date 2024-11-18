@@ -13,6 +13,8 @@ services:
     depends_on:
       app-db:
         condition: service_healthy
+    volumes:
+      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   app-db:
     image: postgres:16.3
     env_file:
@@ -25,6 +27,23 @@ services:
       start_period: 10s
     volumes:
       - postgres_data_app_db:/var/lib/postgresql/data
+  beam-launcher:
+    build:
+      context: .
+      dockerfile: images/beam.Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
+        VULKAN_SERVER_PATH: /app
+        VULKAN_HOME: /opt/vulkan
+        VULKAN_STAGING_PATH: /opt/staging
+        VULKAN_VENVS_PATH: /opt/venvs
+        VULKAN_SCRIPTS_PATH: /app/beam-launcher/scripts
+    env_file:
+      - images/beam.env
+    ports:
+      - "6002:6002"
+    volumes:
+      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   dagster:
     build: 
       context: .
@@ -86,6 +105,8 @@ services:
         PYTHON_VERSION: "3.12"
     env_file:
       - "images/upload-svc.env"
+    volumes:
+      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   resolution-svc:
     build: 
       context: .

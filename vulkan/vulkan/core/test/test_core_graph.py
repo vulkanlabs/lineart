@@ -16,7 +16,8 @@ from vulkan_public.spec.nodes import (
 )
 
 from vulkan.core.component import ComponentGraph, check_all_parameters_specified
-from vulkan.core.graph import Graph
+from vulkan.core.graph import Graph, sort_nodes
+from vulkan.core.policy import Policy
 
 
 class DummyStatus(Enum):
@@ -182,3 +183,43 @@ def test_core_graph_with_component_definition():
 
     with pytest.raises(TypeError):
         check_all_parameters_specified(definition, incorrect_type)
+
+
+def test_sort_nodes():
+    transform = TransformNode(
+        name="transform",
+        func=lambda x: x,
+        dependencies={"data": Dependency(INPUT_NODE)},
+    )
+
+    def _branch(data):
+        if data["score"] > 500:
+            return "approved"
+        return "denied"
+
+    branch = BranchNode(
+        name="branch",
+        func=_branch,
+        outputs=["approved", "denied"],
+        dependencies={"data": Dependency(transform.name)},
+    )
+
+    approved = TerminateNode(
+        name="approved",
+        return_status="approved",
+        dependencies={"condition": Dependency(branch.name, "approved")},
+    )
+    denied = TerminateNode(
+        name="denied",
+        return_status="denied",
+        dependencies={"condition": Dependency(branch.name, "denied")},
+    )
+
+    policy = Policy(
+        nodes=[approved, branch, denied, transform],
+        input_schema={"number": int},
+    )
+    nodes = policy.flattened_nodes
+    sorted_nodes = sort_nodes(nodes, policy.flattened_dependencies)
+    expected = [INPUT_NODE, "transform", "branch", "approved", "denied"]
+    assert [n.name for n in sorted_nodes] == expected

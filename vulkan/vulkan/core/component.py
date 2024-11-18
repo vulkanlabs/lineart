@@ -143,7 +143,7 @@ def _apply_instance_params(
 
 def _make_input_node(name: str, dependencies: dict[str, Dependency]) -> list[Node]:
     # FIXME: handle (node, _, key) deps in other places
-    def _input_fn(_, **kwargs: dict):
+    def _input_fn(**kwargs: dict):
         inputs = {}
         for k, v in dependencies.items():
             if k not in kwargs.keys():

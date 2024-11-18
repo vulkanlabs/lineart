@@ -11,6 +11,11 @@ def _extract_data_sources(nodes):
     return [n.source for n in nodes if n.type == NodeType.DATA_INPUT]
 
 
+def _extract_input_schema(nodes):
+    input_node = [n for n in nodes if n.type == NodeType.INPUT][0]
+    return input_node.schema
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--module_name", type=str)
@@ -21,8 +26,15 @@ if __name__ == "__main__":
     resolved_policy = resolve_policy(args.module_name, args.components_base_dir)
 
     nodes = extract_node_definitions(resolved_policy.nodes)
+    input_schema = _extract_input_schema(resolved_policy.nodes)
     data_sources = _extract_data_sources(resolved_policy.flattened_nodes)
-    settings = {"nodes": nodes, "data_sources": data_sources}
+    settings = {
+        "nodes": nodes,
+        "input_schema": input_schema,
+        "data_sources": data_sources,
+    }
 
     with open(args.output_file, "w") as f:
+        # We need to use the EnhancedJSONEncoder to serialize the types
+        # in `input_schema`
         json.dump(settings, f, cls=EnhancedJSONEncoder)

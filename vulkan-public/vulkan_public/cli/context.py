@@ -23,8 +23,8 @@ class LoginContext:
 
 
 class Context:
-    def __init__(self):
-        self.logger = init_logger(__name__)
+    def __init__(self, logging_level: str = "INFO"):
+        self.logger = init_logger(__name__, logging_level)
         self.server_url = os.getenv("VULKAN_SERVER_URL", "http://34.132.4.82:6001")
         if self.server_url is None:
             self.logger.info("VULKAN_SERVER_URL environment variable is not set")

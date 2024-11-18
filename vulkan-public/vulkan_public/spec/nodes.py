@@ -321,7 +321,7 @@ class TerminateNode(Node):
     def __init__(
         self,
         name: str,
-        return_status: str,
+        return_status: Enum | str,
         dependencies: dict[str, Any],
         description: str | None = None,
         callback: Callable | None = None,
@@ -332,7 +332,7 @@ class TerminateNode(Node):
         ----------
         name : str
             The name of the node.
-        return_status: str
+        return_status: Enum | str
             A "status" value that will be stored as the final status for the run.
         dependencies: dict, optional
             The dependencies of the node.
@@ -346,7 +346,9 @@ class TerminateNode(Node):
             TODO: improve documentation on callback function signature.
 
         """
-        self.return_status = return_status
+        self.return_status = (
+            return_status.value if isinstance(return_status, Enum) else return_status
+        )
         assert dependencies is not None, f"Dependencies not set for TERMINATE op {name}"
         super().__init__(
             name=name,
@@ -363,7 +365,7 @@ class TerminateNode(Node):
             node_type=self.type.value,
             dependencies=self.node_dependencies(),
             metadata={
-                "return_status": self.return_status.value,
+                "return_status": self.return_status,
             },
         )
 

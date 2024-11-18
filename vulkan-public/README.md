@@ -70,7 +70,26 @@ If your credentials are valid - or if the session can be refreshed - you won't b
 
 ### Creating a Policy
 
-The script below creates a sample policy:
+The creation of a policy version requires the code to be structured as a regular python package with an additional `vulkan.yaml` file, where other vulkan-specific parameters are configured. A valid file structure is displayed below (names enclosed in `<,>` are user-defined).
+```
+<policy-directory>
+├── <policy-module>
+│   ├── __init__.py
+│   ├── <policy.py> (optional)
+│   └── <submodule> (optional)
+│   │   ├── __init__.py
+│   │   └── <policy>.py
+├── pyproject.toml
+└── vulkan.yaml
+```
+Currently, vulkan expects a `PolicyDefinition` instance to be accessible in the `<policy-module>` module's top level (i.e. it must either be **defined or imported** in `<policy-module>.__init__.py`).
+
+You can also automatically generate a similar template using the command:
+```bash
+vulkan init policy
+```
+
+After writing the code and the necessary configuration, run the following script to create the policy and deploy this version:
 ```bash
 vulkan policy create --name my-policy
 
@@ -86,7 +105,8 @@ vulkan policy create-version \
 vulkan policy set-active-version \
     --policy_id <POLICY_ID> \
     --policy_version_id <POLICY_VERSION_ID>
-```****
+```
+If adding a new version to an existing policy, skip the first command.
 
 ### Triggering a Policy Run
 

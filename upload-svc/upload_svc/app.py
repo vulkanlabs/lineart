@@ -1,3 +1,4 @@
+import builtins
 import json
 import os
 from io import BytesIO
@@ -27,11 +28,13 @@ def _get_file_manager():
 
             return LocalFileManager(base_path=base_path)
         case "gcs":
+            credentials = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
             gcp_project = os.environ.get("GCS_FILE_MANAGER_GCP_PROJECT")
             bucket_name = os.environ.get("GCS_FILE_MANAGER_BUCKET_NAME")
             base_path = os.environ.get("GCS_FILE_MANAGER_BASE_PATH")
-            if not all([gcp_project, bucket_name, base_path]):
+            if not all([credentials, gcp_project, bucket_name, base_path]):
                 raise ValueError(
+                    "GOOGLE_APPLICATION_CREDENTIALS, "
                     "GCS_FILE_MANAGER_GCP_PROJECT, GCS_FILE_MANAGER_BUCKET_NAME, "
                     "and GCS_FILE_MANAGER_BASE_PATH are required"
                 )
@@ -40,6 +43,7 @@ def _get_file_manager():
                 gcp_project=gcp_project,
                 bucket_name=bucket_name,
                 base_path=base_path,
+                token=credentials,
             )
         case _:
             raise ValueError(f"Unsupported file manager type: {MANAGER_TYPE}")
@@ -57,8 +61,10 @@ async def validate_and_publish(
     manager: FileManager = Depends(_get_file_manager),
 ):
     content = await input_file.read()
+    input_schema = _deserialize_schema(schema)
+
     try:
-        data = _read_data(content, file_format)
+        data = _read_data(content, file_format, input_schema)
     except Exception as e:
         raise HTTPException(
             status_code=400,
@@ -66,7 +72,6 @@ async def validate_and_publish(
         )
 
     try:
-        input_schema = json.loads(schema)
         _validate_schema(input_schema, data.columns)
     except Exception as e:
         raise HTTPException(
@@ -84,6 +89,15 @@ async def validate_and_publish(
     return schemas.FileIdentifier(file_path=file_path)
 
 
+def _deserialize_schema(schema: str) -> dict[str, type]:
+    # Schemas are serialized as JSON for API requests. They need to be
+    # deserialized back into Python native types in order to load and
+    # validate the content of uploaded files.
+    # Currently only supporting built-in types, but could be extended to
+    # support custom types in the future.
+    return {k: getattr(builtins, v) for k, v in json.loads(schema).items()}
+
+
 def _validate_schema(schema: dict[str, type], columns: list[str]) -> None:
     schema_columns = set(schema.keys())
     data_columns = set(columns)
@@ -95,11 +109,13 @@ def _validate_schema(schema: dict[str, type], columns: list[str]) -> None:
         raise ValueError(f"Unmatched schema: missing columns {diff}")
 
 
-def _read_data(content: bytes, file_format: SupportedFileFormat) -> pd.DataFrame:
+def _read_data(
+    content: bytes, file_format: SupportedFileFormat, schema: dict[str, type]
+) -> pd.DataFrame:
     buf = BytesIO(content)
     match file_format:
         case SupportedFileFormat.CSV:
-            data = pd.read_csv(buf)
+            data = pd.read_csv(buf, dtype=schema)
         case SupportedFileFormat.PARQUET:
             data = pd.read_parquet(buf)
         case _:
