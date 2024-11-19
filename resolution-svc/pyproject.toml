@@ -4,14 +4,10 @@ version = "0.1.0"
 description = ""
 authors = []
 readme = "README.md"
-dependencies = [
-    "fastapi[standard]>=0.112.1",
-    "vulkan[dagster]",
-    "vulkan-public",
-]
+dependencies = ["fastapi[standard]>=0.112.1", "vulkan[dagster]"]
 
+[tool.ruff]
+exclude = ["templates"]
 
 [tool.uv.sources]
 vulkan = { path = "../vulkan" }
-vulkan-public = { path = "../vulkan-public" }
-

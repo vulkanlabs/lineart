@@ -45,7 +45,7 @@ class ExecutionContext:
         for path in self.created_assets:
             if os.path.exists(path):
                 self.logger.info(f"Removing asset: {path}")
-                rmtree(path)
+                rmtree(path, ignore_errors=True)
 
 
 HTTP_STATUS_CODES = {

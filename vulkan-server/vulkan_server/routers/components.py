@@ -1,7 +1,7 @@
 import json
 from itertools import chain
+from typing import Any
 
-import requests
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -12,7 +12,7 @@ from vulkan_public.exceptions import (
 )
 from vulkan_public.spec.component import component_version_alias
 
-from vulkan_server import definitions, schemas
+from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.db import (
     Component,
@@ -68,7 +68,7 @@ def list_components(
     include_archived: bool = False,
     db: Session = Depends(get_db),
 ):
-    filters = dict(project_id=project_id)
+    filters: dict[str, Any] = dict(project_id=project_id)
     if not include_archived:
         filters["archived"] = False
 
@@ -133,9 +133,6 @@ def create_component_version(
     resolution_service: ResolutionServiceClient = Depends(
         get_resolution_service_client
     ),
-    server_config: definitions.VulkanServerConfig = Depends(
-        definitions.get_vulkan_server_config
-    ),
 ):
     component = (
         db.query(Component)
@@ -154,29 +151,6 @@ def create_component_version(
             alias, component_config.repository
         )
         data = response.json()
-        variables = data.get("config_variables", [])
-        data_sources = data.get("data_sources", [])
-
-        version = ComponentVersion(
-            alias=alias,
-            component_id=component_id,
-            project_id=project_id,
-            input_schema=str(data["input_schema"]),
-            instance_params_schema=str(data["instance_params_schema"]),
-            node_definitions=json.dumps(data["node_definitions"]),
-            repository=component_config.repository,
-        )
-        db.add(version)
-
-        if data_sources:
-            added_sources = _add_data_source_dependencies(db, version, data_sources)
-            inner_variables = [ds.variables for ds in added_sources if ds.variables]
-            variables += list(chain.from_iterable(inner_variables))
-
-        if variables:
-            version.variables = list(set(variables))
-
-        db.commit()
     except Exception as e:
         # Remove leftover resources from failed creation
         resolution_service.delete_component_version(alias)
@@ -185,15 +159,29 @@ def create_component_version(
             handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
         handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
 
-    # TODO: temporary workaround
-    requests.post(
-        url=f"{server_config.beam_launcher_url}/resources/components",
-        json={
-            "alias": alias,
-            "project_id": project_id,
-            "repository": component_config.repository,
-        },
+    variables = data.get("config_variables", [])
+    data_sources = data.get("data_sources", [])
+
+    version = ComponentVersion(
+        alias=alias,
+        component_id=component_id,
+        project_id=project_id,
+        input_schema=str(data["input_schema"]),
+        instance_params_schema=str(data["instance_params_schema"]),
+        node_definitions=json.dumps(data["node_definitions"]),
+        repository=component_config.repository,
     )
+    db.add(version)
+
+    if data_sources:
+        added_sources = _add_data_source_dependencies(db, version, data_sources)
+        inner_variables = [ds.variables for ds in added_sources if ds.variables]
+        variables += list(chain.from_iterable(inner_variables))
+
+    if variables:
+        version.variables = list(set(variables))
+
+    db.commit()
 
     return {"component_version_id": version.component_version_id}
 
@@ -309,7 +297,7 @@ def list_component_version_usage(
             .join(Policy, Policy.policy_id == PolicyVersion.policy_id)
             .where(PolicyVersion.policy_version_id == use.policy_version_id)
         )
-        policy_version = db.execute(query).fetchone()   
+        policy_version = db.execute(query).fetchone()
 
         dependencies.append(
             schemas.ComponentVersionDependencyExpanded(

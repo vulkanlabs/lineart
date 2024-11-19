@@ -38,7 +38,7 @@ export async function LauncherPage({
     const headers = {
         "x-stack-access-token": authJson.accessToken,
         "x-stack-refresh-token": authJson.refreshToken,
-    }
+    };
 
     return (
         <div className="flex flex-col p-8 gap-8">

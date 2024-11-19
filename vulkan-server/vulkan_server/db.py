@@ -20,6 +20,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
+
 from vulkan.backtest.definitions import BacktestStatus
 from vulkan.core.run import RunStatus
 
@@ -61,7 +62,7 @@ class PolicyVersionStatus(enum.Enum):
     INVALID = "INVALID"
 
 
-class DagsterWorkspaceStatus(enum.Enum):
+class WorkspaceStatus(enum.Enum):
     OK = "OK"
     CREATION_PENDING = "CREATION_PENDING"
     CREATION_FAILED = "CREATION_FAILED"
@@ -185,6 +186,34 @@ class PolicyVersion(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base)
     input_schema = Column(JSON, nullable=True)
     graph_definition = Column(String, nullable=True)
     variables = Column(ARRAY(String), nullable=True)
+    module_name = Column(String, nullable=True)
+
+    # Base worker image
+    base_worker_image = Column(String, nullable=True)
+
+
+class DagsterWorkspace(TimedUpdateMixin, Base):
+    __tablename__ = "dagster_workspace"
+
+    policy_version_id = Column(
+        Uuid,
+        ForeignKey("policy_version.policy_version_id"),
+        primary_key=True,
+    )
+    status = Column(Enum(WorkspaceStatus))
+    path = Column(String, nullable=True)
+
+
+class BeamWorkspace(TimedUpdateMixin, Base):
+    __tablename__ = "beam_workspace"
+
+    policy_version_id = Column(
+        Uuid,
+        ForeignKey("policy_version.policy_version_id"),
+        primary_key=True,
+    )
+    status = Column(Enum(WorkspaceStatus))
+    image = Column(String, nullable=True)
 
 
 class ComponentVersionDependency(Base):
@@ -223,18 +252,6 @@ class ConfigurationValue(AuthorizationMixin, TimedUpdateMixin, Base):
             name="value_null_only_if_allowed",
         ),
     )
-
-
-class DagsterWorkspace(TimedUpdateMixin, Base):
-    __tablename__ = "dagster_workspace"
-
-    policy_version_id = Column(
-        Uuid,
-        ForeignKey("policy_version.policy_version_id"),
-        primary_key=True,
-    )
-    status = Column(Enum(DagsterWorkspaceStatus))
-    path = Column(String, nullable=True)
 
 
 class Run(TimedUpdateMixin, AuthorizationMixin, Base):
@@ -349,6 +366,10 @@ class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
     status = Column(Enum(BacktestStatus))
     name = Column(String, nullable=True)
     config_variables = Column(JSON, nullable=True)
+
+    # Run-Specific info
+    gcp_project_id = Column(String, nullable=True)
+    gcp_job_id = Column(String, nullable=True)
 
 
 if __name__ == "__main__":

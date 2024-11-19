@@ -3,16 +3,16 @@ import os
 import tarfile
 from shutil import unpack_archive
 
-_ARCHIVE_FORMAT = "gztar"
-_TAR_FLAGS = "w:gz"
+ARCHIVE_FORMAT = "gztar"
+TAR_FLAGS = "w:gz"
 _EXCLUDE_PATHS = [".git", ".venv", ".vscode"]
 
 
 def pack_workspace(name: str, repository_path: str):
     basename = f".tmp.{name}"
     # TODO: In the future we may want to have an ignore list
-    filename = f"{basename}.{_ARCHIVE_FORMAT}"
-    with tarfile.open(name=filename, mode=_TAR_FLAGS) as tf:
+    filename = f"{basename}.{ARCHIVE_FORMAT}"
+    with tarfile.open(name=filename, mode=TAR_FLAGS) as tf:
         for root, dirs, files in os.walk(repository_path):
             # TODO: match regex instead of exact path
             for path in _EXCLUDE_PATHS:
@@ -36,7 +36,7 @@ def unpack_workspace(base_dir: str, name: str, repository: bytes):
     filepath = f".tmp.{name}"
     with open(filepath, "wb") as f:
         f.write(repository)
-    unpack_archive(filepath, workspace_path, format=_ARCHIVE_FORMAT)
+    unpack_archive(filepath, workspace_path, format=ARCHIVE_FORMAT)
 
     os.remove(filepath)
 

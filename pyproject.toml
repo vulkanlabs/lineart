@@ -1,0 +1,22 @@
+[project]
+name = "one-ring"
+version = "0.1.0"
+description = "A monorepo for all Vulkan projects."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["vulkan", "vulkan-public", "vulkan-server"]
+
+[tool.uv.workspace]
+members = ["vulkan-server", "vulkan-dagster", "resolution-svc", "upload-svc"]
+
+[tool.uv.sources]
+vulkan-server = { workspace = true }
+vulkan-dagster = { workspace = true }
+resolution-svc = { workspace = true }
+upload-svc = { workspace = true }
+vulkan-public = { path = "vulkan-public" }
+vulkan = { path = "vulkan" }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

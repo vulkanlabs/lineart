@@ -77,7 +77,7 @@ def delete_policy_version(
         msg = f"Tried to delete non-existent policy version {policy_version_id}"
         raise HTTPException(status_code=404, detail=msg)
 
-    policy = (
+    policy: Policy = (
         db.query(Policy)
         .filter_by(policy_id=policy_version.policy_id, project_id=project_id)
         .first()
@@ -261,7 +261,9 @@ def list_dependencies_by_policy_version(
     if len(component_version_uses) == 0:
         return Response(status_code=204)
 
-    policy = db.query(Policy).filter_by(policy_id=policy_version.policy_id).first()
+    policy: Policy = (
+        db.query(Policy).filter_by(policy_id=policy_version.policy_id).first()
+    )
 
     dependencies = []
     for use in component_version_uses:
@@ -278,7 +280,7 @@ def list_dependencies_by_policy_version(
             )
             raise HTTPException(status_code=500, detail=msg)
 
-        component = (
+        component: Component = (
             db.query(Component)
             .filter_by(component_id=component_version.component_id)
             .first()
@@ -326,7 +328,9 @@ def list_data_sources_by_policy_version(
 
     data_sources = []
     for use in data_source_uses:
-        ds = db.query(DataSource).filter_by(data_source_id=use.data_source_id).first()
+        ds: DataSource = (
+            db.query(DataSource).filter_by(data_source_id=use.data_source_id).first()
+        )
         data_sources.append(
             schemas.DataSourceReference(
                 data_source_id=ds.data_source_id,

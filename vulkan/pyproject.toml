@@ -4,13 +4,7 @@ version = "0.1.0"
 description = ""
 authors = []
 readme = "README.md"
-dependencies = [
-    "pytest>=8.3.2",
-    "pytest-httpserver>=1.1.0",
-    "coloredlogs>=14.0",
-    # "vulkan-public",
-    "gcsfs>=2024.10.0",
-]
+dependencies = ["coloredlogs>=14.0", "gcsfs>=2024.10.0", "vulkan-public"]
 
 [project.optional-dependencies]
 beam = ["apache-beam[dataframe,gcp]>=2.60.0"]
@@ -23,7 +17,13 @@ dagster = [
 [tool.uv]
 dev-dependencies = [
     "apache-beam[dataframe,gcp]>=2.60.0",
+    "pytest>=8.3.2",
+    "pytest-httpserver>=1.1.0",
 ]
 
-# [tool.uv.sources]
-# vulkan-public = { path = "../vulkan-public", editable = true }
+[tool.uv.sources]
+vulkan-public = { path = "../vulkan-public" }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
