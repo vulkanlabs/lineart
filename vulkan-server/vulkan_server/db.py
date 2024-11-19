@@ -351,5 +351,17 @@ class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
     config_variables = Column(JSON, nullable=True)
 
 
+class UploadedFile(Base):
+    __tablename__ = "uploaded_file"
+
+    uploaded_file_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    project_id = Column(Uuid, ForeignKey("project.project_id"))
+    file_path = Column(String)
+    schema = Column(JSON)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 if __name__ == "__main__":
     Base.metadata.create_all(engine)
