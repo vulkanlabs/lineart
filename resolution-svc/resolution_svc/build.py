@@ -216,43 +216,6 @@ class GCPBuildManager:
         response = self._cloudbuild_client.cancel_build(request=request)
         return _Build.from_cloudbuild_build(response)
 
-    # def _trigger_job(
-    #     self, image_name: str, image_path: str, request: dict
-    # ) -> tuple[str, dict]:
-    #     request_file_path = f"/tmp/{image_name}.request.json"
-    #     if os.path.exists(request_file_path):
-    #         os.remove(request_file_path)
-    #     with open(request_file_path, "w") as fp:
-    #         json.dump(request, fp)
-
-    #     access_token = _get_access_token()
-    #     artifact_registry = f"https://cloudbuild.googleapis.com/v1/projects/{self.gcp_project_id}/locations/{self.gcp_region}/builds"
-
-    #     completed_process = subprocess.run(
-    #         [
-    #             "curl",
-    #             "-X",
-    #             "POST",
-    #             "-T",
-    #             request_file_path,
-    #             "-H",
-    #             f"Authorization: Bearer {access_token}",
-    #             artifact_registry,
-    #         ],
-    #         stdout=subprocess.PIPE,
-    #     )
-
-    #     if os.path.exists(request_file_path):
-    #         os.remove(request_file_path)
-
-    #     if completed_process.returncode != 0:
-    #         msg = f"Failed to trigger job: {completed_process.stderr}"
-    #         raise Exception(msg)
-
-    #     response = json.loads(completed_process.stdout)
-
-    #     return image_path, response
-
 
 def get_gcp_build_manager() -> GCPBuildManager:
     GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
@@ -267,19 +230,6 @@ def get_gcp_build_manager() -> GCPBuildManager:
         gcp_region=GCP_REGION,
         gcp_repository_name=GCP_REPOSITORY_NAME,
     )
-
-
-# def _get_access_token() -> str:
-#     completed_process = subprocess.run(
-#         ["gcloud", "auth", "application-default", "print-access-token"],
-#         stdout=subprocess.PIPE,
-#     )
-
-#     if completed_process.returncode != 0:
-#         msg = f"Failed to get access token: {completed_process.stderr}"
-#         raise Exception(msg)
-
-#     return completed_process.stdout.decode().strip("\n")
 
 
 def prepare_base_image_context(
