@@ -1,17 +1,56 @@
-import json
+import logging
 import os
-import subprocess
 import tarfile
-from dataclasses import dataclass
+from datetime import datetime, timedelta
+from enum import Enum
+from time import sleep
 
+from google.cloud.devtools import cloudbuild_v1 as cloudbuild
 from jinja2 import Environment, FileSystemLoader
+from pydantic.dataclasses import dataclass
 from vulkan_public.spec.environment.packing import ARCHIVE_FORMAT, TAR_FLAGS
+
+logger = logging.getLogger("uvicorn.error.Build")
 
 
 @dataclass
 class PackageSpec:
     name: str
     path: str
+
+
+class _BuildStatus(Enum):
+    IN_PROGRESS = "IN_PROGRESS"
+    FAILURE = "FAILURE"
+    SUCCESS = "SUCCESS"
+
+
+@dataclass
+class _Build:
+    name: str
+    id: str
+    status: _BuildStatus
+
+    _STATUS_MAP = {
+        # Success
+        cloudbuild.Build.Status.SUCCESS: _BuildStatus.SUCCESS,
+        # Progress states
+        cloudbuild.Build.Status.STATUS_UNKNOWN: _BuildStatus.IN_PROGRESS,
+        cloudbuild.Build.Status.PENDING: _BuildStatus.IN_PROGRESS,
+        cloudbuild.Build.Status.QUEUED: _BuildStatus.IN_PROGRESS,
+        cloudbuild.Build.Status.WORKING: _BuildStatus.IN_PROGRESS,
+        # Failure states
+        cloudbuild.Build.Status.FAILURE: _BuildStatus.FAILURE,
+        cloudbuild.Build.Status.INTERNAL_ERROR: _BuildStatus.FAILURE,
+        cloudbuild.Build.Status.TIMEOUT: _BuildStatus.FAILURE,
+        cloudbuild.Build.Status.CANCELLED: _BuildStatus.FAILURE,
+        cloudbuild.Build.Status.EXPIRED: _BuildStatus.FAILURE,
+    }
+
+    @classmethod
+    def from_cloudbuild_build(cls, build: cloudbuild.Build):
+        status = cls._STATUS_MAP[build.status]
+        return cls(name=build.name, id=build.id, status=status)
 
 
 class GCPBuildManager:
@@ -24,14 +63,15 @@ class GCPBuildManager:
         self.gcp_project_id = gcp_project_id
         self.gcp_region = gcp_region
         self.gcp_repository_name = gcp_repository_name
+        self._cloudbuild_client = cloudbuild.CloudBuildClient()
 
-    def trigger_base_cloudbuild_job(
+    def build_base_image(
         self,
         bucket_name: str,
         context_file: str,
         image_name: str,
         image_tag: str,
-    ) -> tuple[str, dict]:
+    ) -> str:
         image_path = os.path.join(
             f"{self.gcp_region}-docker.pkg.dev",
             self.gcp_project_id,
@@ -41,9 +81,9 @@ class GCPBuildManager:
 
         request = {
             "source": {
-                "storageSource": {
+                "storage_source": {
                     "bucket": bucket_name,
-                    "object": context_file,
+                    "object_": context_file,
                 }
             },
             "steps": [
@@ -60,16 +100,18 @@ class GCPBuildManager:
             ],
             "images": [image_path],
         }
+        build = self._run_job(request, timeout_seconds=60, update_interval_seconds=10)
+        logger.info(f"Finished build ({build.id}) for image {image_path}")
 
-        return self._trigger_job(image_name, image_path, request)
+        return image_path
 
-    def trigger_beam_cloudbuild_job(
+    def build_beam_image(
         self,
         bucket_name: str,
         context_file: str,
         image_name: str,
         image_tag: str,
-    ) -> tuple[str, dict]:
+    ) -> str:
         image_path = os.path.join(
             f"{self.gcp_region}-docker.pkg.dev",
             self.gcp_project_id,
@@ -79,7 +121,7 @@ class GCPBuildManager:
 
         request = {
             "source": {
-                "storageSource": {
+                "storage_source": {
                     "bucket": bucket_name,
                     "object": context_file,
                 }
@@ -111,63 +153,83 @@ class GCPBuildManager:
                         "--project",
                         self.gcp_project_id,
                     ],
-                    "waitFor": ["image"],
+                    "wait_for": ["image"],
                 },
             ],
             "images": [image_path],
         }
+        build = self._run_job(request, timeout_seconds=300, update_interval_seconds=20)
+        logger.info(f"Finished build ({build.id}) for image {image_path}")
 
-        return self._trigger_job(image_name, image_path, request)
+        return image_path
 
-    def _trigger_job(
-        self, image_name: str, image_path: str, request: dict
-    ) -> tuple[str, dict]:
-        request_file_path = f"/tmp/{image_name}.request.json"
-        if os.path.exists(request_file_path):
-            os.remove(request_file_path)
-        with open(request_file_path, "w") as fp:
-            json.dump(request, fp)
+    def _run_job(
+        self,
+        request: dict,
+        timeout_seconds: int,
+        update_interval_seconds: int = 5,
+    ) -> _Build:
+        create_request = cloudbuild.CreateBuildRequest(
+            parent=f"projects/{self.gcp_project_id}/locations/{self.gcp_region}",
+            project_id=self.gcp_project_id,
+            build=request,
+        )
+        create_op = self._cloudbuild_client.create_build(request=create_request)
 
-        access_token = _get_access_token()
-        artifact_registry = f"https://cloudbuild.googleapis.com/v1/projects/{self.gcp_project_id}/locations/{self.gcp_region}/builds"
-
-        completed_process = subprocess.run(
-            [
-                "curl",
-                "-X",
-                "POST",
-                "-T",
-                request_file_path,
-                "-H",
-                f"Authorization: Bearer {access_token}",
-                artifact_registry,
-            ],
-            stdout=subprocess.PIPE,
+        build = _Build(
+            name=create_op.metadata.build.name,
+            id=create_op.metadata.build.id,
+            status=_BuildStatus.IN_PROGRESS,
         )
 
-        if os.path.exists(request_file_path):
-            os.remove(request_file_path)
+        timeout = timedelta(seconds=timeout_seconds)
+        start_time = datetime.now()
+        while (datetime.now() - start_time) <= timeout:
+            build = self._get_build(build.id)
 
-        if completed_process.returncode != 0:
-            msg = f"Failed to trigger job: {completed_process.stderr}"
-            raise Exception(msg)
+            if build.status == _BuildStatus.FAILURE:
+                raise ValueError(f"failed to create image: build failed {build.id}")
+            if build.status == _BuildStatus.SUCCESS:
+                return build
+            sleep(update_interval_seconds)
 
-        response = json.loads(completed_process.stdout)
+        build = self._cancel_build(id=build.id)
+        if build.status == _BuildStatus.FAILURE:
+            raise ValueError(f"failed to create image: build timed out {build.id}")
+        # The build didn't get canceled, it finished before the cancellation.
+        return build
 
-        return image_path, response
+    def _get_build(self, build_id: str) -> _Build:
+        request = cloudbuild.GetBuildRequest(
+            name=f"projects/{self.gcp_project_id}/locations/{self.gcp_region}/builds/{build_id}",
+            project_id=self.gcp_project_id,
+            id=build_id,
+        )
+        response = self._cloudbuild_client.get_build(request=request)
+        return _Build.from_cloudbuild_build(response)
+
+    def _cancel_build(self, build_id: str) -> _Build:
+        request = cloudbuild.CancelBuildRequest(
+            project_id=self.gcp_project_id,
+            id=build_id,
+        )
+        response = self._cloudbuild_client.cancel_build(request=request)
+        return _Build.from_cloudbuild_build(response)
 
 
-def _get_access_token() -> str:
-    completed_process = subprocess.run(
-        ["gcloud", "auth", "application-default", "print-access-token"],
-        stdout=subprocess.PIPE,
+def get_gcp_build_manager() -> GCPBuildManager:
+    GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
+    GCP_REGION = os.getenv("GCP_REGION")
+    GCP_REPOSITORY_NAME = os.getenv("GCP_REPOSITORY_NAME")
+
+    if not GCP_PROJECT_ID or not GCP_REGION or not GCP_REPOSITORY_NAME:
+        raise ValueError("GCP configuration missing")
+
+    return GCPBuildManager(
+        gcp_project_id=GCP_PROJECT_ID,
+        gcp_region=GCP_REGION,
+        gcp_repository_name=GCP_REPOSITORY_NAME,
     )
-
-    if completed_process.returncode != 0:
-        msg = f"Failed to get access token: {completed_process.stderr}"
-        raise Exception(msg)
-
-    return completed_process.stdout.decode().strip("\n")
 
 
 def prepare_base_image_context(

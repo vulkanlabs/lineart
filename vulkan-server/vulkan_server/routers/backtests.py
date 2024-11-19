@@ -4,7 +4,6 @@ from typing import Annotated
 from uuid import UUID
 
 import pandas as pd
-import requests
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from gcsfs import GCSFileSystem
 from pyarrow import parquet
@@ -14,7 +13,7 @@ from vulkan_public.spec.dependency import INPUT_NODE
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
-from vulkan_server.beam.launcher import launch_run
+from vulkan_server.beam.launcher import DataflowLauncher, get_launcher
 from vulkan_server.config_variables import resolve_config_variables
 from vulkan_server.db import (
     Backtest,
@@ -25,9 +24,9 @@ from vulkan_server.db import (
     get_db,
 )
 from vulkan_server.logger import init_logger
-from vulkan_server.services import (
+from vulkan_server.services.file_ingestion import VulkanFileIngestionServiceClient
+from vulkan_server.services.resolution import (
     ResolutionServiceClient,
-    VulkanFileIngestionServiceClient,
     get_resolution_service_client,
 )
 
@@ -110,6 +109,10 @@ async def create_backtest(
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     file_input_client=Depends(make_file_input_service),
+    run_launcher: DataflowLauncher = Depends(get_launcher),
+    resolution_service: ResolutionServiceClient = Depends(
+        get_resolution_service_client
+    ),
 ):
     policy_version: PolicyVersion = (
         db.query(PolicyVersion)
@@ -157,11 +160,20 @@ async def create_backtest(
     db.add(backtest)
     db.commit()
 
-    workspace: BeamWorkspace = (
-        db.query(BeamWorkspace).filter_by(policy_version_id=policy_version_id).first()
-    )
+    try:
+        workspace: BeamWorkspace = _ensure_backtest_workspace(
+            policy_version_id, project_id, db, resolution_service
+        )
+    except Exception as e:
+        logger.error(f"Backtest launch failed: {e}")
+        logger.error(
+            "This is usually an issue with Vulkan's internal services. "
+            "Contact support for assistance."
+        )
+        backtest.status = BacktestStatus.FAILURE
+        db.commit()
 
-    response = launch_run(
+    response = run_launcher.launch_run(
         policy_version_id=str(policy_version_id),
         project_id=str(project_id),
         backtest_id=str(backtest.backtest_id),
@@ -171,7 +183,6 @@ async def create_backtest(
             INPUT_NODE: backtest.input_data_path,
         },
         config_variables=config_variables,
-        components_path="/opt/dependencies/",
     )
     backtest.gcp_project_id = response.project_id
     backtest.gcp_job_id = response.job_id
@@ -182,14 +193,40 @@ async def create_backtest(
     return backtest
 
 
-@router.post("/create_workspace")
-def create_backtest_workspace(
+def _ensure_backtest_workspace(
     policy_version_id: UUID,
-    project_id=Depends(get_project_id),
-    resolution_service: ResolutionServiceClient = Depends(
-        get_resolution_service_client
-    ),
-    db: Session = Depends(get_db),
+    project_id: UUID,
+    db: Session,
+    resolution_service: ResolutionServiceClient,
+):
+    workspace = (
+        db.query(BeamWorkspace).filter_by(policy_version_id=policy_version_id).first()
+    )
+    if workspace is None:
+        try:
+            logger.info(f"Creating workspace for policy version {policy_version_id}")
+            workspace = _create_backtest_workspace(
+                policy_version_id, project_id, db, resolution_service
+            )
+        except Exception as e:
+            msg = (
+                f"ensure_backtest_workspace: policy version {policy_version_id} failed"
+            )
+            raise ValueError(msg) from e
+
+    if workspace.status == WorkspaceStatus.CREATION_FAILED:
+        raise ValueError(
+            f"Workspace creation failed for policy version {policy_version_id}"
+        )
+
+    return workspace
+
+
+def _create_backtest_workspace(
+    policy_version_id: UUID,
+    project_id: UUID,
+    db: Session,
+    resolution_service: ResolutionServiceClient,
 ):
     policy_version: PolicyVersion = (
         db.query(PolicyVersion)
@@ -202,22 +239,19 @@ def create_backtest_workspace(
     )
     db.add(beam_workspace)
 
-    response = requests.post(
-        url=f"{resolution_service.server_url}/workspaces/beam/create",
-        json={
-            "name": definitions.version_name("", policy_version.policy_version_id),
-            "base_image": policy_version.base_worker_image,
-        },
-    )
+    try:
+        response = resolution_service.create_beam_workspace(
+            policy_version_id=str(policy_version_id),
+            base_image=policy_version.base_worker_image,
+        )
 
-    if response.status_code != 200:
+        beam_workspace.image = response.json()["image_path"]
+        beam_workspace.status = WorkspaceStatus.OK
+    except Exception as e:
         beam_workspace.status = WorkspaceStatus.CREATION_FAILED
+        raise e
+    finally:
         db.commit()
-        raise ValueError(response.content)
-
-    beam_workspace.image = response.json()["image_path"]
-    beam_workspace.status = WorkspaceStatus.OK
-    db.commit()
 
     return beam_workspace
 

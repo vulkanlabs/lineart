@@ -4,7 +4,11 @@ version = "0.1.0"
 description = ""
 authors = []
 readme = "README.md"
-dependencies = ["fastapi[standard]>=0.112.1", "vulkan[dagster]"]
+dependencies = [
+    "fastapi[standard]>=0.112.1",
+    "google-cloud-build>=3.27.1",
+    "vulkan[dagster]",
+]
 
 [tool.ruff]
 exclude = ["templates"]
