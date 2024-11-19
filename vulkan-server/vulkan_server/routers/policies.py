@@ -39,7 +39,7 @@ from vulkan_server.db import (
 )
 from vulkan_server.exceptions import ExceptionHandler, VulkanServerException
 from vulkan_server.logger import init_logger
-from vulkan_server.services import (
+from vulkan_server.services.resolution import (
     ResolutionServiceClient,
     get_resolution_service_client,
 )
@@ -336,7 +336,7 @@ def create_policy_version(
             repository=config.repository,
         )
         variables = settings.config_variables or []
-        logger.info("Workspace created")
+        logger.debug("Workspace created")
     except Exception as e:
         if isinstance(e, VulkanInternalException):
             handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
@@ -349,7 +349,7 @@ def create_policy_version(
             )
             inner_variables = [c.variables for c in added_components if c.variables]
             variables += list(chain.from_iterable(inner_variables))
-        logger.info("Processed components")
+        logger.debug("Processed components")
 
         if settings.data_sources:
             added_sources = _add_data_source_dependencies(
@@ -357,11 +357,11 @@ def create_policy_version(
             )
             inner_variables = [ds.variables for ds in added_sources if ds.variables]
             variables += list(chain.from_iterable(inner_variables))
-        logger.info("Processed data sources")
+        logger.debug("Processed data sources")
 
         if len(variables) > 0:
             version.variables = list(set(variables))
-        logger.info("Processed variables")
+        logger.debug("Processed variables")
 
         version.input_schema = settings.input_schema
         version.graph_definition = json.dumps(settings.graph_definition)
@@ -392,7 +392,7 @@ def create_policy_version(
 
         dagster_workspace.status = WorkspaceStatus.OK
         db.commit()
-        logger.info("Updated repositories")
+        logger.debug("Updated Dagster repositories")
     except Exception as e:
         dagster_workspace.status = WorkspaceStatus.CREATION_FAILED
         db.commit()

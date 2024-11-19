@@ -26,7 +26,7 @@ from vulkan_server.db import (
 )
 from vulkan_server.exceptions import VulkanServerException
 from vulkan_server.logger import init_logger
-from vulkan_server.services import (
+from vulkan_server.services.resolution import (
     ResolutionServiceClient,
     get_resolution_service_client,
 )
@@ -234,7 +234,6 @@ def list_runs_by_policy_version(policy_version_id: str, db: Session = Depends(ge
     if len(runs) == 0:
         return Response(status_code=204)
     return runs
-
 
 @router.get(
     "/{policy_version_id}/components",
