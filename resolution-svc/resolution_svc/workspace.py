@@ -12,7 +12,7 @@ from vulkan_public.exceptions import (
 from vulkan_public.spec.environment.packing import unpack_workspace
 from vulkan_public.spec.environment.workspace import VulkanCodeLocation
 
-from .config import VulkanConfig
+from resolution_svc.config import VulkanConfig
 
 VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
 SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")

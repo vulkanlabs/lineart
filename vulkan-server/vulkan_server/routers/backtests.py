@@ -23,9 +23,9 @@ from vulkan_server.db import (
     get_db,
 )
 from vulkan_server.logger import init_logger
-from vulkan_server.services import (
+from vulkan_server.services.file_ingestion import VulkanFileIngestionServiceClient
+from vulkan_server.services.resolution import (
     ResolutionServiceClient,
-    VulkanFileIngestionServiceClient,
     get_resolution_service_client,
 )
 

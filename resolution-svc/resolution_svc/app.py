@@ -4,79 +4,30 @@ import os
 from typing import Annotated
 
 from fastapi import Body, Depends, FastAPI
-from pydantic.dataclasses import dataclass
 from vulkan.artifacts.gcs import GCSArtifactManager
 from vulkan_public.exceptions import ConflictingDefinitionsError
 
-from . import schemas
-from .config import VulkanConfig, get_vulkan_config
-from .context import ExecutionContext
-from .template import (
+from resolution_svc import schemas
+from resolution_svc.build import (
     GCPBuildManager,
+    get_gcp_build_manager,
     prepare_base_image_context,
     prepare_beam_image_context,
 )
-from .workspace import VulkanComponentManager, VulkanWorkspaceManager
+from resolution_svc.config import (
+    ImageBuildConfig,
+    VulkanConfig,
+    get_artifact_manager,
+    get_image_build_config,
+    get_vulkan_config,
+)
+from resolution_svc.context import ExecutionContext
+from resolution_svc.workspace import VulkanComponentManager, VulkanWorkspaceManager
 
 app = FastAPI()
 
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
-
-
-def get_artifact_manager():
-    GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
-    GCP_BUCKET_NAME = os.getenv("GCP_BUCKET_NAME")
-    GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-
-    if not GCP_PROJECT_ID or not GCP_BUCKET_NAME or not GOOGLE_APPLICATION_CREDENTIALS:
-        raise ValueError("GCP configuration missing")
-
-    return GCSArtifactManager(
-        project_id=GCP_PROJECT_ID,
-        bucket_name=GCP_BUCKET_NAME,
-        token=GOOGLE_APPLICATION_CREDENTIALS,
-    )
-
-
-def get_gcp_build_manager() -> GCPBuildManager:
-    GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
-    GCP_REGION = os.getenv("GCP_REGION")
-    GCP_REPOSITORY_NAME = os.getenv("GCP_REPOSITORY_NAME")
-
-    if not GCP_PROJECT_ID or not GCP_REGION or not GCP_REPOSITORY_NAME:
-        raise ValueError("GCP configuration missing")
-
-    return GCPBuildManager(
-        gcp_project_id=GCP_PROJECT_ID,
-        gcp_region=GCP_REGION,
-        gcp_repository_name=GCP_REPOSITORY_NAME,
-    )
-
-
-@dataclass
-class ImageBuildConfig:
-    python_version: str
-    beam_sdk_version: str
-    flex_template_base_image: str
-
-
-def get_image_build_config():
-    python_version = os.getenv("VULKAN_PYTHON_VERSION")
-    beam_sdk_version = os.getenv("VULKAN_BEAM_SDK_VERSION")
-    flex_template_base_image = os.getenv("VULKAN_FLEX_TEMPLATE_BASE_IMAGE")
-
-    if not python_version or not beam_sdk_version or not flex_template_base_image:
-        raise ValueError(
-            "Image build configuration missing: "
-            "VULKAN_PYTHON_VERSION, VULKAN_BEAM_SDK_VERSION, VULKAN_FLEX_TEMPLATE_BASE_IMAGE"
-        )
-
-    return ImageBuildConfig(
-        python_version=python_version,
-        beam_sdk_version=beam_sdk_version,
-        flex_template_base_image=flex_template_base_image,
-    )
 
 
 @app.post("/workspaces/create")
@@ -127,7 +78,7 @@ def create_workspace(
         ctx.register_asset(build_context_path)
         upload_path = f"build_context/{name}.tar.gz"
         _ = artifacts.post_file(from_path=build_context_path, to_path=upload_path)
-        image_path, cloudbuild_job_info = build_manager.trigger_base_cloudbuild_job(
+        image_path = build_manager.build_base_image(
             bucket_name=artifacts.bucket_name,
             context_file=upload_path,
             image_name=name,
@@ -172,7 +123,7 @@ def create_beam_workspace(
         ctx.register_asset(build_context_path)
         upload_path = f"build_context/beam/{name}.tar.gz"
         _ = artifacts.post_file(from_path=build_context_path, to_path=upload_path)
-        image_path, cloudbuild_job_info = build_manager.trigger_beam_cloudbuild_job(
+        image_path = build_manager.build_beam_image(
             bucket_name=artifacts.bucket_name,
             context_file=upload_path,
             image_name=name,
@@ -181,7 +132,6 @@ def create_beam_workspace(
 
     return {
         "image_path": image_path,
-        "cloudbuild_job_info": cloudbuild_job_info,
     }
 
 
