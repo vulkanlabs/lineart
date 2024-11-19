@@ -120,7 +120,9 @@ def list_data_sources_by_component_version(
 
     data_sources = []
     for use in data_source_uses:
-        ds = db.query(DataSource).filter_by(data_source_id=use.data_source_id).first()
+        ds: DataSource = (
+            db.query(DataSource).filter_by(data_source_id=use.data_source_id).first()
+        )
         data_sources.append(
             schemas.DataSourceReference(
                 data_source_id=ds.data_source_id,

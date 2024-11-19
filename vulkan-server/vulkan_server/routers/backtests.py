@@ -4,6 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 import pandas as pd
+import requests
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from gcsfs import GCSFileSystem
 from pyarrow import parquet
@@ -13,12 +14,21 @@ from vulkan_public.spec.dependency import INPUT_NODE
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
+from vulkan_server.beam.launcher import launch_run
 from vulkan_server.config_variables import resolve_config_variables
-from vulkan_server.db import Backtest, PolicyVersion, UploadedFile, get_db
+from vulkan_server.db import (
+    Backtest,
+    BeamWorkspace,
+    PolicyVersion,
+    UploadedFile,
+    WorkspaceStatus,
+    get_db,
+)
 from vulkan_server.logger import init_logger
 from vulkan_server.services import (
+    ResolutionServiceClient,
     VulkanFileIngestionServiceClient,
-    get_beam_launcher_client,
+    get_resolution_service_client,
 )
 
 logger = init_logger("backtests")
@@ -100,7 +110,6 @@ async def create_backtest(
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     file_input_client=Depends(make_file_input_service),
-    beam_launcher_client=Depends(get_beam_launcher_client),
 ):
     policy_version: PolicyVersion = (
         db.query(PolicyVersion)
@@ -148,18 +157,69 @@ async def create_backtest(
     db.add(backtest)
     db.commit()
 
-    response = beam_launcher_client.launch_job(
+    workspace: BeamWorkspace = (
+        db.query(BeamWorkspace).filter_by(policy_version_id=policy_version_id).first()
+    )
+
+    response = launch_run(
         policy_version_id=str(policy_version_id),
+        project_id=str(project_id),
         backtest_id=str(backtest.backtest_id),
+        image=workspace.image,
+        module_name=policy_version.module_name,
         data_sources={
             INPUT_NODE: backtest.input_data_path,
         },
         config_variables=config_variables,
+        components_path="/opt/dependencies/",
     )
-    backtest.output_path = response.json()["output_path"]
+    backtest.gcp_project_id = response.project_id
+    backtest.gcp_job_id = response.job_id
     db.commit()
 
+    logger.info(f"Launched run {response}")
+
     return backtest
+
+
+@router.post("/create_workspace")
+def create_backtest_workspace(
+    policy_version_id: UUID,
+    project_id=Depends(get_project_id),
+    resolution_service: ResolutionServiceClient = Depends(
+        get_resolution_service_client
+    ),
+    db: Session = Depends(get_db),
+):
+    policy_version: PolicyVersion = (
+        db.query(PolicyVersion)
+        .filter_by(project_id=project_id, policy_version_id=policy_version_id)
+        .first()
+    )
+    beam_workspace = BeamWorkspace(
+        policy_version_id=policy_version.policy_version_id,
+        status=WorkspaceStatus.CREATION_PENDING,
+    )
+    db.add(beam_workspace)
+
+    response = requests.post(
+        url=f"{resolution_service.server_url}/workspaces/beam/create",
+        json={
+            "name": definitions.version_name("", policy_version.policy_version_id),
+            "base_image": policy_version.base_worker_image,
+        },
+    )
+
+    if response.status_code != 200:
+        beam_workspace.status = WorkspaceStatus.CREATION_FAILED
+        db.commit()
+        raise ValueError(response.content)
+
+    beam_workspace.image = response.json()["image_path"]
+    beam_workspace.status = WorkspaceStatus.OK
+    db.commit()
+
+    return beam_workspace
 
 
 @router.get("/{backtest_id}/results")

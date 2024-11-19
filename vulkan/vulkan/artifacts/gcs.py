@@ -11,10 +11,17 @@ class GCSArtifactManager:
             token=token,
         )
 
-    def post(self, path: str, repository: bytes):
-        path = f"{self.bucket_name}/{path}"
-        with self.gcs.open(path, "wb") as f:
+    def post_file(self, from_path: str, to_path: str) -> str:
+        full_path = f"{self.bucket_name}/{to_path}"
+        self.gcs.put(from_path, full_path)
+        return f"gs://{full_path}"
+
+    def post(self, path: str, repository: bytes) -> str:
+        full_path = f"{self.bucket_name}/{path}"
+        with self.gcs.open(full_path, "wb") as f:
             f.write(repository)
+
+        return f"gs://{full_path}"
 
     def get(self, path: str) -> bytes:
         path = f"{self.bucket_name}/{path}"

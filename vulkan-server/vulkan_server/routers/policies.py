@@ -5,7 +5,6 @@ from itertools import chain
 from typing import Annotated, Any
 
 import pandas as pd
-import requests
 import sqlalchemy.exc
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy import func as F
@@ -29,13 +28,13 @@ from vulkan_server.db import (
     ComponentVersion,
     ComponentVersionDependency,
     DagsterWorkspace,
-    DagsterWorkspaceStatus,
     DataSource,
     Policy,
     PolicyDataDependency,
     PolicyVersion,
     PolicyVersionStatus,
     Run,
+    WorkspaceStatus,
     get_db,
 )
 from vulkan_server.exceptions import ExceptionHandler, VulkanServerException
@@ -295,9 +294,6 @@ def create_policy_version(
     dagster_launcher_client: VulkanDagsterServiceClient = Depends(
         get_dagster_service_client
     ),
-    server_config: definitions.VulkanServerConfig = Depends(
-        definitions.get_vulkan_server_config
-    ),
 ):
     handler = ExceptionHandler(
         logger=logger,
@@ -335,9 +331,7 @@ def create_policy_version(
 
     try:
         settings = _create_policy_version_workspace(
-            db=db,
             resolution=resolution_service,
-            policy_version_id=version.policy_version_id,
             name=version_name,
             repository=config.repository,
         )
@@ -371,6 +365,8 @@ def create_policy_version(
 
         version.input_schema = settings.input_schema
         version.graph_definition = json.dumps(settings.graph_definition)
+        version.module_name = settings.module_name
+        version.base_worker_image = settings.image_path
     except Exception as e:
         if isinstance(e, VulkanInternalException):
             handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
@@ -380,34 +376,38 @@ def create_policy_version(
         db.commit()
 
     # Dagster-specific
+    dagster_workspace = DagsterWorkspace(
+        policy_version_id=version.policy_version_id,
+        status=WorkspaceStatus.CREATION_PENDING,
+        path=settings.workspace_path,
+    )
+    db.add(dagster_workspace)
+    db.commit()
+
     try:
         dagster_launcher_client.create_workspace(
             version_name, version.repository, settings.required_components
         )
         dagster_launcher_client.ensure_workspace_added(version_name)
+
+        dagster_workspace.status = WorkspaceStatus.OK
+        db.commit()
         logger.info("Updated repositories")
     except Exception as e:
+        dagster_workspace.status = WorkspaceStatus.CREATION_FAILED
+        db.commit()
+        resolution_service.delete_workspace(version_name)
+
         if isinstance(e, VulkanInternalException):
             handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
-        resolution_service.delete_workspace(version_name)
         handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
+    # END of Dagster-specific segment
 
     version.status = PolicyVersionStatus.VALID
     db.commit()
     logger.info(
         f"Policy version {config.alias} created for policy {policy_id} with "
         f"status {version.status}"
-    )
-
-    # TODO: temporary workaround
-    requests.post(
-        url=f"{server_config.beam_launcher_url}/resources/workspaces",
-        json={
-            "project_id": project_id,
-            "policy_version_id": str(version.policy_version_id),
-            "repository": config.repository,
-            "required_components": settings.required_components,
-        },
     )
 
     return {
@@ -476,46 +476,38 @@ def _add_data_source_dependencies(
 
 @dataclass
 class PolicyVersionSettings:
+    module_name: str
     input_schema: dict[str, str]
     graph_definition: str
+    workspace_path: str
+    image_path: str
     required_components: list[str] | None = None
     config_variables: list[str] | None = None
     data_sources: list[str] | None = None
 
 
 def _create_policy_version_workspace(
-    db: Session,
     resolution: ResolutionServiceClient,
-    policy_version_id: int,
     name: str,
     repository: str,
 ) -> PolicyVersionSettings:
-    workspace = DagsterWorkspace(
-        policy_version_id=policy_version_id,
-        status=DagsterWorkspaceStatus.CREATION_PENDING,
-    )
-    db.add(workspace)
-    db.commit()
-
     try:
         response = resolution.create_workspace(name=name, repository=repository)
         response_data = response.json()
-        workspace.path = response_data["workspace_path"]
-        workspace.status = DagsterWorkspaceStatus.OK
-        db.commit()
     except Exception as e:
-        workspace.status = DagsterWorkspaceStatus.CREATION_FAILED
-        db.commit()
         raise e
 
     definition_settings = response_data["policy_definition_settings"]
 
     version_settings = PolicyVersionSettings(
+        module_name=response_data["module_name"],
         input_schema=response_data["input_schema"],
         graph_definition=response_data["graph_definition"],
         data_sources=response_data.get("data_sources", []),
         required_components=definition_settings.get("required_components", []),
         config_variables=definition_settings.get("config_variables", []),
+        workspace_path=response_data["workspace_path"],
+        image_path=response_data["image_path"],
     )
     return version_settings
 

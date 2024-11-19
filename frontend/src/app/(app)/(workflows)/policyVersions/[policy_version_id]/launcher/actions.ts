@@ -6,16 +6,15 @@ export async function postLaunchFormAction({
     label,
 }: {
     launchUrl: string;
-    body: any,
-    headers: any,
+    body: any;
+    headers: any;
     label?: string;
 }) {
-
     return fetch(launchUrl, {
         method: "POST",
         headers: {
             ...headers,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
         mode: "cors",
@@ -24,10 +23,10 @@ export async function postLaunchFormAction({
             if (!response.ok) {
                 const responseBody = await response.json();
                 if (responseBody?.detail && responseBody.detail?.msg) {
-                    const errorMsg = responseBody.detail.msg.replace(
-                        "Failed to launch run: Failed to trigger job: ",
-                        "",
-                    ).replaceAll('"', '\\"').replaceAll("'", '"');
+                    const errorMsg = responseBody.detail.msg
+                        .replace("Failed to launch run: Failed to trigger job: ", "")
+                        .replaceAll('"', '\\"')
+                        .replaceAll("'", '"');
                     const splicedError = "[" + errorMsg.substring(1, errorMsg.length - 1) + "]";
                     const errorObj = JSON.parse(splicedError);
                     const errorObjAsString = JSON.stringify(errorObj, null, 2);
@@ -38,7 +37,7 @@ export async function postLaunchFormAction({
                 throw new Error("Failed to create Run: " + response, { cause: response });
             }
             const data = await response.json();
-            return data
+            return data;
         })
         .catch((error) => {
             const baseMsg = "Error fetching data";
