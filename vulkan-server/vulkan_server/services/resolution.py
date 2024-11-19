@@ -61,6 +61,22 @@ class ResolutionServiceClient:
         )
         return response
 
+    def create_beam_workspace(
+        self,
+        policy_version_id: str,
+        base_image: str,
+    ) -> Response:
+        response = self._make_request(
+            method="POST",
+            url="/workspaces/beam/create",
+            json={
+                "name": definitions.version_name("", policy_version_id),
+                "base_image": base_image,
+            },
+            on_error="Failed to create beam workspace",
+        )
+        return response
+
     def delete_workspace(self, name: str) -> Response:
         response = self._make_request(
             method="POST",

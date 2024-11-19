@@ -235,7 +235,6 @@ def list_runs_by_policy_version(policy_version_id: str, db: Session = Depends(ge
         return Response(status_code=204)
     return runs
 
-
 @router.get(
     "/{policy_version_id}/components",
     response_model=list[schemas.ComponentVersionDependencyExpanded],
