@@ -200,7 +200,7 @@ def _ensure_backtest_workspace(
     if workspace is None:
         try:
             logger.info(f"Creating workspace for policy version {policy_version_id}")
-            workspace = create_backtest_workspace(
+            workspace = _create_backtest_workspace(
                 policy_version_id, project_id, db, resolution_service
             )
         except Exception as e:
@@ -217,7 +217,7 @@ def _ensure_backtest_workspace(
     return workspace
 
 
-def create_backtest_workspace(
+def _create_backtest_workspace(
     policy_version_id: UUID,
     project_id: UUID,
     db: Session,
