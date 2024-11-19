@@ -14,8 +14,8 @@ vulkan-server = { workspace = true }
 vulkan-dagster = { workspace = true }
 resolution-svc = { workspace = true }
 upload-svc = { workspace = true }
-vulkan-public = { path = "vulkan-public" }
-vulkan = { path = "vulkan" }
+vulkan-public = { path = "vulkan-public", editable = true }
+vulkan = { path = "vulkan", editable = true }
 
 [build-system]
 requires = ["hatchling"]

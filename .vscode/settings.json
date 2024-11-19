@@ -7,7 +7,7 @@
     "upload-svc/": true,
     "resolution-svc/": true
   },
-  "python.defaultInterpreterPath": "vulkan/.venv/bin/python",
+  "python.defaultInterpreterPath": ".venv/bin/python",
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
