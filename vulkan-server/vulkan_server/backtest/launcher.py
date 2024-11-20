@@ -3,15 +3,74 @@ import os
 from datetime import datetime
 from typing import Any
 
+from fastapi import Depends
 from google.cloud import dataflow_v1beta3 as dataflow
 from pydantic.dataclasses import dataclass
+from sqlalchemy.orm import Session
+from vulkan.core.run import RunStatus
+from vulkan_public.spec.dependency import INPUT_NODE
 
+from vulkan_server import schemas
+from vulkan_server.db import Backfill, BeamWorkspace, PolicyVersion, get_db
 from vulkan_server.logger import init_logger
 
 logger = init_logger("beam-launcher")
 
 
-class DataflowLauncher:
+class BackfillLauncher:
+    def __init__(self, db: Session) -> None:
+        self.db: Session = db
+        # FIXME: This path should be set by a shared environment variable
+        self.backend_launcher = _DataflowLauncher(components_path="/opt/dependencies/")
+
+    def create_backfill(
+        self,
+        project_id: str,
+        backtest_id: str,
+        policy_version: PolicyVersion,
+        workspace: BeamWorkspace,
+        input_data_path: str,
+        resolved_config_variables: dict | None,
+    ) -> schemas.Backfill:
+        # TODO: Maybe we don't need to pass the entire policy version obj here
+        backfill = Backfill(
+            backtest_id=backtest_id,
+            input_data_path=input_data_path,
+            status=RunStatus.PENDING,
+            config_variables=resolved_config_variables,
+            project_id=project_id,
+        )
+        self.db.add(backfill)
+        self.db.commit()
+
+        output_path = f"{self.backend_launcher.config.output_bucket}/{project_id}/{backfill.backfill_id}"
+        backfill.output_path = output_path
+
+        response = self.backend_launcher.launch_run(
+            policy_version_id=str(policy_version.policy_version_id),
+            backfill_id=str(backfill.backfill_id),
+            image=workspace.image,
+            module_name=policy_version.module_name,
+            data_sources={
+                INPUT_NODE: backfill.input_data_path,
+            },
+            config_variables=resolved_config_variables,
+            output_path=output_path,
+        )
+        backfill.gcp_project_id = response.project_id
+        backfill.gcp_job_id = response.job_id
+        self.db.commit()
+
+        logger.info(f"Launched run {response}")
+
+        return backfill
+
+
+def get_launcher(db: Session = Depends(get_db)) -> BackfillLauncher:
+    return BackfillLauncher(db=db)
+
+
+class _DataflowLauncher:
     def __init__(self, components_path: str) -> None:
         self.components_path = components_path
 
@@ -21,12 +80,12 @@ class DataflowLauncher:
     def launch_run(
         self,
         policy_version_id: str,
-        project_id: str,
         backfill_id: str,
         image: str,
         module_name: str,
         data_sources: dict,
-        config_variables: dict[str, Any] | None = None,
+        config_variables: dict[str, Any] | None,
+        output_path: str,
     ):
         environment = dataflow.FlexTemplateRuntimeEnvironment(
             num_workers=1,
@@ -39,14 +98,10 @@ class DataflowLauncher:
         )
 
         launch_time = datetime.now()
-        job_name = (
-            f"policy-{policy_version_id}-t-{launch_time.strftime('%Y%m%d-%H%M%S')}"
-        )
+        job_name = f"job-{backfill_id}-t-{launch_time.strftime('%Y%m%d-%H%M%S')}"
 
         if config_variables is None:
             config_variables = {}
-
-        output_path = f"{self.config.output_bucket}/{project_id}/{backfill_id}"
 
         script_params = {
             "output_path": output_path,
@@ -77,16 +132,10 @@ class DataflowLauncher:
         response = self.dataflow_client.launch_flex_template(request=job_request)
         # TODO: check if launch succeeded
         logger.info(f"Launched backfill {backfill_id} with job id {response.job.id}")
-        return LaunchRunResponse(
+        return _LaunchRunResponse(
             job_id=response.job.id,
             project_id=response.job.project_id,
-            output_path=output_path
         )
-
-
-def get_launcher() -> DataflowLauncher:
-    # TODO: get components path from config
-    return DataflowLauncher(components_path="/opt/dependencies/")
 
 
 @dataclass
@@ -115,7 +164,6 @@ def _get_dataflow_config() -> DataflowConfig:
 
 
 @dataclass
-class LaunchRunResponse:
+class _LaunchRunResponse:
     job_id: str
     project_id: str
-    output_path: str

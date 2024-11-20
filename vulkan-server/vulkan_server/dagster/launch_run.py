@@ -8,7 +8,7 @@ from vulkan.dagster.run_config import RUN_CONFIG_KEY
 from vulkan_public.constants import POLICY_CONFIG_KEY
 
 from vulkan_server import definitions
-from vulkan_server.config_variables import resolve_config_variables
+from vulkan_server.config_variables import resolve_config_variables_from_id
 from vulkan_server.dagster import trigger_run
 from vulkan_server.db import PolicyVersion, Run
 from vulkan_server.exceptions import (
@@ -38,7 +38,7 @@ def create_run(
         msg = f"Policy version {policy_version_id} not found"
         raise NotFoundException(msg)
 
-    config_variables, missing = resolve_config_variables(
+    config_variables, missing = resolve_config_variables_from_id(
         db=db,
         policy_version_id=policy_version_id,
         required_variables=version.variables,

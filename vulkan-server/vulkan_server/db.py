@@ -354,32 +354,44 @@ class RunDataCache(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-class Backfill(AuthorizationMixin, TimedUpdateMixin, Base):
-    __tablename__ = "backfill"
-
-    backfill_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
-    input_data_path = Column(String)
-    output_path = Column(String, nullable=True)
-    status = Column(Enum(RunStatus))
-    name = Column(String, nullable=True)
-    config_variables = Column(JSON, nullable=True)
-
-    # Run-Specific info
-    gcp_project_id = Column(String, nullable=True)
-    gcp_job_id = Column(String, nullable=True)
-
-
-class UploadedFile(Base):
+class UploadedFile(AuthorizationMixin, Base):
     __tablename__ = "uploaded_file"
 
     uploaded_file_id = Column(
         Uuid, primary_key=True, server_default=func.gen_random_uuid()
     )
-    project_id = Column(Uuid, ForeignKey("project.project_id"))
     file_path = Column(String)
-    schema = Column(JSON)
+    file_schema = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Backfill(AuthorizationMixin, TimedUpdateMixin, Base):
+    __tablename__ = "backfill"
+
+    backfill_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    backtest_id = Column(Uuid, ForeignKey("backtest.backtest_id"))
+    input_data_path = Column(String)
+    status = Column(Enum(RunStatus))
+    config_variables = Column(JSON, nullable=True)
+
+    # Known after launch
+    output_path = Column(String, nullable=True)
+    gcp_project_id = Column(String, nullable=True)
+    gcp_job_id = Column(String, nullable=True)
+
+
+class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
+    __tablename__ = "backtest"
+
+    backtest_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    policy_version_id = Column(
+        Uuid, ForeignKey("policy_version.policy_version_id"), nullable=False
+    )
+    input_file_id = Column(
+        Uuid, ForeignKey("uploaded_file.uploaded_file_id"), nullable=False
+    )
+    environments = Column(JSON, nullable=True)
+    status = Column(Enum(RunStatus), nullable=False)
 
 
 if __name__ == "__main__":

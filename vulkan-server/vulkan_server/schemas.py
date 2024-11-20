@@ -281,3 +281,14 @@ class Backfill(BaseModel):
 
     created_at: datetime
     last_updated_at: datetime
+
+
+class Backtest(BaseModel):
+    backtest_id: UUID
+    policy_version_id: UUID
+    input_file_id: UUID
+    environments: list[dict]
+    status: RunStatus
+
+    created_at: datetime
+    last_updated_at: datetime
