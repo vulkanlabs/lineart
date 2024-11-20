@@ -20,8 +20,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
-
-from vulkan.backtest.definitions import BacktestStatus
 from vulkan.core.run import RunStatus
 
 Base = declarative_base()
@@ -356,14 +354,14 @@ class RunDataCache(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
-    __tablename__ = "backtest"
+class Backfill(AuthorizationMixin, TimedUpdateMixin, Base):
+    __tablename__ = "backfill"
 
-    backtest_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    backfill_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
     input_data_path = Column(String)
     output_path = Column(String, nullable=True)
-    status = Column(Enum(BacktestStatus))
+    status = Column(Enum(RunStatus))
     name = Column(String, nullable=True)
     config_variables = Column(JSON, nullable=True)
 

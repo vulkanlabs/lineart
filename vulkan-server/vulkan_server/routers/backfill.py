@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, Upl
 from gcsfs import GCSFileSystem
 from pyarrow import parquet
 from sqlalchemy.orm import Session
-from vulkan.backtest.definitions import BacktestStatus, SupportedFileFormat
+from vulkan.backtest.definitions import SupportedFileFormat
+from vulkan.core.run import RunStatus
 from vulkan_public.spec.dependency import INPUT_NODE
 
 from vulkan_server import definitions, schemas
@@ -16,7 +17,7 @@ from vulkan_server.auth import get_project_id
 from vulkan_server.beam.launcher import DataflowLauncher, get_launcher
 from vulkan_server.config_variables import resolve_config_variables
 from vulkan_server.db import (
-    Backtest,
+    Backfill,
     BeamWorkspace,
     PolicyVersion,
     UploadedFile,
@@ -30,10 +31,10 @@ from vulkan_server.services.resolution import (
     get_resolution_service_client,
 )
 
-logger = init_logger("backtests")
+logger = init_logger("backfills")
 router = APIRouter(
-    prefix="/backtests",
-    tags=["backtests"],
+    prefix="/backfills",
+    tags=["backfills"],
     responses={404: {"description": "Not found"}},
 )
 
@@ -53,54 +54,54 @@ def make_file_input_service(
     )
 
 
-@router.get("/", response_model=list[schemas.Backtest])
-def list_backtests(project_id: str = Depends(get_project_id), db=Depends(get_db)):
-    results = db.query(Backtest).filter_by(project_id=project_id).all()
+@router.get("/", response_model=list[schemas.Backfill])
+def list_backfills(project_id: str = Depends(get_project_id), db=Depends(get_db)):
+    results = db.query(Backfill).filter_by(project_id=project_id).all()
     if len(results) == 0:
         return Response(status_code=204)
     return results
 
 
-@router.get("/{backtest_id}", response_model=schemas.Backtest)
-def get_backtest(
-    backtest_id: str,
+@router.get("/{backfill_id}", response_model=schemas.Backfill)
+def get_backfill(
+    backfill_id: str,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    backtest = (
-        db.query(Backtest)
-        .filter_by(backtest_id=backtest_id, project_id=project_id)
+    backfill = (
+        db.query(Backfill)
+        .filter_by(backfill_id=backfill_id, project_id=project_id)
         .first()
     )
-    if backtest is None:
+    if backfill is None:
         return Response(status_code=404)
-    return backtest
+    return backfill
 
 
-@router.put("/{backtest_id}")
-def update_backtest(
-    backtest_id: str,
-    status: BacktestStatus,
+@router.put("/{backfill_id}")
+def update_backfill(
+    backfill_id: str,
+    status: RunStatus,
     results_path: str,
     db: Session = Depends(get_db),
     project_id: str = Depends(get_project_id),
 ):
-    backtest = (
-        db.query(Backtest)
-        .filter_by(backtest_id=backtest_id, project_id=project_id)
+    backfill = (
+        db.query(Backfill)
+        .filter_by(backfill_id=backfill_id, project_id=project_id)
         .first()
     )
-    if backtest is None:
+    if backfill is None:
         return Response(status_code=404)
 
-    backtest.status = status
-    backtest.results_path = results_path
+    backfill.status = status
+    backfill.results_path = results_path
     db.commit()
-    return backtest
+    return backfill
 
 
-@router.post("/", response_model=schemas.Backtest)
-async def create_backtest(
+@router.post("/", response_model=schemas.Backfill)
+async def create_backfill(
     policy_version_id: UUID,
     input_file: UploadFile,
     file_format: SupportedFileFormat,
@@ -149,51 +150,52 @@ async def create_backtest(
     except Exception as e:
         raise HTTPException(status_code=500, detail={"msg": str(e)})
 
-    backtest = Backtest(
+    backfill = Backfill(
         policy_version_id=policy_version_id,
         name=name,
         input_data_path=file_info["file_path"],
-        status=BacktestStatus.PENDING,
+        status=RunStatus.PENDING,
         config_variables=resolved_config,
         project_id=project_id,
     )
-    db.add(backtest)
+    db.add(backfill)
     db.commit()
 
     try:
-        workspace: BeamWorkspace = _ensure_backtest_workspace(
+        workspace: BeamWorkspace = _ensure_beam_workspace(
             policy_version_id, project_id, db, resolution_service
         )
     except Exception as e:
-        logger.error(f"Backtest launch failed: {e}")
+        logger.error(f"Backfill launch failed: {e}")
         logger.error(
             "This is usually an issue with Vulkan's internal services. "
             "Contact support for assistance."
         )
-        backtest.status = BacktestStatus.FAILURE
+        backfill.status = RunStatus.FAILURE
         db.commit()
 
     response = run_launcher.launch_run(
         policy_version_id=str(policy_version_id),
         project_id=str(project_id),
-        backtest_id=str(backtest.backtest_id),
+        backfill_id=str(backfill.backfill_id),
         image=workspace.image,
         module_name=policy_version.module_name,
         data_sources={
-            INPUT_NODE: backtest.input_data_path,
+            INPUT_NODE: backfill.input_data_path,
         },
         config_variables=config_variables,
     )
-    backtest.gcp_project_id = response.project_id
-    backtest.gcp_job_id = response.job_id
+    backfill.gcp_project_id = response.project_id
+    backfill.gcp_job_id = response.job_id
+    backfill.output_path = response.output_path
     db.commit()
 
     logger.info(f"Launched run {response}")
 
-    return backtest
+    return backfill
 
 
-def _ensure_backtest_workspace(
+def _ensure_beam_workspace(
     policy_version_id: UUID,
     project_id: UUID,
     db: Session,
@@ -205,13 +207,11 @@ def _ensure_backtest_workspace(
     if workspace is None:
         try:
             logger.info(f"Creating workspace for policy version {policy_version_id}")
-            workspace = _create_backtest_workspace(
+            workspace = _create_beam_workspace(
                 policy_version_id, project_id, db, resolution_service
             )
         except Exception as e:
-            msg = (
-                f"ensure_backtest_workspace: policy version {policy_version_id} failed"
-            )
+            msg = f"workspace: policy version {policy_version_id} failed"
             raise ValueError(msg) from e
 
     if workspace.status == WorkspaceStatus.CREATION_FAILED:
@@ -222,7 +222,7 @@ def _ensure_backtest_workspace(
     return workspace
 
 
-def _create_backtest_workspace(
+def _create_beam_workspace(
     policy_version_id: UUID,
     project_id: UUID,
     db: Session,
@@ -256,30 +256,41 @@ def _create_backtest_workspace(
     return beam_workspace
 
 
-@router.get("/{backtest_id}/results")
-def get_backtest_results(
-    backtest_id: str,
+@router.get("/{backfill_id}/results")
+def get_backfill_results(
+    backfill_id: str,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    backtest = (
-        db.query(Backtest)
-        .filter_by(backtest_id=backtest_id, project_id=project_id)
+    backfill = (
+        db.query(Backfill)
+        .filter_by(backfill_id=backfill_id, project_id=project_id)
         .first()
     )
-    if backtest is None:
+    if backfill is None:
         return Response(status_code=404)
+    # FIXME: check also that the status is "SUCCESS"
 
     try:
-        results = load_backtest_results(str(backtest.output_path))
-    except Exception as e:
-        return HTTPException(status_code=500, detail={"msg": str(e)})
+        results = _load_backfill_results(str(backfill.output_path))
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "msg": (
+                    "Failed to load backtest results. "
+                    "This can happen if the backtest is still running or if there is an error."
+                )
+            },
+        )
 
     return results.to_dict(orient="records")
 
 
-def load_backtest_results(results_path: str) -> pd.DataFrame:
+def _load_backfill_results(results_path: str) -> pd.DataFrame:
     token_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+    logger.info(f"Loading results from {results_path}")
 
     fs = GCSFileSystem(project=GCP_PROJECT_ID, access="read_write", token=token_path)
     files = fs.ls(results_path)
@@ -288,6 +299,7 @@ def load_backtest_results(results_path: str) -> pd.DataFrame:
         raise ValueError(f"No files found in {results_path}")
 
     ds = parquet.ParquetDataset(files, filesystem=fs)
+    logger.info(f"Read {len(ds)} records from {results_path}")
     return ds.read().to_pandas()
 
 

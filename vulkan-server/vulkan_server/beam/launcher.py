@@ -22,7 +22,7 @@ class DataflowLauncher:
         self,
         policy_version_id: str,
         project_id: str,
-        backtest_id: str,
+        backfill_id: str,
         image: str,
         module_name: str,
         data_sources: dict,
@@ -46,8 +46,10 @@ class DataflowLauncher:
         if config_variables is None:
             config_variables = {}
 
+        output_path = f"{self.config.output_bucket}/{project_id}/{backfill_id}"
+
         script_params = {
-            "output_path": f"{self.config.output_bucket}/{project_id}/{backtest_id}",
+            "output_path": output_path,
             "data_sources": json.dumps(data_sources),
             "module_name": module_name,
             "components_path": self.components_path,
@@ -74,10 +76,11 @@ class DataflowLauncher:
 
         response = self.dataflow_client.launch_flex_template(request=job_request)
         # TODO: check if launch succeeded
-        logger.info(f"Launched backtest {backtest_id} with job id {response.job.id}")
+        logger.info(f"Launched backfill {backfill_id} with job id {response.job.id}")
         return LaunchRunResponse(
             job_id=response.job.id,
             project_id=response.job.project_id,
+            output_path=output_path
         )
 
 
@@ -115,3 +118,4 @@ def _get_dataflow_config() -> DataflowConfig:
 class LaunchRunResponse:
     job_id: str
     project_id: str
+    output_path: str

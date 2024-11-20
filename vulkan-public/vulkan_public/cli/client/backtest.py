@@ -6,13 +6,13 @@ from vulkan_public.cli.context import Context
 
 
 def list_backtests(ctx: Context):
-    response = ctx.session.get(f"{ctx.server_url}/backtests")
+    response = ctx.session.get(f"{ctx.server_url}/backfills")
     assert response.status_code == 200, f"Failed to list backtests: {response.content}"
     return response.json()
 
 
 def get_backtest(ctx: Context, backtest_id: str):
-    response = ctx.session.get(f"{ctx.server_url}/backtests/{backtest_id}")
+    response = ctx.session.get(f"{ctx.server_url}/backfills/{backtest_id}")
     assert response.status_code == 200, f"Failed to list backtests: {response.content}"
     return response.json()
 
@@ -25,7 +25,7 @@ def create_backtest(
     config_variables: dict | None = None,
 ):
     response = ctx.session.post(
-        f"{ctx.server_url}/backtests",
+        f"{ctx.server_url}/backfills",
         params={
             "policy_version_id": policy_version_id,
             "file_format": file_format,
@@ -35,13 +35,14 @@ def create_backtest(
     )
     assert response.status_code == 200, f"Failed to create backtest: {response.content}"
     response_data = response.json()
-    backtest_id = response_data["backtest_id"]
-    ctx.logger.info(f"Created backtest with id {backtest_id}")
+    # FIXME: backfill should be an internal API. This should be a backtest_id.
+    backfill_id = response_data["backfill_id"]
+    ctx.logger.info(f"Created backtest with id {backfill_id}")
     return response_data
 
 
-def get_backtest_results(ctx: Context, backtest_id: str):
-    url = f"{ctx.server_url}/backtests/{backtest_id}/results"
+def get_results(ctx: Context, backtest_id: str):
+    url = f"{ctx.server_url}/backfills/{backtest_id}/results"
     response = ctx.session.get(url)
     if response.status_code != 200:
         raise Exception(f"Failed to get backtest results: {response.content}")
@@ -53,7 +54,7 @@ def create_workspace(
     policy_version_id: str,
 ):
     response = ctx.session.post(
-        f"{ctx.server_url}/backtests/create_workspace",
+        f"{ctx.server_url}/backfills/create_workspace",
         params={"policy_version_id": policy_version_id},
     )
 
@@ -62,7 +63,7 @@ def create_workspace(
 
 
 def download_results_to_file(ctx: Context, backtest_id: str, filename: str):
-    url = f"{ctx.server_url}/backtests/{backtest_id}/results"
+    url = f"{ctx.server_url}/backfills/{backtest_id}/results"
     response = ctx.session.get(url, stream=True)
 
     with open(filename, "wb") as f:
@@ -100,12 +101,12 @@ def upload_backtest_file(
 
     if file_format not in ["CSV", "PARQUET"]:
         raise ValueError(f"Unsupported file format: {file_format}")
-    
+
     if not isinstance(schema, dict):
         raise ValueError(f"Schema must be a dict: {schema}")
-    
+
     response = ctx.session.post(
-        f"{ctx.server_url}/backtests/files",
+        f"{ctx.server_url}/backfills/files",
         files={"file": open(file_path, "rb")},
         data={
             "file_format": file_format,

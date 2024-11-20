@@ -46,7 +46,7 @@ def launch_pipeline(
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--image", type=str)
-    # Backtest config args
+    # Run config args
     parser.add_argument("--output_path", type=str)
     parser.add_argument("--data_sources", type=str)
     parser.add_argument("--config_variables", type=str)
