@@ -2,6 +2,8 @@ import builtins
 import json
 import os
 
+from pandas import DataFrame
+
 from vulkan_public.cli.context import Context
 
 
@@ -39,6 +41,14 @@ def create_workspace(
 
     assert response.status_code == 200, f"Failed to create backtest: {response.content}"
     return response.json()
+
+
+def get_results(ctx: Context, backtest_id: str):
+    url = f"{ctx.server_url}/backtests/{backtest_id}/results"
+    response = ctx.session.get(url)
+    if response.status_code != 200:
+        raise Exception(f"Failed to get backfill results: {response.content}")
+    return DataFrame(response.json())
 
 
 def upload_backtest_file(

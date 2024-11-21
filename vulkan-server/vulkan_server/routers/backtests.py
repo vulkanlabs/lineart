@@ -10,8 +10,10 @@ from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.backtest.backtest import ensure_beam_workspace, resolve_backtest_envs
 from vulkan_server.backtest.launcher import BackfillLauncher, get_launcher
+from vulkan_server.backtest.results import ResultsDB, make_results_db
 from vulkan_server.config_variables import _get_policy_version_defaults
 from vulkan_server.db import (
+    Backfill,
     Backtest,
     BeamWorkspace,
     PolicyVersion,
@@ -92,8 +94,12 @@ def launch_backtest(
             raise HTTPException(status_code=400, detail={"msg": str(e)})
         except Exception as e:
             raise HTTPException(status_code=500, detail={"msg": str(e)})
+    else:
+        # No config variables provided, use defaults.
+        resolved_envs = [{}]
 
     backtest = Backtest(
+        project_id=project_id,
         policy_version_id=policy_version_id,
         input_file_id=input_file_id,
         environments=resolved_envs,
@@ -129,9 +135,7 @@ def create_workspace(
 ):
     # If a workspace exists, this is a no-op.
     current_workspace = (
-        db.query(BeamWorkspace)
-        .filter_by(policy_version_id=policy_version_id)
-        .first()
+        db.query(BeamWorkspace).filter_by(policy_version_id=policy_version_id).first()
     )
     if current_workspace is not None:
         return current_workspace
@@ -181,6 +185,48 @@ def make_file_input_service(
         project_id=project_id,
         server_url=server_config.upload_service_url,
     )
+
+
+@router.get("/{backtest_id}/results")
+def get_backtest_results(
+    backtest_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+    results_db: ResultsDB = Depends(make_results_db),
+):
+    backtest = (
+        db.query(Backtest)
+        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .first()
+    )
+    if backtest is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"msg": f"Backtest {backtest_id} not found"},
+        )
+    # TODO: check job status
+
+    backfills = (
+        db.query(Backfill)
+        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .all()
+    )
+    
+    data_paths = [job.output_path for job in backfills]
+    logger.info(f"Loading backtest results: {data_paths}")
+    try:
+        results = results_db.load_data(data_paths)
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "msg": (
+                    "Failed to load backtest results. "
+                    "This can happen if the backtest is still running or if there is an error."
+                )
+            },
+        )
+    return results.to_dict(orient="records")
 
 
 @router.post("/files")

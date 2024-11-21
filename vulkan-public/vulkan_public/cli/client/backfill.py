@@ -1,4 +1,4 @@
-import json
+from pandas import DataFrame
 
 from vulkan_public.cli.context import Context
 
@@ -15,14 +15,12 @@ def get_backfill(ctx: Context, backfill_id: str):
     return response.json()
 
 
-
-
 def get_results(ctx: Context, backfill_id: str):
     url = f"{ctx.server_url}/backfills/{backfill_id}/results"
     response = ctx.session.get(url)
     if response.status_code != 200:
         raise Exception(f"Failed to get backfill results: {response.content}")
-    return response.json()
+    return DataFrame(response.json())
 
 
 def download_results_to_file(ctx: Context, backfill_id: str, filename: str):

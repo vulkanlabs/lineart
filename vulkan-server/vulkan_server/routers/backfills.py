@@ -1,14 +1,10 @@
-import os
-
-import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, Response
-from gcsfs import GCSFileSystem
-from pyarrow import parquet
 from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
 
 from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
+from vulkan_server.backtest.results import ResultsDB, make_results_db
 from vulkan_server.db import Backfill, get_db
 from vulkan_server.logger import init_logger
 
@@ -18,9 +14,6 @@ router = APIRouter(
     tags=["backfills"],
     responses={404: {"description": "Not found"}},
 )
-
-GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
-GCP_DATAFLOW_JOB_LOCATION = os.getenv("GCP_DATAFLOW_JOB_LOCATION")
 
 
 @router.get("/", response_model=list[schemas.Backfill])
@@ -74,6 +67,7 @@ def get_backfill_results(
     backfill_id: str,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
+    results_db: ResultsDB = Depends(make_results_db),
 ):
     backfill = (
         db.query(Backfill)
@@ -81,38 +75,24 @@ def get_backfill_results(
         .first()
     )
     if backfill is None:
-        return Response(status_code=404)
+        raise HTTPException(
+            status_code=404,
+            detail={"msg": f"Backtest {backfill_id} not found"},
+        )
+
     # FIXME: check also that the status is "SUCCESS"
 
     try:
-        results = _load_backfill_results(backfill.output_path)
+        results = results_db.load_data(backfill.output_path)
     except Exception:
         raise HTTPException(
             status_code=500,
             detail={
                 "msg": (
-                    "Failed to load backtest results. "
-                    "This can happen if the backtest is still running or if there is an error."
+                    "Failed to load backfill results. "
+                    "This can happen if the backfill is still running or if there is an error."
                 )
             },
         )
 
     return results.to_dict(orient="records")
-
-
-def _load_backfill_results(results_path: str) -> pd.DataFrame:
-    token_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-
-    try:
-        fs = GCSFileSystem(
-            project=GCP_PROJECT_ID, access="read_write", token=token_path
-        )
-        files = fs.ls(results_path)
-    except Exception:
-        raise ValueError(f"Failed to list files in {results_path}")
-
-    if len(files) == 0:
-        raise ValueError(f"No files found in {results_path}")
-
-    ds = parquet.ParquetDataset(files, filesystem=fs)
-    return ds.read().to_pandas()
