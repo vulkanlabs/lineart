@@ -15,6 +15,14 @@ def get_backfill(ctx: Context, backfill_id: str):
     return response.json()
 
 
+def get_backfill_status(ctx: Context, backfill_id: str):
+    response = ctx.session.get(f"{ctx.server_url}/backfills/{backfill_id}/status")
+    assert (
+        response.status_code == 200
+    ), f"Failed to get backfill state: {response.content}"
+    return response.json()
+
+
 def get_results(ctx: Context, backfill_id: str):
     url = f"{ctx.server_url}/backfills/{backfill_id}/results"
     response = ctx.session.get(url)

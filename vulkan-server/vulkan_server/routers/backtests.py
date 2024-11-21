@@ -1,7 +1,16 @@
 import json
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Response,
+    UploadFile,
+)
 from sqlalchemy.orm import Session
 from vulkan.backtest.definitions import SupportedFileFormat
 from vulkan.core.run import RunStatus
@@ -9,7 +18,11 @@ from vulkan.core.run import RunStatus
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.backtest.backtest import ensure_beam_workspace, resolve_backtest_envs
-from vulkan_server.backtest.launcher import BackfillLauncher, get_launcher
+from vulkan_server.backtest.launcher import (
+    BackfillLauncher,
+    get_backfill_job_status,
+    get_launcher,
+)
 from vulkan_server.backtest.results import ResultsDB, make_results_db
 from vulkan_server.config_variables import _get_policy_version_defaults
 from vulkan_server.db import (
@@ -34,6 +47,14 @@ router = APIRouter(
     tags=["backtests"],
     responses={404: {"description": "Not found"}},
 )
+
+
+@router.get("/", response_model=list[schemas.Backtest])
+def list_backtests(project_id: str = Depends(get_project_id), db=Depends(get_db)):
+    results = db.query(Backtest).filter_by(project_id=project_id).all()
+    if len(results) == 0:
+        return Response(status_code=204)
+    return results
 
 
 # TODO: Backtest Options (user defined, optional)
@@ -124,6 +145,45 @@ def launch_backtest(
     return backtest
 
 
+@router.get("/{backtest_id}/status", response_model=list[schemas.BackfillStatus])
+def get_backtest_status(
+    backtest_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    backtest = (
+        db.query(Backtest)
+        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .first()
+    )
+    if backtest is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"msg": f"Backtest {backtest_id} not found"},
+        )
+
+    backfills = (
+        db.query(Backfill)
+        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .all()
+    )
+    if len(backfills) == 0:
+        raise HTTPException(
+            status_code=404,
+            detail={"msg": f"No backfills found for backtest {backtest_id}"},
+        )
+
+    backtest_jobs = []
+
+    for backfill in backfills:
+        status = get_backfill_job_status(backfill.gcp_job_id)
+        backtest_jobs.append(
+            schemas.BackfillStatus(backfill_id=backfill.backfill_id, status=status)
+        )
+
+    return backtest_jobs
+
+
 @router.post("/")
 def create_workspace(
     policy_version_id: str,
@@ -211,7 +271,7 @@ def get_backtest_results(
         .filter_by(backtest_id=backtest_id, project_id=project_id)
         .all()
     )
-    
+
     data_paths = [job.output_path for job in backfills]
     logger.info(f"Loading backtest results: {data_paths}")
     try:

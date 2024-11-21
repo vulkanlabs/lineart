@@ -5,6 +5,7 @@ from vulkan.core.run import RunStatus
 from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.backtest.results import ResultsDB, make_results_db
+from vulkan_server.backtest.launcher import get_backfill_job_status
 from vulkan_server.db import Backfill, get_db
 from vulkan_server.logger import init_logger
 
@@ -38,6 +39,24 @@ def get_backfill(
     if backfill is None:
         return Response(status_code=404)
     return backfill
+
+
+@router.get("/{backfill_id}/status", response_model=schemas.BackfillStatus)
+def get_backfill_status(
+    backfill_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    backfill = (
+        db.query(Backfill)
+        .filter_by(backfill_id=backfill_id, project_id=project_id)
+        .first()
+    )
+    if backfill is None:
+        return Response(status_code=404)
+
+    status = get_backfill_job_status(backfill.gcp_job_id)
+    return schemas.BackfillStatus(backfill_id=backfill_id, status=status)
 
 
 @router.put("/{backfill_id}")

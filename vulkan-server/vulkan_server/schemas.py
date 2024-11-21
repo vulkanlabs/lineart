@@ -274,13 +274,19 @@ class DataBrokerResponse(BaseModel):
 
 class Backfill(BaseModel):
     backfill_id: UUID
-    policy_version_id: UUID
-    input_data_path: str
-    name: str | None = None
+    backtest_id: UUID
     status: RunStatus
 
     created_at: datetime
     last_updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BackfillStatus(BaseModel):
+    backfill_id: UUID
+    status: str
 
 
 class Backtest(BaseModel):

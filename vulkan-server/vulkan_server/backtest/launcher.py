@@ -166,3 +166,42 @@ def _get_dataflow_config() -> DataflowConfig:
 class _LaunchRunResponse:
     job_id: str
     project_id: str
+
+
+def get_dataflow_job_state(job_id: str) -> dataflow.JobState:
+    config = _get_dataflow_config()
+    client = dataflow.JobsV1Beta3Client()
+    request = dataflow.GetJobRequest(
+        project_id=config.project,
+        location=config.region,
+        job_id=job_id,
+        view=dataflow.JobView.JOB_VIEW_SUMMARY,
+    )
+    job = client.get_job(request=request)
+    return job.current_state
+
+
+def get_backfill_job_status(gcp_job_id: str) -> str:
+    dataflow_job_state = get_dataflow_job_state(gcp_job_id)
+    return _JOB_STATE_MAP.get(dataflow_job_state, "UNKNOWN")
+
+
+_JOB_STATE_MAP = {
+    # Creating / Running states
+    dataflow.JobState.JOB_STATE_UNKNOWN: RunStatus.PENDING.name,
+    dataflow.JobState.JOB_STATE_QUEUED: RunStatus.PENDING.name,
+    dataflow.JobState.JOB_STATE_PENDING: RunStatus.PENDING.name,
+    dataflow.JobState.JOB_STATE_STOPPED: RunStatus.PENDING.name,
+    dataflow.JobState.JOB_STATE_RUNNING: RunStatus.STARTED.name,
+    # Terminal states
+    dataflow.JobState.JOB_STATE_FAILED: RunStatus.FAILURE.name,
+    dataflow.JobState.JOB_STATE_DONE: RunStatus.SUCCESS.name,
+    # States unlikely to be reached. They require explicit actions
+    # not covered by the current implementation.
+    dataflow.JobState.JOB_STATE_UPDATED: RunStatus.PENDING.name,
+    dataflow.JobState.JOB_STATE_CANCELLING: RunStatus.FAILURE.name,
+    dataflow.JobState.JOB_STATE_CANCELLED: RunStatus.FAILURE.name,
+    dataflow.JobState.JOB_STATE_DRAINING: RunStatus.FAILURE.name,
+    dataflow.JobState.JOB_STATE_DRAINED: RunStatus.FAILURE.name,
+    dataflow.JobState.JOB_STATE_RESOURCE_CLEANING_UP: RunStatus.SUCCESS.name,
+}

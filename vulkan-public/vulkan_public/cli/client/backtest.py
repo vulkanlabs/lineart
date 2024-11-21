@@ -1,10 +1,17 @@
 import builtins
 import json
 import os
+import time
 
 from pandas import DataFrame
 
 from vulkan_public.cli.context import Context
+
+
+def list_backtests(ctx: Context):
+    response = ctx.session.get(f"{ctx.server_url}/backtests")
+    assert response.status_code == 200, f"Failed to list backtests: {response.content}"
+    return response.json()
 
 
 def create_backtest(
@@ -13,6 +20,7 @@ def create_backtest(
     input_file_id: str,
     config_variables: list[dict] | None = None,
 ):
+    ctx.logger.info("Creating backtest. This may take a while...")
     response = ctx.session.post(
         f"{ctx.server_url}/backtests/launch",
         json={
@@ -20,14 +28,37 @@ def create_backtest(
             "input_file_id": input_file_id,
             "config_variables": config_variables,
         },
-        # "file_format": file_format,
-        # files={"input_file": open(input_file_path, "rb")},
     )
     assert response.status_code == 200, f"Failed to create backtest: {response.content}"
     response_data = response.json()
     backtest_id = response_data["backtest_id"]
     ctx.logger.info(f"Created backtest with id {backtest_id}")
     return response_data
+
+
+def get_backtest_jobs_statuses(ctx: Context, backtest_id: str):
+    response = ctx.session.get(f"{ctx.server_url}/backtests/{backtest_id}/status")
+    assert (
+        response.status_code == 200
+    ), f"Failed to get backtest state: {response.content}"
+    return response.json()
+
+
+def poll_backtest_jobs_statuses(
+    ctx: Context, backtest_id: str, timeout: int = 300, time_step: int = 30
+):
+    terminal = ["SUCCESS", "FAILURE"]
+
+    for _ in range(0, timeout, time_step):
+        jobs_status = get_backtest_jobs_statuses(ctx, backtest_id)
+        ctx.logger.info(jobs_status)
+
+        if all([job["status"] in terminal for job in jobs_status]):
+            break
+
+        time.sleep(time_step)
+
+    return jobs_status
 
 
 def create_workspace(
