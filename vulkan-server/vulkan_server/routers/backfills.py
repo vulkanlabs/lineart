@@ -85,7 +85,7 @@ def get_backfill_results(
     # FIXME: check also that the status is "SUCCESS"
 
     try:
-        results = _load_backfill_results(str(backfill.output_path))
+        results = _load_backfill_results(backfill.output_path)
     except Exception:
         raise HTTPException(
             status_code=500,
@@ -103,14 +103,16 @@ def get_backfill_results(
 def _load_backfill_results(results_path: str) -> pd.DataFrame:
     token_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
-    logger.info(f"Loading results from {results_path}")
-
-    fs = GCSFileSystem(project=GCP_PROJECT_ID, access="read_write", token=token_path)
-    files = fs.ls(results_path)
+    try:
+        fs = GCSFileSystem(
+            project=GCP_PROJECT_ID, access="read_write", token=token_path
+        )
+        files = fs.ls(results_path)
+    except Exception:
+        raise ValueError(f"Failed to list files in {results_path}")
 
     if len(files) == 0:
         raise ValueError(f"No files found in {results_path}")
 
     ds = parquet.ParquetDataset(files, filesystem=fs)
-    logger.info(f"Read {len(ds)} records from {results_path}")
     return ds.read().to_pandas()
