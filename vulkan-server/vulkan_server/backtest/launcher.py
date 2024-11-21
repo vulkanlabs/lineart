@@ -108,7 +108,6 @@ class _DataflowLauncher:
             "data_sources": json.dumps(data_sources),
             "module_name": module_name,
             "components_path": self.components_path,
-            "image": image,
             "config_variables": json.dumps(config_variables),
         }
 

@@ -11,7 +11,6 @@ logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
 def launch_pipeline(
-    image: str,
     data_sources: dict[str, Any],
     module_name: str,
     components_path: str,
@@ -27,7 +26,6 @@ def launch_pipeline(
 
     pipeline_args = [
         "--save_main_session",
-        "--sdk_container_image", image,
         "--sdk_location", "container",
     ] + other_args
 
@@ -45,7 +43,6 @@ def launch_pipeline(
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--image", type=str)
     # Run config args
     parser.add_argument("--output_path", type=str)
     parser.add_argument("--data_sources", type=str)
@@ -63,7 +60,6 @@ if __name__ == "__main__":
         config_variables = None
 
     launch_pipeline(
-        image = args.image,
         data_sources=data_sources,
         module_name=args.module_name,
         components_path=args.components_path,
