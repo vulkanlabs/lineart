@@ -104,6 +104,7 @@ class _DataflowLauncher:
             config_variables = {}
 
         script_params = {
+            "backfill_id": backfill_id,
             "output_path": output_path,
             "data_sources": json.dumps(data_sources),
             "module_name": module_name,

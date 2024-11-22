@@ -4,9 +4,9 @@ import json
 from functools import partial
 
 import apache_beam as beam
+import pyarrow as pa
 from apache_beam.dataframe import convert
 from apache_beam.dataframe.io import read_csv
-import pyarrow as pa
 
 
 class ReadParquet(beam.PTransform):
@@ -64,9 +64,13 @@ def _make_element_key(element: dict) -> tuple[str, dict]:
 
 
 class ProcessResultFn(beam.DoFn):
+    def __init__(self, backfill_id: str) -> None:
+        self.backfill_id = backfill_id
+
     def process(self, element, **kwargs):
         result = {}
         key, value = element
+        result["backfill_id"] = self.backfill_id
         result["key"] = key
         result["status"] = value["result"][0]["status"]
         result.update({k: v[0] for k, v in value.items() if k != "result"})
@@ -74,14 +78,15 @@ class ProcessResultFn(beam.DoFn):
 
 
 class WriteParquet(beam.PTransform):
-    def __init__(self, filepath: str, schema: dict[str, type]):
+    def __init__(self, filepath: str, schema: dict[str, type], backfill_id: str):
         self.filepath = filepath
         self.schema = to_pyarrow_schema(schema)
+        self.backfill_id = backfill_id
 
     def expand(self, pcoll):
         return (
             pcoll
-            | "Process Result" >> beam.ParDo(ProcessResultFn())
+            | "Process Result" >> beam.ParDo(ProcessResultFn(self.backfill_id))
             | "Write to GCS" >> beam.io.WriteToParquet(self.filepath, self.schema)
         )
 

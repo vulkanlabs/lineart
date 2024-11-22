@@ -5,14 +5,11 @@ from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.pipeline import Pipeline as BeamPipeline
 from apache_beam.pvalue import AsSingleton, PCollection
 from vulkan_public.spec.dependency import INPUT_NODE
-from vulkan_public.spec.nodes import (
-    InputNode,
-    NodeType,
-)
+from vulkan_public.spec.nodes import InputNode, NodeType
 
-from vulkan.beam.io import ReadParquet, WriteParquet
-from vulkan.beam.nodes import BeamInput, BeamNode, BeamLogicNode, to_beam_node
 from vulkan.beam.context import make_beam_context
+from vulkan.beam.io import ReadParquet, WriteParquet
+from vulkan.beam.nodes import BeamInput, BeamLogicNode, BeamNode, to_beam_node
 from vulkan.core.graph import GraphEdges, GraphNodes, sort_nodes
 from vulkan.core.policy import Policy
 
@@ -27,6 +24,7 @@ class BeamPipelineBuilder:
     def __init__(
         self,
         policy: Policy,
+        backfill_id: str,
         output_path: str,
         data_sources: dict[str, DataEntryConfig],
         config_variables: dict[str, str] = {},
@@ -40,6 +38,7 @@ class BeamPipelineBuilder:
         self.data_sources = data_sources
         self.context = make_beam_context(config_variables)
 
+        self.backfill_id = backfill_id
         self.pipeline_options = pipeline_options
         if not self.pipeline_options:
             self.pipeline_options = PipelineOptions()
@@ -75,7 +74,9 @@ class BeamPipelineBuilder:
         # Build the nodes into the pipeline
         result = build_pipeline(pipeline, collections, sorted_nodes)
 
+        # TODO: We should resolve this schema inside of the Write transform
         output_schema = {
+            "backfill_id": str,
             "key": str,
             "status": str,
             input_node.name: input_node.schema,
@@ -83,7 +84,7 @@ class BeamPipelineBuilder:
         output_prefix = self.output_path + "/output"
 
         # Write the output to GCS
-        result | "Write Output" >> WriteParquet(output_prefix, output_schema)
+        result | "Write Output" >> WriteParquet(output_prefix, output_schema, self.backfill_id)
 
         return pipeline
 
