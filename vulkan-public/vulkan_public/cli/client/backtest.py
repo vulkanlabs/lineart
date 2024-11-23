@@ -61,19 +61,6 @@ def poll_backtest_jobs_statuses(
     return jobs_status
 
 
-def create_workspace(
-    ctx: Context,
-    policy_version_id: str,
-):
-    response = ctx.session.post(
-        f"{ctx.server_url}/backtests/",
-        params={"policy_version_id": policy_version_id},
-    )
-
-    assert response.status_code == 200, f"Failed to create backtest: {response.content}"
-    return response.json()
-
-
 def get_results(ctx: Context, backtest_id: str):
     url = f"{ctx.server_url}/backtests/{backtest_id}/results"
     response = ctx.session.get(url)

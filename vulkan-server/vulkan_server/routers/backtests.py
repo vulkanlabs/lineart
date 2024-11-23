@@ -31,15 +31,10 @@ from vulkan_server.db import (
     BeamWorkspace,
     PolicyVersion,
     UploadedFile,
-    WorkspaceStatus,
     get_db,
 )
 from vulkan_server.logger import init_logger
 from vulkan_server.services.file_ingestion import VulkanFileIngestionServiceClient
-from vulkan_server.services.resolution import (
-    ResolutionServiceClient,
-    get_resolution_service_client,
-)
 
 logger = init_logger("backtests")
 router = APIRouter(
@@ -50,15 +45,23 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[schemas.Backtest])
-def list_backtests(project_id: str = Depends(get_project_id), db=Depends(get_db)):
-    results = db.query(Backtest).filter_by(project_id=project_id).all()
-    if len(results) == 0:
+def list_backtests(
+    policy_version_id: str | None = None,
+    project_id: str = Depends(get_project_id),
+    db=Depends(get_db),
+):
+    filters = dict(project_id=project_id)
+    if policy_version_id is not None:
+        filters["policy_version_id"] = policy_version_id
+
+    backtests = db.query(Backtest).filter_by(**filters).all()
+    if len(backtests) == 0:
         return Response(status_code=204)
-    return results
+    return backtests
 
 
 # TODO: Backtest Options (user defined, optional)
-@router.post("/launch", response_model=schemas.Backtest)
+@router.post("/", response_model=schemas.Backtest)
 def launch_backtest(
     policy_version_id: Annotated[str, Body()],
     input_file_id: Annotated[str, Body()],
@@ -184,57 +187,6 @@ def get_backtest_status(
     return backtest_jobs
 
 
-@router.post("/")
-def create_workspace(
-    policy_version_id: str,
-    project_id: str = Depends(get_project_id),
-    db: Session = Depends(get_db),
-    resolution_service: ResolutionServiceClient = Depends(
-        get_resolution_service_client
-    ),
-):
-    # If a workspace exists, this is a no-op.
-    current_workspace = (
-        db.query(BeamWorkspace).filter_by(policy_version_id=policy_version_id).first()
-    )
-    if current_workspace is not None:
-        return current_workspace
-
-    policy_version: PolicyVersion = (
-        db.query(PolicyVersion)
-        .filter_by(project_id=project_id, policy_version_id=policy_version_id)
-        .first()
-    )
-
-    beam_workspace = BeamWorkspace(
-        policy_version_id=policy_version.policy_version_id,
-        status=WorkspaceStatus.CREATION_PENDING,
-    )
-    db.add(beam_workspace)
-
-    try:
-        response = resolution_service.create_beam_workspace(
-            policy_version_id=str(policy_version_id),
-            base_image=policy_version.base_worker_image,
-        )
-
-        beam_workspace.image = response.json()["image_path"]
-        beam_workspace.status = WorkspaceStatus.OK
-    except Exception as e:
-        beam_workspace.status = WorkspaceStatus.CREATION_FAILED
-        logger.error(f"Failed to create workspace ({policy_version_id}): {e}")
-        msg = (
-            "This is usually an issue with Vulkan's internal services. "
-            "Contact support for assistance. "
-            f"Workspace ID: {policy_version_id}"
-        )
-        raise HTTPException(status_code=500, detail={"msg": msg})
-    finally:
-        db.commit()
-
-    return beam_workspace
-
-
 def make_file_input_service(
     project_id: str = Depends(get_project_id),
     server_config: definitions.VulkanServerConfig = Depends(
@@ -289,7 +241,18 @@ def get_backtest_results(
     return results.to_dict(orient="records")
 
 
-@router.post("/files")
+@router.get("/files", response_model=list[schemas.UploadedFile])
+def list_uploaded_files(
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    results = db.query(UploadedFile).filter_by(project_id=project_id).all()
+    if len(results) == 0:
+        return Response(status_code=204)
+    return results
+
+
+@router.post("/files", response_model=schemas.UploadedFile)
 async def upload_file(
     file: Annotated[UploadFile, File()],
     file_format: Annotated[SupportedFileFormat, Form()],
@@ -317,4 +280,4 @@ async def upload_file(
     db.add(uploaded_file)
     db.commit()
 
-    return {"uploaded_file_id": uploaded_file.uploaded_file_id}
+    return uploaded_file

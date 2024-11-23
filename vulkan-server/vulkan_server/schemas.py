@@ -298,3 +298,20 @@ class Backtest(BaseModel):
 
     created_at: datetime
     last_updated_at: datetime
+
+
+class UploadedFile(BaseModel):
+    uploaded_file_id: UUID
+    file_schema: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BeamWorkspace(BaseModel):
+    policy_version_id: UUID
+    status: str
+
+    class Config:
+        from_attributes = True
