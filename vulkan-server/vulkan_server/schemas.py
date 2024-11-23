@@ -302,7 +302,7 @@ class Backtest(BaseModel):
 
 class UploadedFile(BaseModel):
     uploaded_file_id: UUID
-    file_schema: str
+    file_schema: dict[str, str]
     created_at: datetime
 
     class Config:

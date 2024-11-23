@@ -243,13 +243,18 @@ def get_backtest_results(
 
 @router.get("/files", response_model=list[schemas.UploadedFile])
 def list_uploaded_files(
+    policy_version_id: str | None = None,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    results = db.query(UploadedFile).filter_by(project_id=project_id).all()
-    if len(results) == 0:
+    filters = dict(project_id=project_id)
+    if policy_version_id is not None:
+        filters["policy_version_id"] = policy_version_id
+
+    files = db.query(UploadedFile).filter_by(**filters).all()
+    if len(files) == 0:
         return Response(status_code=204)
-    return results
+    return files
 
 
 @router.post("/files", response_model=schemas.UploadedFile)
@@ -257,6 +262,7 @@ async def upload_file(
     file: Annotated[UploadFile, File()],
     file_format: Annotated[SupportedFileFormat, Form()],
     schema: Annotated[str, Form()],
+    policy_version_id: Annotated[str, Form()],
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     file_input_client=Depends(make_file_input_service),
@@ -274,6 +280,7 @@ async def upload_file(
 
     uploaded_file = UploadedFile(
         project_id=project_id,
+        policy_version_id=policy_version_id,
         file_path=file_info["file_path"],
         file_schema=schema,
     )

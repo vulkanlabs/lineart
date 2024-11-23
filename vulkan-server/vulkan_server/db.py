@@ -360,8 +360,11 @@ class UploadedFile(AuthorizationMixin, Base):
     uploaded_file_id = Column(
         Uuid, primary_key=True, server_default=func.gen_random_uuid()
     )
-    file_path = Column(String)
-    file_schema = Column(JSON)
+    policy_version_id = Column(
+        Uuid, ForeignKey("policy_version.policy_version_id"), nullable=False
+    )
+    file_path = Column(String, nullable=False)
+    file_schema = Column(JSON, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

@@ -69,11 +69,21 @@ def get_results(ctx: Context, backtest_id: str):
     return DataFrame(response.json())
 
 
+def list_uploaded_files(ctx: Context, policy_version_id: str | None = None):
+    response = ctx.session.get(
+        f"{ctx.server_url}/backtests/files",
+        params={"policy_version_id": policy_version_id},
+    )
+    assert response.status_code == 200, f"Failed to list uploaded files: {response.content}"
+    return response.json()
+
+
 def upload_backtest_file(
     ctx: Context,
     file_path: str,
     file_format: str,
     schema: dict[str, str],
+    policy_version_id: str,
 ):
     """Upload a file to the backtest service.
 
@@ -91,6 +101,8 @@ def upload_backtest_file(
         Only built-in types are currently supported and
         they must be specified as strings.
         E.g. {"column1": "int", "column2": "str"}
+    policy_version_id : str
+        The ID of the policy version associated with the file.
     """
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
@@ -107,6 +119,7 @@ def upload_backtest_file(
         data={
             "file_format": file_format,
             "schema": _serialize_schema(schema),
+            "policy_version_id": policy_version_id,
         },
     )
     assert response.status_code == 200, f"Failed to upload file: {response.content}"
