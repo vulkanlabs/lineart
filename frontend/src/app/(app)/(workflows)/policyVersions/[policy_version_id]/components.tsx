@@ -1,5 +1,5 @@
 "use client";
-import { Layers, Network, FolderCog, Play } from "lucide-react";
+import { Layers, Network, FolderCog, Play, GitCompare } from "lucide-react";
 
 import { SidebarSectionProps, PageLayout } from "@/components/page-layout";
 import { InnerNavbarSectionProps, InnerNavbar } from "@/components/inner-navbar";
@@ -26,6 +26,11 @@ export function RouteLayout({ policy, policyVersion, children }) {
             name: "Runs",
             icon: Layers,
             path: `${baseUrl}/runs`,
+        },
+        {
+            name: "Backtests",
+            icon: GitCompare,
+            path: `${baseUrl}/backtests`,
         },
     ];
     const innerNavbarSections: InnerNavbarSectionProps[] = [

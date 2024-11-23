@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
-export async function FileUploaderPage({ uploadFn }) {
+export async function FileUploaderPage({ uploadFn, policyVersionId }) {
     const [error, setError] = useState<Error>(null);
     const [fileId, setFileId] = useState<string | null>(null);
 
@@ -42,6 +42,7 @@ export async function FileUploaderPage({ uploadFn }) {
             <h1 className="text-2xl font-bold tracking-tight">Uploader</h1>
             <div>
                 <FileUploader
+                    policyVersionId={policyVersionId}
                     setFileId={setFileId}
                     setError={setError}
                     uploadFn={uploadFn}
@@ -60,7 +61,7 @@ const formSchema = z.object({
     schema: z.string().refine(ensureJSON, { message: "Not a valid JSON object" }),
 });
 
-function FileUploader({ setFileId, setError, uploadFn, headers }) {
+function FileUploader({ policyVersionId, setFileId, setError, uploadFn, headers }) {
     const [submitting, setSubmitting] = useState(false);
 
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
@@ -75,6 +76,7 @@ function FileUploader({ setFileId, setError, uploadFn, headers }) {
         body.append("file", values.file[0]);
         body.append("file_format", values.file_format);
         body.append("schema", values.schema);
+        body.append("policy_version_id", policyVersionId);
         
         setSubmitting(true);
         setError(null);
