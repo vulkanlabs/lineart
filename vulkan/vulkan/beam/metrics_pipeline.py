@@ -55,13 +55,15 @@ def _make_metrics_transform(
 
 if __name__ == "__main__":
     parser = ArgumentParser()
+    # Application-defined
     parser.add_argument("--input_path", type=str, help="Path to results data")
     parser.add_argument("--output_path", type=str, help="Path to save metrics")
-    parser.add_argument("--outcome", type=str, help="Name of the outcome column")
-    parser.add_argument("--target_name", type=str, help="Name of the target column")
+    parser.add_argument("--outcome", type=str, help="Name of the outcome column") # Status
     parser.add_argument(
         "--target_kind", type=str, help="Kind of target, such as BINARY_DISTRIBUTION"
     )
+    # User-defined
+    parser.add_argument("--target_name", type=str, help="Name of the target column")
     parser.add_argument(
         "--time",
         type=str,

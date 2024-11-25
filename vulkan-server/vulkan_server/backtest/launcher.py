@@ -11,7 +11,13 @@ from vulkan.core.run import RunStatus
 from vulkan_public.spec.dependency import INPUT_NODE
 
 from vulkan_server import schemas
-from vulkan_server.db import Backfill, BeamWorkspace, PolicyVersion, get_db
+from vulkan_server.db import (
+    Backfill,
+    BacktestMetrics,
+    BeamWorkspace,
+    PolicyVersion,
+    get_db,
+)
 from vulkan_server.logger import init_logger
 
 logger = init_logger("beam-launcher")
@@ -22,6 +28,13 @@ class BackfillLauncher:
         self.db: Session = db
         # FIXME: This path should be set by a shared environment variable
         self.backend_launcher = _DataflowLauncher(components_path="/opt/dependencies/")
+
+    def backtest_output_path(self, backtest_id: str) -> str:
+        return os.path.join(
+            self.backend_launcher.config.output_bucket,
+            self.backend_launcher.config.project_id,
+            backtest_id,
+        )
 
     def create_backfill(
         self,
@@ -43,7 +56,9 @@ class BackfillLauncher:
         self.db.add(backfill)
         self.db.commit()
 
-        output_path = f"{self.backend_launcher.config.output_bucket}/{project_id}/{backfill.backfill_id}"
+        output_path = os.path.join(
+            self.backtest_output_path(backtest_id), backfill.backfill_id
+        )
         backfill.output_path = output_path
 
         response = self.backend_launcher.launch_run(
@@ -64,6 +79,44 @@ class BackfillLauncher:
         logger.info(f"Launched run {response}")
 
         return backfill
+
+    def create_metrics_run(
+        self,
+        project_id: str,
+        backtest_id: str,
+        input_data_path: str,
+        target_column: str,
+        time_column: str | None = None,
+        group_by_columns: list[str] | None = None,
+    ) -> schemas.Backfill:
+        metrics = BacktestMetrics(
+            backtest_id=backtest_id,
+            input_data_path=input_data_path,
+            status=RunStatus.PENDING,
+            project_id=project_id,
+        )
+        self.db.add(metrics)
+        self.db.commit()
+        output_path = f"{self.backend_launcher.config.output_bucket}/{project_id}/{backtest_id}/metrics/"
+
+        response = self.backend_launcher.launch_metrics_run(
+            backtest_id=backtest_id,
+            input_path=input_data_path,
+            output_path=output_path,
+            outcome_column="outcome",
+            target_column=target_column,
+            time_column=time_column,
+            group_by_columns=group_by_columns,
+        )
+
+        metrics.output_path = output_path
+        metrics.gcp_project_id = response.project_id
+        metrics.gcp_job_id = response.job_id
+        self.db.commit()
+
+        logger.info(f"Launched run {response}")
+
+        return metrics
 
 
 def get_launcher(db: Session = Depends(get_db)) -> BackfillLauncher:
@@ -87,14 +140,8 @@ class _DataflowLauncher:
         config_variables: dict[str, Any] | None,
         output_path: str,
     ):
-        environment = dataflow.FlexTemplateRuntimeEnvironment(
-            num_workers=1,
-            max_workers=5,
-            sdk_container_image=image,
-            temp_location=self.config.temp_location,
-            staging_location=self.config.staging_location,
-            machine_type=self.config.machine_type,
-            service_account_email=self.config.service_account,
+        environment = self._environment_configuration(
+            num_workers=1, max_workers=5, sdk_container_image=image
         )
 
         launch_time = datetime.now()
@@ -116,6 +163,66 @@ class _DataflowLauncher:
             self.config.templates_path, f"{policy_version_id}.json"
         )
 
+        response = self._launch_flex_template_run(
+            job_name=job_name,
+            template_file_gcs_location=template_file_gcs_location,
+            environment=environment,
+            script_params=script_params,
+        )
+
+        logger.info(f"Launched backfill {backfill_id} with job id {response.job_id}")
+        return response
+
+    def launch_metrics_run(
+        self,
+        backtest_id: str,
+        input_path: str,
+        output_path: str,
+        outcome_column: str,
+        target_column: str,
+        time_column: str | None,
+        group_by_columns: list[str] | None,
+    ):
+        script_params = {
+            "backtest_id": backtest_id,
+            "input_path": input_path,
+            "output_path": output_path,
+            "outcome": outcome_column,
+            "target_name": target_column,
+            "target_kind": "BINARY_DISTRIBUTION",
+            "time": time_column,
+            "groups": json.dumps(group_by_columns) if group_by_columns else None,
+        }
+
+        template_file_gcs_location = os.path.join(
+            self.config.templates_path, "metrics-pipeline.json"
+        )
+
+        image = f"{self.config.region}-docker.pkg.dev/{self.config.project}/docker-images/metrics-pipeline:latest"
+        environment = self._environment_configuration(
+            num_workers=1,
+            max_workers=5,
+            sdk_container_image=image,
+        )
+
+        job_name = f"metrics-{backtest_id}"
+        response = self._launch_flex_template_run(
+            job_name=job_name,
+            template_file_gcs_location=template_file_gcs_location,
+            environment=environment,
+            script_params=script_params,
+        )
+
+        logger.info(f"Launched metrics for {backtest_id} with job id {response.job_id}")
+        return response
+
+    def _launch_flex_template_run(
+        self,
+        job_name: str,
+        template_file_gcs_location: str,
+        environment: dataflow.FlexTemplateRuntimeEnvironment,
+        script_params: dict[str, str],
+    ):
         job_parameters = dataflow.LaunchFlexTemplateParameter(
             job_name=job_name,
             container_spec_gcs_path=template_file_gcs_location,
@@ -130,11 +237,24 @@ class _DataflowLauncher:
         )
 
         response = self.dataflow_client.launch_flex_template(request=job_request)
+
         # TODO: check if launch succeeded
-        logger.info(f"Launched backfill {backfill_id} with job id {response.job.id}")
         return _LaunchRunResponse(
             job_id=response.job.id,
             project_id=response.job.project_id,
+        )
+
+    def _environment_configuration(
+        self, num_workers, max_workers: int, sdk_container_image: str
+    ):
+        return dataflow.FlexTemplateRuntimeEnvironment(
+            num_workers=num_workers,
+            max_workers=max_workers,
+            sdk_container_image=sdk_container_image,
+            temp_location=self.config.temp_location,
+            staging_location=self.config.staging_location,
+            machine_type=self.config.machine_type,
+            service_account_email=self.config.service_account,
         )
 
 
