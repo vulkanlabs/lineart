@@ -83,7 +83,8 @@ if __name__ == "__main__":
         groups = json.loads(args.groups)
 
     args_pipeline_options = [
-        "--runner=DirectRunner",
+        "--save_main_session"
+        "--sdk_location", "container",
         *unknown_args,
     ]
 
@@ -91,7 +92,7 @@ if __name__ == "__main__":
         outcome=args.outcome,
         target=target,
         time=args.time,
-        groups=["group_col"],
+        groups=groups,
     )
     pipeline_options = PipelineOptions(args_pipeline_options)
 

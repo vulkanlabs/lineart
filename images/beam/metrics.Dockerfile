@@ -23,11 +23,7 @@ RUN uv pip install --system --no-cache \
     /opt/dependencies/vulkan-public \
     /opt/dependencies/vulkan 
 
-# Location to store the pipeline artifacts.
-WORKDIR /template
-COPY launch_dataflow.py /template/launch_dataflow.py
-
-ENV FLEX_TEMPLATE_PYTHON_PY_FILE="/template/launch_dataflow.py"
+ENV FLEX_TEMPLATE_PYTHON_PY_FILE="/opt/dependencies/vulkan/vulkan/beam/metrics_pipeline.py"
 
 # Set the entrypoint to Apache Beam SDK launcher.
 ENTRYPOINT ["/opt/apache/beam/boot"]
