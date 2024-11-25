@@ -75,16 +75,13 @@ class BeamPipelineBuilder:
         result = build_pipeline(pipeline, collections, sorted_nodes)
 
         # TODO: We should resolve this schema inside of the Write transform
-        output_schema = {
-            "backfill_id": str,
-            "key": str,
-            "status": str,
-            input_node.name: input_node.schema,
-        }
+        output_schema = _make_output_schema(input_node.name, input_node.schema)
         output_prefix = self.output_path + "/output"
 
         # Write the output to GCS
-        result | "Write Output" >> WriteParquet(output_prefix, output_schema, self.backfill_id)
+        result | "Write Output" >> WriteParquet(
+            output_prefix, output_schema, self.backfill_id
+        )
 
         return pipeline
 
@@ -98,6 +95,17 @@ class BeamPipelineBuilder:
                 raise ValueError(
                     f"Node type {node.type} is not allowed in a Beam pipeline"
                 )
+
+
+def _make_output_schema(
+    input_node_name: str, input_node_schema: dict[str, type]
+) -> dict[str, type]:
+    return {
+        "backfill_id": str,
+        "key": str,
+        "status": str,
+        input_node_name: input_node_schema,
+    }
 
 
 _IMPLEMENTED_NODETYPES = [
