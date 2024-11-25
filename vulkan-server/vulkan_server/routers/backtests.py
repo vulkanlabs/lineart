@@ -186,6 +186,13 @@ def get_backtest_status(
 
     return backtest_jobs
 
+@router.post("/{backtest_id}/metrics")
+def launch_metrics_job(backtest_id: str, project_id=Depends(get_project_id), db=Depends(get_db)):
+    backtest = db.query(Backtest).filter_by(backtest_id=backtest_id, project_id=project_id).first()
+    if backtest is None:
+        raise HTTPException(status_code=404, detail={"msg": f"Backtest {backtest_id} not found"})
+
+    metrics_job = db.query(BacktestMetricsJob).filter_by(backtest_id=backtest_id).first()
 
 def make_file_input_service(
     project_id: str = Depends(get_project_id),

@@ -14,8 +14,8 @@ COPY --from=flex_template_base /opt/google/dataflow/python_template_launcher /op
 
 RUN pip install uv --no-cache-dir
 RUN mkdir /opt/dependencies
-COPY /workspace/vulkan /opt/dependencies/vulkan
-COPY /workspace/vulkan-public /opt/dependencies/vulkan-public
+COPY vulkan /opt/dependencies/vulkan
+COPY vulkan-public /opt/dependencies/vulkan-public
 
 # TODO: This is a workaround to ensure vulkan dependencies are installed
 RUN uv pip install --system --no-cache --extra beam -r /opt/dependencies/vulkan/pyproject.toml
