@@ -75,12 +75,12 @@ if __name__ == "__main__":
         help="Array of columns used to group metrics",
     )
 
-    args, unknown_args = parser.parse_known_args()
-    target = Target(name=args.target_name, kind=TargetKind(args.target_kind))
+    pipeline_args, unknown_args = parser.parse_known_args()
+    target = Target(name=pipeline_args.target_name, kind=TargetKind(pipeline_args.target_kind))
 
     groups = None
-    if args.groups is not None:
-        groups = json.loads(args.groups)
+    if pipeline_args.groups is not None:
+        groups = json.loads(pipeline_args.groups)
 
     args_pipeline_options = [
         "--save_main_session"
@@ -89,15 +89,15 @@ if __name__ == "__main__":
     ]
 
     metrics_metadata = MetricsMetadata(
-        outcome=args.outcome,
+        outcome=pipeline_args.outcome,
         target=target,
-        time=args.time,
+        time=pipeline_args.time,
         groups=groups,
     )
     pipeline_options = PipelineOptions(args_pipeline_options)
 
     build_metrics_pipeline(
-        args.results_data,
+        pipeline_args.results_data,
         metrics_metadata,
         pipeline_options,
     ).run().wait_until_finish()
