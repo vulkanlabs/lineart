@@ -1,4 +1,13 @@
-"use server";
+import { FileUploaderPage } from "./components";
+
+export default async function Page({ params }) {
+    return (
+        <FileUploaderPage
+            uploadFn={uploadFileFormAction}
+            policyVersionId={params.policy_version_id}
+        />
+    );
+}
 
 export async function uploadFileFormAction({
     uploadUrl,
@@ -11,6 +20,8 @@ export async function uploadFileFormAction({
     headers: any;
     label?: string;
 }) {
+    "use server";
+
     const request = new Request(uploadUrl, {
         method: "POST",
         headers: {

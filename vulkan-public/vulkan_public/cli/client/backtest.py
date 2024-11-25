@@ -22,7 +22,7 @@ def create_backtest(
 ):
     ctx.logger.info("Creating backtest. This may take a while...")
     response = ctx.session.post(
-        f"{ctx.server_url}/backtests/launch",
+        f"{ctx.server_url}/backtests",
         json={
             "policy_version_id": policy_version_id,
             "input_file_id": input_file_id,
