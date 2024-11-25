@@ -5,11 +5,13 @@ ARG FLEX_TEMPLATE_BASE_IMAGE="gcr.io/dataflow-templates-base/python312-template-
 FROM python:${PYTHON_VERSION}-slim
 
 # Copy files from official SDK image, including script/dependencies.
-COPY --from=apache/beam_python${PYTHON_VERSION}_sdk:${BEAM_SDK_VERSION} /opt/apache/beam /opt/apache/beam
+FROM apache/beam_python${PYTHON_VERSION}_sdk:${BEAM_SDK_VERSION} AS beam_base
+COPY --from=beam_base /opt/apache/beam /opt/apache/beam
 
 # Copy Flex Template launcher binary from the launcher image, which makes it
 # possible to use the image as a Flex Template base image.
-COPY --from=${FLEX_TEMPLATE_BASE_IMAGE} /opt/google/dataflow/python_template_launcher /opt/google/dataflow/python_template_launcher
+FROM ${FLEX_TEMPLATE_BASE_IMAGE} AS flex_template_base
+COPY --from=flex_template_base /opt/google/dataflow/python_template_launcher /opt/google/dataflow/python_template_launcher
 
 RUN pip install uv --no-cache-dir
 
