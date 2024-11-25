@@ -5,7 +5,7 @@ from vulkan.backtest.metrics import Target
 
 
 class BinaryDistributionTransform(beam.PTransform):
-    """
+    """Calculate basic statistics for a binary target.
 
     When the target is binary, and the outcome is a categorical value
     for which the target distribution is to be calculated.

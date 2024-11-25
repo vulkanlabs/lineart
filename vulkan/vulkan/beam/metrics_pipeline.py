@@ -1,3 +1,6 @@
+import json
+from argparse import ArgumentParser
+
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.pipeline import Pipeline
@@ -17,7 +20,6 @@ def build_metrics_pipeline(
     ]
     if metrics_metadata.time is not None:
         group_by_cols.append(metrics_metadata.time)
-
     if metrics_metadata.groups is not None:
         group_by_cols.extend(metrics_metadata.groups)
 
@@ -39,29 +41,62 @@ def build_metrics_pipeline(
 
 
 def _make_metrics_transform(
-    target: Target, group_by_cols: list[str]
+    target: Target,
+    group_by_cols: list[str],
 ) -> beam.PTransform:
     if target.kind == TargetKind.BINARY_DISTRIBUTION:
         return BinaryDistributionTransform(
             target=target,
             group_by_cols=group_by_cols,
         )
+    raise NotImplementedError(f"Unsupported target kind for {Target}")
 
 
 if __name__ == "__main__":
-    args_results_data = "test/results_data.csv"
+    parser = ArgumentParser()
+    parser.add_argument("--results_data", type=str, help="Path to results data")
+    parser.add_argument("--outcome", type=str, help="Name of the outcome column")
+    parser.add_argument("--target_name", type=str, help="Name of the target column")
+    parser.add_argument(
+        "--target_kind", type=str, help="Kind of target, such as BINARY_DISTRIBUTION"
+    )
+    parser.add_argument(
+        "--time",
+        type=str,
+        default=None,
+        required=False,
+        help="Column that indicates time",
+    )
+    parser.add_argument(
+        "--groups",
+        type=str,
+        default=None,
+        required=False,
+        help="Array of columns used to group metrics",
+    )
+
+    args, unknown_args = parser.parse_known_args()
+    target = Target(name=args.target_name, kind=TargetKind(args.target_kind))
+
+    groups = None
+    if args.groups is not None:
+        groups = json.loads(args.groups)
+
     args_pipeline_options = [
         "--runner=DirectRunner",
+        *unknown_args,
     ]
 
     metrics_metadata = MetricsMetadata(
-        outcome="status",
-        target=Target(name="default", kind=TargetKind.BINARY_DISTRIBUTION),
-        time="month",
+        outcome=args.outcome,
+        target=target,
+        time=args.time,
         groups=["group_col"],
     )
     pipeline_options = PipelineOptions(args_pipeline_options)
 
     build_metrics_pipeline(
-        args_results_data, metrics_metadata, pipeline_options
+        args.results_data,
+        metrics_metadata,
+        pipeline_options,
     ).run().wait_until_finish()
