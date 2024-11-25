@@ -212,7 +212,7 @@ def launch_metrics_job(
         return existing_metrics_job
     
     results_path = launcher.backtest_output_path(backtest_id)
-    metrics = launcher.create_metrics_job(
+    metrics = launcher.create_metrics(
         backtest_id=backtest_id,
         project_id=project_id,
         input_data_path=results_path,
@@ -220,6 +220,7 @@ def launch_metrics_job(
         # time_column: str | None = None,
         # group_by_columns: list[str] | None = None,
     )
+    return metrics
 
 
 def make_file_input_service(

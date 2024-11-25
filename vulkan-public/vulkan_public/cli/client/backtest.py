@@ -22,7 +22,7 @@ def create_backtest(
 ):
     ctx.logger.info("Creating backtest. This may take a while...")
     response = ctx.session.post(
-        f"{ctx.server_url}/backtests/launch",
+        f"{ctx.server_url}/backtests/",
         json={
             "policy_version_id": policy_version_id,
             "input_file_id": input_file_id,
@@ -34,6 +34,20 @@ def create_backtest(
     backtest_id = response_data["backtest_id"]
     ctx.logger.info(f"Created backtest with id {backtest_id}")
     return response_data
+
+
+def create_backtest_metrics(
+    ctx: Context,
+    backtest_id: str,
+):
+    ctx.logger.info("Creating backtest metrics...")
+    response = ctx.session.post(
+        f"{ctx.server_url}/backtests/{backtest_id}/metrics",
+    )
+    assert (
+        response.status_code == 200
+    ), f"Failed to create backtest metrics: {response.content}"
+    return response.json()
 
 
 def get_backtest_jobs_statuses(ctx: Context, backtest_id: str):
@@ -74,7 +88,9 @@ def list_uploaded_files(ctx: Context, policy_version_id: str | None = None):
         f"{ctx.server_url}/backtests/files",
         params={"policy_version_id": policy_version_id},
     )
-    assert response.status_code == 200, f"Failed to list uploaded files: {response.content}"
+    assert (
+        response.status_code == 200
+    ), f"Failed to list uploaded files: {response.content}"
     return response.json()
 
 

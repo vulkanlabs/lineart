@@ -32,8 +32,8 @@ class BackfillLauncher:
     def backtest_output_path(self, backtest_id: str) -> str:
         return os.path.join(
             self.backend_launcher.config.output_bucket,
-            self.backend_launcher.config.project_id,
-            backtest_id,
+            self.backend_launcher.config.project,
+            str(backtest_id),
         )
 
     def create_backfill(
@@ -57,7 +57,7 @@ class BackfillLauncher:
         self.db.commit()
 
         output_path = os.path.join(
-            self.backtest_output_path(backtest_id), backfill.backfill_id
+            self.backtest_output_path(backtest_id), str(backfill.backfill_id)
         )
         backfill.output_path = output_path
 
@@ -80,7 +80,7 @@ class BackfillLauncher:
 
         return backfill
 
-    def create_metrics_run(
+    def create_metrics(
         self,
         project_id: str,
         backtest_id: str,
@@ -89,15 +89,16 @@ class BackfillLauncher:
         time_column: str | None = None,
         group_by_columns: list[str] | None = None,
     ) -> schemas.Backfill:
+        output_path = os.path.join(self.backtest_output_path(backtest_id), "metrics/")
         metrics = BacktestMetrics(
             backtest_id=backtest_id,
             input_data_path=input_data_path,
             status=RunStatus.PENDING,
             project_id=project_id,
+            output_path=output_path,
         )
         self.db.add(metrics)
         self.db.commit()
-        output_path = f"{self.backend_launcher.config.output_bucket}/{project_id}/{backtest_id}/metrics/"
 
         response = self.backend_launcher.launch_metrics_run(
             backtest_id=backtest_id,
@@ -109,7 +110,6 @@ class BackfillLauncher:
             group_by_columns=group_by_columns,
         )
 
-        metrics.output_path = output_path
         metrics.gcp_project_id = response.project_id
         metrics.gcp_job_id = response.job_id
         self.db.commit()
