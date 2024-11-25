@@ -10,7 +10,8 @@ from vulkan.beam.metrics.binary import BinaryDistributionTransform
 
 
 def build_metrics_pipeline(
-    results_data: str,
+    input_path: str,
+    output_path: str, 
     metrics_metadata: MetricsMetadata,
     pipeline_options: PipelineOptions,
 ) -> Pipeline:
@@ -31,10 +32,10 @@ def build_metrics_pipeline(
     p = beam.Pipeline(options=pipeline_options)
     (
         p
-        | "Read Results Data" >> beam.io.ReadFromCsv(results_data)
+        | "Read Results Data" >> beam.io.ReadFromCsv(input_path)
         | "With Metrics" >> metrics_transform
         | "With Schema" >> beam.Select(*metrics_transform.output_columns())
-        | "Write Metrics" >> beam.io.WriteToJson("metrics.json")
+        | "Write Metrics" >> beam.io.WriteToJson(output_path)
     )
 
     return p
@@ -54,7 +55,8 @@ def _make_metrics_transform(
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--results_data", type=str, help="Path to results data")
+    parser.add_argument("--input_path", type=str, help="Path to results data")
+    parser.add_argument("--output_path", type=str, help="Path to save metrics")
     parser.add_argument("--outcome", type=str, help="Name of the outcome column")
     parser.add_argument("--target_name", type=str, help="Name of the target column")
     parser.add_argument(
@@ -97,7 +99,8 @@ if __name__ == "__main__":
     pipeline_options = PipelineOptions(args_pipeline_options)
 
     build_metrics_pipeline(
-        pipeline_args.results_data,
-        metrics_metadata,
-        pipeline_options,
+        input_path=pipeline_args.input_path,
+        output_path=pipeline_args.output_path,
+        metrics_metadata=metrics_metadata,
+        pipeline_options=pipeline_options,
     ).run().wait_until_finish()
