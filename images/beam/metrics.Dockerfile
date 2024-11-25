@@ -1,6 +1,6 @@
-ARG PYTHON_VERSION
-ARG BEAM_SDK_VERSION
-ARG FLEX_TEMPLATE_BASE_IMAGE
+ARG PYTHON_VERSION="3.12"
+ARG BEAM_SDK_VERSION="2.60.0"
+ARG FLEX_TEMPLATE_BASE_IMAGE="gcr.io/dataflow-templates-base/python312-template-launcher-base:public-image-latest"
 
 FROM python:${PYTHON_VERSION}-slim
 
