@@ -19,6 +19,7 @@ def create_backtest(
     policy_version_id: str,
     input_file_id: str,
     config_variables: list[dict] | None = None,
+    metrics_config: dict | None = None,
 ):
     ctx.logger.info("Creating backtest. This may take a while...")
     response = ctx.session.post(
@@ -27,6 +28,7 @@ def create_backtest(
             "policy_version_id": policy_version_id,
             "input_file_id": input_file_id,
             "config_variables": config_variables,
+            "metrics_config": metrics_config,
         },
     )
     assert response.status_code == 200, f"Failed to create backtest: {response.content}"

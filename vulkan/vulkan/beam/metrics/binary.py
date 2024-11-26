@@ -1,7 +1,7 @@
 import apache_beam as beam
 from apache_beam.transforms.combiners import CountCombineFn
 
-from vulkan.beam.metrics import Target
+from vulkan.backtest.metrics import Target
 
 
 class BinaryDistributionTransform(beam.PTransform):

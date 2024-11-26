@@ -199,6 +199,9 @@ class _DataflowLauncher:
         if group_by_columns is not None:
             script_params["groups"] = json.dumps(group_by_columns)
 
+        logger.debug(f"Launching metrics for {backtest_id}")
+        logger.debug(f"Script params: {script_params}")
+
         template_file_gcs_location = os.path.join(
             self.config.templates_path, "metrics-pipeline.json"
         )

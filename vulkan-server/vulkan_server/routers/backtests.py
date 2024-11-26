@@ -67,7 +67,7 @@ def launch_backtest(
     policy_version_id: Annotated[str, Body()],
     input_file_id: Annotated[str, Body()],
     config_variables: Annotated[list[dict] | None, Body()],
-    metrics_config: Annotated[schemas.MetricsConfig | None, Body()],
+    metrics_config: Annotated[schemas.MetricsConfig | None, Body()] = None,
     db: Session = Depends(get_db),
     project_id: str = Depends(get_project_id),
     run_launcher: BackfillLauncher = Depends(get_launcher),
