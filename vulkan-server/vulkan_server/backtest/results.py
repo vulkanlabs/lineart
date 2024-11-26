@@ -39,6 +39,7 @@ class ResultsDB:
         ds = parquet.ParquetDataset(file_paths, filesystem=self.fs)
         return ds.read().to_pandas()
     
+    # FIXME
     def load_metrics(self, path: str) -> pd.DataFrame:
         with self.fs.open(path, "rb") as f:
             return pd.read_json(f, lines=True)

@@ -19,7 +19,7 @@ from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.backtest.backtest import ensure_beam_workspace, resolve_backtest_envs
 from vulkan_server.backtest.launcher import (
-    BackfillLauncher,
+    BacktestLauncher,
     get_backtest_job_status,
     get_launcher,
 )
@@ -70,7 +70,7 @@ def launch_backtest(
     metrics_config: Annotated[schemas.BacktestMetricsConfig | None, Body()] = None,
     db: Session = Depends(get_db),
     project_id: str = Depends(get_project_id),
-    run_launcher: BackfillLauncher = Depends(get_launcher),
+    run_launcher: BacktestLauncher = Depends(get_launcher),
 ):
     policy_version = (
         db.query(PolicyVersion)

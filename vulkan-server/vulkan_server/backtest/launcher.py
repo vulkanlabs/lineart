@@ -23,7 +23,7 @@ from vulkan_server.logger import init_logger
 logger = init_logger("beam-launcher")
 
 
-class BackfillLauncher:
+class BacktestLauncher:
     def __init__(self, db: Session) -> None:
         self.db: Session = db
         # FIXME: This path should be set by a shared environment variable
@@ -125,8 +125,8 @@ class BackfillLauncher:
         return metrics
 
 
-def get_launcher(db: Session = Depends(get_db)) -> BackfillLauncher:
-    return BackfillLauncher(db=db)
+def get_launcher(db: Session = Depends(get_db)) -> BacktestLauncher:
+    return BacktestLauncher(db=db)
 
 
 class _DataflowLauncher:
