@@ -325,7 +325,13 @@ class BeamWorkspace(BaseModel):
         from_attributes = True
 
 
-class MetricsConfig(BaseModel):
+class BacktestMetrics(BaseModel):
+    backtest_id: UUID
+    status: RunStatus
+    metrics: dict | None = None
+
+
+class BacktestMetricsConfig(BaseModel):
     target_column: str
     time_column: str | None = None
     group_by_columns: list[str] | None = None

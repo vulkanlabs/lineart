@@ -52,7 +52,7 @@ def create_backtest_metrics(
     return response.json()
 
 
-def get_backtest_jobs_statuses(ctx: Context, backtest_id: str):
+def get_backtest_job_status(ctx: Context, backtest_id: str):
     response = ctx.session.get(f"{ctx.server_url}/backtests/{backtest_id}/status")
     assert (
         response.status_code == 200
@@ -60,20 +60,39 @@ def get_backtest_jobs_statuses(ctx: Context, backtest_id: str):
     return response.json()
 
 
-def poll_backtest_jobs_statuses(
+def poll_backtest_job_status(
     ctx: Context, backtest_id: str, timeout: int = 300, time_step: int = 30
 ):
-    terminal = ["SUCCESS", "FAILURE"]
-
     for _ in range(0, timeout, time_step):
-        jobs_status = get_backtest_jobs_statuses(ctx, backtest_id)
+        jobs_status = get_backtest_job_status(ctx, backtest_id)
         ctx.logger.info(jobs_status)
 
-        if all([job["status"] in terminal for job in jobs_status]):
+        if jobs_status["status"] == "DONE":
             break
 
         time.sleep(time_step)
+    return jobs_status
 
+
+def get_backtest_metrics_job_status(ctx: Context, backtest_id: str):
+    response = ctx.session.get(f"{ctx.server_url}/backtests/{backtest_id}/metrics")
+    assert (
+        response.status_code == 200
+    ), f"Failed to get backtest state: {response.content}"
+    return response.json()
+
+
+def poll_backtest_metrics_job_status(
+    ctx: Context, backtest_id: str, timeout: int = 300, time_step: int = 30
+):
+    terminal_states = {"SUCCESS", "FAILURE"}
+    for _ in range(0, timeout, time_step):
+        jobs_status = get_backtest_metrics_job_status(ctx, backtest_id)
+        ctx.logger.info(jobs_status)
+
+        if jobs_status["status"] in terminal_states:
+            break
+        time.sleep(time_step)
     return jobs_status
 
 

@@ -59,6 +59,7 @@ class BackfillLauncher:
 
         output_path = os.path.join(
             self.backtest_output_path(project_id, backtest_id),
+            "backfills",
             str(backfill.backfill_id),
         )
         backfill.output_path = output_path
@@ -94,7 +95,7 @@ class BackfillLauncher:
     ) -> schemas.Backfill:
         output_path = os.path.join(
             self.backtest_output_path(project_id, backtest_id),
-            "metrics/",
+            "metrics",
         )
         metrics = BacktestMetrics(
             backtest_id=backtest_id,
@@ -303,7 +304,7 @@ class _LaunchRunResponse:
     project_id: str
 
 
-def get_dataflow_job_state(job_id: str) -> dataflow.JobState:
+def _get_dataflow_job_state(job_id: str) -> dataflow.JobState:
     config = _get_dataflow_config()
     client = dataflow.JobsV1Beta3Client()
     request = dataflow.GetJobRequest(
@@ -316,8 +317,8 @@ def get_dataflow_job_state(job_id: str) -> dataflow.JobState:
     return job.current_state
 
 
-def get_backfill_job_status(gcp_job_id: str) -> RunStatus:
-    dataflow_job_state = get_dataflow_job_state(gcp_job_id)
+def get_backtest_job_status(gcp_job_id: str) -> RunStatus:
+    dataflow_job_state = _get_dataflow_job_state(gcp_job_id)
     return _JOB_STATE_MAP.get(dataflow_job_state, RunStatus.PENDING)
 
 
