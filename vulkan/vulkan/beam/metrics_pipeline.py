@@ -33,8 +33,8 @@ def build_metrics_pipeline(
     (
         p
         | "Read Results Data" >> beam.io.ReadFromParquet(input_path)
-        | "With Metrics" >> metrics_transform
-        | "With Schema" >> beam.Select(*metrics_transform.output_columns())
+        | "Calculate Metrics" >> metrics_transform
+        | "Enforce Schema" >> beam.Select(*metrics_transform.output_columns())
         | "Write Metrics" >> beam.io.WriteToJson(output_path)
     )
 

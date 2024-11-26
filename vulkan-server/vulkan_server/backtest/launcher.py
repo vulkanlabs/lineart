@@ -193,11 +193,11 @@ class _DataflowLauncher:
             "outcome": outcome_column,
             "target_name": target_column,
             "target_kind": "BINARY_DISTRIBUTION",
-            "time": time_column if time_column is not None else "",
-            "groups": json.dumps(group_by_columns)
-            if group_by_columns is not None
-            else "[]",
         }
+        if time_column is not None:
+            script_params["time"] = time_column
+        if group_by_columns is not None:
+            script_params["groups"] = json.dumps(group_by_columns)
 
         template_file_gcs_location = os.path.join(
             self.config.templates_path, "metrics-pipeline.json"
@@ -241,7 +241,9 @@ class _DataflowLauncher:
             launch_parameter=job_parameters,
         )
 
-        response: dataflow.LaunchFlexTemplateResponse = self.dataflow_client.launch_flex_template(request=job_request)
+        response: dataflow.LaunchFlexTemplateResponse = (
+            self.dataflow_client.launch_flex_template(request=job_request)
+        )
 
         # TODO: check if launch succeeded
         return _LaunchRunResponse(
