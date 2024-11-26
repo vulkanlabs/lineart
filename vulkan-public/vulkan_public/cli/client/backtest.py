@@ -52,7 +52,7 @@ def create_backtest_metrics(
     return response.json()
 
 
-def get_backtest_job_status(ctx: Context, backtest_id: str):
+def get_backtest_status(ctx: Context, backtest_id: str):
     response = ctx.session.get(f"{ctx.server_url}/backtests/{backtest_id}/status")
     assert (
         response.status_code == 200
@@ -60,19 +60,18 @@ def get_backtest_job_status(ctx: Context, backtest_id: str):
     return response.json()
 
 
-def poll_backtest_job_status(
+def poll_backtest_status(
     ctx: Context, backtest_id: str, timeout: int = 300, time_step: int = 30
 ):
     for _ in range(0, timeout, time_step):
-        jobs_status = get_backtest_job_status(ctx, backtest_id)
-        ctx.logger.info(jobs_status)
+        backtest_status = get_backtest_status(ctx, backtest_id)
+        ctx.logger.info(backtest_status)
 
-        if jobs_status["status"] == "DONE":
+        if backtest_status["status"] == "DONE":
             break
 
         time.sleep(time_step)
-    return jobs_status
-
+    return backtest_status
 
 def get_backtest_metrics_job_status(ctx: Context, backtest_id: str):
     response = ctx.session.get(f"{ctx.server_url}/backtests/{backtest_id}/metrics")
