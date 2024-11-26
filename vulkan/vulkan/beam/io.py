@@ -10,9 +10,8 @@ from apache_beam.dataframe.io import read_csv
 
 
 class ReadParquet(beam.PTransform):
-    def __init__(self, source: str, schema: dict[str, type] | None = None):
-        self.source = source
-        self.schema = schema
+    def __init__(self, source_path: str):
+        self.source = source_path
 
     def expand(self, pcoll):
         return (

@@ -245,11 +245,20 @@ def launch_metrics_job(
         logger.debug(f"SKIPPING: Metrics job already exists for backtest {backtest_id}")
         return existing_metrics_job
 
+    input_file = (
+        db.query(UploadedFile)
+        .filter_by(uploaded_file_id=backtest.input_file_id)
+        .first()
+    )
+
+    # Attention: This may be specific to GCS, we still need to validate for other FS
     results_path = f"{launcher.backtest_output_path(project_id, backtest_id)}/**"
+
     metrics = launcher.create_metrics(
         backtest_id=backtest_id,
         project_id=project_id,
-        input_data_path=results_path,
+        input_data_path=input_file.file_path,
+        results_data_path=results_path,
         target_column=backtest.target_column,
         time_column=backtest.time_column,
         group_by_columns=backtest.group_by_columns,

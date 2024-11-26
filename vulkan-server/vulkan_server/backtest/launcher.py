@@ -87,6 +87,7 @@ class BackfillLauncher:
         project_id: str,
         backtest_id: str,
         input_data_path: str,
+        results_data_path: str,
         target_column: str,
         time_column: str | None = None,
         group_by_columns: list[str] | None = None,
@@ -106,7 +107,8 @@ class BackfillLauncher:
 
         response = self.backend_launcher.launch_metrics_run(
             backtest_id=backtest_id,
-            input_path=input_data_path,
+            input_data_path=input_data_path,
+            results_data_path=results_data_path,
             output_path=output_path,
             outcome_column="status",
             target_column=target_column,
@@ -179,7 +181,8 @@ class _DataflowLauncher:
     def launch_metrics_run(
         self,
         backtest_id: str,
-        input_path: str,
+        input_data_path: str,
+        results_data_path: str,
         output_path: str,
         outcome_column: str,
         target_column: str,
@@ -188,7 +191,8 @@ class _DataflowLauncher:
     ):
         script_params = {
             "backtest_id": backtest_id,
-            "input_path": input_path,
+            "input_data_path": input_data_path,
+            "results_data_path": results_data_path,
             "output_path": output_path,
             "outcome": outcome_column,
             "target_name": target_column,

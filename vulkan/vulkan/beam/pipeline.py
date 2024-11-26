@@ -66,9 +66,7 @@ class BeamPipelineBuilder:
         pipeline = beam.Pipeline(options=self.pipeline_options)
 
         # Create the input PCollection and the collections map
-        input_data = pipeline | "Read Input" >> ReadParquet(
-            input_node.source, input_node.schema
-        )
+        input_data = pipeline | "Read Input" >> ReadParquet(input_node.source)
         collections = {INPUT_NODE: input_data}
 
         # Build the nodes into the pipeline
@@ -156,11 +154,11 @@ class __PipelineBuilder:
             return self.pipeline
 
         dependencies = list(node.dependencies.values())
-        if len(dependencies) > 1:
-            deps = {str(d): self.collections[str(d)] for d in dependencies}
-            return deps | f"Join Deps: {node.name}" >> beam.CoGroupByKey()
+        if len(dependencies) == 1:
+            return self.collections[str(dependencies[0])]
 
-        return self.collections[str(dependencies[0])]
+        deps = {str(d): self.collections[str(d)] for d in dependencies}
+        return deps | f"Join Deps: {node.name}" >> beam.CoGroupByKey()
 
     def __build_step(self, pcoll: PCollection, node: BeamNode) -> None:
         if node.type == NodeType.TRANSFORM:
