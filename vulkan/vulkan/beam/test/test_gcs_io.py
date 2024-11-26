@@ -94,7 +94,7 @@ def test_write_to_gcs():
 
     with beam.Pipeline(options=PipelineOptions()) as pipeline:
         input_data = pipeline | "Read Input" >> ReadParquet(
-            source=input_node.source,
+            source_path=input_node.source,
             schema={"tax_id": str, "score": int},
         )
         input_data | "Print" >> beam.Map(print)

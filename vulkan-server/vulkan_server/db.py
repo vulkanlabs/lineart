@@ -396,6 +396,30 @@ class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
     environments = Column(JSON, nullable=True)
     status = Column(Enum(JobStatus), nullable=False)
 
+    # Optional, metrics-related fields
+    calculate_metrics = Column(Boolean, nullable=False, default=False)
+    target_column = Column(String, nullable=True)
+    time_column = Column(String, nullable=True)
+    group_by_columns = Column(ARRAY(String), nullable=True)
+
+
+class BacktestMetrics(AuthorizationMixin, TimedUpdateMixin, Base):
+    __tablename__ = "backtest_metrics"
+
+    backtest_metrics_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    backtest_id = Column(Uuid, ForeignKey("backtest.backtest_id"), nullable=False)
+    status = Column(Enum(RunStatus), nullable=False)
+
+    # Known after launch
+    output_path = Column(String, nullable=True)
+    gcp_project_id = Column(String, nullable=True)
+    gcp_job_id = Column(String, nullable=True)
+
+    # Known after execution
+    metrics = Column(JSON, nullable=True)
+
 
 if __name__ == "__main__":
     Base.metadata.create_all(engine)

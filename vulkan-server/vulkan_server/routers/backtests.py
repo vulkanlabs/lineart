@@ -19,8 +19,8 @@ from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.backtest.backtest import ensure_beam_workspace, resolve_backtest_envs
 from vulkan_server.backtest.launcher import (
-    BackfillLauncher,
-    get_backfill_job_status,
+    BacktestLauncher,
+    get_backtest_job_status,
     get_launcher,
 )
 from vulkan_server.backtest.results import ResultsDB, make_results_db
@@ -28,6 +28,7 @@ from vulkan_server.config_variables import _get_policy_version_defaults
 from vulkan_server.db import (
     Backfill,
     Backtest,
+    BacktestMetrics,
     BeamWorkspace,
     PolicyVersion,
     UploadedFile,
@@ -66,9 +67,10 @@ def launch_backtest(
     policy_version_id: Annotated[str, Body()],
     input_file_id: Annotated[str, Body()],
     config_variables: Annotated[list[dict] | None, Body()],
+    metrics_config: Annotated[schemas.BacktestMetricsConfig | None, Body()] = None,
     db: Session = Depends(get_db),
     project_id: str = Depends(get_project_id),
-    run_launcher: BackfillLauncher = Depends(get_launcher),
+    run_launcher: BacktestLauncher = Depends(get_launcher),
 ):
     policy_version = (
         db.query(PolicyVersion)
@@ -133,6 +135,11 @@ def launch_backtest(
         environments=resolved_envs,
         status=JobStatus.PENDING,
     )
+    if metrics_config is not None:
+        backtest.calculate_metrics = True
+        backtest.target_column = metrics_config.target_column
+        backtest.time_column = metrics_config.time_column
+        backtest.group_by_columns = metrics_config.group_by_columns
     db.add(backtest)
     db.commit()
 
@@ -183,7 +190,7 @@ def get_backtest_status(
     jobs = []
 
     for backfill in backfills:
-        status = get_backfill_job_status(backfill.gcp_job_id)
+        status = get_backtest_job_status(backfill.gcp_job_id)
         jobs.append(
             schemas.BackfillStatus(
                 backfill_id=backfill.backfill_id,
@@ -212,6 +219,98 @@ def _get_backtest_status(backfills) -> JobStatus:
         return JobStatus.DONE
 
     return JobStatus.RUNNING
+
+
+@router.post("/{backtest_id}/metrics", response_model=schemas.BacktestMetrics)
+def launch_metrics_job(
+    backtest_id: str,
+    project_id=Depends(get_project_id),
+    db=Depends(get_db),
+    launcher=Depends(get_launcher),
+):
+    backtest = (
+        db.query(Backtest)
+        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .first()
+    )
+    if backtest is None:
+        raise HTTPException(
+            status_code=404, detail={"msg": f"Backtest {backtest_id} not found"}
+        )
+
+    existing_metrics_job = (
+        db.query(BacktestMetrics).filter_by(backtest_id=backtest_id).first()
+    )
+    if existing_metrics_job is not None:
+        logger.debug(f"SKIPPING: Metrics job already exists for backtest {backtest_id}")
+        return existing_metrics_job
+
+    input_file = (
+        db.query(UploadedFile)
+        .filter_by(uploaded_file_id=backtest.input_file_id)
+        .first()
+    )
+
+    # Attention: This may be specific to GCS, we still need to validate for other FS
+    results_path = (
+        f"{launcher.backtest_output_path(project_id, backtest_id)}/backfills/**"
+    )
+
+    metrics = launcher.create_metrics(
+        backtest_id=backtest_id,
+        project_id=project_id,
+        input_data_path=input_file.file_path,
+        results_data_path=results_path,
+        target_column=backtest.target_column,
+        time_column=backtest.time_column,
+        group_by_columns=backtest.group_by_columns,
+    )
+    return metrics
+
+
+@router.get("/{backtest_id}/metrics", response_model=schemas.BacktestMetrics)
+def get_metrics_job(
+    backtest_id: str,
+    project_id=Depends(get_project_id),
+    db=Depends(get_db),
+    results_db=Depends(make_results_db),
+):
+    backtest = (
+        db.query(Backtest)
+        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .first()
+    )
+    if backtest is None:
+        raise HTTPException(
+            status_code=404, detail={"msg": f"Backtest {backtest_id} not found"}
+        )
+
+    metrics_job = (
+        db.query(BacktestMetrics)
+        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .first()
+    )
+    if metrics_job is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"msg": f"Metrics job not found for backtest {backtest_id}"},
+        )
+
+    if (
+        metrics_job.status == RunStatus.SUCCESS
+        or metrics_job.status == RunStatus.FAILURE
+    ):
+        return metrics_job
+
+    status = get_backtest_job_status(metrics_job.gcp_job_id)
+    metrics_job.status = status
+    db.commit()
+
+    if status == RunStatus.SUCCESS:
+        metrics = results_db.load_metrics(metrics_job.output_path)
+        metrics_job.metrics = metrics.to_dict(orient="records")
+
+    return metrics_job
 
 
 def make_file_input_service(

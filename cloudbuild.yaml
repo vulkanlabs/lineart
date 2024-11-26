@@ -17,10 +17,42 @@ steps:
     - '-m'
     - 'twine'
     - 'upload'
+    - '--skip-existing'
     - '--repository-url'
     - 'https://${_LOCATION}-python.pkg.dev/$PROJECT_ID/${_REPOSITORY}/'
     - '/workspace/vulkan-public/dist/*'
     - '/workspace/vulkan/dist/*'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'metrics-image'
+    args: [
+        'build',
+        '-t',
+        '${_DOCKER_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY_NAME}/metrics-pipeline:latest',
+        '-f',
+        '/workspace/images/beam/metrics.Dockerfile',
+        '.'
+    ]
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "build-metrics-flex-template"
+    args: [
+        "gcloud",
+        "dataflow",
+        "flex-template",
+        "build",
+        "gs://${_ASSETS_BUCKET}/build-assets/flex-template/metrics-pipeline.json",
+        "--image",
+        '${_DOCKER_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY_NAME}/metrics-pipeline:latest',
+        "--sdk-language",
+        "PYTHON",
+        "--project",
+        "${PROJECT_ID}",
+    ]
+    waitFor: ["metrics-image"]
+
+images:
+  - '${_DOCKER_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY_NAME}/metrics-pipeline:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY

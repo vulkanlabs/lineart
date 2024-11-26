@@ -19,14 +19,16 @@ def create_backtest(
     policy_version_id: str,
     input_file_id: str,
     config_variables: list[dict] | None = None,
+    metrics_config: dict | None = None,
 ):
     ctx.logger.info("Creating backtest. This may take a while...")
     response = ctx.session.post(
-        f"{ctx.server_url}/backtests",
+        f"{ctx.server_url}/backtests/",
         json={
             "policy_version_id": policy_version_id,
             "input_file_id": input_file_id,
             "config_variables": config_variables,
+            "metrics_config": metrics_config,
         },
     )
     assert response.status_code == 200, f"Failed to create backtest: {response.content}"
@@ -34,6 +36,20 @@ def create_backtest(
     backtest_id = response_data["backtest_id"]
     ctx.logger.info(f"Created backtest with id {backtest_id}")
     return response_data
+
+
+def create_backtest_metrics(
+    ctx: Context,
+    backtest_id: str,
+):
+    ctx.logger.info("Creating backtest metrics...")
+    response = ctx.session.post(
+        f"{ctx.server_url}/backtests/{backtest_id}/metrics",
+    )
+    assert (
+        response.status_code == 200
+    ), f"Failed to create backtest metrics: {response.content}"
+    return response.json()
 
 
 def get_backtest_status(ctx: Context, backtest_id: str):
@@ -55,8 +71,28 @@ def poll_backtest_status(
             break
 
         time.sleep(time_step)
-
     return backtest_status
+
+def get_backtest_metrics_job_status(ctx: Context, backtest_id: str):
+    response = ctx.session.get(f"{ctx.server_url}/backtests/{backtest_id}/metrics")
+    assert (
+        response.status_code == 200
+    ), f"Failed to get backtest state: {response.content}"
+    return response.json()
+
+
+def poll_backtest_metrics_job_status(
+    ctx: Context, backtest_id: str, timeout: int = 300, time_step: int = 30
+):
+    terminal_states = {"SUCCESS", "FAILURE"}
+    for _ in range(0, timeout, time_step):
+        jobs_status = get_backtest_metrics_job_status(ctx, backtest_id)
+        ctx.logger.info(jobs_status)
+
+        if jobs_status["status"] in terminal_states:
+            break
+        time.sleep(time_step)
+    return jobs_status
 
 
 def get_results(ctx: Context, backtest_id: str):
