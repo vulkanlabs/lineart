@@ -1,22 +1,11 @@
 import { Suspense } from "react";
 import { stackServerApp } from "@/stack";
 
-import {
-    fetchBacktestWorkspace,
-    fetchPolicyVersionBacktests,
-    fetchBacktestFiles,
-    getAuthHeaders,
-} from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { fetchBacktestWorkspace, fetchPolicyVersionBacktests, fetchBacktestFiles } from "@/lib/api";
 
-import {
-    CreateWorkspacePage,
-    BacktestsTableComponent,
-    UploadedFilesTableComponent,
-    WorkspaceCreation,
-    PendingWorkspaceCreation,
-} from "./components";
+import { WorkspaceCreation, PendingWorkspaceCreation } from "./_components/workspace";
+import { BacktestsTableComponent, UploadedFilesTableComponent } from "./_components/tables";
+import { workspaceCreationAction } from "./actions";
 
 export default async function Page({ params }) {
     const user = await stackServerApp.getUser();
@@ -84,39 +73,4 @@ async function UploadedFilesTable({ policyVersionId }) {
         return [];
     });
     return <UploadedFilesTableComponent uploadedFiles={uploadedFiles} />;
-}
-
-async function getWorkspaceStatusAction({ user, policyVersionId }) {
-    "use server";
-    const workspaceStatus = await fetchBacktestWorkspace(user, policyVersionId).catch((error) => {
-        console.error(error);
-        return null;
-    });
-    return workspaceStatus;
-}
-
-async function workspaceCreationAction({ url, headers }: { url: string; headers: any }) {
-    "use server";
-    const request = new Request(url, {
-        method: "POST",
-        headers: {
-            ...headers,
-        },
-        mode: "cors",
-    });
-
-    return fetch(request)
-        .then(async (response) => {
-            if (!response.ok) {
-                throw new Error("Failed to create workspace: " + response, { cause: response });
-            }
-            const data = await response.json();
-            return data;
-        })
-        .catch((error) => {
-            const errorMsg = "Error creating workspace";
-            throw new Error(errorMsg, {
-                cause: error,
-            });
-        });
 }

@@ -249,6 +249,15 @@ export async function fetchBacktestFiles(user: StackUser, policyVersionId: strin
     });
 }
 
+
+export async function fetchBacktestStatus(user: StackUser, backtestId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/backtests/${backtestId}/status`,
+        label: `status for backtest ${backtestId}`,
+    });
+}
+
 // UNAUTHENTICATED CALLS:
 // ----------------------
 

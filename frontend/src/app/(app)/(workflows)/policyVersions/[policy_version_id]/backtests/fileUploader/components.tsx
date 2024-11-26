@@ -1,10 +1,12 @@
 "use client";
+import Link from "next/link";
 import React, { useState } from "react";
 import { useUser } from "@stackframe/stack";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -38,8 +40,13 @@ export async function FileUploaderPage({ uploadFn, policyVersionId }) {
     };
 
     return (
-        <div className="flex flex-col p-8 gap-8">
-            <h1 className="text-2xl font-bold tracking-tight">Uploader</h1>
+        <div className="flex flex-col py-4 px-8 gap-8">
+            <Link href={`/policyVersions/${policyVersionId}/backtests`}>
+                <button className="flex flex-row gap-2 bg-white text-black hover:text-gray-700 text-lg font-bold">
+                    <ArrowLeft />
+                    Back
+                </button>
+            </Link>
             <div>
                 <FileUploader
                     policyVersionId={policyVersionId}
@@ -49,7 +56,7 @@ export async function FileUploaderPage({ uploadFn, policyVersionId }) {
                     headers={headers}
                 />
             </div>
-            {fileId && <FileUploadedCard fileId={fileId} />}
+            {fileId && <FileUploadedCard fileId={fileId} policyVersionId={policyVersionId} />}
             {error && <UploadErrorCard error={error} />}
         </div>
     );
@@ -77,7 +84,7 @@ function FileUploader({ policyVersionId, setFileId, setError, uploadFn, headers 
         body.append("file_format", values.file_format);
         body.append("schema", values.schema);
         body.append("policy_version_id", policyVersionId);
-        
+
         setSubmitting(true);
         setError(null);
         setFileId(null);
@@ -112,7 +119,7 @@ function UploadFileFormCard({ form, onSubmit, submitting }) {
             </CardHeader>
             <CardContent>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
                         <FormField
                             control={form.control}
                             name="file"
@@ -192,13 +199,18 @@ function ensureJSON(data: string) {
     }
 }
 
-function FileUploadedCard({ fileId }) {
+function FileUploadedCard({ fileId, policyVersionId }) {
     return (
         <Card className="flex flex-col w-fit border-green-600 border-2">
             <CardHeader>
                 <CardTitle>Uploaded file successfully</CardTitle>
-                <CardDescription>
-                    File uploaded with id <strong>{fileId}</strong>.
+                <CardDescription className="flex flex-col gap-4">
+                    <div>
+                        File uploaded with id <strong>{fileId}</strong>.
+                    </div>
+                    <Link href={`/policyVersions/${policyVersionId}/backtests`}>
+                        <Button className="bg-green-600 hover:bg-green-500">Go to Table</Button>
+                    </Link>
                 </CardDescription>
             </CardHeader>
         </Card>

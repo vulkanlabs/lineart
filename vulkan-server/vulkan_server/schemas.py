@@ -4,7 +4,7 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
-from vulkan.core.run import RunStatus
+from vulkan.core.run import JobStatus, RunStatus
 from vulkan_public.schemas import DataSourceCreate
 
 
@@ -276,6 +276,7 @@ class Backfill(BaseModel):
     backfill_id: UUID
     backtest_id: UUID
     status: RunStatus
+    config_variables: dict | None
 
     created_at: datetime
     last_updated_at: datetime
@@ -286,7 +287,8 @@ class Backfill(BaseModel):
 
 class BackfillStatus(BaseModel):
     backfill_id: UUID
-    status: str
+    status: RunStatus
+    config_variables: dict | None
 
 
 class Backtest(BaseModel):
@@ -294,10 +296,16 @@ class Backtest(BaseModel):
     policy_version_id: UUID
     input_file_id: UUID
     environments: list[dict]
-    status: RunStatus
+    status: JobStatus
 
     created_at: datetime
     last_updated_at: datetime
+
+
+class BacktestStatus(BaseModel):
+    backtest_id: UUID
+    status: JobStatus
+    backfills: list[BackfillStatus]
 
 
 class UploadedFile(BaseModel):

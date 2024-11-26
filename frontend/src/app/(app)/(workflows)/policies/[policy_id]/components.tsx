@@ -20,6 +20,7 @@ export function RouteLayout({ policy, children }) {
             name: "Backtests",
             icon: GitCompare,
             path: `/policies/${policy.policy_id}/backtests`,
+            disabled: true,
         },
         {
             name: "Experiments",

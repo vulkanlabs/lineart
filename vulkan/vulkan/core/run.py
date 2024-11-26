@@ -8,3 +8,7 @@ class RunStatus(Enum):
     FAILURE = "FAILURE"
 
 
+class JobStatus(Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    DONE = "DONE"
