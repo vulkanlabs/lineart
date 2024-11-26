@@ -36,7 +36,7 @@ def create_backtest(
     return response_data
 
 
-def get_backtest_jobs_statuses(ctx: Context, backtest_id: str):
+def get_backtest_status(ctx: Context, backtest_id: str):
     response = ctx.session.get(f"{ctx.server_url}/backtests/{backtest_id}/status")
     assert (
         response.status_code == 200
@@ -44,21 +44,19 @@ def get_backtest_jobs_statuses(ctx: Context, backtest_id: str):
     return response.json()
 
 
-def poll_backtest_jobs_statuses(
+def poll_backtest_status(
     ctx: Context, backtest_id: str, timeout: int = 300, time_step: int = 30
 ):
-    terminal = ["SUCCESS", "FAILURE"]
-
     for _ in range(0, timeout, time_step):
-        jobs_status = get_backtest_jobs_statuses(ctx, backtest_id)
-        ctx.logger.info(jobs_status)
+        backtest_status = get_backtest_status(ctx, backtest_id)
+        ctx.logger.info(backtest_status)
 
-        if all([job["status"] in terminal for job in jobs_status]):
+        if backtest_status["status"] == "DONE":
             break
 
         time.sleep(time_step)
 
-    return jobs_status
+    return backtest_status
 
 
 def get_results(ctx: Context, backtest_id: str):
@@ -74,7 +72,9 @@ def list_uploaded_files(ctx: Context, policy_version_id: str | None = None):
         f"{ctx.server_url}/backtests/files",
         params={"policy_version_id": policy_version_id},
     )
-    assert response.status_code == 200, f"Failed to list uploaded files: {response.content}"
+    assert (
+        response.status_code == 200
+    ), f"Failed to list uploaded files: {response.content}"
     return response.json()
 
 

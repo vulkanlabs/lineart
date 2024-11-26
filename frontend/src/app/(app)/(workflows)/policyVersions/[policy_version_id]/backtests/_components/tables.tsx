@@ -16,15 +16,16 @@ import {
 } from "@/components/ui/table";
 import { ShortenedID } from "@/components/shortened-id";
 
-export function BacktestsTableComponent({ backtests }) {
+export function BacktestsTableComponent({ policyVersionId, backtests }) {
     const router = useRouter();
+    const launcherRef = `/policyVersions/${policyVersionId}/backtests/backtestLauncher`;
 
     return (
         <div>
             <div className="flex justify-between items-center">
                 <h1 className="text-lg font-semibold md:text-2xl">Backtests</h1>
                 <div className="flex gap-4">
-                    <Link href={`${window.location.pathname}/backtestLauncher`}>
+                    <Link href={launcherRef}>
                         <Button className="bg-blue-600 hover:bg-blue-500">Create Backtest</Button>
                     </Link>
                     <Button onClick={() => router.refresh()}>
@@ -82,15 +83,16 @@ function BacktestsTable({ backtests }) {
     );
 }
 
-export function UploadedFilesTableComponent({ uploadedFiles }) {
+export function UploadedFilesTableComponent({ policyVersionId, uploadedFiles }) {
     const router = useRouter();
+    const uploaderRef = `/policyVersions/${policyVersionId}/backtests/fileUploader`;
 
     return (
         <div>
             <div className="flex justify-between items-center">
                 <h1 className="text-lg font-semibold md:text-2xl">Uploaded Files</h1>
                 <div className="flex gap-4">
-                    <Link href={`${window.location.pathname}/backtests/fileUploader`}>
+                    <Link href={uploaderRef}>
                         <Button className="bg-blue-600 hover:bg-blue-500">Upload File</Button>
                     </Link>
                     <Button onClick={() => router.refresh()}>
