@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
     Form,
     FormField,
@@ -24,7 +25,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -65,6 +65,7 @@ export async function BacktestLauncherPage({ policyVersionId, launchFn, uploaded
 
 const formSchema = z.object({
     input_file_id: z.string(),
+    enable_metrics: z.boolean(),
     config_variables: z.string().refine(ensureJSON, { message: "Not a valid JSON object" }),
 });
 
@@ -91,6 +92,7 @@ function BacktestLauncher({
     async function onSubmit(values: z.infer<typeof formSchema>) {
         const body = {
             input_file_id: values.input_file_id,
+            // enable_metrics: values.enable_metrics,
             config_variables: JSON.parse(values.config_variables),
             policy_version_id: policyVersionId,
         };
@@ -123,7 +125,7 @@ function BacktestLauncher({
 }
 
 function LaunchFormCard({ uploadedFiles, form, onSubmit, submitting }) {
-    const placeholderText = JSON.stringify({ string_field: "str", integer_field: "int" }, null, 2);
+    const placeholderText = JSON.stringify([{ variable: "value" }], null, 2);
 
     return (
         <Card>
@@ -151,13 +153,18 @@ function LaunchFormCard({ uploadedFiles, form, onSubmit, submitting }) {
                                         </FormControl>
                                         <SelectContent>
                                             {uploadedFiles.map((file) => (
-                                                <SelectItem key={file.uploaded_file_id} value={file.uploaded_file_id}>
+                                                <SelectItem
+                                                    key={file.uploaded_file_id}
+                                                    value={file.uploaded_file_id}
+                                                >
                                                     {file.uploaded_file_id}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <FormDescription>ID of the uploaded file to be used as input.</FormDescription>
+                                    <FormDescription>
+                                        ID of the uploaded file to be used as input.
+                                    </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -175,8 +182,31 @@ function LaunchFormCard({ uploadedFiles, form, onSubmit, submitting }) {
                                             {...field}
                                         />
                                     </FormControl>
-                                    <FormDescription>List of configurations for the backtest.</FormDescription>
+                                    <FormDescription>
+                                        List of configurations for the backtest.
+                                    </FormDescription>
                                     <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="enable_metrics"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-base">Enable Metrics</FormLabel>
+                                        <FormDescription>
+                                            Automatically generate metrics and visualizations for
+                                            the outcomes of the backtest.
+                                        </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                        <Switch
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
                                 </FormItem>
                             )}
                         />

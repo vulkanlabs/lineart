@@ -63,7 +63,7 @@ async function BacktestsTable({ policyVersionId }) {
         console.error(error);
         return [];
     });
-    return <BacktestsTableComponent policyVersionId={policyVersionId} backtests={backtests} />;
+    return <BacktestsTableComponent backtests={backtests} />;
 }
 
 async function UploadedFilesTable({ policyVersionId }) {
@@ -72,10 +72,5 @@ async function UploadedFilesTable({ policyVersionId }) {
         console.error(error);
         return [];
     });
-    return (
-        <UploadedFilesTableComponent
-            policyVersionId={policyVersionId}
-            uploadedFiles={uploadedFiles}
-        />
-    );
+    return <UploadedFilesTableComponent uploadedFiles={uploadedFiles} />;
 }

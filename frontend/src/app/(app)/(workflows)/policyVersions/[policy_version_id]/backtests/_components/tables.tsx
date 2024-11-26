@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { ShortenedID } from "@/components/shortened-id";
 
-export function BacktestsTableComponent({ policyVersionId, backtests }) {
+export function BacktestsTableComponent({ backtests }) {
     const router = useRouter();
 
     return (
@@ -24,7 +24,7 @@ export function BacktestsTableComponent({ policyVersionId, backtests }) {
             <div className="flex justify-between items-center">
                 <h1 className="text-lg font-semibold md:text-2xl">Backtests</h1>
                 <div className="flex gap-4">
-                    <Link href={`/policyVersions/${policyVersionId}/backtests/backtestLauncher`}>
+                    <Link href={`${window.location.pathname}/backtestLauncher`}>
                         <Button className="bg-blue-600 hover:bg-blue-500">Create Backtest</Button>
                     </Link>
                     <Button onClick={() => router.refresh()}>
@@ -33,13 +33,15 @@ export function BacktestsTableComponent({ policyVersionId, backtests }) {
                     </Button>
                 </div>
             </div>
-            <BacktestsTable backtests={backtests} />
+            <div className="max-h-[30vh] overflow-scroll">
+                <BacktestsTable backtests={backtests} />
+            </div>
         </div>
     );
 }
 
 function BacktestsTable({ backtests }) {
-    // const router = useRouter();
+    const router = useRouter();
 
     function parseDate(date: string) {
         return new Date(date).toLocaleString();
@@ -61,7 +63,9 @@ function BacktestsTable({ backtests }) {
                     <TableRow
                         key={backtest.backtest_id}
                         className="cursor-pointer"
-                        // onClick={() => router.push(`/policies/${policy.policy_id}/versions`)}
+                        onClick={() =>
+                            router.push(`${window.location.pathname}/${backtest.backtest_id}`)
+                        }
                     >
                         <TableCell>
                             <ShortenedID id={backtest.backtest_id} />
@@ -78,7 +82,7 @@ function BacktestsTable({ backtests }) {
     );
 }
 
-export function UploadedFilesTableComponent({ policyVersionId, uploadedFiles }) {
+export function UploadedFilesTableComponent({ uploadedFiles }) {
     const router = useRouter();
 
     return (
@@ -86,7 +90,7 @@ export function UploadedFilesTableComponent({ policyVersionId, uploadedFiles }) 
             <div className="flex justify-between items-center">
                 <h1 className="text-lg font-semibold md:text-2xl">Uploaded Files</h1>
                 <div className="flex gap-4">
-                    <Link href={`/policyVersions/${policyVersionId}/backtests/fileUploader`}>
+                    <Link href={`${window.location.pathname}/backtests/fileUploader`}>
                         <Button className="bg-blue-600 hover:bg-blue-500">Upload File</Button>
                     </Link>
                     <Button onClick={() => router.refresh()}>
@@ -95,14 +99,14 @@ export function UploadedFilesTableComponent({ policyVersionId, uploadedFiles }) 
                     </Button>
                 </div>
             </div>
-            <UploadedFilesTable uploadedFiles={uploadedFiles} />
+            <div className="max-h-[30vh] overflow-scroll">
+                <UploadedFilesTable uploadedFiles={uploadedFiles} />
+            </div>
         </div>
     );
 }
 
 function UploadedFilesTable({ uploadedFiles }) {
-    // const router = useRouter();
-
     function parseDate(date: string) {
         return new Date(date).toLocaleString();
     }
@@ -113,21 +117,17 @@ function UploadedFilesTable({ uploadedFiles }) {
             <TableHeader>
                 <TableRow>
                     <TableHead>ID</TableHead>
-                    {/* <TableHead>File Schema</TableHead> */}
+                    <TableHead>File Schema</TableHead>
                     <TableHead>Created At</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
                 {uploadedFiles.map((file) => (
-                    <TableRow
-                        key={file.uploaded_file_id}
-                        className="cursor-pointer"
-                        // onClick={() => router.push(`/policies/${policy.policy_id}/versions`)}
-                    >
+                    <TableRow key={file.uploaded_file_id}>
                         <TableCell>
                             <ShortenedID id={file.uploaded_file_id} />
                         </TableCell>
-                        {/* <TableCell>{file.file_schema}</TableCell> */}
+                        <TableCell>{JSON.stringify(file.file_schema)}</TableCell>
                         <TableCell>{parseDate(file.created_at)}</TableCell>
                     </TableRow>
                 ))}
