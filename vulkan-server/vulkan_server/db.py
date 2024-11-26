@@ -20,7 +20,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
-from vulkan.core.run import RunStatus
+from vulkan.core.run import JobStatus, RunStatus
 
 Base = declarative_base()
 
@@ -394,7 +394,7 @@ class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
         Uuid, ForeignKey("uploaded_file.uploaded_file_id"), nullable=False
     )
     environments = Column(JSON, nullable=True)
-    status = Column(Enum(RunStatus), nullable=False)
+    status = Column(Enum(JobStatus), nullable=False)
 
 
 if __name__ == "__main__":

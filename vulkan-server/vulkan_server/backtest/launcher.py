@@ -182,27 +182,27 @@ def get_dataflow_job_state(job_id: str) -> dataflow.JobState:
     return job.current_state
 
 
-def get_backfill_job_status(gcp_job_id: str) -> str:
+def get_backfill_job_status(gcp_job_id: str) -> RunStatus:
     dataflow_job_state = get_dataflow_job_state(gcp_job_id)
-    return _JOB_STATE_MAP.get(dataflow_job_state, "UNKNOWN")
+    return _JOB_STATE_MAP.get(dataflow_job_state, RunStatus.PENDING)
 
 
 _JOB_STATE_MAP = {
     # Creating / Running states
-    dataflow.JobState.JOB_STATE_UNKNOWN: RunStatus.PENDING.name,
-    dataflow.JobState.JOB_STATE_QUEUED: RunStatus.PENDING.name,
-    dataflow.JobState.JOB_STATE_PENDING: RunStatus.PENDING.name,
-    dataflow.JobState.JOB_STATE_STOPPED: RunStatus.PENDING.name,
-    dataflow.JobState.JOB_STATE_RUNNING: RunStatus.STARTED.name,
+    dataflow.JobState.JOB_STATE_UNKNOWN: RunStatus.PENDING,
+    dataflow.JobState.JOB_STATE_QUEUED: RunStatus.PENDING,
+    dataflow.JobState.JOB_STATE_PENDING: RunStatus.PENDING,
+    dataflow.JobState.JOB_STATE_STOPPED: RunStatus.PENDING,
+    dataflow.JobState.JOB_STATE_RUNNING: RunStatus.STARTED,
     # Terminal states
-    dataflow.JobState.JOB_STATE_FAILED: RunStatus.FAILURE.name,
-    dataflow.JobState.JOB_STATE_DONE: RunStatus.SUCCESS.name,
+    dataflow.JobState.JOB_STATE_FAILED: RunStatus.FAILURE,
+    dataflow.JobState.JOB_STATE_DONE: RunStatus.SUCCESS,
     # States unlikely to be reached. They require explicit actions
     # not covered by the current implementation.
-    dataflow.JobState.JOB_STATE_UPDATED: RunStatus.PENDING.name,
-    dataflow.JobState.JOB_STATE_CANCELLING: RunStatus.FAILURE.name,
-    dataflow.JobState.JOB_STATE_CANCELLED: RunStatus.FAILURE.name,
-    dataflow.JobState.JOB_STATE_DRAINING: RunStatus.FAILURE.name,
-    dataflow.JobState.JOB_STATE_DRAINED: RunStatus.FAILURE.name,
-    dataflow.JobState.JOB_STATE_RESOURCE_CLEANING_UP: RunStatus.SUCCESS.name,
+    dataflow.JobState.JOB_STATE_UPDATED: RunStatus.PENDING,
+    dataflow.JobState.JOB_STATE_CANCELLING: RunStatus.FAILURE,
+    dataflow.JobState.JOB_STATE_CANCELLED: RunStatus.FAILURE,
+    dataflow.JobState.JOB_STATE_DRAINING: RunStatus.FAILURE,
+    dataflow.JobState.JOB_STATE_DRAINED: RunStatus.FAILURE,
+    dataflow.JobState.JOB_STATE_RESOURCE_CLEANING_UP: RunStatus.SUCCESS,
 }

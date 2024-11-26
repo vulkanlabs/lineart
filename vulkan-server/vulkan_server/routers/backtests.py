@@ -13,7 +13,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 from vulkan.backtest.definitions import SupportedFileFormat
-from vulkan.core.run import RunStatus
+from vulkan.core.run import JobStatus, RunStatus
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
@@ -92,7 +92,11 @@ def launch_backtest(
 
     input_file = (
         db.query(UploadedFile)
-        .filter_by(project_id=project_id, uploaded_file_id=input_file_id)
+        .filter_by(
+            project_id=project_id,
+            policy_version_id=policy_version_id,
+            uploaded_file_id=input_file_id,
+        )
         .first()
     )
     if input_file is None:
@@ -127,7 +131,7 @@ def launch_backtest(
         policy_version_id=policy_version_id,
         input_file_id=input_file_id,
         environments=resolved_envs,
-        status=RunStatus.PENDING,
+        status=JobStatus.PENDING,
     )
     db.add(backtest)
     db.commit()
@@ -148,7 +152,7 @@ def launch_backtest(
     return backtest
 
 
-@router.get("/{backtest_id}/status", response_model=list[schemas.BackfillStatus])
+@router.get("/{backtest_id}/status", response_model=schemas.BacktestStatus)
 def get_backtest_status(
     backtest_id: str,
     project_id: str = Depends(get_project_id),
@@ -176,15 +180,38 @@ def get_backtest_status(
             detail={"msg": f"No backfills found for backtest {backtest_id}"},
         )
 
-    backtest_jobs = []
+    jobs = []
 
     for backfill in backfills:
         status = get_backfill_job_status(backfill.gcp_job_id)
-        backtest_jobs.append(
-            schemas.BackfillStatus(backfill_id=backfill.backfill_id, status=status)
+        jobs.append(
+            schemas.BackfillStatus(
+                backfill_id=backfill.backfill_id,
+                status=status,
+                config_variables=backfill.config_variables,
+            )
         )
+        # FIXME: Temporary fix to update status in DB
+        backfill.status = status
+        db.commit()
 
-    return backtest_jobs
+    status = _get_backtest_status(backfills)
+    # FIXME: Temporary fix to update status in DB
+    backtest.status = status
+    db.commit()
+
+    return {"backtest_id": backtest_id, "status": status, "backfills": jobs}
+
+
+def _get_backtest_status(backfills) -> JobStatus:
+    if all([job.status == RunStatus.PENDING for job in backfills]):
+        return JobStatus.PENDING
+
+    terminal_states = [RunStatus.SUCCESS, RunStatus.FAILURE]
+    if all([job.status in terminal_states for job in backfills]):
+        return JobStatus.DONE
+
+    return JobStatus.RUNNING
 
 
 def make_file_input_service(
@@ -288,3 +315,12 @@ async def upload_file(
     db.commit()
 
     return uploaded_file
+
+
+@router.get("/{backtest_id}/metrics")
+def get_backtest_metrics(
+    backtest_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    pass
