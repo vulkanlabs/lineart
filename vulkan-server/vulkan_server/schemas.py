@@ -328,7 +328,7 @@ class BeamWorkspace(BaseModel):
 class BacktestMetrics(BaseModel):
     backtest_id: UUID
     status: RunStatus
-    metrics: dict | None = None
+    metrics: list[dict] | None = None
 
 
 class BacktestMetricsConfig(BaseModel):

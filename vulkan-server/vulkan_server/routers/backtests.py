@@ -309,6 +309,7 @@ def get_metrics_job(
     if status == RunStatus.SUCCESS:
         metrics = results_db.load_metrics(metrics_job.output_path)
         metrics_job.metrics = metrics.to_dict(orient="records")
+        db.commit()
 
     return metrics_job
 
