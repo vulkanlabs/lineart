@@ -55,7 +55,14 @@ def build_metrics_pipeline(
         )
         | "Calculate Metrics" >> metrics_transform
         | "Enforce Schema" >> beam.Select(*metrics_transform.output_columns())
-        | "Write Metrics" >> beam.io.WriteToJson(output_path)
+        | "Write Metrics"
+        >> beam.io.WriteToJson(
+            output_path,
+            num_shards=1,
+            file_naming=beam.io.fileio.single_file_naming(
+                prefix="metrics", suffix=".json"
+            ),
+        )
     )
 
     return p

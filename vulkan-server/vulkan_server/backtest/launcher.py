@@ -101,7 +101,7 @@ class BacktestLauncher:
             backtest_id=backtest_id,
             status=RunStatus.PENDING,
             project_id=project_id,
-            output_path=output_path,
+            output_path=os.path.join(output_path, "metrics.json"),
         )
         self.db.add(metrics)
         self.db.commit()
