@@ -1,8 +1,6 @@
 import apache_beam as beam
 from apache_beam.transforms.combiners import CountCombineFn
 
-from vulkan.backtest.metrics import Target
-
 
 class BinaryDistributionTransform(beam.PTransform):
     """Calculate basic statistics for a binary target.
@@ -11,7 +9,7 @@ class BinaryDistributionTransform(beam.PTransform):
     for which the target distribution is to be calculated.
     """
 
-    def __init__(self, target: Target, group_by_cols: list[str]):
+    def __init__(self, target, group_by_cols):
         self.target = target
         self.group_by_cols = group_by_cols
 

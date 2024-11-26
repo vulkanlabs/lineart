@@ -209,9 +209,10 @@ def launch_metrics_job(
         db.query(BacktestMetrics).filter_by(backtest_id=backtest_id).first()
     )
     if existing_metrics_job is not None:
+        logger.debug(f"SKIPPING: Metrics job already exists for backtest {backtest_id}")
         return existing_metrics_job
-    
-    results_path = launcher.backtest_output_path(backtest_id)
+
+    results_path = f"{launcher.backtest_output_path(project_id, backtest_id)}/**"
     metrics = launcher.create_metrics(
         backtest_id=backtest_id,
         project_id=project_id,

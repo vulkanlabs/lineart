@@ -29,10 +29,11 @@ class BackfillLauncher:
         # FIXME: This path should be set by a shared environment variable
         self.backend_launcher = _DataflowLauncher(components_path="/opt/dependencies/")
 
-    def backtest_output_path(self, backtest_id: str) -> str:
+    def backtest_output_path(self, project_id, backtest_id: str) -> str:
         return os.path.join(
             self.backend_launcher.config.output_bucket,
             self.backend_launcher.config.project,
+            str(project_id),
             str(backtest_id),
         )
 
@@ -57,7 +58,8 @@ class BackfillLauncher:
         self.db.commit()
 
         output_path = os.path.join(
-            self.backtest_output_path(backtest_id), str(backfill.backfill_id)
+            self.backtest_output_path(project_id, backtest_id),
+            str(backfill.backfill_id),
         )
         backfill.output_path = output_path
 
@@ -89,10 +91,12 @@ class BackfillLauncher:
         time_column: str | None = None,
         group_by_columns: list[str] | None = None,
     ) -> schemas.Backfill:
-        output_path = os.path.join(self.backtest_output_path(backtest_id), "metrics/")
+        output_path = os.path.join(
+            self.backtest_output_path(project_id, backtest_id),
+            "metrics/",
+        )
         metrics = BacktestMetrics(
             backtest_id=backtest_id,
-            input_data_path=input_data_path,
             status=RunStatus.PENDING,
             project_id=project_id,
             output_path=output_path,
@@ -104,7 +108,7 @@ class BackfillLauncher:
             backtest_id=backtest_id,
             input_path=input_data_path,
             output_path=output_path,
-            outcome_column="outcome",
+            outcome_column="status",
             target_column=target_column,
             time_column=time_column,
             group_by_columns=group_by_columns,
@@ -115,7 +119,6 @@ class BackfillLauncher:
         self.db.commit()
 
         logger.info(f"Launched run {response}")
-
         return metrics
 
 
@@ -190,8 +193,10 @@ class _DataflowLauncher:
             "outcome": outcome_column,
             "target_name": target_column,
             "target_kind": "BINARY_DISTRIBUTION",
-            "time": time_column,
-            "groups": json.dumps(group_by_columns) if group_by_columns else None,
+            "time": time_column if time_column is not None else "",
+            "groups": json.dumps(group_by_columns)
+            if group_by_columns is not None
+            else "[]",
         }
 
         template_file_gcs_location = os.path.join(
@@ -236,7 +241,7 @@ class _DataflowLauncher:
             launch_parameter=job_parameters,
         )
 
-        response = self.dataflow_client.launch_flex_template(request=job_request)
+        response: dataflow.LaunchFlexTemplateResponse = self.dataflow_client.launch_flex_template(request=job_request)
 
         # TODO: check if launch succeeded
         return _LaunchRunResponse(
