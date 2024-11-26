@@ -67,6 +67,7 @@ def launch_backtest(
     policy_version_id: Annotated[str, Body()],
     input_file_id: Annotated[str, Body()],
     config_variables: Annotated[list[dict] | None, Body()],
+    metrics_config: Annotated[schemas.MetricsConfig | None, Body()],
     db: Session = Depends(get_db),
     project_id: str = Depends(get_project_id),
     run_launcher: BackfillLauncher = Depends(get_launcher),
@@ -130,6 +131,11 @@ def launch_backtest(
         environments=resolved_envs,
         status=RunStatus.PENDING,
     )
+    if metrics_config is not None:
+        backtest.calculate_metrics = True
+        backtest.target_column = metrics_config.target_column
+        backtest.time_column = metrics_config.time_column
+        backtest.group_by_columns = metrics_config.group_by_columns
     db.add(backtest)
     db.commit()
 
@@ -217,9 +223,9 @@ def launch_metrics_job(
         backtest_id=backtest_id,
         project_id=project_id,
         input_data_path=results_path,
-        target_column="status",
-        # time_column: str | None = None,
-        # group_by_columns: list[str] | None = None,
+        target_column=backtest.target_column,
+        time_column=backtest.time_column,
+        group_by_columns=backtest.group_by_columns,
     )
     return metrics
 

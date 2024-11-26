@@ -315,3 +315,9 @@ class BeamWorkspace(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class MetricsConfig(BaseModel):
+    target_column: str
+    time_column: str | None = None
+    group_by_columns: list[str] | None = None

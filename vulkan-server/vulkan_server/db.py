@@ -396,6 +396,12 @@ class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
     environments = Column(JSON, nullable=True)
     status = Column(Enum(RunStatus), nullable=False)
 
+    # Optional, metrics-related fields
+    calculate_metrics = Column(Boolean, nullable=False, default=False)
+    target_column = Column(String, nullable=True)
+    time_column = Column(String, nullable=True)
+    group_by_columns = Column(ARRAY(String), nullable=True)
+
 
 class BacktestMetrics(AuthorizationMixin, TimedUpdateMixin, Base):
     __tablename__ = "backtest_metrics"

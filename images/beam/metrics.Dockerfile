@@ -23,7 +23,7 @@ RUN uv pip install --system --no-cache \
     /opt/dependencies/vulkan-public \
     /opt/dependencies/vulkan 
 
-ENV FLEX_TEMPLATE_PYTHON_PY_FILE="/opt/dependencies/vulkan/vulkan/beam/metrics_pipeline.py"
+ENV FLEX_TEMPLATE_PYTHON_PY_FILE="/opt/dependencies/vulkan/vulkan/beam/metrics/pipeline.py"
 
 # Set the entrypoint to Apache Beam SDK launcher.
 ENTRYPOINT ["/opt/apache/beam/boot"]
