@@ -5,7 +5,7 @@ from vulkan.core.run import RunStatus
 from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.backtest.launcher import get_backtest_job_status
-from vulkan_server.backtest.results import ResultsDB, make_results_db
+from vulkan_server.backtest.results import ResultsDB, get_results_db
 from vulkan_server.db import Backfill, get_db
 from vulkan_server.logger import init_logger
 
@@ -86,7 +86,7 @@ def get_backfill_results(
     backfill_id: str,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
-    results_db: ResultsDB = Depends(make_results_db),
+    results_db: ResultsDB = Depends(get_results_db),
 ):
     backfill = (
         db.query(Backfill)

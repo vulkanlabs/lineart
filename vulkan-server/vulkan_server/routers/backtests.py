@@ -14,17 +14,13 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 from vulkan.backtest.definitions import SupportedFileFormat
-from vulkan.core.run import JobStatus, RunStatus
+from vulkan.core.run import JobStatus
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.backtest.backtest import ensure_beam_workspace, resolve_backtest_envs
-from vulkan_server.backtest.launcher import (
-    BacktestLauncher,
-    get_backtest_job_status,
-    get_launcher,
-)
-from vulkan_server.backtest.results import ResultsDB, make_results_db
+from vulkan_server.backtest.launcher import BacktestLauncher, get_launcher
+from vulkan_server.backtest.results import ResultsDB, get_results_db
 from vulkan_server.config_variables import _get_policy_version_defaults
 from vulkan_server.db import (
     Backfill,
@@ -188,27 +184,19 @@ def get_backtest_status(
             detail={"msg": f"No backfills found for backtest {backtest_id}"},
         )
 
-    status = _get_backtest_status(backfills)
-    # FIXME: Temporary fix to update status in DB
-    backtest.status = status
-    db.commit()
-
+    backfill_status = [
+        schemas.BackfillStatus(
+            backfill_id=b.backfill_id,
+            status=b.status,
+            config_variables=b.config_variables,
+        )
+        for b in backfills
+    ]
     return {
         "backtest_id": backtest_id,
-        "status": status,
-        "backfills": [b.status for b in backfills],
+        "status": backtest.status,
+        "backfills": backfill_status,
     }
-
-
-def _get_backtest_status(backfills) -> JobStatus:
-    if all([job.status == RunStatus.PENDING for job in backfills]):
-        return JobStatus.PENDING
-
-    terminal_states = [RunStatus.SUCCESS, RunStatus.FAILURE]
-    if all([job.status in terminal_states for job in backfills]):
-        return JobStatus.DONE
-
-    return JobStatus.RUNNING
 
 
 def launch_metrics_job(
@@ -240,7 +228,7 @@ def launch_metrics_job(
 
     metrics = launcher.create_metrics(
         backtest_id=backtest_id,
-        project_id=backtest.project_id,
+        project_id=str(backtest.project_id),
         input_data_path=input_file.file_path,
         results_data_path=results_path,
         target_column=backtest.target_column,
@@ -255,7 +243,6 @@ def get_metrics_job(
     backtest_id: str,
     project_id=Depends(get_project_id),
     db=Depends(get_db),
-    results_db=Depends(make_results_db),
 ):
     backtest = (
         db.query(Backtest)
@@ -278,21 +265,6 @@ def get_metrics_job(
             detail={"msg": f"Metrics job not found for backtest {backtest_id}"},
         )
 
-    if (
-        metrics_job.status == RunStatus.SUCCESS
-        or metrics_job.status == RunStatus.FAILURE
-    ):
-        return metrics_job
-
-    status = get_backtest_job_status(metrics_job.gcp_job_id)
-    metrics_job.status = status
-    db.commit()
-
-    if status == RunStatus.SUCCESS:
-        metrics = results_db.load_metrics(metrics_job.output_path)
-        metrics_job.metrics = metrics.to_dict(orient="records")
-        db.commit()
-
     return metrics_job
 
 
@@ -313,7 +285,7 @@ def get_backtest_results(
     backtest_id: str,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
-    results_db: ResultsDB = Depends(make_results_db),
+    results_db: ResultsDB = Depends(get_results_db),
 ):
     backtest = (
         db.query(Backtest)
