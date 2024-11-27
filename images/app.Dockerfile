@@ -13,5 +13,5 @@ COPY vulkan vulkan
 COPY vulkan-server vulkan-server/
 RUN uv pip install --system --no-cache vulkan-server/
 
-COPY images/app.sh .
-ENTRYPOINT ["bash", "/app/app.sh"]
+COPY --chmod=700 images/app.sh .
+CMD ["/app/app.sh"]
