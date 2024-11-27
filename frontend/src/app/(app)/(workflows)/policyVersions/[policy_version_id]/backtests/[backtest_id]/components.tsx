@@ -89,6 +89,7 @@ function BackfillsTable({ backfills }) {
 
 async function MetricsComponent({ backtestId, backfills }) {
     const [baseData, setBaseData] = useState([]);
+    const [timedData, setTimedData] = useState([]);
     const user = useUser();
 
     function loadBaseData() {
@@ -104,7 +105,7 @@ async function MetricsComponent({ backtestId, backfills }) {
     function loadTimedData() {
         fetchBacktestMetrics(user, backtestId, true, true)
             .then((data) => {
-                setBaseData(data);
+                setTimedData(data);
             })
             .catch((error) => {
                 console.error(error);
@@ -116,33 +117,55 @@ async function MetricsComponent({ backtestId, backfills }) {
         loadTimedData();
     }, []);
 
-    async function plotStatusDistribution() {
-        const spec = makeStatusDistributionSpec(baseData);
-        embed("#status_distribution", { ...spec }, { actions: false });
+    async function plotStatusDistribution(data) {
+        const spec = makeStatusDistributionSpec(data);
+        embed("#status_distribution", spec, { actions: false });
     }
 
-    async function plotEventRate() {
+    async function plotStatusCount(data) {
+        const numStatuses = new Set(data.map((datum) => datum.status)).size;
+        const spec = makeStatusCountSpec(data, numStatuses);
+        embed("#status_count", spec, { actions: false });
+    }
+
+    async function plotEventRate(data) {
         const shortBackfillIDs = backfills.map((backfill) => backfill.backfill_id.slice(0, 8));
-        const spec = makeEventRateSpec(baseData, shortBackfillIDs);
-        embed("#event_rate", { ...spec }, { actions: false });
+        const spec = makeEventRateSpec(data, shortBackfillIDs);
+        embed("#event_rate", spec, { actions: false });
     }
 
     useEffect(() => {
-        plotStatusDistribution();
-        plotEventRate();
+        plotStatusDistribution(baseData);
+        plotStatusCount(baseData);
     }, [baseData]);
+
+    useEffect(() => {
+        plotEventRate(timedData);
+    }, [timedData]);
 
     return (
         <div className="flex flex-col gap-8">
             <h1 className="text-lg font-semibold md:text-2xl">Metrics</h1>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-4">
-                    <div className="font-semibold">Status Distribution</div>
-                    <div id="status_distribution"></div>
+            <div className="grid grid-rows-2 gap-6">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-4">
+                        <div className="font-semibold">Status Distribution</div>
+                        <div id="status_distribution"></div>
+                    </div>
+                    <div className="flex flex-col gap-4">
+                        <div className="font-semibold">Event Rate</div>
+                        <div id="event_rate"></div>
+                    </div>
                 </div>
-                <div className="flex flex-col gap-4">
-                    <div className="font-semibold">Event Rate</div>
-                    <div id="event_rate"></div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-4">
+                        <div className="font-semibold">Status Count</div>
+                        <div id="status_count"></div>
+                    </div>
+                    <div className="flex flex-col gap-4">
+                        <div className="font-semibold">TBD</div>
+                        <div id="tbd"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -227,6 +250,7 @@ function makeEventRateSpec(data: any, backfillShortIDs: string[]) {
                     fields: ["backfill"],
                     type: "point",
                 },
+                value: backfillShortIDs[0],
             },
         ],
         transform: [
@@ -240,6 +264,38 @@ function makeEventRateSpec(data: any, backfillShortIDs: string[]) {
                 calculate: "datum.ones/(datum.ones + datum.zeros)",
             },
         ],
+    };
+    return spec;
+}
+
+function makeStatusCountSpec(data: any, numStatuses: number) {
+    const spec = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.20.1.json",
+        width: Math.round(400 / numStatuses),
+        height: 200,
+        data: { values: data },
+        encoding: {
+            color: {
+                field: "backfill",
+                legend: null,
+                type: "nominal",
+            },
+            column: {
+                field: "status",
+                type: "nominal",
+            },
+            x: {
+                field: "backfill",
+                type: "nominal",
+            },
+            y: {
+                field: "count",
+                type: "quantitative",
+            },
+        },
+        mark: {
+            type: "bar",
+        },
     };
     return spec;
 }
