@@ -37,8 +37,8 @@ COPY vulkan-dagster/config/workspace.yaml ${VULKAN_HOME}/
 COPY vulkan-dagster/mock_workspace ${VULKAN_HOME}/workspaces/mock_workspace
 
 RUN mkdir ${VULKAN_VENVS_PATH}
-COPY vulkan-dagster/scripts/* ${VULKAN_SCRIPTS_PATH}/
+COPY --chmod=700 vulkan-dagster/scripts/* ${VULKAN_SCRIPTS_PATH}/
 
 # Run both servers
 WORKDIR ${VULKAN_SCRIPTS_PATH}
-ENTRYPOINT ["sh", "entrypoint.sh"]
+CMD ["./entrypoint.sh"]

@@ -322,6 +322,24 @@ def get_backtest_job_status(gcp_job_id: str) -> RunStatus:
     return _JOB_STATE_MAP.get(dataflow_job_state, RunStatus.PENDING)
 
 
+async def _async_get_dataflow_job_state(job_id: str) -> dataflow.JobState:
+    config = _get_dataflow_config()
+    client = dataflow.JobsV1Beta3AsyncClient()
+    request = dataflow.GetJobRequest(
+        project_id=config.project,
+        location=config.region,
+        job_id=job_id,
+        view=dataflow.JobView.JOB_VIEW_SUMMARY,
+    )
+    job = await client.get_job(request=request)
+    return job.current_state
+
+
+async def async_get_backtest_job_status(gcp_job_id: str) -> RunStatus:
+    dataflow_job_state = await _async_get_dataflow_job_state(gcp_job_id)
+    return _JOB_STATE_MAP.get(dataflow_job_state, RunStatus.PENDING)
+
+
 _JOB_STATE_MAP = {
     # Creating / Running states
     dataflow.JobState.JOB_STATE_UNKNOWN: RunStatus.PENDING,

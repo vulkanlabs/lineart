@@ -38,14 +38,13 @@ class ResultsDB:
         self.logger.info(f"Loading {len(file_paths)} files from {len(paths)} paths")
         ds = parquet.ParquetDataset(file_paths, filesystem=self.fs)
         return ds.read().to_pandas()
-    
-    # FIXME
+
     def load_metrics(self, path: str) -> pd.DataFrame:
         with self.fs.open(path, "rb") as f:
             return pd.read_json(f, lines=True)
 
 
-def make_results_db() -> ResultsDB:
+def get_results_db() -> ResultsDB:
     token_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     gcp_project_id = os.environ.get("GCP_PROJECT_ID")
     if token_path is None:
