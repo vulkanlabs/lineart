@@ -249,12 +249,25 @@ export async function fetchBacktestFiles(user: StackUser, policyVersionId: strin
     });
 }
 
-
 export async function fetchBacktestStatus(user: StackUser, backtestId: string) {
     return fetchServerData({
         user: user,
         endpoint: `/backtests/${backtestId}/status`,
         label: `status for backtest ${backtestId}`,
+    });
+}
+
+export async function fetchBacktestMetrics(
+    user: StackUser,
+    backtestId: string,
+    target: boolean = false,
+    time: boolean = false,
+    column: string | null = null,
+) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/backtests/${backtestId}/metrics/data?target=${target}&time=${time}${column ? `&column=${column}` : ""}`,
+        label: `example metric for backtest ${backtestId}`,
     });
 }
 

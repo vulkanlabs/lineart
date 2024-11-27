@@ -297,6 +297,10 @@ class Backtest(BaseModel):
     input_file_id: UUID
     environments: list[dict]
     status: JobStatus
+    calculate_metrics: bool
+    target_column: str | None
+    time_column: str | None
+    group_by_columns: list[str] | None
 
     created_at: datetime
     last_updated_at: datetime

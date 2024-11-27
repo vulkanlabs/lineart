@@ -25,6 +25,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -65,8 +66,13 @@ export async function BacktestLauncherPage({ policyVersionId, launchFn, uploaded
 
 const formSchema = z.object({
     input_file_id: z.string(),
-    enable_metrics: z.boolean(),
-    config_variables: z.string().refine(ensureJSON, { message: "Not a valid JSON object" }),
+    config_variables: z
+        .string()
+        .optional()
+        .refine(ensureJSON, { message: "Not a valid JSON object" }),
+    target_column: z.string().optional(),
+    time_column: z.string().optional(),
+    group_by_columns: z.string().optional(),
 });
 
 function BacktestLauncher({
@@ -84,18 +90,36 @@ function BacktestLauncher({
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: {
-            config_variables: "",
-        },
     });
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         const body = {
             input_file_id: values.input_file_id,
-            // enable_metrics: values.enable_metrics,
-            config_variables: JSON.parse(values.config_variables),
             policy_version_id: policyVersionId,
+            config_variables: null,
+            metrics_config: null,
         };
+
+        if (values.config_variables) {
+            body.config_variables = JSON.parse(values.config_variables);
+        }
+        
+        if (values.target_column) {
+            let metricsConfig = {
+                target_column: values.target_column,
+                time_column: null,
+                group_by_columns: null,
+            };
+            if (values.time_column) {
+                metricsConfig.time_column = values.time_column;
+            }
+            if (values.group_by_columns) {
+                metricsConfig.group_by_columns = values.group_by_columns
+                    .split(",")
+                    .map((s) => s.trim());
+            }
+            body.metrics_config = metricsConfig;
+        }
 
         setSubmitting(true);
         setError(null);
@@ -125,6 +149,7 @@ function BacktestLauncher({
 }
 
 function LaunchFormCard({ uploadedFiles, form, onSubmit, submitting }) {
+    const [enableMetrics, setEnableMetrics] = useState(false);
     const placeholderText = JSON.stringify([{ variable: "value" }], null, 2);
 
     return (
@@ -177,7 +202,7 @@ function LaunchFormCard({ uploadedFiles, form, onSubmit, submitting }) {
                                     <FormLabel>Config Variables</FormLabel>
                                     <FormControl>
                                         <Textarea
-                                            className="min-h-40"
+                                            className="min-h-32"
                                             placeholder={placeholderText}
                                             {...field}
                                         />
@@ -189,27 +214,24 @@ function LaunchFormCard({ uploadedFiles, form, onSubmit, submitting }) {
                                 </FormItem>
                             )}
                         />
-                        <FormField
-                            control={form.control}
-                            name="enable_metrics"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                                    <div className="space-y-0.5">
-                                        <FormLabel className="text-base">Enable Metrics</FormLabel>
-                                        <FormDescription>
-                                            Automatically generate metrics and visualizations for
-                                            the outcomes of the backtest.
-                                        </FormDescription>
+                        <div className="flex flex-col gap-6 rounded-lg border p-4">
+                            <div className="flex flex-row items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <div className="text-base font-medium">Metrics</div>
+                                    <div className="text-sm text-muted-foreground">
+                                        Automatically generate metrics and visualizations for the
+                                        outcomes of the backtest.
                                     </div>
-                                    <FormControl>
-                                        <Switch
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                        />
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
+                                </div>
+                                <div>
+                                    <Switch
+                                        checked={enableMetrics}
+                                        onCheckedChange={setEnableMetrics}
+                                    />
+                                </div>
+                            </div>
+                            {enableMetrics && <MetricsForm form={form} />}
+                        </div>
                         <div className="flex flex-row gap-4">
                             <Button type="submit" disabled={submitting}>
                                 Launch
@@ -223,7 +245,61 @@ function LaunchFormCard({ uploadedFiles, form, onSubmit, submitting }) {
     );
 }
 
-function ensureJSON(data: string) {
+function MetricsForm({ form }) {
+    return (
+        <>
+            <FormField
+                control={form.control}
+                name="target_column"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Target Column</FormLabel>
+                        <FormControl>
+                            <Input type="text" {...field} />
+                        </FormControl>
+                        <FormDescription>Name of the column to use as a target.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="time_column"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Time Column (optional)</FormLabel>
+                        <FormControl>
+                            <Input type="text" {...field} />
+                        </FormControl>
+                        <FormDescription>Name of the column to use as a time step.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="group_by_columns"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Group By Columns (optional)</FormLabel>
+                        <FormControl>
+                            <Input type="text" placeholder="first,second,third" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                            Names of the columns to group results by (comma-separated).
+                        </FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+        </>
+    );
+}
+
+function ensureJSON(data: string | null) {
+    if (!data) {
+        return true;
+    }
     try {
         JSON.parse(data);
         return true;

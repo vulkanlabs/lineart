@@ -47,6 +47,7 @@ function BacktestsTable({ backtests }) {
     function parseDate(date: string) {
         return new Date(date).toLocaleString();
     }
+    console.log(backtests);
 
     return (
         <Table>
@@ -56,6 +57,7 @@ function BacktestsTable({ backtests }) {
                     <TableHead>ID</TableHead>
                     <TableHead>Input File ID</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Metrics Enabled</TableHead>
                     <TableHead>Created At</TableHead>
                 </TableRow>
             </TableHeader>
@@ -75,6 +77,7 @@ function BacktestsTable({ backtests }) {
                             <ShortenedID id={backtest.input_file_id} />
                         </TableCell>
                         <TableCell>{backtest.status}</TableCell>
+                        <TableCell>{backtest.calculate_metrics.toString()}</TableCell>
                         <TableCell>{parseDate(backtest.created_at)}</TableCell>
                     </TableRow>
                 ))}

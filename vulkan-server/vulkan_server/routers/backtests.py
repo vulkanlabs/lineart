@@ -1,6 +1,7 @@
 import json
 from typing import Annotated
 
+import pandas as pd
 from fastapi import (
     APIRouter,
     Body,
@@ -417,10 +418,69 @@ async def upload_file(
     return uploaded_file
 
 
-@router.get("/{backtest_id}/metrics")
+@router.get("/{backtest_id}/metrics/data")
 def get_backtest_metrics(
     backtest_id: str,
+    target: bool = False,
+    time: bool = False,
+    column: str | None = None,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    pass
+    backtest = (
+        db.query(Backtest)
+        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .first()
+    )
+    if backtest is None:
+        raise HTTPException(
+            status_code=404, detail={"msg": f"Backtest {backtest_id} not found"}
+        )
+
+    backtest_metrics = (
+        db.query(BacktestMetrics)
+        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .first()
+    )
+    if backtest_metrics is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"msg": f"Metrics job not found for backtest {backtest_id}"},
+        )
+
+    metrics = pd.DataFrame(backtest_metrics.metrics)
+    metrics["backfill"] = metrics.backfill_id.apply(lambda x: x[:8])
+    agg_columns = ["backfill", "status"]
+    num_columns = ["count"]
+
+    if target:
+        if backtest.target_column is None:
+            raise HTTPException(
+                status_code=400,
+                detail={"msg": "Target column not specified for backtest"},
+            )
+        num_columns.extend(["ones", "zeros"])
+
+    if time:
+        if backtest.time_column is None:
+            raise HTTPException(
+                status_code=400,
+                detail={"msg": "Time column not specified for backtest"},
+            )
+        agg_columns.append(backtest.time_column)
+
+    if column is not None:
+        if backtest.group_by_columns is None:
+            raise HTTPException(
+                status_code=400,
+                detail={"msg": "Group by columns not specified for backtest"},
+            )
+        if column not in backtest.group_by_columns:
+            raise HTTPException(
+                status_code=400,
+                detail={"msg": f"Column {column} not in group by columns"},
+            )
+        agg_columns.append(column)
+
+    data = metrics.groupby(agg_columns)[num_columns].sum().reset_index()
+    return data.to_dict(orient="records")
