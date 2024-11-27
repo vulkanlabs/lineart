@@ -10,7 +10,5 @@ export default async function Page({ params }) {
         return [];
     });
 
-    return (
-        <BacktestDetailsPage policyVersionId={params.policy_version_id} backtest={backtest} />
-    );
+    return <BacktestDetailsPage policyVersionId={params.policy_version_id} backtest={backtest} />;
 }

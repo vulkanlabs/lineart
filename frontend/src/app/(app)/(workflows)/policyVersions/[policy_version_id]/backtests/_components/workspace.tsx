@@ -1,11 +1,12 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useUser } from "@stackframe/stack";
+import CircularProgress from "@mui/material/CircularProgress";
+import Box from "@mui/material/Box";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { fetchBacktestWorkspace } from "@/lib/api";
-
 
 export async function PendingWorkspaceCreation({ policyVersionId }) {
     const [ready, setReady] = useState(false);
@@ -34,7 +35,20 @@ export async function PendingWorkspaceCreation({ policyVersionId }) {
         return () => clearInterval(comInterval);
     }, [ready]);
 
-    return <div className="flex justify-center items-center text-center">PENDING STATE...</div>;
+    return (
+        <div className="flex justify-center items-center h-full">
+            <div className="flex flex-col gap-8">
+                <div className="text-lg font-medium text-center">
+                    Creating backtest workspace. This may take a few minutes.
+                </div>
+                <div className="flex justify-center">
+                    <Box sx={{ display: "flex" }}>
+                        <CircularProgress size={100} thickness={2} color="inherit" />
+                    </Box>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export async function CreateWorkspacePage({ policyVersionId, workspaceCreationAction }) {
