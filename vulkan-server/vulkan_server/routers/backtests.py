@@ -188,27 +188,16 @@ def get_backtest_status(
             detail={"msg": f"No backfills found for backtest {backtest_id}"},
         )
 
-    jobs = []
-
-    for backfill in backfills:
-        status = get_backtest_job_status(backfill.gcp_job_id)
-        jobs.append(
-            schemas.BackfillStatus(
-                backfill_id=backfill.backfill_id,
-                status=status,
-                config_variables=backfill.config_variables,
-            )
-        )
-        # FIXME: Temporary fix to update status in DB
-        backfill.status = status
-        db.commit()
-
     status = _get_backtest_status(backfills)
     # FIXME: Temporary fix to update status in DB
     backtest.status = status
     db.commit()
 
-    return {"backtest_id": backtest_id, "status": status, "backfills": jobs}
+    return {
+        "backtest_id": backtest_id,
+        "status": status,
+        "backfills": [b.status for b in backfills],
+    }
 
 
 def _get_backtest_status(backfills) -> JobStatus:
@@ -222,18 +211,12 @@ def _get_backtest_status(backfills) -> JobStatus:
     return JobStatus.RUNNING
 
 
-@router.post("/{backtest_id}/metrics", response_model=schemas.BacktestMetrics)
 def launch_metrics_job(
     backtest_id: str,
-    project_id=Depends(get_project_id),
     db=Depends(get_db),
     launcher=Depends(get_launcher),
 ):
-    backtest = (
-        db.query(Backtest)
-        .filter_by(backtest_id=backtest_id, project_id=project_id)
-        .first()
-    )
+    backtest = db.query(Backtest).filter_by(backtest_id=backtest_id).first()
     if backtest is None:
         raise HTTPException(
             status_code=404, detail={"msg": f"Backtest {backtest_id} not found"}
@@ -253,13 +236,11 @@ def launch_metrics_job(
     )
 
     # Attention: This may be specific to GCS, we still need to validate for other FS
-    results_path = (
-        f"{launcher.backtest_output_path(project_id, backtest_id)}/backfills/**"
-    )
+    results_path = f"{launcher.backtest_output_path(backtest.project_id, backtest_id)}/backfills/**"
 
     metrics = launcher.create_metrics(
         backtest_id=backtest_id,
-        project_id=project_id,
+        project_id=backtest.project_id,
         input_data_path=input_file.file_path,
         results_data_path=results_path,
         target_column=backtest.target_column,
