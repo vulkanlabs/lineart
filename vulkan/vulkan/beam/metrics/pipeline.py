@@ -39,8 +39,8 @@ def build_metrics_pipeline(
         | beam.Map(lambda x: (x["key"], x))
     )
     data = {
-        "input_data": input_data,
         "results_data": results_data,
+        "input_data": input_data,
     } | "Join Data" >> beam.CoGroupByKey()
 
     (
@@ -91,7 +91,7 @@ class ExtractRelevantColumns(beam.PTransform):
         self._input_data_columns = _input_data_columns
 
     def expand(self, pcoll):
-        return pcoll | "Create Working Frame" >> beam.Map(
+        return pcoll | "Create Working Frame" >> beam.FlatMap(
             _extract_columns_by_key,
             input_data_columns=self._input_data_columns,
             outcome_column=self.outcome_column,
@@ -105,15 +105,20 @@ def _extract_columns_by_key(
     outcome_column: str,
     backfill_id_column: str,
 ):
-    results_dict = {"key": element[0]}
+    key = element[0]
     data = element[1]
 
-    for col in input_data_columns:
-        results_dict[col] = data["input_data"][0][col]
-    results_dict[outcome_column] = data["results_data"][0][outcome_column]
-    results_dict[backfill_id_column] = data["results_data"][0][backfill_id_column]
+    input_data_dict = {col: data["input_data"][0][col] for col in input_data_columns}
 
-    return beam.Row(**results_dict)
+    results = []
+    for backfill_results in data["results_data"]:
+        results_dict = {"key": key, **input_data_dict}
+
+        results_dict[outcome_column] = backfill_results[outcome_column]
+        results_dict[backfill_id_column] = backfill_results[backfill_id_column]
+        results.append(results_dict)
+
+    return [beam.Row(**r) for r in results]
 
 
 def _make_metrics_transform(
