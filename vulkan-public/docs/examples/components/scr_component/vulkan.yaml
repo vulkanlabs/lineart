@@ -1,0 +1,3 @@
+packaging:
+  mode: python_package
+  entrypoint: scr_component
