@@ -4,7 +4,7 @@ import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@stackframe/stack";
 import { RotateCw, ArrowLeft } from "lucide-react";
-import embed from "vega-embed";
+import embed, { VisualizationSpec } from "vega-embed";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -210,7 +210,7 @@ function makeStatusDistributionSpec(data) {
         mark: {
             type: "bar",
         },
-    };
+    } as VisualizationSpec;
     return spec;
 }
 
@@ -264,7 +264,7 @@ function makeEventRateSpec(data: any, backfillShortIDs: string[]) {
                 calculate: "datum.ones/(datum.ones + datum.zeros)",
             },
         ],
-    };
+    } as VisualizationSpec;
     return spec;
 }
 
@@ -296,6 +296,6 @@ function makeStatusCountSpec(data: any, numStatuses: number) {
         mark: {
             type: "bar",
         },
-    };
+    } as VisualizationSpec;
     return spec;
 }
