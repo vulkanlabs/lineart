@@ -1,0 +1,23 @@
+name: "vendor-name:api-name:v0.0.1"
+keys: ["."]
+request:
+    url: "http://testdata:5000"
+    method: GET
+    headers:
+        Content-Type: "application/json"
+        X-Token:
+            env: API_EXAMPLE_X_TOKEN
+        ABC: "{a: 1, b: {c: foo, d: 2}}"
+    params:
+        full:
+            env: API_EXAMPLE_FULL
+    timeout: 30
+caching:
+    enabled: true
+    ttl:
+        minutes: 10
+retry:
+    max_retries: 3
+    backoff_factor: 0.3
+    status_forcelist: [502, 503, 504]
+metadata: {}
