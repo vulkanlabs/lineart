@@ -1,0 +1,7 @@
+[project]
+name = "test_policy"
+version = "0.1.0"
+description = ""
+dependencies = [
+    "vapeplot",
+]
