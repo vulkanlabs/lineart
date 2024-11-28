@@ -22,6 +22,3 @@ RUN uv pip install --system --no-cache --extra beam -r /opt/dependencies/vulkan/
 RUN uv pip install --system --no-cache \    
     /opt/dependencies/vulkan-public \
     /opt/dependencies/vulkan 
-
-# Set the entrypoint to Apache Beam SDK launcher.
-ENTRYPOINT ["/opt/apache/beam/boot"]

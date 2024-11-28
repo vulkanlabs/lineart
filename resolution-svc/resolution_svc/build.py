@@ -105,6 +105,10 @@ class GCPBuildManager:
 
         return image_path
 
+    @property
+    def base_image(self) -> str:
+        return f"{self.gcp_region}-docker.pkg.dev/{self.gcp_project_id}/{self.gcp_repository_name}/vulkan-beam-base:latest"
+
     def build_beam_image(
         self,
         bucket_name: str,
@@ -238,7 +242,7 @@ def prepare_base_image_context(
     workspace_path: str,
     components_path: str,
     dependencies: list[str],
-    python_version: str,
+    base_image: str,
 ):
     policy_spec = PackageSpec(name=workspace_name, path=workspace_path)
     dependency_specs = [
@@ -249,7 +253,7 @@ def prepare_base_image_context(
     dockerfile = _render_dockerfile(
         server_path,
         template="Dockerfile.j2",
-        python_version=python_version,
+        base_image=base_image,
         policy=policy_spec,
         dependencies=dependency_specs,
     )
@@ -268,18 +272,12 @@ def prepare_beam_image_context(
     name: str,
     base_image: str,
     server_path: str,
-    python_version: str,
-    beam_sdk_version: str,
-    flex_template_base_image: str,
 ) -> str:
     dockerfile_path = "/tmp/Dockerfile"
     dockerfile = _render_dockerfile(
         server_path,
         template="Beam-Dockerfile.j2",
         base_image=base_image,
-        python_version=python_version,
-        beam_sdk_version=beam_sdk_version,
-        flex_template_base_image=flex_template_base_image,
     )
     with open(dockerfile_path, "w") as fp:
         fp.write(dockerfile)

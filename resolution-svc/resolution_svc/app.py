@@ -15,10 +15,8 @@ from resolution_svc.build import (
     prepare_beam_image_context,
 )
 from resolution_svc.config import (
-    ImageBuildConfig,
     VulkanConfig,
     get_artifact_manager,
-    get_image_build_config,
     get_vulkan_config,
 )
 from resolution_svc.context import ExecutionContext
@@ -38,7 +36,6 @@ def create_workspace(
     vulkan_config: VulkanConfig = Depends(get_vulkan_config),
     artifacts: GCSArtifactManager = Depends(get_artifact_manager),
     build_manager: GCPBuildManager = Depends(get_gcp_build_manager),
-    image_build_config: ImageBuildConfig = Depends(get_image_build_config),
 ):
     """
     Create the dagster workspace and venv used to run a policy version.
@@ -73,7 +70,7 @@ def create_workspace(
             workspace_path=vm.workspace_path,
             components_path=vm.components_path,
             dependencies=required_components,
-            python_version=image_build_config.python_version,
+            base_image=build_manager.base_image,
         )
         ctx.register_asset(build_context_path)
         upload_path = f"build_context/{name}.tar.gz"
@@ -104,7 +101,6 @@ def create_beam_workspace(
     vulkan_config: VulkanConfig = Depends(get_vulkan_config),
     artifacts: GCSArtifactManager = Depends(get_artifact_manager),
     build_manager: GCPBuildManager = Depends(get_gcp_build_manager),
-    image_build_config: ImageBuildConfig = Depends(get_image_build_config),
 ):
     """
     Create the dagster workspace and venv used to run a policy version.
@@ -116,9 +112,6 @@ def create_beam_workspace(
             name=name,
             base_image=base_image,
             server_path=vulkan_config.server_path,
-            python_version=image_build_config.python_version,
-            beam_sdk_version=image_build_config.beam_sdk_version,
-            flex_template_base_image=image_build_config.flex_template_base_image,
         )
         ctx.register_asset(build_context_path)
         upload_path = f"build_context/beam/{name}.tar.gz"
