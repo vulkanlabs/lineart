@@ -9,7 +9,7 @@ export default async function Page({ params }) {
     );
 }
 
-export async function uploadFileFormAction({
+async function uploadFileFormAction({
     uploadUrl,
     body,
     headers,

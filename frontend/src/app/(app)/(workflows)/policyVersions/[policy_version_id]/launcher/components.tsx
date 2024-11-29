@@ -16,15 +16,16 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useUser } from "@stackframe/stack";
 import { Textarea } from "@/components/ui/textarea";
 
-export async function LauncherPage({
+export function LauncherPage({
+    userAuthJson,
     policyVersionId,
     inputSchema,
     configVariables,
     launchFn,
 }: {
+    userAuthJson: { accessToken: string; refreshToken: string };
     policyVersionId: string;
     inputSchema: Map<string, string>;
     configVariables?: string[];
@@ -33,11 +34,9 @@ export async function LauncherPage({
     const [createdRun, setCreatedRun] = useState(null);
     const [error, setError] = useState<Error>(null);
 
-    const user = useUser();
-    const authJson = await user.getAuthJson();
     const headers = {
-        "x-stack-access-token": authJson.accessToken,
-        "x-stack-refresh-token": authJson.refreshToken,
+        "x-stack-access-token": userAuthJson.accessToken,
+        "x-stack-refresh-token": userAuthJson.refreshToken,
     };
 
     return (

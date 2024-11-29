@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
 import React, { useState } from "react";
-import { useUser } from "@stackframe/stack";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -29,15 +28,23 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
-export async function BacktestLauncherPage({ policyVersionId, launchFn, uploadedFiles }) {
+export function BacktestLauncherPage({
+    userAuthJson,
+    policyVersionId,
+    launchFn,
+    uploadedFiles,
+}: {
+    userAuthJson: { accessToken: string; refreshToken: string };
+    policyVersionId: string;
+    launchFn: any;
+    uploadedFiles: any;
+}) {
     const [error, setError] = useState<Error>(null);
     const [backtestId, setBacktestId] = useState<string | null>(null);
 
-    const user = useUser();
-    const authJson = await user.getAuthJson();
     const headers = {
-        "x-stack-access-token": authJson.accessToken,
-        "x-stack-refresh-token": authJson.refreshToken,
+        "x-stack-access-token": userAuthJson.accessToken,
+        "x-stack-refresh-token": userAuthJson.refreshToken,
     };
 
     return (
@@ -103,7 +110,7 @@ function BacktestLauncher({
         if (values.config_variables) {
             body.config_variables = JSON.parse(values.config_variables);
         }
-        
+
         if (values.target_column) {
             let metricsConfig = {
                 target_column: values.target_column,

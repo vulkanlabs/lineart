@@ -33,10 +33,12 @@ export function RouteLayout({ policy, policyVersion, children }) {
             path: `${baseUrl}/backtests`,
         },
     ];
+
     const innerNavbarSections: InnerNavbarSectionProps[] = [
         { key: "Policy:", value: policy.name },
         { key: "Version:", value: policyVersion.alias },
     ];
+    
     return (
         <div className="flex flex-col w-full h-full">
             <InnerNavbar

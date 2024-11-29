@@ -5,6 +5,7 @@ import { BacktestLauncherPage } from "./components";
 
 export default async function Page({ params }) {
     const user = await stackServerApp.getUser();
+    const userAuthJson = await user.getAuthJson();
     const uploadedFiles = await fetchBacktestFiles(user, params.policy_version_id).catch(
         (error) => {
             console.error(error);
@@ -13,6 +14,7 @@ export default async function Page({ params }) {
     );
     return (
         <BacktestLauncherPage
+            userAuthJson={userAuthJson}
             launchFn={launchBacktestFormAction}
             uploadedFiles={uploadedFiles}
             policyVersionId={params.policy_version_id}
@@ -20,7 +22,7 @@ export default async function Page({ params }) {
     );
 }
 
-export async function launchBacktestFormAction({
+async function launchBacktestFormAction({
     uploadUrl,
     body,
     headers,

@@ -7,6 +7,7 @@ import { postLaunchFormAction } from "./actions";
 
 export default async function Page({ params }) {
     const user = await stackServerApp.getUser();
+    const userAuthJson = await user.getAuthJson();
     const policyVersion = await fetchPolicyVersion(user, params.policy_version_id);
 
     const graphDefinition = await JSON.parse(policyVersion.graph_definition);
@@ -14,6 +15,7 @@ export default async function Page({ params }) {
 
     return (
         <LauncherPage
+            userAuthJson={userAuthJson}
             policyVersionId={params.policy_version_id}
             inputSchema={inputSchema}
             configVariables={policyVersion.config_variables}
