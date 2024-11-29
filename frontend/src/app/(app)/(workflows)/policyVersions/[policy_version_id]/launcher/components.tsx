@@ -17,15 +17,16 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { AuthHeaders } from "@/lib/auth";
 
 export function LauncherPage({
-    userAuthJson,
+    authHeaders,
     policyVersionId,
     inputSchema,
     configVariables,
     launchFn,
 }: {
-    userAuthJson: { accessToken: string; refreshToken: string };
+    authHeaders: AuthHeaders;
     policyVersionId: string;
     inputSchema: Map<string, string>;
     configVariables?: string[];
@@ -33,11 +34,6 @@ export function LauncherPage({
 }) {
     const [createdRun, setCreatedRun] = useState(null);
     const [error, setError] = useState<Error>(null);
-
-    const headers = {
-        "x-stack-access-token": userAuthJson.accessToken,
-        "x-stack-refresh-token": userAuthJson.refreshToken,
-    };
 
     return (
         <div className="flex flex-col p-8 gap-8">
@@ -50,7 +46,7 @@ export function LauncherPage({
                     defaultInputData={asInputData(inputSchema)}
                     defaultConfigVariables={asConfigMap(configVariables)}
                     launchFn={launchFn}
-                    headers={headers}
+                    headers={authHeaders}
                 />
             </div>
             {createdRun && <RunCreatedCard createdRun={createdRun} />}

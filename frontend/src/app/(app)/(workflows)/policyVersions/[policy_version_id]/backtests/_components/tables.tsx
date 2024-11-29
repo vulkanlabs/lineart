@@ -1,9 +1,8 @@
 "use client";
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
 
-import { RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     Table,
@@ -15,9 +14,9 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { ShortenedID } from "@/components/shortened-id";
+import { RefreshButton } from "@/components/refresh-button";
 
 export function BacktestsTableComponent({ policyVersionId, backtests }) {
-    const router = useRouter();
     const launcherRef = `/policyVersions/${policyVersionId}/backtests/backtestLauncher`;
 
     return (
@@ -28,10 +27,7 @@ export function BacktestsTableComponent({ policyVersionId, backtests }) {
                     <Link href={launcherRef}>
                         <Button className="bg-blue-600 hover:bg-blue-500">Create Backtest</Button>
                     </Link>
-                    <Button onClick={() => router.refresh()}>
-                        <RotateCw className="mr-2" />
-                        Refresh
-                    </Button>
+                    <RefreshButton />
                 </div>
             </div>
             <div className="max-h-[30vh] overflow-scroll">
@@ -87,7 +83,6 @@ function BacktestsTable({ backtests }) {
 }
 
 export function UploadedFilesTableComponent({ policyVersionId, uploadedFiles }) {
-    const router = useRouter();
     const uploaderRef = `/policyVersions/${policyVersionId}/backtests/fileUploader`;
 
     return (
@@ -98,10 +93,7 @@ export function UploadedFilesTableComponent({ policyVersionId, uploadedFiles }) 
                     <Link href={uploaderRef}>
                         <Button className="bg-blue-600 hover:bg-blue-500">Upload File</Button>
                     </Link>
-                    <Button onClick={() => router.refresh()}>
-                        <RotateCw className="mr-2" />
-                        Refresh
-                    </Button>
+                    <RefreshButton />
                 </div>
             </div>
             <div className="max-h-[30vh] overflow-scroll">

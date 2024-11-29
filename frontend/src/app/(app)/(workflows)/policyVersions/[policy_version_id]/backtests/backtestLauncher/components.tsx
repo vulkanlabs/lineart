@@ -27,25 +27,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { AuthHeaders } from "@/lib/auth";
 
 export function BacktestLauncherPage({
-    userAuthJson,
+    authHeaders,
     policyVersionId,
     launchFn,
     uploadedFiles,
 }: {
-    userAuthJson: { accessToken: string; refreshToken: string };
+    authHeaders: AuthHeaders;
     policyVersionId: string;
     launchFn: any;
     uploadedFiles: any;
 }) {
     const [error, setError] = useState<Error>(null);
     const [backtestId, setBacktestId] = useState<string | null>(null);
-
-    const headers = {
-        "x-stack-access-token": userAuthJson.accessToken,
-        "x-stack-refresh-token": userAuthJson.refreshToken,
-    };
 
     return (
         <div className="flex flex-col py-4 px-8 gap-8">
@@ -62,7 +58,7 @@ export function BacktestLauncherPage({
                     setBacktestId={setBacktestId}
                     setError={setError}
                     launchFn={launchFn}
-                    headers={headers}
+                    headers={authHeaders}
                 />
             </div>
             {backtestId && <LaunchCard backtestId={backtestId} policyVersionId={policyVersionId} />}

@@ -2,10 +2,11 @@ import { stackServerApp } from "@/stack";
 
 import { fetchBacktestFiles } from "@/lib/api";
 import { BacktestLauncherPage } from "./components";
+import { getAuthHeaders } from "@/lib/auth";
 
 export default async function Page({ params }) {
     const user = await stackServerApp.getUser();
-    const userAuthJson = await user.getAuthJson();
+    const authHeaders = await getAuthHeaders(user);
     const uploadedFiles = await fetchBacktestFiles(user, params.policy_version_id).catch(
         (error) => {
             console.error(error);
@@ -14,7 +15,7 @@ export default async function Page({ params }) {
     );
     return (
         <BacktestLauncherPage
-            userAuthJson={userAuthJson}
+            authHeaders={authHeaders}
             launchFn={launchBacktestFormAction}
             uploadedFiles={uploadedFiles}
             policyVersionId={params.policy_version_id}
