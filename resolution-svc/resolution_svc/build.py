@@ -59,10 +59,12 @@ class GCPBuildManager:
         gcp_project_id: str,
         gcp_region: str,
         gcp_repository_name: str,
+        base_image_name: str,
     ):
         self.gcp_project_id = gcp_project_id
         self.gcp_region = gcp_region
         self.gcp_repository_name = gcp_repository_name
+        self.base_image_name = base_image_name
         self._cloudbuild_client = cloudbuild.CloudBuildClient()
 
     def build_base_image(
@@ -107,7 +109,7 @@ class GCPBuildManager:
 
     @property
     def base_image(self) -> str:
-        return f"{self.gcp_region}-docker.pkg.dev/{self.gcp_project_id}/{self.gcp_repository_name}/vulkan-beam-base:latest"
+        return f"{self.gcp_region}-docker.pkg.dev/{self.gcp_project_id}/{self.gcp_repository_name}/{self.base_image_name}:latest"
 
     def build_beam_image(
         self,
@@ -225,14 +227,16 @@ def get_gcp_build_manager() -> GCPBuildManager:
     GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
     GCP_REGION = os.getenv("GCP_REGION")
     GCP_REPOSITORY_NAME = os.getenv("GCP_REPOSITORY_NAME")
+    BASE_IMAGE_NAME = os.getenv("BASE_IMAGE_NAME")
 
-    if not GCP_PROJECT_ID or not GCP_REGION or not GCP_REPOSITORY_NAME:
+    if not GCP_PROJECT_ID or not GCP_REGION or not GCP_REPOSITORY_NAME or not BASE_IMAGE_NAME:
         raise ValueError("GCP configuration missing")
 
     return GCPBuildManager(
         gcp_project_id=GCP_PROJECT_ID,
         gcp_region=GCP_REGION,
         gcp_repository_name=GCP_REPOSITORY_NAME,
+        base_image_name=BASE_IMAGE_NAME,
     )
 
 

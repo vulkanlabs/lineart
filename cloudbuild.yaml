@@ -28,7 +28,7 @@ steps:
     args: [
         'build',
         '-t',
-        '${_DOCKER_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY_NAME}/${_BEAM_BASE_IMAGE}:latest',
+        '${_DOCKER_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY_NAME}/${_BASE_IMAGE_NAME}:latest',
         '-f',
         '/workspace/images/beam/base.Dockerfile',
         '.'
@@ -43,7 +43,7 @@ steps:
         '-f',
         '/workspace/images/beam/metrics.Dockerfile',
         '--build-arg',
-        '_BEAM_BASE_IMAGE=${_DOCKER_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY_NAME}/${_BEAM_BASE_IMAGE}:latest',
+        '_BASE_IMAGE_NAME=${_DOCKER_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY_NAME}/${_BASE_IMAGE_NAME}:latest',
         '.'
     ]
     waitFor:
@@ -67,10 +67,10 @@ steps:
     waitFor: ["metrics-image"]
 
 substitutions:
-  _BEAM_BASE_IMAGE: 'vulkan-beam-base'
+  _BASE_IMAGE_NAME: 'vulkan-beam-base'
 
 images:
-  - '${_DOCKER_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY_NAME}/${_BEAM_BASE_IMAGE}:latest'
+  - '${_DOCKER_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY_NAME}/${_BASE_IMAGE_NAME}:latest'
   - '${_DOCKER_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY_NAME}/metrics-pipeline:latest'
 
 options:
