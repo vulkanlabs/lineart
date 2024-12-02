@@ -1,10 +1,9 @@
 "use client";
 import Link from "next/link";
-import React, { useState, useEffect, use } from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@stackframe/stack";
 import { RotateCw, ArrowLeft } from "lucide-react";
-import embed, { VisualizationSpec } from "vega-embed";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +18,9 @@ import {
 import { ShortenedID } from "@/components/shortened-id";
 import { fetchBacktestMetrics } from "@/lib/api";
 
-export function BacktestDetailsPage({ policyVersionId, backtest }) {
+import { plotStatusCount, plotStatusDistribution, plotEventRate } from "./plots";
+
+export function BacktestDetailsPage({ policyVersionId, backtest, backfills }) {
     return (
         <div className="flex flex-col py-4 px-8 gap-12">
             <div className="flex flex-col gap-8">
@@ -33,9 +34,11 @@ export function BacktestDetailsPage({ policyVersionId, backtest }) {
                     <div className="text-base font-semibold">Backtest ID:</div>{" "}
                     <p>{backtest.backtest_id}</p>
                 </div>
-                <BackfillsTableComponent backfills={backtest.backfills} />
+                <BackfillsTableComponent backfills={backfills} />
             </div>
-            <MetricsComponent backtestId={backtest.backtest_id} backfills={backtest.backfills} />
+            {backtest.calculate_metrics && (
+                <MetricsComponent backtest={backtest} backfills={backfills} />
+            )}
         </div>
     );
 }
@@ -87,215 +90,100 @@ function BackfillsTable({ backfills }) {
     );
 }
 
-async function MetricsComponent({ backtestId, backfills }) {
-    const [baseData, setBaseData] = useState([]);
-    const [timedData, setTimedData] = useState([]);
-    const user = useUser();
+function MetricsComponent({ backtest, backfills }) {
+    const backtestId = backtest.backtest_id;
 
-    function loadBaseData() {
-        fetchBacktestMetrics(user, backtestId, true)
-            .then((data) => {
-                setBaseData(data);
-            })
-            .catch((error) => {
-                console.error(error);
-            });
-    }
-
-    function loadTimedData() {
-        fetchBacktestMetrics(user, backtestId, true, true)
-            .then((data) => {
-                setTimedData(data);
-            })
-            .catch((error) => {
-                console.error(error);
-            });
-    }
-
-    useEffect(() => {
-        loadBaseData();
-        loadTimedData();
-    }, []);
-
-    async function plotStatusDistribution(data) {
-        const spec = makeStatusDistributionSpec(data);
-        embed("#status_distribution", spec, { actions: false });
-    }
-
-    async function plotStatusCount(data) {
-        const numStatuses = new Set(data.map((datum) => datum.status)).size;
-        const spec = makeStatusCountSpec(data, numStatuses);
-        embed("#status_count", spec, { actions: false });
-    }
-
-    async function plotEventRate(data) {
-        const shortBackfillIDs = backfills.map((backfill) => backfill.backfill_id.slice(0, 8));
-        const spec = makeEventRateSpec(data, shortBackfillIDs);
-        embed("#event_rate", spec, { actions: false });
-    }
-
-    useEffect(() => {
-        plotStatusDistribution(baseData);
-        plotStatusCount(baseData);
-    }, [baseData]);
-
-    useEffect(() => {
-        plotEventRate(timedData);
-    }, [timedData]);
+    const availability = BacktestMetricAvailability({ backtest });
 
     return (
         <div className="flex flex-col gap-8">
             <h1 className="text-lg font-semibold md:text-2xl">Metrics</h1>
-            <div className="grid grid-rows-2 gap-6">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-4">
-                        <div className="font-semibold">Status Distribution</div>
-                        <div id="status_distribution"></div>
-                    </div>
-                    <div className="flex flex-col gap-4">
-                        <div className="font-semibold">Event Rate</div>
-                        <div id="event_rate"></div>
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-4">
-                        <div className="font-semibold">Status Count</div>
-                        <div id="status_count"></div>
-                    </div>
-                    <div className="flex flex-col gap-4">
-                        <div className="font-semibold">TBD</div>
-                        <div id="tbd"></div>
-                    </div>
+            {availability.distributionPerOutcome && (
+                <OutcomeDistributionMetrics backtestId={backtestId} />
+            )}
+            <div className="grid grid-cols-2 gap-4">
+                {availability.eventRate && (
+                    <EventRateOverTime backtestId={backtestId} backfills={backfills} />
+                )}
+                <div className="flex flex-col gap-4">
+                    <div className="font-semibold">TBD</div>
+                    <div id="tbd"></div>
                 </div>
             </div>
         </div>
     );
 }
 
-function makeStatusDistributionSpec(data) {
-    const spec = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.20.1.json",
-        width: 400,
-        height: 200,
-        data: { values: data },
-        encoding: {
-            color: {
-                field: "status",
-                type: "nominal",
-            },
-            tooltip: [
-                {
-                    field: "backfill",
-                    type: "nominal",
-                },
-                {
-                    field: "status",
-                    type: "nominal",
-                },
-                {
-                    field: "count",
-                    type: "quantitative",
-                },
-            ],
-            x: {
-                field: "count",
-                stack: "normalize",
-                type: "quantitative",
-            },
-            y: {
-                field: "backfill",
-                type: "nominal",
-            },
-        },
-        mark: {
-            type: "bar",
-        },
-    } as VisualizationSpec;
-    return spec;
+type BacktestMetrics = {
+    distributionPerOutcome: boolean;
+    targetMetrics: boolean;
+    timeMetrics: boolean;
+    eventRate: boolean;
+};
+
+function BacktestMetricAvailability({ backtest }): BacktestMetrics {
+    if (!backtest.calculate_metrics) {
+        return {
+            distributionPerOutcome: false,
+            targetMetrics: false,
+            timeMetrics: false,
+            eventRate: false,
+        };
+    }
+
+    return {
+        distributionPerOutcome: true,
+        targetMetrics: backtest.target_column,
+        timeMetrics: backtest.time_column,
+        eventRate: backtest.time_column && backtest.target_column,
+    };
 }
 
-function makeEventRateSpec(data: any, backfillShortIDs: string[]) {
-    const spec = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.20.1.json",
-        width: 400,
-        height: 200,
-        data: { values: data },
-        encoding: {
-            color: {
-                field: "status",
-                type: "nominal",
-            },
-            x: {
-                field: "month",
-                timeUnit: "month",
-                type: "temporal",
-            },
-            y: {
-                field: "rate",
-                type: "quantitative",
-            },
-        },
-        mark: {
-            type: "line",
-        },
-        params: [
-            {
-                bind: {
-                    input: "select",
-                    name: "backfill",
-                    options: backfillShortIDs,
-                },
-                name: "param_2",
-                select: {
-                    fields: ["backfill"],
-                    type: "point",
-                },
-                value: backfillShortIDs[0],
-            },
-        ],
-        transform: [
-            {
-                filter: {
-                    param: "param_2",
-                },
-            },
-            {
-                as: "rate",
-                calculate: "datum.ones/(datum.ones + datum.zeros)",
-            },
-        ],
-    } as VisualizationSpec;
-    return spec;
+function OutcomeDistributionMetrics({ backtestId }) {
+    const user = useUser();
+
+    useEffect(() => {
+        fetchBacktestMetrics(user, backtestId, true)
+            .then((data) => {
+                plotStatusDistribution(data);
+                plotStatusCount(data);
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+    }, []);
+
+    return (
+        <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-4">
+                <div className="font-semibold">Status Distribution</div>
+                <div id="status_distribution"></div>
+            </div>
+            <div className="flex flex-col gap-4">
+                <div className="font-semibold">Status Count</div>
+                <div id="status_count"></div>
+            </div>
+        </div>
+    );
 }
 
-function makeStatusCountSpec(data: any, numStatuses: number) {
-    const spec = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.20.1.json",
-        width: Math.round(400 / numStatuses),
-        height: 200,
-        data: { values: data },
-        encoding: {
-            color: {
-                field: "backfill",
-                legend: null,
-                type: "nominal",
-            },
-            column: {
-                field: "status",
-                type: "nominal",
-            },
-            x: {
-                field: "backfill",
-                type: "nominal",
-            },
-            y: {
-                field: "count",
-                type: "quantitative",
-            },
-        },
-        mark: {
-            type: "bar",
-        },
-    } as VisualizationSpec;
-    return spec;
+function EventRateOverTime({ backtestId, backfills }) {
+    const user = useUser();
+
+    useEffect(() => {
+        fetchBacktestMetrics(user, backtestId, true, true)
+            .then((data) => {
+                plotEventRate(data, backfills);
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+    }, []);
+
+    return (
+        <div className="flex flex-col gap-4">
+            <div className="font-semibold">Event Rate over Time</div>
+            <div id="event_rate"></div>
+        </div>
+    );
 }

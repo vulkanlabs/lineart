@@ -151,6 +151,17 @@ function BacktestLauncher({
     );
 }
 
+function FileInfoRow({ uploaded_file_id, created_at }) {
+    return (
+        <div className="flex flex-row justify-between">
+            <div>
+                <div className="font-semibold">{uploaded_file_id}</div>
+                <div className="text-sm text-muted-foreground">{created_at}</div>
+            </div>
+        </div>
+    );
+}
+
 function LaunchFormCard({ uploadedFiles, form, onSubmit, submitting }) {
     const [enableMetrics, setEnableMetrics] = useState(false);
     const placeholderText = JSON.stringify([{ variable: "value" }], null, 2);
@@ -185,7 +196,7 @@ function LaunchFormCard({ uploadedFiles, form, onSubmit, submitting }) {
                                                     key={file.uploaded_file_id}
                                                     value={file.uploaded_file_id}
                                                 >
-                                                    {file.uploaded_file_id}
+                                                    <FileInfoRow {...file} />
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>

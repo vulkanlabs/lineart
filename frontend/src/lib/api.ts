@@ -249,6 +249,16 @@ export async function fetchBacktestFiles(user: StackUser, policyVersionId: strin
     });
 }
 
+
+export async function fetchBacktest(user: StackUser, backtestId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/backtests/${backtestId}/`,
+        label: `backtest ${backtestId}`,
+    });
+}
+
+
 export async function fetchBacktestStatus(user: StackUser, backtestId: string) {
     return fetchServerData({
         user: user,

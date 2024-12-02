@@ -58,7 +58,6 @@ def list_backtests(
     return backtests
 
 
-# TODO: Backtest Options (user defined, optional)
 @router.post("/", response_model=schemas.Backtest)
 def launch_backtest(
     policy_version_id: Annotated[str, Body()],
@@ -156,6 +155,26 @@ def launch_backtest(
     return backtest
 
 
+@router.get("/{backtest_id}/", response_model=schemas.Backtest)
+def get_backtest(
+    backtest_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+):
+    backtest = (
+        db.query(Backtest)
+        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .first()
+    )
+    if backtest is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"msg": f"Backtest {backtest_id} not found"},
+        )
+
+    return backtest
+
+
 @router.get("/{backtest_id}/status", response_model=schemas.BacktestStatus)
 def get_backtest_status(
     backtest_id: str,
@@ -201,8 +220,8 @@ def get_backtest_status(
 
 def launch_metrics_job(
     backtest_id: str,
-    db=Depends(get_db),
-    launcher=Depends(get_launcher),
+    db: Session,
+    launcher: BacktestLauncher,
 ):
     backtest = db.query(Backtest).filter_by(backtest_id=backtest_id).first()
     if backtest is None:
@@ -297,7 +316,11 @@ def get_backtest_results(
             status_code=404,
             detail={"msg": f"Backtest {backtest_id} not found"},
         )
-    # TODO: check job status
+    if backtest.status != JobStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail={"msg": "Backtest is not completed yet"},
+        )
 
     backfills = (
         db.query(Backfill)

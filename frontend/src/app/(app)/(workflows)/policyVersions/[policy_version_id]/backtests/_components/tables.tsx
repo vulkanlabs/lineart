@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import React from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,7 @@ export function BacktestsTableComponent({ policyVersionId, backtests }) {
 
 function BacktestsTable({ backtests }) {
     const router = useRouter();
+    const pathname = usePathname();
 
     function parseDate(date: string) {
         return new Date(date).toLocaleString();
@@ -62,9 +63,7 @@ function BacktestsTable({ backtests }) {
                     <TableRow
                         key={backtest.backtest_id}
                         className="cursor-pointer"
-                        onClick={() =>
-                            router.push(`${window.location.pathname}/${backtest.backtest_id}`)
-                        }
+                        onClick={() => router.push(`${pathname}/${backtest.backtest_id}`)}
                     >
                         <TableCell>
                             <ShortenedID id={backtest.backtest_id} />
