@@ -5,12 +5,6 @@ export function plotStatusDistribution(data) {
     embed("#status_distribution", spec, { actions: false });
 }
 
-export function plotStatusCount(data) {
-    const numStatuses = new Set(data.map((datum) => datum.status)).size;
-    const spec = makeStatusCountSpec(data, numStatuses);
-    embed("#status_count", spec, { actions: false });
-}
-
 function makeStatusDistributionSpec(data) {
     const spec = {
         $schema: "https://vega.github.io/schema/vega-lite/v5.20.1.json",
@@ -51,6 +45,12 @@ function makeStatusDistributionSpec(data) {
         },
     } as VisualizationSpec;
     return spec;
+}
+
+export function plotStatusCount(data) {
+    const numStatuses = new Set(data.map((datum) => datum.status)).size;
+    const spec = makeStatusCountSpec(data, numStatuses);
+    embed("#status_count", spec, { actions: false });
 }
 
 function makeStatusCountSpec(data: any, numStatuses: number) {
@@ -136,6 +136,70 @@ function makeEventRateSpec(data: any, backfillShortIDs: string[]) {
                     param: "param_2",
                 },
             },
+            {
+                as: "rate",
+                calculate: "datum.ones/(datum.count)",
+            },
+        ],
+    } as VisualizationSpec;
+    return spec;
+}
+
+export function plotTargetDistributionPerOutcome(data, outputElementId: string) {
+    const numStatuses = new Set(data.map((datum) => datum.status)).size;
+    const spec = makeTargetDistributionPerOutcomeSpec(data, numStatuses);
+    embed(`#${outputElementId}`, spec, { actions: false });
+}
+
+function makeTargetDistributionPerOutcomeSpec(data: any, numOutcomes: number) {
+    const spec = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.20.1.json",
+        width: Math.round(400 / numOutcomes),
+        height: 200,
+        data: { values: data },
+        encoding: {
+            color: {
+                field: "backfill",
+                legend: null,
+                type: "nominal",
+            },
+            column: {
+                field: "status",
+                type: "nominal",
+            },
+            x: {
+                field: "backfill",
+                type: "nominal",
+            },
+            y: {
+                field: "rate",
+                type: "quantitative",
+            },
+            tooltip: [
+                {
+                    field: "count",
+                    title: "Count",
+                    type: "quantitative",
+                },
+                {
+                    field: "rate",
+                    title: "% of Ones",
+                    type: "quantitative",
+                },
+                {
+                    field: "backfill",
+                    type: "nominal",
+                },
+                {
+                    field: "status",
+                    type: "nominal",
+                },
+            ],
+        },
+        mark: {
+            type: "bar",
+        },
+        transform: [
             {
                 as: "rate",
                 calculate: "datum.ones/(datum.count)",

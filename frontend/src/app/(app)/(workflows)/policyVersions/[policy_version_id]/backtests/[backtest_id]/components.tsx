@@ -18,7 +18,12 @@ import {
 import { ShortenedID } from "@/components/shortened-id";
 import { fetchBacktestMetrics } from "@/lib/api";
 
-import { plotStatusCount, plotStatusDistribution, plotEventRate } from "./plots";
+import {
+    plotStatusCount,
+    plotStatusDistribution,
+    plotEventRate,
+    plotTargetDistributionPerOutcome,
+} from "./plots";
 
 export function BacktestDetailsPage({ policyVersionId, backtest, backfills }) {
     return (
@@ -98,17 +103,15 @@ function MetricsComponent({ backtest, backfills }) {
     return (
         <div className="flex flex-col gap-8">
             <h1 className="text-lg font-semibold md:text-2xl">Metrics</h1>
-            {availability.distributionPerOutcome && (
-                <OutcomeDistributionMetrics backtestId={backtestId} />
-            )}
             <div className="grid grid-cols-2 gap-4">
+                {availability.distributionPerOutcome && (
+                    <OutcomeDistributionMetrics backtestId={backtestId} />
+                )}
+                {availability.targetMetrics && <TargetMetrics backtestId={backtestId} />}
+                {availability.timeMetrics && <></>}
                 {availability.eventRate && (
                     <EventRateOverTime backtestId={backtestId} backfills={backfills} />
                 )}
-                <div className="flex flex-col gap-4">
-                    <div className="font-semibold">TBD</div>
-                    <div id="tbd"></div>
-                </div>
             </div>
         </div>
     );
@@ -139,11 +142,33 @@ function BacktestMetricAvailability({ backtest }): BacktestMetrics {
     };
 }
 
+function TargetMetrics({ backtestId }) {
+    const user = useUser();
+    const elemId = "target_per_outcome";
+
+    useEffect(() => {
+        fetchBacktestMetrics(user, backtestId, true)
+            .then((data) => {
+                plotTargetDistributionPerOutcome(data, elemId);
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+    }, []);
+
+    return (
+        <div className="flex flex-col gap-4">
+            <div className="font-semibold">Target Ratio per Outcome</div>
+            <div id={elemId}></div>
+        </div>
+    );
+}
+
 function OutcomeDistributionMetrics({ backtestId }) {
     const user = useUser();
 
     useEffect(() => {
-        fetchBacktestMetrics(user, backtestId, true)
+        fetchBacktestMetrics(user, backtestId, false)
             .then((data) => {
                 plotStatusDistribution(data);
                 plotStatusCount(data);
@@ -154,16 +179,16 @@ function OutcomeDistributionMetrics({ backtestId }) {
     }, []);
 
     return (
-        <div className="grid grid-cols-2 gap-4">
+        <>
             <div className="flex flex-col gap-4">
                 <div className="font-semibold">Status Distribution</div>
                 <div id="status_distribution"></div>
             </div>
             <div className="flex flex-col gap-4">
-                <div className="font-semibold">Status Count</div>
+                <div className="font-semibold">Target % per Outcome</div>
                 <div id="status_count"></div>
             </div>
-        </div>
+        </>
     );
 }
 
