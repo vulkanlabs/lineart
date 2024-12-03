@@ -159,7 +159,7 @@ function TargetMetrics({ backtestId }) {
     return (
         <div className="flex flex-col gap-4">
             <div className="font-semibold">Target Ratio per Outcome</div>
-            <div id={elemId}></div>
+            <div id={elemId} className="flex flex-col items-center"></div>
         </div>
     );
 }
@@ -167,11 +167,14 @@ function TargetMetrics({ backtestId }) {
 function OutcomeDistributionMetrics({ backtestId }) {
     const user = useUser();
 
+    const distributionId = "status_distribution";
+    const countId = "status_count";
+
     useEffect(() => {
         fetchBacktestMetrics(user, backtestId, false)
             .then((data) => {
-                plotStatusDistribution(data);
-                plotStatusCount(data);
+                plotStatusCount(data, countId);
+                plotStatusDistribution(data, distributionId);
             })
             .catch((error) => {
                 console.error(error);
@@ -181,12 +184,12 @@ function OutcomeDistributionMetrics({ backtestId }) {
     return (
         <>
             <div className="flex flex-col gap-4">
-                <div className="font-semibold">Status Distribution</div>
-                <div id="status_distribution"></div>
+                <div className="font-semibold">Target Count per Outcome</div>
+                <div id={countId}></div>
             </div>
             <div className="flex flex-col gap-4">
-                <div className="font-semibold">Target % per Outcome</div>
-                <div id="status_count"></div>
+                <div className="font-semibold">Outcome Distribution</div>
+                <div id={distributionId}></div>
             </div>
         </>
     );

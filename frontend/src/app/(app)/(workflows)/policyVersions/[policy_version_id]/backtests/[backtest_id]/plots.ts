@@ -1,15 +1,25 @@
-import embed, { VisualizationSpec } from "vega-embed";
+import embed, { VisualizationSpec, Config } from "vega-embed";
 
-export function plotStatusDistribution(data) {
+const defaultHeight = 200;
+const defaultWidth = 400;
+const chartConfig = {
+    font: "Inter",
+    fontSize: {
+        text: 18,
+    },
+} as Config;
+
+export function plotStatusDistribution(data, embedId: string) {
     const spec = makeStatusDistributionSpec(data);
-    embed("#status_distribution", spec, { actions: false });
+    embed(`#${embedId}`, spec, { actions: false });
 }
 
 function makeStatusDistributionSpec(data) {
     const spec = {
         $schema: "https://vega.github.io/schema/vega-lite/v5.20.1.json",
-        width: 400,
-        height: 200,
+        config: chartConfig,
+        height: defaultHeight,
+        width: defaultWidth,
         data: { values: data },
         encoding: {
             color: {
@@ -31,13 +41,13 @@ function makeStatusDistributionSpec(data) {
                 },
             ],
             x: {
+                field: "backfill",
+                type: "nominal",
+            },
+            y: {
                 field: "count",
                 stack: "normalize",
                 type: "quantitative",
-            },
-            y: {
-                field: "backfill",
-                type: "nominal",
             },
         },
         mark: {
@@ -47,36 +57,51 @@ function makeStatusDistributionSpec(data) {
     return spec;
 }
 
-export function plotStatusCount(data) {
+export function plotStatusCount(data, embedId: string) {
     const numStatuses = new Set(data.map((datum) => datum.status)).size;
     const spec = makeStatusCountSpec(data, numStatuses);
-    embed("#status_count", spec, { actions: false });
+    embed(`#${embedId}`, spec, { actions: false });
 }
 
 function makeStatusCountSpec(data: any, numStatuses: number) {
     const spec = {
         $schema: "https://vega.github.io/schema/vega-lite/v5.20.1.json",
-        width: Math.round(400 / numStatuses),
-        height: 200,
+        config: chartConfig,
+        height: defaultHeight,
+        width: Math.round(defaultWidth / numStatuses),
         data: { values: data },
         encoding: {
             color: {
-                field: "backfill",
+                field: "status",
                 legend: null,
                 type: "nominal",
             },
             column: {
-                field: "status",
+                field: "backfill",
                 type: "nominal",
             },
             x: {
-                field: "backfill",
+                field: "status",
                 type: "nominal",
             },
             y: {
                 field: "count",
                 type: "quantitative",
             },
+            tooltip: [
+                {
+                    field: "backfill",
+                    type: "nominal",
+                },
+                {
+                    field: "status",
+                    type: "nominal",
+                },
+                {
+                    field: "count",
+                    type: "quantitative",
+                },
+            ],
         },
         mark: {
             type: "bar",
@@ -94,40 +119,94 @@ export async function plotEventRate(data, backfills) {
 function makeEventRateSpec(data: any, backfillShortIDs: string[]) {
     const spec = {
         $schema: "https://vega.github.io/schema/vega-lite/v5.20.1.json",
-        width: 400,
-        height: 200,
+        config: chartConfig,
+        height: defaultHeight,
+        width: defaultWidth,
         data: { values: data },
         encoding: {
-            color: {
-                field: "status",
-                type: "nominal",
-            },
             x: {
                 field: "month",
                 timeUnit: "month",
                 type: "temporal",
             },
-            y: {
-                field: "rate",
-                type: "quantitative",
-            },
         },
-        mark: {
-            type: "line",
-        },
-        params: [
+        layer: [
             {
-                bind: {
-                    input: "select",
-                    name: "backfill",
-                    options: backfillShortIDs,
+                mark: "rule",
+                encoding: {
+                    color: {
+                        value: "gray",
+                    },
+                    opacity: {
+                        condition: { value: 0.4, param: "hover", empty: false },
+                        value: 0,
+                    },
+                    tooltip: [
+                        {
+                            field: "count",
+                            title: "Count",
+                            type: "quantitative",
+                        },
+                        {
+                            field: "rate",
+                            title: "% of Ones",
+                            type: "quantitative",
+                            format: ".2%",
+                        },
+                        {
+                            field: "backfill",
+                            title: "Backfill",
+                            type: "nominal",
+                        },
+                        {
+                            field: "status",
+                            title: "Outcome",
+                            type: "nominal",
+                        },
+                    ],
                 },
-                name: "param_2",
-                select: {
-                    fields: ["backfill"],
-                    type: "point",
+                params: [
+                    {
+                        name: "hover",
+                        select: {
+                            type: "point",
+                            fields: ["month"],
+                            nearest: true,
+                            on: "pointerover",
+                            clear: "pointerout",
+                        },
+                    },
+                ],
+            },
+            {
+                encoding: {
+                    y: {
+                        field: "rate",
+                        type: "quantitative",
+                    },
+                    color: {
+                        field: "status",
+                        type: "nominal",
+                    },
                 },
-                value: backfillShortIDs[0],
+                mark: {
+                    type: "line",
+                },
+                params: [
+                    {
+                        bind: {
+                            input: "select",
+                            name: "backfill",
+                            options: backfillShortIDs,
+                        },
+                        name: "param_2",
+                        select: {
+                            fields: ["backfill"],
+                            type: "point",
+                        },
+                        value: backfillShortIDs[0],
+                    },
+                ],
             },
         ],
         transform: [
@@ -154,21 +233,22 @@ export function plotTargetDistributionPerOutcome(data, outputElementId: string) 
 function makeTargetDistributionPerOutcomeSpec(data: any, numOutcomes: number) {
     const spec = {
         $schema: "https://vega.github.io/schema/vega-lite/v5.20.1.json",
-        width: Math.round(400 / numOutcomes),
-        height: 200,
+        config: chartConfig,
+        width: Math.round(defaultWidth / numOutcomes),
+        height: defaultHeight,
         data: { values: data },
         encoding: {
             color: {
-                field: "backfill",
+                field: "status",
                 legend: null,
                 type: "nominal",
             },
             column: {
-                field: "status",
+                field: "backfill",
                 type: "nominal",
             },
             x: {
-                field: "backfill",
+                field: "status",
                 type: "nominal",
             },
             y: {
