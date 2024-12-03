@@ -166,22 +166,3 @@ def create_policy_version(
         f"Created workspace {version_name} with policy version {policy_version_id}"
     )
     return policy_version_id
-
-
-def delete_policy_version(
-    ctx: Context,
-    policy_version_id: str,
-):
-    response = ctx.session.delete(
-        f"{ctx.server_url}/policy-versions/{policy_version_id}"
-    )
-    if response.status_code != 200:
-        raise ValueError(f"Failed to delete policy version: {response.content}")
-    ctx.logger.info(f"Deleted policy version {policy_version_id}")
-
-
-def get_policy_version_graph(ctx: Context, policy_version_id: str):
-    response = ctx.session.get(f"{ctx.server_url}/policy-versions/{policy_version_id}")
-    if response.status_code != 200:
-        raise ValueError(f"Failed to get policy version graph: {response.content}")
-    return response.json()["graph_definition"]

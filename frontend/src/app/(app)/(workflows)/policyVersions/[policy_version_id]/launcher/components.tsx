@@ -16,15 +16,17 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useUser } from "@stackframe/stack";
 import { Textarea } from "@/components/ui/textarea";
+import { AuthHeaders } from "@/lib/auth";
 
-export async function LauncherPage({
+export function LauncherPage({
+    authHeaders,
     policyVersionId,
     inputSchema,
     configVariables,
     launchFn,
 }: {
+    authHeaders: AuthHeaders;
     policyVersionId: string;
     inputSchema: Map<string, string>;
     configVariables?: string[];
@@ -32,13 +34,6 @@ export async function LauncherPage({
 }) {
     const [createdRun, setCreatedRun] = useState(null);
     const [error, setError] = useState<Error>(null);
-
-    const user = useUser();
-    const authJson = await user.getAuthJson();
-    const headers = {
-        "x-stack-access-token": authJson.accessToken,
-        "x-stack-refresh-token": authJson.refreshToken,
-    };
 
     return (
         <div className="flex flex-col p-8 gap-8">
@@ -51,7 +46,7 @@ export async function LauncherPage({
                     defaultInputData={asInputData(inputSchema)}
                     defaultConfigVariables={asConfigMap(configVariables)}
                     launchFn={launchFn}
-                    headers={headers}
+                    headers={authHeaders}
                 />
             </div>
             {createdRun && <RunCreatedCard createdRun={createdRun} />}

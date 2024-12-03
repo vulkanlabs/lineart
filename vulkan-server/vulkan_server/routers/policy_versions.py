@@ -12,6 +12,7 @@ from vulkan_server.dagster.service_client import (
     get_dagster_service_client,
 )
 from vulkan_server.db import (
+    BeamWorkspace,
     Component,
     ComponentVersion,
     ComponentVersionDependency,
@@ -22,6 +23,7 @@ from vulkan_server.db import (
     PolicyDataDependency,
     PolicyVersion,
     Run,
+    WorkspaceStatus,
     get_db,
 )
 from vulkan_server.exceptions import VulkanServerException
@@ -235,6 +237,7 @@ def list_runs_by_policy_version(policy_version_id: str, db: Session = Depends(ge
         return Response(status_code=204)
     return runs
 
+
 @router.get(
     "/{policy_version_id}/components",
     response_model=list[schemas.ComponentVersionDependencyExpanded],
@@ -339,3 +342,82 @@ def list_data_sources_by_policy_version(
         )
 
     return data_sources
+
+
+@router.get(
+    "/{policy_version_id}/backtest-workspace", response_model=schemas.BeamWorkspace
+)
+def get_beam_workspace(
+    policy_version_id: str,
+    project_id: str = Depends(get_project_id),
+    db=Depends(get_db),
+):
+    policy_version = (
+        db.query(PolicyVersion)
+        .filter_by(project_id=project_id, policy_version_id=policy_version_id)
+        .first()
+    )
+    if policy_version is None:
+        return Response(status_code=204)
+
+    workspace = (
+        db.query(BeamWorkspace).filter_by(policy_version_id=policy_version_id).first()
+    )
+    if workspace is None:
+        return Response(status_code=204)
+
+    return workspace
+
+
+@router.post(
+    "/{policy_version_id}/backtest-workspace", response_model=schemas.BeamWorkspace
+)
+def create_beam_workspace(
+    policy_version_id: str,
+    project_id: str = Depends(get_project_id),
+    db: Session = Depends(get_db),
+    resolution_service: ResolutionServiceClient = Depends(
+        get_resolution_service_client
+    ),
+):
+    # If a workspace exists, this is a no-op.
+    current_workspace = (
+        db.query(BeamWorkspace).filter_by(policy_version_id=policy_version_id).first()
+    )
+    if current_workspace is not None:
+        return current_workspace
+
+    policy_version: PolicyVersion = (
+        db.query(PolicyVersion)
+        .filter_by(project_id=project_id, policy_version_id=policy_version_id)
+        .first()
+    )
+
+    beam_workspace = BeamWorkspace(
+        policy_version_id=policy_version.policy_version_id,
+        status=WorkspaceStatus.CREATION_PENDING,
+    )
+    db.add(beam_workspace)
+    db.commit()
+
+    try:
+        response = resolution_service.create_beam_workspace(
+            policy_version_id=str(policy_version_id),
+            base_image=policy_version.base_worker_image,
+        )
+
+        beam_workspace.image = response.json()["image_path"]
+        beam_workspace.status = WorkspaceStatus.OK
+    except Exception as e:
+        beam_workspace.status = WorkspaceStatus.CREATION_FAILED
+        logger.error(f"Failed to create workspace ({policy_version_id}): {e}")
+        msg = (
+            "This is usually an issue with Vulkan's internal services. "
+            "Contact support for assistance. "
+            f"Workspace ID: {policy_version_id}"
+        )
+        raise HTTPException(status_code=500, detail={"msg": msg})
+    finally:
+        db.commit()
+
+    return beam_workspace

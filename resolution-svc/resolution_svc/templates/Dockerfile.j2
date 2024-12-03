@@ -1,10 +1,4 @@
-FROM python:{{ python_version }}-slim
-
-RUN pip install uv --no-cache-dir
-
-RUN mkdir /opt/dependencies
-COPY vulkan /opt/dependencies/vulkan
-COPY vulkan-public /opt/dependencies/vulkan-public
+FROM {{ base_image }}
 
 {% for dependency in dependencies %}
 COPY {{ dependency.name }} /opt/dependencies/{{ dependency.name }}
@@ -12,8 +6,6 @@ COPY {{ dependency.name }} /opt/dependencies/{{ dependency.name }}
 
 COPY {{ policy.name }} /opt/policy/
 RUN uv pip install --system --no-cache \    
-    /opt/dependencies/vulkan-public \
-    /opt/dependencies/vulkan \ 
     /opt/policy {% if dependencies|length > 0 %} \ {% endif %}
 {%- for dependency in dependencies -%}
 /opt/dependencies/{{ dependency.name }} {% if not loop.last %} {% endif %}

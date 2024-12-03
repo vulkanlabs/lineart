@@ -3,6 +3,7 @@ import { formatDistanceStrict } from "date-fns";
 import { usePathname, useRouter } from "next/navigation";
 
 import { ShortenedID } from "@/components/shortened-id";
+import { RefreshButton } from "../refresh-button";
 
 import {
     Table,
@@ -14,7 +15,35 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
-export function RunsTable({ runs }) {
+type RunData = {
+    run_id: string;
+    policy_version_id: string;
+    status: string;
+    result: string;
+    created_at: string;
+    last_updated_at: string;
+};
+
+type RunsTableProps = {
+    runs: RunData[];
+    policyVersionId?: string;
+};
+
+export function RunsTableComponent({ runs }: RunsTableProps) {
+    return (
+        <div className="flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-lg font-semibold md:text-2xl">Runs</h1>
+                <RefreshButton />
+            </div>
+            <div className="mt-4 max-h-[75vh] overflow-scroll">
+                <RunsTable runs={runs} />
+            </div>
+        </div>
+    );
+}
+
+function RunsTable({ runs }: { runs: RunData[] }) {
     const router = useRouter();
     const pathname = usePathname();
 

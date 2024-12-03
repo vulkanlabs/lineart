@@ -17,15 +17,15 @@ export function RouteLayout({ policy, children }) {
             path: `/policies/${policy.policy_id}/runs`,
         },
         {
-            name: "Experiments",
-            icon: FlaskConical,
-            path: `/policies/${policy.policy_id}/experiments`,
-            disabled: true,
-        },
-        {
             name: "Backtests",
             icon: GitCompare,
             path: `/policies/${policy.policy_id}/backtests`,
+            disabled: true,
+        },
+        {
+            name: "Experiments",
+            icon: FlaskConical,
+            path: `/policies/${policy.policy_id}/experiments`,
             disabled: true,
         },
         {

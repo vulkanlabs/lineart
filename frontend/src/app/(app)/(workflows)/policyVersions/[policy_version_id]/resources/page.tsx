@@ -94,6 +94,8 @@ async function DataSourcesSection({
     return dataSources?.length > 0 ? (
         <DataSourcesTable sources={dataSources} />
     ) : (
-        <EmptyVariablesTable />
+        <div className="flex justify-center items-center h-32 text-gray-500">
+            This policy version has no data sources.
+        </div>
     );
 }

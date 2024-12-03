@@ -1,7 +1,7 @@
-from typing import Any
 import json
 import logging
 from argparse import ArgumentParser
+from typing import Any
 
 from apache_beam.options.pipeline_options import PipelineOptions
 from vulkan.beam.pipeline import BeamPipelineBuilder, DataEntryConfig
@@ -11,7 +11,7 @@ logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
 def launch_pipeline(
-    image: str,
+    backfill_id: str,
     data_sources: dict[str, Any],
     module_name: str,
     components_path: str,
@@ -27,13 +27,13 @@ def launch_pipeline(
 
     pipeline_args = [
         "--save_main_session",
-        "--sdk_container_image", image,
         "--sdk_location", "container",
     ] + other_args
 
     pipeline_options = PipelineOptions(pipeline_args)
     pipeline = BeamPipelineBuilder(
         policy=policy,
+        backfill_id=backfill_id,
         output_path=output_path,
         data_sources=data_sources_map,
         config_variables=config_variables,
@@ -45,8 +45,8 @@ def launch_pipeline(
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--image", type=str)
-    # Backtest config args
+    # Run config args
+    parser.add_argument("--backfill_id", type=str)
     parser.add_argument("--output_path", type=str)
     parser.add_argument("--data_sources", type=str)
     parser.add_argument("--config_variables", type=str)
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         config_variables = None
 
     launch_pipeline(
-        image = args.image,
+        backfill_id=args.backfill_id,
         data_sources=data_sources,
         module_name=args.module_name,
         components_path=args.components_path,

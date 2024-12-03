@@ -1,4 +1,6 @@
+import asyncio
 import os
+from contextlib import asynccontextmanager
 
 import requests
 from fastapi import FastAPI, Request
@@ -6,9 +8,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from vulkan_server import routers
+from vulkan_server.backtest.daemon import BacktestDaemon
 from vulkan_server.logger import init_logger
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        backtest_daemon = BacktestDaemon.from_env()
+        asyncio.create_task(backtest_daemon.run_main())
+        yield
+    finally:
+        tasks = asyncio.all_tasks()
+        for task in tasks:
+            task.cancel()
+
+app = FastAPI(lifespan=lifespan)
 
 origins = [
     "http://127.0.0.1",
@@ -26,6 +41,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(routers.backfills.router)
 app.include_router(routers.backtests.router)
 app.include_router(routers.components.router)
 app.include_router(routers.component_versions.router)

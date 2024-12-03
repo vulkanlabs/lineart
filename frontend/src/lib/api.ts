@@ -25,11 +25,16 @@ export async function fetchServerData({
     const headers = await getAuthHeaders(user);
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     return fetch(new URL(endpoint, serverUrl), { headers })
-        .then((response) =>
-            response.json().catch((error) => {
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`Failed to fetch data: ${response.statusText}`, {
+                    cause: response,
+                });
+            }
+            return response.json().catch((error) => {
                 throw new Error("Error parsing response", { cause: error });
-            }),
-        )
+            });
+        })
         .catch((error) => {
             const baseMsg = "Error fetching data";
             const errorMsg = label ? `${baseMsg}: ${label}` : baseMsg;
@@ -217,6 +222,62 @@ export async function fetchDataSource(user: StackUser, dataSourceId: string) {
         user: user,
         endpoint: `/data-sources/${dataSourceId}`,
         label: `data source ${dataSourceId}`,
+    });
+}
+
+export async function fetchBacktestWorkspace(user: StackUser, policyVersionId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/policy-versions/${policyVersionId}/backtest-workspace`,
+        label: `policy version ${policyVersionId} backtest workspace`,
+    });
+}
+
+export async function fetchPolicyVersionBacktests(user: StackUser, policyVersionId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/backtests?policy_version_id=${policyVersionId}`,
+        label: `backtests for policy version ${policyVersionId}`,
+    });
+}
+
+export async function fetchBacktestFiles(user: StackUser, policyVersionId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/backtests/files?policy_version_id=${policyVersionId}`,
+        label: `backtests files for policy version ${policyVersionId}`,
+    });
+}
+
+
+export async function fetchBacktest(user: StackUser, backtestId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/backtests/${backtestId}/`,
+        label: `backtest ${backtestId}`,
+    });
+}
+
+
+export async function fetchBacktestStatus(user: StackUser, backtestId: string) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/backtests/${backtestId}/status`,
+        label: `status for backtest ${backtestId}`,
+    });
+}
+
+export async function fetchBacktestMetrics(
+    user: StackUser,
+    backtestId: string,
+    target: boolean = false,
+    time: boolean = false,
+    column: string | null = null,
+) {
+    return fetchServerData({
+        user: user,
+        endpoint: `/backtests/${backtestId}/metrics/data?target=${target}&time=${time}${column ? `&column=${column}` : ""}`,
+        label: `example metric for backtest ${backtestId}`,
     });
 }
 

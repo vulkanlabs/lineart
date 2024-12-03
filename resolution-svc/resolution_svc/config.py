@@ -32,28 +32,3 @@ def get_artifact_manager():
         bucket_name=os.getenv("GCP_BUCKET_NAME"),
         token=os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
     )
-
-
-@dataclass
-class ImageBuildConfig:
-    python_version: str
-    beam_sdk_version: str
-    flex_template_base_image: str
-
-
-def get_image_build_config() -> ImageBuildConfig:
-    python_version = os.getenv("VULKAN_PYTHON_VERSION")
-    beam_sdk_version = os.getenv("VULKAN_BEAM_SDK_VERSION")
-    flex_template_base_image = os.getenv("VULKAN_FLEX_TEMPLATE_BASE_IMAGE")
-
-    if not python_version or not beam_sdk_version or not flex_template_base_image:
-        raise ValueError(
-            "Image build configuration missing: "
-            "VULKAN_PYTHON_VERSION, VULKAN_BEAM_SDK_VERSION, VULKAN_FLEX_TEMPLATE_BASE_IMAGE"
-        )
-
-    return ImageBuildConfig(
-        python_version=python_version,
-        beam_sdk_version=beam_sdk_version,
-        flex_template_base_image=flex_template_base_image,
-    )

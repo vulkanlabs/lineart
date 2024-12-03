@@ -45,3 +45,11 @@ class DataSourceCreate(BaseModel):
     retry: RetryPolicy | None = None
     description: str | None = None
     metadata: dict | None = None
+
+
+class BacktestOptions(BaseModel):
+    target_column: str
+    target_type: str
+    environments: list[dict]
+    categorical_columns: list[str] | None = None
+    datetime_column: str | None = None

@@ -20,9 +20,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
-
-from vulkan.backtest.definitions import BacktestStatus
-from vulkan.core.run import RunStatus
+from vulkan.core.run import JobStatus, RunStatus
 
 Base = declarative_base()
 
@@ -356,20 +354,71 @@ class RunDataCache(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class UploadedFile(AuthorizationMixin, Base):
+    __tablename__ = "uploaded_file"
+
+    uploaded_file_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    policy_version_id = Column(
+        Uuid, ForeignKey("policy_version.policy_version_id"), nullable=False
+    )
+    file_path = Column(String, nullable=False)
+    file_schema = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Backfill(AuthorizationMixin, TimedUpdateMixin, Base):
+    __tablename__ = "backfill"
+
+    backfill_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    backtest_id = Column(Uuid, ForeignKey("backtest.backtest_id"))
+    input_data_path = Column(String)
+    status = Column(Enum(RunStatus))
+    config_variables = Column(JSON, nullable=True)
+
+    # Known after launch
+    output_path = Column(String, nullable=True)
+    gcp_project_id = Column(String, nullable=True)
+    gcp_job_id = Column(String, nullable=True)
+
+
 class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
     __tablename__ = "backtest"
 
     backtest_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
-    input_data_path = Column(String)
-    output_path = Column(String, nullable=True)
-    status = Column(Enum(BacktestStatus))
-    name = Column(String, nullable=True)
-    config_variables = Column(JSON, nullable=True)
+    policy_version_id = Column(
+        Uuid, ForeignKey("policy_version.policy_version_id"), nullable=False
+    )
+    input_file_id = Column(
+        Uuid, ForeignKey("uploaded_file.uploaded_file_id"), nullable=False
+    )
+    environments = Column(JSON, nullable=True)
+    status = Column(Enum(JobStatus), nullable=False)
 
-    # Run-Specific info
+    # Optional, metrics-related fields
+    calculate_metrics = Column(Boolean, nullable=False, default=False)
+    target_column = Column(String, nullable=True)
+    time_column = Column(String, nullable=True)
+    group_by_columns = Column(ARRAY(String), nullable=True)
+
+
+class BacktestMetrics(AuthorizationMixin, TimedUpdateMixin, Base):
+    __tablename__ = "backtest_metrics"
+
+    backtest_metrics_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    backtest_id = Column(Uuid, ForeignKey("backtest.backtest_id"), nullable=False)
+    status = Column(Enum(RunStatus), nullable=False)
+
+    # Known after launch
+    output_path = Column(String, nullable=True)
     gcp_project_id = Column(String, nullable=True)
     gcp_job_id = Column(String, nullable=True)
+
+    # Known after execution
+    metrics = Column(JSON, nullable=True)
 
 
 if __name__ == "__main__":

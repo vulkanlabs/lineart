@@ -59,10 +59,12 @@ class GCPBuildManager:
         gcp_project_id: str,
         gcp_region: str,
         gcp_repository_name: str,
+        base_image_name: str,
     ):
         self.gcp_project_id = gcp_project_id
         self.gcp_region = gcp_region
         self.gcp_repository_name = gcp_repository_name
+        self.base_image_name = base_image_name
         self._cloudbuild_client = cloudbuild.CloudBuildClient()
 
     def build_base_image(
@@ -104,6 +106,10 @@ class GCPBuildManager:
         logger.info(f"Finished build ({build.id}) for image {image_path}")
 
         return image_path
+
+    @property
+    def base_image(self) -> str:
+        return f"{self.gcp_region}-docker.pkg.dev/{self.gcp_project_id}/{self.gcp_repository_name}/{self.base_image_name}:latest"
 
     def build_beam_image(
         self,
@@ -221,14 +227,16 @@ def get_gcp_build_manager() -> GCPBuildManager:
     GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
     GCP_REGION = os.getenv("GCP_REGION")
     GCP_REPOSITORY_NAME = os.getenv("GCP_REPOSITORY_NAME")
+    BASE_IMAGE_NAME = os.getenv("BASE_IMAGE_NAME")
 
-    if not GCP_PROJECT_ID or not GCP_REGION or not GCP_REPOSITORY_NAME:
+    if not GCP_PROJECT_ID or not GCP_REGION or not GCP_REPOSITORY_NAME or not BASE_IMAGE_NAME:
         raise ValueError("GCP configuration missing")
 
     return GCPBuildManager(
         gcp_project_id=GCP_PROJECT_ID,
         gcp_region=GCP_REGION,
         gcp_repository_name=GCP_REPOSITORY_NAME,
+        base_image_name=BASE_IMAGE_NAME,
     )
 
 
@@ -238,7 +246,7 @@ def prepare_base_image_context(
     workspace_path: str,
     components_path: str,
     dependencies: list[str],
-    python_version: str,
+    base_image: str,
 ):
     policy_spec = PackageSpec(name=workspace_name, path=workspace_path)
     dependency_specs = [
@@ -249,7 +257,7 @@ def prepare_base_image_context(
     dockerfile = _render_dockerfile(
         server_path,
         template="Dockerfile.j2",
-        python_version=python_version,
+        base_image=base_image,
         policy=policy_spec,
         dependencies=dependency_specs,
     )
@@ -268,18 +276,12 @@ def prepare_beam_image_context(
     name: str,
     base_image: str,
     server_path: str,
-    python_version: str,
-    beam_sdk_version: str,
-    flex_template_base_image: str,
 ) -> str:
     dockerfile_path = "/tmp/Dockerfile"
     dockerfile = _render_dockerfile(
         server_path,
         template="Beam-Dockerfile.j2",
         base_image=base_image,
-        python_version=python_version,
-        beam_sdk_version=beam_sdk_version,
-        flex_template_base_image=flex_template_base_image,
     )
     with open(dockerfile_path, "w") as fp:
         fp.write(dockerfile)

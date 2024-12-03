@@ -4,7 +4,7 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
-from vulkan.backtest.definitions import BacktestStatus
+from vulkan.core.run import JobStatus, RunStatus
 from vulkan_public.schemas import DataSourceCreate
 
 
@@ -272,12 +272,70 @@ class DataBrokerResponse(BaseModel):
     value: Any
 
 
-class Backtest(BaseModel):
+class Backfill(BaseModel):
+    backfill_id: UUID
     backtest_id: UUID
-    policy_version_id: UUID
-    input_data_path: str
-    name: str | None = None
-    status: BacktestStatus
+    status: RunStatus
+    config_variables: dict | None
 
     created_at: datetime
     last_updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BackfillStatus(BaseModel):
+    backfill_id: UUID
+    status: RunStatus
+    config_variables: dict | None
+
+
+class Backtest(BaseModel):
+    backtest_id: UUID
+    policy_version_id: UUID
+    input_file_id: UUID
+    environments: list[dict]
+    status: JobStatus
+    calculate_metrics: bool
+    target_column: str | None
+    time_column: str | None
+    group_by_columns: list[str] | None
+
+    created_at: datetime
+    last_updated_at: datetime
+
+
+class BacktestStatus(BaseModel):
+    backtest_id: UUID
+    status: JobStatus
+    backfills: list[BackfillStatus]
+
+
+class UploadedFile(BaseModel):
+    uploaded_file_id: UUID
+    file_schema: dict[str, str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BeamWorkspace(BaseModel):
+    policy_version_id: UUID
+    status: str
+
+    class Config:
+        from_attributes = True
+
+
+class BacktestMetrics(BaseModel):
+    backtest_id: UUID
+    status: RunStatus
+    metrics: list[dict] | None = None
+
+
+class BacktestMetricsConfig(BaseModel):
+    target_column: str
+    time_column: str | None = None
+    group_by_columns: list[str] | None = None
