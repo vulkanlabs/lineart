@@ -43,7 +43,7 @@ steps:
         '-f',
         '/workspace/images/beam/metrics.Dockerfile',
         '--build-arg',
-        '_BASE_IMAGE_NAME=${_DOCKER_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY_NAME}/${_BASE_IMAGE_NAME}:latest',
+        'BASE_IMAGE_NAME=${_DOCKER_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY_NAME}/${_BASE_IMAGE_NAME}:latest',
         '.'
     ]
     waitFor:
