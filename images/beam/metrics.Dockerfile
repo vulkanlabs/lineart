@@ -1,5 +1,5 @@
-ARG _BEAM_BASE_IMAGE
-FROM ${_BEAM_BASE_IMAGE}
+ARG BASE_IMAGE_NAME
+FROM ${BASE_IMAGE_NAME}
 
 ENV FLEX_TEMPLATE_PYTHON_PY_FILE="/opt/dependencies/vulkan/vulkan/beam/metrics/pipeline.py"
 
