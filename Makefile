@@ -15,3 +15,11 @@ build:
 .PHONY: up
 up:
 	docker-compose up
+
+.PHONY: config
+config:
+	uv run python scripts/config-manager.py
+
+.PHONY: pull-config
+pull-config:
+	gcloud storage cp -r gs://vulkan-bootstrap-env-config/config . 
