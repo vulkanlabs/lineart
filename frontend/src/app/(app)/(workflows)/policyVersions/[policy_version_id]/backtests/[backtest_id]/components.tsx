@@ -24,6 +24,8 @@ import {
     plotEventRate,
     plotTargetDistributionPerOutcome,
 } from "./plots";
+import { ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "@/components/data-table";
 
 export function BacktestDetailsPage({ policyVersionId, backtest, backfills }) {
     return (
@@ -62,38 +64,39 @@ function BackfillsTableComponent({ backfills }) {
                     </Button>
                 </div>
             </div>
-            <div className="max-h-[30vh] overflow-scroll">
-                <BackfillsTable backfills={backfills} />
+            <div className="max-h-[30vh] overflow-scroll mt-4">
+                <DataTable columns={BackfillColumns} data={backfills} />
             </div>
         </div>
     );
 }
 
-function BackfillsTable({ backfills }) {
-    return (
-        <Table>
-            <TableCaption>Backfill jobs.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Config Variables</TableHead>
-                    <TableHead>Status</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {backfills.map((backfill) => (
-                    <TableRow key={backfill.backfill_id}>
-                        <TableCell>
-                            <ShortenedID id={backfill.backfill_id} />
-                        </TableCell>
-                        <TableCell>{JSON.stringify(backfill.config_variables)}</TableCell>
-                        <TableCell>{backfill.status}</TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
-}
+type BackfillStatus = {
+    backfill_id: string;
+    config_variables: Record<string, any>;
+    status: string;
+};
+
+const BackfillColumns: ColumnDef<BackfillStatus>[] = [
+    {
+        accessorKey: "backfill_id",
+        header: "ID",
+        cell: ({ row }) => <ShortenedID id={row.getValue("backfill_id")} />,
+    },
+    {
+        accessorKey: "config_variables",
+        header: "Config Variables",
+        cell: ({ row }) => {
+            const content = row.getValue("config_variables");
+            const pretty = JSON.stringify(content, null, 2);
+            return <div>{pretty}</div>;
+        },
+    },
+    {
+        accessorKey: "status",
+        header: "Status",
+    },
+];
 
 function MetricsComponent({ backtest, backfills }) {
     const backtestId = backtest.backtest_id;

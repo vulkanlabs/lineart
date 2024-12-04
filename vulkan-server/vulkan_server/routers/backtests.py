@@ -316,7 +316,7 @@ def get_backtest_results(
             status_code=404,
             detail={"msg": f"Backtest {backtest_id} not found"},
         )
-    if backtest.status != JobStatus.COMPLETED:
+    if backtest.status != JobStatus.DONE:
         raise HTTPException(
             status_code=400,
             detail={"msg": "Backtest is not completed yet"},
