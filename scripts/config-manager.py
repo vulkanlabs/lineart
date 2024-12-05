@@ -38,10 +38,6 @@ def cli():
         choices.append(choice)
     answer = questionary.select(PROMPT, choices=choices, show_selected=True).ask()
 
-    if env_status[answer]:
-        click.echo(f"{answer} is already active")
-        return
-
     if os.path.exists("config/active_env"):
         shutil.copy("config/active_env", "config/active_env.bak")
 

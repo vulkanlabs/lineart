@@ -270,6 +270,8 @@ class _DataflowLauncher:
             staging_location=self.config.staging_location,
             machine_type=self.config.machine_type,
             service_account_email=self.config.service_account,
+            network=self.config.network,
+            subnetwork=self.config.subnetwork,
         )
 
 
@@ -282,7 +284,9 @@ class DataflowConfig:
     output_bucket: str
     templates_path: str
     project: str
-    region: str = "us-central1"
+    region: str
+    network: str
+    subnetwork: str
 
 
 def _get_dataflow_config() -> DataflowConfig:
@@ -295,6 +299,8 @@ def _get_dataflow_config() -> DataflowConfig:
         staging_location=os.getenv("GCP_DATAFLOW_STAGING_LOCATION", None),
         output_bucket=os.getenv("GCP_DATAFLOW_OUTPUT_BUCKET", None),
         templates_path=os.getenv("GCP_DATAFLOW_TEMPLATES_PATH", None),
+        network=os.getenv("GCP_DATAFLOW_NETWORK", None),
+        subnetwork=os.getenv("GCP_DATAFLOW_SUBNETWORK", None),
     )
 
 

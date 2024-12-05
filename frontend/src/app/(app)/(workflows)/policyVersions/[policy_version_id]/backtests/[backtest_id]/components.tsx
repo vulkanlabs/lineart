@@ -6,15 +6,6 @@ import { useUser } from "@stackframe/stack";
 import { RotateCw, ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
 import { ShortenedID } from "@/components/shortened-id";
 import { fetchBacktestMetrics } from "@/lib/api";
 
