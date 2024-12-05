@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/table";
 import { ShortenedID } from "@/components/shortened-id";
 import { RefreshButton } from "@/components/refresh-button";
+import { ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "@/components/data-table";
+import { LucideMousePointerClick } from "lucide-react";
 
 export function BacktestsTableComponent({ policyVersionId, backtests }) {
     const launcherRef = `/policyVersions/${policyVersionId}/backtests/backtestLauncher`;
@@ -30,55 +33,64 @@ export function BacktestsTableComponent({ policyVersionId, backtests }) {
                     <RefreshButton />
                 </div>
             </div>
-            <div className="max-h-[30vh] overflow-scroll">
-                <BacktestsTable backtests={backtests} />
+            <div className="max-h-[30vh] overflow-scroll mt-4">
+                <DataTable columns={BacktestColumns} data={backtests} />
             </div>
         </div>
     );
 }
 
-function BacktestsTable({ backtests }) {
-    const router = useRouter();
-    const pathname = usePathname();
+type Backtest = {
+    backtest_id: string;
+    input_file_id: string;
+    status: string;
+    calculate_metrics: boolean;
+    created_at: string;
+};
 
-    function parseDate(date: string) {
-        return new Date(date).toLocaleString();
-    }
-    console.log(backtests);
+const BacktestColumns: ColumnDef<Backtest>[] = [
+    {
+        accessorKey: "link",
+        header: "",
+        cell: ({ row }) => (
+            <Button variant="ghost" className="h-8 w-8 p-0">
+                <Link href={`backtests/${row.getValue("backtest_id")}`}>
+                    <LucideMousePointerClick />
+                </Link>
+            </Button>
+        ),
+    },
+    {
+        accessorKey: "backtest_id",
+        header: "ID",
+        cell: ({ row }) => <ShortenedID id={row.getValue("backtest_id")} />,
+    },
+    {
+        accessorKey: "input_file_id",
+        header: "Input File ID",
+        cell: ({ row }) => <ShortenedID id={row.getValue("input_file_id")} />,
+    },
+    {
+        accessorKey: "status",
+        header: "Status",
+    },
+    {
+        accessorKey: "calculate_metrics",
+        header: () => <div className="text-right">Metrics Enabled</div>,
+        cell: ({ row }) => {
+            const status = row.getValue("calculate_metrics") ? "Yes" : "No";
+            return <div className="text-right">{status}</div>;
+        },
+    },
+    {
+        accessorKey: "created_at",
+        header: "Created At",
+        cell: ({ row }) => parseDate(row.getValue("created_at")),
+    },
+];
 
-    return (
-        <Table>
-            <TableCaption>Your Backtests.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Input File ID</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Metrics Enabled</TableHead>
-                    <TableHead>Created At</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {backtests.map((backtest) => (
-                    <TableRow
-                        key={backtest.backtest_id}
-                        className="cursor-pointer"
-                        onClick={() => router.push(`${pathname}/${backtest.backtest_id}`)}
-                    >
-                        <TableCell>
-                            <ShortenedID id={backtest.backtest_id} />
-                        </TableCell>
-                        <TableCell>
-                            <ShortenedID id={backtest.input_file_id} />
-                        </TableCell>
-                        <TableCell>{backtest.status}</TableCell>
-                        <TableCell>{backtest.calculate_metrics.toString()}</TableCell>
-                        <TableCell>{parseDate(backtest.created_at)}</TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
+function parseDate(date: string) {
+    return new Date(date).toLocaleString();
 }
 
 export function UploadedFilesTableComponent({ policyVersionId, uploadedFiles }) {
@@ -95,39 +107,33 @@ export function UploadedFilesTableComponent({ policyVersionId, uploadedFiles }) 
                     <RefreshButton />
                 </div>
             </div>
-            <div className="max-h-[30vh] overflow-scroll">
-                <UploadedFilesTable uploadedFiles={uploadedFiles} />
+            <div className="max-h-[30vh] overflow-scroll mt-4">
+                <DataTable columns={UploadedFilesColumns} data={uploadedFiles} />
             </div>
         </div>
     );
 }
 
-function UploadedFilesTable({ uploadedFiles }) {
-    function parseDate(date: string) {
-        return new Date(date).toLocaleString();
-    }
+type UploadedFile = {
+    uploaded_file_id: string;
+    file_schema: Record<string, any>;
+    created_at: string;
+};
 
-    return (
-        <Table>
-            <TableCaption>Your Uploaded Files.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>File Schema</TableHead>
-                    <TableHead>Created At</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {uploadedFiles.map((file) => (
-                    <TableRow key={file.uploaded_file_id}>
-                        <TableCell>
-                            <ShortenedID id={file.uploaded_file_id} />
-                        </TableCell>
-                        <TableCell>{JSON.stringify(file.file_schema)}</TableCell>
-                        <TableCell>{parseDate(file.created_at)}</TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
-}
+const UploadedFilesColumns: ColumnDef<UploadedFile>[] = [
+    {
+        accessorKey: "uploaded_file_id",
+        header: "ID",
+        cell: ({ row }) => <ShortenedID id={row.getValue("uploaded_file_id")} />,
+    },
+    {
+        accessorKey: "file_schema",
+        header: "File Schema",
+        cell: ({ row }) => JSON.stringify(row.getValue("file_schema"), null, 2),
+    },
+    {
+        accessorKey: "created_at",
+        header: "Created At",
+        cell: ({ row }) => parseDate(row.getValue("created_at")),
+    },
+];

@@ -110,10 +110,10 @@ function makeStatusCountSpec(data: any, numStatuses: number) {
     return spec;
 }
 
-export async function plotEventRate(data, backfills) {
+export async function plotEventRate(data, backfills, elemId: string) {
     const shortBackfillIDs = backfills.map((backfill) => backfill.backfill_id.slice(0, 8));
     const spec = makeEventRateSpec(data, shortBackfillIDs);
-    embed("#event_rate", spec, { actions: false });
+    embed(`#${elemId}`, spec, { actions: false });
 }
 
 function makeEventRateSpec(data: any, backfillShortIDs: string[]) {

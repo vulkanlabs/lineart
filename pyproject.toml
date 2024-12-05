@@ -6,6 +6,11 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = ["vulkan", "vulkan-public", "vulkan-server"]
 
+[tool.uv]
+dev-dependencies = [
+    "questionary>=2.0.1",
+]
+
 [tool.uv.workspace]
 members = ["vulkan-server", "vulkan-dagster", "resolution-svc", "upload-svc"]
 

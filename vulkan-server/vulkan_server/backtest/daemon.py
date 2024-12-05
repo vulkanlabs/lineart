@@ -35,7 +35,6 @@ class BacktestDaemon:
     async def run_main(self):
         while True:
             await asyncio.sleep(self.config.time_step)
-            self.logger.info("Tick")
             await self.check_backtests()
             await self.check_metrics_jobs()
 
@@ -54,10 +53,12 @@ class BacktestDaemon:
                 # Still in progress.
                 continue
 
-            # When done, mark status and retrieve results.
             job.status = status
-            metrics = self.results_db.load_metrics(job.output_path)
-            job.metrics = metrics.to_dict(orient="records")
+            if status == RunStatus.SUCCESS:
+                metrics = self.results_db.load_metrics(job.output_path)
+                job.metrics = metrics.to_dict(orient="records")
+
+            # When done, mark status and retrieve results.
             self.db.commit()
             self.logger.debug(
                 f"Metrics job {job.backtest_metrics_id} finished with {status=}"
@@ -82,7 +83,7 @@ class BacktestDaemon:
             self.db.commit()
             self.logger.debug(f"Backtest {backtest.backtest_id} finished")
 
-            if backtest.calculate_metrics:
+            if backtest.calculate_metrics and self._backfills_succeeded(backtest):
                 launch_metrics_job(
                     backtest_id=str(backtest.backtest_id),
                     db=self.db,
@@ -133,6 +134,14 @@ class BacktestDaemon:
             pending_jobs -= 1
 
         return pending_jobs
+
+    def _backfills_succeeded(self, backtest: Backtest) -> bool:
+        backfills = (
+            self.db.query(Backfill)
+            .filter_by(backtest_id=backtest.backtest_id, status=RunStatus.FAILURE)
+            .all()
+        )
+        return len(backfills) == 0
 
 
 _IN_PROGRESS_BACKTEST_STATUS = {JobStatus.RUNNING, JobStatus.PENDING}
