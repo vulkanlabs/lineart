@@ -2,3 +2,5 @@
 *
 !.gitkeep
 !.gitignore
+!dev/
+!local/
