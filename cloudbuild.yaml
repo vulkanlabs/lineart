@@ -50,10 +50,10 @@ steps:
     id: 'openapi-generate-ts'
     args:
     - 'run'
-    - 'openapitools/openapi-generator-cli'
-    - 'generate'
     - '-v'
     - '/workspace:/local'
+    - 'openapitools/openapi-generator-cli'
+    - 'generate'
     - "-i"
     - "/local/generated/openapi.json"
     - '-o'
