@@ -29,6 +29,7 @@ steps:
     - '-m'
     - 'pip'
     - 'install'
+    - './vulkan'
     - './vulkan-server'
     - '--user'
   
