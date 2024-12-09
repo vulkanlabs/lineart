@@ -55,6 +55,7 @@ steps:
         .
     automapSubstitutions: true
     secretEnv: ['_STACK_SECRET_SERVER_KEY']
+    waitFor: ["openapi-generate-ts"]
   
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'

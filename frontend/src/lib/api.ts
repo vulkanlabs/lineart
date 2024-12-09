@@ -1,6 +1,10 @@
 import { formatISO } from "date-fns";
 
 import { CurrentUser, CurrentInternalUser } from "@stackframe/stack";
+import { Run } from "@vulkan-server/Run";
+import { RunData } from "@vulkan-server/RunData";
+import { RunLogs } from "@vulkan-server/RunLogs";
+import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 
 type StackUser = CurrentUser | CurrentInternalUser;
 
@@ -74,7 +78,7 @@ export async function fetchPolicy(user: StackUser, policyId: string) {
     });
 }
 
-export async function fetchPolicyRuns(user: StackUser, policyId: string) {
+export async function fetchPolicyRuns(user: StackUser, policyId: string): Promise<Run[]> {
     return fetchServerData({
         user: user,
         endpoint: `/policies/${policyId}/runs`,
@@ -102,7 +106,7 @@ export async function fetchPolicyVersions(
     });
 }
 
-export async function fetchPolicyVersion(user: StackUser, policyVersionId: string) {
+export async function fetchPolicyVersion(user: StackUser, policyVersionId: string): Promise<PolicyVersion> {
     return fetchServerData({
         user: user,
         endpoint: `/policy-versions/${policyVersionId}`,
@@ -185,7 +189,7 @@ export async function fetchComponentVersionUsage(user: StackUser, componentId: s
     });
 }
 
-export async function fetchRun(user: StackUser, runId: string) {
+export async function fetchRun(user: StackUser, runId: string): Promise<Run> {
     return fetchServerData({
         user: user,
         endpoint: `/runs/${runId}`,
@@ -193,7 +197,7 @@ export async function fetchRun(user: StackUser, runId: string) {
     });
 }
 
-export async function fetchRunsData(user: StackUser, runId: string) {
+export async function fetchRunsData(user: StackUser, runId: string): Promise<RunData> {
     return fetchServerData({
         user: user,
         endpoint: `/runs/${runId}/data`,
@@ -201,7 +205,7 @@ export async function fetchRunsData(user: StackUser, runId: string) {
     });
 }
 
-export async function fetchRunLogs(user: StackUser, runId: string) {
+export async function fetchRunLogs(user: StackUser, runId: string): Promise<RunLogs> {
     return fetchServerData({
         user: user,
         endpoint: `/runs/${runId}/logs`,

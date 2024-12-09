@@ -12,6 +12,8 @@ import { DetailsButton } from "@/components/details-button";
 import { Backtest } from "@vulkan-server/Backtest";
 import { UploadedFile } from "@vulkan-server/UploadedFile";
 
+import { parseDate } from "@/lib/utils";
+
 export function BacktestsTableComponent({ policyVersionId, backtests }) {
     const launcherRef = `/policyVersions/${policyVersionId}/backtests/backtestLauncher`;
 
@@ -68,9 +70,6 @@ const BacktestColumns: ColumnDef<Backtest>[] = [
     },
 ];
 
-function parseDate(date: string) {
-    return new Date(date).toLocaleString();
-}
 
 export function UploadedFilesTableComponent({ policyVersionId, uploadedFiles }) {
     const uploaderRef = `/policyVersions/${policyVersionId}/backtests/fileUploader`;

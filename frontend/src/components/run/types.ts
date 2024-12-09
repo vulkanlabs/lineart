@@ -1,4 +1,7 @@
 import { NodeLayoutConfig, NodeDependency } from "@/lib/workflow/types";
+import { StepDetails } from "@vulkan-server/StepDetails";
+
+import { StepMetadataBase } from "@vulkan-server/StepMetadataBase";
 
 export type RunNodeLayout = NodeLayoutConfig & {
     draggable?: boolean;
@@ -7,32 +10,8 @@ export type RunNodeLayout = NodeLayoutConfig & {
         description: string;
         type: string;
         dependencies?: NodeDependency[];
-        run?: RunStep | null;
+        run?: StepDetails;
     };
-};
-
-export type RunStepMetadata = {
-    step_name: string;
-    node_type: string;
-    start_time: number;
-    end_time: number;
-    error?: string | null;
-    extra?: any | null;
-};
-
-export type RunStep = {
-    output: any;
-    metadata: RunStepMetadata | null;
-};
-
-type RunSteps = {
-    [key: string]: RunStep;
-};
-
-export type RunData = {
-    run_id: string;
-    last_updated_at: string;
-    steps: RunSteps;
 };
 
 type RunLogEvent = {

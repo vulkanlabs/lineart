@@ -1,31 +1,19 @@
 "use client";
 import { formatDistanceStrict } from "date-fns";
-import { usePathname, useRouter } from "next/navigation";
 
 import { ShortenedID } from "@/components/shortened-id";
 import { RefreshButton } from "../refresh-button";
+import { ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "@/components/data-table";
 
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+import { DetailsButton } from "@/components/details-button";
 
-type RunData = {
-    run_id: string;
-    policy_version_id: string;
-    status: string;
-    result: string;
-    created_at: string;
-    last_updated_at: string;
-};
+import { Run } from "@vulkan-server/Run";
+
+import { parseDate } from "@/lib/utils";
 
 type RunsTableProps = {
-    runs: RunData[];
+    runs: Run[];
     policyVersionId?: string;
 };
 
@@ -37,58 +25,55 @@ export function RunsTableComponent({ runs }: RunsTableProps) {
                 <RefreshButton />
             </div>
             <div className="mt-4 max-h-[75vh] overflow-scroll">
-                <RunsTable runs={runs} />
+                <DataTable columns={RunsTableColumns} data={runs} />
             </div>
         </div>
     );
 }
 
-function RunsTable({ runs }: { runs: RunData[] }) {
-    const router = useRouter();
-    const pathname = usePathname();
-
-    return (
-        <Table>
-            <TableCaption>Runs</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Version ID</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Result</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead>Duration</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {runs.map((run) => (
-                    <TableRow
-                        key={run.run_id}
-                        className="cursor-pointer"
-                        onClick={() => router.push(`${pathname}/${run.run_id}`)}
-                    >
-                        <TableCell>
-                            <ShortenedID id={run.run_id} />
-                        </TableCell>
-                        <TableCell>
-                            <ShortenedID id={run.policy_version_id} />
-                        </TableCell>
-                        <TableCell>
-                            <RunStatus value={run.status} />
-                        </TableCell>
-                        <TableCell>
-                            {run.result == null || run.result == "" ? "-" : run.result}
-                        </TableCell>
-                        <TableCell>{run.created_at}</TableCell>
-                        <TableCell>
-                            {formatDistanceStrict(run.last_updated_at, run.created_at)}
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
-}
+const RunsTableColumns: ColumnDef<Run>[] = [
+    {
+        accessorKey: "link",
+        header: "",
+        cell: ({ row }) => <DetailsButton href={`runs/${row.getValue("run_id")}`} />,
+    },
+    {
+        accessorKey: "run_id",
+        header: "ID",
+        cell: ({ row }) => <ShortenedID id={row.getValue("run_id")} />,
+    },
+    {
+        accessorKey: "policy_version_id",
+        header: "Version ID",
+        cell: ({ row }) => <ShortenedID id={row.getValue("policy_version_id")} />,
+    },
+    {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => <RunStatus value={row.getValue("status")} />,
+    },
+    {
+        accessorKey: "result",
+        header: "Result",
+        cell: ({ row }) => {
+            const result = row.getValue("result");
+            return result == null || result == "" ? "-" : result;
+        },
+    },
+    {
+        accessorKey: "created_at",
+        header: "Created At",
+        cell: ({ row }) => parseDate(row.getValue("created_at")),
+    },
+    {
+        accessorKey: "duration",
+        header: "Duration",
+        cell: ({ row }) =>
+            {
+                return formatDistanceStrict(row.original['last_updated_at'], row.original['created_at'])
+            },
+    }
+]
 
 function RunStatus({ value }) {
     const getColor = (status) => {

@@ -1,5 +1,6 @@
 import enum
 import os
+from functools import lru_cache
 
 from sqlalchemy import (
     ARRAY,
@@ -25,7 +26,8 @@ from vulkan.core.run import JobStatus, RunStatus
 Base = declarative_base()
 
 
-def get_db():
+@lru_cache
+def _make_engine():
     DB_USER = os.getenv("DB_USER")
     DB_PASSWORD = os.getenv("DB_PASSWORD")
     DB_HOST = os.getenv("DB_HOST")
@@ -44,6 +46,11 @@ def get_db():
 
     connection_str = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_DATABASE}"
     engine = create_engine(connection_str, echo=True)
+    return engine
+
+
+def get_db():
+    engine = _make_engine()
     DBSession = sessionmaker(bind=engine)
     db = DBSession()
     try:
@@ -419,4 +426,5 @@ class BacktestMetrics(AuthorizationMixin, TimedUpdateMixin, Base):
 
 
 if __name__ == "__main__":
+    engine = _make_engine()
     Base.metadata.create_all(engine)

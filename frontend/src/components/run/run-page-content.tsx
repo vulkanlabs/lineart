@@ -2,8 +2,13 @@
 import React, { useState } from "react";
 
 import { WorkflowFrame } from "@/components/run/frame";
-import type { RunStepMetadata, RunLogs, RunData, RunNodeLayout } from "@/components/run/types";
+import type { RunNodeLayout } from "@/components/run/types";
 import { EdgeLayoutConfig, NodeLayoutConfig } from "@/lib/workflow/types";
+
+import type { RunData } from "@vulkan-server/RunData";
+import type { RunLogs } from "@vulkan-server/RunLogs";
+import type { StepDetails } from "@vulkan-server/StepDetails";
+import type { StepMetadataBase } from "@vulkan-server/StepMetadataBase";
 
 export default function RunPageContent({
     nodes,
@@ -54,11 +59,6 @@ function LogsTable({
     const filteredLogs = runLogs.logs.filter(
         (log) => clickedNode === null || log.step_key === clickedNode.id,
     );
-
-    function formatDateTime(timestamp: string): string {
-        const date = new Date(timestamp);
-        return date.toLocaleString();
-    }
 
     return (
         <div className="flex flex-row w-full h-full overflow-y-auto">
@@ -141,7 +141,7 @@ function RunInfo({ runData }: { runData: RunData }) {
             </div>
             <div>
                 <h1 className="mt-5 text-lg font-semibold">Last Updated:</h1>
-                <pre className="text-lg font-light">{runData.last_updated_at}</pre>
+                <pre className="text-lg font-light">{runData.last_updated_at.toString()}</pre>
             </div>
         </div>
     );
@@ -202,7 +202,7 @@ function NodeContent({ clickedNode }: { clickedNode: RunNodeLayout | null }) {
     );
 }
 
-function getRunDuration(run: RunStepMetadata): string {
+function getRunDuration(run: StepMetadataBase): string {
     const start = new Date(run.start_time * 1000);
     const end = new Date(run.end_time * 1000);
     return formatDistance(end.getTime() - start.getTime());
