@@ -24,6 +24,7 @@ steps:
     - '/workspace/vulkan/dist/*'
   
   - name: "python:3.12"
+    id: ["python-install"]
     entrypoint: python
     args:
     - '-m'
@@ -33,6 +34,7 @@ steps:
     - './vulkan'
     - './vulkan-server'
     - '--user'
+    waitFor: []
   
   - name: "python:3.12"
     id: 'openapi-generate-spec'
@@ -41,16 +43,21 @@ steps:
     - 'scripts/export-openapi.py'
     - '--out'
     - '/workspace/generated/openapi.json'
+    waitFor: ["python-install"]
   
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'openapi-generate-ts'
     args:
     - 'run'
+    - 'openapitools/openapi-generator-cli'
+    - 'generate'
+    - '-v'
+    - '/workspace:/local'
     - "-i"
-    - "/workspace/generated/openapi.json"
+    - "/local/generated/openapi.json"
     - '-o'
-    - '/workspace/generated/ts/'
+    - '/local/generated/ts/'
     - '-g'
     - 'typescript'
     - '--model-package'
