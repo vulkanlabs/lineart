@@ -23,6 +23,37 @@ steps:
     - '/workspace/vulkan-public/dist/*'
     - '/workspace/vulkan/dist/*'
   
+  - name: python
+    entrypoint: python
+    args:
+    - '-m'
+    - 'pip'
+    - 'install'
+    - 'vulkan-server'
+    - '--user'
+  
+  - name: python
+    id: 'openapi-generate-spec'
+    entrypoint: python
+    args:
+    - 'scripts/export-openapi.py'
+    - '--out'
+    - '/workspace/generated/openapi.json'
+  
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'openapi-generate-ts'
+    args:
+    - "-i"
+    - "/workspace/generated/openapi.json"
+    - '-o'
+    - '/workspace/generated/ts/'
+    - '-g'
+    - 'typescript'
+    - '--model-package'
+    - 'vulkan-server-models'
+    waitFor: ["openapi-generate-spec"]
+
   - name: 'gcr.io/cloud-builders/docker'
     id: 'base-image'
     args: [

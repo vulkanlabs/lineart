@@ -15,6 +15,8 @@ import {
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/data-table";
 
+import { BackfillStatus } from "@vulkan-server/BackfillStatus";
+
 export function BacktestDetailsPage({ policyVersionId, backtest, backfills, plotData }) {
     return (
         <div className="flex flex-col py-4 px-8 gap-12">
@@ -58,12 +60,6 @@ function BackfillsTableComponent({ backfills }) {
         </div>
     );
 }
-
-type BackfillStatus = {
-    backfill_id: string;
-    config_variables: Record<string, any>;
-    status: string;
-};
 
 const BackfillColumns: ColumnDef<BackfillStatus>[] = [
     {
