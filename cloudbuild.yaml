@@ -24,7 +24,7 @@ steps:
     - '/workspace/vulkan/dist/*'
   
   - name: "python:3.12"
-    id: ["python-install"]
+    id: "python-install"
     entrypoint: python
     args:
     - '-m'
