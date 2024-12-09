@@ -46,6 +46,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     id: 'openapi-generate-ts'
     args:
+    - 'run'
     - "-i"
     - "/workspace/generated/openapi.json"
     - '-o'
