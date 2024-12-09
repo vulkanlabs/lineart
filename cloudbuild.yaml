@@ -1,17 +1,17 @@
 steps:
-  - name: python
+  - name: "python:3.12"
     entrypoint: python
     args: ['-m', 'pip', 'install', '--upgrade',  'pip', 'build', 'twine', 'keyrings.google-artifactregistry-auth', '--user']
 
-  - name: python
+  - name: "python:3.12"
     entrypoint: python
     args: ['-m', 'build', 'vulkan-public']
 
-  - name: python
+  - name: "python:3.12"
     entrypoint: python
     args: ['-m', 'build', 'vulkan']
   
-  - name: python
+  - name: "python:3.12"
     entrypoint: python
     args:
     - '-m'
@@ -23,7 +23,7 @@ steps:
     - '/workspace/vulkan-public/dist/*'
     - '/workspace/vulkan/dist/*'
   
-  - name: python
+  - name: "python:3.12"
     entrypoint: python
     args:
     - '-m'
@@ -32,7 +32,7 @@ steps:
     - './vulkan-server'
     - '--user'
   
-  - name: python
+  - name: "python:3.12"
     id: 'openapi-generate-spec'
     entrypoint: python
     args:
