@@ -140,7 +140,7 @@ function RunInfo({ runData }: { runData: RunData }) {
             </div>
             <div>
                 <h1 className="mt-5 text-lg font-semibold">Last Updated:</h1>
-                <pre className="text-lg font-light">{runData.last_updated_at.toString()}</pre>
+                <pre className="text-lg font-light">{runData.last_updated_at?.toString()}</pre>
             </div>
         </div>
     );

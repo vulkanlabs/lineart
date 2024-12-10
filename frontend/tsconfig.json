@@ -5,7 +5,7 @@
         "./src/*"
       ],
       "@vulkan-server/*": [
-        "./generated/vulkan-server-models/*"
+        "./generated/models/*"
       ]
     },
     "lib": [

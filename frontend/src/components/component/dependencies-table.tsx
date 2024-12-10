@@ -42,7 +42,13 @@ export function ComponentVersionDependenciesTable({
 }: {
     entries: ComponentVersionDependencyExpanded[];
 }) {
-    return <DataTable columns={ComponentDependenciesTableColumns} data={entries} />;
+    return (
+        <DataTable
+            columns={ComponentDependenciesTableColumns}
+            data={entries}
+            emptyMessage="No dependencies found"
+        />
+    );
 }
 
 const PolicyDependenciesTableColumns: ColumnDef<ComponentVersionDependencyExpanded>[] = [
@@ -80,17 +86,11 @@ export function PolicyVersionComponentDependenciesTable({
 }: {
     entries: ComponentVersionDependencyExpanded[];
 }) {
-    if (!entries || entries.length === 0) {
-        return <EmptyDependenciesTable />;
-    }
-
-    return <DataTable columns={PolicyDependenciesTableColumns} data={entries} />;
-}
-
-function EmptyDependenciesTable() {
     return (
-        <div className="flex justify-center items-center h-32 text-gray-500">
-            No dependencies found.
-        </div>
+        <DataTable
+            columns={PolicyDependenciesTableColumns}
+            data={entries}
+            emptyMessage="No dependencies found"
+        />
     );
 }

@@ -1,10 +1,10 @@
 "use client";
 import { formatDistanceStrict } from "date-fns";
 
-import { ShortenedID } from "@/components/shortened-id";
-import { RefreshButton } from "../refresh-button";
-import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/data-table";
+import { ShortenedID } from "@/components/shortened-id";
+import { ColumnDef } from "@tanstack/react-table";
+import { RefreshButton } from "../refresh-button";
 
 import { DetailsButton } from "@/components/details-button";
 
@@ -68,12 +68,11 @@ const RunsTableColumns: ColumnDef<Run>[] = [
     {
         accessorKey: "duration",
         header: "Duration",
-        cell: ({ row }) =>
-            {
-                return formatDistanceStrict(row.original['last_updated_at'], row.original['created_at'])
-            },
-    }
-]
+        cell: ({ row }) => {
+            return formatDistanceStrict(row.original.last_updated_at, row.original.created_at);
+        },
+    },
+];
 
 function RunStatus({ value }) {
     const getColor = (status) => {

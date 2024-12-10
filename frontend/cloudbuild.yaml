@@ -35,9 +35,8 @@ steps:
     - '-o'
     - '/local/generated/ts/'
     - '-g'
-    - 'typescript'
-    - '--model-package'
-    - 'vulkan-server-models'
+    - 'typescript-fetch'
+    - '--additional-properties="modelPropertyNaming=original"'
     waitFor: ["openapi-generate-spec"]
   
   # Build the Container Image

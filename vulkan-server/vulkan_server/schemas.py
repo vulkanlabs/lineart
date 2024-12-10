@@ -185,7 +185,7 @@ class StepMetadata(StepMetadataBase):
 
 
 class _StepDetails(BaseModel):
-    output: Any | None
+    output: bytes | str | dict | list | None
     metadata: StepMetadataBase | None
 
 

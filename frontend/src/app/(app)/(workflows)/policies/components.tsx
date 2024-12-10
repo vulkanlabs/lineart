@@ -17,7 +17,11 @@ export default function PoliciesPage({ policies }: { policies: any[] }) {
         <div>
             <Button onClick={() => router.refresh()}>Refresh</Button>
             <div className="my-4">
-                <DataTable columns={PolicyTableColumns} data={policies} emptyMessage="You don't have any policies yet."/>
+                <DataTable
+                    columns={PolicyTableColumns}
+                    data={policies}
+                    emptyMessage="You don't have any policies yet."
+                />
             </div>
         </div>
     );

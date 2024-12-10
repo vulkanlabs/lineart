@@ -16,7 +16,8 @@ up:
 .PHONY: openapi
 openapi:
 	uv run python scripts/export-openapi.py --out generated/openapi.json
-	openapi-generator-cli generate -g typescript -i generated/openapi.json -o frontend/generated --model-package vulkan-server-models
+	rm -r frontend/generated
+	openapi-generator-cli generate -g typescript-fetch -i generated/openapi.json -o frontend/generated --additional-properties="modelPropertyNaming=original"
 
 # Configuration
 .PHONY: config

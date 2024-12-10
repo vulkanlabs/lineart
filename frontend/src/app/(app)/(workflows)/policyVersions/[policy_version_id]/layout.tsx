@@ -5,16 +5,9 @@ import { RouteLayout } from "./components";
 
 export default async function Layout({ params, children }) {
     const user = await stackServerApp.getUser();
-    const policyVersion = await fetchPolicyVersion(user, params.policy_version_id).catch(
-        (error) => {
-            console.error(error);
-            return null;
-        },
-    );
-    const policy = await fetchPolicy(user, policyVersion?.policy_id).catch((error) => {
-        console.error(error);
-        return null;
-    });
+    const policyVersion = await fetchPolicyVersion(user, params.policy_version_id)
+    const policy = await fetchPolicy(user, policyVersion?.policy_id)
+    
     return (
         <RouteLayout policy={policy} policyVersion={policyVersion}>
             {children}

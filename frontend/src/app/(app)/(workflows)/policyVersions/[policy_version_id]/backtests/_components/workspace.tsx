@@ -58,12 +58,10 @@ export async function CreateWorkspacePage({ policyVersionId, workspaceCreationAc
     const user = useUser();
 
     const refreshStatus = () => {
-        console.log("refreshing status");
         fetchBacktestWorkspace(user, policyVersionId)
             .then((data) => {
                 setWorkspaceStatus(data.status);
                 setWorkspaceReady(data.status === "OK");
-                console.log("set status to", data.status);
             })
             .catch((error) => {
                 setWorkspaceReady(false);
@@ -73,15 +71,11 @@ export async function CreateWorkspacePage({ policyVersionId, workspaceCreationAc
     };
 
     useEffect(() => {
-        console.log("calling useEffect");
         if (workspaceStatus === "OK") {
-            console.log("workspaceStatus is OK, returning");
             return;
         }
         const refreshTime = 20000;
         refreshStatus();
-        console.log("status", workspaceStatus);
-        console.log("setting interval");
         const comInterval = setInterval(refreshStatus, refreshTime);
         return () => clearInterval(comInterval);
     }, [workspaceReady]);
@@ -126,7 +120,6 @@ async function WorkspaceCreationPage({
 
         workspaceCreationAction({ url, headers })
             .then((data) => {
-                console.log("Workspace created", data);
                 window.location.reload();
             })
             .catch((error) => {

@@ -37,7 +37,7 @@ export function ConfigVariablesTable({ variables }) {
 const DataSourceTableColumns: ColumnDef<DataSource>[] = [
     {
         accessorKey: "link",
-        header: "Link",
+        header: "",
         cell: ({ row }) => (
             <Link href={`/integrations/dataSources/${row.getValue("data_source_id")}`}>
                 <LinkIcon />
