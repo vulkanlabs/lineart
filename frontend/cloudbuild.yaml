@@ -36,7 +36,8 @@ steps:
     - '/local/generated/ts/'
     - '-g'
     - 'typescript-fetch'
-    - '--additional-properties="modelPropertyNaming=original"'
+    - '--additional-properties'
+    - 'modelPropertyNaming=original'
     waitFor: ["openapi-generate-spec"]
   
   # Build the Container Image
