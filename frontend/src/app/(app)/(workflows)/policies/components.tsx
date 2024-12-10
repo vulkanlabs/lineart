@@ -1,19 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/data-table";
+import { DetailsButton } from "@/components/details-button";
 import { ShortenedID } from "@/components/shortened-id";
+import { Button } from "@/components/ui/button";
+import { parseDate } from "@/lib/utils";
+import { ColumnDef } from "@tanstack/react-table";
+import { Policy } from "@vulkan-server/Policy";
 
 export default function PoliciesPage({ policies }: { policies: any[] }) {
     const router = useRouter();
@@ -21,62 +16,44 @@ export default function PoliciesPage({ policies }: { policies: any[] }) {
     return (
         <div>
             <Button onClick={() => router.refresh()}>Refresh</Button>
-            {policies.length > 0 ? <PolicyTable policies={policies} /> : <EmptyPolicyTable />}
-        </div>
-    );
-}
-
-export function PolicyTable({ policies }) {
-    const router = useRouter();
-
-    return (
-        <Table>
-            <TableCaption>Your policies.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Active Version</TableHead>
-                    <TableHead>Last Updated At</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {policies.map((policy) => (
-                    <TableRow
-                        key={policy.policy_id}
-                        className="cursor-pointer"
-                        onClick={() => router.push(`/policies/${policy.policy_id}/versions`)}
-                    >
-                        <TableCell><ShortenedID id={policy.policy_id} /></TableCell>
-                        <TableCell>{policy.name}</TableCell>
-                        <TableCell>
-                            {policy.description.length > 0 ? policy.description : "-"}
-                        </TableCell>
-                        <TableCell>
-                            {policy.active_policy_version_id !== null
-                                ? <ShortenedID id={policy.active_policy_version_id} />
-                                : "-"}
-                        </TableCell>
-                        <TableCell>{policy.last_updated_at}</TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
-}
-
-function EmptyPolicyTable() {
-    return (
-        <div>
-            <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm">
-                <div className="flex flex-col items-center gap-1 text-center">
-                    <h3 className="text-2xl font-bold tracking-tight">You don't have any policies yet.</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Create a Policy to start making decisions.
-                    </p>
-                </div>
+            <div className="my-4">
+                <DataTable columns={PolicyTableColumns} data={policies} emptyMessage="You don't have any policies yet."/>
             </div>
         </div>
     );
 }
+
+const PolicyTableColumns: ColumnDef<Policy>[] = [
+    {
+        accessorKey: "link",
+        cell: ({ row }) => (
+            <DetailsButton href={`/policies/${row.getValue("policy_id")}/versions`} />
+        ),
+    },
+    {
+        header: "ID",
+        accessorKey: "policy_id",
+        cell: ({ row }) => <ShortenedID id={row.getValue("policy_id")} />,
+    },
+    { header: "Name", accessorKey: "name" },
+    {
+        header: "Description",
+        accessorKey: "description",
+        cell: ({ row }) => row.getValue("description") || "-",
+    },
+    {
+        header: "Active Version",
+        accessorKey: "active_policy_version_id",
+        cell: ({ row }) =>
+            row.getValue("active_policy_version_id") == null ? (
+                "-"
+            ) : (
+                <ShortenedID id={row.getValue("active_policy_version_id")} />
+            ),
+    },
+    {
+        header: "Last Updated At",
+        accessorKey: "last_updated_at",
+        cell: ({ row }) => parseDate(row.getValue("last_updated_at")),
+    },
+];

@@ -1,57 +1,39 @@
 "use client";
+import { DetailsButton } from "@/components/details-button";
 
-import { useRouter } from "next/navigation";
-
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/data-table";
 import { ShortenedID } from "@/components/shortened-id";
+import { parseDate } from "@/lib/utils";
+import { ColumnDef } from "@tanstack/react-table";
+import { PolicyVersion } from "@vulkan-server/PolicyVersion";
+
+const PolicyVersionsTableColumns: ColumnDef<PolicyVersion>[] = [
+    {
+        accessorKey: "link",
+        cell: ({ row }) => (
+            <DetailsButton href={`/policyVersions/${row.getValue("policy_version_id")}/workflow`} />
+        ),
+    },
+    {
+        header: "ID",
+        accessorKey: "policy_version_id",
+        cell: ({ row }) => <ShortenedID id={row.getValue("policy_version_id")} />,
+    },
+    { header: "Tag", accessorKey: "alias" },
+    {
+        header: "Status",
+        accessorKey: "status",
+        cell: ({ row }) => <VersionStatus value={row.getValue("status")} />,
+    },
+    {
+        header: "Created At",
+        accessorKey: "created_at",
+        cell: ({ row }) => parseDate(row.getValue("created_at")),
+    },
+];
 
 export default function PolicyVersionsTable({ policyVersions }: { policyVersions: any[] }) {
-    const router = useRouter();
-
-    function goToVersion(policyVersion: any) {
-        const version = policyVersion.policy_version_id;
-        router.push(`/policyVersions/${version}/workflow`);
-    }
-
-    return (
-        <Table>
-            <TableCaption>Available versions.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Tag</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created At</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {policyVersions.map((policyVersion) => (
-                    <TableRow
-                        key={policyVersion.policy_version_id}
-                        className="cursor-pointer"
-                        onClick={() => goToVersion(policyVersion)}
-                    >
-                        <TableCell>
-                            <ShortenedID id={policyVersion.policy_version_id} />
-                        </TableCell>
-                        <TableCell>{policyVersion.alias}</TableCell>
-                        <TableCell>
-                            <VersionStatus value={policyVersion.status} />
-                        </TableCell>
-                        <TableCell>{policyVersion.created_at}</TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
+    return <DataTable columns={PolicyVersionsTableColumns} data={policyVersions} />;
 }
 
 function VersionStatus({ value }) {
