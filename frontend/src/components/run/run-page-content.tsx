@@ -7,7 +7,6 @@ import { EdgeLayoutConfig, NodeLayoutConfig } from "@/lib/workflow/types";
 
 import type { RunData } from "@vulkan-server/RunData";
 import type { RunLogs } from "@vulkan-server/RunLogs";
-import type { StepDetails } from "@vulkan-server/StepDetails";
 import type { StepMetadataBase } from "@vulkan-server/StepMetadataBase";
 
 export default function RunPageContent({
