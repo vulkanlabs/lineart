@@ -47,6 +47,15 @@ export function ComponentVersionDependenciesTable({
 
 const PolicyDependenciesTableColumns: ColumnDef<ComponentVersionDependencyExpanded>[] = [
     {
+        accessorKey: "link",
+        header: "",
+        cell: ({ row }) => (
+            <Link href={`/components/${row.getValue("component_id")}`}>
+                <LinkIcon />
+            </Link>
+        ),
+    },
+    {
         accessorKey: "component_name",
         header: "Component Name",
     },
@@ -63,16 +72,6 @@ const PolicyDependenciesTableColumns: ColumnDef<ComponentVersionDependencyExpand
         accessorKey: "component_version_id",
         header: "Component ID",
         cell: ({ row }) => <ShortenedID id={row.getValue("component_version_id")} />,
-    },
-    {
-        accessorKey: "link",
-        header: "",
-        cell: ({ row }) => (
-            <Link href={`/components/${row.getValue("component_id")}`}>
-                <LinkIcon />
-            </Link>
-        ),
-        
     },
 ];
 

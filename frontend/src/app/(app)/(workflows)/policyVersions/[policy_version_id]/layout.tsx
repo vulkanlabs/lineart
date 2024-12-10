@@ -8,10 +8,12 @@ export default async function Layout({ params, children }) {
     const policyVersion = await fetchPolicyVersion(user, params.policy_version_id).catch(
         (error) => {
             console.error(error);
+            return null;
         },
     );
-    const policy = await fetchPolicy(user, policyVersion.policy_id).catch((error) => {
+    const policy = await fetchPolicy(user, policyVersion?.policy_id).catch((error) => {
         console.error(error);
+        return null;
     });
     return (
         <RouteLayout policy={policy} policyVersion={policyVersion}>
