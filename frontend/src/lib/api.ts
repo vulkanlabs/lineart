@@ -1,6 +1,12 @@
 import { formatISO } from "date-fns";
 
 import { CurrentUser, CurrentInternalUser } from "@stackframe/stack";
+import { Component } from "@vulkan-server/Component";
+import { Run } from "@vulkan-server/Run";
+import { RunData } from "@vulkan-server/RunData";
+import { RunLogs } from "@vulkan-server/RunLogs";
+import { PolicyVersion } from "@vulkan-server/PolicyVersion";
+import { ComponentVersion } from "@vulkan-server/ComponentVersion";
 
 type StackUser = CurrentUser | CurrentInternalUser;
 
@@ -74,7 +80,7 @@ export async function fetchPolicy(user: StackUser, policyId: string) {
     });
 }
 
-export async function fetchPolicyRuns(user: StackUser, policyId: string) {
+export async function fetchPolicyRuns(user: StackUser, policyId: string): Promise<Run[]> {
     return fetchServerData({
         user: user,
         endpoint: `/policies/${policyId}/runs`,
@@ -102,7 +108,10 @@ export async function fetchPolicyVersions(
     });
 }
 
-export async function fetchPolicyVersion(user: StackUser, policyVersionId: string) {
+export async function fetchPolicyVersion(
+    user: StackUser,
+    policyVersionId: string,
+): Promise<PolicyVersion> {
     return fetchServerData({
         user: user,
         endpoint: `/policy-versions/${policyVersionId}`,
@@ -145,7 +154,7 @@ export async function fetchComponents(
     });
 }
 
-export async function fetchComponent(user: StackUser, componentId: string) {
+export async function fetchComponent(user: StackUser, componentId: string): Promise<Component> {
     return fetchServerData({
         user: user,
         endpoint: `/components/${componentId}`,
@@ -167,9 +176,8 @@ export async function fetchComponentVersions(
 
 export async function fetchComponentVersion(
     user: StackUser,
-    componentId: string,
     componentVersionId: string,
-) {
+): Promise<ComponentVersion> {
     return fetchServerData({
         user: user,
         endpoint: `/component-versions/${componentVersionId}`,
@@ -185,7 +193,7 @@ export async function fetchComponentVersionUsage(user: StackUser, componentId: s
     });
 }
 
-export async function fetchRun(user: StackUser, runId: string) {
+export async function fetchRun(user: StackUser, runId: string): Promise<Run> {
     return fetchServerData({
         user: user,
         endpoint: `/runs/${runId}`,
@@ -193,7 +201,7 @@ export async function fetchRun(user: StackUser, runId: string) {
     });
 }
 
-export async function fetchRunsData(user: StackUser, runId: string) {
+export async function fetchRunsData(user: StackUser, runId: string): Promise<RunData> {
     return fetchServerData({
         user: user,
         endpoint: `/runs/${runId}/data`,
@@ -201,7 +209,7 @@ export async function fetchRunsData(user: StackUser, runId: string) {
     });
 }
 
-export async function fetchRunLogs(user: StackUser, runId: string) {
+export async function fetchRunLogs(user: StackUser, runId: string): Promise<RunLogs> {
     return fetchServerData({
         user: user,
         endpoint: `/runs/${runId}/logs`,
@@ -249,7 +257,6 @@ export async function fetchBacktestFiles(user: StackUser, policyVersionId: strin
     });
 }
 
-
 export async function fetchBacktest(user: StackUser, backtestId: string) {
     return fetchServerData({
         user: user,
@@ -257,7 +264,6 @@ export async function fetchBacktest(user: StackUser, backtestId: string) {
         label: `backtest ${backtestId}`,
     });
 }
-
 
 export async function fetchBacktestStatus(user: StackUser, backtestId: string) {
     return fetchServerData({

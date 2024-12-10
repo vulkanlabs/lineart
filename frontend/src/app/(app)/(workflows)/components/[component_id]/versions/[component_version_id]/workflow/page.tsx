@@ -7,14 +7,14 @@ export default async function Page({ params }) {
     const user = await stackServerApp.getUser();
     const graphData = await fetchComponentVersion(
         user,
-        params.component_id,
         params.component_version_id,
     )
         .then((data) => {
-            return JSON.parse(data.node_definitions);
+            return JSON.parse(data['node_definitions']);
         })
         .catch((error) => {
             console.error(error);
+            return null
         });
     // TODO: temporary fix to add input node (ComponentDefinition doesn't have
     // an internally inserted input node).

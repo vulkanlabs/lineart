@@ -1,78 +1,64 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/data-table";
+import { DetailsButton } from "@/components/details-button";
 import { ShortenedID } from "@/components/shortened-id";
+import { Button } from "@/components/ui/button";
+import { parseDate } from "@/lib/utils";
+import { ColumnDef } from "@tanstack/react-table";
+import { DataSource } from "@vulkan-server/DataSource";
 
-export default function DataSourcesPage({ dataSources }: { dataSources: any[] }) {
+export default function DataSourcesPage({ dataSources }: { dataSources: DataSource[] }) {
     const router = useRouter();
+    const emptyMessage = "Create a data source to start using it in your workflows.";
 
     return (
         <div>
             <Button onClick={() => router.refresh()}>Refresh</Button>
-            {dataSources.length > 0 ? <DataSourcesTable dataSources={dataSources} /> : <EmptyDataSourcesTable />}
+            <DataTable
+                columns={dataSourceTableColumns}
+                data={dataSources}
+                emptyMessage={emptyMessage}
+            />
         </div>
     );
 }
 
-export function DataSourcesTable({ dataSources }) {
-    const router = useRouter();
-
-    return (
-        <Table>
-            <TableCaption>Your data sources.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead>Last Updated At</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {dataSources.map((source) => (
-                    <TableRow
-                        key={source.data_source_id}
-                        className="cursor-pointer"
-                        onClick={() => router.push(`/integrations/dataSources/${source.data_source_id}`)}
-                    >
-                        <TableCell><ShortenedID id={source.data_source_id} /></TableCell>
-                        <TableCell>{source.name}</TableCell>
-                        <TableCell>
-                            {source.description?.length > 0 ? source.description : "-"}
-                        </TableCell>
-                        <TableCell>{source.created_at}</TableCell>
-                        <TableCell>{source.last_updated_at}</TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
-}
-
-function EmptyDataSourcesTable() {
-    return (
-        <div>
-            <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm">
-                <div className="flex flex-col items-center gap-1 text-center">
-                    <h3 className="text-2xl font-bold tracking-tight">You don't have any data sources yet.</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Create a data source to start using it in your workflows.
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
-}
+const dataSourceTableColumns: ColumnDef<DataSource>[] = [
+    {
+        accessorKey: "link",
+        header: "",
+        cell: ({ row }) => (
+            <DetailsButton href={`integrations/dataSources/${row.getValue("data_source_id")}`} />
+        ),
+    },
+    {
+        accessorKey: "data_source_id",
+        header: "ID",
+        cell: ({ row }) => <ShortenedID id={row.getValue("data_source_id")} />,
+    },
+    {
+        accessorKey: "name",
+        header: "Name",
+    },
+    {
+        accessorKey: "description",
+        header: "Description",
+        cell: ({ row }) => {
+            const description: string = row.getValue("description");
+            return description.length > 0 ? description : "-";
+        },
+    },
+    {
+        accessorKey: "created_at",
+        header: "Created At",
+        cell: ({ row }) => parseDate(row.getValue("created_at")),
+    },
+    {
+        accessorKey: "last_updated_at",
+        header: "Last Updated At",
+        cell: ({ row }) => parseDate(row.getValue("last_updated_at")),
+    },
+];

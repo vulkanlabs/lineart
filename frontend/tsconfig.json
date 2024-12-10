@@ -3,6 +3,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@vulkan-server/*": [
+        "./generated/models/*"
       ]
     },
     "lib": [

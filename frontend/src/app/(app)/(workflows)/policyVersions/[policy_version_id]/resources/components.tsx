@@ -1,83 +1,65 @@
-import React from "react";
+"use client";
 import { LinkIcon } from "lucide-react";
 import Link from "next/link";
 
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/data-table";
 import { ShortenedID } from "@/components/shortened-id";
+import { parseDate } from "@/lib/utils";
+import { ColumnDef } from "@tanstack/react-table";
+import { ConfigurationVariables } from "@vulkan-server/ConfigurationVariables";
+import { DataSource } from "@vulkan-server/DataSource";
+
+const ConfigVariablesTableColumns: ColumnDef<ConfigurationVariables>[] = [
+    {
+        accessorKey: "name",
+        header: "Name",
+    },
+    {
+        accessorKey: "value",
+        header: "Value",
+    },
+    {
+        accessorKey: "created_at",
+        header: "Created At",
+        cell: ({ row }) => parseDate(row.getValue("created_at")),
+    },
+    {
+        accessorKey: "last_updated_at",
+        header: "Last Updated At",
+        cell: ({ row }) => parseDate(row.getValue("last_updated_at")),
+    },
+];
 
 export function ConfigVariablesTable({ variables }) {
-    return (
-        <Table>
-            <TableCaption>Configuration variables for this Policy Version.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead>Last Updated At</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {variables.map((entry) => (
-                    <TableRow key={entry.name}>
-                        <TableCell>{entry.name}</TableCell>
-                        <TableCell>{entry.value}</TableCell>
-                        <TableCell>{entry.created_at}</TableCell>
-                        <TableCell>{entry.last_updated_at}</TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
+    return <DataTable columns={ConfigVariablesTableColumns} data={variables} />;
 }
+
+const DataSourceTableColumns: ColumnDef<DataSource>[] = [
+    {
+        accessorKey: "link",
+        header: "",
+        cell: ({ row }) => (
+            <Link href={`/integrations/dataSources/${row.getValue("data_source_id")}`}>
+                <LinkIcon />
+            </Link>
+        ),
+    },
+    {
+        accessorKey: "name",
+        header: "Data Source Name",
+    },
+    {
+        accessorKey: "data_source_id",
+        header: "Data Source ID",
+        cell: ({ row }) => <ShortenedID id={row.getValue("data_source_id")} />,
+    },
+    {
+        accessorKey: "created_at",
+        header: "Created At",
+        cell: ({ row }) => parseDate(row.getValue("created_at")),
+    },
+];
 
 export function DataSourcesTable({ sources }) {
-    function parseDate(date: string) {
-        return new Date(date).toLocaleString();
-    }
-
-    return (
-        <Table>
-            <TableCaption>Data Sources for this Policy Version.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Data Source Name</TableHead>
-                    <TableHead>Data Source ID</TableHead>
-                    <TableHead>Created At</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {sources.map((entry) => (
-                    <TableRow key={entry.name}>
-                        <TableCell>{entry.name}</TableCell>
-                        <TableCell>
-                            <ShortenedID id={entry.data_source_id} />
-                        </TableCell>
-                        <TableCell>{parseDate(entry.created_at)}</TableCell>
-                        <TableCell>
-                            <Link href={`/integrations/dataSources/${entry.data_source_id}`}>
-                                <LinkIcon />
-                            </Link>
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
-}
-
-export function EmptyVariablesTable() {
-    return (
-        <div className="flex justify-center items-center h-32 text-gray-500">
-            This policy version has no configurable variables.
-        </div>
-    );
+    return <DataTable columns={DataSourceTableColumns} data={sources} />;
 }

@@ -1,23 +1,18 @@
 "use client";
 import Link from "next/link";
 import React from "react";
-import { usePathname, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
 import { ShortenedID } from "@/components/shortened-id";
 import { RefreshButton } from "@/components/refresh-button";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/data-table";
-import { LucideMousePointerClick } from "lucide-react";
+import { DetailsButton } from "@/components/details-button";
+
+import { Backtest } from "@vulkan-server/Backtest";
+import { UploadedFile } from "@vulkan-server/UploadedFile";
+
+import { parseDate } from "@/lib/utils";
 
 export function BacktestsTableComponent({ policyVersionId, backtests }) {
     const launcherRef = `/policyVersions/${policyVersionId}/backtests/backtestLauncher`;
@@ -40,25 +35,11 @@ export function BacktestsTableComponent({ policyVersionId, backtests }) {
     );
 }
 
-type Backtest = {
-    backtest_id: string;
-    input_file_id: string;
-    status: string;
-    calculate_metrics: boolean;
-    created_at: string;
-};
-
 const BacktestColumns: ColumnDef<Backtest>[] = [
     {
         accessorKey: "link",
         header: "",
-        cell: ({ row }) => (
-            <Button variant="ghost" className="h-8 w-8 p-0">
-                <Link href={`backtests/${row.getValue("backtest_id")}`}>
-                    <LucideMousePointerClick />
-                </Link>
-            </Button>
-        ),
+        cell: ({ row }) => <DetailsButton href={`backtests/${row.getValue("backtest_id")}`} />,
     },
     {
         accessorKey: "backtest_id",
@@ -89,9 +70,6 @@ const BacktestColumns: ColumnDef<Backtest>[] = [
     },
 ];
 
-function parseDate(date: string) {
-    return new Date(date).toLocaleString();
-}
 
 export function UploadedFilesTableComponent({ policyVersionId, uploadedFiles }) {
     const uploaderRef = `/policyVersions/${policyVersionId}/backtests/fileUploader`;
@@ -113,12 +91,6 @@ export function UploadedFilesTableComponent({ policyVersionId, uploadedFiles }) 
         </div>
     );
 }
-
-type UploadedFile = {
-    uploaded_file_id: string;
-    file_schema: Record<string, any>;
-    created_at: string;
-};
 
 const UploadedFilesColumns: ColumnDef<UploadedFile>[] = [
     {

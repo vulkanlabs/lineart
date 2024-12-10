@@ -1,19 +1,13 @@
 "use client";
 
+import { DetailsButton } from "@/components/details-button";
 import { useRouter } from "next/navigation";
 
-import { EmptyAssetTable } from "@/components/empty-asset-table";
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/data-table";
 import { ShortenedID } from "@/components/shortened-id";
+import { Button } from "@/components/ui/button";
+import { ColumnDef } from "@tanstack/react-table";
+import { Component } from "@vulkan-server/Component";
 
 export default function ComponentPageContent({ components }) {
     const router = useRouter();
@@ -21,46 +15,30 @@ export default function ComponentPageContent({ components }) {
     return (
         <div>
             <Button onClick={() => router.refresh()}>Refresh</Button>
-            {components.length > 0 ? (
-                <ComponentsTable components={components} />
-            ) : (
-                <EmptyAssetTable
-                    title="You don't have any components yet."
-                    description="Create a component to start using it in your workflows."
+            <div className="mt-4">
+                <DataTable
+                    columns={componentsTableColumns}
+                    data={components}
+                    emptyMessage="Create a component to start using it in your workflows."
                 />
-            )}
+            </div>
         </div>
     );
 }
 
-function ComponentsTable({ components }) {
-    const router = useRouter();
-
-    return (
-        <Table>
-            <TableCaption>List of your components.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {components.map((entry) => (
-                    <TableRow
-                        key={entry.component_id}
-                        className="cursor-pointer"
-                        onClick={() => router.push(`/components/${entry.component_id}`)}
-                    >
-                        <TableCell>
-                            <ShortenedID id={entry.component_id} />
-                        </TableCell>
-                        <TableCell>{entry.name}</TableCell>
-                        <TableCell> - </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
-}
+const componentsTableColumns: ColumnDef<Component>[] = [
+    {
+        accessorKey: "link",
+        header: "",
+        cell: ({ row }) => <DetailsButton href={`components/${row.getValue("component_id")}`} />,
+    },
+    {
+        accessorKey: "component_id",
+        header: "ID",
+        cell: ({ row }) => <ShortenedID id={row.getValue("component_id")} />,
+    },
+    {
+        accessorKey: "name",
+        header: "Name",
+    },
+];

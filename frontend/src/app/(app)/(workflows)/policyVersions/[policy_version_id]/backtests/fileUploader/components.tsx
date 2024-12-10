@@ -219,7 +219,6 @@ function FileUploadedCard({ fileId, policyVersionId }) {
 }
 
 function UploadErrorCard({ error }) {
-    console.log(error);
     return (
         <Card className="flex flex-col w-fit border-red-600 border-2">
             <CardHeader>

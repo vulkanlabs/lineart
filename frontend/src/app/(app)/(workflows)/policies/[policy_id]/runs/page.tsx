@@ -7,7 +7,7 @@ export default async function Page({ params }) {
     const user = await stackServerApp.getUser();
     const runs = await fetchPolicyRuns(user, params.policy_id).catch((error) => {
         console.error(error);
-        return [];
+        return null;
     });
 
     return <RunsTableComponent runs={runs} />;

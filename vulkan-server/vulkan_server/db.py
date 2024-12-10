@@ -1,5 +1,6 @@
 import enum
 import os
+from functools import lru_cache
 
 from sqlalchemy import (
     ARRAY,
@@ -24,30 +25,33 @@ from vulkan.core.run import JobStatus, RunStatus
 
 Base = declarative_base()
 
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
-DB_DATABASE = os.getenv("DB_DATABASE")
-if (
-    DB_USER is None
-    or DB_PASSWORD is None
-    or DB_HOST is None
-    or DB_PORT is None
-    or DB_DATABASE is None
-):
-    raise ValueError(
-        "Please set the following environment variables: DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_DATABASE"
-    )
 
-connection_str = (
-    f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_DATABASE}"
-)
-engine = create_engine(connection_str, echo=True)
-DBSession = sessionmaker(bind=engine)
+@lru_cache
+def _make_engine():
+    DB_USER = os.getenv("DB_USER")
+    DB_PASSWORD = os.getenv("DB_PASSWORD")
+    DB_HOST = os.getenv("DB_HOST")
+    DB_PORT = os.getenv("DB_PORT")
+    DB_DATABASE = os.getenv("DB_DATABASE")
+    if (
+        DB_USER is None
+        or DB_PASSWORD is None
+        or DB_HOST is None
+        or DB_PORT is None
+        or DB_DATABASE is None
+    ):
+        raise ValueError(
+            "Please set the following environment variables: DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_DATABASE"
+        )
+
+    connection_str = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_DATABASE}"
+    engine = create_engine(connection_str, echo=True)
+    return engine
 
 
 def get_db():
+    engine = _make_engine()
+    DBSession = sessionmaker(bind=engine)
     db = DBSession()
     try:
         yield db
@@ -422,4 +426,5 @@ class BacktestMetrics(AuthorizationMixin, TimedUpdateMixin, Base):
 
 
 if __name__ == "__main__":
+    engine = _make_engine()
     Base.metadata.create_all(engine)

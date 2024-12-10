@@ -8,7 +8,7 @@ from vulkan.core.run import RunStatus
 from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.dagster.client import DagsterDataClient
-from vulkan_server.db import DBSession, Run, StepMetadata, get_db
+from vulkan_server.db import Run, StepMetadata, get_db
 from vulkan_server.logger import init_logger
 
 logger = init_logger("runs")
@@ -112,14 +112,17 @@ def get_run(run_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{run_id}/metadata")
-def publish_metadata(run_id: str, config: schemas.StepMetadataBase):
+def publish_metadata(
+    run_id: str,
+    config: schemas.StepMetadataBase,
+    db: Session = Depends(get_db),
+):
     try:
-        with DBSession() as db:
-            args = {"run_id": run_id, **config.model_dump()}
-            meta = StepMetadata(**args)
-            db.add(meta)
-            db.commit()
-            return {"status": "success"}
+        args = {"run_id": run_id, **config.model_dump()}
+        meta = StepMetadata(**args)
+        db.add(meta)
+        db.commit()
+        return {"status": "success"}
     except KeyError as e:
         raise HTTPException(status_code=400, detail=e)
     except Exception as e:

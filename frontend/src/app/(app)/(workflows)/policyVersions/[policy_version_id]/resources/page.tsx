@@ -10,7 +10,7 @@ import {
 import Loader from "@/components/loader";
 import { PolicyVersionComponentDependenciesTable } from "@/components/component/dependencies-table";
 
-import { ConfigVariablesTable, DataSourcesTable, EmptyVariablesTable } from "./components";
+import { ConfigVariablesTable, DataSourcesTable } from "./components";
 
 export default async function Page({ params }) {
     const user = await stackServerApp.getUser();
@@ -53,13 +53,10 @@ async function ConfigVariablesSection({
 }) {
     const variables = await fetchPolicyVersionVariables(user, policy_version_id).catch((error) => {
         console.error(error);
+        return [];
     });
 
-    return variables?.length > 0 ? (
-        <ConfigVariablesTable variables={variables} />
-    ) : (
-        <EmptyVariablesTable />
-    );
+    return <ConfigVariablesTable variables={variables} />;
 }
 
 async function ComponentsSection({
@@ -72,6 +69,7 @@ async function ComponentsSection({
     const components = await fetchPolicyVersionComponents(user, policy_version_id).catch(
         (error) => {
             console.error(error);
+            return [];
         },
     );
 
@@ -88,14 +86,9 @@ async function DataSourcesSection({
     const dataSources = await fetchPolicyVersionDataSources(user, policy_version_id).catch(
         (error) => {
             console.error(error);
+            return [];
         },
     );
 
-    return dataSources?.length > 0 ? (
-        <DataSourcesTable sources={dataSources} />
-    ) : (
-        <div className="flex justify-center items-center h-32 text-gray-500">
-            This policy version has no data sources.
-        </div>
-    );
+    return <DataSourcesTable sources={dataSources} />;
 }

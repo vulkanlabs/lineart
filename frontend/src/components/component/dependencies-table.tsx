@@ -1,112 +1,96 @@
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+"use client";
 import { ShortenedID } from "@/components/shortened-id";
-
-import { LinkIcon } from "lucide-react";
 import Link from "next/link";
 
-type ComponentDependency = {
-    component_name: string;
-    component_id: string;
-    component_version_id: string;
-    component_version_alias: string;
-    policy_id: string;
-    policy_name: string;
-    policy_version_id: string;
-    policy_version_alias: string;
-};
+import { DataTable } from "@/components/data-table";
+import { ColumnDef } from "@tanstack/react-table";
+import { ComponentVersionDependencyExpanded } from "@vulkan-server/ComponentVersionDependencyExpanded";
+import { LinkIcon } from "lucide-react";
 
-export function ComponentVersionDependenciesTable({ entries }: { entries: ComponentDependency[] }) {
+const ComponentDependenciesTableColumns: ColumnDef<ComponentVersionDependencyExpanded>[] = [
+    {
+        accessorKey: "component_version_id",
+        header: "Component ID",
+        cell: ({ row }) => <ShortenedID id={row.getValue("component_version_id")} />,
+    },
+    {
+        accessorKey: "component_version_alias",
+        header: "Component Version",
+    },
+    {
+        accessorKey: "policy_id",
+        header: "Policy ID",
+        cell: ({ row }) => <ShortenedID id={row.getValue("policy_id")} />,
+    },
+    {
+        accessorKey: "policy_name",
+        header: "Policy Name",
+    },
+    {
+        accessorKey: "policy_version_id",
+        header: "Policy Version",
+        cell: ({ row }) => <ShortenedID id={row.getValue("policy_version_id")} />,
+    },
+    {
+        accessorKey: "policy_version_alias",
+        header: "Version Tag",
+    },
+];
+
+export function ComponentVersionDependenciesTable({
+    entries,
+}: {
+    entries: ComponentVersionDependencyExpanded[];
+}) {
     return (
-        <Table>
-            <TableCaption>Policies that use this Component.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Component ID</TableHead>
-                    <TableHead>Component Version</TableHead>
-                    <TableHead>Policy ID</TableHead>
-                    <TableHead>Policy Name</TableHead>
-                    <TableHead>Policy Version</TableHead>
-                    <TableHead>Version Tag</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {entries?.map((entry) => (
-                    <TableRow key={entry.component_version_id + entry.policy_version_id}>
-                        <TableCell>
-                            <ShortenedID id={entry.component_version_id} />
-                        </TableCell>
-                        <TableCell>{entry.component_version_alias}</TableCell>
-                        <TableCell>
-                            <ShortenedID id={entry.policy_id} />
-                        </TableCell>
-                        <TableCell>{entry.policy_name}</TableCell>
-                        <TableCell>
-                            <ShortenedID id={entry.policy_version_id} />
-                        </TableCell>
-                        <TableCell>{entry.policy_version_alias}</TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
+        <DataTable
+            columns={ComponentDependenciesTableColumns}
+            data={entries}
+            emptyMessage="No dependencies found"
+        />
     );
 }
+
+const PolicyDependenciesTableColumns: ColumnDef<ComponentVersionDependencyExpanded>[] = [
+    {
+        accessorKey: "link",
+        header: "",
+        cell: ({ row }) => (
+            <Link href={`/components/${row.getValue("component_id")}`}>
+                <LinkIcon />
+            </Link>
+        ),
+    },
+    {
+        accessorKey: "component_name",
+        header: "Component Name",
+    },
+    {
+        accessorKey: "component_version_alias",
+        header: "Component Version",
+    },
+    {
+        accessorKey: "component_id",
+        header: "Component ID",
+        cell: ({ row }) => <ShortenedID id={row.getValue("component_id")} />,
+    },
+    {
+        accessorKey: "component_version_id",
+        header: "Component ID",
+        cell: ({ row }) => <ShortenedID id={row.getValue("component_version_id")} />,
+    },
+];
 
 export function PolicyVersionComponentDependenciesTable({
     entries,
 }: {
-    entries: ComponentDependency[];
+    entries: ComponentVersionDependencyExpanded[];
 }) {
-    if (!entries || entries.length === 0) {
-        return <EmptyDependenciesTable />;
-    }
-
     return (
-        <Table>
-            <TableCaption>Components used in this Policy Version.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Component Name</TableHead>
-                    <TableHead>Component Version</TableHead>
-                    <TableHead>Component ID</TableHead>
-                    <TableHead>Component Version ID</TableHead>
-                    <TableHead>Link</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {entries.map((entry) => (
-                    <TableRow key={entry.component_version_id + entry.policy_version_id}>
-                        <TableCell>{entry.component_name}</TableCell>
-                        <TableCell>{entry.component_version_alias}</TableCell>
-                        <TableCell>
-                            <ShortenedID id={entry.component_id} />
-                        </TableCell>
-                        <TableCell>
-                            <ShortenedID id={entry.component_version_id} />
-                        </TableCell>
-                        <TableCell>
-                            <Link href={`/components/`}>
-                                <LinkIcon />
-                            </Link>
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
-}
-
-function EmptyDependenciesTable() {
-    return (
-        <div className="flex justify-center items-center h-32 text-gray-500">
-            No dependencies found.
-        </div>
+        <DataTable
+            columns={PolicyDependenciesTableColumns}
+            data={entries}
+            emptyMessage="No dependencies found"
+        />
     );
 }

@@ -1,17 +1,17 @@
 steps:
-  - name: python
+  - name: "python:3.12"
     entrypoint: python
     args: ['-m', 'pip', 'install', '--upgrade',  'pip', 'build', 'twine', 'keyrings.google-artifactregistry-auth', '--user']
 
-  - name: python
+  - name: "python:3.12"
     entrypoint: python
     args: ['-m', 'build', 'vulkan-public']
 
-  - name: python
+  - name: "python:3.12"
     entrypoint: python
     args: ['-m', 'build', 'vulkan']
   
-  - name: python
+  - name: "python:3.12"
     entrypoint: python
     args:
     - '-m'
@@ -22,7 +22,7 @@ steps:
     - 'https://${_LOCATION}-python.pkg.dev/$PROJECT_ID/${_REPOSITORY}/'
     - '/workspace/vulkan-public/dist/*'
     - '/workspace/vulkan/dist/*'
-  
+
   - name: 'gcr.io/cloud-builders/docker'
     id: 'base-image'
     args: [
