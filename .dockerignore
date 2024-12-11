@@ -1,7 +1,9 @@
-.venv
-.pytest_cache
-.ruff_cache
-build
-__pycache__
-*.egg-info
+.venv/
+.pytest_cache/
+.ruff_cache/
+build/
+__pycache__/
+*.egg-info/
+.git/
+.next/
 node_modules/
