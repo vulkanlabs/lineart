@@ -30,6 +30,7 @@ export default function PoliciesPage({ policies }: { policies: any[] }) {
 const PolicyTableColumns: ColumnDef<Policy>[] = [
     {
         accessorKey: "link",
+        header: "",
         cell: ({ row }) => (
             <DetailsButton href={`/policies/${row.getValue("policy_id")}/versions`} />
         ),

@@ -98,8 +98,12 @@ def get_backfill_results(
             status_code=404,
             detail={"msg": f"Backtest {backfill_id} not found"},
         )
-
-    # FIXME: check also that the status is "SUCCESS"
+    
+    if backfill.status != RunStatus.SUCCESS:
+        raise HTTPException(
+            status_code=400,
+            detail={"msg": f"Backtest {backfill_id} is not finished yet or finished with a failure"},
+        )
 
     try:
         results = results_db.load_data(backfill.output_path)

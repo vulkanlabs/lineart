@@ -9,6 +9,7 @@ import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 
 const PolicyVersionsTableColumns: ColumnDef<PolicyVersion>[] = [
     {
+        header: "",
         accessorKey: "link",
         cell: ({ row }) => (
             <DetailsButton href={`/policyVersions/${row.getValue("policy_version_id")}/workflow`} />
