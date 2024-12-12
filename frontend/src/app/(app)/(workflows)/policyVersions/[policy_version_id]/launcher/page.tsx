@@ -5,7 +5,6 @@ import { fetchPolicyVersion, getAuthHeaders } from "@/lib/api";
 import { LauncherPage } from "./components";
 import { postLaunchFormAction } from "./actions";
 
-// TODO: does this work when building?
 export default async function Page({ params }) {
     const user = await stackServerApp.getUser();
     const authHeaders = await getAuthHeaders(user);
