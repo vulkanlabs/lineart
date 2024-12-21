@@ -86,7 +86,7 @@ class WriteParquet(beam.PTransform):
         return (
             pcoll
             | "Process Result" >> beam.ParDo(ProcessResultFn(self.backfill_id))
-            | "Write to GCS" >> beam.io.WriteToParquet(self.filepath, self.schema)
+            | "Write to Parquet" >> beam.io.WriteToParquet(self.filepath, self.schema)
         )
 
 

@@ -25,6 +25,7 @@ uv.lock
 # cache
 .pytest_cache/
 .ruff_cache/
+.ipynb_checkpoints/
 
 # local env files
 .env*

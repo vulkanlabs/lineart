@@ -31,8 +31,3 @@ cli.add_command(commands.run.run)
 cli.add_command(commands.data.data)
 cli.add_command(commands.init.init)
 
-
-def config_environment():
-    # TODO: create the config as a yaml file dynamically
-    # so it can later be used to create / update the workspace.
-    pass

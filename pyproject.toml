@@ -4,11 +4,16 @@ version = "0.1.0"
 description = "A monorepo for all Vulkan projects."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["vulkan", "vulkan-public", "vulkan-server"]
+dependencies = [
+    "vulkan",
+    "vulkan-public",
+    "vulkan-server",
+]
 
 [tool.uv]
 dev-dependencies = [
     "questionary>=2.0.1",
+    "pre-commit>=4",
 ]
 
 [tool.uv.workspace]

@@ -24,11 +24,9 @@ class BeamPipelineBuilder:
     def __init__(
         self,
         policy: Policy,
-        backfill_id: str,
         output_path: str,
         data_sources: dict[str, DataEntryConfig],
         config_variables: dict[str, str] = {},
-        pipeline_options: PipelineOptions | None = None,
     ):
         self.nodes: GraphNodes = policy.flattened_nodes
         self.edges: GraphEdges = policy.flattened_dependencies
@@ -36,14 +34,17 @@ class BeamPipelineBuilder:
 
         self.output_path = output_path
         self.data_sources = data_sources
+        self.config_variables = config_variables
         self.context = make_beam_context(config_variables)
 
-        self.backfill_id = backfill_id
-        self.pipeline_options = pipeline_options
-        if not self.pipeline_options:
-            self.pipeline_options = PipelineOptions()
 
-    def build(self) -> BeamPipeline:
+    def build(
+        self,
+        backfill_id: str,
+        pipeline_options: PipelineOptions | None = None,
+    ) -> BeamPipeline:
+        if not pipeline_options:
+            pipeline_options = PipelineOptions()
         nodes = []
 
         for node in self.nodes:
@@ -56,14 +57,18 @@ class BeamPipelineBuilder:
                 nodes.append(node)
 
         sorted_nodes = sort_nodes(nodes, self.edges)
-        return self.build_pipeline(input_node, sorted_nodes)
+        return self._build_pipeline(input_node, sorted_nodes, backfill_id, pipeline_options)
 
-    def build_pipeline(self, input_node, sorted_nodes):
+    def _build_pipeline(
+        self, input_node, sorted_nodes, 
+        backfill_id: str,
+        pipeline_options: PipelineOptions
+    ):
         """Build a Beam pipeline from a list of BeamNodes
 
         Handles IO steps, reading from and writing to GCS.
         """
-        pipeline = beam.Pipeline(options=self.pipeline_options)
+        pipeline = beam.Pipeline(options=pipeline_options)
 
         # Create the input PCollection and the collections map
         input_data = pipeline | "Read Input" >> ReadParquet(input_node.source)
@@ -78,7 +83,7 @@ class BeamPipelineBuilder:
 
         # Write the output to GCS
         result | "Write Output" >> WriteParquet(
-            output_prefix, output_schema, self.backfill_id
+            output_prefix, output_schema, backfill_id
         )
 
         return pipeline

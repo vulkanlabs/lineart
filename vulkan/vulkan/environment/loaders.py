@@ -7,6 +7,7 @@ from vulkan.core.component import ComponentGraph, check_all_parameters_specified
 from vulkan.core.policy import Policy
 
 
+
 def resolve_policy(module_name: str, components_base_dir: str) -> Policy:
     policy_definition = load_policy_definition(module_name)
     components = []
