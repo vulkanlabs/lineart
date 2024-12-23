@@ -19,4 +19,4 @@ class DummyLogger:
 
 
 def make_beam_context(env: dict | None = None) -> VulkanExecutionContext:
-    return VulkanExecutionContext(logger=DummyLogger(), env=env)
+    return VulkanExecutionContext(logger=DummyLogger, env=env)

@@ -116,6 +116,7 @@ _IMPLEMENTED_NODETYPES = [
     NodeType.BRANCH,
     NodeType.TRANSFORM,
     NodeType.TERMINATE,
+    NodeType.DATA_INPUT,
 ]
 
 
@@ -191,6 +192,10 @@ class __PipelineBuilder:
 
         elif node.type == NodeType.TERMINATE:
             output = pcoll | f"Terminate: {node.name}" >> node.op()
+            self.collections[node.name] = output
+
+        elif node.type == NodeType.DATA_INPUT:
+            output = pcoll | f"Data Input: {node.name}" >> node.op()
             self.collections[node.name] = output
 
         else:

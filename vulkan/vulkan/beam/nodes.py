@@ -2,6 +2,7 @@ from abc import ABC
 from functools import partial
 
 import apache_beam as beam
+from apache_beam.transforms.enrichment import Enrichment, EnrichmentSourceHandler
 from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes import (
     BranchNode,
@@ -40,6 +41,17 @@ class BeamInput(InputNode, BeamNode):
         )
 
 
+class _HTTPHandler(EnrichmentSourceHandler):
+    def __init__(self, source: str):
+        self.source = source
+
+    def __call__(self, request: tuple, *args, **kwargs):
+        key = request[0]
+        values = request[1]
+        req = beam.Row(key=key, **values)
+        return req, beam.Row(**{"source": self.source, "message": "Hello, world!"})
+
+
 class BeamDataInput(DataInputNode, BeamNode):
     def __init__(
         self,
@@ -63,6 +75,14 @@ class BeamDataInput(DataInputNode, BeamNode):
             description=node.description,
             dependencies=node.dependencies,
         )
+
+    def op(self) -> beam.PTransform:
+        return Enrichment(
+            source_handler=self._handler()
+        ) | "Expand Row as Tuple" >> beam.Map(lambda r: (r.key, r.as_dict()))
+
+    def _handler(self) -> EnrichmentSourceHandler:
+        return _HTTPHandler(self.source)
 
 
 class BeamTransformFn(beam.DoFn):
