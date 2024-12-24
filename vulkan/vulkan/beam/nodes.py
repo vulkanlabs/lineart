@@ -1,8 +1,12 @@
 from abc import ABC
 from functools import partial
+from json import JSONDecodeError
 
 import apache_beam as beam
+import requests
 from apache_beam.transforms.enrichment import Enrichment, EnrichmentSourceHandler
+from vulkan_public.connections import make_request
+from vulkan_public.schemas import DataSourceSpec
 from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes import (
     BranchNode,
@@ -12,6 +16,8 @@ from vulkan_public.spec.nodes import (
     TerminateNode,
     TransformNode,
 )
+
+from vulkan.core.context import VulkanExecutionContext
 
 
 class BeamNode(ABC):
@@ -25,31 +31,67 @@ class BeamInput(InputNode, BeamNode):
         self,
         name: str,
         source: str,
+        spec,
         schema: dict[str, type],
         description: str | None = None,
     ):
         super().__init__(name=name, description=description, schema=schema)
         self.source = source
+        self.spec = spec
 
     @classmethod
-    def from_spec(cls, node: InputNode, source: str):
+    def from_spec(cls, node: InputNode, source: str, spec):
         return cls(
             name=node.name,
             description=node.description,
             source=source,
+            spec=spec,
             schema=node.schema,
         )
 
 
 class _HTTPHandler(EnrichmentSourceHandler):
-    def __init__(self, source: str):
+    def __init__(
+        self, context: VulkanExecutionContext, source: str, spec: DataSourceSpec
+    ):
+        self.context = context
         self.source = source
+        self.spec = spec
+
+    def __enter__(self):
+        self._session = requests.Session()
 
     def __call__(self, request: tuple, *args, **kwargs):
         key = request[0]
         values = request[1]
+
+        prepared_request = make_request(self.spec, values, {})
+        raw_response = self._session.send(
+            prepared_request, timeout=self.spec.request.timeout
+        )
+
+        response_data = None
+        if raw_response.status_code == 200:
+            try:
+                response_data = raw_response.json()
+            except JSONDecodeError:
+                response_data = raw_response.content
+
         req = beam.Row(key=key, **values)
-        return req, beam.Row(**{"source": self.source, "message": "Hello, world!"})
+        response = beam.Row(
+            **{
+                "source": self.source,
+                "status_code": raw_response.status_code,
+                "data": response_data,
+                "headers": dict(raw_response.headers),
+            }
+        )
+        self.context.log.info(
+            f"HTTP request to {self.source} returned {raw_response.status_code}"
+        )
+        self.context.log.info(f"Request: {req} \n Response: {response}")
+
+        return req, response
 
 
 class BeamDataInput(DataInputNode, BeamNode):
@@ -57,6 +99,7 @@ class BeamDataInput(DataInputNode, BeamNode):
         self,
         name: str,
         source: str,
+        spec: DataSourceSpec,
         description: str | None = None,
         dependencies: dict | None = None,
     ):
@@ -66,14 +109,16 @@ class BeamDataInput(DataInputNode, BeamNode):
             description=description,
             dependencies=dependencies,
         )
+        self.spec = spec
 
     @classmethod
-    def from_spec(cls, node: DataInputNode):
+    def from_spec(cls, node: DataInputNode, spec: DataSourceSpec):
         return cls(
             name=node.name,
             source=node.source,
             description=node.description,
             dependencies=node.dependencies,
+            spec=spec,
         )
 
     def op(self) -> beam.PTransform:
@@ -82,7 +127,11 @@ class BeamDataInput(DataInputNode, BeamNode):
         ) | "Expand Row as Tuple" >> beam.Map(lambda r: (r.key, r.as_dict()))
 
     def _handler(self) -> EnrichmentSourceHandler:
-        return _HTTPHandler(self.source)
+        return _HTTPHandler(self.context, self.source, self.spec)
+
+    def with_context(self, context: VulkanExecutionContext) -> "BeamDataInput":
+        self.context = context
+        return self
 
 
 class BeamTransformFn(beam.DoFn):
@@ -222,11 +271,18 @@ def to_beam_nodes(nodes: list[Node]) -> list[BeamNode]:
     return [to_beam_node(node) for node in nodes]
 
 
-def to_beam_node(node: Node) -> BeamNode:
+def to_beam_node(node: Node, data_sources: dict[str, DataSourceSpec]) -> BeamNode:
     typ = type(node)
     impl_type = _NODE_TYPE_MAP.get(typ)
     if impl_type is None:
         msg = f"Node type {typ} has no known Beam implementation"
         raise ValueError(msg)
+
+    if impl_type == BeamDataInput:
+        source = data_sources[node.source]
+        return impl_type.from_spec(
+            node,
+            source.spec,
+        )
 
     return impl_type.from_spec(node)

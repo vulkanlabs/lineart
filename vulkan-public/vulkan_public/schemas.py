@@ -13,8 +13,8 @@ ConfigurableMapping = dict[str, BaseType | list[BaseType] | EnvVarConfig]
 class RequestOptions(BaseModel):
     url: str
     method: str = "GET"
-    headers: ConfigurableMapping | None = None
-    params: ConfigurableMapping | None = None
+    headers: ConfigurableMapping | None = dict()
+    params: ConfigurableMapping | None = dict()
     body_schema: dict | None = None
     timeout: int | None = None
 
@@ -37,12 +37,12 @@ class RetryPolicy(BaseModel):
     status_forcelist: list[int] | None = None
 
 
-class DataSourceCreate(BaseModel):
+class DataSourceSpec(BaseModel):
     name: str
     keys: list[str]
     request: RequestOptions
     caching: CachingOptions
-    retry: RetryPolicy | None = None
+    retry: RetryPolicy | None = RetryPolicy(max_retries=1)
     description: str | None = None
     metadata: dict | None = None
 

@@ -1,7 +1,7 @@
 from enum import Enum
 
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes import BranchNode, TerminateNode, DataInputNode
+from vulkan_public.spec.nodes import BranchNode, DataInputNode, TerminateNode
 from vulkan_public.spec.policy import PolicyDefinition
 
 
@@ -13,7 +13,7 @@ class Status(Enum):
 sample_api = DataInputNode(
     name="sample_api",
     description="DataInputNode data",
-    source="https://jsonplaceholder.typicode.com/todos/1",
+    source="vendor-name:api-name:v0.0.1",
     dependencies={"inputs": Dependency(INPUT_NODE)},
 )
 
@@ -32,6 +32,7 @@ denied = TerminateNode(
     return_status=Status.DENIED,
     dependencies={"condition": Dependency("branch_1", "denied")},
 )
+
 
 # Branching node
 def branch_condition_1(context, scores, **kwargs):

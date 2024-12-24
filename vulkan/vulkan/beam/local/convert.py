@@ -10,7 +10,8 @@ def build_beam_policy(
     config_variables: dict[str, str] | None = None,
 ):
     data_sources_map = {
-        name: DataEntryConfig(source=source) for name, source in data_sources.items()
+        name: DataEntryConfig(source=name, spec=source)
+        for name, source in data_sources.items()
     }
 
     builder = BeamPipelineBuilder(

@@ -4,12 +4,19 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.pipeline import Pipeline as BeamPipeline
 from apache_beam.pvalue import AsSingleton, PCollection
+from vulkan_public.schemas import DataSourceSpec
 from vulkan_public.spec.dependency import INPUT_NODE
 from vulkan_public.spec.nodes import InputNode, NodeType
 
 from vulkan.beam.context import make_beam_context
 from vulkan.beam.io import ReadParquet, WriteParquet
-from vulkan.beam.nodes import BeamInput, BeamLogicNode, BeamNode, to_beam_node
+from vulkan.beam.nodes import (
+    BeamDataInput,
+    BeamInput,
+    BeamLogicNode,
+    BeamNode,
+    to_beam_node,
+)
 from vulkan.core.graph import GraphEdges, GraphNodes, sort_nodes
 from vulkan.core.policy import Policy
 
@@ -17,7 +24,7 @@ from vulkan.core.policy import Policy
 @dataclass
 class DataEntryConfig:
     source: str
-    schema: dict[str, type] | None = None
+    spec: DataSourceSpec
 
 
 class BeamPipelineBuilder:
@@ -37,7 +44,6 @@ class BeamPipelineBuilder:
         self.config_variables = config_variables
         self.context = make_beam_context(config_variables)
 
-
     def build(
         self,
         backfill_id: str,
@@ -51,18 +57,25 @@ class BeamPipelineBuilder:
             if node.type == NodeType.INPUT:
                 input_node = self._make_beam_input(node)
             else:
-                node = to_beam_node(node)
-                if isinstance(node, BeamLogicNode):
+                node = to_beam_node(node, data_sources=self.data_sources)
+                if isinstance(node, (BeamLogicNode, BeamDataInput)):
                     node = node.with_context(self.context)
                 nodes.append(node)
 
         sorted_nodes = sort_nodes(nodes, self.edges)
-        return self._build_pipeline(input_node, sorted_nodes, backfill_id, pipeline_options)
+        return self._build_pipeline(
+            input_node,
+            sorted_nodes,
+            backfill_id,
+            pipeline_options,
+        )
 
     def _build_pipeline(
-        self, input_node, sorted_nodes, 
+        self,
+        input_node: BeamInput,
+        sorted_nodes: list[BeamNode],
         backfill_id: str,
-        pipeline_options: PipelineOptions
+        pipeline_options: PipelineOptions,
     ):
         """Build a Beam pipeline from a list of BeamNodes
 
@@ -71,7 +84,7 @@ class BeamPipelineBuilder:
         pipeline = beam.Pipeline(options=pipeline_options)
 
         # Create the input PCollection and the collections map
-        input_data = pipeline | "Read Input" >> ReadParquet(input_node.source)
+        input_data = pipeline | "Read Input" >> ReadParquet(input_node.spec)
         collections = {INPUT_NODE: input_data}
 
         # Build the nodes into the pipeline
@@ -89,8 +102,12 @@ class BeamPipelineBuilder:
         return pipeline
 
     def _make_beam_input(self, node: InputNode) -> BeamInput:
-        source = self.data_sources[INPUT_NODE].source
-        return BeamInput.from_spec(node, source=source)
+        input_source = self.data_sources[INPUT_NODE]
+        return BeamInput.from_spec(
+            node,
+            source=input_source.source,
+            spec=input_source.spec,
+        )
 
     def _validate_nodes(self):
         for node in self.nodes:

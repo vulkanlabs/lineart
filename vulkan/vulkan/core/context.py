@@ -1,3 +1,5 @@
+import logging
+
 from vulkan_public.spec.context import ExecutionContext
 
 
@@ -13,3 +15,16 @@ class VulkanExecutionContext(ExecutionContext):
     @property
     def env(self):
         return self._env
+
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        d["_logger_name"] = self._logger.name
+        del d["_logger"]
+        return d
+
+    def __setstate__(self, d: dict):
+        if "_logger_name" in d:
+            d["_logger"] = logging.getLogger(d["_logger_name"])
+            del d["_logger_name"]
+
+        self.__dict__.update(d)
