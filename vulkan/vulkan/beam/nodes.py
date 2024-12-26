@@ -3,10 +3,11 @@ from functools import partial
 from json import JSONDecodeError
 
 import apache_beam as beam
+import pandas as pd
 import requests
 from apache_beam.transforms.enrichment import Enrichment, EnrichmentSourceHandler
 from vulkan_public.connections import make_request
-from vulkan_public.schemas import DataSourceSpec
+from vulkan_public.schemas import DataSourceSpec, FileSourceSpec, HTTPSourceSpec
 from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes import (
     BranchNode,
@@ -50,6 +51,53 @@ class BeamInput(InputNode, BeamNode):
         )
 
 
+class _FileHandler(EnrichmentSourceHandler):
+    def __init__(
+        self, context: VulkanExecutionContext, source: str, path: str, keys: str
+    ):
+        self.context = context
+        self.source = source
+        self.path = path
+        self.keys = keys
+        self._df = None
+
+    def __enter__(self):
+        self._df = pd.read_parquet(self.path)
+        diff = set(self.keys) - set(self._df.columns)
+        if len(diff) > 0:
+            raise ValueError(f"Keys {diff} not found in file {self.path}")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._df = None
+
+    def __call__(self, request: tuple, *args, **kwargs):
+        key = request[0]
+        values = request[1]
+
+        # Match rows based on lookup keys
+        query_str = " & ".join([f'{k} == @values["{k}"]' for k in self.keys])
+        matching_rows = self._df.query(query_str)
+
+        if len(matching_rows) == 0:
+            response_data = None
+        else:
+            response_data = matching_rows.iloc[0].to_dict()
+
+        req = beam.Row(key=key, **values)
+        response = beam.Row(
+            **{
+                "source": self.source,
+                "data": response_data,
+            }
+        )
+
+        self.context.log.info(f"File lookup in {self.source}")
+        self.context.log.info(f"Request: {req} \n Response: {response}")
+
+        return req, response
+
+
 class _HTTPHandler(EnrichmentSourceHandler):
     def __init__(
         self, context: VulkanExecutionContext, source: str, spec: DataSourceSpec
@@ -65,9 +113,9 @@ class _HTTPHandler(EnrichmentSourceHandler):
         key = request[0]
         values = request[1]
 
-        prepared_request = make_request(self.spec, values, {})
+        prepared_request = make_request(self.spec.source, values, {})
         raw_response = self._session.send(
-            prepared_request, timeout=self.spec.request.timeout
+            prepared_request, timeout=self.spec.source.timeout
         )
 
         response_data = None
@@ -127,7 +175,23 @@ class BeamDataInput(DataInputNode, BeamNode):
         ) | "Expand Row as Tuple" >> beam.Map(lambda r: (r.key, r.as_dict()))
 
     def _handler(self) -> EnrichmentSourceHandler:
-        return _HTTPHandler(self.context, self.source, self.spec)
+        if isinstance(self.spec.source, HTTPSourceSpec):
+            return _HTTPHandler(
+                self.context,
+                self.source,
+                self.spec,
+            )
+        elif isinstance(self.spec.source, FileSourceSpec):
+            return _FileHandler(
+                self.context,
+                self.source,
+                self.spec.source.path,
+                self.spec.keys,
+            )
+        else:
+            raise NotImplementedError(
+                f"Source type {type(self.spec.source)} not supported"
+            )
 
     def with_context(self, context: VulkanExecutionContext) -> "BeamDataInput":
         self.context = context

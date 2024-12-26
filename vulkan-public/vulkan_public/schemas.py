@@ -10,15 +10,6 @@ class EnvVarConfig(BaseModel):
 ConfigurableMapping = dict[str, BaseType | list[BaseType] | EnvVarConfig]
 
 
-class RequestOptions(BaseModel):
-    url: str
-    method: str = "GET"
-    headers: ConfigurableMapping | None = dict()
-    params: ConfigurableMapping | None = dict()
-    body_schema: dict | None = None
-    timeout: int | None = None
-
-
 class CachingTTL(BaseModel):
     days: int = 0
     hours: int = 0
@@ -37,12 +28,25 @@ class RetryPolicy(BaseModel):
     status_forcelist: list[int] | None = None
 
 
+class HTTPSourceSpec(BaseModel):
+    url: str
+    method: str = "GET"
+    headers: ConfigurableMapping | None = dict()
+    params: ConfigurableMapping | None = dict()
+    body_schema: dict | None = None
+    timeout: int | None = None
+    retry: RetryPolicy | None = RetryPolicy(max_retries=1)
+
+
+class FileSourceSpec(BaseModel):
+    path: str
+
+
 class DataSourceSpec(BaseModel):
     name: str
     keys: list[str]
-    request: RequestOptions
+    source: HTTPSourceSpec | FileSourceSpec
     caching: CachingOptions
-    retry: RetryPolicy | None = RetryPolicy(max_retries=1)
     description: str | None = None
     metadata: dict | None = None
 

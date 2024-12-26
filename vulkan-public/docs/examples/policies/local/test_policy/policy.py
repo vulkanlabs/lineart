@@ -17,6 +17,34 @@ sample_api = DataInputNode(
     dependencies={"inputs": Dependency(INPUT_NODE)},
 )
 
+sample_file_input = DataInputNode(
+    name="sample_file_input",
+    description="DataInputNode with File Input",
+    source="file-input:api-name:v0.0.2",
+    dependencies={"inputs": Dependency(INPUT_NODE)},
+)
+
+
+# Branching node
+def branch_condition_1(context, scores, file_inputs, **kwargs):
+    context.log.info(f"BranchNode data: {scores}")
+    context.log.info(f"File Input data: {file_inputs}")
+    if scores["score"] > context.env.get("SCORE_CUTOFF", 500):
+        return "approved"
+    return "denied"
+
+
+branch_1 = BranchNode(
+    func=branch_condition_1,
+    name="branch_1",
+    description="BranchNode data",
+    dependencies={
+        "scores": Dependency(sample_api.name),
+        "file_inputs": Dependency(sample_file_input.name),
+    },
+    outputs=["approved", "denied"],
+)
+
 
 approved = TerminateNode(
     name="approved",
@@ -34,25 +62,10 @@ denied = TerminateNode(
 )
 
 
-# Branching node
-def branch_condition_1(context, scores, **kwargs):
-    context.log.info(f"BranchNode data: {scores}")
-    if scores["score"] > context.env.get("SCORE_CUTOFF", 500):
-        return "approved"
-    return "denied"
-
-
-branch_1 = BranchNode(
-    func=branch_condition_1,
-    name="branch_1",
-    description="BranchNode data",
-    dependencies={"scores": Dependency(sample_api.name)},
-    outputs=["approved", "denied"],
-)
-
 demo_policy = PolicyDefinition(
     nodes=[
         sample_api,
+        sample_file_input,
         branch_1,
         approved,
         denied,

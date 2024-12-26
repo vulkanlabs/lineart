@@ -56,11 +56,12 @@ class BeamPipelineBuilder:
         for node in self.nodes:
             if node.type == NodeType.INPUT:
                 input_node = self._make_beam_input(node)
-            else:
-                node = to_beam_node(node, data_sources=self.data_sources)
-                if isinstance(node, (BeamLogicNode, BeamDataInput)):
-                    node = node.with_context(self.context)
-                nodes.append(node)
+                continue
+
+            node = to_beam_node(node, data_sources=self.data_sources)
+            if isinstance(node, (BeamLogicNode, BeamDataInput)):
+                node = node.with_context(self.context)
+            nodes.append(node)
 
         sorted_nodes = sort_nodes(nodes, self.edges)
         return self._build_pipeline(
