@@ -76,6 +76,10 @@ class _FileHandler(EnrichmentSourceHandler):
         values = request[1]
 
         # Match rows based on lookup keys
+        #    SELECT *
+        #      FROM self._df
+        #     WHERE colA = @values.colA
+        #           ...
         query_str = " & ".join([f'{k} == @values["{k}"]' for k in self.keys])
         matching_rows = self._df.query(query_str)
 
@@ -86,10 +90,8 @@ class _FileHandler(EnrichmentSourceHandler):
 
         req = beam.Row(key=key, **values)
         response = beam.Row(
-            **{
-                "source": self.source,
-                "data": response_data,
-            }
+            source=self.source,
+            data=response_data,
         )
 
         self.context.log.info(f"File lookup in {self.source}")
@@ -134,10 +136,6 @@ class _HTTPHandler(EnrichmentSourceHandler):
                 "headers": dict(raw_response.headers),
             }
         )
-        self.context.log.info(
-            f"HTTP request to {self.source} returned {raw_response.status_code}"
-        )
-        self.context.log.info(f"Request: {req} \n Response: {response}")
 
         return req, response
 

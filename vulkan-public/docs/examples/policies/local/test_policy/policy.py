@@ -36,7 +36,7 @@ def branch_condition_1(context, scores, file_inputs, **kwargs):
 
 branch_1 = BranchNode(
     func=branch_condition_1,
-    name="branch_1",
+    name="branch_",
     description="BranchNode data",
     dependencies={
         "scores": Dependency(sample_api.name),
