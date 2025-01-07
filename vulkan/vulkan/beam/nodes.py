@@ -66,6 +66,7 @@ class _FileHandler(EnrichmentSourceHandler):
         diff = set(self.keys) - set(self._df.columns)
         if len(diff) > 0:
             raise ValueError(f"Keys {diff} not found in file {self.path}")
+        self.context.log.debug(f"Loaded {len(self._df)} rows from {self.path}")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -90,12 +91,9 @@ class _FileHandler(EnrichmentSourceHandler):
 
         req = beam.Row(key=key, **values)
         response = beam.Row(
-            source=self.source,
-            data=response_data,
+            op_data=response_data,
+            op_metadata={"source": self.source, "rows_matched": len(matching_rows)},
         )
-
-        self.context.log.info(f"File lookup in {self.source}")
-        self.context.log.info(f"Request: {req} \n Response: {response}")
 
         return req, response
 
@@ -129,12 +127,12 @@ class _HTTPHandler(EnrichmentSourceHandler):
 
         req = beam.Row(key=key, **values)
         response = beam.Row(
-            **{
+            op_data=response_data,
+            op_metadata={
                 "source": self.source,
                 "status_code": raw_response.status_code,
-                "data": response_data,
                 "headers": dict(raw_response.headers),
-            }
+            },
         )
 
         return req, response
@@ -167,10 +165,12 @@ class BeamDataInput(DataInputNode, BeamNode):
             spec=spec,
         )
 
-    def op(self) -> beam.PTransform:
-        return Enrichment(
-            source_handler=self._handler()
-        ) | "Expand Row as Tuple" >> beam.Map(lambda r: (r.key, r.as_dict()))
+    def op(self) -> tuple[beam.PTransform, beam.PTransform]:
+        enrich = Enrichment(source_handler=self._handler())
+        split = enrich | f"{self.name} - Extract Data and Metadata" >> beam.ParDo(
+            _ExtractDataAndMetadataFn()
+        )
+        return split
 
     def _handler(self) -> EnrichmentSourceHandler:
         if isinstance(self.spec.source, HTTPSourceSpec):
@@ -194,6 +194,12 @@ class BeamDataInput(DataInputNode, BeamNode):
     def with_context(self, context: VulkanExecutionContext) -> "BeamDataInput":
         self.context = context
         return self
+
+
+class _ExtractDataAndMetadataFn(beam.DoFn):
+    def process(self, element: beam.Row, *args, **kwargs):
+        key = element.key
+        return (key, element.op_data), (key, element.op_metadata)
 
 
 class BeamTransformFn(beam.DoFn):
