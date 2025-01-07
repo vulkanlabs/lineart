@@ -31,22 +31,19 @@ class BeamInput(InputNode, BeamNode):
     def __init__(
         self,
         name: str,
-        source: str,
-        spec,
+        data_path: str,
         schema: dict[str, type],
         description: str | None = None,
     ):
         super().__init__(name=name, description=description, schema=schema)
-        self.source = source
-        self.spec = spec
+        self.data_path = data_path
 
     @classmethod
-    def from_spec(cls, node: InputNode, source: str, spec):
+    def from_spec(cls, node: InputNode, data_path: str):
         return cls(
             name=node.name,
             description=node.description,
-            source=source,
-            spec=spec,
+            data_path=data_path,
             schema=node.schema,
         )
 
@@ -142,14 +139,13 @@ class BeamDataInput(DataInputNode, BeamNode):
     def __init__(
         self,
         name: str,
-        source: str,
         spec: DataSourceSpec,
         description: str | None = None,
         dependencies: dict | None = None,
     ):
         super().__init__(
             name=name,
-            source=source,
+            source=spec.name,
             description=description,
             dependencies=dependencies,
         )
@@ -159,10 +155,9 @@ class BeamDataInput(DataInputNode, BeamNode):
     def from_spec(cls, node: DataInputNode, spec: DataSourceSpec):
         return cls(
             name=node.name,
-            source=node.source,
+            spec=spec,
             description=node.description,
             dependencies=node.dependencies,
-            spec=spec,
         )
 
     def op(self) -> tuple[beam.PTransform, beam.PTransform]:
@@ -339,18 +334,11 @@ def to_beam_nodes(nodes: list[Node]) -> list[BeamNode]:
     return [to_beam_node(node) for node in nodes]
 
 
-def to_beam_node(node: Node, data_sources: dict[str, DataSourceSpec]) -> BeamNode:
+def to_beam_node(node: Node) -> BeamNode:
     typ = type(node)
     impl_type = _NODE_TYPE_MAP.get(typ)
     if impl_type is None:
         msg = f"Node type {typ} has no known Beam implementation"
         raise ValueError(msg)
-
-    if impl_type == BeamDataInput:
-        source = data_sources[node.source]
-        return impl_type.from_spec(
-            node,
-            source.spec,
-        )
 
     return impl_type.from_spec(node)

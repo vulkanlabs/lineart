@@ -11,6 +11,11 @@ stream_handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(stream_handler)
 
 db = {
+    "0": {
+        "name": "Admin",
+        "serasa": 0,
+        "scr": 0,
+    },
     "1": {
         "name": "Alice",
         "serasa": 100,

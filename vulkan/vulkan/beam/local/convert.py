@@ -1,18 +1,25 @@
-from typing import Any
+from vulkan_public.schemas import DataSourceSpec
 
-from vulkan.beam.pipeline import BeamPipelineBuilder, DataEntryConfig
+from vulkan.beam.pipeline import BeamPipelineBuilder
 
 
 def build_beam_policy(
     policy,
-    data_sources: dict[str, Any],
+    data_sources: list[DataSourceSpec],
     output_path: str,
     config_variables: dict[str, str] | None = None,
 ):
-    data_sources_map = {
-        name: DataEntryConfig(source=name, spec=source)
-        for name, source in data_sources.items()
-    }
+    if config_variables is None:
+        config_variables = {}
+
+    data_sources_map = {}
+    for source in data_sources:
+        assert isinstance(
+            source, DataSourceSpec
+        ), f"Data sources should be an instance of DataSourceSpec, got {source}"
+        if source.name in data_sources_map:
+            raise ValueError(f"Duplicate data source name: {source.name}")
+        data_sources_map[source.name] = source
 
     builder = BeamPipelineBuilder(
         policy=policy,

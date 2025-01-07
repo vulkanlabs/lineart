@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+import json
+import os
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
@@ -6,7 +7,7 @@ from apache_beam.pipeline import Pipeline as BeamPipeline
 from apache_beam.pvalue import AsSingleton, PCollection
 from vulkan_public.schemas import DataSourceSpec
 from vulkan_public.spec.dependency import INPUT_NODE
-from vulkan_public.spec.nodes import InputNode, NodeType
+from vulkan_public.spec.nodes import NodeType
 
 from vulkan.beam.context import make_beam_context
 from vulkan.beam.io import ReadParquet, WriteParquet
@@ -20,11 +21,7 @@ from vulkan.beam.nodes import (
 from vulkan.core.graph import GraphEdges, GraphNodes, sort_nodes
 from vulkan.core.policy import Policy
 
-
-@dataclass
-class DataEntryConfig:
-    source: str
-    spec: DataSourceSpec
+LOCAL_RESULTS_FILE_NAME = "_tmp_vulkan_beam_output.json"
 
 
 class BeamPipelineBuilder:
@@ -32,8 +29,8 @@ class BeamPipelineBuilder:
         self,
         policy: Policy,
         output_path: str,
-        data_sources: dict[str, DataEntryConfig],
-        config_variables: dict[str, str] = {},
+        data_sources: dict[str, DataSourceSpec] | None,
+        config_variables: dict[str, str],
     ):
         self.nodes: GraphNodes = policy.flattened_nodes
         self.edges: GraphEdges = policy.flattened_dependencies
@@ -44,48 +41,31 @@ class BeamPipelineBuilder:
         self.config_variables = config_variables
         self.context = make_beam_context(config_variables)
 
-    def build(
+    def build_batch_pipeline(
         self,
+        input_data_path: str,
         backfill_id: str,
         pipeline_options: PipelineOptions | None = None,
     ) -> BeamPipeline:
         if not pipeline_options:
             pipeline_options = PipelineOptions()
-        nodes = []
 
+        # TODO: We may want to save the input schema instead of creating this node.
+        #       This would allow us to create the input collection and output schema directly.
         for node in self.nodes:
             if node.type == NodeType.INPUT:
-                input_node = self._make_beam_input(node)
-                continue
+                input_node = BeamInput.from_spec(
+                    node,
+                    data_path=input_data_path,
+                )
 
-            node = to_beam_node(node, data_sources=self.data_sources)
-            if isinstance(node, (BeamLogicNode, BeamDataInput)):
-                node = node.with_context(self.context)
-            nodes.append(node)
+        sorted_nodes = self._make_sorted_beam_nodes()
 
-        sorted_nodes = sort_nodes(nodes, self.edges)
-        return self._build_pipeline(
-            input_node,
-            sorted_nodes,
-            backfill_id,
-            pipeline_options,
-        )
-
-    def _build_pipeline(
-        self,
-        input_node: BeamInput,
-        sorted_nodes: list[BeamNode],
-        backfill_id: str,
-        pipeline_options: PipelineOptions,
-    ):
-        """Build a Beam pipeline from a list of BeamNodes
-
-        Handles IO steps, reading from and writing to GCS.
-        """
         pipeline = beam.Pipeline(options=pipeline_options)
 
         # Create the input PCollection and the collections map
-        input_data = pipeline | "Read Input" >> ReadParquet(input_node.spec)
+        input_data = pipeline | "Read Input" >> ReadParquet(source_path=input_data_path)
+
         collections = {INPUT_NODE: input_data}
 
         # Build the nodes into the pipeline
@@ -95,20 +75,65 @@ class BeamPipelineBuilder:
         output_schema = _make_output_schema(input_node.name, input_node.schema)
         output_prefix = self.output_path + "/output"
 
-        # Write the output to GCS
+        # Write the output to a Parquet file
         result | "Write Output" >> WriteParquet(
             output_prefix, output_schema, backfill_id
         )
 
         return pipeline
 
-    def _make_beam_input(self, node: InputNode) -> BeamInput:
-        input_source = self.data_sources[INPUT_NODE]
-        return BeamInput.from_spec(
-            node,
-            source=input_source.source,
-            spec=input_source.spec,
+    def build_single_run_pipeline(
+        self,
+        input_data: dict,
+        pipeline_options: PipelineOptions | None = None,
+    ) -> BeamPipeline:
+        if not pipeline_options:
+            pipeline_options = PipelineOptions()
+
+        sorted_nodes = self._make_sorted_beam_nodes()
+
+        pipeline = beam.Pipeline(options=pipeline_options)
+
+        # Create the input PCollection and the collections map
+        input_coll = pipeline | "Create Input Collection" >> beam.Create(
+            [("sample_data", input_data)]
         )
+        collections = {INPUT_NODE: input_coll}
+
+        # Build the nodes into the pipeline
+        result = build_pipeline(pipeline, collections, sorted_nodes)
+
+        # Write the output to a Parquet file
+        output_path = os.path.join(self.output_path, LOCAL_RESULTS_FILE_NAME)
+        (
+            result
+            | "To JSON" >> beam.Map(lambda r: json.dumps(r))
+            | "Write to file"
+            >> beam.io.WriteToText(
+                output_path,
+                num_shards=1,
+                shard_name_template="",
+            )
+        )
+        return pipeline
+
+    def _make_sorted_beam_nodes(self) -> list[BeamNode]:
+        nodes = []
+        for node in self.nodes:
+            if node.type == NodeType.INPUT:
+                continue
+
+            if node.type == NodeType.DATA_INPUT:
+                source_spec = self.data_sources[node.source]
+                node = BeamDataInput.from_spec(node, source_spec)
+                node = node.with_context(self.context)
+            else:
+                node = to_beam_node(node)
+                if isinstance(node, BeamLogicNode):
+                    node = node.with_context(self.context)
+            nodes.append(node)
+
+        return sort_nodes(nodes, self.edges)
 
     def _validate_nodes(self):
         for node in self.nodes:
