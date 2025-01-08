@@ -4,8 +4,9 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
+from vulkan_public.schemas import DataSourceSpec
+
 from vulkan.core.run import JobStatus, RunStatus
-from vulkan_public.schemas import DataSourceCreate
 
 
 class Project(BaseModel):
@@ -224,7 +225,7 @@ class RunLogs(BaseModel):
     logs: list[LogEntry]
 
 
-class DataSource(DataSourceCreate):
+class DataSource(DataSourceSpec):
     data_source_id: UUID
     project_id: UUID
     variables: list[str] | None

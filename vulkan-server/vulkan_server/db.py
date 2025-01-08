@@ -21,6 +21,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
+
 from vulkan.core.run import JobStatus, RunStatus
 
 Base = declarative_base()
@@ -291,16 +292,9 @@ class DataSource(TimedUpdateMixin, AuthorizationMixin, Base):
     name = Column(String)
     description = Column(String, nullable=True)
     keys = Column(ARRAY(String))
-    request_url = Column(String)
-    request_method = Column(String)
-    request_headers = Column(JSON, nullable=True)
-    request_params = Column(JSON, nullable=True)
-    request_timeout = Column(Float, nullable=True)
+    source = Column(JSON, nullable=False)
     caching_enabled = Column(Boolean)
     caching_ttl = Column(Integer, nullable=True)
-    retry_max_retries = Column(Integer, nullable=True)
-    retry_backoff_factor = Column(Float, nullable=True)
-    retry_status_forcelist = Column(ARRAY(Integer), nullable=True)
     # Attribute name 'metadata' is reserved when using the Declarative API.
     config_metadata = Column(JSON, nullable=True)
     variables = Column(ARRAY(String), nullable=True)

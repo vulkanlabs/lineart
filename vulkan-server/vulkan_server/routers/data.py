@@ -1,7 +1,7 @@
 import requests
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from vulkan_public.schemas import DataSourceCreate
+from vulkan_public.schemas import DataSourceSpec
 
 from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
@@ -43,7 +43,7 @@ def list_data_sources(
 
 @sources.post("/")
 def create_data_source(
-    config: DataSourceCreate,
+    config: DataSourceSpec,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):

@@ -3,7 +3,7 @@ import os
 import yaml
 
 from vulkan_public.cli.context import Context
-from vulkan_public.schemas import DataSourceCreate
+from vulkan_public.schemas import DataSourceSpec
 
 
 def list_data_sources(ctx: Context, include_archived: bool = False) -> list[dict]:
@@ -17,14 +17,8 @@ def list_data_sources(ctx: Context, include_archived: bool = False) -> list[dict
     return response.json()
 
 
-def create_data_source(ctx: Context, config_path: str) -> str:
-    if not os.path.exists(config_path):
-        raise ValueError(f"Config file {config_path} does not exist")
-
-    with open(config_path, "r") as fn:
-        config = yaml.safe_load(fn)
-
-    data_source = DataSourceCreate.model_validate(config)
+def create_data_source(ctx: Context, config: dict) -> str:
+    data_source = DataSourceSpec.model_validate(config)
 
     response = ctx.session.post(
         f"{ctx.server_url}/data-sources",

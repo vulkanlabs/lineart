@@ -1,6 +1,8 @@
 import json
+import os
 
 import click
+import yaml
 from tabulate import tabulate
 
 from vulkan_public.cli import client
@@ -37,7 +39,13 @@ def create_source(
     ctx: Context,
     config_path: str,
 ):
-    return client.data.create_data_source(ctx, config_path)
+    if not os.path.exists(config_path):
+        raise ValueError(f"Config file {config_path} does not exist")
+
+    with open(config_path, "r") as fn:
+        config = yaml.safe_load(fn)
+
+    return client.data.create_data_source(ctx, config)
 
 
 @data.command()

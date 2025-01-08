@@ -1,6 +1,14 @@
+from abc import ABC, abstractmethod
+
 from pydantic import BaseModel
 
 BaseType = str | int | float | bool
+
+
+class SourceSpecBase(ABC):
+    @abstractmethod
+    def extract_env_vars(self) -> dict:
+        pass
 
 
 class EnvVarConfig(BaseModel):
@@ -28,7 +36,7 @@ class RetryPolicy(BaseModel):
     status_forcelist: list[int] | None = None
 
 
-class HTTPSourceSpec(BaseModel):
+class HTTPSource(BaseModel, SourceSpecBase):
     url: str
     method: str = "GET"
     headers: ConfigurableMapping | None = dict()
@@ -37,18 +45,44 @@ class HTTPSourceSpec(BaseModel):
     timeout: int | None = None
     retry: RetryPolicy | None = RetryPolicy(max_retries=1)
 
+    def extract_env_vars(self) -> list[str]:
+        env = []
+        if self.headers:
+            env += _extract_env_vars(self.headers)
+        if self.params:
+            env += _extract_env_vars(self.params)
 
-class FileSourceSpec(BaseModel):
+        return env
+
+
+class RegisteredFileSource(BaseModel, SourceSpecBase):
+    file_id: str
+
+    def extract_env_vars(self) -> list[str]:
+        return []
+
+
+class LocalFileSource(BaseModel):
     path: str
+
+    def extract_env_vars(self) -> list[str]:
+        return []
+
+
+def _extract_env_vars(config: dict) -> list[str]:
+    return [v.env for v in config.values() if isinstance(v, EnvVarConfig)]
 
 
 class DataSourceSpec(BaseModel):
     name: str
     keys: list[str]
-    source: HTTPSourceSpec | FileSourceSpec
+    source: HTTPSource | LocalFileSource | RegisteredFileSource
     caching: CachingOptions
     description: str | None = None
     metadata: dict | None = None
+
+    def extract_env_vars(self) -> list[str]:
+        return self.source.extract_env_vars()
 
 
 class BacktestOptions(BaseModel):
