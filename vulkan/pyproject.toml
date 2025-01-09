@@ -4,7 +4,12 @@ version = "0.1.0"
 description = ""
 authors = []
 readme = "README.md"
-dependencies = ["coloredlogs>=14.0", "gcsfs>=2024.10.0", "vulkan-public"]
+dependencies = [
+    "coloredlogs>=14.0",
+    "gcsfs>=2024.10.0",
+    "graphviz>=0.20.3",
+    "vulkan-public",
+]
 
 [project.optional-dependencies]
 beam = ["apache-beam[dataframe,gcp]>=2.60.0"]

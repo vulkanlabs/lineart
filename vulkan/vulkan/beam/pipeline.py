@@ -65,11 +65,10 @@ class BeamPipelineBuilder:
 
         # Create the input PCollection and the collections map
         input_data = pipeline | "Read Input" >> ReadParquet(source_path=input_data_path)
-
         collections = {INPUT_NODE: input_data}
 
         # Build the nodes into the pipeline
-        result = build_pipeline(pipeline, collections, sorted_nodes)
+        result, metadata = build_pipeline(pipeline, collections, sorted_nodes)
 
         # TODO: We should resolve this schema inside of the Write transform
         output_schema = _make_output_schema(input_node.name, input_node.schema)
@@ -101,9 +100,9 @@ class BeamPipelineBuilder:
         collections = {INPUT_NODE: input_coll}
 
         # Build the nodes into the pipeline
-        result = build_pipeline(pipeline, collections, sorted_nodes)
+        result, metadata = build_pipeline(pipeline, collections, sorted_nodes)
 
-        # Write the output to a Parquet file
+        # Write the output to a JSON file
         output_path = os.path.join(self.output_path, LOCAL_RESULTS_FILE_NAME)
         (
             result
@@ -115,6 +114,20 @@ class BeamPipelineBuilder:
                 shard_name_template="",
             )
         )
+
+        for step, pcoll in metadata.items():
+            metadata_path = os.path.join(self.output_path, f"{step}_metadata.json")
+            (
+                pcoll
+                | f"Format Metadata: {step}" >> beam.Map(lambda r: json.dumps(r))
+                | f"Write Metadata: {step}"
+                >> beam.io.WriteToText(
+                    metadata_path,
+                    num_shards=1,
+                    shard_name_template="",
+                )
+            )
+
         return pipeline
 
     def _make_sorted_beam_nodes(self) -> list[BeamNode]:
@@ -176,6 +189,7 @@ class __PipelineBuilder:
     ) -> None:
         self.pipeline = pipeline
         self.collections = collections
+        self.metadata = {}
 
     def build(self, sorted_nodes: list[BeamNode]):
         """Build a Beam pipeline from a list of BeamNodes"""
@@ -195,7 +209,7 @@ class __PipelineBuilder:
             INPUT_NODE: self.collections[INPUT_NODE],
             "result": statuses,
         } | "Group Results" >> beam.CoGroupByKey()
-        return result
+        return result, self.metadata
 
     def get_input_collection(self, node: BeamNode) -> PCollection:
         """Get the input PCollection for a BeamNode operation"""
@@ -239,7 +253,8 @@ class __PipelineBuilder:
 
         elif node.type == NodeType.DATA_INPUT:
             output = pcoll | f"Data Input: {node.name}" >> node.op()
-            self.collections[node.name] = output
+            self.collections[node.name] = output.data
+            self.metadata[node.name] = output.metadata
 
         else:
             raise NotImplementedError(f"Node type: {node.type.value}")
