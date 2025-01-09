@@ -5,6 +5,7 @@ from json import JSONDecodeError
 import apache_beam as beam
 import pandas as pd
 import requests
+from apache_beam.pvalue import TaggedOutput
 from apache_beam.transforms.enrichment import Enrichment, EnrichmentSourceHandler
 from vulkan_public.connections import make_request
 from vulkan_public.schemas import DataSourceSpec, FileSourceSpec, HTTPSourceSpec
@@ -160,11 +161,11 @@ class BeamDataInput(DataInputNode, BeamNode):
             dependencies=node.dependencies,
         )
 
-    def op(self) -> tuple[beam.PTransform, beam.PTransform]:
+    def op(self) -> beam.PTransform:
         enrich = Enrichment(source_handler=self._handler())
         split = enrich | f"{self.name} - Extract Data and Metadata" >> beam.ParDo(
             _ExtractDataAndMetadataFn()
-        )
+        ).with_outputs("metadata", main="data")
         return split
 
     def _handler(self) -> EnrichmentSourceHandler:
@@ -194,7 +195,8 @@ class BeamDataInput(DataInputNode, BeamNode):
 class _ExtractDataAndMetadataFn(beam.DoFn):
     def process(self, element: beam.Row, *args, **kwargs):
         key = element.key
-        return (key, element.op_data), (key, element.op_metadata)
+        yield (key, element.op_data)
+        yield TaggedOutput("metadata", (key, element.op_metadata))
 
 
 class BeamTransformFn(beam.DoFn):
