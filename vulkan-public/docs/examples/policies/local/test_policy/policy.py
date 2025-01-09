@@ -10,12 +10,12 @@ class Status(Enum):
     DENIED = "DENIED"
 
 
-sample_api = DataInputNode(
-    name="sample_api",
-    description="DataInputNode data",
-    source="vendor-name:api-name:v0.0.1",
-    dependencies={"inputs": Dependency(INPUT_NODE)},
-)
+# sample_api = DataInputNode(
+#     name="sample_api",
+#     description="DataInputNode data",
+#     source="vendor-name:api-name:v0.0.1",
+#     dependencies={"inputs": Dependency(INPUT_NODE)},
+# )
 
 sample_file_input = DataInputNode(
     name="sample_file_input",
@@ -26,10 +26,11 @@ sample_file_input = DataInputNode(
 
 
 # Branching node
-def branch_condition_1(context, scores, file_inputs, **kwargs):
-    context.log.info(f"BranchNode data: {scores}")
+def branch_condition_1(context, file_inputs, **kwargs):
+    # context.log.info(f"BranchNode data: {scores}")
     context.log.info(f"File Input data: {file_inputs}")
-    if scores["score"] > context.env.get("SCORE_CUTOFF", 500):
+    context.log.info(f"File Input data: {type(file_inputs)}")
+    if file_inputs["squared"] > context.env.get("SCORE_CUTOFF", 500):
         return "approved"
     return "denied"
 
@@ -39,7 +40,7 @@ branch_1 = BranchNode(
     name="branch_1",
     description="BranchNode data",
     dependencies={
-        "scores": Dependency(sample_api.name),
+        # "scores": Dependency(sample_api.name),
         "file_inputs": Dependency(sample_file_input.name),
     },
     outputs=["approved", "denied"],
@@ -64,7 +65,7 @@ denied = TerminateNode(
 
 demo_policy = PolicyDefinition(
     nodes=[
-        sample_api,
+        # sample_api,
         sample_file_input,
         branch_1,
         approved,
