@@ -32,7 +32,7 @@ class SourceSpecBase(ABC):
 
 class RegisteredFileSource(BaseModel, SourceSpecBase):
     file_id: str
-    file_path: str | None = None
+    path: str | None = None
 
     def extract_env_vars(self) -> list[str]:
         return []

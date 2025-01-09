@@ -8,7 +8,12 @@ import requests
 from apache_beam.transforms.enrichment import Enrichment, EnrichmentSourceHandler
 from pyarrow import parquet as pq
 from vulkan_public.connections import make_request
-from vulkan_public.schemas import DataSourceSpec, HTTPSource, LocalFileSource
+from vulkan_public.schemas import (
+    DataSourceSpec,
+    HTTPSource,
+    LocalFileSource,
+    RegisteredFileSource,
+)
 from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes import (
     BranchNode,
@@ -178,7 +183,7 @@ class BeamDataInput(DataInputNode, BeamNode):
                 self.source,
                 self.spec,
             )
-        elif isinstance(self.spec.source, LocalFileSource):
+        elif isinstance(self.spec.source, (LocalFileSource, RemoteFileSource)):
             return _FileHandler(
                 self.context,
                 self.source,

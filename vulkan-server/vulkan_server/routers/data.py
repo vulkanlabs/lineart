@@ -66,7 +66,7 @@ def create_data_source(
             msg = f"Uploaded file {spec.source.file_id} not found"
             raise HTTPException(status_code=400, detail=msg)
 
-        spec.source.file_path = uploaded_file.file_path
+        spec.source.path = uploaded_file.file_path
 
     data_source = DataSource.from_spec(spec, project_id)
     db.add(data_source)
