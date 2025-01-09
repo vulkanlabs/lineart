@@ -183,7 +183,7 @@ class BeamDataInput(DataInputNode, BeamNode):
                 self.source,
                 self.spec,
             )
-        elif isinstance(self.spec.source, (LocalFileSource, RemoteFileSource)):
+        elif isinstance(self.spec.source, (LocalFileSource, RegisteredFileSource)):
             return _FileHandler(
                 self.context,
                 self.source,
