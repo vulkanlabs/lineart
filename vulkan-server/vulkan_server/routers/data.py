@@ -1,12 +1,12 @@
 import requests
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from vulkan_public.data_source import DataSourceType
 from vulkan_public.schemas import DataSourceSpec
 
 from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.data.broker import DataBroker
-from vulkan_server.data.io import DataSourceModelSerializer
 from vulkan_server.db import (
     ComponentDataDependency,
     ComponentVersion,
@@ -14,6 +14,7 @@ from vulkan_server.db import (
     DataSource,
     PolicyDataDependency,
     PolicyVersion,
+    UploadedFile,
     get_db,
 )
 from vulkan_server.logger import init_logger
@@ -37,21 +38,37 @@ def list_data_sources(
     if not include_archived:
         filters["archived"] = False
     data_sources = db.query(DataSource).filter_by(**filters).all()
-    response = [DataSourceModelSerializer.deserialize(ds) for ds in data_sources]
+    response = [schemas.DataSource.from_orm(ds) for ds in data_sources]
     return response
 
 
 @sources.post("/")
 def create_data_source(
-    config: DataSourceSpec,
+    spec: DataSourceSpec,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    ds = db.query(DataSource).filter_by(project_id=project_id, name=config.name).first()
+    ds = db.query(DataSource).filter_by(project_id=project_id, name=spec.name).first()
     if ds is not None:
         raise HTTPException(status_code=400, detail="Data source already exists")
 
-    data_source = DataSourceModelSerializer.serialize(config, project_id)
+    if spec.source.source_type == DataSourceType.LOCAL_FILE:
+        msg = "Local file data sources are not supported for remote execution"
+        raise ValueError(msg)
+    if spec.source.source_type == DataSourceType.REGISTERED_FILE:
+        # Load the file path from DB and add it to the config
+        uploaded_file = (
+            db.query(UploadedFile)
+            .filter_by(uploaded_file_id=spec.source.file_id)
+            .first()
+        )
+        if uploaded_file is None:
+            msg = f"Uploaded file {spec.source.file_id} not found"
+            raise HTTPException(status_code=400, detail=msg)
+
+        spec.source.file_path = uploaded_file.file_path
+
+    data_source = DataSource.from_spec(spec, project_id)
     db.add(data_source)
     db.commit()
 
@@ -72,7 +89,7 @@ def get_data_source(
     if data_source is None:
         raise HTTPException(status_code=404, detail="Data source not found")
 
-    response = DataSourceModelSerializer.deserialize(data_source)
+    response = schemas.DataSource.from_orm(data_source)
     return response
 
 
@@ -199,7 +216,7 @@ def request_data_from_broker(
     if data_source is None:
         raise HTTPException(status_code=404, detail="Data source not found")
 
-    spec: schemas.DataSource = DataSourceModelSerializer.deserialize(data_source)
+    spec = schemas.DataSource.from_orm(data_source)
     broker = DataBroker(db, spec)
 
     try:

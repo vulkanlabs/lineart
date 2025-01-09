@@ -1,7 +1,3 @@
-import os
-
-import yaml
-
 from vulkan_public.cli.context import Context
 from vulkan_public.schemas import DataSourceSpec
 

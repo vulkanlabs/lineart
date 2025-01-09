@@ -29,6 +29,9 @@ def resolve_backtest_envs(
             )
         merged_configs.append(merged_variables)
 
+    if len(merged_configs) == 0:
+        merged_configs = [{}]
+
     return merged_configs
 
 

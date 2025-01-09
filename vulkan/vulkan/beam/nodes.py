@@ -6,8 +6,9 @@ import apache_beam as beam
 import pandas as pd
 import requests
 from apache_beam.transforms.enrichment import Enrichment, EnrichmentSourceHandler
+from pyarrow import parquet as pq
 from vulkan_public.connections import make_request
-from vulkan_public.schemas import DataSourceSpec, FileSourceSpec, HTTPSourceSpec
+from vulkan_public.schemas import DataSourceSpec, HTTPSource, LocalFileSource
 from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes import (
     BranchNode,
@@ -59,7 +60,10 @@ class _FileHandler(EnrichmentSourceHandler):
         self._df = None
 
     def __enter__(self):
-        self._df = pd.read_parquet(self.path)
+        # TODO: This is loading the entire dataset to memory.
+        # maybe rewrite with pyarrow table instead
+        dataset = pq.ParquetDataset(self.path)
+        self._df = dataset.read().to_pandas()
         diff = set(self.keys) - set(self._df.columns)
         if len(diff) > 0:
             raise ValueError(f"Keys {diff} not found in file {self.path}")
@@ -168,13 +172,13 @@ class BeamDataInput(DataInputNode, BeamNode):
         return split
 
     def _handler(self) -> EnrichmentSourceHandler:
-        if isinstance(self.spec.source, HTTPSourceSpec):
+        if isinstance(self.spec.source, HTTPSource):
             return _HTTPHandler(
                 self.context,
                 self.source,
                 self.spec,
             )
-        elif isinstance(self.spec.source, FileSourceSpec):
+        elif isinstance(self.spec.source, LocalFileSource):
             return _FileHandler(
                 self.context,
                 self.source,

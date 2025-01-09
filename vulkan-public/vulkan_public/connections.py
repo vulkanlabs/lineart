@@ -2,15 +2,10 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
-from vulkan_public.schemas import (
-    EnvVarConfig,
-    HTTPSourceSpec,
-)
+from vulkan_public.data_source import EnvVarConfig, HTTPSource
 
 
-def make_request(
-    source: HTTPSourceSpec, body: dict, variables: dict
-) -> requests.Request:
+def make_request(source: HTTPSource, body: dict, variables: dict) -> requests.Request:
     if source.headers.get("Content-Type") == "application/json":
         json = body
         data = None

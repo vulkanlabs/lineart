@@ -6,15 +6,18 @@ from typing import Any
 from fastapi import Depends
 from google.cloud import dataflow_v1beta3 as dataflow
 from pydantic.dataclasses import dataclass
+from sqlalchemy import select
 from sqlalchemy.orm import Session
-from vulkan.core.run import RunStatus
-from vulkan_public.spec.dependency import INPUT_NODE
+from vulkan_public.schemas import DataSourceSpec
 
+from vulkan.core.run import RunStatus
 from vulkan_server import schemas
 from vulkan_server.db import (
     Backfill,
     BacktestMetrics,
     BeamWorkspace,
+    DataSource,
+    PolicyDataDependency,
     PolicyVersion,
     get_db,
 )
@@ -46,7 +49,6 @@ class BacktestLauncher:
         input_data_path: str,
         resolved_config_variables: dict | None,
     ) -> schemas.Backfill:
-        # TODO: Maybe we don't need to pass the entire policy version obj here
         backfill = Backfill(
             backtest_id=backtest_id,
             input_data_path=input_data_path,
@@ -57,21 +59,21 @@ class BacktestLauncher:
         self.db.add(backfill)
         self.db.commit()
 
+        data_sources = get_required_data_source_specs(policy_version, self.db)
+
         output_path = os.path.join(
             self.backtest_output_path(project_id, backtest_id),
             "backfills",
             str(backfill.backfill_id),
         )
         backfill.output_path = output_path
-
         response = self.backend_launcher.launch_run(
             policy_version_id=str(policy_version.policy_version_id),
             backfill_id=str(backfill.backfill_id),
             image=workspace.image,
             module_name=policy_version.module_name,
-            data_sources={
-                INPUT_NODE: backfill.input_data_path,
-            },
+            input_data_path=backfill.input_data_path,
+            data_sources=data_sources,
             config_variables=resolved_config_variables,
             output_path=output_path,
         )
@@ -142,7 +144,8 @@ class _DataflowLauncher:
         backfill_id: str,
         image: str,
         module_name: str,
-        data_sources: dict,
+        input_data_path: str,
+        data_sources: list[DataSourceSpec],
         config_variables: dict[str, Any] | None,
         output_path: str,
     ):
@@ -156,10 +159,12 @@ class _DataflowLauncher:
         if config_variables is None:
             config_variables = {}
 
+        data_sources = [s.model_dump_json() for s in data_sources]
         script_params = {
             "backfill_id": backfill_id,
-            "output_path": output_path,
+            "input_data_path": input_data_path,
             "data_sources": json.dumps(data_sources),
+            "output_path": output_path,
             "module_name": module_name,
             "components_path": self.components_path,
             "config_variables": json.dumps(config_variables),
@@ -365,3 +370,20 @@ _JOB_STATE_MAP = {
     dataflow.JobState.JOB_STATE_DRAINED: RunStatus.FAILURE,
     dataflow.JobState.JOB_STATE_RESOURCE_CLEANING_UP: RunStatus.SUCCESS,
 }
+
+
+def get_required_data_source_specs(
+    policy_version: PolicyVersion,
+    db: Session,
+) -> list[DataSourceSpec]:
+    q = select(DataSource).where(
+        DataSource.data_source_id.in_(
+            select(PolicyDataDependency.data_source_id).where(
+                PolicyDataDependency.policy_version_id
+                == policy_version.policy_version_id
+            )
+        )
+    )
+    data_sources = db.execute(q).scalars().all()
+
+    return [s.to_spec() for s in data_sources]

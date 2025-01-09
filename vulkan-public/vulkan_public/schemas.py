@@ -1,21 +1,6 @@
-from abc import ABC, abstractmethod
-
 from pydantic import BaseModel
 
-BaseType = str | int | float | bool
-
-
-class SourceSpecBase(ABC):
-    @abstractmethod
-    def extract_env_vars(self) -> dict:
-        pass
-
-
-class EnvVarConfig(BaseModel):
-    env: BaseType | list[BaseType]
-
-
-ConfigurableMapping = dict[str, BaseType | list[BaseType] | EnvVarConfig]
+from vulkan_public.data_source import HTTPSource, LocalFileSource, RegisteredFileSource
 
 
 class CachingTTL(BaseModel):
@@ -29,48 +14,13 @@ class CachingOptions(BaseModel):
     enabled: bool = False
     ttl: CachingTTL | int | None = None
 
-
-class RetryPolicy(BaseModel):
-    max_retries: int
-    backoff_factor: float | None = None
-    status_forcelist: list[int] | None = None
-
-
-class HTTPSource(BaseModel, SourceSpecBase):
-    url: str
-    method: str = "GET"
-    headers: ConfigurableMapping | None = dict()
-    params: ConfigurableMapping | None = dict()
-    body_schema: dict | None = None
-    timeout: int | None = None
-    retry: RetryPolicy | None = RetryPolicy(max_retries=1)
-
-    def extract_env_vars(self) -> list[str]:
-        env = []
-        if self.headers:
-            env += _extract_env_vars(self.headers)
-        if self.params:
-            env += _extract_env_vars(self.params)
-
-        return env
-
-
-class RegisteredFileSource(BaseModel, SourceSpecBase):
-    file_id: str
-
-    def extract_env_vars(self) -> list[str]:
-        return []
-
-
-class LocalFileSource(BaseModel):
-    path: str
-
-    def extract_env_vars(self) -> list[str]:
-        return []
-
-
-def _extract_env_vars(config: dict) -> list[str]:
-    return [v.env for v in config.values() if isinstance(v, EnvVarConfig)]
+    def calculate_ttl(self) -> int | None:
+        ttl = self.ttl
+        if isinstance(ttl, int):
+            return ttl
+        if ttl is None:
+            return None
+        return ttl.days * 86400 + ttl.hours * 3600 + ttl.minutes * 60 + ttl.seconds
 
 
 class DataSourceSpec(BaseModel):
