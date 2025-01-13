@@ -1,7 +1,7 @@
 from abc import ABC
 from copy import deepcopy
-
 from graphlib import TopologicalSorter
+
 from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes import Node, NodeType, VulkanNodeDefinition
 

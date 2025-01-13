@@ -1,11 +1,10 @@
+from vulkan_public.core.policy import Policy
 from vulkan_public.spec.environment.loaders import (
     load_component_definition_from_alias,
     load_policy_definition,
 )
 
 from vulkan.core.component import ComponentGraph, check_all_parameters_specified
-from vulkan.core.policy import Policy
-
 
 
 def resolve_policy(module_name: str, components_base_dir: str) -> Policy:

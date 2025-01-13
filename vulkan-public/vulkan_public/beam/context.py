@@ -1,6 +1,6 @@
 import logging
 
-from vulkan.core.context import VulkanExecutionContext
+from vulkan_public.core.context import VulkanExecutionContext
 
 
 class BeamLogManager(logging.Logger):

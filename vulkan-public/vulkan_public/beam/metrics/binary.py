@@ -1,6 +1,5 @@
 import apache_beam as beam
 from apache_beam.transforms.combiners import CountCombineFn
-
 from vulkan.backtest.metrics import Target
 
 

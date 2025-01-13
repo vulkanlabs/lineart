@@ -1,8 +1,8 @@
 from dagster import JobExecutionResult, RunConfig, mem_io_manager
 from vulkan_public.constants import POLICY_CONFIG_KEY
+from vulkan_public.core.policy import Policy
 from vulkan_public.spec.nodes import Node
 
-from vulkan.core.policy import Policy
 from vulkan.dagster.io_manager import PUBLISH_IO_MANAGER_KEY
 from vulkan.dagster.policy import DagsterFlow
 from vulkan.dagster.run_config import (

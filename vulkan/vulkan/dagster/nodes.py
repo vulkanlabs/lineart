@@ -15,6 +15,7 @@ from dagster import (
     Output,
 )
 from vulkan_public.constants import POLICY_CONFIG_KEY
+from vulkan_public.core.context import VulkanExecutionContext
 from vulkan_public.exceptions import UserCodeException
 from vulkan_public.spec.nodes import (
     BranchNode,
@@ -28,7 +29,6 @@ from vulkan_public.spec.nodes import (
     TransformNode,
 )
 
-from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.dagster.io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY

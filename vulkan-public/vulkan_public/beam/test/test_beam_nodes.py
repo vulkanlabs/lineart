@@ -2,22 +2,20 @@ import apache_beam as beam
 import numpy as np
 from apache_beam.testing.test_pipeline import TestPipeline
 from apache_beam.testing.util import assert_that, equal_to
-from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes import BranchNode, NodeType, TerminateNode, TransformNode
 
-from vulkan.beam.io import (
-    ReadLocalCSV,
-)
-from vulkan.beam.nodes import (
+from vulkan_public.beam.io import ReadLocalCSV
+from vulkan_public.beam.nodes import (
     BeamBranch,
     BeamInput,
     BeamTerminate,
     BeamTransform,
     to_beam_nodes,
 )
-from vulkan.beam.pipeline import build_pipeline
-from vulkan.core.graph import sort_nodes
-from vulkan.core.policy import Policy
+from vulkan_public.beam.pipeline import build_pipeline
+from vulkan_public.core.graph import sort_nodes
+from vulkan_public.core.policy import Policy
+from vulkan_public.spec.dependency import INPUT_NODE, Dependency
+from vulkan_public.spec.nodes import BranchNode, NodeType, TerminateNode, TransformNode
 
 
 def test_beam_transform():

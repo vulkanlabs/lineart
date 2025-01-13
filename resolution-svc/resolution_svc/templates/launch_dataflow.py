@@ -3,8 +3,8 @@ import logging
 from argparse import ArgumentParser
 
 from apache_beam.options.pipeline_options import PipelineOptions
-from vulkan.beam.pipeline import BeamPipelineBuilder
 from vulkan.environment.loaders import resolve_policy
+from vulkan_public.beam.pipeline import BeamPipelineBuilder
 from vulkan_public.schemas import DataSourceSpec
 
 logger = logging.getLogger("uvicorn.error")

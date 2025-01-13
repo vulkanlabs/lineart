@@ -7,7 +7,6 @@ readme = "README.md"
 dependencies = [
     "coloredlogs>=14.0",
     "gcsfs>=2024.10.0",
-    "graphviz>=0.20.3",
     "vulkan-public",
 ]
 

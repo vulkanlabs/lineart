@@ -5,8 +5,7 @@ description = ""
 authors = []
 readme = "README.md"
 dependencies = [
-    "pytest>=8.3.2",
-    "pytest-httpserver>=1.1.0",
+    "apache-beam>=2.60.0",
     "coloredlogs>=14.0",
     "requests>=2.26.0",
     "click>=8.1.7",
@@ -15,7 +14,12 @@ dependencies = [
     "pydantic>=2.9.2",
     "cookiecutter>=2.6.0",
     "pandas>=2.2.3",
+    "graphviz>=0.20.3",
 ]
+
+[tool.uv]
+dev-dependencies = ["pytest>=8.3.2", "pytest-httpserver>=1.1.0"]
+
 
 [project.scripts]
 vulkan = "vulkan_public.cli.main:cli"

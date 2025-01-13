@@ -6,10 +6,10 @@ from time import time
 import graphviz
 import pyarrow.parquet as pq
 from apache_beam.options.pipeline_options import PipelineOptions
+
+from vulkan_public.beam.pipeline import LOCAL_RESULTS_FILE_NAME, BeamPipelineBuilder
 from vulkan_public.schemas import DataSourceSpec
 from vulkan_public.spec.policy import PolicyDefinition
-
-from vulkan.beam.pipeline import LOCAL_RESULTS_FILE_NAME, BeamPipelineBuilder
 
 
 class RunResult(ABC):

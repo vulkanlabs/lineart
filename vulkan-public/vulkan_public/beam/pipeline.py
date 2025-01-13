@@ -5,23 +5,23 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.pipeline import Pipeline as BeamPipeline
 from apache_beam.pvalue import AsSingleton, PCollection
-from vulkan_public.schemas import DataSourceSpec
-from vulkan_public.spec.dependency import INPUT_NODE
-from vulkan_public.spec.nodes import NodeType
 
-from vulkan.beam.context import make_beam_context
-from vulkan.beam.io import ReadParquet, WriteParquet
-from vulkan.beam.nodes import (
+from vulkan_public.beam.context import make_beam_context
+from vulkan_public.beam.io import ReadParquet, WriteParquet
+from vulkan_public.beam.nodes import (
     BeamDataInput,
     BeamInput,
     BeamLogicNode,
     BeamNode,
     to_beam_node,
 )
-from vulkan.core.graph import GraphEdges, GraphNodes, sort_nodes
-from vulkan.core.policy import Policy
+from vulkan_public.core.graph import GraphEdges, GraphNodes, sort_nodes
+from vulkan_public.core.policy import Policy
+from vulkan_public.schemas import DataSourceSpec
+from vulkan_public.spec.dependency import INPUT_NODE
+from vulkan_public.spec.nodes import NodeType
 
-LOCAL_RESULTS_FILE_NAME = "_tmp_vulkan_beam_output.json"
+LOCAL_RESULTS_FILE_NAME = "output.json"
 
 
 class BeamPipelineBuilder:

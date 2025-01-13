@@ -1,19 +1,15 @@
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
-from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 
-from vulkan.beam.io import (
+from vulkan_public.beam.io import (
     ProcessResultFn,
     ReadParquet,
     ReadRemoteCSV,
     to_pyarrow_schema,
 )
-from vulkan.beam.nodes import (
-    BeamBranch,
-    BeamInput,
-    BeamTerminate,
-)
-from vulkan.beam.pipeline import build_pipeline
+from vulkan_public.beam.nodes import BeamBranch, BeamInput, BeamTerminate
+from vulkan_public.beam.pipeline import build_pipeline
+from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 
 
 def test_read_from_gcs():
