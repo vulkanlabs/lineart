@@ -27,7 +27,7 @@ class DataSourceSpec(BaseModel):
     name: str
     keys: list[str]
     source: HTTPSource | LocalFileSource | RegisteredFileSource
-    caching: CachingOptions
+    caching: CachingOptions = CachingOptions()
     description: str | None = None
     metadata: dict | None = None
 
