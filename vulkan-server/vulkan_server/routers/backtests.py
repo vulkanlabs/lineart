@@ -1,22 +1,11 @@
-import json
 from typing import Annotated
 
 import pandas as pd
-from fastapi import (
-    APIRouter,
-    Body,
-    Depends,
-    File,
-    Form,
-    HTTPException,
-    Response,
-    UploadFile,
-)
+from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-from vulkan.backtest.definitions import SupportedFileFormat
-from vulkan.core.run import JobStatus
 
-from vulkan_server import definitions, schemas
+from vulkan.core.run import JobStatus
+from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.backtest.backtest import ensure_beam_workspace, resolve_backtest_envs
 from vulkan_server.backtest.launcher import BacktestLauncher, get_launcher
@@ -32,7 +21,6 @@ from vulkan_server.db import (
     get_db,
 )
 from vulkan_server.logger import init_logger
-from vulkan_server.services.file_ingestion import VulkanFileIngestionServiceClient
 
 logger = init_logger("backtests")
 router = APIRouter(
@@ -58,6 +46,7 @@ def list_backtests(
     return backtests
 
 
+# FIXME: if config variables is an empty list, no runs are created!
 @router.post("/", response_model=schemas.Backtest)
 def launch_backtest(
     policy_version_id: Annotated[str, Body()],
@@ -92,7 +81,6 @@ def launch_backtest(
         db.query(UploadedFile)
         .filter_by(
             project_id=project_id,
-            policy_version_id=policy_version_id,
             uploaded_file_id=input_file_id,
         )
         .first()
@@ -287,18 +275,6 @@ def get_metrics_job(
     return metrics_job
 
 
-def make_file_input_service(
-    project_id: str = Depends(get_project_id),
-    server_config: definitions.VulkanServerConfig = Depends(
-        definitions.get_vulkan_server_config
-    ),
-) -> VulkanFileIngestionServiceClient:
-    return VulkanFileIngestionServiceClient(
-        project_id=project_id,
-        server_url=server_config.upload_service_url,
-    )
-
-
 @router.get("/{backtest_id}/results")
 def get_backtest_results(
     backtest_id: str,
@@ -343,55 +319,6 @@ def get_backtest_results(
             },
         )
     return results.to_dict(orient="records")
-
-
-@router.get("/files", response_model=list[schemas.UploadedFile])
-def list_uploaded_files(
-    policy_version_id: str | None = None,
-    project_id: str = Depends(get_project_id),
-    db: Session = Depends(get_db),
-):
-    filters = dict(project_id=project_id)
-    if policy_version_id is not None:
-        filters["policy_version_id"] = policy_version_id
-
-    files = db.query(UploadedFile).filter_by(**filters).all()
-    if len(files) == 0:
-        return Response(status_code=204)
-    return files
-
-
-@router.post("/files", response_model=schemas.UploadedFile)
-async def upload_file(
-    file: Annotated[UploadFile, File()],
-    file_format: Annotated[SupportedFileFormat, Form()],
-    schema: Annotated[str, Form()],
-    policy_version_id: Annotated[str, Form()],
-    project_id: str = Depends(get_project_id),
-    db: Session = Depends(get_db),
-    file_input_client=Depends(make_file_input_service),
-):
-    try:
-        content = await file.read()
-        schema = json.loads(schema)
-        file_info = file_input_client.validate_and_publish(
-            file_format=file_format,
-            content=content,
-            schema=schema,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"msg": str(e)})
-
-    uploaded_file = UploadedFile(
-        project_id=project_id,
-        policy_version_id=policy_version_id,
-        file_path=file_info["file_path"],
-        file_schema=schema,
-    )
-    db.add(uploaded_file)
-    db.commit()
-
-    return uploaded_file
 
 
 @router.get("/{backtest_id}/metrics/data")

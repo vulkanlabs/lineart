@@ -132,6 +132,8 @@ services:
       dockerfile: images/testdata.Dockerfile
       args:
         PYTHON_VERSION: "3.12"
+    ports:
+      - "5000:5000"
 
 volumes:
   postgres_data_app_db:

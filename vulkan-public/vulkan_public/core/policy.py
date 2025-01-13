@@ -1,11 +1,11 @@
 from typing import Callable
 
+from vulkan.core.component import ComponentGraph
+
+from vulkan_public.core.graph import Graph
 from vulkan_public.spec.dependency import INPUT_NODE
 from vulkan_public.spec.nodes import InputNode, Node, TerminateNode
 from vulkan_public.spec.policy import PolicyDefinition
-
-from vulkan.core.component import ComponentGraph
-from vulkan.core.graph import Graph
 
 
 class Policy(Graph):

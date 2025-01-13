@@ -1,34 +1,36 @@
-from dataclasses import dataclass
+import json
+import os
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.pipeline import Pipeline as BeamPipeline
 from apache_beam.pvalue import AsSingleton, PCollection
+
+from vulkan_public.beam.context import make_beam_context
+from vulkan_public.beam.io import ReadParquet, WriteParquet
+from vulkan_public.beam.nodes import (
+    BeamDataInput,
+    BeamInput,
+    BeamLogicNode,
+    BeamNode,
+    to_beam_node,
+)
+from vulkan_public.core.graph import GraphEdges, GraphNodes, sort_nodes
+from vulkan_public.core.policy import Policy
+from vulkan_public.schemas import DataSourceSpec
 from vulkan_public.spec.dependency import INPUT_NODE
-from vulkan_public.spec.nodes import InputNode, NodeType
+from vulkan_public.spec.nodes import NodeType
 
-from vulkan.beam.context import make_beam_context
-from vulkan.beam.io import ReadParquet, WriteParquet
-from vulkan.beam.nodes import BeamInput, BeamLogicNode, BeamNode, to_beam_node
-from vulkan.core.graph import GraphEdges, GraphNodes, sort_nodes
-from vulkan.core.policy import Policy
-
-
-@dataclass
-class DataEntryConfig:
-    source: str
-    schema: dict[str, type] | None = None
+LOCAL_RESULTS_FILE_NAME = "output.json"
 
 
 class BeamPipelineBuilder:
     def __init__(
         self,
         policy: Policy,
-        backfill_id: str,
         output_path: str,
-        data_sources: dict[str, DataEntryConfig],
-        config_variables: dict[str, str] = {},
-        pipeline_options: PipelineOptions | None = None,
+        data_sources: dict[str, DataSourceSpec] | None,
+        config_variables: dict[str, str],
     ):
         self.nodes: GraphNodes = policy.flattened_nodes
         self.edges: GraphEdges = policy.flattened_dependencies
@@ -36,56 +38,115 @@ class BeamPipelineBuilder:
 
         self.output_path = output_path
         self.data_sources = data_sources
+        self.config_variables = config_variables
         self.context = make_beam_context(config_variables)
 
-        self.backfill_id = backfill_id
-        self.pipeline_options = pipeline_options
-        if not self.pipeline_options:
-            self.pipeline_options = PipelineOptions()
+    def build_batch_pipeline(
+        self,
+        input_data_path: str,
+        backfill_id: str,
+        pipeline_options: PipelineOptions | None = None,
+    ) -> BeamPipeline:
+        if not pipeline_options:
+            pipeline_options = PipelineOptions()
 
-    def build(self) -> BeamPipeline:
-        nodes = []
-
+        # TODO: We may want to save the input schema instead of creating this node.
+        #       This would allow us to create the input collection and output schema directly.
         for node in self.nodes:
             if node.type == NodeType.INPUT:
-                input_node = self._make_beam_input(node)
-            else:
-                node = to_beam_node(node)
-                if isinstance(node, BeamLogicNode):
-                    node = node.with_context(self.context)
-                nodes.append(node)
+                input_node = BeamInput.from_spec(
+                    node,
+                    data_path=input_data_path,
+                )
 
-        sorted_nodes = sort_nodes(nodes, self.edges)
-        return self.build_pipeline(input_node, sorted_nodes)
+        sorted_nodes = self._make_sorted_beam_nodes()
 
-    def build_pipeline(self, input_node, sorted_nodes):
-        """Build a Beam pipeline from a list of BeamNodes
-
-        Handles IO steps, reading from and writing to GCS.
-        """
-        pipeline = beam.Pipeline(options=self.pipeline_options)
+        pipeline = beam.Pipeline(options=pipeline_options)
 
         # Create the input PCollection and the collections map
-        input_data = pipeline | "Read Input" >> ReadParquet(input_node.source)
+        input_data = pipeline | "Read Input" >> ReadParquet(source_path=input_data_path)
         collections = {INPUT_NODE: input_data}
 
         # Build the nodes into the pipeline
-        result = build_pipeline(pipeline, collections, sorted_nodes)
+        result, metadata = build_pipeline(pipeline, collections, sorted_nodes)
 
         # TODO: We should resolve this schema inside of the Write transform
         output_schema = _make_output_schema(input_node.name, input_node.schema)
         output_prefix = self.output_path + "/output"
 
-        # Write the output to GCS
+        # Write the output to a Parquet file
         result | "Write Output" >> WriteParquet(
-            output_prefix, output_schema, self.backfill_id
+            output_prefix, output_schema, backfill_id
         )
 
         return pipeline
 
-    def _make_beam_input(self, node: InputNode) -> BeamInput:
-        source = self.data_sources[INPUT_NODE].source
-        return BeamInput.from_spec(node, source=source)
+    def build_single_run_pipeline(
+        self,
+        input_data: dict,
+        pipeline_options: PipelineOptions | None = None,
+    ) -> BeamPipeline:
+        if not pipeline_options:
+            pipeline_options = PipelineOptions()
+
+        sorted_nodes = self._make_sorted_beam_nodes()
+
+        pipeline = beam.Pipeline(options=pipeline_options)
+
+        # Create the input PCollection and the collections map
+        input_coll = pipeline | "Create Input Collection" >> beam.Create(
+            [("sample_data", input_data)]
+        )
+        collections = {INPUT_NODE: input_coll}
+
+        # Build the nodes into the pipeline
+        result, metadata = build_pipeline(pipeline, collections, sorted_nodes)
+
+        # Write the output to a JSON file
+        output_path = os.path.join(self.output_path, LOCAL_RESULTS_FILE_NAME)
+        (
+            result
+            | "To JSON" >> beam.Map(lambda r: json.dumps(r))
+            | "Write to file"
+            >> beam.io.WriteToText(
+                output_path,
+                num_shards=1,
+                shard_name_template="",
+            )
+        )
+
+        for step, pcoll in metadata.items():
+            metadata_path = os.path.join(self.output_path, f"{step}_metadata.json")
+            (
+                pcoll
+                | f"Format Metadata: {step}" >> beam.Map(lambda r: json.dumps(r))
+                | f"Write Metadata: {step}"
+                >> beam.io.WriteToText(
+                    metadata_path,
+                    num_shards=1,
+                    shard_name_template="",
+                )
+            )
+
+        return pipeline
+
+    def _make_sorted_beam_nodes(self) -> list[BeamNode]:
+        nodes = []
+        for node in self.nodes:
+            if node.type == NodeType.INPUT:
+                continue
+
+            if node.type == NodeType.DATA_INPUT:
+                source_spec = self.data_sources[node.source]
+                node = BeamDataInput.from_spec(node, source_spec)
+                node = node.with_context(self.context)
+            else:
+                node = to_beam_node(node)
+                if isinstance(node, BeamLogicNode):
+                    node = node.with_context(self.context)
+            nodes.append(node)
+
+        return sort_nodes(nodes, self.edges)
 
     def _validate_nodes(self):
         for node in self.nodes:
@@ -111,6 +172,7 @@ _IMPLEMENTED_NODETYPES = [
     NodeType.BRANCH,
     NodeType.TRANSFORM,
     NodeType.TERMINATE,
+    NodeType.DATA_INPUT,
 ]
 
 
@@ -127,6 +189,7 @@ class __PipelineBuilder:
     ) -> None:
         self.pipeline = pipeline
         self.collections = collections
+        self.metadata = {}
 
     def build(self, sorted_nodes: list[BeamNode]):
         """Build a Beam pipeline from a list of BeamNodes"""
@@ -146,7 +209,7 @@ class __PipelineBuilder:
             INPUT_NODE: self.collections[INPUT_NODE],
             "result": statuses,
         } | "Group Results" >> beam.CoGroupByKey()
-        return result
+        return result, self.metadata
 
     def get_input_collection(self, node: BeamNode) -> PCollection:
         """Get the input PCollection for a BeamNode operation"""
@@ -187,6 +250,11 @@ class __PipelineBuilder:
         elif node.type == NodeType.TERMINATE:
             output = pcoll | f"Terminate: {node.name}" >> node.op()
             self.collections[node.name] = output
+
+        elif node.type == NodeType.DATA_INPUT:
+            output = pcoll | f"Data Input: {node.name}" >> node.op()
+            self.collections[node.name] = output.data
+            self.metadata[node.name] = output.metadata
 
         else:
             raise NotImplementedError(f"Node type: {node.type.value}")

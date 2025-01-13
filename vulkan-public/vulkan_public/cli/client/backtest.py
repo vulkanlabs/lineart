@@ -73,6 +73,7 @@ def poll_backtest_status(
         time.sleep(time_step)
     return backtest_status
 
+
 def get_backtest_metrics_job_status(ctx: Context, backtest_id: str):
     response = ctx.session.get(f"{ctx.server_url}/backtests/{backtest_id}/metrics")
     assert (
@@ -103,10 +104,13 @@ def get_results(ctx: Context, backtest_id: str):
     return DataFrame(response.json())
 
 
-def list_uploaded_files(ctx: Context, policy_version_id: str | None = None):
+def list_uploaded_files(ctx: Context, file_name: str | None = None):
+    if file_name:
+        params = {"file_name": file_name}
+
     response = ctx.session.get(
-        f"{ctx.server_url}/backtests/files",
-        params={"policy_version_id": policy_version_id},
+        f"{ctx.server_url}/files",
+        params=params,
     )
     assert (
         response.status_code == 200
@@ -119,7 +123,7 @@ def upload_backtest_file(
     file_path: str,
     file_format: str,
     schema: dict[str, str],
-    policy_version_id: str,
+    file_name: str | None = None,
 ):
     """Upload a file to the backtest service.
 
@@ -150,12 +154,12 @@ def upload_backtest_file(
         raise ValueError(f"Schema must be a dict: {schema}")
 
     response = ctx.session.post(
-        f"{ctx.server_url}/backtests/files",
+        f"{ctx.server_url}/files",
         files={"file": open(file_path, "rb")},
         data={
             "file_format": file_format,
             "schema": _serialize_schema(schema),
-            "policy_version_id": policy_version_id,
+            "file_name": file_name,
         },
     )
     assert response.status_code == 200, f"Failed to upload file: {response.content}"

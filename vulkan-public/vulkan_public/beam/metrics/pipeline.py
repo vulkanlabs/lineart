@@ -4,10 +4,10 @@ from argparse import ArgumentParser
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.pipeline import Pipeline
-
 from vulkan.backtest.metrics import MetricsMetadata, Target, TargetKind
-from vulkan.beam.io import ReadParquet
-from vulkan.beam.metrics.binary import BinaryDistributionTransform
+
+from vulkan_public.beam.io import ReadParquet
+from vulkan_public.beam.metrics.binary import BinaryDistributionTransform
 
 
 def build_metrics_pipeline(

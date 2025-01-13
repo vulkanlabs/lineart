@@ -10,21 +10,6 @@ class Status(Enum):
     DENIED = "DENIED"
 
 
-# Branching node
-def branch_condition_1(context, scores, **kwargs):
-    context.log.info(f"BranchNode data: {scores}")
-    if scores["score"] > context.env.get("SCORE_CUTOFF", 500):
-        return "approved"
-    return "denied"
-
-
-branch_1 = BranchNode(
-    func=branch_condition_1,
-    name="branch_1",
-    description="BranchNode data",
-    dependencies={"scores": Dependency(INPUT_NODE)},
-    outputs=["approved", "denied"],
-)
 
 approved = TerminateNode(
     name="approved",
@@ -41,6 +26,21 @@ denied = TerminateNode(
     dependencies={"condition": Dependency("branch_1", "denied")},
 )
 
+# Branching node
+def branch_condition_1(context, scores, **kwargs):
+    context.log.info(f"BranchNode data: {scores}")
+    if scores["score"] > context.env.get("SCORE_CUTOFF", 500):
+        return "approved"
+    return "denied"
+
+
+branch_1 = BranchNode(
+    func=branch_condition_1,
+    name="branch_1",
+    description="BranchNode data",
+    dependencies={"scores": Dependency(INPUT_NODE)},
+    outputs=["approved", "denied"],
+)
 
 demo_policy = PolicyDefinition(
     nodes=[

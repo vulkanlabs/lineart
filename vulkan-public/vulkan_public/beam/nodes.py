@@ -1,7 +1,21 @@
 from abc import ABC
 from functools import partial
+from json import JSONDecodeError
 
 import apache_beam as beam
+import requests
+from apache_beam.pvalue import TaggedOutput
+from apache_beam.transforms.enrichment import Enrichment, EnrichmentSourceHandler
+from pyarrow import parquet as pq
+
+from vulkan_public.connections import make_request
+from vulkan_public.core.context import VulkanExecutionContext
+from vulkan_public.schemas import (
+    DataSourceSpec,
+    HTTPSource,
+    LocalFileSource,
+    RegisteredFileSource,
+)
 from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes import (
     BranchNode,
@@ -23,46 +37,174 @@ class BeamInput(InputNode, BeamNode):
     def __init__(
         self,
         name: str,
-        source: str,
+        data_path: str,
         schema: dict[str, type],
         description: str | None = None,
     ):
         super().__init__(name=name, description=description, schema=schema)
-        self.source = source
+        self.data_path = data_path
 
     @classmethod
-    def from_spec(cls, node: InputNode, source: str):
+    def from_spec(cls, node: InputNode, data_path: str):
         return cls(
             name=node.name,
             description=node.description,
-            source=source,
+            data_path=data_path,
             schema=node.schema,
         )
+
+
+class _FileHandler(EnrichmentSourceHandler):
+    def __init__(
+        self, context: VulkanExecutionContext, source: str, path: str, keys: str
+    ):
+        self.context = context
+        self.source = source
+        self.path = path
+        self.keys = keys
+        self._df = None
+
+    def __enter__(self):
+        # TODO: This is loading the entire dataset to memory.
+        # maybe rewrite with pyarrow table instead
+        dataset = pq.ParquetDataset(self.path)
+        self._df = dataset.read().to_pandas()
+        diff = set(self.keys) - set(self._df.columns)
+        if len(diff) > 0:
+            raise ValueError(f"Keys {diff} not found in file {self.path}")
+        self.context.log.debug(f"Loaded {len(self._df)} rows from {self.path}")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._df = None
+
+    def __call__(self, request: tuple, *args, **kwargs):
+        key = request[0]
+        values = request[1]
+
+        # Match rows based on lookup keys
+        #    SELECT *
+        #      FROM self._df
+        #     WHERE colA = @values.colA
+        #           ...
+        query_str = " & ".join([f'{k} == @values["{k}"]' for k in self.keys])
+        matching_rows = self._df.query(query_str)
+
+        if len(matching_rows) == 0:
+            response_data = None
+        else:
+            response_data = matching_rows.iloc[0].to_dict()
+
+        req = beam.Row(key=key, **values)
+        response = beam.Row(
+            op_data=response_data,
+            op_metadata={"source": self.source, "rows_matched": len(matching_rows)},
+        )
+
+        return req, response
+
+
+class _HTTPHandler(EnrichmentSourceHandler):
+    def __init__(
+        self, context: VulkanExecutionContext, source: str, spec: DataSourceSpec
+    ):
+        self.context = context
+        self.source = source
+        self.spec = spec
+
+    def __enter__(self):
+        self._session = requests.Session()
+
+    def __call__(self, request: tuple, *args, **kwargs):
+        key = request[0]
+        values = request[1]
+
+        prepared_request = make_request(self.spec.source, values, {})
+        raw_response = self._session.send(
+            prepared_request, timeout=self.spec.source.timeout
+        )
+
+        response_data = None
+        if raw_response.status_code == 200:
+            try:
+                response_data = raw_response.json()
+            except JSONDecodeError:
+                response_data = raw_response.content
+
+        req = beam.Row(key=key, **values)
+        response = beam.Row(
+            op_data=response_data,
+            op_metadata={
+                "source": self.source,
+                "status_code": raw_response.status_code,
+                "headers": dict(raw_response.headers),
+            },
+        )
+
+        return req, response
 
 
 class BeamDataInput(DataInputNode, BeamNode):
     def __init__(
         self,
         name: str,
-        source: str,
+        spec: DataSourceSpec,
         description: str | None = None,
         dependencies: dict | None = None,
     ):
         super().__init__(
             name=name,
-            source=source,
+            source=spec.name,
             description=description,
             dependencies=dependencies,
         )
+        self.spec = spec
 
     @classmethod
-    def from_spec(cls, node: DataInputNode):
+    def from_spec(cls, node: DataInputNode, spec: DataSourceSpec):
         return cls(
             name=node.name,
-            source=node.source,
+            spec=spec,
             description=node.description,
             dependencies=node.dependencies,
         )
+
+    def op(self) -> beam.PTransform:
+        enrich = Enrichment(source_handler=self._handler())
+        split = enrich | f"{self.name} - Extract Data and Metadata" >> beam.ParDo(
+            _ExtractDataAndMetadataFn()
+        ).with_outputs("metadata", main="data")
+        return split
+
+    def _handler(self) -> EnrichmentSourceHandler:
+        if isinstance(self.spec.source, HTTPSource):
+            return _HTTPHandler(
+                self.context,
+                self.source,
+                self.spec,
+            )
+        elif isinstance(self.spec.source, (LocalFileSource, RegisteredFileSource)):
+            return _FileHandler(
+                self.context,
+                self.source,
+                self.spec.source.path,
+                self.spec.keys,
+            )
+        else:
+            raise NotImplementedError(
+                f"Source type {type(self.spec.source)} not supported"
+            )
+
+    def with_context(self, context: VulkanExecutionContext) -> "BeamDataInput":
+        self.context = context
+        return self
+
+
+class _ExtractDataAndMetadataFn(beam.DoFn):
+    def process(self, element: beam.Row, *args, **kwargs):
+        key = element.key
+        yield (key, element.op_data)
+        yield TaggedOutput("metadata", (key, element.op_metadata))
 
 
 class BeamTransformFn(beam.DoFn):

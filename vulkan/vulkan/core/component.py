@@ -1,6 +1,7 @@
 from copy import deepcopy
 from typing import Any
 
+from vulkan_public.core.graph import Graph
 from vulkan_public.spec.component import (
     ComponentDefinition,
     ComponentInstance,
@@ -8,8 +9,6 @@ from vulkan_public.spec.component import (
 )
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 from vulkan_public.spec.nodes import Node, NodeType, TransformNode, VulkanNodeDefinition
-
-from vulkan.core.graph import Graph
 
 
 class ComponentGraph(Node, Graph):

@@ -1,6 +1,8 @@
 from enum import Enum
 
 import pytest
+from vulkan_public.core.graph import Graph, sort_nodes
+from vulkan_public.core.policy import Policy
 from vulkan_public.spec.component import (
     ComponentDefinition,
     ComponentInstance,
@@ -16,8 +18,6 @@ from vulkan_public.spec.nodes import (
 )
 
 from vulkan.core.component import ComponentGraph, check_all_parameters_specified
-from vulkan.core.graph import Graph, sort_nodes
-from vulkan.core.policy import Policy
 
 
 class DummyStatus(Enum):

@@ -4,8 +4,10 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
+from vulkan_public.schemas import DataSourceSpec
+
 from vulkan.core.run import JobStatus, RunStatus
-from vulkan_public.schemas import DataSourceCreate
+from vulkan_server.db import DataSource
 
 
 class Project(BaseModel):
@@ -224,13 +226,26 @@ class RunLogs(BaseModel):
     logs: list[LogEntry]
 
 
-class DataSource(DataSourceCreate):
+class DataSource(DataSourceSpec):
     data_source_id: UUID
     project_id: UUID
     variables: list[str] | None
     archived: bool
     created_at: datetime
     last_updated_at: datetime
+
+    @classmethod
+    def from_orm(cls, data: DataSource) -> "DataSource":
+        spec = data.to_spec()
+        return cls(
+            data_source_id=data.data_source_id,
+            project_id=data.project_id,
+            variables=data.variables,
+            archived=data.archived,
+            created_at=data.created_at,
+            last_updated_at=data.last_updated_at,
+            **spec.model_dump(),
+        )
 
 
 class DataSourceReference(BaseModel):
@@ -314,6 +329,7 @@ class BacktestStatus(BaseModel):
 
 class UploadedFile(BaseModel):
     uploaded_file_id: UUID
+    file_name: str | None = None
     file_schema: dict[str, str]
     created_at: datetime
 

@@ -1,22 +1,6 @@
 from pydantic import BaseModel
 
-BaseType = str | int | float | bool
-
-
-class EnvVarConfig(BaseModel):
-    env: BaseType | list[BaseType]
-
-
-ConfigurableMapping = dict[str, BaseType | list[BaseType] | EnvVarConfig]
-
-
-class RequestOptions(BaseModel):
-    url: str
-    method: str = "GET"
-    headers: ConfigurableMapping | None = None
-    params: ConfigurableMapping | None = None
-    body_schema: dict | None = None
-    timeout: int | None = None
+from vulkan_public.data_source import HTTPSource, LocalFileSource, RegisteredFileSource
 
 
 class CachingTTL(BaseModel):
@@ -30,21 +14,25 @@ class CachingOptions(BaseModel):
     enabled: bool = False
     ttl: CachingTTL | int | None = None
 
+    def calculate_ttl(self) -> int | None:
+        ttl = self.ttl
+        if isinstance(ttl, int):
+            return ttl
+        if ttl is None:
+            return None
+        return ttl.days * 86400 + ttl.hours * 3600 + ttl.minutes * 60 + ttl.seconds
 
-class RetryPolicy(BaseModel):
-    max_retries: int
-    backoff_factor: float | None = None
-    status_forcelist: list[int] | None = None
 
-
-class DataSourceCreate(BaseModel):
+class DataSourceSpec(BaseModel):
     name: str
     keys: list[str]
-    request: RequestOptions
-    caching: CachingOptions
-    retry: RetryPolicy | None = None
+    source: HTTPSource | LocalFileSource | RegisteredFileSource
+    caching: CachingOptions = CachingOptions()
     description: str | None = None
     metadata: dict | None = None
+
+    def extract_env_vars(self) -> list[str]:
+        return self.source.extract_env_vars()
 
 
 class BacktestOptions(BaseModel):
