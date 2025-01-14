@@ -12,7 +12,6 @@ export default function Page() {
                 <SignIn
                     fullPage={true}
                     automaticRedirect={true}
-                    firstTab='password'
                 />
             </div>
         </div>
