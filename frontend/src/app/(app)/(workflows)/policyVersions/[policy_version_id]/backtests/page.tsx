@@ -7,7 +7,8 @@ import { WorkspaceCreation, PendingWorkspaceCreation } from "./_components/works
 import { BacktestsTableComponent, UploadedFilesTableComponent } from "./_components/tables";
 import { workspaceCreationAction } from "./actions";
 
-export default async function Page({ params }) {
+export default async function Page(props) {
+    const params = await props.params;
     const user = await stackServerApp.getUser();
 
     const backtestWorkspace = await fetchBacktestWorkspace(user, params.policy_version_id).catch(

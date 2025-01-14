@@ -5,10 +5,11 @@ import { fetchPolicyVersion, getAuthHeaders } from "@/lib/api";
 import { LauncherPage } from "./components";
 import { postLaunchFormAction } from "./actions";
 
-export default async function Page({ params }) {
+export default async function Page(props) {
+    const params = await props.params;
     const user = await stackServerApp.getUser();
     const authHeaders = await getAuthHeaders(user);
-    
+
     const policyVersion = await fetchPolicyVersion(user, params.policy_version_id);
 
     const graphDefinition = await JSON.parse(policyVersion.graph_definition);

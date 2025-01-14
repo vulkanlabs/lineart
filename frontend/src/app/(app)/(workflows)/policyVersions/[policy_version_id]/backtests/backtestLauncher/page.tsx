@@ -4,7 +4,8 @@ import { fetchBacktestFiles } from "@/lib/api";
 import { BacktestLauncherPage } from "./components";
 import { getAuthHeaders } from "@/lib/auth";
 
-export default async function Page({ params }) {
+export default async function Page(props) {
+    const params = await props.params;
     const user = await stackServerApp.getUser();
     const authHeaders = await getAuthHeaders(user);
     const uploadedFiles = await fetchBacktestFiles(user, params.policy_version_id).catch(

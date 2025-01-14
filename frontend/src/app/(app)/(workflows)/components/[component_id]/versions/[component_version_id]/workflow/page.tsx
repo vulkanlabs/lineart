@@ -3,7 +3,8 @@ import { stackServerApp } from "@/stack";
 import WorkflowPage from "@/components/workflow/workflow";
 import { fetchComponentVersion } from "@/lib/api";
 
-export default async function Page({ params }) {
+export default async function Page(props) {
+    const params = await props.params;
     const user = await stackServerApp.getUser();
     const graphData = await fetchComponentVersion(
         user,

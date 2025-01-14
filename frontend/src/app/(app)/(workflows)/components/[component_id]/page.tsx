@@ -4,7 +4,8 @@ import { ComponentVersionDependenciesTable } from "@/components/component/depend
 import { fetchComponentVersions, fetchComponentVersionUsage } from "@/lib/api";
 import { ComponentVersionsTable } from "./components";
 
-export default async function Page({ params }) {
+export default async function Page(props) {
+    const params = await props.params;
     const user = await stackServerApp.getUser();
     const componentVersions = await fetchComponentVersions(user, params.component_id).catch(
         (error) => console.error(error),

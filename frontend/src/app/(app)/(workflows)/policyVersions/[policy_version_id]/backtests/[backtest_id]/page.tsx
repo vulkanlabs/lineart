@@ -5,7 +5,8 @@ import { BacktestDetailsPage } from "./components";
 import { fetchBacktestMetrics } from "@/lib/api";
 import { BacktestMetrics, BacktestPlotData } from "./types";
 
-export default async function Page({ params }) {
+export default async function Page(props) {
+    const params = await props.params;
     const user = await stackServerApp.getUser();
     const backtest = await fetchBacktest(user, params.backtest_id).catch((error) => {
         console.error(error);
