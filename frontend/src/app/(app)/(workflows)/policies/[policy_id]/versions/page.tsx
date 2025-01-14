@@ -6,7 +6,8 @@ import PolicyVersionsTable from "./_components/policy-versions";
 import { fetchMetricsData } from "@/lib/actions";
 import { Suspense } from "react";
 
-export default async function Page({ params }) {
+export default async function Page(props) {
+    const params = await props.params;
     const policyId = params.policy_id;
 
     return (

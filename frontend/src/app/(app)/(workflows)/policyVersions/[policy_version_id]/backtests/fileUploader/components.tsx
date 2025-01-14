@@ -73,7 +73,7 @@ function FileUploader({ policyVersionId, setFileId, setError, uploadFn, headers 
     const [submitting, setSubmitting] = useState(false);
 
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    const uploadUrl = `${serverUrl}/backtests/files`;
+    const uploadUrl = `${serverUrl}/files`;
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),

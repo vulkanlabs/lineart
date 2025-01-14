@@ -32,6 +32,10 @@ export async function fetchServerData({
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     return fetch(new URL(endpoint, serverUrl), { headers })
         .then((response) => {
+            if (response.status === 204) {
+                return [];
+            }
+
             if (!response.ok) {
                 throw new Error(`Failed to fetch data: ${response.statusText}`, {
                     cause: response,
@@ -252,7 +256,7 @@ export async function fetchPolicyVersionBacktests(user: StackUser, policyVersion
 export async function fetchBacktestFiles(user: StackUser, policyVersionId: string) {
     return fetchServerData({
         user: user,
-        endpoint: `/backtests/files?policy_version_id=${policyVersionId}`,
+        endpoint: `/files?policy_version_id=${policyVersionId}`,
         label: `backtests files for policy version ${policyVersionId}`,
     });
 }

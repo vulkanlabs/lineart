@@ -30,35 +30,10 @@ export default function Navbar() {
             ))
             } */}
             <div className="absolute right-0 m-8">
-                <UserButton />
+                <UserButton
+                    showUserInfo={false} 
+                />
             </div>
         </nav>
     );
 }
-
-
-// {/* Collapsible Side Bar */}
-// <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-//   <Sheet key="left">
-//     <SheetTrigger asChild>
-//       <Button
-//         variant="outline"
-//         size="icon"
-//         className="shrink-0 md:hidden"
-//       >
-//         <Menu className="h-5 w-5" />
-//         <span className="sr-only">Toggle navigation menu</span>
-//       </Button>
-//     </SheetTrigger>
-//     <SheetContent side="left">
-//       <SheetHeader>
-//         <SheetTitle>Sheet Title</SheetTitle>
-//         <SheetDescription>Sheet Description</SheetDescription>
-//       </SheetHeader>
-//       <div className="p-4">
-//         <p>Sheet Content</p>
-//       </div>
-//     </SheetContent>
-//   </Sheet>
-// </header>
-// {/* END Collapsible Side Bar */}

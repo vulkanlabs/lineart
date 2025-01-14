@@ -6,7 +6,8 @@ import { ColumnDef } from "@tanstack/react-table";
 import { ConfigurationVariablesBase } from "@vulkan-server/ConfigurationVariablesBase";
 import { DataTable } from "@/components/data-table";
 
-export default async function Page({ params }) {
+export default async function Page(props) {
+    const params = await props.params;
     const user = await stackServerApp.getUser();
     const dataSource: DataSource = await fetchDataSource(user, params.data_source_id).catch(
         (error) => {
