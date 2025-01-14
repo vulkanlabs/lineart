@@ -14,7 +14,7 @@ from vulkan_server.services.file_ingestion import VulkanFileIngestionServiceClie
 logger = init_logger("files")
 router = APIRouter(
     prefix="/files",
-    tags=["files", "backtests", "data_sources"],
+    tags=["files"],
     responses={404: {"description": "Not found"}},
 )
 
