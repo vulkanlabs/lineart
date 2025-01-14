@@ -9,7 +9,11 @@ export default function Page() {
             </div>
             <div className="flex m-auto h-fit min-h-64">
                 {/* <LoginForm /> */}
-                <SignIn />
+                <SignIn
+                    fullPage={true}
+                    automaticRedirect={true}
+                    firstTab='password'
+                />
             </div>
         </div>
     )

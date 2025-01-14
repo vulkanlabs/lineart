@@ -30,7 +30,9 @@ export default function Navbar() {
             ))
             } */}
             <div className="absolute right-0 m-8">
-                <UserButton />
+                <UserButton
+                    showUserInfo={true} 
+                />
             </div>
         </nav>
     );
