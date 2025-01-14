@@ -32,6 +32,10 @@ export async function fetchServerData({
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     return fetch(new URL(endpoint, serverUrl), { headers })
         .then((response) => {
+            if (response.status === 204) {
+                return [];
+            }
+
             if (!response.ok) {
                 throw new Error(`Failed to fetch data: ${response.statusText}`, {
                     cause: response,
