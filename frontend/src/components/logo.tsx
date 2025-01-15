@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import LogoLight from "../../public/vulkan-light.png";
+import LogoLight from "@public/vulkan-light.png";
 
 export function VulkanLogo() {
     return (

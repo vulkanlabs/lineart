@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { stackServerApp } from "@/stack";
 
-import { fetchBacktestWorkspace, fetchPolicyVersionBacktests, fetchBacktestFiles } from "@/lib/api";
+import { fetchBacktestWorkspace, fetchPolicyVersionBacktests, listUploadedFiles } from "@/lib/api";
 
 import { WorkspaceCreation, PendingWorkspaceCreation } from "./_components/workspace";
 import { BacktestsTableComponent, UploadedFilesTableComponent } from "./_components/tables";
@@ -69,7 +69,7 @@ async function BacktestsTable({ policyVersionId }) {
 
 async function UploadedFilesTable({ policyVersionId }) {
     const user = await stackServerApp.getUser();
-    const uploadedFiles = await fetchBacktestFiles(user, policyVersionId).catch((error) => {
+    const uploadedFiles = await listUploadedFiles(user, policyVersionId).catch((error) => {
         console.error(error);
         return [];
     });

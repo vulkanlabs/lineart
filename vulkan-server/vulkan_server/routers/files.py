@@ -21,13 +21,10 @@ router = APIRouter(
 
 @router.get("/", response_model=list[schemas.UploadedFile])
 def list_uploaded_files(
-    policy_version_id: str | None = None,
     project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     filters = dict(project_id=project_id)
-    if policy_version_id is not None:
-        filters["policy_version_id"] = policy_version_id
 
     files = db.query(UploadedFile).filter_by(**filters).all()
     if len(files) == 0:

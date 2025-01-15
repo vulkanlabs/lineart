@@ -1,11 +1,10 @@
-import Image from 'next/image';
-import { Handle, Position } from '@xyflow/react';
+import Image from "next/image";
+import { Handle, Position } from "@xyflow/react";
 
 import { Split, Blocks, ArrowDown01, Link, ArrowRightFromLine } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import PythonLogo from "/public/python-logo.png";
-
+import PythonLogo from "@public/python-logo.png";
 
 function NodeBase({ icon, data, width, height, isOutput = false }) {
     return (
@@ -13,7 +12,7 @@ function NodeBase({ icon, data, width, height, isOutput = false }) {
             style={{ width: width, height: height }}
             className={cn(
                 "bg-white border border-black rounded-sm hover:border-2 text-xs",
-                data?.clicked ? "border-yellow-400 border-2" : ""
+                data?.clicked ? "border-yellow-400 border-2" : "",
             )}
         >
             <Handle type="target" position={Position.Top} />
@@ -31,41 +30,31 @@ function NodeBase({ icon, data, width, height, isOutput = false }) {
 export function HTTPConnectionNode({ data, width, height }) {
     const icon = <Link className="max-h-5 max-w-5" />;
 
-    return (
-        <NodeBase icon={icon} data={data} width={width} height={height} />
-    );
+    return <NodeBase icon={icon} data={data} width={width} height={height} />;
 }
 
 export function DataInputNode({ data, width, height }) {
     const icon = <ArrowDown01 className="max-h-5 max-w-5" />;
 
-    return (
-        <NodeBase icon={icon} data={data} width={width} height={height} />
-    );
+    return <NodeBase icon={icon} data={data} width={width} height={height} />;
 }
 
 export function TransformNode({ data, width, height }) {
     const icon = <Image src={PythonLogo} alt="Python logo" className="max-h-5 max-w-5" />;
 
-    return (
-        <NodeBase icon={icon} data={data} width={width} height={height} />
-    );
+    return <NodeBase icon={icon} data={data} width={width} height={height} />;
 }
 
 export function BranchNode({ data, width, height }) {
     const icon = <Split className="max-h-5 max-w-5" />;
 
-    return (
-        <NodeBase icon={icon} data={data} width={width} height={height} />
-    );
+    return <NodeBase icon={icon} data={data} width={width} height={height} />;
 }
 
 export function TerminateNode({ data, width, height }) {
     const icon = <ArrowRightFromLine className="max-h-5 max-w-5" />;
 
-    return (
-        <NodeBase icon={icon} data={data} width={width} height={height} isOutput />
-    );
+    return <NodeBase icon={icon} data={data} width={width} height={height} isOutput />;
 }
 
 export function InputNode({ width, height }) {
@@ -89,7 +78,7 @@ export function ComponentNode({ data, width, height }) {
             style={{ width: width, height: height }}
             className={cn(
                 "bg-white border border-black rounded-sm hover:border-2 text-xs",
-                data?.clicked ? "border-yellow-400 border-2" : ""
+                data?.clicked ? "border-yellow-400 border-2" : "",
             )}
         >
             <Handle type="target" position={Position.Top} />
@@ -104,13 +93,12 @@ export function ComponentNode({ data, width, height }) {
     );
 }
 
-
 export const nodeTypes = {
-    'connection': HTTPConnectionNode,
-    'data-input': DataInputNode,
-    'transform': TransformNode,
-    'input-node': InputNode,
-    'branch': BranchNode,
-    'terminate': TerminateNode,
-    'component': ComponentNode,
+    connection: HTTPConnectionNode,
+    "data-input": DataInputNode,
+    transform: TransformNode,
+    "input-node": InputNode,
+    branch: BranchNode,
+    terminate: TerminateNode,
+    component: ComponentNode,
 };

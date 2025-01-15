@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
     "paths": {
+      "@public/*": [
+        "./public/*"
+      ],
       "@/*": [
         "./src/*"
       ],
