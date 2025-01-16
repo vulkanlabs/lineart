@@ -5,6 +5,9 @@
 			"name": "root"
 		},
 		{
+			"path": "frontend",
+		},
+		{
 			"path": "vulkan",
 		},
 		{

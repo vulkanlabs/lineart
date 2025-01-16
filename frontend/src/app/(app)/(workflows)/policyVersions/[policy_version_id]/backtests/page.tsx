@@ -69,7 +69,7 @@ async function BacktestsTable({ policyVersionId }) {
 
 async function UploadedFilesTable({ policyVersionId }) {
     const user = await stackServerApp.getUser();
-    const uploadedFiles = await listUploadedFiles(user, policyVersionId).catch((error) => {
+    const uploadedFiles = await listUploadedFiles(user).catch((error) => {
         console.error(error);
         return [];
     });
