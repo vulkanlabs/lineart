@@ -2,8 +2,8 @@ import asyncio
 import os
 
 from pydantic.dataclasses import dataclass
-from vulkan.core.run import JobStatus, RunStatus
 
+from vulkan.core.run import JobStatus, RunStatus
 from vulkan_server.backtest.launcher import async_get_backtest_job_status, get_launcher
 from vulkan_server.backtest.results import get_results_db
 from vulkan_server.db import Backfill, Backtest, BacktestMetrics, get_db
@@ -57,6 +57,9 @@ class BacktestDaemon:
             if status == RunStatus.SUCCESS:
                 metrics = self.results_db.load_metrics(job.output_path)
                 job.metrics = metrics.to_dict(orient="records")
+
+            if status == RunStatus.FAILURE:
+                job.error_message = "Metrics job failed"
 
             # When done, mark status and retrieve results.
             self.db.commit()

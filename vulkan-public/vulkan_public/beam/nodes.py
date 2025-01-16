@@ -219,10 +219,17 @@ class BeamTransformFn(beam.DoFn):
 
     def __make_inputs(self, value):
         if len(self.dependencies) > 1:
-            return {
-                name: value[str(dependency)][0]
-                for name, dependency in self.dependencies.items()
-            }
+            deps = {}
+            for name, dependency in self.dependencies.items():
+                dep = value[str(dependency)]
+                if len(dep) == 0:
+                    # Skip empty dependencies: those are usually control signals
+                    # emitted by Branch nodes.
+                    deps[name] = None
+                else:
+                    deps[name] = dep[0]
+            return deps
+
         name = list(self.dependencies.keys())[0]
         return {name: value}
 
