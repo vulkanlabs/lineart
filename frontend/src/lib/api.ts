@@ -253,11 +253,11 @@ export async function fetchPolicyVersionBacktests(user: StackUser, policyVersion
     });
 }
 
-export async function fetchBacktestFiles(user: StackUser, policyVersionId: string) {
+export async function listUploadedFiles(user: StackUser) {
     return fetchServerData({
         user: user,
-        endpoint: `/files?policy_version_id=${policyVersionId}`,
-        label: `backtests files for policy version ${policyVersionId}`,
+        endpoint: `/files`,
+        label: `backtests files`,
     });
 }
 

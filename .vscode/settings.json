@@ -1,5 +1,6 @@
 {
   "files.exclude": {
+    "frontend/": true,
     "vulkan/": true,
     "vulkan-server/": true,
     "vulkan-dagster/": true,

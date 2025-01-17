@@ -2,7 +2,7 @@ import os
 
 import click
 
-from vulkan_public.cli.auth import retrieve_credentials
+from vulkan_public.cli.auth import refresh_credentials, retrieve_credentials
 from vulkan_public.cli.logger import init_logger
 from vulkan_public.cli.session import init_session
 
@@ -28,6 +28,16 @@ class Context:
         self.server_url = os.getenv("VULKAN_SERVER_URL", "http://34.132.4.82:6001")
         if self.server_url is None:
             self.logger.info("VULKAN_SERVER_URL environment variable is not set")
+            raise click.Abort()
+
+        login_ctx = LoginContext()
+        ok = refresh_credentials(login_ctx)
+        if not ok:
+            msg = (
+                "No valid credentials found. "
+                "Sign in with `vulkan login` and try again."
+            )
+            self.logger.fatal(msg)
             raise click.Abort()
 
         try:
