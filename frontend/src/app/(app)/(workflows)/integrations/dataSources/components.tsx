@@ -15,8 +15,10 @@ export default function DataSourcesPage({ dataSources }: { dataSources: DataSour
     const emptyMessage = "Create a data source to start using it in your workflows.";
 
     return (
-        <div>
-            <Button onClick={() => router.refresh()}>Refresh</Button>
+        <div className="flex flex-col gap-4">
+            <div>
+                <Button onClick={() => router.refresh()}>Refresh</Button>
+            </div>
             <DataTable
                 columns={dataSourceTableColumns}
                 data={dataSources}
@@ -48,7 +50,7 @@ const dataSourceTableColumns: ColumnDef<DataSource>[] = [
         header: "Description",
         cell: ({ row }) => {
             const description: string = row.getValue("description");
-            return description.length > 0 ? description : "-";
+            return description?.length > 0 ? description : "-";
         },
     },
     {

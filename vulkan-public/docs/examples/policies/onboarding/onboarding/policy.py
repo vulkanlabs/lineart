@@ -18,6 +18,8 @@ class Status(Enum):
     APPROVED = "APPROVED"
     ANALYSIS = "ANALYSIS"
     DENIED = "DENIED"
+    DENIED_SCR_LOW = "DENIED_SCR_LOW"
+    APPROVED_SCR = "APPROVED_SCR"
 
 
 scr_component = ComponentInstance(
@@ -31,13 +33,52 @@ scr_component = ComponentInstance(
     ),
 )
 
+
+def _early_return_scr(context, scr_score, **kwargs):
+    if scr_score < context.env["CORTE_SCR_RECUSA_AUTOMATICA"]:
+        return Status.DENIED_SCR_LOW.value
+    if scr_score > context.env["CORTE_SCR_APROVACAO_AUTOMATICA"]:
+        return Status.APPROVED_SCR.value
+
+    return "CONTINUE"
+
+
+early_return_scr = BranchNode(
+    name="early_return_scr",
+    func=_early_return_scr,
+    outputs=["CONTINUE", Status.DENIED_SCR_LOW.value, Status.APPROVED_SCR.value],
+    dependencies={"scr_score": Dependency(scr_component.config.name)},
+)
+
+denied_scr_low = TerminateNode(
+    name="denied_scr_low",
+    description="TerminateNode data branch",
+    return_status=Status.DENIED_SCR_LOW,
+    dependencies={
+        "condition": Dependency(early_return_scr.name, Status.DENIED_SCR_LOW.value)
+    },
+)
+
+approved_scr = TerminateNode(
+    name="approved_scr",
+    description="TerminateNode data branch",
+    return_status=Status.APPROVED_SCR,
+    dependencies={
+        "condition": Dependency(early_return_scr.name, Status.APPROVED_SCR.value)
+    },
+)
+
+
 serasa_component = ComponentInstance(
     name="serasa_component",
     version="v0.0.1",
     config=ComponentInstanceConfig(
         name="serasa_sample_query",
         description="Get Serasa score",
-        dependencies={"cpf": Dependency(INPUT_NODE, key="cpf")},
+        dependencies={
+            "cpf": Dependency(INPUT_NODE, key="cpf"),
+            "condition": Dependency(early_return_scr.name, "CONTINUE"),
+        },
         instance_params={"server_url": f"{DATA_SERVER_URL}/serasa"},
     ),
 )
@@ -128,6 +169,9 @@ def return_fn(
 
 demo_policy = PolicyDefinition(
     nodes=[
+        early_return_scr,
+        denied_scr_low,
+        approved_scr,
         join_transform,
         branch_1,
         approved,
@@ -136,7 +180,12 @@ demo_policy = PolicyDefinition(
     ],
     components=[scr_component, serasa_component],
     input_schema={"cpf": str},
-    config_variables=["CORTE_SERASA", "CORTE_SCR"],
+    config_variables=[
+        "CORTE_SERASA",
+        "CORTE_SCR",
+        "CORTE_SCR_RECUSA_AUTOMATICA",
+        "CORTE_SCR_APROVACAO_AUTOMATICA",
+    ],
     # TODO: avisar quando setar uma variavel inutil
     # TODO: permitir setar valor default via spec
     output_callback=partial(return_fn, url=CLIENT_SERVER_URL),

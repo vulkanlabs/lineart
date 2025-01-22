@@ -12,7 +12,7 @@ import { PolicyVersionComponentDependenciesTable } from "@/components/component/
 
 import { ConfigVariablesTable, DataSourcesTable } from "./components";
 
-export default async function Page(props) {
+export default async function Page(props: { params: Promise<{ policy_version_id: string }> }) {
     const params = await props.params;
     const user = await stackServerApp.getUser();
 

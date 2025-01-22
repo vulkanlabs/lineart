@@ -47,6 +47,7 @@ export function RunsChart({ chartData }) {
                     tickLine={false}
                     tickMargin={10}
                     axisLine={false}
+                    order={"asc"}
                 />
                 <YAxis
                     type="number"

@@ -9,6 +9,14 @@ import { ColumnDef } from "@tanstack/react-table";
 import { ConfigurationVariables } from "@vulkan-server/ConfigurationVariables";
 import { DataSource } from "@vulkan-server/DataSource";
 
+function parseNullableDate(rawDate: string | null): string {
+    if (rawDate === null) {
+        return "N/A";
+    }
+
+    return parseDate(rawDate);
+}
+
 const ConfigVariablesTableColumns: ColumnDef<ConfigurationVariables>[] = [
     {
         accessorKey: "name",
@@ -21,12 +29,12 @@ const ConfigVariablesTableColumns: ColumnDef<ConfigurationVariables>[] = [
     {
         accessorKey: "created_at",
         header: "Created At",
-        cell: ({ row }) => parseDate(row.getValue("created_at")),
+        cell: ({ row }) => parseNullableDate(row.getValue("created_at")),
     },
     {
         accessorKey: "last_updated_at",
         header: "Last Updated At",
-        cell: ({ row }) => parseDate(row.getValue("last_updated_at")),
+        cell: ({ row }) => parseNullableDate(row.getValue("last_updated_at")),
     },
 ];
 
