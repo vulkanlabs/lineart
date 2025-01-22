@@ -2,6 +2,7 @@ from enum import Enum
 from functools import partial
 
 import requests
+
 from vulkan_public.spec.component import ComponentInstance, ComponentInstanceConfig
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 from vulkan_public.spec.nodes import BranchNode, TerminateNode, TransformNode
@@ -59,18 +60,18 @@ join_transform = TransformNode(
 
 
 # Branching node
-def branch_condition_1(context, scores, **kwargs):
+def branch_condition(context, scores, **kwargs):
     context.log.info(f"Policy config: {context.env}")
-    if scores["scr_score"] > 600:
+    if scores["scr_score"] > context.env["CORTE_SCR"]:
         return "approved"
-    if scores["serasa_score"] > 800:
+    if scores["serasa_score"] > context.env["CORTE_SERASA"]:
         return "analysis"
     return "denied"
 
 
 branch_1 = BranchNode(
-    func=branch_condition_1,
-    name="branch_1",
+    func=branch_condition,
+    name="branch",
     description="BranchNode data",
     dependencies={"scores": Dependency("join_transform")},
     outputs=["approved", "analysis", "denied"],
@@ -80,7 +81,7 @@ approved = TerminateNode(
     name="approved",
     description="TerminateNode data branch",
     return_status=Status.APPROVED,
-    dependencies={"condition": Dependency("branch_1", "approved")},
+    dependencies={"condition": Dependency(branch_1.name, "approved")},
 )
 
 
@@ -88,14 +89,14 @@ analysis = TerminateNode(
     name="analysis",
     description="TerminateNode data branch",
     return_status=Status.ANALYSIS,
-    dependencies={"condition": Dependency("branch_1", "analysis")},
+    dependencies={"condition": Dependency(branch_1.name, "analysis")},
 )
 
 denied = TerminateNode(
     name="denied",
     description="TerminateNode data branch",
     return_status=Status.DENIED,
-    dependencies={"condition": Dependency("branch_1", "denied")},
+    dependencies={"condition": Dependency(branch_1.name, "denied")},
 )
 
 
@@ -135,7 +136,7 @@ demo_policy = PolicyDefinition(
     ],
     components=[scr_component, serasa_component],
     input_schema={"cpf": str},
-    config_variables=["CORTE_SERASA"],
+    config_variables=["CORTE_SERASA", "CORTE_SCR"],
     # TODO: avisar quando setar uma variavel inutil
     # TODO: permitir setar valor default via spec
     output_callback=partial(return_fn, url=CLIENT_SERVER_URL),

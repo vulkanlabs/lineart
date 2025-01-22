@@ -147,7 +147,7 @@ class PolicyVersion(PolicyVersionBase):
 
 class ConfigurationVariablesBase(BaseModel):
     name: str
-    value: str | None = None
+    value: str | float | int | bool | None = None
 
 
 class ConfigurationVariables(ConfigurationVariablesBase):
@@ -187,7 +187,7 @@ class StepMetadata(StepMetadataBase):
 
 
 class _StepDetails(BaseModel):
-    output: bytes | str | dict | list | None
+    output: bytes | str | dict | list | int | float | None
     metadata: StepMetadataBase | None
 
 

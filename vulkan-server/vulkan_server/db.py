@@ -241,7 +241,7 @@ class ConfigurationValue(AuthorizationMixin, TimedUpdateMixin, Base):
     policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
 
     name = Column(String)
-    value = Column(String, nullable=True)
+    value = Column(JSON, nullable=True)
     nullable = Column(Boolean)
 
     __table_args__ = (

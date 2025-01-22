@@ -10,45 +10,45 @@ class Status(Enum):
     DENIED = "DENIED"
 
 
-
-approved = TerminateNode(
-    name="approved",
-    description="TerminateNode data branch",
-    return_status=Status.APPROVED,
-    dependencies={"condition": Dependency("branch_1", "approved")},
-)
-
-
-denied = TerminateNode(
-    name="denied",
-    description="TerminateNode data branch",
-    return_status=Status.DENIED,
-    dependencies={"condition": Dependency("branch_1", "denied")},
-)
-
 # Branching node
-def branch_condition_1(context, scores, **kwargs):
-    context.log.info(f"BranchNode data: {scores}")
-    if scores["score"] > context.env.get("SCORE_CUTOFF", 500):
+def branch_condition(context, inputs, **kwargs):
+    context.log.info(inputs)
+    if inputs["score"] > context.env.get("MINIMUM_SCORE"):
         return "approved"
     return "denied"
 
 
-branch_1 = BranchNode(
-    func=branch_condition_1,
-    name="branch_1",
-    description="BranchNode data",
-    dependencies={"scores": Dependency(INPUT_NODE)},
+branch = BranchNode(
+    func=branch_condition,
+    name="branch",
+    description="Make a decision based on the data source",
+    dependencies={
+        "inputs": Dependency(INPUT_NODE),
+    },
     outputs=["approved", "denied"],
+)
+
+approved = TerminateNode(
+    name="approved",
+    description="Approve customer based on the score",
+    return_status="APPROVED",
+    dependencies={"condition": Dependency("branch", "approved")},
+)
+
+denied = TerminateNode(
+    name="denied",
+    description="Deny customers that are below minimum",
+    return_status="DENIED",
+    dependencies={"condition": Dependency("branch", "denied")},
 )
 
 demo_policy = PolicyDefinition(
     nodes=[
-        branch_1,
+        branch,
         approved,
         denied,
     ],
     components=[],
-    config_variables=["SCORE_CUTOFF"],
+    config_variables=["MINIMUM_SCORE"],
     input_schema={"tax_id": str, "score": int},
 )
