@@ -2,24 +2,13 @@ import os
 
 import click
 
-from vulkan_public.cli.auth import refresh_credentials, retrieve_credentials
+from vulkan_public.cli.auth import (
+    LoginContext,
+    refresh_credentials,
+    retrieve_credentials,
+)
 from vulkan_public.cli.logger import init_logger
 from vulkan_public.cli.session import init_session
-
-
-class LoginContext:
-    """
-    Context for login commands.
-
-    Does not include the session object or try to load credentials.
-    """
-
-    def __init__(self, log_level: str = "INFO"):
-        self.logger = init_logger(__name__, log_level)
-        self.auth_server_url = os.getenv(
-            "VULKAN_AUTH_URL",
-            "https://engine.vulkan.software",
-        )
 
 
 class Context:

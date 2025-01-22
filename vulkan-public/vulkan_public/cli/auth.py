@@ -4,14 +4,28 @@ import os
 import click
 import requests
 
-from vulkan_public.cli.context import LoginContext
 from vulkan_public.cli.logger import init_logger
 
 logger = init_logger(__name__)
 
 
+class LoginContext:
+    """
+    Context for login commands.
+
+    Does not include the session object or try to load credentials.
+    """
+
+    def __init__(self, log_level: str = "INFO"):
+        self.logger = init_logger(__name__, log_level)
+        self.auth_server_url = os.getenv(
+            "VULKAN_AUTH_URL",
+            "https://engine.vulkan.software",
+        )
+
+
 def refresh_credentials(ctx: LoginContext) -> bool:
-    if os.path.exists(_TOKEN_PATH):
+    if not os.path.exists(_TOKEN_PATH):
         return False
 
     ctx.logger.info("Checking for existing session...")
