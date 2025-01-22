@@ -76,7 +76,7 @@ const PolicyDependenciesTableColumns: ColumnDef<ComponentVersionDependencyExpand
     },
     {
         accessorKey: "component_version_id",
-        header: "Component ID",
+        header: "Component Version ID",
         cell: ({ row }) => <ShortenedID id={row.getValue("component_version_id")} />,
     },
 ];
