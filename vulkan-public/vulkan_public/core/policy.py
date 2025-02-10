@@ -21,6 +21,10 @@ class Policy(Graph):
             assert callable(output_callback), "Output callback must be a callable"
             nodes = self._with_output_callback(nodes)
 
+        assert all(
+            isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
+        ), "Input schema must be a dictionary of str -> type"
+
         if components is None:
             components = []
 
