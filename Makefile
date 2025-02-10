@@ -28,6 +28,10 @@ config:
 pull-config:
 	gcloud storage cp -r gs://vulkan-bootstrap-env-config/config . 
 
+.PHONY: push-config
+push-config:
+	gcloud storage cp -r config gs://vulkan-bootstrap-env-config/
+
 # Maintenance
 .PHONY: clean-pycache
 clean-pycache:

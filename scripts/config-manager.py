@@ -2,6 +2,7 @@ import os
 import shutil
 
 import click
+import dotenv
 import questionary
 
 ENVS = ["local", "dev", "prod"]
@@ -43,10 +44,12 @@ def cli():
 
     if os.path.exists("config/active"):
         shutil.rmtree("config/active")
-
+    shutil.copy("config/active/.env", ".env")
+    shutil.copy("config/local/.env", "frontend/.env.local")
     shutil.copytree(f"config/{answer}/", "config/active/", dirs_exist_ok=True)
     with open("config/active_env", "w") as f:
         f.write(answer)
+    dotenv.load_dotenv("config/active/.env", override=True)
 
     if os.path.exists("config/active_env.bak"):
         os.unlink("config/active_env.bak")
