@@ -2,11 +2,11 @@ from uuid import UUID
 
 from dagster_graphql import DagsterGraphQLClient
 from sqlalchemy.orm import Session
+from vulkan_public.constants import POLICY_CONFIG_KEY
+
 from vulkan.core.run import RunStatus
 from vulkan.dagster.policy import DEFAULT_POLICY_NAME
 from vulkan.dagster.run_config import RUN_CONFIG_KEY
-from vulkan_public.constants import POLICY_CONFIG_KEY
-
 from vulkan_server import definitions
 from vulkan_server.config_variables import resolve_config_variables_from_id
 from vulkan_server.dagster import trigger_run
@@ -25,7 +25,7 @@ def create_run(
     policy_version_id: str,
     project_id: str,
     input_data: dict,
-    run_config_variables: dict[str, str],
+    run_config_variables: dict,
 ) -> Run:
     version = (
         db.query(PolicyVersion)
@@ -73,7 +73,7 @@ def launch_run(
     db: Session,
     project_id: str,
     input_data: dict,
-    config_variables: dict[str, str] = None,
+    config_variables: dict = None,
 ):
     if config_variables is None:
         config_variables = {}

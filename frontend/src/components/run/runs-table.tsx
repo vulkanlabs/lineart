@@ -19,7 +19,7 @@ type RunsTableProps = {
 
 export function RunsTableComponent({ runs }: RunsTableProps) {
     return (
-        <div className="flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+        <div className="flex flex-col gap-4 p-4 lg:gap-4 lg:p-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-lg font-semibold md:text-2xl">Runs</h1>
                 <RefreshButton />

@@ -1,5 +1,5 @@
-
-import { Bar, BarChart, XAxis, YAxis, Line, LineChart } from "recharts";
+"use client";
+import { XAxis, YAxis, Line, LineChart, CartesianGrid } from "recharts";
 
 import {
     ChartConfig,
@@ -29,7 +29,7 @@ const runStatusChartConfig = {
         label: "Pending",
         color: "hsl(var(--chart-4))",
     },
-} satisfies ChartConfig
+} satisfies ChartConfig;
 
 export function RunsChart({ chartData }) {
     const chartConfig = {
@@ -40,48 +40,49 @@ export function RunsChart({ chartData }) {
     } satisfies ChartConfig;
 
     return (
-        <ChartContainer config={chartConfig} className="h-full w-full" >
-            <BarChart accessibilityLayer data={chartData}>
+        <ChartContainer config={chartConfig} className="h-full w-full">
+            <LineChart accessibilityLayer data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#999" strokeOpacity={0.5} />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
                     tickMargin={10}
+                    interval={0}
                     axisLine={false}
                     order={"asc"}
+                    padding={{ right: 30 }}
                 />
-                <YAxis
-                    type="number"
-                    domain={[0, roundUp]}
-                />
+                <YAxis type="number" domain={[0, (x) => roundUp(x, 1.05)]} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="count" fill="var(--color-count)" radius={4} />
-            </BarChart>
+                <Line dataKey="count" stroke="var(--color-count)" />
+            </LineChart>
         </ChartContainer>
     );
 }
 
 export function RunsByStatusChart({ chartData }) {
     return (
-        <ChartContainer config={runStatusChartConfig} className="h-full w-full" >
-            <BarChart accessibilityLayer data={chartData}>
+        <ChartContainer config={runStatusChartConfig} className="h-full w-full">
+            <LineChart accessibilityLayer data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#999" strokeOpacity={0.5} />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
                     tickMargin={10}
+                    interval={0}
                     axisLine={false}
+                    order="asc"
+                    padding={{ right: 30 }}
                 />
-                <YAxis
-                    type="number"
-                    domain={[0, roundUp]}
-                />
+                <YAxis type="number" domain={[0, (x) => roundUp(x, 1.05)]} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="SUCCESS" radius={0} stackId="a" fill="var(--color-SUCCESS)" />
-                <Bar dataKey="FAILURE" radius={0} stackId="a" fill="var(--color-FAILURE)" />
-                <Bar dataKey="STARTED" radius={0} stackId="a" fill="var(--color-STARTED)" />
-                <Bar dataKey="PENDING" radius={0} stackId="a" fill="var(--color-PENDING)" />
-            </BarChart>
+                <Line dataKey="SUCCESS" radius={0} stroke="var(--color-SUCCESS)" />
+                <Line dataKey="FAILURE" radius={0} stroke="var(--color-FAILURE)" />
+                <Line dataKey="STARTED" radius={0} stroke="var(--color-STARTED)" />
+                <Line dataKey="PENDING" radius={0} stroke="var(--color-PENDING)" />
+            </LineChart>
         </ChartContainer>
     );
 }
@@ -99,53 +100,52 @@ export function RunDurationStatsChart({ chartData }) {
         avg_duration: {
             label: "Average",
             color: "hsl(var(--chart-3))",
-        }
+        },
     } satisfies ChartConfig;
 
     return (
-        <ChartContainer config={chartConfig} className="h-full w-full" >
+        <ChartContainer config={chartConfig} className="h-full w-full">
             <LineChart accessibilityLayer data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#999" strokeOpacity={0.5} />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
                     tickMargin={10}
+                    interval={0}
                     axisLine={false}
+                    order={"asc"}
+                    padding={{ right: 30 }}
                 />
-                <YAxis
-                    type="number"
-                    domain={[0, roundUp]}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
+                <YAxis type="number" domain={[0, roundUp]} />
                 <Line dataKey="min_duration" stroke="var(--color-min_duration)" />
                 <Line dataKey="avg_duration" stroke="var(--color-avg_duration)" />
                 <Line dataKey="max_duration" stroke="var(--color-max_duration)" />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
             </LineChart>
         </ChartContainer>
     );
 }
 
-
 export function AvgDurationByStatusChart({ chartData }) {
     return (
-        <ChartContainer config={runStatusChartConfig} className="h-full w-full" >
+        <ChartContainer config={runStatusChartConfig} className="h-full w-full">
             <LineChart accessibilityLayer data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#999" strokeOpacity={0.5} />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
-                    tickMargin={10}
+                    tickMargin={0}
+                    interval={0}
                     axisLine={false}
+                    order={"asc"}
+                    padding={{ right: 30 }}
                 />
-                <YAxis
-                    type="number"
-                    domain={[0, roundUp]}
-                />
+                <YAxis type="number" domain={[0, roundUp]} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
                 <Line dataKey="SUCCESS" stroke="var(--color-SUCCESS)" />
                 <Line dataKey="FAILURE" stroke="var(--color-FAILURE)" />
-                <Line dataKey="STARTED" stroke="var(--color-STARTED)" />
-                <Line dataKey="PENDING" stroke="var(--color-PENDING)" />
             </LineChart>
         </ChartContainer>
     );

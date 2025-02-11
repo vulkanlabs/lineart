@@ -33,7 +33,7 @@ const PolicyVersionsTableColumns: ColumnDef<PolicyVersion>[] = [
     },
 ];
 
-export default function PolicyVersionsTable({ policyVersions }: { policyVersions: any[] }) {
+export function PolicyVersionsTable({ policyVersions }: { policyVersions: any[] }) {
     return <DataTable columns={PolicyVersionsTableColumns} data={policyVersions} />;
 }
 

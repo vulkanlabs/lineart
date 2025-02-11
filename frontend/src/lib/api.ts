@@ -19,6 +19,23 @@ export async function getAuthHeaders(user: StackUser) {
     return headers;
 }
 
+export async function getUserProjectId(user: StackUser) {
+    const headers = await getAuthHeaders(user);
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    return fetch(new URL(`/users/${user.id}`, serverUrl), { headers }).then(
+        async (response) => {
+            if (!response.ok) {
+                throw new Error(`Failed to fetch project ID: ${response.statusText}`, {
+                    cause: response,
+                });
+            }
+            return response.json().catch((error) => {
+                throw new Error("Error parsing response", { cause: error });
+            });
+        },
+    );
+}
+
 export async function fetchServerData({
     user,
     endpoint,

@@ -83,7 +83,9 @@ export default function PolicyMetrics({
                         {graphDefinition.data.length === 0 ? (
                             <EmptyChart />
                         ) : (
-                            <graphDefinition.component chartData={graphDefinition.data} />
+                            <div>
+                                <graphDefinition.component chartData={graphDefinition.data} />
+                            </div>
                         )}
                     </div>
                 ))}
