@@ -88,8 +88,8 @@ function LaunchRunForm({
     const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            input_data: "",
-            config_variables: "",
+            input_data: JSON.stringify(defaultInputData, null, 4),
+            config_variables: JSON.stringify(defaultConfigVariables, null, 4),
         },
     });
 
