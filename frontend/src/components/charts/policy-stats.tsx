@@ -12,6 +12,9 @@ import {
 
 import { roundUp } from "@/lib/chart";
 
+const strokeDashPattern = "3 3";
+const gridStrokeColor = "#999";
+
 const runStatusChartConfig = {
     FAILURE: {
         label: "Failure",
@@ -47,7 +50,11 @@ export function RunsChart({ chartData }) {
     return (
         <ChartContainer config={chartConfig} className="h-full w-full">
             <LineChart accessibilityLayer data={sorted}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#999" strokeOpacity={0.5} />
+                <CartesianGrid
+                    strokeDasharray={strokeDashPattern}
+                    stroke={gridStrokeColor}
+                    strokeOpacity={0.5}
+                />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
@@ -65,12 +72,21 @@ export function RunsChart({ chartData }) {
     );
 }
 
-export function RunsByStatusChart({ chartData }) {
+export function ErrorRateChart({ chartData }) {
+    const chartConfig = {
+        error_rate: {
+            label: "Error Rate",
+        },
+    } satisfies ChartConfig;
     const sortedData = chartData.sort((a, b) => dateDiff(a, b));
     return (
-        <ChartContainer config={runStatusChartConfig} className="h-full w-full">
+        <ChartContainer config={chartConfig} className="h-full w-full">
             <LineChart accessibilityLayer data={sortedData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#999" strokeOpacity={0.5} />
+                <CartesianGrid
+                    strokeDasharray={strokeDashPattern}
+                    stroke={gridStrokeColor}
+                    strokeOpacity={0.5}
+                />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
@@ -79,13 +95,10 @@ export function RunsByStatusChart({ chartData }) {
                     axisLine={false}
                     padding={{ right: 30 }}
                 />
-                <YAxis type="number" domain={[0, roundUp]} />
+                <YAxis type="number" domain={[0, roundUp]} tickFormatter={(tick) => `${tick}%`} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Line dataKey="SUCCESS" radius={0} stroke="var(--color-SUCCESS)" />
-                <Line dataKey="FAILURE" radius={0} stroke="var(--color-FAILURE)" />
-                <Line dataKey="STARTED" radius={0} stroke="var(--color-STARTED)" />
-                <Line dataKey="PENDING" radius={0} stroke="var(--color-PENDING)" />
+                <Line dataKey={"error_rate"} stroke="#EF5350" />
             </LineChart>
         </ChartContainer>
     );
@@ -111,7 +124,11 @@ export function RunDurationStatsChart({ chartData }) {
     return (
         <ChartContainer config={chartConfig} className="h-full w-full">
             <LineChart accessibilityLayer data={sortedData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#999" strokeOpacity={0.5} />
+                <CartesianGrid
+                    strokeDasharray={strokeDashPattern}
+                    stroke={gridStrokeColor}
+                    strokeOpacity={0.5}
+                />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
@@ -136,7 +153,11 @@ export function AvgDurationByStatusChart({ chartData }) {
     return (
         <ChartContainer config={runStatusChartConfig} className="h-full w-full">
             <LineChart accessibilityLayer data={sortedData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#999" strokeOpacity={0.5} />
+                <CartesianGrid
+                    strokeDasharray={strokeDashPattern}
+                    stroke={gridStrokeColor}
+                    strokeOpacity={0.5}
+                />
                 <XAxis
                     dataKey="date"
                     tickLine={false}

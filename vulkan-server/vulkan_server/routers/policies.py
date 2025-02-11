@@ -8,6 +8,7 @@ import pandas as pd
 import sqlalchemy.exc
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy import func as F
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from vulkan_public.exceptions import (
     UNHANDLED_ERROR_NAME,
@@ -16,6 +17,7 @@ from vulkan_public.exceptions import (
     VulkanInternalException,
 )
 
+from vulkan.core.run import RunStatus
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.dagster.client import get_dagster_client
@@ -598,15 +600,11 @@ def count_runs_by_policy(
     policy_id: str,
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
-    group_by_status: bool = False,
     db: Session = Depends(get_db),
 ):
     start_date, end_date = _validate_date_range(start_date, end_date)
 
     date_clause = F.DATE(Run.created_at).label("date")
-    groupers = []
-    if group_by_status:
-        groupers.append(Run.status.label("status"))
 
     policy_versions = (
         db.query(PolicyVersion.policy_version_id).filter_by(policy_id=policy_id).all()
@@ -617,19 +615,50 @@ def count_runs_by_policy(
         db.query(
             date_clause,
             F.count(Run.run_id).label("count"),
-            *groupers,
         )
         .filter(
             (Run.policy_version_id.in_(policy_version_ids))
             & (Run.created_at >= start_date)
             & (F.DATE(Run.created_at) <= end_date)
         )
-        .group_by(date_clause, *groupers)
+        .group_by(date_clause)
     )
     df = pd.read_sql(query.statement, query.session.bind)
-    if len(groupers) > 0:
-        df = df.pivot(
-            index="date", values="count", columns=[c.name for c in groupers]
-        ).reset_index()
+    return df.to_dict(orient="records")
 
+
+@router.get("/{policy_id}/runs/errors", response_model=list[Any])
+def error_rate_by_policy(
+    policy_id: str,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    db: Session = Depends(get_db),
+):
+    start_date, end_date = _validate_date_range(start_date, end_date)
+
+    date_clause = F.DATE(Run.created_at).label("date")
+    q = (
+        select(
+            date_clause,
+            F.count(Run.run_id).label("count"),
+            (
+                100
+                * F.count(Run.run_id).filter(Run.status == RunStatus.FAILURE)
+                / F.count(Run.run_id)
+            ).label("error_rate"),
+        )
+        .where(
+            (
+                Run.policy_version_id.in_(
+                    select(PolicyVersion.policy_version_id).where(
+                        PolicyVersion.policy_id == policy_id
+                    )
+                )
+            )
+            & (Run.created_at >= start_date)
+            & (F.DATE(Run.created_at) <= end_date)
+        )
+        .group_by(date_clause)
+    )
+    df = pd.read_sql(q, db.bind)
     return df.to_dict(orient="records")

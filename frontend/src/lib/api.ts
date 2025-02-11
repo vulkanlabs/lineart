@@ -22,18 +22,16 @@ export async function getAuthHeaders(user: StackUser) {
 export async function getUserProjectId(user: StackUser) {
     const headers = await getAuthHeaders(user);
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    return fetch(new URL(`/users/${user.id}`, serverUrl), { headers }).then(
-        async (response) => {
-            if (!response.ok) {
-                throw new Error(`Failed to fetch project ID: ${response.statusText}`, {
-                    cause: response,
-                });
-            }
-            return response.json().catch((error) => {
-                throw new Error("Error parsing response", { cause: error });
+    return fetch(new URL(`/users/${user.id}`, serverUrl), { headers }).then(async (response) => {
+        if (!response.ok) {
+            throw new Error(`Failed to fetch project ID: ${response.statusText}`, {
+                cause: response,
             });
-        },
-    );
+        }
+        return response.json().catch((error) => {
+            throw new Error("Error parsing response", { cause: error });
+        });
+    });
 }
 
 export async function fetchServerData({
@@ -317,7 +315,7 @@ export async function fetchRunsCount(
     policyId: string,
     startDate: Date,
     endDate: Date,
-    groupByStatus: boolean = false,
+    // groupByStatus: boolean = false,
 ) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     return fetch(
@@ -325,12 +323,27 @@ export async function fetchRunsCount(
             new URLSearchParams({
                 start_date: formatISODate(startDate),
                 end_date: formatISODate(endDate),
-                group_by_status: groupByStatus.toString(),
+                // group_by_status: groupByStatus.toString(),
             }),
     )
         .then((response) => response.json())
         .catch((error) => {
             throw new Error(`Error fetching runs count for policy ${policyId}`, { cause: error });
+        });
+}
+
+export async function fetchErrorRate(policyId: string, startDate: Date, endDate: Date) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    return fetch(
+        new URL(`/policies/${policyId}/runs/errors?`, serverUrl).toString() +
+            new URLSearchParams({
+                start_date: formatISODate(startDate),
+                end_date: formatISODate(endDate),
+            }),
+    )
+        .then((response) => response.json())
+        .catch((error) => {
+            throw new Error(`Error fetching error rate for policy ${policyId}`, { cause: error });
         });
 }
 

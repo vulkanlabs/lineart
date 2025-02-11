@@ -6,7 +6,7 @@ import { subDays } from "date-fns";
 import { DatePickerWithRange } from "@/components/charts/date-picker";
 import {
     RunsChart,
-    RunsByStatusChart,
+    ErrorRateChart,
     RunDurationStatsChart,
     AvgDurationByStatusChart,
 } from "@/components/charts/policy-stats";
@@ -19,7 +19,7 @@ export default function PolicyMetrics({
     dataLoader: any;
 }) {
     const [runsCount, setRunsCount] = useState([]);
-    const [runsByStatus, setRunsByStatus] = useState([]);
+    const [errorRate, setErrorRate] = useState([]);
     const [runDurationStats, setRunDurationStats] = useState([]);
     const [runDurationByStatus, setRunDurationByStatus] = useState([]);
     const [dateRange, setDateRange] = useState({
@@ -34,7 +34,7 @@ export default function PolicyMetrics({
         dataLoader({ policyId, dateRange })
             .then((data) => {
                 setRunsCount(data.runsCount);
-                setRunsByStatus(data.runsByStatus);
+                setErrorRate(data.errorRate);
                 setRunDurationStats(data.runDurationStats);
                 setRunDurationByStatus(data.runDurationByStatus);
             })
@@ -50,9 +50,9 @@ export default function PolicyMetrics({
             component: RunsChart,
         },
         {
-            name: "Runs by Status",
-            data: runsByStatus,
-            component: RunsByStatusChart,
+            name: "Error Rate (%)",
+            data: errorRate,
+            component: ErrorRateChart,
         },
         {
             name: "Duration (seconds)",
