@@ -31,6 +31,10 @@ const runStatusChartConfig = {
     },
 } satisfies ChartConfig;
 
+function dateDiff(a, b) {
+    return new Date(a.date).valueOf() - new Date(b.date).valueOf();
+}
+
 export function RunsChart({ chartData }) {
     const chartConfig = {
         count: {
@@ -39,9 +43,10 @@ export function RunsChart({ chartData }) {
         },
     } satisfies ChartConfig;
 
+    const sorted = chartData.sort((a, b) => dateDiff(a, b));
     return (
         <ChartContainer config={chartConfig} className="h-full w-full">
-            <LineChart accessibilityLayer data={chartData}>
+            <LineChart accessibilityLayer data={sorted}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#999" strokeOpacity={0.5} />
                 <XAxis
                     dataKey="date"
@@ -49,10 +54,9 @@ export function RunsChart({ chartData }) {
                     tickMargin={10}
                     interval={0}
                     axisLine={false}
-                    order={"asc"}
                     padding={{ right: 30 }}
                 />
-                <YAxis type="number" domain={[0, (x) => roundUp(x, 1.05)]} />
+                <YAxis type="number" domain={[0, roundUp]} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
                 <Line dataKey="count" stroke="var(--color-count)" />
@@ -62,9 +66,10 @@ export function RunsChart({ chartData }) {
 }
 
 export function RunsByStatusChart({ chartData }) {
+    const sortedData = chartData.sort((a, b) => dateDiff(a, b));
     return (
         <ChartContainer config={runStatusChartConfig} className="h-full w-full">
-            <LineChart accessibilityLayer data={chartData}>
+            <LineChart accessibilityLayer data={sortedData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#999" strokeOpacity={0.5} />
                 <XAxis
                     dataKey="date"
@@ -72,10 +77,9 @@ export function RunsByStatusChart({ chartData }) {
                     tickMargin={10}
                     interval={0}
                     axisLine={false}
-                    order="asc"
                     padding={{ right: 30 }}
                 />
-                <YAxis type="number" domain={[0, (x) => roundUp(x, 1.05)]} />
+                <YAxis type="number" domain={[0, roundUp]} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
                 <Line dataKey="SUCCESS" radius={0} stroke="var(--color-SUCCESS)" />
@@ -88,6 +92,7 @@ export function RunsByStatusChart({ chartData }) {
 }
 
 export function RunDurationStatsChart({ chartData }) {
+    const sortedData = chartData.sort((a, b) => dateDiff(a, b));
     const chartConfig = {
         min_duration: {
             label: "Min",
@@ -105,7 +110,7 @@ export function RunDurationStatsChart({ chartData }) {
 
     return (
         <ChartContainer config={chartConfig} className="h-full w-full">
-            <LineChart accessibilityLayer data={chartData}>
+            <LineChart accessibilityLayer data={sortedData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#999" strokeOpacity={0.5} />
                 <XAxis
                     dataKey="date"
@@ -113,7 +118,6 @@ export function RunDurationStatsChart({ chartData }) {
                     tickMargin={10}
                     interval={0}
                     axisLine={false}
-                    order={"asc"}
                     padding={{ right: 30 }}
                 />
                 <YAxis type="number" domain={[0, roundUp]} />
@@ -128,9 +132,10 @@ export function RunDurationStatsChart({ chartData }) {
 }
 
 export function AvgDurationByStatusChart({ chartData }) {
+    const sortedData = chartData.sort((a, b) => dateDiff(a, b));
     return (
         <ChartContainer config={runStatusChartConfig} className="h-full w-full">
-            <LineChart accessibilityLayer data={chartData}>
+            <LineChart accessibilityLayer data={sortedData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#999" strokeOpacity={0.5} />
                 <XAxis
                     dataKey="date"
@@ -138,7 +143,6 @@ export function AvgDurationByStatusChart({ chartData }) {
                     tickMargin={0}
                     interval={0}
                     axisLine={false}
-                    order={"asc"}
                     padding={{ right: 30 }}
                 />
                 <YAxis type="number" domain={[0, roundUp]} />
