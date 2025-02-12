@@ -428,7 +428,7 @@ def _add_component_dependencies(
         .filter(
             ComponentVersion.alias.in_(required_components),
             ComponentVersion.project_id == version.project_id,
-            ComponentVersion.archived == False,  # noqa: E712
+            ComponentVersion.archived.is_(False),
         )
         .all()
     )
@@ -456,7 +456,7 @@ def _add_data_source_dependencies(
         .filter(
             DataSource.name.in_(data_sources),
             DataSource.project_id == version.project_id,
-            DataSource.archived == False,  # noqa: E712
+            DataSource.archived.is_(False),
         )
         .all()
     )
@@ -533,31 +533,10 @@ def run_duration_stats_by_policy(
     db: Session = Depends(get_db),
 ):
     start_date, end_date = _validate_date_range(start_date, end_date)
-    # policy_versions = (
-    #     db.query(PolicyVersion.policy_version_id).filter_by(policy_id=policy_id).all()
-    # )
-    # policy_version_ids = [v.policy_version_id for v in policy_versions]
 
     duration_seconds = F.extract("epoch", Run.last_updated_at - Run.created_at)
     date_clause = F.DATE(Run.created_at).label("date")
 
-    # query = (
-    #     db.query(
-    #         date_clause,
-    #         F.avg(duration_seconds).label("avg_duration"),
-    #         F.min(duration_seconds).label("min_duration"),
-    #         F.max(duration_seconds).label("max_duration"),
-    #     )
-    #     .filter(
-    #         (Run.policy_version_id.in_(policy_version_ids))
-    #         & (Run.created_at >= start_date)
-    #         & (F.DATE(Run.created_at) <= end_date)
-    #     )
-    #     .group_by(date_clause)
-    # )
-    # df = pd.read_sql(query.statement, query.session.bind)
-
-    # Rewrite using select statement:
     q = (
         select(
             date_clause,
@@ -703,7 +682,6 @@ def runs_outcomes_by_policy(
             & (F.DATE(Run.created_at) <= end_date)
         )
         .group_by(date_clause, Run.result, subquery.c.total)
-        .having("result" != None)
     )
     df = pd.read_sql(q, db.bind)
     df["percentage"] = 100 * df["count"] / df["total"]

@@ -13,12 +13,8 @@ import {
 import { roundUp } from "@/lib/chart";
 
 const strokeDashPattern = "3 3";
-const gridStrokeColor = "#999";
+const gridStrokeColor = "#666";
 const strokeWidth = 2;
-
-function dateDiff(a, b) {
-    return new Date(a.date).valueOf() - new Date(b.date).valueOf();
-}
 
 export function RunsChart({ chartData }) {
     const chartConfig = {
@@ -196,17 +192,7 @@ export function AvgDurationByStatusChart({ chartData }) {
 export function RunOutcomesChart({ chartData }) {
     const possibleOutcomes = parseOutcomes(chartData);
     const chartConfig = outcomeChartConfig(possibleOutcomes);
-    const sortedData = chartData
-        .sort((a, b) => dateDiff(a, b))
-        .map((data) => {
-            return {
-                date: data.date,
-                ...possibleOutcomes.reduce((acc, outcome) => {
-                    acc[outcome] = data[`count,${outcome}`];
-                    return acc;
-                }, {}),
-            };
-        });
+    const sortedData = formatOutcomesData(chartData, possibleOutcomes, "count");
 
     return (
         <ChartContainer config={chartConfig} className="h-full w-full">
@@ -244,17 +230,7 @@ export function RunOutcomesChart({ chartData }) {
 export function RunOutcomeDistributionChart({ chartData }) {
     const possibleOutcomes = parseOutcomes(chartData);
     const chartConfig = outcomeChartConfig(possibleOutcomes);
-    const sortedData = chartData
-        .sort((a, b) => dateDiff(a, b))
-        .map((data) => {
-            return {
-                date: data.date,
-                ...possibleOutcomes.reduce((acc, outcome) => {
-                    acc[outcome] = data[`percentage,${outcome}`];
-                    return acc;
-                }, {}),
-            };
-        });
+    const sortedData = formatOutcomesData(chartData, possibleOutcomes, "percentage");
 
     return (
         <ChartContainer config={chartConfig} className="h-full w-full">
@@ -270,15 +246,15 @@ export function RunOutcomeDistributionChart({ chartData }) {
                     tickMargin={10}
                     interval={0}
                     axisLine={false}
-                    padding={{ right: 30 }}
                 />
-                <YAxis type="number" domain={[0, roundUp]} />
+                <YAxis type="number" domain={[0, 100]} tickMargin={5} />
                 {possibleOutcomes.map((outcome) => (
                     <Bar
                         key={outcome}
                         dataKey={`${outcome}`}
                         fill={`var(--color-${outcome})`}
                         stackId={"a"}
+                        fillOpacity={0.8}
                     />
                 ))}
                 <ChartTooltip content={<ChartTooltipContent />} />
@@ -288,7 +264,10 @@ export function RunOutcomeDistributionChart({ chartData }) {
     );
 }
 
-function parseOutcomes(data) {
+function parseOutcomes(data: any[]) {
+    if (data?.length === 0) {
+        return [];
+    }
     const entry = data[0];
     const keys = Object.keys(entry)
         .filter((key) => key !== "date" && key.startsWith("count"))
@@ -297,7 +276,7 @@ function parseOutcomes(data) {
 }
 
 // Create a chart config object with a key for each possible outcome
-function outcomeChartConfig(outcomes) {
+function outcomeChartConfig(outcomes: string[]) {
     return {
         ...outcomes.reduce((acc, outcome) => {
             acc[outcome] = {
@@ -306,5 +285,24 @@ function outcomeChartConfig(outcomes) {
             };
             return acc;
         }, {}),
-    } satisfies ChartConfig;
+    } as ChartConfig;
+}
+
+type seriesType = "count" | "percentage";
+function formatOutcomesData(data: any[], outcomes: string[], series: seriesType) {
+    return data
+        .sort((a, b) => dateDiff(a, b))
+        .map((data) => {
+            return {
+                date: data["date,"],
+                ...outcomes.reduce((acc, outcome) => {
+                    acc[outcome] = data[`${series},${outcome}`];
+                    return acc;
+                }, {}),
+            };
+        });
+}
+
+function dateDiff(a, b) {
+    return new Date(a.date).valueOf() - new Date(b.date).valueOf();
 }
