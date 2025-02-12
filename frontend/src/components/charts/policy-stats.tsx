@@ -12,8 +12,11 @@ import {
 
 import { roundUp } from "@/lib/chart";
 
-const strokeDashPattern = "3 3";
-const gridStrokeColor = "#666";
+const DefaultGridProps = {
+    strokeDasharray: "3 3",
+    stroke: "#666",
+    strokeOpacity: 0.5,
+};
 const strokeWidth = 2;
 
 export function RunsChart({ chartData }) {
@@ -28,11 +31,7 @@ export function RunsChart({ chartData }) {
     return (
         <ChartContainer config={chartConfig} className="h-full w-full">
             <LineChart accessibilityLayer data={sorted}>
-                <CartesianGrid
-                    strokeDasharray={strokeDashPattern}
-                    stroke={gridStrokeColor}
-                    strokeOpacity={0.5}
-                />
+                <CartesianGrid {...DefaultGridProps} />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
@@ -64,11 +63,7 @@ export function ErrorRateChart({ chartData }) {
     return (
         <ChartContainer config={chartConfig} className="h-full w-full">
             <LineChart accessibilityLayer data={sortedData}>
-                <CartesianGrid
-                    strokeDasharray={strokeDashPattern}
-                    stroke={gridStrokeColor}
-                    strokeOpacity={0.5}
-                />
+                <CartesianGrid {...DefaultGridProps} />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
@@ -105,11 +100,7 @@ export function RunDurationStatsChart({ chartData }) {
     return (
         <ChartContainer config={chartConfig} className="h-full w-full">
             <LineChart accessibilityLayer data={sortedData}>
-                <CartesianGrid
-                    strokeDasharray={strokeDashPattern}
-                    stroke={gridStrokeColor}
-                    strokeOpacity={0.5}
-                />
+                <CartesianGrid {...DefaultGridProps} />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
@@ -165,11 +156,7 @@ export function AvgDurationByStatusChart({ chartData }) {
     return (
         <ChartContainer config={runStatusChartConfig} className="h-full w-full">
             <LineChart accessibilityLayer data={sortedData}>
-                <CartesianGrid
-                    strokeDasharray={strokeDashPattern}
-                    stroke={gridStrokeColor}
-                    strokeOpacity={0.5}
-                />
+                <CartesianGrid {...DefaultGridProps} />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
@@ -197,11 +184,7 @@ export function RunOutcomesChart({ chartData }) {
     return (
         <ChartContainer config={chartConfig} className="h-full w-full">
             <LineChart accessibilityLayer data={sortedData}>
-                <CartesianGrid
-                    strokeDasharray={strokeDashPattern}
-                    stroke={gridStrokeColor}
-                    strokeOpacity={0.5}
-                />
+                <CartesianGrid {...DefaultGridProps} />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
@@ -235,11 +218,7 @@ export function RunOutcomeDistributionChart({ chartData }) {
     return (
         <ChartContainer config={chartConfig} className="h-full w-full">
             <BarChart accessibilityLayer data={sortedData}>
-                <CartesianGrid
-                    strokeDasharray={strokeDashPattern}
-                    stroke={gridStrokeColor}
-                    strokeOpacity={0.5}
-                />
+                <CartesianGrid {...DefaultGridProps} />
                 <XAxis
                     dataKey="date"
                     tickLine={false}

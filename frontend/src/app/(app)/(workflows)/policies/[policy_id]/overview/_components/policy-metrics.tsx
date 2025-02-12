@@ -67,7 +67,7 @@ export default function PolicyMetrics({
             component: RunOutcomesChart,
         },
         {
-            name: "Policy Outcome Distribution",
+            name: "Policy Outcome Distribution (%)",
             data: outcomeDistribution,
             component: RunOutcomeDistributionChart,
         },
