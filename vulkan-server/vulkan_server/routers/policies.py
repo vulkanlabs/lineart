@@ -533,29 +533,53 @@ def run_duration_stats_by_policy(
     db: Session = Depends(get_db),
 ):
     start_date, end_date = _validate_date_range(start_date, end_date)
-    policy_versions = (
-        db.query(PolicyVersion.policy_version_id).filter_by(policy_id=policy_id).all()
-    )
-    policy_version_ids = [v.policy_version_id for v in policy_versions]
+    # policy_versions = (
+    #     db.query(PolicyVersion.policy_version_id).filter_by(policy_id=policy_id).all()
+    # )
+    # policy_version_ids = [v.policy_version_id for v in policy_versions]
 
     duration_seconds = F.extract("epoch", Run.last_updated_at - Run.created_at)
     date_clause = F.DATE(Run.created_at).label("date")
 
-    query = (
-        db.query(
+    # query = (
+    #     db.query(
+    #         date_clause,
+    #         F.avg(duration_seconds).label("avg_duration"),
+    #         F.min(duration_seconds).label("min_duration"),
+    #         F.max(duration_seconds).label("max_duration"),
+    #     )
+    #     .filter(
+    #         (Run.policy_version_id.in_(policy_version_ids))
+    #         & (Run.created_at >= start_date)
+    #         & (F.DATE(Run.created_at) <= end_date)
+    #     )
+    #     .group_by(date_clause)
+    # )
+    # df = pd.read_sql(query.statement, query.session.bind)
+
+    # Rewrite using select statement:
+    q = (
+        select(
             date_clause,
             F.avg(duration_seconds).label("avg_duration"),
             F.min(duration_seconds).label("min_duration"),
             F.max(duration_seconds).label("max_duration"),
         )
-        .filter(
-            (Run.policy_version_id.in_(policy_version_ids))
+        .where(
+            (
+                Run.policy_version_id.in_(
+                    select(PolicyVersion.policy_version_id).where(
+                        PolicyVersion.policy_id == policy_id
+                    )
+                )
+            )
             & (Run.created_at >= start_date)
             & (F.DATE(Run.created_at) <= end_date)
         )
         .group_by(date_clause)
     )
-    df = pd.read_sql(query.statement, query.session.bind)
+    df = pd.read_sql(q, db.bind)
+
     return df.to_dict(orient="records")
 
 
@@ -596,39 +620,7 @@ def run_duration_stats_by_policy_status(
 
 
 @router.get("/{policy_id}/runs/count", response_model=list[Any])
-def count_runs_by_policy(
-    policy_id: str,
-    start_date: datetime.date | None = None,
-    end_date: datetime.date | None = None,
-    db: Session = Depends(get_db),
-):
-    start_date, end_date = _validate_date_range(start_date, end_date)
-
-    date_clause = F.DATE(Run.created_at).label("date")
-
-    policy_versions = (
-        db.query(PolicyVersion.policy_version_id).filter_by(policy_id=policy_id).all()
-    )
-    policy_version_ids = [v.policy_version_id for v in policy_versions]
-
-    query = (
-        db.query(
-            date_clause,
-            F.count(Run.run_id).label("count"),
-        )
-        .filter(
-            (Run.policy_version_id.in_(policy_version_ids))
-            & (Run.created_at >= start_date)
-            & (F.DATE(Run.created_at) <= end_date)
-        )
-        .group_by(date_clause)
-    )
-    df = pd.read_sql(query.statement, query.session.bind)
-    return df.to_dict(orient="records")
-
-
-@router.get("/{policy_id}/runs/errors", response_model=list[Any])
-def error_rate_by_policy(
+def runs_by_policy(
     policy_id: str,
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
@@ -661,4 +653,65 @@ def error_rate_by_policy(
         .group_by(date_clause)
     )
     df = pd.read_sql(q, db.bind)
+    return df.to_dict(orient="records")
+
+
+@router.get("/{policy_id}/runs/outcomes", response_model=list[Any])
+def runs_outcomes_by_policy(
+    policy_id: str,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    db: Session = Depends(get_db),
+):
+    start_date, end_date = _validate_date_range(start_date, end_date)
+
+    date_clause = F.DATE(Run.created_at).label("date")
+    subquery = (
+        select(date_clause, F.count(Run.run_id).label("total"))
+        .where(
+            (
+                Run.policy_version_id.in_(
+                    select(PolicyVersion.policy_version_id).where(
+                        PolicyVersion.policy_id == policy_id
+                    )
+                )
+            )
+            & (Run.created_at >= start_date)
+            & (F.DATE(Run.created_at) <= end_date)
+        )
+        .group_by(date_clause)
+        .subquery()
+    )
+
+    q = (
+        select(
+            date_clause,
+            Run.result.label("result"),
+            F.count(Run.run_id).label("count"),
+            subquery.c.total.label("total"),
+        )
+        .join(subquery, onclause=subquery.c.date == date_clause)
+        .where(
+            (
+                Run.policy_version_id.in_(
+                    select(PolicyVersion.policy_version_id).where(
+                        PolicyVersion.policy_id == policy_id
+                    )
+                )
+            )
+            & (Run.created_at >= start_date)
+            & (F.DATE(Run.created_at) <= end_date)
+        )
+        .group_by(date_clause, Run.result, subquery.c.total)
+        .having("result" != None)
+    )
+    df = pd.read_sql(q, db.bind)
+    df["percentage"] = 100 * df["count"] / df["total"]
+    df = (
+        df.pivot(
+            index=date_clause.name, values=["count", "percentage"], columns=["result"]
+        )
+        .reset_index()
+        .fillna(0)
+    )
     return df.to_dict(orient="records")

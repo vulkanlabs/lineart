@@ -2,19 +2,13 @@
 
 import {
     fetchRunsCount,
-    fetchErrorRate,
     fetchRunDurationStats,
     fetchRunDurationByStatus,
+    fetchRunOutcomes,
 } from "@/lib/api";
 
 export async function fetchMetricsData({ policyId, dateRange }) {
     const runsCount = await fetchRunsCount(policyId, dateRange.from, dateRange.to).catch(
-        (error) => {
-            console.error(error);
-        },
-    );
-
-    const errorRate = await fetchErrorRate(policyId, dateRange.from, dateRange.to).catch(
         (error) => {
             console.error(error);
         },
@@ -36,5 +30,15 @@ export async function fetchMetricsData({ policyId, dateRange }) {
         console.error(error);
     });
 
-    return { runsCount, errorRate, runDurationStats, runDurationByStatus };
+    return { runsCount, errorRate: runsCount, runDurationStats, runDurationByStatus };
+}
+
+export async function fetchPolicyOutcomeStats({ policyId, dateRange }) {
+    const runOutcomes = await fetchRunOutcomes(policyId, dateRange.from, dateRange.to).catch(
+        (error) => {
+            console.error(error);
+        },
+    );
+
+    return { runOutcomes };
 }

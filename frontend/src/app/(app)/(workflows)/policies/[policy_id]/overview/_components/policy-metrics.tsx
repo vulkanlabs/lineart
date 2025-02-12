@@ -9,15 +9,24 @@ import {
     ErrorRateChart,
     RunDurationStatsChart,
     AvgDurationByStatusChart,
+    RunOutcomesChart,
+    RunOutcomeDistributionChart,
 } from "@/components/charts/policy-stats";
+import { EmptyChart } from "@/components/charts/empty";
 
 export default function PolicyMetrics({
     policyId,
-    dataLoader,
+    metricsLoader,
+    outcomesLoader,
 }: {
     policyId: string;
-    dataLoader: any;
+    metricsLoader: any;
+    outcomesLoader: (params: {
+        policyId: string;
+        dateRange: { from: Date; to: Date };
+    }) => Promise<{ runOutcomes: any[] }>;
 }) {
+    const [outcomeDistribution, setOutcomeDistribution] = useState([]);
     const [runsCount, setRunsCount] = useState([]);
     const [errorRate, setErrorRate] = useState([]);
     const [runDurationStats, setRunDurationStats] = useState([]);
@@ -31,7 +40,7 @@ export default function PolicyMetrics({
         if (!dateRange || !dateRange.from || !dateRange.to) {
             return;
         }
-        dataLoader({ policyId, dateRange })
+        metricsLoader({ policyId, dateRange })
             .then((data) => {
                 setRunsCount(data.runsCount);
                 setErrorRate(data.errorRate);
@@ -41,9 +50,27 @@ export default function PolicyMetrics({
             .catch((error) => {
                 console.error(error);
             });
+
+        outcomesLoader({ policyId, dateRange })
+            .then((data) => {
+                setOutcomeDistribution(data.runOutcomes);
+            })
+            .catch((error) => {
+                console.error(error);
+            });
     }, [dateRange]);
 
     const graphDefinitions = [
+        {
+            name: "Policy Outcomes",
+            data: outcomeDistribution,
+            component: RunOutcomesChart,
+        },
+        {
+            name: "Policy Outcome Distribution",
+            data: outcomeDistribution,
+            component: RunOutcomeDistributionChart,
+        },
         {
             name: "Runs",
             data: runsCount,
@@ -68,15 +95,14 @@ export default function PolicyMetrics({
 
     return (
         <div className="overflow-scroll">
-            <div className="flex gap-4 pb-4">
+            <div className="flex flex-col gap-4 pb-4">
                 <h1 className="text-lg font-semibold md:text-2xl">Metrics</h1>
-                <div>
+                <div className="flex gap-4">
+                    <DatePickerWithRange date={dateRange} setDate={setDateRange} />
                     <DatePickerWithRange date={dateRange} setDate={setDateRange} />
                 </div>
             </div>
-            {/* Note: This is ugly, but not defining height or using h-full
-                          causes the graph to not render. */}
-            <div className="grid grid-cols-2 gap-4 w-[85%] px-16 overflow-y-scroll">
+            <div className="grid grid-cols-2 gap-4 w-[90%] px-16 overflow-y-scroll">
                 {graphDefinitions.map((graphDefinition) => (
                     <div key={graphDefinition.name} className="col-span-1 px-8 pb-8">
                         <h3 className="text-lg">{graphDefinition.name}</h3>
@@ -90,14 +116,6 @@ export default function PolicyMetrics({
                     </div>
                 ))}
             </div>
-        </div>
-    );
-}
-
-function EmptyChart() {
-    return (
-        <div className="flex items-center justify-center h-full w-full">
-            <p className="text-sm font-semibold text-gray-500">No runs found.</p>
         </div>
     );
 }

@@ -1,5 +1,5 @@
 import PolicyMetrics from "./_components/policy-metrics";
-import { fetchMetricsData } from "@/lib/actions";
+import { fetchMetricsData, fetchPolicyOutcomeStats } from "@/lib/actions";
 
 export default async function Page(props) {
     const params = await props.params;
@@ -7,7 +7,11 @@ export default async function Page(props) {
 
     return (
         <div className="flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-            <PolicyMetrics policyId={policyId} dataLoader={fetchMetricsData} />
+            <PolicyMetrics
+                policyId={policyId}
+                metricsLoader={fetchMetricsData}
+                outcomesLoader={fetchPolicyOutcomeStats}
+            />
         </div>
     );
 }
