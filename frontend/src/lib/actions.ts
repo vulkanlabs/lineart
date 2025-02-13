@@ -7,8 +7,8 @@ import {
     fetchRunOutcomes,
 } from "@/lib/api";
 
-export async function fetchMetricsData({ policyId, dateRange }) {
-    const runsCount = await fetchRunsCount(policyId, dateRange.from, dateRange.to).catch(
+export async function fetchMetricsData({ policyId, dateRange, versions }) {
+    const runsCount = await fetchRunsCount(policyId, dateRange.from, dateRange.to, versions).catch(
         (error) => {
             console.error(error);
         },
@@ -18,6 +18,7 @@ export async function fetchMetricsData({ policyId, dateRange }) {
         policyId,
         dateRange.from,
         dateRange.to,
+        versions,
     ).catch((error) => {
         console.error(error);
     });
@@ -26,6 +27,7 @@ export async function fetchMetricsData({ policyId, dateRange }) {
         policyId,
         dateRange.from,
         dateRange.to,
+        versions,
     ).catch((error) => {
         console.error(error);
     });
@@ -33,12 +35,15 @@ export async function fetchMetricsData({ policyId, dateRange }) {
     return { runsCount, errorRate: runsCount, runDurationStats, runDurationByStatus };
 }
 
-export async function fetchPolicyOutcomeStats({ policyId, dateRange }) {
-    const runOutcomes = await fetchRunOutcomes(policyId, dateRange.from, dateRange.to).catch(
-        (error) => {
-            console.error(error);
-        },
-    );
+export async function fetchPolicyOutcomeStats({ policyId, dateRange, versions }) {
+    const runOutcomes = await fetchRunOutcomes(
+        policyId,
+        dateRange.from,
+        dateRange.to,
+        versions,
+    ).catch((error) => {
+        console.error(error);
+    });
 
     return { runOutcomes };
 }

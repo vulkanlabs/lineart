@@ -6,7 +6,7 @@ from typing import Annotated, Any
 
 import pandas as pd
 import sqlalchemy.exc
-from fastapi import APIRouter, Body, Depends, HTTPException, Response
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 from sqlalchemy import func as F
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -195,7 +195,12 @@ def list_policy_versions(
     if not include_archived:
         filters["archived"] = False
 
-    policy_versions = db.query(PolicyVersion).filter_by(**filters).all()
+    policy_versions = (
+        db.query(PolicyVersion)
+        .filter_by(**filters)
+        .order_by(PolicyVersion.created_at.asc())
+        .all()
+    )
     if len(policy_versions) == 0:
         return Response(status_code=204)
     return policy_versions
@@ -525,14 +530,19 @@ def _validate_date_range(
     return start_date, end_date
 
 
-@router.get("/{policy_id}/runs/duration", response_model=list[Any])
+@router.post("/{policy_id}/runs/duration", response_model=list[Any])
 def run_duration_stats_by_policy(
     policy_id: str,
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
+    versions: Annotated[list[str] | None, Body(embed=True)] = None,
     db: Session = Depends(get_db),
 ):
     start_date, end_date = _validate_date_range(start_date, end_date)
+    if versions is None:
+        versions = select(PolicyVersion.policy_version_id).where(
+            PolicyVersion.policy_id == policy_id
+        )
 
     duration_seconds = F.extract("epoch", Run.last_updated_at - Run.created_at)
     date_clause = F.DATE(Run.created_at).label("date")
@@ -545,13 +555,7 @@ def run_duration_stats_by_policy(
             F.max(duration_seconds).label("max_duration"),
         )
         .where(
-            (
-                Run.policy_version_id.in_(
-                    select(PolicyVersion.policy_version_id).where(
-                        PolicyVersion.policy_id == policy_id
-                    )
-                )
-            )
+            (Run.policy_version_id.in_(versions))
             & (Run.created_at >= start_date)
             & (F.DATE(Run.created_at) <= end_date)
         )
@@ -562,50 +566,56 @@ def run_duration_stats_by_policy(
     return df.to_dict(orient="records")
 
 
-@router.get("/{policy_id}/runs/duration/by_status", response_model=list[Any])
+@router.post("/{policy_id}/runs/duration/by_status", response_model=list[Any])
 def run_duration_stats_by_policy_status(
     policy_id: str,
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
+    versions: Annotated[list[str] | None, Body(embed=True)] = None,
     db: Session = Depends(get_db),
 ):
     start_date, end_date = _validate_date_range(start_date, end_date)
-    policy_versions = (
-        db.query(PolicyVersion.policy_version_id).filter_by(policy_id=policy_id).all()
-    )
-    policy_version_ids = [v.policy_version_id for v in policy_versions]
 
     duration_seconds = F.extract("epoch", Run.last_updated_at - Run.created_at)
     date_clause = F.DATE(Run.created_at).label("date")
 
+    if versions is None:
+        versions = select(PolicyVersion.policy_version_id).where(
+            PolicyVersion.policy_id == policy_id
+        )
     query = (
-        db.query(
+        select(
             date_clause,
             Run.status,
             F.avg(duration_seconds).label("avg_duration"),
         )
-        .filter(
-            (Run.policy_version_id.in_(policy_version_ids))
+        .where(
+            (Run.policy_version_id.in_(versions))
             & (Run.created_at >= start_date)
             & (F.DATE(Run.created_at) <= end_date)
         )
         .group_by(date_clause, Run.status)
     )
-    df = pd.read_sql(query.statement, query.session.bind)
+    df = pd.read_sql(query, db.bind)
     df = df.pivot(
         index=date_clause.name, values="avg_duration", columns=["status"]
     ).reset_index()
     return df.to_dict(orient="records")
 
 
-@router.get("/{policy_id}/runs/count", response_model=list[Any])
+@router.post("/{policy_id}/runs/count", response_model=list[Any])
 def runs_by_policy(
     policy_id: str,
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
+    versions: Annotated[list[str] | None, Body(embed=True)] = None,
     db: Session = Depends(get_db),
 ):
     start_date, end_date = _validate_date_range(start_date, end_date)
+    if versions is None:
+        versions = select(PolicyVersion.policy_version_id).where(
+            PolicyVersion.policy_id == policy_id
+        )
 
     date_clause = F.DATE(Run.created_at).label("date")
     q = (
@@ -619,13 +629,7 @@ def runs_by_policy(
             ).label("error_rate"),
         )
         .where(
-            (
-                Run.policy_version_id.in_(
-                    select(PolicyVersion.policy_version_id).where(
-                        PolicyVersion.policy_id == policy_id
-                    )
-                )
-            )
+            (Run.policy_version_id.in_(versions))
             & (Run.created_at >= start_date)
             & (F.DATE(Run.created_at) <= end_date)
         )
@@ -635,26 +639,26 @@ def runs_by_policy(
     return df.to_dict(orient="records")
 
 
-@router.get("/{policy_id}/runs/outcomes", response_model=list[Any])
+@router.post("/{policy_id}/runs/outcomes", response_model=list[Any])
 def runs_outcomes_by_policy(
     policy_id: str,
-    start_date: datetime.date | None = None,
-    end_date: datetime.date | None = None,
+    start_date: Annotated[datetime.date | None, Query()] = None,
+    end_date: Annotated[datetime.date | None, Query()] = None,
+    versions: Annotated[list[str] | None, Body(embed=True)] = None,
     db: Session = Depends(get_db),
 ):
     start_date, end_date = _validate_date_range(start_date, end_date)
+
+    if versions is None:
+        versions = select(PolicyVersion.policy_version_id).where(
+            PolicyVersion.policy_id == policy_id
+        )
 
     date_clause = F.DATE(Run.created_at).label("date")
     subquery = (
         select(date_clause, F.count(Run.run_id).label("total"))
         .where(
-            (
-                Run.policy_version_id.in_(
-                    select(PolicyVersion.policy_version_id).where(
-                        PolicyVersion.policy_id == policy_id
-                    )
-                )
-            )
+            (Run.policy_version_id.in_(versions))
             & (Run.created_at >= start_date)
             & (F.DATE(Run.created_at) <= end_date)
         )
@@ -671,13 +675,7 @@ def runs_outcomes_by_policy(
         )
         .join(subquery, onclause=subquery.c.date == date_clause)
         .where(
-            (
-                Run.policy_version_id.in_(
-                    select(PolicyVersion.policy_version_id).where(
-                        PolicyVersion.policy_id == policy_id
-                    )
-                )
-            )
+            (Run.policy_version_id.in_(versions))
             & (Run.created_at >= start_date)
             & (F.DATE(Run.created_at) <= end_date)
         )

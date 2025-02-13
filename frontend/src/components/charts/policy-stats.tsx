@@ -243,17 +243,6 @@ export function RunOutcomeDistributionChart({ chartData }) {
     );
 }
 
-function parseOutcomes(data: any[]) {
-    if (data?.length === 0) {
-        return [];
-    }
-    const entry = data[0];
-    const keys = Object.keys(entry)
-        .filter((key) => key !== "date" && key.startsWith("count"))
-        .map((key) => key.replace("count,", ""));
-    return keys;
-}
-
 // Create a chart config object with a key for each possible outcome
 function outcomeChartConfig(outcomes: string[]) {
     return {
@@ -267,8 +256,10 @@ function outcomeChartConfig(outcomes: string[]) {
     } as ChartConfig;
 }
 
-type seriesType = "count" | "percentage";
-function formatOutcomesData(data: any[], outcomes: string[], series: seriesType) {
+// Outcome series are created using a pivot operation, which produces
+// weird names due to the multiindex involved.
+type OutcomeSeriesType = "count" | "percentage";
+function formatOutcomesData(data: any[], outcomes: string[], series: OutcomeSeriesType) {
     return data
         .sort((a, b) => dateDiff(a, b))
         .map((data) => {
@@ -280,6 +271,17 @@ function formatOutcomesData(data: any[], outcomes: string[], series: seriesType)
                 }, {}),
             };
         });
+}
+
+function parseOutcomes(data: any[]) {
+    if (data?.length === 0) {
+        return [];
+    }
+    const entry = data[0];
+    const keys = Object.keys(entry)
+        .filter((key) => key !== "date" && key.startsWith("count"))
+        .map((key) => key.replace("count,", ""));
+    return keys;
 }
 
 function dateDiff(a, b) {

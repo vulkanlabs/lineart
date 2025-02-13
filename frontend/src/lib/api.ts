@@ -119,7 +119,7 @@ export async function fetchPolicyVersions(
     user: StackUser,
     policyId: string,
     includeArchived: boolean = false,
-) {
+): Promise<PolicyVersion[]> {
     return fetchServerData({
         user: user,
         endpoint: `/policies/${policyId}/versions?include_archived=${includeArchived}`,
@@ -311,48 +311,100 @@ export async function fetchBacktestMetrics(
 
 const formatISODate = (date: Date) => formatISO(date, { representation: "date" });
 
-export async function fetchRunsCount(policyId: string, startDate: Date, endDate: Date) {
+export async function fetchRunsCount(
+    policyId: string,
+    startDate: Date,
+    endDate: Date,
+    versions: string[] = null,
+) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    return fetch(
+    const url =
         new URL(`/policies/${policyId}/runs/count?`, serverUrl).toString() +
-            new URLSearchParams({
-                start_date: formatISODate(startDate),
-                end_date: formatISODate(endDate),
-            }),
-    )
-        .then((response) => response.json())
+        new URLSearchParams({
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        });
+    return fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ versions }),
+    })
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`Failed to fetch runs count for policy ${policyId}`, {
+                    cause: response,
+                });
+            }
+            return response.json();
+        })
         .catch((error) => {
-            throw new Error(`Error fetching error rate for policy ${policyId}`, { cause: error });
+            throw new Error(`Error fetching runs count for policy ${policyId}`, { cause: error });
         });
 }
 
-export async function fetchRunOutcomes(policyId: string, startDate: Date, endDate: Date) {
+export async function fetchRunOutcomes(
+    policyId: string,
+    startDate: Date,
+    endDate: Date,
+    versions: string[] = null,
+) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    return fetch(
+    const url =
         new URL(`/policies/${policyId}/runs/outcomes?`, serverUrl).toString() +
-            new URLSearchParams({
-                start_date: formatISODate(startDate),
-                end_date: formatISODate(endDate),
-            }),
-    )
-        .then((response) => response.json())
+        new URLSearchParams({
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        });
+    return fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ versions }),
+    })
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`Failed to fetch run outcomes for policy ${policyId}`, {
+                    cause: response,
+                });
+            }
+            return response.json();
+        })
         .catch((error) => {
-            throw new Error(`Error fetching outcome distribution for policy ${policyId}`, {
-                cause: error,
-            });
+            throw new Error(`Error fetching run outcomes for policy ${policyId}`, { cause: error });
         });
 }
 
-export async function fetchRunDurationStats(policyId: string, startDate: Date, endDate: Date) {
+export async function fetchRunDurationStats(
+    policyId: string,
+    startDate: Date,
+    endDate: Date,
+    versions: string[] = null,
+) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    return fetch(
+    const url =
         new URL(`/policies/${policyId}/runs/duration?`, serverUrl).toString() +
-            new URLSearchParams({
-                start_date: formatISODate(startDate),
-                end_date: formatISODate(endDate),
-            }),
-    )
-        .then((response) => response.json())
+        new URLSearchParams({
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        });
+    return fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ versions }),
+    })
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`Failed to fetch run duration stats for policy ${policyId}`, {
+                    cause: response,
+                });
+            }
+            return response.json();
+        })
         .catch((error) => {
             throw new Error(`Error fetching run duration stats for policy ${policyId}`, {
                 cause: error,
@@ -360,15 +412,26 @@ export async function fetchRunDurationStats(policyId: string, startDate: Date, e
         });
 }
 
-export async function fetchRunDurationByStatus(policyId: string, startDate: Date, endDate: Date) {
+export async function fetchRunDurationByStatus(
+    policyId: string,
+    startDate: Date,
+    endDate: Date,
+    versions: string[] = null,
+) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    return fetch(
+    const url =
         new URL(`/policies/${policyId}/runs/duration/by_status?`, serverUrl).toString() +
-            new URLSearchParams({
-                start_date: formatISODate(startDate),
-                end_date: formatISODate(endDate),
-            }),
-    )
+        new URLSearchParams({
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        });
+    return fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ versions }),
+    })
         .then((response) => response.json())
         .catch((error) => {
             throw new Error(`Error fetching run duration stats for policy ${policyId}`, {
