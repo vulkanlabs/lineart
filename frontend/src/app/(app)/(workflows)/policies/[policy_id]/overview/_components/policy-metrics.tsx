@@ -13,7 +13,6 @@ import {
     RunOutcomesChart,
     RunOutcomeDistributionChart,
 } from "@/components/charts/policy-stats";
-import { EmptyChart } from "@/components/charts/empty";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 
 export default function PolicyMetrics({
