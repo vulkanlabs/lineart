@@ -1,12 +1,5 @@
 "use client";
-import {
-    GitCompare,
-    FlaskConical,
-    GitBranch,
-    MenuIcon,
-    ChartColumnStacked,
-    Layers,
-} from "lucide-react";
+import { GitCompare, GitBranch, MenuIcon, ChartColumnStacked, Layers } from "lucide-react";
 
 import { SidebarSectionProps, PageLayout } from "@/components/page-layout";
 import { InnerNavbarSectionProps, InnerNavbar } from "@/components/inner-navbar";
