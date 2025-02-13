@@ -120,13 +120,9 @@ export default function PolicyMetrics({
                 {graphDefinitions.map((graphDefinition) => (
                     <div key={graphDefinition.name} className="col-span-1 px-8 pb-8">
                         <h3 className="text-lg">{graphDefinition.name}</h3>
-                        {graphDefinition.data.length === 0 ? (
-                            <EmptyChart />
-                        ) : (
-                            <div>
-                                <graphDefinition.component chartData={graphDefinition.data} />
-                            </div>
-                        )}
+                        <div>
+                            <graphDefinition.component chartData={graphDefinition.data} />
+                        </div>
                     </div>
                 ))}
             </div>
