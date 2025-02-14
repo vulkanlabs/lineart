@@ -28,12 +28,6 @@ export function RouteLayout({ policy, children }) {
             path: `/policies/${policy.policy_id}/backtests`,
             disabled: true,
         },
-        {
-            name: "Metrics",
-            icon: ChartColumnStacked,
-            path: `/policies/${policy.policy_id}/metrics`,
-            disabled: true,
-        },
     ];
     const innerNavbarSections: InnerNavbarSectionProps[] = [{ key: "Policy:", value: policy.name }];
     return (

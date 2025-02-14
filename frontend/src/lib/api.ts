@@ -1,12 +1,14 @@
 import { formatISO } from "date-fns";
 
 import { CurrentUser, CurrentInternalUser } from "@stackframe/stack";
+import { stackServerApp } from "@/stack";
 import { Component } from "@vulkan-server/Component";
 import { Run } from "@vulkan-server/Run";
 import { RunData } from "@vulkan-server/RunData";
 import { RunLogs } from "@vulkan-server/RunLogs";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 import { ComponentVersion } from "@vulkan-server/ComponentVersion";
+import { PolicyBase } from "@vulkan-server/PolicyBase";
 
 type StackUser = CurrentUser | CurrentInternalUser;
 
@@ -97,6 +99,26 @@ export async function fetchPolicy(user: StackUser, policyId: string) {
         endpoint: `/policies/${policyId}`,
         label: `policy ${policyId}`,
     });
+}
+
+export async function createPolicy(data: PolicyBase) {
+    const user = await stackServerApp.getUser();
+    const headers = await getAuthHeaders(user);
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    return fetch(new URL(`/policies`, serverUrl), {
+        method: "POST",
+        headers: {
+            ...headers,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+    })
+        .then((response) => {
+            return response.json();
+        })
+        .catch((error) => {
+            throw new Error(`Error creating policy ${data}`, { cause: error });
+        });
 }
 
 export async function fetchPolicyRuns(user: StackUser, policyId: string): Promise<Run[]> {

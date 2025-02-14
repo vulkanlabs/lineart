@@ -1,6 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 
 import { DataTable } from "@/components/data-table";
 import { DetailsButton } from "@/components/details-button";
@@ -9,13 +12,38 @@ import { Button } from "@/components/ui/button";
 import { parseDate } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
 import { Policy } from "@vulkan-server/Policy";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+    Form,
+    FormField,
+    FormControl,
+    FormDescription,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { createPolicy } from "@/lib/api";
 
-export default function PoliciesPage({ policies }: { policies: any[] }) {
+export function PoliciesPage({ policies }: { policies: any[] }) {
     const router = useRouter();
 
     return (
         <div>
-            <Button onClick={() => router.refresh()}>Refresh</Button>
+            <div className="flex gap-4">
+                <Button variant="outline" onClick={() => router.refresh()}>
+                    Refresh
+                </Button>
+                <CreatePolicyDialog />
+            </div>
             <div className="my-4">
                 <DataTable
                     columns={PolicyTableColumns}
@@ -27,6 +55,81 @@ export default function PoliciesPage({ policies }: { policies: any[] }) {
     );
 }
 
+const formSchema = z.object({
+    name: z.string().min(1),
+    description: z.string().min(0),
+});
+
+function CreatePolicyDialog() {
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+    });
+
+    function submitPolicyCreation(data) {
+        createPolicy(data)
+            .then((response) => {
+                console.log(response);
+                // closeFunc();
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+        form.reset();
+    }
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline">Create Policy</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Create a new Policy</DialogTitle>
+                </DialogHeader>
+                <Form {...form}>
+                    <form
+                        className="flex flex-col gap-4 py-4"
+                        onSubmit={form.handleSubmit(submitPolicyCreation)}
+                    >
+                        <FormField
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel htmlFor="name">Name</FormLabel>
+                                    <FormControl>
+                                        <Input type="text" {...field} />
+                                    </FormControl>
+                                    <FormDescription>Name of the new Policy</FormDescription>
+                                    <FormMessage>{form.formState.errors.name?.message}</FormMessage>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            name="description"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel htmlFor="description">Description</FormLabel>
+                                    <FormControl>
+                                        <Textarea {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                        Description of the new Policy (optional)
+                                    </FormDescription>
+                                    <FormMessage>
+                                        {form.formState.errors.description?.message}
+                                    </FormMessage>
+                                </FormItem>
+                            )}
+                        />
+                    </form>
+                </Form>
+                <DialogFooter>
+                    <Button type="submit">Create Policy</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 const PolicyTableColumns: ColumnDef<Policy>[] = [
     {
         accessorKey: "link",

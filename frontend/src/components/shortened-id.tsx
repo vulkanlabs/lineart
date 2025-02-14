@@ -1,5 +1,5 @@
+// Show 8 digits, but on hover show entire ID
 export function ShortenedID({ id, hover = true }: { id: string; hover?: boolean }) {
-    // Show 8 digits, but on hover show entire ID
     return (
         <div className="group flex relative">
             <span className="font-mono">{id.slice(0, 8)}</span>
