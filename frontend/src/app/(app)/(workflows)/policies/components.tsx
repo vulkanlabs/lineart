@@ -52,6 +52,7 @@ export function PoliciesPage({ policies }: { policies: any[] }) {
                     columns={PolicyTableColumns}
                     data={policies}
                     emptyMessage="You don't have any policies yet."
+                    className="max-h-[66vh]"
                 />
             </div>
         </div>
@@ -67,6 +68,7 @@ function CreatePolicyDialog() {
     const stackApp = useStackApp();
     const user = stackApp.getUser();
     const [open, setOpen] = useState(false);
+    const router = useRouter();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -85,6 +87,7 @@ function CreatePolicyDialog() {
                     description: `Policy ${data.name} has been created.`,
                     dismissible: true,
                 });
+                router.refresh();
             })
             .catch((error) => {
                 console.error(error);
