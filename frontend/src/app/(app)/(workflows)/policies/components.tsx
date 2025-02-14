@@ -5,6 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { DataTable } from "@/components/data-table";
 import { DetailsButton } from "@/components/details-button";
@@ -78,8 +79,12 @@ function CreatePolicyDialog() {
     const onSubmit = async (data: any) => {
         await createPolicy(user, data)
             .then(() => {
-                form.reset();
                 setOpen(false);
+                form.reset();
+                toast("Policy Created", {
+                    description: `Policy ${data.name} has been created.`,
+                    dismissible: true,
+                });
             })
             .catch((error) => {
                 console.error(error);
@@ -141,6 +146,7 @@ function CreatePolicyDialog() {
         </Dialog>
     );
 }
+
 const PolicyTableColumns: ColumnDef<Policy>[] = [
     {
         accessorKey: "link",
