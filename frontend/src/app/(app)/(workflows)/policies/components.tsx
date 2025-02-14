@@ -52,7 +52,7 @@ export function PoliciesPage({ policies }: { policies: any[] }) {
                     columns={PolicyTableColumns}
                     data={policies}
                     emptyMessage="You don't have any policies yet."
-                    className="max-h-[66vh]"
+                    className="max-h-[67vh]"
                 />
             </div>
         </div>

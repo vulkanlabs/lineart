@@ -24,7 +24,7 @@ export default async function Page(props) {
                 </Suspense>
             </div>
             <div className="flex flex-col gap-4">
-                <h1 className="text-lg font-semibold md:text-2xl">Experiments</h1>
+                {/* <h1 className="text-lg font-semibold md:text-2xl">Experiments</h1> */}
             </div>
         </div>
     );
