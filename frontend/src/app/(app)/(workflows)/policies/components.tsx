@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useState } from "react";
 
 import { DataTable } from "@/components/data-table";
 import { DetailsButton } from "@/components/details-button";
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { createPolicy } from "@/lib/api";
+import { useStackApp } from "@stackframe/stack";
 
 export function PoliciesPage({ policies }: { policies: any[] }) {
     const router = useRouter();
@@ -61,43 +63,51 @@ const formSchema = z.object({
 });
 
 function CreatePolicyDialog() {
+    const stackApp = useStackApp();
+    const user = stackApp.getUser();
+    const [open, setOpen] = useState(false);
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
+        defaultValues: {
+            name: "",
+            description: "",
+        },
     });
 
-    function submitPolicyCreation(data) {
-        createPolicy(data)
-            .then((response) => {
-                console.log(response);
-                // closeFunc();
+    const onSubmit = async (data: any) => {
+        await createPolicy(user, data)
+            .then(() => {
+                form.reset();
+                setOpen(false);
             })
             .catch((error) => {
                 console.error(error);
             });
-        form.reset();
-    }
+    };
 
     return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline">Create Policy</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Create a new Policy</DialogTitle>
-                </DialogHeader>
-                <Form {...form}>
+        <Dialog open={open} onOpenChange={setOpen}>
+            <Form {...form}>
+                <DialogTrigger asChild>
+                    <Button variant="outline">Create Policy</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Create a new Policy</DialogTitle>
+                    </DialogHeader>
                     <form
                         className="flex flex-col gap-4 py-4"
-                        onSubmit={form.handleSubmit(submitPolicyCreation)}
+                        onSubmit={form.handleSubmit(onSubmit)}
                     >
                         <FormField
                             name="name"
+                            control={form.control}
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel htmlFor="name">Name</FormLabel>
                                     <FormControl>
-                                        <Input type="text" {...field} />
+                                        <Input placeholder="New Policy" type="text" {...field} />
                                     </FormControl>
                                     <FormDescription>Name of the new Policy</FormDescription>
                                     <FormMessage>{form.formState.errors.name?.message}</FormMessage>
@@ -106,11 +116,12 @@ function CreatePolicyDialog() {
                         />
                         <FormField
                             name="description"
+                            control={form.control}
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel htmlFor="description">Description</FormLabel>
                                     <FormControl>
-                                        <Textarea {...field} />
+                                        <Textarea placeholder="A brand new policy." {...field} />
                                     </FormControl>
                                     <FormDescription>
                                         Description of the new Policy (optional)
@@ -121,12 +132,12 @@ function CreatePolicyDialog() {
                                 </FormItem>
                             )}
                         />
+                        <DialogFooter>
+                            <Button type="submit">Create Policy</Button>
+                        </DialogFooter>
                     </form>
-                </Form>
-                <DialogFooter>
-                    <Button type="submit">Create Policy</Button>
-                </DialogFooter>
-            </DialogContent>
+                </DialogContent>
+            </Form>
         </Dialog>
     );
 }

@@ -1,7 +1,6 @@
 import { formatISO } from "date-fns";
 
 import { CurrentUser, CurrentInternalUser } from "@stackframe/stack";
-import { stackServerApp } from "@/stack";
 import { Component } from "@vulkan-server/Component";
 import { Run } from "@vulkan-server/Run";
 import { RunData } from "@vulkan-server/RunData";
@@ -101,8 +100,8 @@ export async function fetchPolicy(user: StackUser, policyId: string) {
     });
 }
 
-export async function createPolicy(data: PolicyBase) {
-    const user = await stackServerApp.getUser();
+export async function createPolicy(userPromise: Promise<StackUser>, data: PolicyBase) {
+    const user = await userPromise;
     const headers = await getAuthHeaders(user);
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     return fetch(new URL(`/policies`, serverUrl), {
