@@ -1,15 +1,14 @@
 "use server";
 
-import { fetchRunsCount, fetchRunDurationStats, fetchRunDurationByStatus } from "@/lib/api";
+import {
+    fetchRunsCount,
+    fetchRunDurationStats,
+    fetchRunDurationByStatus,
+    fetchRunOutcomes,
+} from "@/lib/api";
 
-export async function fetchMetricsData({ policyId, dateRange }) {
-    const runsCount = await fetchRunsCount(policyId, dateRange.from, dateRange.to).catch(
-        (error) => {
-            console.error(error);
-        },
-    );
-
-    const runsByStatus = await fetchRunsCount(policyId, dateRange.from, dateRange.to, true).catch(
+export async function fetchMetricsData({ policyId, dateRange, versions }) {
+    const runsCount = await fetchRunsCount(policyId, dateRange.from, dateRange.to, versions).catch(
         (error) => {
             console.error(error);
         },
@@ -19,6 +18,7 @@ export async function fetchMetricsData({ policyId, dateRange }) {
         policyId,
         dateRange.from,
         dateRange.to,
+        versions,
     ).catch((error) => {
         console.error(error);
     });
@@ -27,9 +27,23 @@ export async function fetchMetricsData({ policyId, dateRange }) {
         policyId,
         dateRange.from,
         dateRange.to,
+        versions,
     ).catch((error) => {
         console.error(error);
     });
 
-    return { runsCount, runsByStatus, runDurationStats, runDurationByStatus };
+    return { runsCount, errorRate: runsCount, runDurationStats, runDurationByStatus };
+}
+
+export async function fetchPolicyOutcomeStats({ policyId, dateRange, versions }) {
+    const runOutcomes = await fetchRunOutcomes(
+        policyId,
+        dateRange.from,
+        dateRange.to,
+        versions,
+    ).catch((error) => {
+        console.error(error);
+    });
+
+    return { runOutcomes };
 }

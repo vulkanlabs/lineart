@@ -11,13 +11,21 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
+import { cn } from "@/lib/utils";
+
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
     emptyMessage?: string;
+    className?: string;
 }
 
-export function DataTable<TData, TValue>({ columns, data, emptyMessage }: DataTableProps<TData, TValue>) {
+export function DataTable<TData, TValue>({
+    columns,
+    data,
+    emptyMessage,
+    className,
+}: DataTableProps<TData, TValue>) {
     const table = useReactTable({
         data,
         columns,
@@ -25,7 +33,7 @@ export function DataTable<TData, TValue>({ columns, data, emptyMessage }: DataTa
     });
 
     return (
-        <div className="rounded-md border">
+        <div className={cn(className, "rounded-md border overflow-y-scroll")}>
             <Table>
                 <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (

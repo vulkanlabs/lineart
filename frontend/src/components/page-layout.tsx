@@ -18,6 +18,7 @@ export type SidebarSectionProps = {
     path: string;
     icon?: any;
     disabled?: boolean;
+    info?: string;
 };
 
 export type SidebarProps = {
@@ -191,6 +192,7 @@ export function SidebarSection({
                 >
                     {sectionProps.name}
                 </h2>
+                
             )}
         </div>
     );

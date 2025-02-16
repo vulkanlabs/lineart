@@ -18,14 +18,14 @@ export function RouteLayout({ policy, policyVersion, children }) {
             path: `${baseUrl}/resources`,
         },
         {
-            name: "Launcher",
-            icon: Play,
-            path: `${baseUrl}/launcher`,
-        },
-        {
             name: "Runs",
             icon: Layers,
             path: `${baseUrl}/runs`,
+        },
+        {
+            name: "Launcher",
+            icon: Play,
+            path: `${baseUrl}/launcher`,
         },
         {
             name: "Backtests",
@@ -38,7 +38,7 @@ export function RouteLayout({ policy, policyVersion, children }) {
         { key: "Policy:", value: policy.name },
         { key: "Version:", value: policyVersion.alias },
     ];
-    
+
     return (
         <div className="flex flex-col w-full h-full">
             <InnerNavbar

@@ -5,6 +5,8 @@ import { DataTable } from "@/components/data-table";
 import { ShortenedID } from "@/components/shortened-id";
 import { parseDate } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
+import { VersionStatus } from "@/components/policy-version/status";
+import { Policy } from "@vulkan-server/Policy";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 
 const PolicyVersionsTableColumns: ColumnDef<PolicyVersion>[] = [
@@ -33,21 +35,23 @@ const PolicyVersionsTableColumns: ColumnDef<PolicyVersion>[] = [
     },
 ];
 
-export default function PolicyVersionsTable({ policyVersions }: { policyVersions: any[] }) {
-    return <DataTable columns={PolicyVersionsTableColumns} data={policyVersions} />;
-}
+export function PolicyVersionsTable({
+    policy,
+    policyVersions,
+}: {
+    policy: Policy;
+    policyVersions: PolicyVersion[];
+}) {
+    const formattedVersions = policyVersions.map((policyVersion) => {
+        const status =
+            policyVersion.policy_version_id === policy.active_policy_version_id
+                ? "active"
+                : "inactive";
+        return {
+            ...policyVersion,
+            status: status,
+        };
+    });
 
-function VersionStatus({ value }) {
-    const getColor = (status: string) => {
-        switch (status) {
-            case "active":
-                return "bg-green-200";
-            case "inactive":
-                return "bg-gray-200";
-            default:
-                return "bg-gray-200";
-        }
-    };
-
-    return <p className={`w-fit p-[0.3em] rounded-lg ${getColor(value)}`}>{value}</p>;
+    return <DataTable columns={PolicyVersionsTableColumns} data={formattedVersions} />;
 }

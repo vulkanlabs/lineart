@@ -1,6 +1,6 @@
 import { stackServerApp } from "@/stack";
 
-import PoliciesPage from "./components";
+import { PoliciesPage } from "./components";
 import { fetchPolicies } from "@/lib/api";
 
 export default async function Page() {
@@ -9,6 +9,7 @@ export default async function Page() {
         console.error(error);
         return [];
     });
+
     return (
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
             <div className="flex items-center">
