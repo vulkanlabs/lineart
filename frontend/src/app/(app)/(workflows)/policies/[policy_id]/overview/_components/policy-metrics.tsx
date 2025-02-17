@@ -4,55 +4,91 @@ import React, { useState, useEffect } from "react";
 import { subDays } from "date-fns";
 
 import { DatePickerWithRange } from "@/components/charts/date-picker";
+import { VersionPicker } from "@/components/charts/version-picker";
 import {
     RunsChart,
-    RunsByStatusChart,
+    ErrorRateChart,
     RunDurationStatsChart,
     AvgDurationByStatusChart,
+    RunOutcomesChart,
+    RunOutcomeDistributionChart,
 } from "@/components/charts/policy-stats";
+import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 
 export default function PolicyMetrics({
     policyId,
-    dataLoader,
+    metricsLoader,
+    outcomesLoader,
+    versions,
 }: {
     policyId: string;
-    dataLoader: any;
+    metricsLoader: any;
+    outcomesLoader: (params: {
+        policyId: string;
+        dateRange: { from: Date; to: Date };
+        versions: string[];
+    }) => Promise<{ runOutcomes: any[] }>;
+    versions: PolicyVersion[];
 }) {
+    // Chart Data
+    const [outcomeDistribution, setOutcomeDistribution] = useState([]);
     const [runsCount, setRunsCount] = useState([]);
-    const [runsByStatus, setRunsByStatus] = useState([]);
+    const [errorRate, setErrorRate] = useState([]);
     const [runDurationStats, setRunDurationStats] = useState([]);
     const [runDurationByStatus, setRunDurationByStatus] = useState([]);
+    // Filters & Interactions
     const [dateRange, setDateRange] = useState({
         from: subDays(new Date(), 7),
         to: new Date(),
     });
+    const [selectedVersions, setSelectedVersions] = useState(
+        versions.map((v) => v.policy_version_id),
+    );
 
     useEffect(() => {
         if (!dateRange || !dateRange.from || !dateRange.to) {
             return;
         }
-        dataLoader({ policyId, dateRange })
+        metricsLoader({ policyId, dateRange, versions: selectedVersions })
             .then((data) => {
                 setRunsCount(data.runsCount);
-                setRunsByStatus(data.runsByStatus);
+                setErrorRate(data.errorRate);
                 setRunDurationStats(data.runDurationStats);
                 setRunDurationByStatus(data.runDurationByStatus);
             })
             .catch((error) => {
                 console.error(error);
             });
-    }, [dateRange]);
+
+        outcomesLoader({ policyId, dateRange, versions: selectedVersions })
+            .then((data) => {
+                setOutcomeDistribution(data.runOutcomes);
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+    }, [dateRange, selectedVersions]);
 
     const graphDefinitions = [
+        {
+            name: "Policy Outcomes",
+            data: outcomeDistribution,
+            component: RunOutcomesChart,
+        },
+        {
+            name: "Policy Outcome Distribution (%)",
+            data: outcomeDistribution,
+            component: RunOutcomeDistributionChart,
+        },
         {
             name: "Runs",
             data: runsCount,
             component: RunsChart,
         },
         {
-            name: "Runs by Status",
-            data: runsByStatus,
-            component: RunsByStatusChart,
+            name: "Error Rate (%)",
+            data: errorRate,
+            component: ErrorRateChart,
         },
         {
             name: "Duration (seconds)",
@@ -67,35 +103,28 @@ export default function PolicyMetrics({
     ];
 
     return (
-        <div className="overflow-scroll">
-            <div className="flex gap-4 pb-4">
+        <div className="overflow-scroll flex flex-col gap-4">
+            <div className="flex flex-col gap-4 pb-4">
                 <h1 className="text-lg font-semibold md:text-2xl">Metrics</h1>
-                <div>
+                <div className="flex gap-4">
                     <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                    <VersionPicker
+                        versions={versions}
+                        selectedVersions={selectedVersions}
+                        setSelectedVersions={setSelectedVersions}
+                    />
                 </div>
             </div>
-            {/* Note: This is ugly, but not defining height or using h-full
-                          causes the graph to not render. */}
-            <div className="grid grid-cols-2 gap-4 w-[85%] px-16 overflow-y-scroll">
+            <div className="grid grid-cols-2 gap-4 w-[90%] px-16 overflow-y-scroll">
                 {graphDefinitions.map((graphDefinition) => (
                     <div key={graphDefinition.name} className="col-span-1 px-8 pb-8">
                         <h3 className="text-lg">{graphDefinition.name}</h3>
-                        {graphDefinition.data.length === 0 ? (
-                            <EmptyChart />
-                        ) : (
+                        <div>
                             <graphDefinition.component chartData={graphDefinition.data} />
-                        )}
+                        </div>
                     </div>
                 ))}
             </div>
-        </div>
-    );
-}
-
-function EmptyChart() {
-    return (
-        <div className="flex items-center justify-center h-full w-full">
-            <p className="text-sm font-semibold text-gray-500">No runs found.</p>
         </div>
     );
 }

@@ -40,3 +40,11 @@ def add_user_to_project(
     db.add(project_user)
     db.commit()
     return project_user
+
+
+@router.get("/{project_id}/users", response_model=list[schemas.ProjectUser])
+def get_project_users(
+    project_id: str,
+    db: Session = Depends(get_db),
+):
+    return db.query(ProjectUser).filter_by(project_id=project_id).all()
