@@ -3,6 +3,7 @@ import os
 
 from vulkan_public.cli.context import Context
 from vulkan_public.exceptions import UserImportException
+from vulkan_public.schemas import PolicyAllocationStrategy
 from vulkan_public.spec.environment.loaders import load_policy_definition
 from vulkan_public.spec.environment.packing import pack_workspace
 from vulkan_public.spec.environment.workspace import VulkanCodeLocation
@@ -32,6 +33,17 @@ def create_policy(
     policy_id = response.json()["policy_id"]
     ctx.logger.info(f"Created policy {name} with id {policy_id}")
     return policy_id
+
+
+def set_allocation_strategy(ctx: Context, policy_id: str, allocation_strategy: dict):
+    strategy = PolicyAllocationStrategy.model_validate(allocation_strategy)
+    response = ctx.session.put(
+        f"{ctx.server_url}/policies/{policy_id}",
+        json={"allocation_strategy": strategy.model_dump()},
+    )
+    if response.status_code != 200:
+        raise ValueError("Failed to activate policy version")
+    return response.json()
 
 
 def set_active_version(ctx: Context, policy_id: str, policy_version_id: str):

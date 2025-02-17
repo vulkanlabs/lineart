@@ -35,7 +35,6 @@ def get_vulkan_server_config() -> VulkanServerConfig:
     if resolution_service_url is None:
         raise ValueError("RESOLUTION_SERVICE_URL must be set")
 
-
     return VulkanServerConfig(
         server_url=f"http://{app_host}:{app_port}",
         vulkan_dagster_server_url=f"http://{dagster_host}:{dagster_server_port}",

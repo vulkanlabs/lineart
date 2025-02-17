@@ -7,7 +7,7 @@ def resolve_config_variables_from_id(
     db: Session,
     policy_version_id: str,
     required_variables: list[str],
-    run_config_variables: dict,
+    run_config_variables: dict | None = None,
 ):
     policy_version_defaults = _get_policy_version_defaults(
         db,
@@ -24,8 +24,8 @@ def resolve_config_variables_from_id(
 
 def resolve_config_variables(
     policy_version_defaults: dict,
-    run_config_variables: dict,
     required_variables: list[str],
+    run_config_variables: dict | None = None,
 ) -> tuple[dict, set[str]]:
     config_variables, missing = _merge_config_variables(
         run_config_variables=run_config_variables,

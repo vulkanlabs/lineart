@@ -23,9 +23,10 @@ class RunLauncher:
         self.config_variables = config_variables
 
     def trigger_run_by_policy_id(self, policy_id: str):
-        run_id = self._launch_run_by_policy_id(policy_id)
-        success = self.poll_run_status(run_id)
-        return run_id, success
+        # run_id = self._launch_run_by_policy_id(policy_id)
+        # success = self.poll_run_status(run_id)
+        # return run_id, success
+        return self._launch_run_by_policy_id(policy_id)
 
     def trigger_run_by_policy_version_id(self, policy_version_id: str):
         run_id = self._launch_run_by_policy_version_id(policy_version_id)
@@ -71,7 +72,7 @@ class RunLauncher:
             msg = f"Error triggering run for policy {policy_id}. \n{response.text}"
             raise ValueError(msg)
 
-        return response.json()["run_id"]
+        return response.json()
 
     def _launch_run_by_policy_version_id(self, policy_version_id: str):
         response = self.__launch_run(

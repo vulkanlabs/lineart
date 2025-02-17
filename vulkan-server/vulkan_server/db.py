@@ -125,15 +125,7 @@ class Policy(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base):
     policy_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     name = Column(String)
     description = Column(String)
-    input_schema = Column(String, nullable=True)
-    output_schema = Column(String, nullable=True)
-    # We might want to have a split between versions.
-    # I don't know a good way to do that yet.
-    active_policy_version_id = Column(
-        Uuid,
-        ForeignKey("policy_version.policy_version_id"),
-        nullable=True,
-    )
+    allocation_strategy = Column(JSON, nullable=True)
 
 
 class Component(AuthorizationMixin, Base):
@@ -258,14 +250,24 @@ class ConfigurationValue(AuthorizationMixin, TimedUpdateMixin, Base):
     )
 
 
+class RunGroup(TimedUpdateMixin, AuthorizationMixin, Base):
+    __tablename__ = "run_group"
+
+    run_group_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    policy_id = Column(Uuid, ForeignKey("policy.policy_id"))
+    input_data = Column(JSON)
+
+
 class Run(TimedUpdateMixin, AuthorizationMixin, Base):
     __tablename__ = "run"
 
     run_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    run_group_id = Column(Uuid, ForeignKey("run_group.run_group_id"), nullable=True)
     policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
     status = Column(Enum(RunStatus))
     result = Column(String, nullable=True)
     dagster_run_id = Column(String, nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class StepMetadata(Base):

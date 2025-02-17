@@ -19,7 +19,7 @@ from vulkan_public.exceptions import (
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.dagster.client import get_dagster_client
-from vulkan_server.dagster.launch_run import create_run
+from vulkan_server.dagster.launch_run import allocate_runs
 from vulkan_server.dagster.service_client import (
     VulkanDagsterServiceClient,
     get_dagster_service_client,
@@ -34,6 +34,7 @@ from vulkan_server.db import (
     PolicyVersion,
     PolicyVersionStatus,
     Run,
+    RunGroup,
     WorkspaceStatus,
     get_db,
 )
@@ -95,7 +96,7 @@ def get_policy(
     return policy
 
 
-@router.put("/{policy_id}")
+@router.put("/{policy_id}", response_model=schemas.Policy)
 def update_policy(
     policy_id: str,
     config: schemas.PolicyUpdate,
@@ -109,29 +110,10 @@ def update_policy(
         msg = f"Tried to update non-existent policy {policy_id}"
         raise HTTPException(status_code=404, detail=msg)
 
-    if (
-        config.active_policy_version_id is not None
-        and config.active_policy_version_id != policy.active_policy_version_id
-    ):
-        policy_version = (
-            db.query(PolicyVersion)
-            .filter_by(
-                policy_version_id=config.active_policy_version_id, project_id=project_id
-            )
-            .first()
-        )
-        if policy_version is None:
-            msg = f"Tried to use non-existent version {config.active_policy_version_id} for policy {policy_id}"
-            raise HTTPException(status_code=404, detail=msg)
-
-        if policy_version.status != PolicyVersionStatus.VALID:
-            msg = f"Tried to use invalid version {config.active_policy_version_id} for policy {policy_id}"
-            raise HTTPException(status_code=400, detail=msg)
-
-        policy.active_policy_version_id = config.active_policy_version_id
-
-    if config.active_policy_version_id is None:
-        policy.active_policy_version_id = None
+    allocation_strategy = _validate_allocation_strategy(
+        db, project_id, config.allocation_strategy
+    )
+    policy.allocation_strategy = allocation_strategy.model_dump()
 
     if config.name is not None and config.name != policy.name:
         policy.name = config.name
@@ -141,10 +123,57 @@ def update_policy(
     db.commit()
     msg = f"Policy {policy_id} updated"
     logger.info(msg)
-    return {
-        "policy_id": policy.policy_id,
-        "active_policy_version_id": policy.active_policy_version_id,
-    }
+    return policy
+
+
+def _validate_allocation_strategy(db, project_id, allocation_strategy):
+    if allocation_strategy is None:
+        return None
+
+    if len(allocation_strategy.choice) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Allocation strategy must have at least one option",
+        )
+
+    total_frequency = sum([option.frequency for option in allocation_strategy.choice])
+    if total_frequency != 1000:
+        raise HTTPException(
+            status_code=400,
+            detail="The sum of frequencies must be 1000",
+        )
+
+    schemas = []
+
+    if allocation_strategy.shadow is not None:
+        for policy_version_id in allocation_strategy.shadow:
+            version = _validate_policy_version(db, project_id, policy_version_id)
+            schemas.append(version.input_schema)
+
+    for option in allocation_strategy.choice:
+        version = _validate_policy_version(db, project_id, option.policy_version_id)
+        schemas.append(version.input_schema)
+
+    # TODO: Validate schemas are compatible
+
+    return allocation_strategy
+
+
+def _validate_policy_version(db, project_id, policy_version_id):
+    policy_version = (
+        db.query(PolicyVersion)
+        .filter_by(policy_version_id=policy_version_id, project_id=project_id)
+        .first()
+    )
+    if policy_version is None:
+        msg = f"Tried to use non-existent version {policy_version_id}"
+        raise HTTPException(status_code=404, detail=msg)
+
+    if policy_version.status != PolicyVersionStatus.VALID:
+        msg = f"Tried to use invalid version {policy_version_id}"
+        raise HTTPException(status_code=400, detail=msg)
+
+    return policy_version
 
 
 @router.delete("/{policy_id}")
@@ -218,7 +247,7 @@ def list_runs_by_policy(
 
 
 @router.post("/{policy_id}/runs")
-def create_run_by_policy(
+def create_run_group(
     policy_id: str,
     input_data: Annotated[dict, Body()],
     config_variables: Annotated[dict, Body(default_factory=list)],
@@ -254,21 +283,33 @@ def create_run_by_policy(
 
     if policy is None:
         raise HTTPException(status_code=404, detail=f"Policy {policy_id} not found")
-    if policy.active_policy_version_id is None:
+
+    if policy.allocation_strategy is None:
         raise HTTPException(
             status_code=400,
-            detail=f"Policy {policy_id} has no active version",
+            detail=f"Policy {policy_id} has no allocation strategy",
         )
 
+    run_group = RunGroup(
+        policy_id=policy_id, project_id=project_id, input_data=input_data
+    )
+    db.add(run_group)
+    db.commit()
+
+    strategy = schemas.PolicyAllocationStrategy.model_validate(
+        policy.allocation_strategy
+    )
+    logger.info(f"Allocating runs with input_data {input_data}")
+
     try:
-        run = create_run(
+        runs = allocate_runs(
             db=db,
             dagster_client=dagster_client,
             server_url=server_config.server_url,
-            policy_version_id=policy.active_policy_version_id,
             project_id=project_id,
             input_data=input_data,
-            run_config_variables=config_variables,
+            run_group_id=run_group.run_group_id,
+            allocation_strategy=strategy,
         )
     except VulkanServerException as e:
         raise HTTPException(
@@ -279,7 +320,11 @@ def create_run_by_policy(
             },
         )
 
-    return {"policy_id": policy.policy_id, "run_id": run.run_id}
+    return {
+        "policy_id": policy.policy_id,
+        "run_group_id": run_group.run_group_id,
+        "runs": runs,
+    }
 
 
 @router.post("/{policy_id}/versions")

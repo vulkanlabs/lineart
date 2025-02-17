@@ -4,9 +4,9 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
-from vulkan_public.schemas import DataSourceSpec
-
 from vulkan.core.run import JobStatus, RunStatus
+from vulkan_public.schemas import DataSourceSpec, PolicyAllocationStrategy
+
 from vulkan_server.db import DataSource
 
 
@@ -55,13 +55,13 @@ class ProjectUser(ProjectUserBase):
 class PolicyBase(BaseModel):
     name: str
     description: str
-    active_policy_version_id: UUID | None = None
+    allocation_strategy: PolicyAllocationStrategy | None = None
 
 
 class PolicyUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
-    active_policy_version_id: UUID | None = None
+    allocation_strategy: PolicyAllocationStrategy | None = None
 
 
 class Policy(PolicyBase):
