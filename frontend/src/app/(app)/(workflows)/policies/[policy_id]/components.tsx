@@ -1,5 +1,5 @@
 "use client";
-import { GitCompare, GitBranch, MenuIcon, ChartColumnStacked, Layers } from "lucide-react";
+import { GitCompare, ChartColumnStacked, Settings2, Layers } from "lucide-react";
 
 import { SidebarSectionProps, PageLayout } from "@/components/page-layout";
 import { InnerNavbarSectionProps, InnerNavbar } from "@/components/inner-navbar";
@@ -8,14 +8,13 @@ export function RouteLayout({ policy, children }) {
     const sections: SidebarSectionProps[] = [
         {
             name: "Overview",
-            icon: MenuIcon,
+            icon: ChartColumnStacked,
             path: `/policies/${policy.policy_id}/overview`,
         },
         {
-            name: "Versions",
-            icon: GitBranch,
-            path: `/policies/${policy.policy_id}/versions`,
-            disabled: false,
+            name: "Allocation",
+            icon: Settings2,
+            path: `/policies/${policy.policy_id}/allocation`,
         },
         {
             name: "Runs",

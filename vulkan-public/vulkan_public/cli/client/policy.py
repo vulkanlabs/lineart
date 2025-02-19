@@ -42,7 +42,7 @@ def set_allocation_strategy(ctx: Context, policy_id: str, allocation_strategy: d
         json={"allocation_strategy": strategy.model_dump()},
     )
     if response.status_code != 200:
-        raise ValueError("Failed to activate policy version")
+        raise ValueError(f"Failed to set allocation strategy: {response.content}")
     return response.json()
 
 
