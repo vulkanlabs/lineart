@@ -6,8 +6,8 @@ export function RefreshButton() {
     const router = useRouter();
 
     return (
-        <Button onClick={() => router.refresh()}>
-            <RotateCw className="mr-2" />
+        <Button variant="outline" onClick={() => router.refresh()}>
+            <RotateCw className="mr-4" />
             Refresh
         </Button>
     );

@@ -156,7 +156,8 @@ def _validate_allocation_strategy(db, project_id, allocation_strategy):
         version = _validate_policy_version(db, project_id, option.policy_version_id)
         schemas.append(version.input_schema)
 
-    # TODO: Validate schemas are compatible
+    # TODO: Validate if schemas are compatible
+    # TODO: Validate if config_variables are compatible
 
     return allocation_strategy
 

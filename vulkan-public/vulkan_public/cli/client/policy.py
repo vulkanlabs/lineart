@@ -46,24 +46,6 @@ def set_allocation_strategy(ctx: Context, policy_id: str, allocation_strategy: d
     return response.json()
 
 
-def set_active_version(ctx: Context, policy_id: str, policy_version_id: str):
-    response = ctx.session.put(
-        f"{ctx.server_url}/policies/{policy_id}",
-        json={"active_policy_version_id": policy_version_id},
-    )
-    if response.status_code != 200:
-        raise ValueError("Failed to activate policy version")
-
-
-def unset_active_version(ctx: Context, policy_id: str):
-    response = ctx.session.put(
-        f"{ctx.server_url}/policies/{policy_id}",
-        json={"active_policy_version_id": None},
-    )
-    if response.status_code != 200:
-        raise ValueError("Failed to unset active version")
-
-
 def delete_policy(ctx: Context, policy_id: str):
     response = ctx.session.delete(f"{ctx.server_url}/policies/{policy_id}")
     if response.status_code != 200:

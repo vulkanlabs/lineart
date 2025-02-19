@@ -158,6 +158,7 @@ class ConfigurationVariables(ConfigurationVariablesBase):
 class Run(BaseModel):
     run_id: UUID
     policy_version_id: UUID
+    run_group_id: UUID | None = None
     project_id: UUID
     status: str
     result: str | None = None

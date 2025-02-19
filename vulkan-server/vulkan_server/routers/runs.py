@@ -88,6 +88,8 @@ def get_run_data(
 # and then get dependency outputs from the run.
 # For the outputs, it's the same as the endpoint above.
 
+# TODO: We should find a way to authenticate the endpoints below
+
 
 @router.get("/{run_id}/logs", response_model=schemas.RunLogs)
 def get_run_logs(run_id: str, db: Session = Depends(get_db)):
@@ -111,9 +113,6 @@ def get_run(run_id: str, db: Session = Depends(get_db)):
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     return run
-
-
-# TODO: We should find a way to authenticate the endpoints below
 
 
 @router.post("/{run_id}/metadata")
