@@ -55,7 +55,7 @@ const RunsTableColumns: ColumnDef<Run>[] = [
         accessorKey: "run_group_id",
         header: "Run Group ID",
         cell: ({ row }) => {
-            const run_group_id = row.getValue("run_group_id");
+            const run_group_id : string = row.getValue("run_group_id");
             return run_group_id == null ? "-" : <ShortenedID id={run_group_id} />;
         },
     },
