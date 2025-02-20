@@ -98,11 +98,13 @@ def get_backfill_results(
             status_code=404,
             detail={"msg": f"Backtest {backfill_id} not found"},
         )
-    
+
     if backfill.status != RunStatus.SUCCESS:
         raise HTTPException(
             status_code=400,
-            detail={"msg": f"Backtest {backfill_id} is not finished yet or finished with a failure"},
+            detail={
+                "msg": f"Backtest {backfill_id} is not finished yet or finished with a failure"
+            },
         )
 
     try:

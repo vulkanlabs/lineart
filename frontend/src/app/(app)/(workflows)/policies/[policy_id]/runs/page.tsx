@@ -1,7 +1,7 @@
 import { stackServerApp } from "@/stack";
 
 import { fetchPolicyRuns } from "@/lib/api";
-import { RunsTableComponent } from "@/components/run/runs-table";
+import { RunsPage } from "@/components/run/runs-list-page";
 
 export default async function Page(props) {
     const params = await props.params;
@@ -11,5 +11,5 @@ export default async function Page(props) {
         return null;
     });
 
-    return <RunsTableComponent runs={runs} />;
+    return <RunsPage runs={runs} />;
 }

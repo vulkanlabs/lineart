@@ -1,14 +1,16 @@
 import pickle
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
 
-from vulkan_server import schemas
+from vulkan_server import definitions, schemas
 from vulkan_server.auth import get_project_id
-from vulkan_server.dagster.client import DagsterDataClient
-from vulkan_server.db import Run, StepMetadata, get_db
+from vulkan_server.dagster.client import DagsterDataClient, get_dagster_client
+from vulkan_server.dagster.launch_run import launch_run
+from vulkan_server.db import Run, RunGroup, StepMetadata, get_db
 from vulkan_server.logger import init_logger
 
 logger = init_logger("runs")
@@ -86,6 +88,8 @@ def get_run_data(
 # and then get dependency outputs from the run.
 # For the outputs, it's the same as the endpoint above.
 
+# TODO: We should find a way to authenticate the endpoints below
+
 
 @router.get("/{run_id}/logs", response_model=schemas.RunLogs)
 def get_run_logs(run_id: str, db: Session = Depends(get_db)):
@@ -135,6 +139,10 @@ def update_run(
     status: Annotated[str, Body()],
     result: Annotated[str, Body()],
     db: Session = Depends(get_db),
+    server_config: definitions.VulkanServerConfig = Depends(
+        definitions.get_vulkan_server_config
+    ),
+    dagster_client=Depends(get_dagster_client),
 ):
     run = db.query(Run).filter_by(run_id=run_id).first()
     if run is None:
@@ -148,4 +156,55 @@ def update_run(
     run.status = status
     run.result = result
     db.commit()
+
+    logger.info(f"Run group_id {run.run_group_id}")
+
+    if run.run_group_id is None:
+        return run
+
+    # TODO: What to do when the main run fails?
+    # TODO: Should we trigger the remaining runs with a subprocess (so we don't
+    # halt the API's response)?
+    logger.info(f"Launching shadow runs from group {run.run_group_id}")
+    _trigger_pending_runs(
+        db=db,
+        dagster_client=dagster_client,
+        server_url=server_config.server_url,
+        run_group_id=run.run_group_id,
+    )
+
     return run
+
+
+def _trigger_pending_runs(
+    db: Session,
+    dagster_client: DagsterDataClient,
+    server_url: str,
+    run_group_id: UUID,
+):
+    run_group = db.query(RunGroup).filter_by(run_group_id=run_group_id).first()
+    input_data = run_group.input_data
+
+    pending_runs = (
+        db.query(Run)
+        .filter_by(run_group_id=run_group_id, status=RunStatus.PENDING)
+        .all()
+    )
+
+    # TODO: We're launching all pending runs at once. Should we wait for one to
+    # finish before launching the next?
+    for run in pending_runs:
+        logger.info(f"Launching run {run.run_id}")
+        try:
+            run = launch_run(
+                db=db,
+                dagster_client=dagster_client,
+                server_url=server_url,
+                project_id=run.project_id,
+                run=run,
+                input_data=input_data,
+            )
+        except Exception as e:
+            # TODO: Structure log to trace the run that failed and the way it was triggered
+            logger.error(f"Failed to launch run {run.run_id}: {e}")
+            continue

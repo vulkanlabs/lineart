@@ -14,8 +14,7 @@ def get_dagster_client() -> DagsterGraphQLClient:
     DAGSTER_PORT = os.getenv("DAGSTER_PORT")
     if DAGSTER_HOST is None or DAGSTER_PORT is None:
         raise ValueError(
-            "Please set the following environment variables: "
-            "DAGSTER_HOST, DAGSTER_PORT"
+            "Please set the following environment variables: DAGSTER_HOST, DAGSTER_PORT"
         )
     try:
         DAGSTER_PORT = int(DAGSTER_PORT)

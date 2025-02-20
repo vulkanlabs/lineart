@@ -1,33 +1,37 @@
 "use client";
 import { formatDistanceStrict } from "date-fns";
 
-import { DataTable } from "@/components/data-table";
-import { ShortenedID } from "@/components/shortened-id";
 import { ColumnDef } from "@tanstack/react-table";
-import { RefreshButton } from "../refresh-button";
-
-import { DetailsButton } from "@/components/details-button";
-
 import { Run } from "@vulkan-server/Run";
 
+import { DataTable } from "@/components/data-table";
+import { ShortenedID } from "@/components/shortened-id";
+import { DetailsButton } from "@/components/details-button";
+import { RefreshButton } from "@/components/refresh-button";
 import { parseDate } from "@/lib/utils";
 
-type RunsTableProps = {
-    runs: Run[];
-    policyVersionId?: string;
-};
-
-export function RunsTableComponent({ runs }: RunsTableProps) {
+export function RunsPage({ runs }: { runs: Run[] }) {
     return (
-        <div className="flex flex-col gap-4 p-4 lg:gap-4 lg:p-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-lg font-semibold md:text-2xl">Runs</h1>
-                <RefreshButton />
-            </div>
-            <div className="mt-4 max-h-[75vh] overflow-scroll">
-                <DataTable columns={RunsTableColumns} data={runs} />
+        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+            <h1 className="text-lg font-semibold md:text-2xl">Runs</h1>
+            <div className="flex flex-col gap-4">
+                <div>
+                    <RefreshButton />
+                </div>
+                <RunsTableComponent runs={runs} />
             </div>
         </div>
+    );
+}
+
+function RunsTableComponent({ runs }: { runs: Run[] }) {
+    return (
+        <DataTable
+            columns={RunsTableColumns}
+            data={runs}
+            emptyMessage="You don't have any runs yet."
+            className="max-h-[67vh]"
+        />
     );
 }
 
@@ -46,6 +50,14 @@ const RunsTableColumns: ColumnDef<Run>[] = [
         accessorKey: "policy_version_id",
         header: "Version ID",
         cell: ({ row }) => <ShortenedID id={row.getValue("policy_version_id")} />,
+    },
+    {
+        accessorKey: "run_group_id",
+        header: "Run Group ID",
+        cell: ({ row }) => {
+            const run_group_id : string = row.getValue("run_group_id");
+            return run_group_id == null ? "-" : <ShortenedID id={run_group_id} />;
+        },
     },
     {
         accessorKey: "status",

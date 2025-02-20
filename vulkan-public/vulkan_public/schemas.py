@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from vulkan_public.data_source import HTTPSource, LocalFileSource, RegisteredFileSource
 
@@ -41,3 +41,13 @@ class BacktestOptions(BaseModel):
     environments: list[dict]
     categorical_columns: list[str] | None = None
     datetime_column: str | None = None
+
+
+class PolicyRunPartition(BaseModel):
+    policy_version_id: str
+    frequency: int = Field(gt=0, le=1000)
+
+
+class PolicyAllocationStrategy(BaseModel):
+    choice: list[PolicyRunPartition]
+    shadow: list[str] | None = None

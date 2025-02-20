@@ -1,6 +1,8 @@
+from dataclasses import dataclass
 from uuid import UUID
 
 from dagster_graphql import DagsterGraphQLClient
+from numpy.random import choice
 from sqlalchemy.orm import Session
 from vulkan_public.constants import POLICY_CONFIG_KEY
 
@@ -16,100 +18,219 @@ from vulkan_server.exceptions import (
     UnhandledException,
     VariablesNotSetException,
 )
+from vulkan_server.logger import init_logger
+from vulkan_server.schemas import PolicyAllocationStrategy
+
+logger = init_logger("run_launcher")
+
+
+def allocate_runs(
+    db: Session,
+    dagster_client: DagsterGraphQLClient,
+    server_url: str,
+    project_id: str,
+    input_data: dict,
+    run_group_id: UUID,
+    allocation_strategy: PolicyAllocationStrategy,
+):
+    shadow = []
+
+    if allocation_strategy.shadow is not None:
+        for policy_version_id in allocation_strategy.shadow:
+            run = Run(
+                policy_version_id=policy_version_id,
+                status=RunStatus.PENDING,
+                project_id=project_id,
+                run_group_id=run_group_id,
+            )
+            db.add(run)
+            db.commit()
+            shadow.append(run.run_id)
+
+    opts = [opt.policy_version_id for opt in allocation_strategy.choice]
+    freq = [opt.frequency / 1000 for opt in allocation_strategy.choice]
+    policy_version_id = choice(opts, p=freq)
+
+    main = create_run(
+        db=db,
+        dagster_client=dagster_client,
+        server_url=server_url,
+        project_id=project_id,
+        input_data=input_data,
+        run_group_id=run_group_id,
+        policy_version_id=policy_version_id,
+    )
+    return {"main": main.run_id, "shadow": shadow}
 
 
 def create_run(
     db: Session,
     dagster_client: DagsterGraphQLClient,
     server_url: str,
-    policy_version_id: str,
     project_id: str,
     input_data: dict,
-    run_config_variables: dict,
-) -> Run:
-    version = (
-        db.query(PolicyVersion)
-        .filter_by(
-            policy_version_id=policy_version_id, project_id=project_id, archived=False
-        )
-        .first()
-    )
-    if version is None:
-        msg = f"Policy version {policy_version_id} not found"
-        raise NotFoundException(msg)
-
-    config_variables, missing = resolve_config_variables_from_id(
+    policy_version_id: str,
+    run_group_id: UUID | None = None,
+    run_config_variables: dict[str, str] | None = None,
+):
+    launcher = DagsterRunLauncher(
         db=db,
-        policy_version_id=policy_version_id,
-        required_variables=version.variables,
-        run_config_variables=run_config_variables,
-    )
-    if len(missing) > 0:
-        raise VariablesNotSetException(f"Mandatory variables not set: {missing}")
-
-    run, error_msg = launch_run(
         dagster_client=dagster_client,
         server_url=server_url,
-        input_data=input_data,
-        config_variables=config_variables,
-        policy_version_id=version.policy_version_id,
-        version_name=definitions.version_name(
-            version.policy_id, version.policy_version_id
-        ),
-        db=db,
         project_id=project_id,
     )
-    if run.status == RunStatus.FAILURE:
-        raise UnhandledException(f"Failed to launch run: {error_msg}")
-
-    return run
+    return launcher.create_run(
+        input_data=input_data,
+        run_group_id=run_group_id,
+        policy_version_id=policy_version_id,
+        run_config_variables=run_config_variables,
+    )
 
 
 def launch_run(
-    dagster_client,
-    server_url: str,
-    policy_version_id: UUID,
-    version_name: str,
     db: Session,
+    dagster_client: DagsterGraphQLClient,
+    server_url: str,
     project_id: str,
+    run: Run,
     input_data: dict,
-    config_variables: dict = None,
+    run_config_variables: dict[str, str] | None = None,
 ):
-    if config_variables is None:
-        config_variables = {}
-
-    run = Run(
-        policy_version_id=policy_version_id,
-        status=RunStatus.PENDING,
+    launcher = DagsterRunLauncher(
+        db=db,
+        dagster_client=dagster_client,
+        server_url=server_url,
         project_id=project_id,
     )
-    db.add(run)
-    db.commit()
+    return launcher.launch_run(
+        run=run,
+        input_data=input_data,
+        run_config_variables=run_config_variables,
+    )
 
-    error_msg = ""
-    # TODO: We should separate dagster and core db functionality to ensure its
-    # easy to migrate to other execution engines.
-    try:
-        dagster_run_id = trigger_dagster_job(
-            dagster_client=dagster_client,
-            server_url=server_url,
-            input_data=input_data,
-            config_variables=config_variables,
-            version_name=version_name,
-            run_id=run.run_id,
+
+@dataclass
+class LaunchConfig:
+    name: str
+    variables: dict[str, str]
+
+
+class DagsterRunLauncher:
+    def __init__(
+        self,
+        db: Session,
+        dagster_client: DagsterGraphQLClient,
+        server_url: str,
+        project_id: str,
+    ):
+        self.db = db
+        self.server_url = server_url
+        self.project_id = project_id
+        self.dagster_client = dagster_client
+
+    def create_run(
+        self,
+        input_data: dict,
+        policy_version_id: str,
+        run_group_id: UUID | None = None,
+        run_config_variables: dict[str, str] | None = None,
+    ) -> Run:
+        """Create and launch a run."""
+        config = self._get_launch_config(
+            policy_version_id=policy_version_id,
+            run_config_variables=run_config_variables,
         )
-        run.status = RunStatus.STARTED
-        run.dagster_run_id = dagster_run_id
-    except Exception as e:
-        run.status = RunStatus.FAILURE
-        error_msg = f"Failed to trigger job: {str(e)}"
-        # error_list = e.args[1]
-        # error_details = error_list[0]
-        # error_msg = f"Failed to trigger job: {error_details['message']}"
 
-    db.commit()
+        run = Run(
+            policy_version_id=policy_version_id,
+            status=RunStatus.PENDING,
+            project_id=self.project_id,
+            run_group_id=run_group_id,
+        )
+        self.db.add(run)
+        self.db.commit()
 
-    return run, error_msg
+        return self._trigger_job(
+            run=run,
+            config=config,
+            input_data=input_data,
+        )
+
+    def launch_run(
+        self,
+        run: Run,
+        input_data: dict,
+        run_config_variables: dict[str, str] | None = None,
+    ) -> Run:
+        """Launch a run that has already been created."""
+        config = self._get_launch_config(
+            policy_version_id=run.policy_version_id,
+            run_config_variables=run_config_variables,
+        )
+        return self._trigger_job(
+            run=run,
+            config=config,
+            input_data=input_data,
+        )
+
+    def _get_launch_config(
+        self,
+        policy_version_id: str,
+        run_config_variables: dict[str, str] | None = None,
+    ) -> LaunchConfig:
+        version = (
+            self.db.query(PolicyVersion)
+            .filter_by(
+                policy_version_id=policy_version_id,
+                project_id=self.project_id,
+                archived=False,
+            )
+            .first()
+        )
+        if version is None:
+            msg = f"Policy version {policy_version_id} not found"
+            raise NotFoundException(msg)
+
+        config_variables, missing = resolve_config_variables_from_id(
+            db=self.db,
+            policy_version_id=policy_version_id,
+            required_variables=version.variables,
+            run_config_variables=run_config_variables,
+        )
+        if len(missing) > 0:
+            raise VariablesNotSetException(f"Mandatory variables not set: {missing}")
+
+        return LaunchConfig(
+            name=definitions.version_name(version.policy_id, policy_version_id),
+            variables=config_variables,
+        )
+
+    def _trigger_job(
+        self,
+        run: Run,
+        config: LaunchConfig,
+        input_data: dict,
+    ) -> Run:
+        # TODO: We should separate dagster and core db functionality to ensure
+        # its easy to migrate to other execution engines.
+        try:
+            dagster_run_id = trigger_dagster_job(
+                dagster_client=self.dagster_client,
+                server_url=self.server_url,
+                input_data=input_data,
+                config_variables=config.variables,
+                version_name=config.name,
+                run_id=run.run_id,
+            )
+            run.status = RunStatus.STARTED
+            run.dagster_run_id = dagster_run_id
+            self.db.commit()
+        except Exception as e:
+            run.status = RunStatus.FAILURE
+            self.db.commit()
+            raise UnhandledException(f"Failed to launch run: {str(e)}")
+
+        return run
 
 
 def trigger_dagster_job(
@@ -132,6 +253,7 @@ def trigger_dagster_job(
             POLICY_CONFIG_KEY: {"config": {"variables": config_variables}},
         },
     }
+    logger.debug(f"Triggering job with config: {execution_config}")
 
     dagster_run_id = trigger_run.trigger_dagster_job(
         dagster_client,
