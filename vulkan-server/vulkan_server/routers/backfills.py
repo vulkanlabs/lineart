@@ -7,9 +7,7 @@ from vulkan_server.auth import get_project_id
 from vulkan_server.backtest.launcher import get_backtest_job_status
 from vulkan_server.backtest.results import ResultsDB, get_results_db
 from vulkan_server.db import Backfill, get_db
-from vulkan_server.logger import init_logger
 
-logger = init_logger("backfills")
 router = APIRouter(
     prefix="/backfills",
     tags=["backfills"],

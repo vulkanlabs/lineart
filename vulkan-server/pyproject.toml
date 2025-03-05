@@ -15,6 +15,7 @@ dependencies = [
     "vulkan[dagster]",
     "pyarrow",
     "google-cloud-dataflow-client>=0.8.14",
+    "google-cloud-logging>=3.11.4",
 ]
 requires-python = ">=3.10"
 

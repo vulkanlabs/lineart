@@ -10,6 +10,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 from sqlalchemy import func as F
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from vulkan.core.run import RunStatus
 from vulkan_public.exceptions import (
     UNHANDLED_ERROR_NAME,
     ComponentNotFoundException,
@@ -17,9 +18,8 @@ from vulkan_public.exceptions import (
     VulkanInternalException,
 )
 
-from vulkan.core.run import RunStatus
 from vulkan_server import definitions, schemas
-from vulkan_server.auth import get_project_id
+from vulkan_server.auth import AuthContext, get_auth_context, get_project_id
 from vulkan_server.dagster.client import get_dagster_client
 from vulkan_server.dagster.launch_run import allocate_runs
 from vulkan_server.dagster.service_client import (
@@ -40,14 +40,14 @@ from vulkan_server.db import (
     WorkspaceStatus,
     get_db,
 )
+from vulkan_server.events import VulkanEvent
 from vulkan_server.exceptions import ExceptionHandler, VulkanServerException
-from vulkan_server.logger import init_logger
+from vulkan_server.logger import VulkanLogger, get_logger
 from vulkan_server.services.resolution import (
     ResolutionServiceClient,
     get_resolution_service_client,
 )
 
-logger = init_logger("policies")
 router = APIRouter(
     prefix="/policies",
     tags=["policies"],
@@ -71,17 +71,20 @@ def list_policies(
     return policies
 
 
-@router.post("/")
+@router.post("/", response_model=schemas.Policy)
 def create_policy(
-    config: schemas.PolicyBase,
-    project_id: str = Depends(get_project_id),
+    config: schemas.PolicyCreate,
+    auth: AuthContext = Depends(get_auth_context),
+    logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
 ):
-    policy = Policy(project_id=project_id, **config.model_dump())
+    policy = Policy(project_id=auth.project_id, **config.model_dump())
     db.add(policy)
     db.commit()
-    logger.info(f"Policy {config.name} created")
-    return {"policy_id": policy.policy_id, "name": policy.name}
+    logger.event(
+        VulkanEvent.POLICY_CREATED, policy_id=policy.policy_id, **config.model_dump()
+    )
+    return policy
 
 
 @router.get("/{policy_id}", response_model=schemas.Policy)
@@ -101,19 +104,22 @@ def get_policy(
 @router.put("/{policy_id}", response_model=schemas.Policy)
 def update_policy(
     policy_id: str,
-    config: schemas.PolicyUpdate,
-    project_id: str = Depends(get_project_id),
+    config: schemas.PolicyBase,
+    auth: AuthContext = Depends(get_auth_context),
+    logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
 ):
     policy = (
-        db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+        db.query(Policy)
+        .filter_by(policy_id=policy_id, project_id=auth.project_id)
+        .first()
     )
     if policy is None:
         msg = f"Tried to update non-existent policy {policy_id}"
         raise HTTPException(status_code=404, detail=msg)
 
     allocation_strategy = _validate_allocation_strategy(
-        db, project_id, config.allocation_strategy
+        db, auth.project_id, config.allocation_strategy
     )
     policy.allocation_strategy = allocation_strategy.model_dump()
 
@@ -123,8 +129,7 @@ def update_policy(
         policy.description = config.description
 
     db.commit()
-    msg = f"Policy {policy_id} updated"
-    logger.info(msg)
+    logger.event(VulkanEvent.POLICY_UPDATED, policy_id=policy_id, **config.model_dump())
     return policy
 
 
@@ -182,11 +187,14 @@ def _validate_policy_version(db, project_id, policy_version_id):
 @router.delete("/{policy_id}")
 def delete_policy(
     policy_id: str,
-    project_id: str = Depends(get_project_id),
+    auth: AuthContext = Depends(get_auth_context),
+    logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
 ):
     policy = (
-        db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+        db.query(Policy)
+        .filter_by(policy_id=policy_id, project_id=auth.project_id)
+        .first()
     )
     if policy is None or policy.archived:
         msg = f"Tried to delete non-existent policy {policy_id}"
@@ -194,7 +202,7 @@ def delete_policy(
 
     policy_versions = (
         db.query(PolicyVersion)
-        .filter_by(policy_id=policy_id, project_id=project_id, archived=False)
+        .filter_by(policy_id=policy_id, project_id=auth.project_id, archived=False)
         .all()
     )
     if len(policy_versions) > 0:
@@ -203,7 +211,7 @@ def delete_policy(
 
     policy.archived = True
     db.commit()
-    logger.info(f"Policy {policy_id} deleted")
+    logger.event(VulkanEvent.POLICY_DELETED, policy_id=policy_id)
     return {"policy_id": policy_id}
 
 
@@ -259,7 +267,8 @@ def create_run_group(
     policy_id: str,
     input_data: Annotated[dict, Body()],
     config_variables: Annotated[dict, Body(default_factory=list)],
-    project_id: str = Depends(get_project_id),
+    auth: AuthContext = Depends(get_auth_context),
+    logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
     dagster_client=Depends(get_dagster_client),
     server_config: definitions.VulkanServerConfig = Depends(
@@ -269,7 +278,7 @@ def create_run_group(
     try:
         policy = (
             db.query(Policy)
-            .filter_by(policy_id=policy_id, project_id=project_id)
+            .filter_by(policy_id=policy_id, project_id=auth.project_id)
             .first()
         )
     except sqlalchemy.exc.DataError:
@@ -299,7 +308,7 @@ def create_run_group(
         )
 
     run_group = RunGroup(
-        policy_id=policy_id, project_id=project_id, input_data=input_data
+        policy_id=policy_id, project_id=auth.project_id, input_data=input_data
     )
     db.add(run_group)
     db.commit()
@@ -307,14 +316,17 @@ def create_run_group(
     strategy = schemas.PolicyAllocationStrategy.model_validate(
         policy.allocation_strategy
     )
-    logger.info(f"Allocating runs with input_data {input_data}")
+    logger.system.info(
+        f"Allocating runs with input_data {input_data}",
+        extra={"extra": {"policy_id": policy_id}},
+    )
 
     try:
         runs = allocate_runs(
             db=db,
             dagster_client=dagster_client,
             server_url=server_config.server_url,
-            project_id=project_id,
+            project_id=auth.project_id,
             input_data=input_data,
             run_group_id=run_group.run_group_id,
             allocation_strategy=strategy,
@@ -339,7 +351,8 @@ def create_run_group(
 def create_policy_version(
     policy_id: str,
     config: schemas.PolicyVersionCreate,
-    project_id: str = Depends(get_project_id),
+    auth: AuthContext = Depends(get_auth_context),
+    logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
     resolution_service: ResolutionServiceClient = Depends(
         get_resolution_service_client
@@ -349,13 +362,16 @@ def create_policy_version(
     ),
 ):
     handler = ExceptionHandler(
-        logger=logger,
+        logger=logger.system,
         base_msg=(
             f"Failed to create workspace for policy {policy_id} version {config.alias}"
         ),
     )
+    extra = json.loads(auth.model_dump_json())
+    extra.update({"policy_id": policy_id, "policy_version_alias": config.alias})
 
-    logger.info(f"Creating policy version for policy {policy_id}")
+    logger.system.info("Creating policy version", extra={"extra": extra})
+
     if config.alias is None:
         # We can use the repo version as an easy alias or generate one.
         # This should ideally be a commit hash or similar, indicating a
@@ -363,7 +379,9 @@ def create_policy_version(
         config.alias = config.repository_version
 
     policy = (
-        db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+        db.query(Policy)
+        .filter_by(policy_id=policy_id, project_id=auth.project_id)
+        .first()
     )
     if policy is None:
         msg = f"Tried to create a version for non-existent policy {policy_id}"
@@ -375,7 +393,7 @@ def create_policy_version(
         repository=config.repository,
         repository_version=config.repository_version,
         status=PolicyVersionStatus.INVALID,
-        project_id=project_id,
+        project_id=auth.project_id,
     )
     db.add(version)
     db.commit()
@@ -389,7 +407,10 @@ def create_policy_version(
             repository=config.repository,
         )
         variables = settings.config_variables or []
-        logger.debug("Workspace created")
+
+        extra["policy_version_id"] = version.policy_version_id
+        logger.system.info("Workspace created", extra={"extra": extra})
+
     except Exception as e:
         if isinstance(e, VulkanInternalException):
             handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
@@ -402,7 +423,7 @@ def create_policy_version(
             )
             inner_variables = [c.variables for c in added_components if c.variables]
             variables += list(chain.from_iterable(inner_variables))
-        logger.debug("Processed components")
+        logger.system.debug("Processed components", extra={"extra": extra})
 
         if settings.data_sources:
             added_sources = _add_data_source_dependencies(
@@ -410,11 +431,11 @@ def create_policy_version(
             )
             inner_variables = [ds.variables for ds in added_sources if ds.variables]
             variables += list(chain.from_iterable(inner_variables))
-        logger.debug("Processed data sources")
+        logger.system.debug("Processed data sources", extra={"extra": extra})
 
         if len(variables) > 0:
             version.variables = list(set(variables))
-        logger.debug("Processed variables")
+        logger.system.debug("Processed variables", extra={"extra": extra})
 
         version.input_schema = settings.input_schema
         version.graph_definition = json.dumps(settings.graph_definition)
@@ -445,7 +466,8 @@ def create_policy_version(
 
         dagster_workspace.status = WorkspaceStatus.OK
         db.commit()
-        logger.debug("Updated Dagster repositories")
+        logger.system.debug("Updated Dagster repositories", extra={"extra": extra})
+
     except Exception as e:
         dagster_workspace.status = WorkspaceStatus.CREATION_FAILED
         db.commit()
@@ -458,9 +480,12 @@ def create_policy_version(
 
     version.status = PolicyVersionStatus.VALID
     db.commit()
-    logger.info(
-        f"Policy version {config.alias} created for policy {policy_id} with "
-        f"status {version.status}"
+
+    logger.event(
+        VulkanEvent.POLICY_VERSION_CREATED,
+        policy_id=policy_id,
+        policy_version_id=version.policy_version_id,
+        policy_version_alias=config.alias,
     )
 
     return {

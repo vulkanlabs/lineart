@@ -52,13 +52,11 @@ class ProjectUser(ProjectUserBase):
         from_attributes = True
 
 
-class PolicyBase(BaseModel):
+class PolicyCreate(BaseModel):
     name: str
     description: str
-    allocation_strategy: PolicyAllocationStrategy | None = None
 
-
-class PolicyUpdate(BaseModel):
+class PolicyBase(BaseModel):
     name: str | None = None
     description: str | None = None
     allocation_strategy: PolicyAllocationStrategy | None = None

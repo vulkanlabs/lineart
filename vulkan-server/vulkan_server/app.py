@@ -6,8 +6,9 @@ import requests
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
-from vulkan_server import routers
+from vulkan_server import routers, exceptions
 from vulkan_server.backtest.daemon import BacktestDaemon
 from vulkan_server.logger import init_logger
 
@@ -94,3 +95,16 @@ async def auth_user(request: Request, call_next):
     request._headers = headers
     request.scope["headers"] = request.headers.raw
     return await call_next(request)
+
+
+class ErrorResponse(BaseModel):
+    error_code: str
+    message: str
+
+
+@app.exception_handler(exceptions.VulkanServerException)
+async def vulkan_server_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=ErrorResponse(error_code=exc.error_code, message=exc.msg).model_dump(),
+    )

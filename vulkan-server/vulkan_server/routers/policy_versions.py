@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from vulkan_server import definitions, schemas
-from vulkan_server.auth import get_project_id
+from vulkan_server.auth import AuthContext, get_auth_context, get_project_id
 from vulkan_server.dagster.client import get_dagster_client
 from vulkan_server.dagster.launch_run import create_run
 from vulkan_server.dagster.service_client import (
@@ -26,14 +26,14 @@ from vulkan_server.db import (
     WorkspaceStatus,
     get_db,
 )
+from vulkan_server.events import VulkanEvent
 from vulkan_server.exceptions import VulkanServerException
-from vulkan_server.logger import init_logger
+from vulkan_server.logger import VulkanLogger, get_logger
 from vulkan_server.services.resolution import (
     ResolutionServiceClient,
     get_resolution_service_client,
 )
 
-logger = init_logger("policy-versions")
 router = APIRouter(
     prefix="/policy-versions",
     tags=["policy-versions"],
@@ -60,7 +60,8 @@ def get_policy_version(
 @router.delete("/{policy_version_id}")
 def delete_policy_version(
     policy_version_id: str,
-    project_id: str = Depends(get_project_id),
+    auth: AuthContext = Depends(get_auth_context),
+    logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
     resolution_service: ResolutionServiceClient = Depends(
         get_resolution_service_client
@@ -72,20 +73,32 @@ def delete_policy_version(
     # TODO: ensure this function can only be executed by ADMIN level users
     policy_version = (
         db.query(PolicyVersion)
-        .filter_by(policy_version_id=policy_version_id, project_id=project_id)
+        .filter_by(policy_version_id=policy_version_id, project_id=auth.project_id)
         .first()
     )
     if policy_version is None or policy_version.archived:
         msg = f"Tried to delete non-existent policy version {policy_version_id}"
         raise HTTPException(status_code=404, detail=msg)
 
+    # Ensure this policy version is not being used by its Policy's current
+    # allocation strategy.
     policy: Policy = (
         db.query(Policy)
-        .filter_by(policy_id=policy_version.policy_id, project_id=project_id)
+        .filter_by(policy_id=policy_version.policy_id, project_id=auth.project_id)
         .first()
     )
-    if policy.active_policy_version_id == policy_version.policy_version_id:
-        msg = f"Cannot delete the active version of a policy ({policy.policy_id})"
+    strategy = schemas.PolicyAllocationStrategy.model_validate(
+        policy.allocation_strategy
+    )
+    active_versions = [opt.policy_version_id for opt in strategy.choice]
+    if strategy.shadow is not None:
+        active_versions += [strategy.shadow.policy_version_id]
+
+    if policy_version_id in active_versions:
+        msg = (
+            f"Policy version {policy_version_id} is currently in use by the policy "
+            f"allocation strategy for policy {policy.policy_id}"
+        )
         raise HTTPException(status_code=400, detail=msg)
 
     workspace = (
@@ -109,7 +122,9 @@ def delete_policy_version(
     policy_version.archived = True
     db.commit()
 
-    logger.info(f"Deleted policy version {policy_version_id}")
+    logger.event(
+        VulkanEvent.POLICY_VERSION_DELETED, policy_version_id=policy_version_id
+    )
     return {"policy_version_id": policy_version_id}
 
 
@@ -374,7 +389,8 @@ def get_beam_workspace(
 )
 def create_beam_workspace(
     policy_version_id: str,
-    project_id: str = Depends(get_project_id),
+    auth: AuthContext = Depends(get_auth_context),
+    logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
     resolution_service: ResolutionServiceClient = Depends(
         get_resolution_service_client
@@ -389,7 +405,7 @@ def create_beam_workspace(
 
     policy_version: PolicyVersion = (
         db.query(PolicyVersion)
-        .filter_by(project_id=project_id, policy_version_id=policy_version_id)
+        .filter_by(project_id=auth.project_id, policy_version_id=policy_version_id)
         .first()
     )
 
@@ -410,7 +426,9 @@ def create_beam_workspace(
         beam_workspace.status = WorkspaceStatus.OK
     except Exception as e:
         beam_workspace.status = WorkspaceStatus.CREATION_FAILED
-        logger.error(f"Failed to create workspace ({policy_version_id}): {e}")
+        logger.system.error(
+            f"Failed to create workspace ({policy_version_id}): {e}", exc_info=True
+        )
         msg = (
             "This is usually an issue with Vulkan's internal services. "
             "Contact support for assistance. "
@@ -420,4 +438,7 @@ def create_beam_workspace(
     finally:
         db.commit()
 
+    logger.event(
+        VulkanEvent.BEAM_WORKSPACE_CREATED, policy_version_id=policy_version_id
+    )
     return beam_workspace

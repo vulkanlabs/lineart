@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from vulkan_server import schemas
-from vulkan_server.auth import get_project_id
+from vulkan_server.auth import AuthContext, get_auth_context, get_project_id
 from vulkan_server.db import (
     ComponentDataDependency,
     ComponentVersion,
@@ -11,13 +11,13 @@ from vulkan_server.db import (
     PolicyVersion,
     get_db,
 )
-from vulkan_server.logger import init_logger
+from vulkan_server.events import VulkanEvent
+from vulkan_server.logger import VulkanLogger, get_logger
 from vulkan_server.services.resolution import (
     ResolutionServiceClient,
     get_resolution_service_client,
 )
 
-logger = init_logger("component-versions")
 router = APIRouter(
     prefix="/component-versions",
     tags=["component-versions"],
@@ -47,7 +47,8 @@ def get_component_version(
 @router.delete("/{component_version_id}")
 def delete_component_version(
     component_version_id: str,
-    project_id: str = Depends(get_project_id),
+    auth: AuthContext = Depends(get_auth_context),
+    logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
     resolution_service: ResolutionServiceClient = Depends(
         get_resolution_service_client
@@ -56,7 +57,9 @@ def delete_component_version(
     # TODO: ensure this function can only be executed by ADMIN level users
     component_version = (
         db.query(ComponentVersion)
-        .filter_by(component_version_id=component_version_id, project_id=project_id)
+        .filter_by(
+            component_version_id=component_version_id, project_id=auth.project_id
+        )
         .first()
     )
     if component_version is None or component_version.archived:
@@ -89,7 +92,9 @@ def delete_component_version(
 
     component_version.archived = True
     db.commit()
-    logger.info(f"Deleted component version {component_version_id}")
+    logger.event(
+        VulkanEvent.COMPONENT_VERSION_DELETED, component_version_id=component_version_id
+    )
     return {"component_version_id": component_version_id}
 
 

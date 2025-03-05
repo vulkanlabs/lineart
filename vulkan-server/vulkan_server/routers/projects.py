@@ -5,9 +5,7 @@ from sqlalchemy.orm import Session
 
 from vulkan_server import schemas
 from vulkan_server.db import Project, ProjectUser, User, get_db
-from vulkan_server.logger import init_logger
 
-logger = init_logger("projects")
 router = APIRouter(
     prefix="/projects",
     tags=["projects"],
