@@ -13,7 +13,7 @@ from vulkan_public.exceptions import (
 from vulkan_public.spec.component import component_version_alias
 
 from vulkan_server import schemas
-from vulkan_server.auth import get_project_id
+from vulkan_server.auth import AuthContext, get_auth_context, get_project_id
 from vulkan_server.db import (
     Component,
     ComponentDataDependency,
@@ -24,14 +24,14 @@ from vulkan_server.db import (
     PolicyVersion,
     get_db,
 )
+from vulkan_server.events import VulkanEvent
 from vulkan_server.exceptions import ExceptionHandler
-from vulkan_server.logger import init_logger
+from vulkan_server.logger import VulkanLogger, get_logger
 from vulkan_server.services.resolution import (
     ResolutionServiceClient,
     get_resolution_service_client,
 )
 
-logger = init_logger("components")
 router = APIRouter(
     prefix="/components",
     tags=["components"],
@@ -44,21 +44,22 @@ router = APIRouter(
 @router.post("/", response_model=schemas.Component)
 def create_component(
     config: schemas.ComponentBase,
-    project_id: str = Depends(get_project_id),
+    auth: AuthContext = Depends(get_auth_context),
+    logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
 ):
     component = (
         db.query(Component)
-        .filter_by(name=config.name, project_id=project_id, archived=False)
+        .filter_by(name=config.name, project_id=auth.project_id, archived=False)
         .first()
     )
     if component is not None:
         raise HTTPException(status_code=409, detail="Component already exists")
 
-    new_component = Component(project_id=project_id, **config.model_dump())
+    new_component = Component(project_id=auth.project_id, **config.model_dump())
     db.add(new_component)
     db.commit()
-    logger.info(f"Created component {config.name}")
+    logger.event(VulkanEvent.COMPONENT_CREATED, component_id=new_component.component_id)
     return new_component
 
 
@@ -97,12 +98,13 @@ def get_component(
 @router.delete("/{component_id}")
 def delete_component(
     component_id: str,
-    project_id: str = Depends(get_project_id),
+    auth: AuthContext = Depends(get_auth_context),
+    logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
 ):
     component = (
         db.query(Component)
-        .filter_by(component_id=component_id, project_id=project_id)
+        .filter_by(component_id=component_id, project_id=auth.project_id)
         .first()
     )
     if component is None or component.archived:
@@ -111,7 +113,9 @@ def delete_component(
 
     component_versions = (
         db.query(ComponentVersion)
-        .filter_by(component_id=component_id, project_id=project_id, archived=False)
+        .filter_by(
+            component_id=component_id, project_id=auth.project_id, archived=False
+        )
         .all()
     )
     if len(component_versions) > 0:
@@ -120,7 +124,7 @@ def delete_component(
 
     component.archived = True
     db.commit()
-    logger.info(f"Deleted component {component_id}")
+    logger.event(VulkanEvent.COMPONENT_DELETED, component_id=component_id)
     return {"component_id": component_id}
 
 
@@ -128,7 +132,8 @@ def delete_component(
 def create_component_version(
     component_id: str,
     component_config: schemas.ComponentVersionCreate,
-    project_id: str = Depends(get_project_id),
+    auth: AuthContext = Depends(get_auth_context),
+    logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
     resolution_service: ResolutionServiceClient = Depends(
         get_resolution_service_client
@@ -136,7 +141,7 @@ def create_component_version(
 ):
     component = (
         db.query(Component)
-        .filter_by(component_id=component_id, project_id=project_id)
+        .filter_by(component_id=component_id, project_id=auth.project_id)
         .first()
     )
     if component is None:
@@ -165,7 +170,7 @@ def create_component_version(
     version = ComponentVersion(
         alias=alias,
         component_id=component_id,
-        project_id=project_id,
+        project_id=auth.project_id,
         input_schema=str(data["input_schema"]),
         instance_params_schema=str(data["instance_params_schema"]),
         node_definitions=json.dumps(data["node_definitions"]),
@@ -182,6 +187,9 @@ def create_component_version(
         version.variables = list(set(variables))
 
     db.commit()
+    logger.event(
+        VulkanEvent.COMPONENT_VERSION_CREATED, component_version_id=version.component_id
+    )
 
     return {"component_version_id": version.component_version_id}
 
