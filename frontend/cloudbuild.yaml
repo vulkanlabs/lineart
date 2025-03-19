@@ -1,81 +1,81 @@
 steps:
-  - name: "python:3.12"
-    id: "python-install"
-    entrypoint: python
-    args:
-    - '-m'
-    - 'pip'
-    - 'install'
-    - './vulkan-public'
-    - './vulkan'
-    - './vulkan-server'
-    - '--user'
-    waitFor: []
-  
-  - name: "python:3.12"
-    id: 'openapi-generate-spec'
-    entrypoint: python
-    args:
-    - 'scripts/export-openapi.py'
-    - '--out'
-    - '/workspace/generated/openapi.json'
-    waitFor: ["python-install"]
-  
+    - name: "python:3.12"
+      id: "python-install"
+      entrypoint: python
+      args:
+          - "-m"
+          - "pip"
+          - "install"
+          - "./vulkan-public"
+          - "./vulkan"
+          - "./vulkan-server"
+          - "--user"
+      waitFor: []
 
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'openapi-generate-ts'
-    args:
-    - 'run'
-    - '-v'
-    - '/workspace:/local'
-    - 'openapitools/openapi-generator-cli'
-    - 'generate'
-    - "-i"
-    - "/local/generated/openapi.json"
-    - '-o'
-    - '/local/generated/ts/'
-    - '-g'
-    - 'typescript-fetch'
-    - '--additional-properties'
-    - 'modelPropertyNaming=original'
-    waitFor: ["openapi-generate-spec"]
-  
-  # Build the Container Image
-  - name: 'gcr.io/cloud-builders/docker'
-    script: |
-      set -ex
-      cp -r /workspace/generated/ts/ ./frontend/generated/
-      docker build \
-        -t ${_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_SERVICE_NAME}:${COMMIT_SHA} \
-        -f images/vulkan-web-app.Dockerfile \
-        --build-arg NEXT_PUBLIC_VULKAN_SERVER_URL=${_NEXT_PUBLIC_VULKAN_SERVER_URL} \
-        --build-arg NEXT_PUBLIC_STACK_PROJECT_ID=${_NEXT_PUBLIC_STACK_PROJECT_ID} \
-        --build-arg NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=${_NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY} \
-        --build-arg STACK_SECRET_SERVER_KEY=${_STACK_SECRET_SERVER_KEY} \
-        .
-    automapSubstitutions: true
-    secretEnv: ['_STACK_SECRET_SERVER_KEY']
-    waitFor: ["openapi-generate-ts"]
-  
-  # Push the container image to Container Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args: [
-      'push', 
-      '${_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_SERVICE_NAME}:${COMMIT_SHA}'
-    ]
+    - name: "python:3.12"
+      id: "openapi-generate-spec"
+      entrypoint: python
+      args:
+          - "scripts/export-openapi.py"
+          - "--out"
+          - "/workspace/generated/openapi.json"
+      waitFor: ["python-install"]
+
+    - name: "gcr.io/cloud-builders/docker"
+      id: "openapi-generate-ts"
+      args:
+          - "run"
+          - "-v"
+          - "/workspace:/local"
+          - "openapitools/openapi-generator-cli"
+          - "generate"
+          - "-i"
+          - "/local/generated/openapi.json"
+          - "-o"
+          - "/local/generated/ts/"
+          - "-g"
+          - "typescript-fetch"
+          - "--additional-properties"
+          - "modelPropertyNaming=original"
+      waitFor: ["openapi-generate-spec"]
+
+    # Build the Container Image
+    - name: "gcr.io/cloud-builders/docker"
+      script: |
+          set -ex
+          cp -r /workspace/generated/ts/ ./frontend/generated/
+          docker build \
+            -t ${_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_SERVICE_NAME}:${COMMIT_SHA} \
+            -f images/vulkan-web-app.Dockerfile \
+            --build-arg NEXT_PUBLIC_VULKAN_SERVER_URL=${_NEXT_PUBLIC_VULKAN_SERVER_URL} \
+            --build-arg NEXT_PUBLIC_STACK_PROJECT_ID=${_NEXT_PUBLIC_STACK_PROJECT_ID} \
+            --build-arg NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=${_NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY} \
+            --build-arg STACK_SECRET_SERVER_KEY=${_STACK_SECRET_SERVER_KEY} \
+            .
+      automapSubstitutions: true
+      secretEnv: ["_STACK_SECRET_SERVER_KEY"]
+      waitFor: ["openapi-generate-ts"]
+
+    # Push the container image to Container Registry
+    - name: "gcr.io/cloud-builders/docker"
+      args:
+          [
+              "push",
+              "${_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_SERVICE_NAME}:${COMMIT_SHA}",
+          ]
 
 images:
-- '${_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_SERVICE_NAME}:${COMMIT_SHA}'
+    - "${_REPOSITORY_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_SERVICE_NAME}:${COMMIT_SHA}"
 
 options:
-  logging: CLOUD_LOGGING_ONLY
+    logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _REPOSITORY_LOCATION: us-central1
-  _REPOSITORY_NAME: docker-images
-  _SERVICE_NAME: sketch-frontend
+    _REPOSITORY_LOCATION: us-central1
+    _REPOSITORY_NAME: docker-images
+    _SERVICE_NAME: lineart-frontend
 
 availableSecrets:
-  secretManager:
-    - versionName: projects/${PROJECT_NUMBER}/secrets/stack_secret_server_key/versions/latest
-      env: '_STACK_SECRET_SERVER_KEY'
+    secretManager:
+        - versionName: projects/${PROJECT_NUMBER}/secrets/stack_secret_server_key/versions/latest
+          env: "_STACK_SECRET_SERVER_KEY"
