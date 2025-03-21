@@ -107,7 +107,7 @@ def delete_policy_version(
         .first()
     )
 
-    name = definitions.version_name(policy_version.policy_id, policy_version_id)
+    name = definitions.version_name(policy_version_id)
     try:
         _ = resolution_service.delete_workspace(name)
         dagster_launcher_client.delete_workspace(name)

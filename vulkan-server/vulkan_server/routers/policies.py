@@ -1,7 +1,6 @@
 import datetime
 import json
 from dataclasses import dataclass
-from itertools import chain
 from typing import Annotated, Any
 
 import pandas as pd
@@ -15,7 +14,6 @@ from vulkan_public.exceptions import (
     UNHANDLED_ERROR_NAME,
     ComponentNotFoundException,
     DataSourceNotFoundException,
-    VulkanInternalException,
 )
 
 from vulkan_server import definitions, schemas
@@ -29,7 +27,6 @@ from vulkan_server.dagster.service_client import (
 from vulkan_server.db import (
     ComponentVersion,
     ComponentVersionDependency,
-    DagsterWorkspace,
     DataSource,
     Policy,
     PolicyDataDependency,
@@ -37,7 +34,6 @@ from vulkan_server.db import (
     PolicyVersionStatus,
     Run,
     RunGroup,
-    WorkspaceStatus,
     get_db,
 )
 from vulkan_server.events import VulkanEvent
@@ -372,12 +368,6 @@ def create_policy_version(
 
     logger.system.info("Creating policy version", extra={"extra": extra})
 
-    if config.alias is None:
-        # We can use the repo version as an easy alias or generate one.
-        # This should ideally be a commit hash or similar, indicating a
-        # unique version of the code.
-        config.alias = config.repository_version
-
     policy = (
         db.query(Policy)
         .filter_by(policy_id=policy_id, project_id=auth.project_id)
@@ -394,92 +384,97 @@ def create_policy_version(
         repository_version=config.repository_version,
         status=PolicyVersionStatus.INVALID,
         project_id=auth.project_id,
+        # FIXME: remove after workspace creation logic is reimplemented
+        input_schema={},
+        graph_definition="",
     )
     db.add(version)
     db.commit()
 
-    version_name = definitions.version_name(policy_id, version.policy_version_id)
+    # TODO:
+    # # START policy version creation logic
+    # version_name = definitions.version_name(version.policy_version_id)
+    # try:
+    #     settings = _create_policy_version_workspace(
+    #         resolution=resolution_service,
+    #         name=version_name,
+    #         repository=config.repository,
+    #     )
+    #     variables = settings.config_variables or []
 
-    try:
-        settings = _create_policy_version_workspace(
-            resolution=resolution_service,
-            name=version_name,
-            repository=config.repository,
-        )
-        variables = settings.config_variables or []
+    #     extra["policy_version_id"] = version.policy_version_id
+    #     logger.system.info("Workspace created", extra={"extra": extra})
 
-        extra["policy_version_id"] = version.policy_version_id
-        logger.system.info("Workspace created", extra={"extra": extra})
+    # except Exception as e:
+    #     if isinstance(e, VulkanInternalException):
+    #         handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
+    #     handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
 
-    except Exception as e:
-        if isinstance(e, VulkanInternalException):
-            handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
-        handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
+    # try:
+    #     if settings.required_components:
+    #         added_components = _add_component_dependencies(
+    #             db, version, settings.required_components
+    #         )
+    #         inner_variables = [c.variables for c in added_components if c.variables]
+    #         variables += list(chain.from_iterable(inner_variables))
+    #     logger.system.debug("Processed components", extra={"extra": extra})
 
-    try:
-        if settings.required_components:
-            added_components = _add_component_dependencies(
-                db, version, settings.required_components
-            )
-            inner_variables = [c.variables for c in added_components if c.variables]
-            variables += list(chain.from_iterable(inner_variables))
-        logger.system.debug("Processed components", extra={"extra": extra})
+    #     if settings.data_sources:
+    #         added_sources = _add_data_source_dependencies(
+    #             db, version, settings.data_sources
+    #         )
+    #         inner_variables = [ds.variables for ds in added_sources if ds.variables]
+    #         variables += list(chain.from_iterable(inner_variables))
+    #     logger.system.debug("Processed data sources", extra={"extra": extra})
 
-        if settings.data_sources:
-            added_sources = _add_data_source_dependencies(
-                db, version, settings.data_sources
-            )
-            inner_variables = [ds.variables for ds in added_sources if ds.variables]
-            variables += list(chain.from_iterable(inner_variables))
-        logger.system.debug("Processed data sources", extra={"extra": extra})
+    #     if len(variables) > 0:
+    #         version.variables = list(set(variables))
+    #     logger.system.debug("Processed variables", extra={"extra": extra})
 
-        if len(variables) > 0:
-            version.variables = list(set(variables))
-        logger.system.debug("Processed variables", extra={"extra": extra})
+    #     version.input_schema = settings.input_schema
+    #     version.graph_definition = json.dumps(settings.graph_definition)
+    #     version.module_name = settings.module_name
+    #     version.base_worker_image = settings.image_path
+    # except Exception as e:
+    #     if isinstance(e, VulkanInternalException):
+    #         handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
+    #     resolution_service.delete_workspace(version_name)
+    #     handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
+    # finally:
+    #     db.commit()
 
-        version.input_schema = settings.input_schema
-        version.graph_definition = json.dumps(settings.graph_definition)
-        version.module_name = settings.module_name
-        version.base_worker_image = settings.image_path
-    except Exception as e:
-        if isinstance(e, VulkanInternalException):
-            handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
-        resolution_service.delete_workspace(version_name)
-        handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
-    finally:
-        db.commit()
+    # # Dagster-specific
+    # dagster_workspace = DagsterWorkspace(
+    #     policy_version_id=version.policy_version_id,
+    #     status=WorkspaceStatus.CREATION_PENDING,
+    #     path=settings.workspace_path,
+    # )
+    # db.add(dagster_workspace)
+    # db.commit()
 
-    # Dagster-specific
-    dagster_workspace = DagsterWorkspace(
-        policy_version_id=version.policy_version_id,
-        status=WorkspaceStatus.CREATION_PENDING,
-        path=settings.workspace_path,
-    )
-    db.add(dagster_workspace)
-    db.commit()
+    # try:
+    #     dagster_launcher_client.create_workspace(
+    #         version_name, version.repository, settings.required_components
+    #     )
+    #     dagster_launcher_client.ensure_workspace_added(version_name)
 
-    try:
-        dagster_launcher_client.create_workspace(
-            version_name, version.repository, settings.required_components
-        )
-        dagster_launcher_client.ensure_workspace_added(version_name)
+    #     dagster_workspace.status = WorkspaceStatus.OK
+    #     db.commit()
+    #     logger.system.debug("Updated Dagster repositories", extra={"extra": extra})
 
-        dagster_workspace.status = WorkspaceStatus.OK
-        db.commit()
-        logger.system.debug("Updated Dagster repositories", extra={"extra": extra})
+    # except Exception as e:
+    #     dagster_workspace.status = WorkspaceStatus.CREATION_FAILED
+    #     db.commit()
+    #     resolution_service.delete_workspace(version_name)
 
-    except Exception as e:
-        dagster_workspace.status = WorkspaceStatus.CREATION_FAILED
-        db.commit()
-        resolution_service.delete_workspace(version_name)
-
-        if isinstance(e, VulkanInternalException):
-            handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
-        handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
-    # END of Dagster-specific segment
+    #     if isinstance(e, VulkanInternalException):
+    #         handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
+    #     handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
+    # # END of Dagster-specific segment
 
     version.status = PolicyVersionStatus.VALID
     db.commit()
+    # # END of policy version creation logic
 
     logger.event(
         VulkanEvent.POLICY_VERSION_CREATED,

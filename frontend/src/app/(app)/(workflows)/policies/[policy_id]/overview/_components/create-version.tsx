@@ -29,7 +29,7 @@ import { createPolicyVersion } from "@/lib/api";
 import { useStackApp } from "@stackframe/stack";
 
 const formSchema = z.object({
-    tag: z.string({ description: "Name of the Version" }).min(1),
+    alias: z.string({ description: "Name of the Version" }).min(1),
     repository: z.string({ description: "Repository" }).optional(),
     repository_version: z.string({ description: "Repository Version" }).min(0).optional(),
 });
@@ -43,7 +43,7 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            tag: "",
+            alias: "",
             repository: "null",
             repository_version: "0",
         },
@@ -55,7 +55,7 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
                 setOpen(false);
                 form.reset();
                 toast("Policy Version Created", {
-                    description: `Policy Version ${data.tag} has been created.`,
+                    description: `Policy Version ${data.alias} has been created.`,
                     dismissible: true,
                 });
                 router.refresh();
@@ -91,11 +91,11 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
         <Dialog open={open} onOpenChange={setOpen}>
             <Form {...form}>
                 <DialogTrigger asChild>
-                    <Button variant="outline">Create Policy</Button>
+                    <Button variant="outline">New Version</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>Create a new Policy</DialogTitle>
+                        <DialogTitle>Create a new Policy Version</DialogTitle>
                     </DialogHeader>
                     <form
                         className="flex flex-col gap-4 py-4"
@@ -104,7 +104,7 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
                         {formFields}
 
                         <DialogFooter>
-                            <Button type="submit">Create Policy</Button>
+                            <Button type="submit">Create Policy Version</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

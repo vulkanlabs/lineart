@@ -123,8 +123,10 @@ export async function createPolicy(userPromise: Promise<StackUser>, data: Policy
         });
 }
 
-
-export async function createPolicyVersion(userPromise: Promise<StackUser>, data: PolicyVersionCreate) {
+export async function createPolicyVersion(
+    userPromise: Promise<StackUser>,
+    data: PolicyVersionCreate,
+) {
     const user = await userPromise;
     const headers = await getAuthHeaders(user);
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
