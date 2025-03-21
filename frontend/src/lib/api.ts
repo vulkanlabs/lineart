@@ -8,6 +8,9 @@ import { RunLogs } from "@vulkan-server/RunLogs";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 import { ComponentVersion } from "@vulkan-server/ComponentVersion";
 import { PolicyBase } from "@vulkan-server/PolicyBase";
+import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
+import { Configuration, PoliciesApi } from "../../generated";
+import { CreatePolicyVersionPoliciesPolicyIdVersionsPostRequest } from "../../generated/apis/PoliciesApi";
 
 type StackUser = CurrentUser | CurrentInternalUser;
 
@@ -117,6 +120,30 @@ export async function createPolicy(userPromise: Promise<StackUser>, data: Policy
         })
         .catch((error) => {
             throw new Error(`Error creating policy ${data}`, { cause: error });
+        });
+}
+
+export async function createPolicyVersion(
+    userPromise: Promise<StackUser>,
+    data: PolicyVersionCreate,
+) {
+    const user = await userPromise;
+    const headers = await getAuthHeaders(user);
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+
+    return fetch(new URL(`/policies/${data.policy_id}/versions`, serverUrl), {
+        method: "POST",
+        headers: {
+            ...headers,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+    })
+        .then((response) => {
+            return response.json();
+        })
+        .catch((error) => {
+            throw new Error(`Error policy version ${data}`, { cause: error });
         });
 }
 

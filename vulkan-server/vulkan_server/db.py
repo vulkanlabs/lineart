@@ -185,6 +185,7 @@ class PolicyVersion(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base)
     alias = Column(String)
     status = Column(Enum(PolicyVersionStatus))
     repository = Column(String)
+    # TODO: We can reuse the version as an incremental number for edits.
     repository_version = Column(String)
     # The fields below require the policy version to be resolved
     # first, hence the "nullable=True". With regards to the application,

@@ -70,7 +70,7 @@ class ResolutionServiceClient:
             method="POST",
             url="/workspaces/beam/create",
             json={
-                "name": definitions.version_name("", policy_version_id),
+                "name": definitions.version_name(policy_version_id),
                 "base_image": base_image,
             },
             on_error="Failed to create beam workspace",

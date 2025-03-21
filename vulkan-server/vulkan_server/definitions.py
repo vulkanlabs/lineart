@@ -2,7 +2,7 @@ import os
 from dataclasses import dataclass
 
 
-def version_name(policy_id: str, policy_version_id: str) -> str:
+def version_name(policy_version_id: str) -> str:
     return f"{policy_version_id}"
 
 

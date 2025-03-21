@@ -201,7 +201,7 @@ class DagsterRunLauncher:
             raise VariablesNotSetException(f"Mandatory variables not set: {missing}")
 
         return LaunchConfig(
-            name=definitions.version_name(version.policy_id, policy_version_id),
+            name=definitions.version_name(policy_version_id),
             variables=config_variables,
         )
 
