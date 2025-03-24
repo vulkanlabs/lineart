@@ -19,16 +19,124 @@ class NodeType(Enum):
     DATA_INPUT = "DATA_INPUT"
 
 
-@dataclass
+class NodeMetadata(ABC):
+    @staticmethod
+    @abstractmethod
+    def entries() -> list[str]:
+        """Return a list of all the attributes that should be serialized."""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {k: v for k, v in self.__dict__.items() if k in self.entries()}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "NodeMetadata":
+        missing_keys = set(cls.entries()) - set(data.keys())
+        if missing_keys:
+            raise ValueError(f"Missing keys: {missing_keys}")
+        return cls(**data)
+
+
+class TransformNodeMetadata(NodeMetadata):
+    def __init__(self, source: str):
+        self.source = source
+
+    @staticmethod
+    def entries() -> list[str]:
+        return ["source"]
+
+
+class TerminateNodeMetadata(NodeMetadata):
+    def __init__(self, return_status: str):
+        self.return_status = return_status
+
+    @staticmethod
+    def entries() -> list[str]:
+        return ["return_status"]
+
+
+class BranchNodeMetadata(NodeMetadata):
+    def __init__(self, choices: list[str], source: str):
+        self.choices = choices
+        self.source = source
+
+    @staticmethod
+    def entries() -> list[str]:
+        return ["choices", "source"]
+
+
+class InputNodeMetadata(NodeMetadata):
+    def __init__(self, schema: dict[str, type]):
+        self.schema = schema
+
+    @staticmethod
+    def entries() -> list[str]:
+        return ["schema"]
+
+
+@dataclass(
+    eq=True,
+)
 class VulkanNodeDefinition:
     "Internal representation of a node."
 
     name: str
     node_type: str
-    hidden: bool = False
     description: str | None = None
     dependencies: dict[str, Dependency] | None = None
-    metadata: dict[str, Any] | None = None
+    metadata: NodeMetadata | None = None
+
+    _REQUIRED_KEYS = {"name", "node_type"}
+
+    def __post_init__(self):
+        if self.metadata is not None:
+            assert isinstance(self.metadata, NodeMetadata), (
+                f"Metadata must be of type NodeMetadata, got {type(self.metadata)}"
+            )
+        if self.dependencies is not None:
+            assert all(isinstance(d, Dependency) for d in self.dependencies.values()), (
+                "Dependencies must be of type Dependency"
+            )
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "VulkanNodeDefinition":
+        missing_keys = cls._REQUIRED_KEYS - set(data.keys())
+        if missing_keys:
+            raise ValueError(f"Missing keys: {missing_keys}")
+
+        metadata = data.get("metadata", None)
+        if metadata is not None:
+            node_type = NodeType(data["node_type"])
+            if node_type == NodeType.TRANSFORM:
+                metadata = TransformNodeMetadata.from_dict(metadata)
+            elif node_type == NodeType.TERMINATE:
+                metadata = TerminateNodeMetadata.from_dict(metadata)
+            elif node_type == NodeType.BRANCH:
+                metadata = BranchNodeMetadata.from_dict(metadata)
+            elif node_type == NodeType.INPUT:
+                metadata = InputNodeMetadata.from_dict(metadata)
+            else:
+                raise ValueError(f"Unknown node type: {node_type}")
+
+        return cls(
+            name=data["name"],
+            node_type=data["node_type"],
+            description=data.get("description"),
+            dependencies=data.get("dependencies"),
+            metadata=metadata,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        data = {
+            "name": self.name,
+            "node_type": self.node_type,
+        }
+        if self.description is not None:
+            data["description"] = self.description
+        if self.dependencies is not None:
+            data["dependencies"] = self.dependencies
+        if self.metadata is not None:
+            data["metadata"] = self.metadata.to_dict()
+        return data
 
 
 class Node(ABC):
@@ -43,7 +151,6 @@ class Node(ABC):
         self,
         name: str,
         typ: NodeType,
-        hidden: bool = False,
         description: str | None = None,
         dependencies: dict[str, Dependency] | None = None,
     ):
@@ -55,9 +162,6 @@ class Node(ABC):
             The name of the node.
         typ : NodeType
             The type of the node. Determines the overall behavior of the node.
-        hidden : bool, optional, default=False
-            Whether the node should be hidden from the user interface.
-            Mainly for internal use.
         description : str, optional
             A description of the node. Used for documentation purposes and
             shown in the user interface.
@@ -70,14 +174,13 @@ class Node(ABC):
         self._name = name
         self.description = description
         self.type = typ
-        self.hidden = hidden
         self._dependencies = dependencies if dependencies is not None else {}
         # TODO: here, we can enforce the typing of dependency specifications,
         # but this ends up making the API harder to use. We should consider
         # parsing the dependency specification from strings or tuples.
-        assert all(
-            isinstance(d, Dependency) for d in self._dependencies.values()
-        ), "Dependencies must be of type Dependency"
+        assert all(isinstance(d, Dependency) for d in self._dependencies.values()), (
+            "Dependencies must be of type Dependency"
+        )
 
     @property
     def name(self) -> str:
@@ -242,7 +345,6 @@ class TransformNode(Node):
         func: callable,
         dependencies: dict[str, Any],
         description: str | None = None,
-        hidden: bool = False,
     ):
         """Evaluate an arbitrary function.
 
@@ -275,9 +377,6 @@ class TransformNode(Node):
             See `Dependency` for more information.
         description: str, optional
             A description of the node.
-        hidden: bool, optional, default=False
-            Whether the node should be hidden from the user interface.
-            Mainly for internal use.
 
         """
         super().__init__(
@@ -285,7 +384,6 @@ class TransformNode(Node):
             description=description,
             typ=NodeType.TRANSFORM,
             dependencies=dependencies,
-            hidden=hidden,
         )
         self.func = func
 
@@ -294,7 +392,6 @@ class TransformNode(Node):
             name=self.name,
             description=self.description,
             node_type=self.type.value,
-            hidden=self.hidden,
             dependencies=self.node_dependencies(),
             metadata={
                 "source": getsource(self.func),
@@ -459,10 +556,16 @@ class InputNode(Node):
     """
 
     def __init__(
-        self, schema: dict[str, type], name="input_node", description: str | None = None
+        self,
+        schema: dict[str, type],
+        name="input_node",
+        description: str | None = None,
     ):
         super().__init__(
-            name=name, typ=NodeType.INPUT, description=description, dependencies=None
+            name=name,
+            typ=NodeType.INPUT,
+            description=description,
+            dependencies=None,
         )
         self.schema = schema
 
@@ -471,116 +574,21 @@ class InputNode(Node):
             name=self.name,
             description=self.description,
             node_type=self.type.value,
-            metadata={
-                "schema": {k: t.__name__ for k, t in self.schema.items()},
-            },
+            metadata=InputNodeMetadata(
+                schema={k: t.__name__ for k, t in self.schema.items()}
+            ),
         )
 
-
-class Map(Node):
-    """Produces a collection and splits it into elements.
-
-    Map nodes are used as the entrypoint for Map-Transform-Collect patterns
-    in the workflow. A `Map` node should produce a collection, which will
-    be split into elements that can then be processed individually by
-    a sub-workflow. At some point, the elements need to be collected back
-    into a single collection, which is done by a `Collect` node.
-
-    The simplest useful pattern is to use a `Map` node to make a list of
-    things, apply a `Transform` node to each element, and `Collect` the results.
-    This would look like:
-    ```
-                        -> a -> f(a) ->
-                      /                 \
-    map -> [a, b, c] -  -> b -> f(b) ->  -> collect -> [f(a), f(b), f(c)]
-                      \                 /
-                        -> c -> f(c) ->
-    ```
-
-    """
-
-    def __init__(
-        self,
-        name: str,
-        func: callable,
-        dependencies: dict[str, Any],
-        description: str | None = None,
-        hidden: bool = False,
-    ):
-        """Produces a collection and splits it into elements.
-
-        Parameters
-        ----------
-        name : str
-            The name of the node.
-        func: callable
-            An arbitrary function that will be executed when the node is run.
-            Should return a collection, which will be split into
-            elements that can be processed individually.
-        dependencies: dict, optional
-            The dependencies of the node.
-        description: str, optional
-            A description of the node.
-        hidden: bool, optional, default=False
-            Whether the node should be hidden from the user interface.
-            Mainly for internal use.
-
-        """
-
-        super().__init__(
-            name=name,
-            description=description,
-            typ=NodeType.MAP,
-            dependencies=dependencies,
-            hidden=hidden,
-        )
-        self.func = func
-
-    def node_definition(self) -> VulkanNodeDefinition:
-        return VulkanNodeDefinition(
-            name=self.name,
-            description=self.description,
-            node_type=self.type.value,
-            hidden=self.hidden,
-            dependencies=self.node_dependencies(),
-            metadata={
-                "source": getsource(self.func),
-            },
+    @classmethod
+    def from_definition(cls, definition: VulkanNodeDefinition) -> "InputNode":
+        return cls(
+            # FIXME: shouldnt be using eval here
+            schema={k: eval(t) for k, t in definition.metadata.schema.items()},
+            name=definition.name,
+            description=definition.description,
         )
 
-
-class Collect(Node):
-    """Collect dynamic outputs from a Map dynamic node or child nodes.
-
-    Collect nodes are used to collect the outputs of a `Map` node or
-    the outputs of its child nodes. They simply aggregate the results
-    and produce a collection of outputs.
-
-    See `Map` for more information.
-    """
-
-    def __init__(
-        self,
-        name: str,
-        dependencies: dict[str, Dependency],
-        description: str | None = None,
-        hidden: bool = False,
-    ):
-        """Collect dynamic outputs from a Map dynamic node."""
-        super().__init__(
-            name=name,
-            description=description,
-            typ=NodeType.COLLECT,
-            dependencies=dependencies,
-            hidden=hidden,
-        )
-
-    def node_definition(self) -> VulkanNodeDefinition:
-        return VulkanNodeDefinition(
-            name=self.name,
-            description=self.description,
-            node_type=self.type.value,
-            hidden=self.hidden,
-            dependencies=self.node_dependencies(),
-            metadata={},
-        )
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "InputNode":
+        definition = VulkanNodeDefinition.from_dict(data)
+        return cls.from_definition(definition)
