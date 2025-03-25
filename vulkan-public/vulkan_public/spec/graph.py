@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes import Node
+from vulkan_public.spec.nodes.base import Node
 
 Dependencies = dict[str, Dependency]
 """Map of a node's input variables to dependencies on other nodes' outputs."""

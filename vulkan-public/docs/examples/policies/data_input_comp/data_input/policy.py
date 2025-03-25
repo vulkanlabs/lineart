@@ -2,7 +2,7 @@ from enum import Enum
 
 from vulkan_public.spec.component import ComponentInstance, ComponentInstanceConfig
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes import BranchNode, TerminateNode
+from vulkan_public.spec.nodes.base import BranchNode, TerminateNode
 from vulkan_public.spec.policy import PolicyDefinition
 
 DATA_SERVER_URL = "http://testdata:5000"

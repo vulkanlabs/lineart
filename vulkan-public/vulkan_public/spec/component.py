@@ -3,7 +3,7 @@ from typing import Any
 
 from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.graph import GraphDefinition
-from vulkan_public.spec.nodes import Node, NodeType
+from vulkan_public.spec.nodes.base import Node, NodeType
 
 
 @dataclass

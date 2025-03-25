@@ -1,7 +1,5 @@
 from typing import Callable
 
-from vulkan.core.component import ComponentGraph
-
 from vulkan_public.core.graph import Graph
 from vulkan_public.spec.dependency import INPUT_NODE
 from vulkan_public.spec.nodes import InputNode, Node, TerminateNode
@@ -14,7 +12,6 @@ class Policy(Graph):
         nodes: list[Node],
         input_schema: dict[str, type],
         output_callback: Callable | None = None,
-        components: list[ComponentGraph] | None = None,
     ):
         self.output_callback = output_callback
         if output_callback is not None:
@@ -25,12 +22,8 @@ class Policy(Graph):
             isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
         ), "Input schema must be a dictionary of str -> type"
 
-        if components is None:
-            components = []
+        all_nodes = [_make_input_node(input_schema), *nodes]
 
-        all_nodes = [_make_input_node(input_schema), *nodes, *components]
-
-        self.components = components
         super().__init__(all_nodes, input_schema)
 
     def _with_output_callback(self, nodes: list[Node]) -> list[Node]:

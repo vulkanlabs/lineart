@@ -2,7 +2,7 @@ from json import loads
 
 from vulkan_public.spec.component import ComponentDefinition, InstanceParam
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes import HTTPConnectionNode, TransformNode
+from vulkan_public.spec.nodes.base import HTTPConnectionNode, TransformNode
 
 
 def serasa_func(context, serasa_response, **kwargs):

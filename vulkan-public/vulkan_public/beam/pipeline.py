@@ -19,7 +19,7 @@ from vulkan_public.core.graph import GraphEdges, GraphNodes, sort_nodes
 from vulkan_public.core.policy import Policy
 from vulkan_public.schemas import DataSourceSpec
 from vulkan_public.spec.dependency import INPUT_NODE
-from vulkan_public.spec.nodes import NodeType
+from vulkan_public.spec.nodes.base import NodeType
 
 LOCAL_RESULTS_FILE_NAME = "output.json"
 

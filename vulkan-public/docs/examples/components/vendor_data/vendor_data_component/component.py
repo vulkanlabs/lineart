@@ -2,7 +2,7 @@ import json
 
 from vulkan_public.spec.component import ComponentDefinition
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes import DataInputNode, TransformNode
+from vulkan_public.spec.nodes.base import DataInputNode, TransformNode
 
 body = TransformNode(
     func=lambda inputs: {"tax_id": inputs["cpf"]},

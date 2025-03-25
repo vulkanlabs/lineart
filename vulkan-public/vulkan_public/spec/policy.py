@@ -4,7 +4,7 @@ from typing import Callable
 from vulkan_public.spec.component import ComponentInstance
 from vulkan_public.spec.dependency import INPUT_NODE
 from vulkan_public.spec.graph import GraphDefinition
-from vulkan_public.spec.nodes import Node, NodeType
+from vulkan_public.spec.nodes.base import Node, NodeType
 
 
 @dataclass

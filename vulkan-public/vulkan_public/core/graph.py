@@ -3,7 +3,7 @@ from copy import deepcopy
 from graphlib import TopologicalSorter
 
 from vulkan_public.spec.dependency import Dependency
-from vulkan_public.spec.nodes import Node, NodeType, VulkanNodeDefinition
+from vulkan_public.spec.nodes import Node, NodeDefinition, NodeType
 
 GraphNodes = list[Node]
 GraphEdges = dict[str, dict[str, Dependency]]
@@ -13,9 +13,9 @@ GraphEdges = dict[str, dict[str, Dependency]]
 class Graph(ABC):
     def __init__(self, nodes: list[Node], input_schema: dict[str, type]):
         assert len(nodes) > 0, "Policy must have at least one node"
-        assert all(
-            isinstance(n, Node) for n in nodes
-        ), "All elements must be of type Node"
+        assert all(isinstance(n, Node) for n in nodes), (
+            "All elements must be of type Node"
+        )
         assert all(
             isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
         ), "Input schema must be a dictionary of str -> type"
@@ -39,7 +39,7 @@ class Graph(ABC):
         return self._flattened_nodes
 
     @property
-    def node_definitions(self) -> dict[str, VulkanNodeDefinition]:
+    def node_definitions(self) -> dict[str, NodeDefinition]:
         return self._node_definitions
 
     @property
@@ -95,7 +95,7 @@ def extract_node_definitions(nodes: list[Node]) -> dict:
     return {node.name: _to_dict(node.node_definition()) for node in nodes}
 
 
-def _to_dict(node: VulkanNodeDefinition):
+def _to_dict(node: NodeDefinition):
     node_ = node.__dict__.copy()
     if node.node_type == NodeType.COMPONENT.value:
         node_["metadata"]["nodes"] = {
