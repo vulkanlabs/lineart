@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Any, Callable
 
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
+from vulkan_public.spec.nodes.metadata import TerminateNodeMetadata
 
 
 class TerminateNode(Node):
@@ -65,10 +66,10 @@ class TerminateNode(Node):
             name=self.name,
             description=self.description,
             node_type=self.type.value,
-            dependencies=self.node_dependencies(),
-            metadata={
-                "return_status": self.return_status,
-            },
+            dependencies=self.dependencies,
+            metadata=TerminateNodeMetadata(
+                return_status=self.return_status,
+            ),
         )
 
     def with_callback(self, callback: callable) -> "TerminateNode":

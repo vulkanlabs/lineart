@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from inspect import getsource
 from typing import Any
 
 from vulkan_public.spec.dependency import Dependency
@@ -126,6 +125,8 @@ class Node(ABC):
         # TODO: here, we can enforce the typing of dependency specifications,
         # but this ends up making the API harder to use. We should consider
         # parsing the dependency specification from strings or tuples.
+        if not isinstance(self._dependencies, dict):
+            raise TypeError(f"Dependencies must be a dict, got: {dependencies}")
         assert all(isinstance(d, Dependency) for d in self._dependencies.values()), (
             "Dependencies must be of type Dependency"
         )

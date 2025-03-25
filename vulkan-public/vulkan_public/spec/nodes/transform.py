@@ -2,6 +2,7 @@ from inspect import getsource
 from typing import Any
 
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
+from vulkan_public.spec.nodes.metadata import TransformNodeMetadata
 
 
 class TransformNode(Node):
@@ -67,8 +68,8 @@ class TransformNode(Node):
             name=self.name,
             description=self.description,
             node_type=self.type.value,
-            dependencies=self.node_dependencies(),
-            metadata={
-                "source": getsource(self.func),
-            },
+            dependencies=self.dependencies,
+            metadata=TransformNodeMetadata(
+                source=getsource(self.func),
+            ),
         )

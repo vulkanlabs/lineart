@@ -16,7 +16,7 @@ def test_read_from_gcs():
     input_node = BeamInput(
         name=INPUT_NODE,
         schema={"tax_id": str, "score": int},
-        source="gs://vulkan-dev-beam-temp/input_data.csv",
+        data_path="gs://vulkan-dev-beam-temp/input_data.csv",
     )
 
     def _branch(data):
