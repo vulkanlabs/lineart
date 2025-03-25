@@ -5,6 +5,7 @@ from inspect import getsource
 from typing import Any, Callable
 
 from vulkan_public.spec.dependency import Dependency
+from vulkan_public.spec.user_code import UserCodeException, validate_user_code
 
 
 class NodeType(Enum):
@@ -73,9 +74,7 @@ class InputNodeMetadata(NodeMetadata):
         return ["schema"]
 
 
-@dataclass(
-    eq=True,
-)
+@dataclass()
 class VulkanNodeDefinition:
     "Internal representation of a node."
 
@@ -89,13 +88,13 @@ class VulkanNodeDefinition:
 
     def __post_init__(self):
         if self.metadata is not None:
-            assert isinstance(self.metadata, NodeMetadata), (
-                f"Metadata must be of type NodeMetadata, got {type(self.metadata)}"
-            )
+            assert isinstance(
+                self.metadata, NodeMetadata
+            ), f"Metadata must be of type NodeMetadata, got {type(self.metadata)}"
         if self.dependencies is not None:
-            assert all(isinstance(d, Dependency) for d in self.dependencies.values()), (
-                "Dependencies must be of type Dependency"
-            )
+            assert all(
+                isinstance(d, Dependency) for d in self.dependencies.values()
+            ), "Dependencies must be of type Dependency"
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "VulkanNodeDefinition":
@@ -178,9 +177,9 @@ class Node(ABC):
         # TODO: here, we can enforce the typing of dependency specifications,
         # but this ends up making the API harder to use. We should consider
         # parsing the dependency specification from strings or tuples.
-        assert all(isinstance(d, Dependency) for d in self._dependencies.values()), (
-            "Dependencies must be of type Dependency"
-        )
+        assert all(
+            isinstance(d, Dependency) for d in self._dependencies.values()
+        ), "Dependencies must be of type Dependency"
 
     @property
     def name(self) -> str:
@@ -492,8 +491,8 @@ class BranchNode(Node):
     def __init__(
         self,
         name: str,
-        func: callable,
-        outputs: list[str],
+        func: Callable | str,
+        choices: list[str],
         dependencies: dict[str, Any],
         description: str | None = None,
     ):
@@ -512,7 +511,7 @@ class BranchNode(Node):
             The function should receive the dependencies as arguments.
             All return values of the function should be strings matching one of
             the values in the `outputs` parameter.
-        outputs: list[str]
+        choices: list[str]
             The possible outputs of the function.
             Represents the possible branches of the node.
         dependencies: dict, optional
@@ -528,19 +527,51 @@ class BranchNode(Node):
             typ=NodeType.BRANCH,
             dependencies=dependencies,
         )
+        if callable(func):
+            self.func = func
+            self.user_code = getsource(func)
+        elif isinstance(func, str):
+            try:
+                fn_name, udf_code = validate_user_code(func)
+            except UserCodeException as e:
+                raise e
+            # FIXME: this is BAD and should NEVER see the light of day.
+            # It is here for quick validation only.
+            exec(udf_code)
+            self.user_code = func
+            udf_instance = locals()[fn_name]
+            self.func = udf_instance
+
+        else:
+            raise TypeError(
+                f"`func` should be a function or function declaration, got {type(func)}"
+            )
+
         self.func = func
-        self.outputs = outputs
+        self.choices = choices
 
     def node_definition(self) -> VulkanNodeDefinition:
         return VulkanNodeDefinition(
             name=self.name,
             description=self.description,
             node_type=self.type.value,
-            dependencies=self.node_dependencies(),
-            metadata={
-                "choices": self.outputs,
-                "source": getsource(self.func),
-            },
+            dependencies=self.dependencies,
+            metadata=BranchNodeMetadata(
+                choices=self.choices,
+                source=self.user_code,
+            ),
+        )
+
+    @classmethod
+    def from_dict(cls, spec: dict[str, Any]) -> "BranchNode":
+        definition = VulkanNodeDefinition.from_dict(spec)
+
+        return cls(
+            name=definition.name,
+            description=definition.description,
+            dependencies=definition.dependencies,
+            func=definition.metadata.source,
+            choices=definition.metadata.choices,
         )
 
 
@@ -580,15 +611,11 @@ class InputNode(Node):
         )
 
     @classmethod
-    def from_definition(cls, definition: VulkanNodeDefinition) -> "InputNode":
+    def from_dict(cls, spec: dict[str, Any]) -> "InputNode":
+        definition = VulkanNodeDefinition.from_dict(spec)
         return cls(
             # FIXME: shouldnt be using eval here
             schema={k: eval(t) for k, t in definition.metadata.schema.items()},
             name=definition.name,
             description=definition.description,
         )
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "InputNode":
-        definition = VulkanNodeDefinition.from_dict(data)
-        return cls.from_definition(definition)

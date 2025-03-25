@@ -1,8 +1,8 @@
-import os
 from enum import Enum
 from functools import partial
 
 import requests
+
 from vulkan_public.spec.component import ComponentInstance, ComponentInstanceConfig
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 from vulkan_public.spec.nodes import BranchNode, HTTPConnectionNode, TerminateNode
@@ -45,7 +45,7 @@ check_scr_ok = BranchNode(
     description="Checa se os dados do SCR foram retornados",
     dependencies={"scr_data": Dependency("scr_data")},
     func=has_scr_data,
-    outputs=["OK", "MISSING_DATA"],
+    choices=["OK", "MISSING_DATA"],
 )
 
 negado_sem_scr = TerminateNode(
@@ -85,7 +85,7 @@ decisao = BranchNode(
     description="Decide se o cliente é aprovado ou não",
     dependencies={"scr_score": Dependency(scr_model.config.name)},
     func=decision_scr_score,
-    outputs=["approved", "denied"],
+    choices=["approved", "denied"],
 )
 
 approved = TerminateNode(

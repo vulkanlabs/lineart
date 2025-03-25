@@ -1,7 +1,7 @@
 import pytest
 
 from vulkan_public.spec.dependency import INPUT_NODE
-from vulkan_public.spec.nodes import InputNode, NodeType
+from vulkan_public.spec.nodes import BranchNode, InputNode, NodeType
 
 
 @pytest.mark.parametrize(
@@ -22,6 +22,7 @@ from vulkan_public.spec.nodes import InputNode, NodeType
             {
                 "name": INPUT_NODE,
                 "node_type": NodeType.INPUT.value,
+                "description": "Optional node Description",
                 "metadata": {
                     "schema": {
                         "cpf": "str",
@@ -34,8 +35,37 @@ from vulkan_public.spec.nodes import InputNode, NodeType
         ),
     ],
 )
-def test_from_definition_input_node_(spec):
+def test_from_spec_input_node(spec):
     node = InputNode.from_dict(spec)
-    assert node.node_dependencies() == []
+    assert node.name == spec["name"]
+    assert node.type.value == spec["node_type"]
+    assert node.description == spec.get("description", None)
+    round_trip = node.node_definition().to_dict()
+    assert round_trip == spec
+
+
+@pytest.mark.parametrize(
+    ["spec"],
+    [
+        (
+            {
+                "name": "branch",
+                "node_type": NodeType.BRANCH.value,
+                "dependencies": {},  # TODO: This is a bit boring to add in tests
+                "metadata": {
+                    "choices": ["A", "B"],
+                    "source": """
+return 10**2
+""",
+                },
+            },
+        ),
+    ],
+)
+def test_from_spec_branch_node(spec):
+    node = BranchNode.from_dict(spec)
+    assert node.name == spec["name"]
+    assert node.type.value == spec["node_type"]
+    assert node.description == spec.get("description", None)
     round_trip = node.node_definition().to_dict()
     assert round_trip == spec

@@ -287,7 +287,7 @@ class BeamBranch(BranchNode, BeamLogicNode):
             name=name,
             description=description,
             func=func,
-            outputs=outputs,
+            choices=outputs,
             dependencies=dependencies,
         )
 
@@ -297,7 +297,7 @@ class BeamBranch(BranchNode, BeamLogicNode):
             name=node.name,
             description=node.description,
             func=node.func,
-            outputs=node.outputs,
+            outputs=node.choices,
             dependencies=node.dependencies,
         )
 

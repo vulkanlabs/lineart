@@ -25,7 +25,7 @@ branch = BranchNode(
     dependencies={
         "bureau": Dependency(data_source.name),
     },
-    outputs=["approved", "denied"],
+    choices=["approved", "denied"],
 )
 
 approved = TerminateNode(

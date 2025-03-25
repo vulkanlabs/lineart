@@ -109,7 +109,7 @@ def test_pipeline_from_policy():
     branch = BranchNode(
         name="branch",
         func=_branch,
-        outputs=["approved", "denied"],
+        choices=["approved", "denied"],
         dependencies={"data": Dependency(transform.name)},
     )
 

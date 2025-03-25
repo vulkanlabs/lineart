@@ -25,7 +25,7 @@ branch = BranchNode(
     dependencies={
         "inputs": Dependency(INPUT_NODE),
     },
-    outputs=["approved", "denied"],
+    choices=["approved", "denied"],
 )
 
 approved = TerminateNode(

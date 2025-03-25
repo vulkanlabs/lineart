@@ -67,7 +67,7 @@ branch_1 = BranchNode(
     name="branch_1",
     description="BranchNode data",
     dependencies={"scores": Dependency(process_data.name)},
-    outputs=["approved", "analysis", "denied"],
+    choices=["approved", "analysis", "denied"],
 )
 
 approved = TerminateNode(

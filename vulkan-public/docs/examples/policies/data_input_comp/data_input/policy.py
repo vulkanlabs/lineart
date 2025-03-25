@@ -2,10 +2,7 @@ from enum import Enum
 
 from vulkan_public.spec.component import ComponentInstance, ComponentInstanceConfig
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes import (
-    BranchNode,
-    TerminateNode,
-)
+from vulkan_public.spec.nodes import BranchNode, TerminateNode
 from vulkan_public.spec.policy import PolicyDefinition
 
 DATA_SERVER_URL = "http://testdata:5000"
@@ -45,7 +42,7 @@ branch_1 = BranchNode(
     name="branch_1",
     description="BranchNode data",
     dependencies={"scores": Dependency(vendor_data.config.name)},
-    outputs=["approved", "analysis", "denied"],
+    choices=["approved", "analysis", "denied"],
 )
 
 approved = TerminateNode(
