@@ -253,14 +253,12 @@ class BeamTransform(TransformNode, BeamLogicNode):
         func: callable,
         dependencies: dict[str, Dependency],
         description: str | None = None,
-        hidden: bool = False,
     ):
         super().__init__(
             name=name,
             description=description,
             func=func,
             dependencies=dependencies,
-            hidden=hidden,
         )
 
     @classmethod
@@ -270,7 +268,6 @@ class BeamTransform(TransformNode, BeamLogicNode):
             description=node.description,
             func=node.func,
             dependencies=node.dependencies,
-            hidden=node.hidden,
         )
 
 
@@ -279,7 +276,7 @@ class BeamBranch(BranchNode, BeamLogicNode):
         self,
         name: str,
         func: callable,
-        outputs: list[str],
+        choices: list[str],
         dependencies: dict[str, Dependency],
         description: str | None = None,
     ):
@@ -287,7 +284,7 @@ class BeamBranch(BranchNode, BeamLogicNode):
             name=name,
             description=description,
             func=func,
-            choices=outputs,
+            choices=choices,
             dependencies=dependencies,
         )
 
@@ -297,7 +294,7 @@ class BeamBranch(BranchNode, BeamLogicNode):
             name=node.name,
             description=node.description,
             func=node.func,
-            outputs=node.choices,
+            choices=node.choices,
             dependencies=node.dependencies,
         )
 

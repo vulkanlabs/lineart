@@ -64,7 +64,7 @@ class BeamPipelineBuilder:
         pipeline = beam.Pipeline(options=pipeline_options)
 
         # Create the input PCollection and the collections map
-        input_data = pipeline | "Read Input" >> ReadParquet(source_path=input_data_path)
+        input_data = pipeline | "Read Input" >> ReadParquet(data_path=input_data_path)
         collections = {INPUT_NODE: input_data}
 
         # Build the nodes into the pipeline
@@ -231,7 +231,7 @@ class __PipelineBuilder:
         elif node.type == NodeType.BRANCH:
             output = pcoll | f"Branch: {node.name}" >> node.op()
 
-            for output_name in node.outputs:
+            for output_name in node.choices:
                 branch_name = f"{node.name}.{output_name}"
                 filter_value = (
                     self.pipeline

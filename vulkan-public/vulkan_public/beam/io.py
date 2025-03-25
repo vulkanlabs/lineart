@@ -10,26 +10,26 @@ from apache_beam.dataframe.io import read_csv
 
 
 class ReadParquet(beam.PTransform):
-    def __init__(self, source_path: str):
-        self.source = source_path
+    def __init__(self, data_path: str):
+        self.data_path = data_path
 
     def expand(self, pcoll):
         return (
             pcoll
-            | "Read File" >> beam.io.ReadFromParquet(self.source)
+            | "Read File" >> beam.io.ReadFromParquet(self.data_path)
             | "Make Key" >> beam.Map(_make_element_key)
         )
 
 
 class ReadRemoteCSV(beam.PTransform):
-    def __init__(self, source: str, schema: dict[str, type] | None = None):
-        self.source = source
+    def __init__(self, data_path: str, schema: dict[str, type] | None = None):
+        self.data_path = data_path
         self.csv_parser = partial(parse_csv_line, schema)
 
     def expand(self, pcoll):
         return (
             pcoll
-            | "Read File" >> beam.io.ReadFromText(self.source, skip_header_lines=1)
+            | "Read File" >> beam.io.ReadFromText(self.data_path, skip_header_lines=1)
             | "Parse CSV" >> beam.Map(self.csv_parser)
             | "Make Key" >> beam.Map(_make_element_key)
         )
