@@ -21,17 +21,17 @@ class GraphDefinition:
     nodes: list[Node]
 
     def __post_init__(self):
-        self._validate_nodes(self.nodes)
+        self._validate_nodes()
 
-    def _validate_nodes(nodes: list[Node]):
-        for node in nodes:
+    def _validate_nodes(self):
+        for node in self.nodes:
             if not isinstance(node, Node):
                 raise ValueError("All elements must be of type `Node`")
 
             if node.name == INPUT_NODE:
                 raise ValueError(f"Node name `{INPUT_NODE}` is reserved")
 
-        names = [node.name for node in nodes]
+        names = [node.name for node in self.nodes]
         duplicates = set([name for name in names if names.count(name) > 1])
 
         if duplicates:

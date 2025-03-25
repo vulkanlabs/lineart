@@ -24,5 +24,4 @@ def test_input_node_name_is_reserved():
         _ = ComponentDefinition(
             nodes=[invalid_node],
             input_schema={},
-            output_schema={},
         )

@@ -45,10 +45,11 @@ class ComponentDefinition(GraphDefinition):
     config_variables: list[str] = field(default_factory=list)
 
     def __post_init__(self):
+        super().__post_init__()
         self.validate_nodes()
         nodes = {node.name: node.dependencies for node in self.nodes}
         self.validate_node_dependencies(nodes)
-    
+
     def validate_nodes(self):
         terminate_nodes = [
             node for node in self.nodes if node.type == NodeType.TERMINATE

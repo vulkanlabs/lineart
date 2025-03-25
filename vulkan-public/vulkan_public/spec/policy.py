@@ -62,6 +62,7 @@ class PolicyDefinition(GraphDefinition):
 
     def __post_init__(self):
         # TODO: Perform type checking with pydantic.
+        super().__post_init__()
         if self.output_callback is not None:
             if not callable(self.output_callback):
                 raise ValueError("Output callback must be a callable")
