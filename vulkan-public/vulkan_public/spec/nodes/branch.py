@@ -1,5 +1,5 @@
 from inspect import getsource
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
 from vulkan_public.spec.nodes.metadata import BranchNodeMetadata
@@ -63,6 +63,11 @@ class BranchNode(Node):
             typ=NodeType.BRANCH,
             dependencies=dependencies,
         )
+
+        if choices is None or len(choices) == 0:
+            raise ValueError("BranchNode must have at least one possible output")
+        self.choices = choices
+
         if callable(func):
             self.func = func
             self.user_code = getsource(func)
@@ -74,9 +79,6 @@ class BranchNode(Node):
             raise TypeError(
                 f"`func` should be a function or function declaration, got {type(func)}"
             )
-
-        self.func = func
-        self.choices = choices
 
     def node_definition(self) -> NodeDefinition:
         return NodeDefinition(
@@ -94,10 +96,14 @@ class BranchNode(Node):
     def from_dict(cls, spec: dict[str, Any]) -> "BranchNode":
         definition = NodeDefinition.from_dict(spec)
 
+        if definition.metadata is None:
+            raise ValueError(f"Metadata not set for node {definition.name}")
+
+        metadata = cast(BranchNodeMetadata, definition.metadata)
         return cls(
             name=definition.name,
             description=definition.description,
             dependencies=definition.dependencies,
-            func=definition.metadata.source,
-            choices=definition.metadata.choices,
+            func=metadata.source,
+            choices=metadata.choices,
         )

@@ -1,8 +1,9 @@
 from inspect import getsource
-from typing import Any
+from typing import Any, Callable, cast
 
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
 from vulkan_public.spec.nodes.metadata import TransformNodeMetadata
+from vulkan_public.spec.nodes.user_code import get_udf_instance
 
 
 class TransformNode(Node):
@@ -18,7 +19,7 @@ class TransformNode(Node):
     def __init__(
         self,
         name: str,
-        func: callable,
+        func: Callable | str,
         dependencies: dict[str, Any],
         description: str | None = None,
     ):
@@ -61,7 +62,17 @@ class TransformNode(Node):
             typ=NodeType.TRANSFORM,
             dependencies=dependencies,
         )
-        self.func = func
+        if callable(func):
+            self.func = func
+            self.user_code = getsource(func)
+        elif isinstance(func, str):
+            self.user_code = func
+            udf_instance = get_udf_instance(func)
+            self.func = udf_instance
+        else:
+            raise TypeError(
+                f"`func` should be a function or function declaration, got {type(func)}"
+            )
 
     def node_definition(self) -> NodeDefinition:
         return NodeDefinition(
@@ -70,6 +81,20 @@ class TransformNode(Node):
             node_type=self.type.value,
             dependencies=self.dependencies,
             metadata=TransformNodeMetadata(
-                source=getsource(self.func),
+                source=self.user_code,
             ),
+        )
+
+    @classmethod
+    def from_dict(cls, spec: dict[str, Any]) -> "TransformNode":
+        definition = NodeDefinition.from_dict(spec)
+        if definition.metadata is None:
+            raise ValueError(f"Metadata not set for node {definition.name}")
+
+        metadata = cast(TransformNodeMetadata, definition.metadata)
+        return cls(
+            name=definition.name,
+            description=definition.description,
+            dependencies=definition.dependencies,
+            func=metadata.source,
         )

@@ -4,6 +4,7 @@ import pytest
 
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 from vulkan_public.spec.nodes import BranchNode, InputNode, NodeType, TerminateNode
+from vulkan_public.spec.nodes.transform import TransformNode
 
 
 class ExampleReturnStatus(Enum):
@@ -64,6 +65,36 @@ TEST_TABLE = {
             },
             "metadata": {
                 "choices": ["A", "B"],
+                "source": """
+            import os
+            print(os.environ)
+            """,
+            },
+        },
+    ),
+    "Transform Node - Simple": (
+        TransformNode,
+        {
+            "name": "transform",
+            "node_type": NodeType.TRANSFORM.value,
+            "dependencies": {},
+            "metadata": {
+                "source": """
+            return 10**2
+            """,
+            },
+        },
+    ),
+    "Transform Node - With Import": (
+        TransformNode,
+        {
+            "name": "transform",
+            "node_type": NodeType.TRANSFORM.value,
+            "description": "Optional node Description",
+            "dependencies": {
+                "node_a": Dependency("node_a"),
+            },
+            "metadata": {
                 "source": """
             import os
             print(os.environ)
