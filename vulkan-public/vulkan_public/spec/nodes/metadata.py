@@ -18,6 +18,11 @@ class NodeMetadata(ABC):
             raise ValueError(f"Missing keys: {missing_keys}")
         return cls(**data)
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, NodeMetadata):
+            return False
+        return self.__dict__ == other.__dict__
+
 
 class InputNodeMetadata(NodeMetadata):
     def __init__(self, schema: dict[str, type]):

@@ -3,7 +3,7 @@ from typing import Any, Callable
 
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
 from vulkan_public.spec.nodes.metadata import BranchNodeMetadata
-from vulkan_public.spec.nodes.user_code import UserCodeException, validate_user_code
+from vulkan_public.spec.nodes.user_code import get_udf_instance
 
 
 class BranchNode(Node):
@@ -67,17 +67,9 @@ class BranchNode(Node):
             self.func = func
             self.user_code = getsource(func)
         elif isinstance(func, str):
-            try:
-                fn_name, udf_code = validate_user_code(func)
-            except UserCodeException as e:
-                raise e
-            # FIXME: this is BAD and should NEVER see the light of day.
-            # It is here for quick validation only.
-            exec(udf_code)
             self.user_code = func
-            udf_instance = locals()[fn_name]
+            udf_instance = get_udf_instance(func)
             self.func = udf_instance
-
         else:
             raise TypeError(
                 f"`func` should be a function or function declaration, got {type(func)}"

@@ -22,7 +22,7 @@ class NodeType(Enum):
     DATA_INPUT = "DATA_INPUT"
 
 
-@dataclass
+@dataclass(frozen=True)
 class NodeDefinition:
     "Internal representation of a node."
 
@@ -36,13 +36,13 @@ class NodeDefinition:
 
     def __post_init__(self):
         if self.metadata is not None:
-            assert isinstance(self.metadata, NodeMetadata), (
-                f"Metadata must be of type NodeMetadata, got {type(self.metadata)}"
-            )
+            assert isinstance(
+                self.metadata, NodeMetadata
+            ), f"Metadata must be of type NodeMetadata, got {type(self.metadata)}"
         if self.dependencies is not None:
-            assert all(isinstance(d, Dependency) for d in self.dependencies.values()), (
-                "Dependencies must be of type Dependency"
-            )
+            assert all(
+                isinstance(d, Dependency) for d in self.dependencies.values()
+            ), "Dependencies must be of type Dependency"
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "NodeDefinition":
@@ -73,7 +73,7 @@ class NodeDefinition:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        data = {
+        data: dict[str, Any] = {
             "name": self.name,
             "node_type": self.node_type,
         }
@@ -127,9 +127,9 @@ class Node(ABC):
         # parsing the dependency specification from strings or tuples.
         if not isinstance(self._dependencies, dict):
             raise TypeError(f"Dependencies must be a dict, got: {dependencies}")
-        assert all(isinstance(d, Dependency) for d in self._dependencies.values()), (
-            "Dependencies must be of type Dependency"
-        )
+        assert all(
+            isinstance(d, Dependency) for d in self._dependencies.values()
+        ), "Dependencies must be of type Dependency"
 
     @property
     def name(self) -> str:
@@ -145,3 +145,11 @@ class Node(ABC):
 
     def node_dependencies(self) -> list[Dependency]:
         return list(self.dependencies.values())
+
+    def to_dict(self) -> dict[str, Any]:
+        return self.node_definition().to_dict()
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Node):
+            return False
+        return self.node_definition() == other.node_definition()

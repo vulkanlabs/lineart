@@ -1,71 +1,115 @@
+from enum import Enum
+
 import pytest
 
-from vulkan_public.spec.dependency import INPUT_NODE
-from vulkan_public.spec.nodes import BranchNode, InputNode, NodeType
+from vulkan_public.spec.dependency import INPUT_NODE, Dependency
+from vulkan_public.spec.nodes import BranchNode, InputNode, NodeType, TerminateNode
+
+
+class ExampleReturnStatus(Enum):
+    SUCCESS = "SUCCESS"
+
+
+TEST_TABLE = {
+    "Input Node - Simple": (
+        InputNode,
+        {
+            "name": INPUT_NODE,
+            "node_type": NodeType.INPUT.value,
+            "metadata": {
+                "schema": {
+                    "cpf": "str",
+                },
+            },
+        },
+    ),
+    "Input Node - Complete": (
+        InputNode,
+        {
+            "name": INPUT_NODE,
+            "node_type": NodeType.INPUT.value,
+            "description": "Optional node Description",
+            "metadata": {
+                "schema": {
+                    "cpf": "str",
+                    "score": "int",
+                    "valid": "bool",
+                    "test": "float",
+                },
+            },
+        },
+    ),
+    "Branch Node - Simple": (
+        BranchNode,
+        {
+            "name": "branch",
+            "node_type": NodeType.BRANCH.value,
+            "dependencies": {},
+            "metadata": {
+                "choices": ["A", "B"],
+                "source": """
+            return 10**2
+            """,
+            },
+        },
+    ),
+    "Branch Node - With Import": (
+        BranchNode,
+        {
+            "name": "branch",
+            "node_type": NodeType.BRANCH.value,
+            "description": "Optional node Description",
+            "dependencies": {
+                "node_a": Dependency("node_a"),
+            },
+            "metadata": {
+                "choices": ["A", "B"],
+                "source": """
+            import os
+            print(os.environ)
+            """,
+            },
+        },
+    ),
+    "Terminate Node - Simple": (
+        TerminateNode,
+        {
+            "name": "terminate_a",
+            "node_type": NodeType.TERMINATE.value,
+            "metadata": {
+                "return_status": "SUCCESS",
+            },
+            "dependencies": {
+                "node_a": Dependency("node_a"),
+            },
+        },
+    ),
+    "Terminate Node - With Enum": (
+        TerminateNode,
+        {
+            "name": "terminate_b",
+            "node_type": NodeType.TERMINATE.value,
+            "description": "Optional node Description",
+            "metadata": {
+                "return_status": ExampleReturnStatus.SUCCESS,
+            },
+            "dependencies": {
+                "node_a": Dependency("node_a"),
+            },
+        },
+    ),
+}
 
 
 @pytest.mark.parametrize(
-    ["spec"],
-    [
-        (
-            {
-                "name": INPUT_NODE,
-                "node_type": NodeType.INPUT.value,
-                "metadata": {
-                    "schema": {
-                        "cpf": "str",
-                    },
-                },
-            },
-        ),
-        (
-            {
-                "name": INPUT_NODE,
-                "node_type": NodeType.INPUT.value,
-                "description": "Optional node Description",
-                "metadata": {
-                    "schema": {
-                        "cpf": "str",
-                        "score": "int",
-                        "valid": "bool",
-                        "test": "float",
-                    },
-                },
-            },
-        ),
-    ],
+    ["node_cls", "spec"],
+    [(cls, spec) for cls, spec in TEST_TABLE.values()],
+    ids=list(TEST_TABLE.keys()),
 )
-def test_from_spec_input_node(spec):
-    node = InputNode.from_dict(spec)
+def test_node_from_spec(node_cls, spec):
+    node = node_cls.from_dict(spec)
     assert node.name == spec["name"]
     assert node.type.value == spec["node_type"]
     assert node.description == spec.get("description", None)
-    round_trip = node.node_definition().to_dict()
-    assert round_trip == spec
-
-
-@pytest.mark.parametrize(
-    ["spec"],
-    [
-        (
-            {
-                "name": "branch",
-                "node_type": NodeType.BRANCH.value,
-                "dependencies": {},  # TODO: This is a bit boring to add in tests
-                "metadata": {
-                    "choices": ["A", "B"],
-                    "source": """
-return 10**2
-""",
-                },
-            },
-        ),
-    ],
-)
-def test_from_spec_branch_node(spec):
-    node = BranchNode.from_dict(spec)
-    assert node.name == spec["name"]
-    assert node.type.value == spec["node_type"]
-    assert node.description == spec.get("description", None)
-    round_trip = node.node_definition().to_dict()
-    assert round_trip == spec
+    round_trip = node_cls.from_dict(node.to_dict())
+    assert round_trip == node

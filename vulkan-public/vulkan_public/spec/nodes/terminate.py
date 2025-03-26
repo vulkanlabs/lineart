@@ -1,6 +1,7 @@
 from enum import Enum
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
+from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
 from vulkan_public.spec.nodes.metadata import TerminateNodeMetadata
 
@@ -25,7 +26,7 @@ class TerminateNode(Node):
         self,
         name: str,
         return_status: Enum | str,
-        dependencies: dict[str, Any],
+        dependencies: dict[str, Dependency],
         description: str | None = None,
         callback: Callable | None = None,
     ):
@@ -52,7 +53,8 @@ class TerminateNode(Node):
         self.return_status = (
             return_status.value if isinstance(return_status, Enum) else return_status
         )
-        assert dependencies is not None, f"Dependencies not set for TERMINATE op {name}"
+        if dependencies is None or len(dependencies) == 0:
+            raise ValueError(f"Dependencies not set for TERMINATE op {name}")
         super().__init__(
             name=name,
             description=description,
@@ -72,6 +74,20 @@ class TerminateNode(Node):
             ),
         )
 
-    def with_callback(self, callback: callable) -> "TerminateNode":
+    def with_callback(self, callback: Callable) -> "TerminateNode":
         self.callback = callback
         return self
+
+    @classmethod
+    def from_dict(cls, spec: dict[str, Any]) -> "TerminateNode":
+        definition = NodeDefinition.from_dict(spec)
+        if definition.metadata is None:
+            raise ValueError(f"Metadata not set for TERMINATE node {definition.name}")
+
+        metadata = cast(TerminateNodeMetadata, definition.metadata)
+        return cls(
+            name=definition.name,
+            description=definition.description,
+            dependencies=definition.dependencies,
+            return_status=metadata.return_status,
+        )

@@ -1,9 +1,22 @@
 import ast
+from typing import Callable
 
 from jinja2 import Template
 
 
-def validate_user_code(user_code: str):
+def get_udf_instance(user_code: str) -> Callable:
+    try:
+        fn_name, udf_code = _validate_user_code(user_code)
+    except UserCodeException as e:
+        raise e
+    # FIXME: this is BAD and should NEVER see the light of day.
+    # It is here for quick validation only.
+    exec(udf_code)
+    udf_instance = locals()[fn_name]
+    return udf_instance
+
+
+def _validate_user_code(user_code: str):
     """Validate, parse and compile custom user code.
 
     WARNING: this function is *obviously* sensitive. It should only ever
