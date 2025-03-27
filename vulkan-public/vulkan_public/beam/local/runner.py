@@ -3,7 +3,6 @@ import os
 from abc import ABC, abstractmethod
 from time import time
 
-import graphviz
 import pyarrow.parquet as pq
 from apache_beam.options.pipeline_options import PipelineOptions
 
@@ -121,19 +120,6 @@ class PolicyRunner:
         pipeline.run()
 
         return BatchRunResult(output_path)
-
-    def graph(self):
-        dot = graphviz.Digraph()
-
-        for node in self.policy.flattened_nodes:
-            dot.node(node.name)
-
-        for node, deps in self.policy.flattened_dependencies.items():
-            if deps:
-                for _, dep in deps.items():
-                    dot.edge(dep.node, node)
-
-        return dot
 
 
 def get_pipeline_builder(
