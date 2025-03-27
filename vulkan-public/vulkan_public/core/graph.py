@@ -1,5 +1,6 @@
 from abc import ABC
 from copy import deepcopy
+
 from graphlib import TopologicalSorter
 
 from vulkan_public.spec.dependency import Dependency
@@ -12,10 +13,6 @@ GraphEdges = dict[str, dict[str, Dependency]]
 
 class Graph(ABC):
     def __init__(self, nodes: list[Node], input_schema: dict[str, type]):
-        assert len(nodes) > 0, "Policy must have at least one node"
-        assert all(isinstance(n, Node) for n in nodes), (
-            "All elements must be of type Node"
-        )
         assert all(
             isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
         ), "Input schema must be a dictionary of str -> type"

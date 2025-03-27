@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -100,6 +101,7 @@ class Node(ABC):
         typ: NodeType,
         description: str | None = None,
         dependencies: dict[str, Dependency] | None = None,
+        hierarchy: list[str] | None = None,
     ):
         """A node. This is an abstract class and should not be instantiated directly.
 
@@ -127,9 +129,14 @@ class Node(ABC):
         # parsing the dependency specification from strings or tuples.
         if not isinstance(self._dependencies, dict):
             raise TypeError(f"Dependencies must be a dict, got: {dependencies}")
-        assert all(
-            isinstance(d, Dependency) for d in self._dependencies.values()
-        ), "Dependencies must be of type Dependency"
+        if not all(isinstance(d, Dependency) for d in self._dependencies.values()):
+            raise TypeError("Dependencies must be of type Dependency")
+
+        self._hierarchy = hierarchy
+
+    @abstractmethod
+    def node_definition(self) -> NodeDefinition:
+        pass
 
     @property
     def name(self) -> str:
@@ -139,9 +146,26 @@ class Node(ABC):
     def dependencies(self) -> dict[str, Dependency]:
         return self._dependencies
 
-    @abstractmethod
-    def node_definition(self) -> NodeDefinition:
-        pass
+    @property
+    def hierarchy(self) -> list[str] | None:
+        return self._hierarchy
+
+    def add_hierarchy_level(self, level: str) -> "Node":
+        hierarchy = self.hierarchy if self.hierarchy is not None else []
+        hierarchy = [*hierarchy, level]
+
+        n = deepcopy(self)
+        n._hierarchy = hierarchy
+        for dep in n.dependencies.values():
+            dep.hierarchy = hierarchy
+
+        return n
+
+    @property
+    def id(self) -> str:
+        if self._hierarchy is None:
+            return self.name
+        return "-".join(self._hierarchy) + "." + self._name
 
     def node_dependencies(self) -> list[Dependency]:
         return list(self.dependencies.values())

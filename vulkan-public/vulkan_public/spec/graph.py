@@ -1,7 +1,11 @@
 from dataclasses import dataclass
 
+import graphviz
+import networkx as nx
+from graphlib import TopologicalSorter
+
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes.base import Node
+from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
 
 Dependencies = dict[str, Dependency]
 """Map of a node's input variables to dependencies on other nodes' outputs."""
@@ -21,21 +25,44 @@ class GraphDefinition:
     nodes: list[Node]
 
     def __post_init__(self):
+        if len(self.nodes) == 0:
+            raise ValueError("Policy must have at least one node")
+        if not all(isinstance(n, Node) for n in self.nodes):
+            msg = f"All elements must be of type Node, got {self.nodes}"
+            raise ValueError(msg)
+
         self._validate_nodes()
+        self._graph = _digraph_from_nodes(self.nodes)
+        valid, errors = self._validate_graph()
+        self._valid = valid
+        self._errors = errors
 
-    def _validate_nodes(self):
-        for node in self.nodes:
-            if not isinstance(node, Node):
-                raise ValueError("All elements must be of type `Node`")
+        self._node_definitions = {n.name: n.node_definition() for n in self.nodes}
+        self._dependency_definitions = {
+            n.name: n.node_dependencies() for n in self.nodes
+        }
 
-            if node.name == INPUT_NODE:
-                raise ValueError(f"Node name `{INPUT_NODE}` is reserved")
+    @property
+    def node_definitions(self) -> dict[str, NodeDefinition]:
+        return self._node_definitions
 
-        names = [node.name for node in self.nodes]
-        duplicates = set([name for name in names if names.count(name) > 1])
+    @property
+    def dependency_definitions(self) -> dict[str, list[Dependency]]:
+        return self._dependency_definitions
 
-        if duplicates:
-            raise ValueError(f"Duplicate node names found: {duplicates}")
+    @property
+    def valid(self) -> bool:
+        return self._valid
+
+    @property
+    def errors(self) -> list[str]:
+        return self._errors
+
+    @property
+    def leaves(self) -> dict[str, Node]:
+        return {
+            n: self._graph.nodes[n]["node"] for n, d in self._graph.out_degree if d == 0
+        }
 
     @staticmethod
     def validate_node_dependencies(node_dependencies: NodeDependencies):
@@ -54,3 +81,112 @@ class GraphDefinition:
                         "that is not in the graph"
                     )
                     raise ValueError(msg)
+
+    def show(self):
+        return nx_to_graphviz(self._graph)
+
+    def _validate_graph(self) -> tuple[bool, list[str]]:
+        errors = []
+        if not nx.is_directed_acyclic_graph(self._graph):
+            errors.append("Policy graph contains cycles")
+
+        terminate_nodes = [
+            node for node in self.nodes if node.type == NodeType.TERMINATE
+        ]
+        if len(terminate_nodes) == 0:
+            errors.append("No terminate node found in policy.")
+
+        leaves = {
+            name: leaf.type == NodeType.TERMINATE for name, leaf in self.leaves.items()
+        }
+        if not all(leaves.values()):
+            msg = f"Policy leaves must be {NodeType.TERMINATE} nodes: {leaves}"
+            errors.append(msg)
+
+        return (len(errors) == 0), errors
+
+    def _validate_nodes(self):
+        for node in self.nodes:
+            if not isinstance(node, Node):
+                raise ValueError("All elements must be of type `Node`")
+
+        ids = [node.id for node in self.nodes]
+        duplicates = set([node_id for node_id in ids if ids.count(node_id) > 1])
+
+        if duplicates:
+            raise ValueError(f"Duplicate node names found: {duplicates}")
+
+
+def nx_to_graphviz(G, prog="dot"):
+    """
+    Convert a NetworkX DiGraph to a Graphviz visualization
+    Parameters:
+    - G: NetworkX DiGraph
+    - prog: Graphviz layout program ('dot', 'neato', 'fdp', 'sfdp', 'twopi', 'circo')
+    Returns:
+    - Graphviz object
+    """
+    # Create a new Graphviz Digraph
+    dot = graphviz.Digraph(engine=prog)
+
+    # Add nodes
+    for node in G.nodes():
+        # Get node attributes if any
+        attrs = G.nodes[node]
+        # Convert all attribute values to strings
+        attrs = {k: str(v) for k, v in attrs.items()}
+        dot.node(str(node), **attrs)
+
+    # Add edges
+    for u, v in G.edges():
+        # Get edge attributes if any
+        attrs = G.edges[u, v]
+        # Convert all attribute values to strings
+        attrs = {k: str(v) for k, v in attrs.items()}
+        dot.edge(str(u), str(v), **attrs)
+
+    return dot
+
+
+def _digraph_from_nodes(nodes: list[Node]) -> nx.DiGraph:
+    g = nx.DiGraph()
+    g.add_nodes_from([(n.id, {"node": n}) for n in nodes])
+
+    edges: list[tuple[str, str, dict]] = []
+    for node in nodes:
+        for dep_name, dep_node in node.dependencies.items():
+            properties = {
+                "dependency_name": dep_name,
+                "source_node_name": dep_node.node,
+                "source_node_output": dep_node.output,
+                "source_node_key": dep_node.key,
+                "source_node_hierarchy": dep_node.hierarchy,
+            }
+            e = (dep_node.id, node.id, properties)
+            edges.append(e)
+
+    g.add_edges_from(edges)
+    return g
+
+
+def extract_node_definitions(nodes: list[Node]) -> dict:
+    return {node.name: node.to_dict() for node in nodes}
+
+
+GraphNodes = list[Node]
+GraphEdges = dict[str, dict[str, Dependency]]
+"""Mapping of node names to their dependencies"""
+
+
+def sort_nodes(nodes: GraphNodes, edges: GraphEdges) -> GraphNodes:
+    """Sort nodes topologically based on their dependencies."""
+    node_map = {node.id: node for node in nodes}
+    graph = {
+        _id: [dep.id for dep in dependencies.values()]
+        for _id, dependencies in edges.items()
+    }
+    sorter = TopologicalSorter(graph)
+
+    # Input nodes may not be included in the nodes list, but will be
+    # referenced as dependencies in the edges list.
+    return [node_map[_id] for _id in sorter.static_order() if _id in nodes]

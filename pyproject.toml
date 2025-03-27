@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "google-cloud-aiplatform>=1.85.0",
+    "networkx>=3.4.2",
     "vulkan",
     "vulkan-public",
     "vulkan-server",

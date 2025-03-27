@@ -80,6 +80,10 @@ class BranchNode(Node):
                 f"`func` should be a function or function declaration, got {type(func)}"
             )
 
+        # TODO: we can likely use the AST to check if the given function
+        # returns a string, and if it has the correct outputs, ie covers
+        # all possible choices.
+
     def node_definition(self) -> NodeDefinition:
         return NodeDefinition(
             name=self.name,
