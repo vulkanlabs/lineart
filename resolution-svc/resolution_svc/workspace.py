@@ -61,11 +61,6 @@ class VulkanWorkspaceManager:
     def create_venv(self) -> str:
         return _create_venv_for_workspace(self.venv_path, self.workspace_path)
 
-    def install_components(self, required_components: list[str]):
-        _install_components(
-            self.workspace_name, self.components_path, required_components
-        )
-
     def get_resolved_policy_settings(self):
         return _get_resolved_policy_settings(
             self.code_location, self.workspace_name, self.components_path
@@ -74,31 +69,6 @@ class VulkanWorkspaceManager:
     def delete_resources(self):
         rmtree(self.workspace_path)
         rmtree(f"{self.config.venvs_path}/{self.workspace_name}")
-
-
-class VulkanComponentManager:
-    def __init__(
-        self,
-        project_id: str,
-        component_alias: str,
-        config: VulkanConfig,
-    ) -> None:
-        self.project_id = project_id
-        self.component_alias = component_alias
-        self.config = config
-
-    @property
-    def components_path(self) -> str:
-        return f"{self.config.home}/components/{self.project_id}"
-
-    def unpack_component(self, repository: bytes) -> str:
-        return unpack_workspace(self.components_path, self.component_alias, repository)
-
-    def load_component_definition(self):
-        return _load_component_definition(self.components_path, self.component_alias)
-
-    def delete_component(self):
-        rmtree(f"{self.components_path}/{self.component_alias}")
 
 
 def _create_venv_for_workspace(venv_path, workspace_path):
@@ -159,8 +129,6 @@ def _get_resolved_policy_settings(
             f"{SCRIPTS_PATH}/get_resolved_policy_settings.py",
             "--module_name",
             code_location.module_name,
-            "--components_base_dir",
-            components_base_dir,
             "--output_file",
             tmp_path,
         ],
@@ -176,49 +144,6 @@ def _get_resolved_policy_settings(
         raise Exception(msg)
 
     return _load_and_remove(tmp_path)
-
-
-def _load_component_definition(components_path, component_alias):
-    tmp_path = f"/tmp/{component_alias}-{str(time())}.json"
-    completed_process = subprocess.run(
-        [
-            "bash",
-            f"{SCRIPTS_PATH}/load_component_definition.sh",
-            components_path,
-            component_alias,
-            tmp_path,
-        ],
-        capture_output=True,
-    )
-    exit_status = completed_process.returncode
-    if exit_status == DefinitionNotFoundException().exit_status:
-        raise DefinitionNotFoundException("Failed to load the ComponentDefinition")
-    if exit_status == ConflictingDefinitionsError().exit_status:
-        raise ConflictingDefinitionsError("Found multiple ComponentDefinitions")
-    if exit_status == InvalidDefinitionError().exit_status:
-        raise InvalidDefinitionError("ComponentDefinition is invalid")
-
-    if exit_status != 0 or not os.path.exists(tmp_path):
-        msg = f"Failed to load the ComponentDefinition: {completed_process.stderr}"
-        raise Exception(msg)
-
-    return _load_and_remove(tmp_path)
-
-
-def _install_components(workspace_name, components_base_dir, required_components):
-    for component_alias in required_components:
-        component_path = os.path.join(components_base_dir, component_alias)
-        completed_process = subprocess.run(
-            [
-                "bash",
-                f"{SCRIPTS_PATH}/install_component.sh",
-                workspace_name,
-                component_path,
-            ],
-            capture_output=True,
-        )
-        if completed_process.returncode != 0:
-            raise Exception(f"Failed to install component: {component_alias}")
 
 
 def _load_and_remove(file_path) -> dict:
