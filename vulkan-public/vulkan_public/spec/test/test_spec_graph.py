@@ -18,3 +18,8 @@ def test_input_node_name_is_reserved():
             nodes=[invalid_node],
             input_schema={},
         )
+
+
+@pytest.fail("Test not implemented")
+def test_sort_nodes():
+    pass

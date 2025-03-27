@@ -15,10 +15,10 @@ from vulkan_public.beam.nodes import (
     BeamNode,
     to_beam_node,
 )
-from vulkan_public.core.graph import GraphEdges, GraphNodes, sort_nodes
 from vulkan_public.core.policy import Policy
 from vulkan_public.schemas import DataSourceSpec
 from vulkan_public.spec.dependency import INPUT_NODE
+from vulkan_public.spec.graph import GraphEdges, GraphNodes, sort_nodes
 from vulkan_public.spec.nodes.base import NodeType
 
 LOCAL_RESULTS_FILE_NAME = "output.json"
@@ -32,8 +32,8 @@ class BeamPipelineBuilder:
         data_sources: dict[str, DataSourceSpec] | None,
         config_variables: dict[str, str],
     ):
-        self.nodes: GraphNodes = policy.flattened_nodes
-        self.edges: GraphEdges = policy.flattened_dependencies
+        self.nodes: GraphNodes = policy.nodes
+        self.edges: GraphEdges = policy.edges
         self._validate_nodes()
 
         self.output_path = output_path
@@ -204,6 +204,7 @@ class __PipelineBuilder:
             for node in sorted_nodes
             if node.type == NodeType.TERMINATE
         ]
+        print(sorted_nodes, "livessss", leaves)
         statuses = leaves | "Join Terminate Nodes" >> beam.Flatten()
         result = {
             INPUT_NODE: self.collections[INPUT_NODE],
@@ -216,17 +217,26 @@ class __PipelineBuilder:
         if not node.dependencies:
             return self.pipeline
 
-        dependencies = list(node.dependencies.values())
-        if len(dependencies) == 1:
-            return self.collections[str(dependencies[0])]
+        dependency_definitions = list(node.dependencies.values())
+        if len(dependency_definitions) == 1:
+            return self.collections[str(dependency_definitions[0])]
 
-        deps = {str(d): self.collections[str(d)] for d in dependencies}
+        deps = {str(d): self.collections[str(d)] for d in dependency_definitions}
         return deps | f"Join Deps: {node.name}" >> beam.CoGroupByKey()
 
     def __build_step(self, pcoll: PCollection, node: BeamNode) -> None:
         if node.type == NodeType.TRANSFORM:
             output = pcoll | f"Transform: {node.name}" >> node.op()
             self.collections[node.name] = output
+
+        elif node.type == NodeType.TERMINATE:
+            output = pcoll | f"Terminate: {node.name}" >> node.op()
+            self.collections[node.name] = output
+
+        elif node.type == NodeType.DATA_INPUT:
+            output = pcoll | f"Data Input: {node.name}" >> node.op()
+            self.collections[node.name] = output.data
+            self.metadata[node.name] = output.metadata
 
         elif node.type == NodeType.BRANCH:
             output = pcoll | f"Branch: {node.name}" >> node.op()
@@ -246,15 +256,6 @@ class __PipelineBuilder:
                         v=AsSingleton(filter_value),
                     )
                 )
-
-        elif node.type == NodeType.TERMINATE:
-            output = pcoll | f"Terminate: {node.name}" >> node.op()
-            self.collections[node.name] = output
-
-        elif node.type == NodeType.DATA_INPUT:
-            output = pcoll | f"Data Input: {node.name}" >> node.op()
-            self.collections[node.name] = output.data
-            self.metadata[node.name] = output.metadata
 
         else:
             raise NotImplementedError(f"Node type: {node.type.value}")

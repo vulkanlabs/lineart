@@ -17,6 +17,7 @@ dev-dependencies = [
     "questionary>=2.0.1",
     "pre-commit>=4",
     "ruff>=0.9.6",
+    "jupyterlab>=4.3.6",
 ]
 
 [tool.uv.workspace]

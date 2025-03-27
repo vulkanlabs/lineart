@@ -7,6 +7,9 @@ import networkx as nx
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
 
+GraphNodes = list[Node]
+GraphEdges = dict[str, dict[str, Dependency]]
+"""Mapping of node names to their dependencies"""
 Dependencies = dict[str, Dependency]
 """Map of a node's input variables to dependencies on other nodes' outputs."""
 
@@ -20,7 +23,7 @@ class GraphDefinition:
     Should not be used directly.
     """
 
-    nodes: list[Node]
+    nodes: GraphNodes
 
     def __post_init__(self):
         if len(self.nodes) == 0:
@@ -37,9 +40,11 @@ class GraphDefinition:
         self._errors = errors
 
         self._node_definitions = {n.name: n.node_definition() for n in self.nodes}
-        self._dependency_definitions = {
-            n.name: n.node_dependencies() for n in self.nodes
-        }
+        self._dependency_definitions = {n.name: n.dependencies for n in self.nodes}
+
+    @property
+    def edges(self) -> GraphEdges:
+        return self._dependency_definitions
 
     @property
     def node_definitions(self) -> dict[str, NodeDefinition]:
@@ -172,11 +177,6 @@ def extract_node_definitions(nodes: list[Node]) -> dict:
     return {node.name: node.to_dict() for node in nodes}
 
 
-GraphNodes = list[Node]
-GraphEdges = dict[str, dict[str, Dependency]]
-"""Mapping of node names to their dependencies"""
-
-
 def sort_nodes(nodes: GraphNodes, edges: GraphEdges) -> GraphNodes:
     """Sort nodes topologically based on their dependencies."""
     node_map = {node.id: node for node in nodes}
@@ -188,4 +188,4 @@ def sort_nodes(nodes: GraphNodes, edges: GraphEdges) -> GraphNodes:
 
     # Input nodes may not be included in the nodes list, but will be
     # referenced as dependencies in the edges list.
-    return [node_map[_id] for _id in sorter.static_order() if _id in nodes]
+    return [node_map[_id] for _id in sorter.static_order() if _id in node_map]
