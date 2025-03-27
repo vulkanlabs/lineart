@@ -1,1 +1,1 @@
-from . import component, dependency, nodes, policy
+from . import dependency, nodes, policy

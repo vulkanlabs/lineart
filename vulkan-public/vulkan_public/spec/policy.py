@@ -1,10 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Callable
 
-from vulkan_public.spec.component import ComponentInstance
 from vulkan_public.spec.dependency import INPUT_NODE
 from vulkan_public.spec.graph import GraphDefinition
-from vulkan_public.spec.nodes.base import Node, NodeType
+from vulkan_public.spec.nodes.base import Node
 
 
 @dataclass
@@ -42,11 +41,6 @@ class PolicyDefinition(GraphDefinition):
     output_callback : Callable, optional
         A callback that is called when the policy finishes execution.
         The callback receives the output of the policy as input.
-    components : list[ComponentInstance], optional
-        The components used in the policy.
-        Components are reusable blocks of code that can be used in multiple
-        policies. They are defined using a `ComponentDefinition`, and can be
-        instantiated multiple times with different configurations.
     config_variables : list[str], optional
         The configuration variables that are used to parameterize policy.
         They provide a way to customize the behavior of the policy without
@@ -57,11 +51,9 @@ class PolicyDefinition(GraphDefinition):
     nodes: list[Node]
     input_schema: dict[str, type]
     output_callback: Callable | None = None
-    components: list[ComponentInstance] = field(default_factory=list)
     config_variables: list[str] = field(default_factory=list)
 
     def __post_init__(self):
-        # TODO: Perform type checking with pydantic.
         super().__post_init__()
         if self.output_callback is not None:
             if not callable(self.output_callback):
@@ -73,28 +65,6 @@ class PolicyDefinition(GraphDefinition):
             ):
                 raise ValueError("config_variables must be a list of strings")
 
-        self.validate_nodes()
-
-        nodes = {node.name: node.dependencies for node in self.nodes}
-        nodes.update({c.config.name: c.config.dependencies for c in self.components})
-        self.validate_node_dependencies(nodes)
-
-    def validate_nodes(self):
-        # TODO: we should assert that all leaves are terminate nodes
-        terminate_nodes = [
-            node for node in self.nodes if node.type == NodeType.TERMINATE
-        ]
-        if len(terminate_nodes) == 0:
-            raise ValueError("No terminate node found in policy.")
-
-        nodes = {node.name: node for node in self.nodes}
-        components = {c.config.name: c.config for c in self.components}
         for node in self.nodes:
-            for dependency in node.dependencies.values():
-                if dependency.node in components or dependency.node == INPUT_NODE:
-                    continue
-
-                if nodes[dependency.node].type == NodeType.TERMINATE:
-                    raise ValueError(
-                        f"Node {node.name} depends on terminate node {dependency}"
-                    )
+            if node.name == INPUT_NODE:
+                raise ValueError(f"Node name`{INPUT_NODE}` is reserved")

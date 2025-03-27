@@ -1,6 +1,5 @@
 import pytest
 
-from vulkan_public.spec.component import ComponentDefinition
 from vulkan_public.spec.dependency import INPUT_NODE
 from vulkan_public.spec.nodes import TransformNode
 from vulkan_public.spec.policy import PolicyDefinition
@@ -16,12 +15,6 @@ def test_input_node_name_is_reserved():
 
     with pytest.raises(ValueError, match=f"`{INPUT_NODE}` is reserved"):
         _ = PolicyDefinition(
-            nodes=[invalid_node],
-            input_schema={},
-        )
-
-    with pytest.raises(ValueError, match=f"`{INPUT_NODE}` is reserved"):
-        _ = ComponentDefinition(
             nodes=[invalid_node],
             input_schema={},
         )

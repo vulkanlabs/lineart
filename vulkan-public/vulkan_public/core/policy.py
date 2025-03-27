@@ -18,9 +18,10 @@ class Policy(Graph):
             assert callable(output_callback), "Output callback must be a callable"
             nodes = self._with_output_callback(nodes)
 
-        assert all(
+        if not all(
             isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
-        ), "Input schema must be a dictionary of str -> type"
+        ):
+            raise TypeError("Input schema must be a dictionary of str -> type")
 
         all_nodes = [_make_input_node(input_schema), *nodes]
 
@@ -41,7 +42,6 @@ class Policy(Graph):
             nodes=definition.nodes,
             input_schema=definition.input_schema,
             output_callback=definition.output_callback,
-            components=definition.components,
         )
 
 

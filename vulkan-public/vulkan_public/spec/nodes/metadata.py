@@ -59,3 +59,12 @@ class TerminateNodeMetadata(NodeMetadata):
     @staticmethod
     def entries() -> list[str]:
         return ["return_status"]
+
+
+class DataInputNodeMetadata(NodeMetadata):
+    def __init__(self, data_source: str):
+        self.data_source = data_source
+
+    @staticmethod
+    def entries() -> list[str]:
+        return ["data_source"]

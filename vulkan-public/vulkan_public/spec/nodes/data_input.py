@@ -1,4 +1,5 @@
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
+from vulkan_public.spec.nodes.metadata import DataInputNodeMetadata
 
 
 class DataInputNode(Node):
@@ -11,7 +12,7 @@ class DataInputNode(Node):
     def __init__(
         self,
         name: str,
-        source: str,
+        data_source: str,
         description: str | None = None,
         dependencies: dict | None = None,
     ):
@@ -37,7 +38,7 @@ class DataInputNode(Node):
             typ=NodeType.DATA_INPUT,
             dependencies=dependencies,
         )
-        self.source = source
+        self.data_source = data_source
 
     def node_definition(self) -> NodeDefinition:
         return NodeDefinition(
@@ -45,7 +46,7 @@ class DataInputNode(Node):
             description=self.description,
             node_type=self.type.value,
             dependencies=self.dependencies,
-            metadata={
-                "data_source": self.source,
-            },
+            metadata=DataInputNodeMetadata(
+                data_source=self.data_source,
+            ),
         )

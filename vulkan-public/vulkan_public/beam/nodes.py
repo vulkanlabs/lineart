@@ -154,7 +154,7 @@ class BeamDataInput(DataInputNode, BeamNode):
     ):
         super().__init__(
             name=name,
-            source=spec.name,
+            data_source=spec.name,
             description=description,
             dependencies=dependencies,
         )
@@ -180,13 +180,13 @@ class BeamDataInput(DataInputNode, BeamNode):
         if isinstance(self.spec.source, HTTPSource):
             return _HTTPHandler(
                 self.context,
-                self.source,
+                self.data_source,
                 self.spec,
             )
         elif isinstance(self.spec.source, (LocalFileSource, RegisteredFileSource)):
             return _FileHandler(
                 self.context,
-                self.source,
+                self.data_source,
                 self.spec.source.path,
                 self.spec.keys,
             )

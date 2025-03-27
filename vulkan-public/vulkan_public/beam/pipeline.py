@@ -137,7 +137,7 @@ class BeamPipelineBuilder:
                 continue
 
             if node.type == NodeType.DATA_INPUT:
-                source_spec = self.data_sources[node.source]
+                source_spec = self.data_sources[node.data_source]
                 node = BeamDataInput.from_spec(node, source_spec)
                 node = node.with_context(self.context)
             else:

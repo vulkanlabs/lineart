@@ -1,16 +1,14 @@
 from dataclasses import dataclass
+from graphlib import TopologicalSorter
 
 import graphviz
 import networkx as nx
-from graphlib import TopologicalSorter
 
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
 
 Dependencies = dict[str, Dependency]
 """Map of a node's input variables to dependencies on other nodes' outputs."""
-NodeDependencies = dict[str, Dependencies]
-"""Map of node names to their dependencies."""
 
 
 @dataclass
@@ -32,6 +30,7 @@ class GraphDefinition:
             raise ValueError(msg)
 
         self._validate_nodes()
+        self._validate_node_dependencies()
         self._graph = _digraph_from_nodes(self.nodes)
         valid, errors = self._validate_graph()
         self._valid = valid
@@ -64,8 +63,8 @@ class GraphDefinition:
             n: self._graph.nodes[n]["node"] for n, d in self._graph.out_degree if d == 0
         }
 
-    @staticmethod
-    def validate_node_dependencies(node_dependencies: NodeDependencies):
+    def _validate_node_dependencies(self):
+        node_dependencies = {node.name: node.dependencies for node in self.nodes}
         for node_name, dependencies in node_dependencies.items():
             if dependencies is None:
                 continue
