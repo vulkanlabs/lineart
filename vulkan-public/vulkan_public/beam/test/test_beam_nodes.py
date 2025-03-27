@@ -12,9 +12,9 @@ from vulkan_public.beam.nodes import (
     to_beam_nodes,
 )
 from vulkan_public.beam.pipeline import build_pipeline
-from vulkan_public.core.graph import sort_nodes
 from vulkan_public.core.policy import Policy
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
+from vulkan_public.spec.graph import sort_nodes
 from vulkan_public.spec.nodes import BranchNode, NodeType, TerminateNode, TransformNode
 
 
@@ -128,8 +128,8 @@ def test_pipeline_from_policy():
         nodes=[transform, branch, approved, denied],
         input_schema={"data": dict},
     )
-    nodes = policy.flattened_nodes
-    edges = policy.flattened_dependencies
+    nodes = policy.nodes
+    edges = policy.edges
 
     input_node = [node for node in nodes if node.type == NodeType.INPUT][0]
     core_nodes = [node for node in nodes if node.type != NodeType.INPUT]

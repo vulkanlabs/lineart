@@ -204,7 +204,6 @@ class __PipelineBuilder:
             for node in sorted_nodes
             if node.type == NodeType.TERMINATE
         ]
-        print(sorted_nodes, "livessss", leaves)
         statuses = leaves | "Join Terminate Nodes" >> beam.Flatten()
         result = {
             INPUT_NODE: self.collections[INPUT_NODE],
