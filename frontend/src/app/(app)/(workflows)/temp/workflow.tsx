@@ -1,7 +1,7 @@
 "use client";
 
-import { nanoid } from "nanoid";
-import React, { useState, useLayoutEffect, useCallback } from "react";
+import { useShallow } from "zustand/react/shallow";
+import React, { useState, useLayoutEffect, useCallback, useEffect } from "react";
 import { Rocket, ArrowRightFromLine, Split, ArrowDown01, Code2 } from "lucide-react";
 import {
     ReactFlow,
@@ -28,27 +28,58 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { NodeHeaderDemo } from "./nodes/node-header-demo";
 import { useDropdown } from "./hooks/use-dropdown";
+import { nodesConfig } from "./nodes";
+import { iconMapping } from "./nodes/icons";
+import { WorkflowProvider, useWorkflowStore } from "./store";
 
-import { nodesConfig, nodeTypes, iconMapping, createNodeByType } from "./nodes";
+import { TransformNode } from "./nodes/transform-node";
+import { BranchNode } from "./nodes/branch-node";
+import { TerminateNode } from "./nodes/terminate-node";
+import { InputNode } from "./nodes/input-node";
+import { ConnectionNode } from "./nodes/connection-node";
+import { DataSourceNode } from "./nodes/data-source-node";
 
-const defaultNodes = [
-    createNodeByType({
-        type: "input-node",
-        position: { x: 200, y: 200 },
-    }),
-];
+export const nodeTypes = {
+    "input-node": InputNode,
+    "connection-node": ConnectionNode,
+    "data-source-node": DataSourceNode,
+    "transform-node": TransformNode,
+    "branch-node": BranchNode,
+    "terminate-node": TerminateNode,
+};
 
 function VulkanWorkflow({ onNodeClick, onPaneClick }) {
-    const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const { fitView, getNodes, getEdges, screenToFlowPosition } = useReactFlow();
+    const {
+        nodes,
+        edges,
+        addNodeByType,
+        getNodes,
+        getEdges,
+        onNodesChange,
+        onEdgesChange,
+        onConnect,
+    } = useWorkflowStore(
+        useShallow((state) => ({
+            nodes: state.nodes,
+            edges: state.edges,
+            addNodeByType: state.addNodeByType,
+            getNodes: state.getNodes,
+            getEdges: state.getEdges,
+            onNodesChange: state.onNodesChange,
+            onEdgesChange: state.onEdgesChange,
+            onConnect: state.onConnect,
+        })),
+    );
+
+    const { fitView, screenToFlowPosition } = useReactFlow();
 
     const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
-    const { isOpen, toggleDropdown, ref } = useDropdown();
+    const { isOpen, connectingNode, toggleDropdown, ref } = useDropdown();
 
-    // const connectionState = useConnection();
+    useEffect(() => {
+        console.log(nodes);
+    }, [nodes]);
 
     const clickNode = (e, node) => {};
 
@@ -78,36 +109,32 @@ function VulkanWorkflow({ onNodeClick, onPaneClick }) {
         [getNodes, getEdges],
     );
 
-    const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), []);
+    const onConnectEnd = useCallback((event, connectionState) => {
+        // when a connection is dropped on the pane it's not valid
+        if (!connectionState.isValid) {
+            // we need to remove the wrapper bounds, in order to get the correct position
+            const { clientX, clientY } =
+                "changedTouches" in event ? event.changedTouches[0] : event;
 
-    const onConnectEnd = useCallback(
-        (event, connectionState) => {
-            // when a connection is dropped on the pane it's not valid
-            if (!connectionState.isValid) {
-                // we need to remove the wrapper bounds, in order to get the correct position
-                const { clientX, clientY } =
-                    "changedTouches" in event ? event.changedTouches[0] : event;
-
-                setDropdownPosition({ x: clientX, y: clientY });
-                toggleDropdown();
-            }
-        },
-        [screenToFlowPosition],
-    );
+            setDropdownPosition({ x: clientX, y: clientY });
+            toggleDropdown(connectionState.fromNode.id);
+        }
+    }, []);
 
     function onAddNode(type: any) {
-        console.log(`Adding node of type ${type}`);
-        const id = nanoid();
-        const newNode = createNodeByType({
-            id: id,
-            type: type,
-            position: screenToFlowPosition({
+        const nodeId = addNodeByType(
+            type,
+            screenToFlowPosition({
                 x: dropdownPosition.x,
                 y: dropdownPosition.y,
             }),
+        );
+        onConnect({
+            source: connectingNode,
+            target: nodeId,
+            sourceHandle: null,
+            targetHandle: null,
         });
-        setNodes((nds) => nds.concat(newNode));
-        // setEdges((eds) => eds.concat({ id, source: connectionState.fromNode.id, target: id }));
     }
 
     return (
@@ -207,10 +234,12 @@ function AppDropdownMenu({
 export default function WorkflowFrame() {
     return (
         <ReactFlowProvider>
-            <VulkanWorkflow
-                onNodeClick={(_: any, node: any) => console.log(node)}
-                onPaneClick={() => console.log("pane")}
-            />
+            <WorkflowProvider>
+                <VulkanWorkflow
+                    onNodeClick={(_: any, node: any) => console.log(node)}
+                    onPaneClick={() => console.log("pane")}
+                />
+            </WorkflowProvider>
         </ReactFlowProvider>
     );
 }
