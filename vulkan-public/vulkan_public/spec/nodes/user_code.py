@@ -29,25 +29,67 @@ def _validate_user_code(user_code: str):
         raise TypeError(f"Expected user code as string, got ({type(user_code)})")
 
     node_name = "vulkan_user_code"
-    udf_code = udf(node_name, user_code)
+    valid = False
+
     try:
         parsed = ast.parse(
-            source=udf_code,
+            source=user_code,
             filename=node_name,
             mode="exec",
             type_comments=True,
         )
+
+        if is_valid_function(parsed, node_name):
+            udf_code = user_code
+            fn_name = get_fn_name(parsed)
+            valid = True
+    except Exception:
+        # If the user code is not a function, we wrap it in a function
+        # and try to parse it again.
+        pass
+
+    if not valid:
+        udf_code = udf(node_name, user_code)
+        fn_name = f"_udf_{node_name}"
+        try:
+            parsed = ast.parse(
+                source=udf_code,
+                filename=fn_name,
+                mode="exec",
+                type_comments=True,
+            )
+        except ValueError as e:
+            raise UserCodeException("Invalid symbol (\0) in user code") from e
+        except Exception as e:
+            raise UserCodeException("User code is invalid") from e
+
+    try:
         _ = compile(
-            parsed,
+            udf_code,
             filename=node_name,
             mode="exec",
         )
-    except ValueError as e:
-        raise UserCodeException("Invalid symbol (\0) in user code") from e
     except SyntaxError as e:
         raise UserCodeException("User code is invalid") from e
 
-    return f"_udf_{node_name}", udf_code
+    return fn_name, udf_code
+
+
+def is_valid_function(tree: ast.Module, node_name: str) -> bool:
+    if len(tree.body) != 1:
+        return False
+
+    if not isinstance(tree.body[0], ast.FunctionDef):
+        return False
+
+    return True
+
+
+def get_fn_name(tree: ast.Module) -> str:
+    assert len(tree.body) == 1
+    assert isinstance(tree.body[0], ast.FunctionDef)
+    stmt: ast.FunctionDef = tree.body[0]
+    return stmt.name
 
 
 class UserCodeException(Exception):

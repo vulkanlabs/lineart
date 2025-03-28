@@ -3,7 +3,7 @@ from typing import Any, Callable, cast
 
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
 from vulkan_public.spec.nodes.metadata import TransformNodeMetadata
-from vulkan_public.spec.nodes.user_code import get_udf_instance
+from vulkan_public.spec.nodes.user_code import UserCodeException, get_udf_instance
 
 
 class TransformNode(Node):
@@ -67,7 +67,10 @@ class TransformNode(Node):
             self.user_code = getsource(func)
         elif isinstance(func, str):
             self.user_code = func
-            udf_instance = get_udf_instance(func)
+            try:
+                udf_instance = get_udf_instance(func)
+            except UserCodeException as e:
+                raise ValueError(f"Invalid user code in node {name}") from e
             self.func = udf_instance
         else:
             raise TypeError(

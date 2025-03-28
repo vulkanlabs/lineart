@@ -1,3 +1,5 @@
+from typing import cast
+
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
 from vulkan_public.spec.nodes.metadata import DataInputNodeMetadata
 
@@ -49,4 +51,18 @@ class DataInputNode(Node):
             metadata=DataInputNodeMetadata(
                 data_source=self.data_source,
             ),
+        )
+
+    @classmethod
+    def from_dict(cls, spec: dict) -> "DataInputNode":
+        definition = NodeDefinition.from_dict(spec)
+        if definition.metadata is None:
+            raise ValueError(f"Metadata not set for node {definition.name}")
+
+        metadata = cast(DataInputNodeMetadata, definition.metadata)
+        return cls(
+            name=definition.name,
+            description=definition.description,
+            dependencies=definition.dependencies,
+            data_source=metadata.data_source,
         )

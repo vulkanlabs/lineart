@@ -34,13 +34,21 @@ class InputNodeMetadata(NodeMetadata):
 
 
 class BranchNodeMetadata(NodeMetadata):
-    def __init__(self, choices: list[str], source: str):
+    def __init__(
+        self,
+        choices: list[str],
+        function_code: str,
+        source_code: str | None,
+        func: bytes | None,
+    ):
         self.choices = choices
-        self.source = source
+        self.function_code = function_code
+        self.func = func
+        self.source_code = source_code
 
     @staticmethod
     def entries() -> list[str]:
-        return ["choices", "source"]
+        return ["choices", "func", "source_code", "function_code"]
 
 
 class TransformNodeMetadata(NodeMetadata):
@@ -68,3 +76,12 @@ class DataInputNodeMetadata(NodeMetadata):
     @staticmethod
     def entries() -> list[str]:
         return ["data_source"]
+
+
+class PolicyNodeMetadata(NodeMetadata):
+    def __init__(self, policy_definition):
+        self.policy_definition = policy_definition
+
+    @staticmethod
+    def entries() -> list[str]:
+        return ["policy_definition"]

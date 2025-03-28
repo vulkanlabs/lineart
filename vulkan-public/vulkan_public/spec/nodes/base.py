@@ -7,8 +7,10 @@ from typing import Any
 from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes.metadata import (
     BranchNodeMetadata,
+    DataInputNodeMetadata,
     InputNodeMetadata,
     NodeMetadata,
+    PolicyNodeMetadata,
     TerminateNodeMetadata,
     TransformNodeMetadata,
 )
@@ -17,10 +19,10 @@ from vulkan_public.spec.nodes.metadata import (
 class NodeType(Enum):
     TRANSFORM = "TRANSFORM"
     TERMINATE = "TERMINATE"
-    COMPONENT = "COMPONENT"
     BRANCH = "BRANCH"
     INPUT = "INPUT"
     DATA_INPUT = "DATA_INPUT"
+    POLICY = "POLICY"
 
 
 @dataclass(frozen=True)
@@ -37,9 +39,11 @@ class NodeDefinition:
 
     def __post_init__(self):
         if self.metadata is not None:
-            assert isinstance(
-                self.metadata, NodeMetadata
-            ), f"Metadata must be of type NodeMetadata, got {type(self.metadata)}"
+            if not isinstance(self.metadata, NodeMetadata):
+                msg = (
+                    f"Metadata must be of type NodeMetadata, got {type(self.metadata)}"
+                )
+                raise TypeError(msg)
         if self.dependencies is not None:
             assert all(
                 isinstance(d, Dependency) for d in self.dependencies.values()
@@ -62,6 +66,10 @@ class NodeDefinition:
                 metadata = BranchNodeMetadata.from_dict(metadata)
             elif node_type == NodeType.INPUT:
                 metadata = InputNodeMetadata.from_dict(metadata)
+            elif node_type == NodeType.DATA_INPUT:
+                metadata = DataInputNodeMetadata.from_dict(metadata)
+            elif node_type == NodeType.POLICY:
+                metadata = PolicyNodeMetadata.from_dict(metadata)
             else:
                 raise ValueError(f"Unknown node type: {node_type}")
 
@@ -136,6 +144,10 @@ class Node(ABC):
 
     @abstractmethod
     def node_definition(self) -> NodeDefinition:
+        pass
+
+    @abstractmethod
+    def from_dict(cls, spec: dict[str, Any]) -> "Node":
         pass
 
     @property

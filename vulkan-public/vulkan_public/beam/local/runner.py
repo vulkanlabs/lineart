@@ -7,6 +7,7 @@ import pyarrow.parquet as pq
 from apache_beam.options.pipeline_options import PipelineOptions
 
 from vulkan_public.beam.pipeline import LOCAL_RESULTS_FILE_NAME, BeamPipelineBuilder
+from vulkan_public.core.policy import Policy
 from vulkan_public.schemas import DataSourceSpec
 from vulkan_public.spec.policy import PolicyDefinition
 
@@ -23,7 +24,7 @@ class RunResult(ABC):
         pass
 
     @abstractmethod
-    def get_output(self):
+    def _get_output(self):
         pass
 
 
@@ -33,13 +34,13 @@ class SingleRunResult(RunResult):
 
     @property
     def data(self):
-        return self.get_output()
+        return self._get_output()
 
     @property
     def metadata(self):
         pass
 
-    def get_output(self):
+    def _get_output(self):
         output_path = os.path.join(self.output_path, LOCAL_RESULTS_FILE_NAME)
         with open(output_path, "r") as fp:
             results = json.load(fp)
@@ -53,20 +54,21 @@ class BatchRunResult(RunResult):
 
     @property
     def data(self):
-        return self.get_output()
+        return self._get_output()
 
     @property
     def metadata(self):
         pass
 
-    def get_output(self):
+    def _get_output(self):
         dataset = pq.ParquetDataset(self.output_path)
         return dataset.read().to_pandas()
 
 
 class PolicyRunner:
-    def __init__(self, policy: PolicyDefinition, staging_path: str):
-        self.policy = policy
+    def __init__(self, policy_definition: PolicyDefinition, staging_path: str):
+        self.policy = Policy.from_definition(policy_definition)
+        self.policy_definition = policy_definition
         self.staging_path = staging_path
 
     def run(
@@ -77,6 +79,9 @@ class PolicyRunner:
     ) -> RunResult:
         run_id = str(time()).replace(".", "")
         output_path = os.path.join(self.staging_path, run_id)
+
+        if data_sources is None:
+            data_sources = []
 
         builder = get_pipeline_builder(
             policy=self.policy,
@@ -103,6 +108,9 @@ class PolicyRunner:
         if run_id is None:
             run_id = str(time()).replace(".", "")
         output_path = os.path.join(self.staging_path, run_id)
+
+        if data_sources is None:
+            data_sources = []
 
         builder = get_pipeline_builder(
             policy=self.policy,
