@@ -29,6 +29,7 @@ class TerminateNode(Node):
         dependencies: dict[str, Dependency],
         description: str | None = None,
         callback: Callable | None = None,
+        hierarchy: list[str] | None = None,
     ):
         """Marks the end of a workflow.
 
@@ -60,6 +61,7 @@ class TerminateNode(Node):
             description=description,
             typ=NodeType.TERMINATE,
             dependencies=dependencies,
+            hierarchy=hierarchy,
         )
         self.callback = callback
 
@@ -72,6 +74,7 @@ class TerminateNode(Node):
             metadata=TerminateNodeMetadata(
                 return_status=self.return_status,
             ),
+            hierarchy=self.hierarchy,
         )
 
     def with_callback(self, callback: Callable) -> "TerminateNode":
@@ -90,4 +93,5 @@ class TerminateNode(Node):
             description=definition.description,
             dependencies=definition.dependencies,
             return_status=metadata.return_status,
+            hierarchy=definition.hierarchy,
         )

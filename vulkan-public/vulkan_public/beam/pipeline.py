@@ -53,7 +53,7 @@ class BeamPipelineBuilder:
         # TODO: We may want to save the input schema instead of creating this node.
         #       This would allow us to create the input collection and output schema directly.
         for node in self.nodes:
-            if node.type == NodeType.INPUT:
+            if node.type == NodeType.INPUT and node.hierarchy is None:
                 input_node = BeamInput.from_spec(
                     node,
                     data_path=input_data_path,
@@ -71,7 +71,7 @@ class BeamPipelineBuilder:
         result, metadata = build_pipeline(pipeline, collections, sorted_nodes)
 
         # TODO: We should resolve this schema inside of the Write transform
-        output_schema = _make_output_schema(input_node.name, input_node.schema)
+        output_schema = _make_output_schema(input_node.id, input_node.schema)
         output_prefix = self.output_path + "/output"
 
         # Write the output to a Parquet file
@@ -133,7 +133,7 @@ class BeamPipelineBuilder:
     def _make_sorted_beam_nodes(self) -> list[BeamNode]:
         nodes = []
         for node in self.nodes:
-            if node.type == NodeType.INPUT:
+            if node.type == NodeType.INPUT and node.hierarchy is None:
                 continue
 
             if node.type == NodeType.DATA_INPUT:
@@ -200,9 +200,10 @@ class __PipelineBuilder:
 
         # Join terminate nodes into a single output
         leaves = [
-            self.collections[node.name]
+            self.collections[node.id]
             for node in sorted_nodes
-            if node.type == NodeType.TERMINATE
+            # TODO: replace with actual leaves method
+            if node.type == NodeType.TERMINATE and node.hierarchy is None
         ]
         statuses = leaves | "Join Terminate Nodes" >> beam.Flatten()
         result = {
@@ -221,27 +222,27 @@ class __PipelineBuilder:
             return self.collections[str(dependency_definitions[0])]
 
         deps = {str(d): self.collections[str(d)] for d in dependency_definitions}
-        return deps | f"Join Deps: {node.name}" >> beam.CoGroupByKey()
+        return deps | f"Join Deps: {node.id}" >> beam.CoGroupByKey()
 
     def __build_step(self, pcoll: PCollection, node: BeamNode) -> None:
         if node.type == NodeType.TRANSFORM:
-            output = pcoll | f"Transform: {node.name}" >> node.op()
-            self.collections[node.name] = output
+            output = pcoll | f"Transform: {node.id}" >> node.op()
+            self.collections[node.id] = output
 
         elif node.type == NodeType.TERMINATE:
-            output = pcoll | f"Terminate: {node.name}" >> node.op()
-            self.collections[node.name] = output
+            output = pcoll | f"Terminate: {node.id}" >> node.op()
+            self.collections[node.id] = output
 
         elif node.type == NodeType.DATA_INPUT:
-            output = pcoll | f"Data Input: {node.name}" >> node.op()
-            self.collections[node.name] = output.data
-            self.metadata[node.name] = output.metadata
+            output = pcoll | f"Data Input: {node.id}" >> node.op()
+            self.collections[node.id] = output.data
+            self.metadata[node.id] = output.metadata
 
         elif node.type == NodeType.BRANCH:
-            output = pcoll | f"Branch: {node.name}" >> node.op()
+            output = pcoll | f"Branch: {node.id}" >> node.op()
 
             for output_name in node.choices:
-                branch_name = f"{node.name}.{output_name}"
+                branch_name = f"{node.id}.{output_name}"
                 filter_value = (
                     self.pipeline
                     | f"[{branch_name}] Create Filter Value: {output_name}"

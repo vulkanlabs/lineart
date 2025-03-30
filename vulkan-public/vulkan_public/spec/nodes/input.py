@@ -1,5 +1,6 @@
 from typing import Any
 
+from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
 from vulkan_public.spec.nodes.metadata import InputNodeMetadata
 
@@ -20,12 +21,14 @@ class InputNode(Node):
         schema: dict[str, type],
         name="input_node",
         description: str | None = None,
+        hierarchy: list[str] | None = None,
     ):
         super().__init__(
             name=name,
             typ=NodeType.INPUT,
             description=description,
             dependencies=None,
+            hierarchy=hierarchy,
         )
         self.schema = schema
 
@@ -37,6 +40,7 @@ class InputNode(Node):
             metadata=InputNodeMetadata(
                 schema={k: t.__name__ for k, t in self.schema.items()}
             ),
+            hierarchy=self.hierarchy,
         )
 
     @classmethod
@@ -47,4 +51,9 @@ class InputNode(Node):
             schema={k: eval(t) for k, t in definition.metadata.schema.items()},
             name=definition.name,
             description=definition.description,
+            hierarchy=definition.hierarchy,
         )
+
+    def with_dependencies(self, dependencies: dict[str, Dependency]) -> "InputNode":
+        self._dependencies = dependencies
+        return self

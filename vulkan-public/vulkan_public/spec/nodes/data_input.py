@@ -17,6 +17,7 @@ class DataInputNode(Node):
         data_source: str,
         description: str | None = None,
         dependencies: dict | None = None,
+        hierarchy: list[str] | None = None,
     ):
         """Fetches data from a pre-configured data source.
 
@@ -39,6 +40,7 @@ class DataInputNode(Node):
             description=description,
             typ=NodeType.DATA_INPUT,
             dependencies=dependencies,
+            hierarchy=hierarchy,
         )
         self.data_source = data_source
 
@@ -51,6 +53,7 @@ class DataInputNode(Node):
             metadata=DataInputNodeMetadata(
                 data_source=self.data_source,
             ),
+            hierarchy=self.hierarchy,
         )
 
     @classmethod
@@ -65,4 +68,5 @@ class DataInputNode(Node):
             description=definition.description,
             dependencies=definition.dependencies,
             data_source=metadata.data_source,
+            hierarchy=definition.hierarchy,
         )

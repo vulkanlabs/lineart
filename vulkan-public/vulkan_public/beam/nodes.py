@@ -1,6 +1,7 @@
 from abc import ABC
 from functools import partial
 from json import JSONDecodeError
+from typing import Callable
 
 import apache_beam as beam
 import requests
@@ -40,8 +41,14 @@ class BeamInput(InputNode, BeamNode):
         data_path: str,
         schema: dict[str, type],
         description: str | None = None,
+        hierarchy: list[str] | None = None,
     ):
-        super().__init__(name=name, description=description, schema=schema)
+        super().__init__(
+            name=name,
+            description=description,
+            schema=schema,
+            hierarchy=hierarchy,
+        )
         self.data_path = data_path
 
     @classmethod
@@ -51,6 +58,7 @@ class BeamInput(InputNode, BeamNode):
             description=node.description,
             data_path=data_path,
             schema=node.schema,
+            hierarchy=node._hierarchy,
         )
 
 
@@ -151,12 +159,14 @@ class BeamDataInput(DataInputNode, BeamNode):
         spec: DataSourceSpec,
         description: str | None = None,
         dependencies: dict | None = None,
+        hierarchy: list[str] | None = None,
     ):
         super().__init__(
             name=name,
             data_source=spec.name,
             description=description,
             dependencies=dependencies,
+            hierarchy=hierarchy,
         )
         self.spec = spec
 
@@ -167,6 +177,7 @@ class BeamDataInput(DataInputNode, BeamNode):
             spec=spec,
             description=node.description,
             dependencies=node.dependencies,
+            hierarchy=node._hierarchy,
         )
 
     def op(self) -> beam.PTransform:
@@ -253,12 +264,14 @@ class BeamTransform(TransformNode, BeamLogicNode):
         func: callable,
         dependencies: dict[str, Dependency],
         description: str | None = None,
+        hierarchy: list[str] | None = None,
     ):
         super().__init__(
             name=name,
             description=description,
             func=func,
             dependencies=dependencies,
+            hierarchy=hierarchy,
         )
 
     @classmethod
@@ -268,6 +281,7 @@ class BeamTransform(TransformNode, BeamLogicNode):
             description=node.description,
             func=node.func,
             dependencies=node.dependencies,
+            hierarchy=node._hierarchy,
         )
 
 
@@ -275,17 +289,21 @@ class BeamBranch(BranchNode, BeamLogicNode):
     def __init__(
         self,
         name: str,
-        func: callable,
         choices: list[str],
         dependencies: dict[str, Dependency],
+        func: Callable | None = None,
+        source_code: str | None = None,
         description: str | None = None,
+        hierarchy: list[str] | None = None,
     ):
         super().__init__(
             name=name,
-            description=description,
-            func=func,
             choices=choices,
             dependencies=dependencies,
+            func=func,
+            source_code=source_code,
+            description=description,
+            hierarchy=hierarchy,
         )
 
     @classmethod
@@ -294,8 +312,10 @@ class BeamBranch(BranchNode, BeamLogicNode):
             name=node.name,
             description=node.description,
             func=node.func,
+            source_code=node.source_code,
             choices=node.choices,
             dependencies=node.dependencies,
+            hierarchy=node._hierarchy,
         )
 
 
@@ -314,6 +334,7 @@ class BeamTerminate(TerminateNode, BeamNode):
         return_status: str,
         dependencies: dict[str, Dependency],
         description: str | None = None,
+        hierarchy: list[str] | None = None,
     ):
         super().__init__(
             name=name,
@@ -321,6 +342,7 @@ class BeamTerminate(TerminateNode, BeamNode):
             return_status=return_status,
             dependencies=dependencies,
             callback=None,
+            hierarchy=hierarchy,
         )
 
     @classmethod
@@ -330,6 +352,7 @@ class BeamTerminate(TerminateNode, BeamNode):
             description=node.description,
             return_status=node.return_status,
             dependencies=node.dependencies,
+            hierarchy=node._hierarchy,
         )
 
     def op(self):
@@ -350,9 +373,29 @@ def to_beam_nodes(nodes: list[Node]) -> list[BeamNode]:
 
 def to_beam_node(node: Node) -> BeamNode:
     typ = type(node)
+    if typ == InputNode:
+        return _identity_transform(node)
+
     impl_type = _NODE_TYPE_MAP.get(typ)
     if impl_type is None:
         msg = f"Node type {typ} has no known Beam implementation"
         raise ValueError(msg)
 
     return impl_type.from_spec(node)
+
+
+def _identity_transform(node: BeamNode) -> BeamTransform:
+    return BeamTransform(
+        name=node.name,
+        func=_identity,
+        dependencies=node.dependencies,
+        description=node.description,
+        hierarchy=node._hierarchy,
+    )
+
+
+def _identity(**kwargs):
+    if len(kwargs) == 1:
+        return list(kwargs.values())[0]
+    return kwargs
+    return kwargs

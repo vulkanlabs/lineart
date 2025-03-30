@@ -22,6 +22,7 @@ class TransformNode(Node):
         func: Callable | str,
         dependencies: dict[str, Any],
         description: str | None = None,
+        hierarchy: list[str] | None = None,
     ):
         """Evaluate an arbitrary function.
 
@@ -61,6 +62,7 @@ class TransformNode(Node):
             description=description,
             typ=NodeType.TRANSFORM,
             dependencies=dependencies,
+            hierarchy=hierarchy,
         )
         if callable(func):
             self.func = func
@@ -86,6 +88,7 @@ class TransformNode(Node):
             metadata=TransformNodeMetadata(
                 source=self.user_code,
             ),
+            hierarchy=self.hierarchy,
         )
 
     @classmethod
@@ -100,4 +103,5 @@ class TransformNode(Node):
             description=definition.description,
             dependencies=definition.dependencies,
             func=metadata.source,
+            hierarchy=definition.hierarchy,
         )

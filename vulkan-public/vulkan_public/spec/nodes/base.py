@@ -34,6 +34,7 @@ class NodeDefinition:
     description: str | None = None
     dependencies: dict[str, Dependency] | None = None
     metadata: NodeMetadata | None = None
+    hierarchy: list[str] | None = None
 
     _REQUIRED_KEYS = {"name", "node_type"}
 
@@ -45,9 +46,9 @@ class NodeDefinition:
                 )
                 raise TypeError(msg)
         if self.dependencies is not None:
-            assert all(
-                isinstance(d, Dependency) for d in self.dependencies.values()
-            ), "Dependencies must be of type Dependency"
+            if not all(isinstance(d, Dependency) for d in self.dependencies.values()):
+                msg = f"Dependencies must be of type Dependency: {self.dependencies}"
+                raise ValueError(msg)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "NodeDefinition":
@@ -79,6 +80,7 @@ class NodeDefinition:
             description=data.get("description"),
             dependencies=data.get("dependencies"),
             metadata=metadata,
+            hierarchy=data.get("hierarchy"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -92,6 +94,8 @@ class NodeDefinition:
             data["dependencies"] = self.dependencies
         if self.metadata is not None:
             data["metadata"] = self.metadata.to_dict()
+        if self.hierarchy is not None:
+            data["hierarchy"] = self.hierarchy
         return data
 
 
@@ -132,9 +136,6 @@ class Node(ABC):
         self.description = description
         self.type = typ
         self._dependencies = dependencies if dependencies is not None else {}
-        # TODO: here, we can enforce the typing of dependency specifications,
-        # but this ends up making the API harder to use. We should consider
-        # parsing the dependency specification from strings or tuples.
         if not isinstance(self._dependencies, dict):
             raise TypeError(f"Dependencies must be a dict, got: {dependencies}")
         if not all(isinstance(d, Dependency) for d in self._dependencies.values()):

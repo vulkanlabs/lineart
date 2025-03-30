@@ -39,8 +39,8 @@ class GraphDefinition:
         self._valid = valid
         self._errors = errors
 
-        self._node_definitions = {n.name: n.node_definition() for n in self.nodes}
-        self._dependency_definitions = {n.name: n.dependencies for n in self.nodes}
+        self._node_definitions = {n.id: n.node_definition() for n in self.nodes}
+        self._dependency_definitions = {n.id: n.dependencies for n in self.nodes}
 
     @property
     def edges(self) -> GraphEdges:
@@ -69,7 +69,7 @@ class GraphDefinition:
         }
 
     def _validate_node_dependencies(self):
-        node_dependencies = {node.name: node.dependencies for node in self.nodes}
+        node_dependencies = {node.id: node.dependencies for node in self.nodes}
         for node_name, dependencies in node_dependencies.items():
             if dependencies is None:
                 continue
@@ -79,9 +79,9 @@ class GraphDefinition:
                     # Input nodes are added to the graph after validation.
                     continue
 
-                if dep.node not in node_dependencies.keys():
+                if dep.id not in node_dependencies.keys():
                     msg = (
-                        f"Node {node_name} has a dependency {dep.node} "
+                        f"Node {node_name} has a dependency {dep.id} "
                         "that is not in the graph"
                     )
                     raise ValueError(msg)
@@ -174,7 +174,7 @@ def _digraph_from_nodes(nodes: list[Node]) -> nx.DiGraph:
 
 
 def extract_node_definitions(nodes: list[Node]) -> dict:
-    return {node.name: node.to_dict() for node in nodes}
+    return {node.id: node.to_dict() for node in nodes}
 
 
 def sort_nodes(nodes: GraphNodes, edges: GraphEdges) -> GraphNodes:

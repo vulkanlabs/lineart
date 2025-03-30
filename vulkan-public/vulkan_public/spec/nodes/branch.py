@@ -32,6 +32,7 @@ class BranchNode(Node):
         func: Callable | None = None,
         source_code: str | None = None,
         description: str | None = None,
+        hierarchy: list[str] | None = None,
     ):
         """Perform branching logic in the DAG.
 
@@ -63,6 +64,7 @@ class BranchNode(Node):
             description=description,
             typ=NodeType.BRANCH,
             dependencies=dependencies,
+            hierarchy=hierarchy,
         )
 
         if choices is None or len(choices) == 0:
@@ -114,6 +116,7 @@ class BranchNode(Node):
                 source_code=self.source_code,
                 function_code=self.function_code,
             ),
+            hierarchy=self.hierarchy,
         )
 
     @classmethod
@@ -131,4 +134,5 @@ class BranchNode(Node):
             choices=metadata.choices,
             func=metadata.func,
             source_code=metadata.source_code,
+            hierarchy=definition.hierarchy,
         )
