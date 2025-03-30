@@ -72,11 +72,11 @@ TEST_TABLE = {
                 "func": None,
                 "source_code": """
             import os
-            print(os.environ)
+            os.environ
             """,
                 "function_code": """
             import os
-            print(os.environ)
+            os.environ
             """,
             },
         },
@@ -106,7 +106,7 @@ TEST_TABLE = {
             "metadata": {
                 "source": """
             import os
-            print(os.environ)
+            os.environ
             """,
             },
         },
@@ -148,12 +148,9 @@ TEST_TABLE = {
     ids=list(TEST_TABLE.keys()),
 )
 def test_node_from_spec(node_cls, spec):
-    print("START!")
     node = node_cls.from_dict(spec)
     assert node.name == spec["name"]
     assert node.type.value == spec["node_type"]
     assert node.description == spec.get("description", None)
-    print("B!")
-    print("dict:", node.to_dict())
     round_trip = node_cls.from_dict(node.to_dict())
     assert round_trip == node
