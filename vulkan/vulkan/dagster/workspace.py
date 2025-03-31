@@ -4,6 +4,7 @@ from shutil import rmtree
 import yaml
 from dagster import Definitions, EnvVar, IOManagerDefinition
 from vulkan_public.constants import POLICY_CONFIG_KEY
+from vulkan_public.spec.environment.workspace import VulkanCodeLocation
 
 from vulkan.dagster.io_manager import (
     DB_CONFIG_KEY,
@@ -20,12 +21,10 @@ from vulkan.dagster.run_config import (
     VulkanRunConfig,
 )
 from vulkan.environment.loaders import resolve_policy
-from vulkan_public.spec.environment.workspace import VulkanCodeLocation
 
 
 def make_workspace_definition(
     module_name: str,
-    components_base_dir: str,
 ) -> Definitions:
     run_config = VulkanRunConfig.configure_at_launch()
     resources = {
@@ -55,7 +54,7 @@ def make_workspace_definition(
 
     # Up to this point, everything should be defined in terms of core elements.
     # Nodes and components should be configured, resolved, checked in core.
-    resolved_policy = resolve_policy(module_name, components_base_dir)
+    resolved_policy = resolve_policy(module_name)
     # From here, each implementation should handle transforming core to its own
     # needs, ie. Core -> Dagster
     # -> Transform nodes in dagster nodes
@@ -140,5 +139,5 @@ class DagsterWorkspaceManager:
 DAGSTER_ENTRYPOINT = """
 from vulkan.dagster.workspace import make_workspace_definition
                 
-definitions = make_workspace_definition("{module_name}", "{components_path}")
+definitions = make_workspace_definition("{module_name}")
 """

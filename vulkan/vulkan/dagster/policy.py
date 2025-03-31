@@ -7,9 +7,7 @@ from dagster import (
     OpDefinition,
     failure_hook,
 )
-from dagster._core.definitions.dependency import DynamicCollectDependencyDefinition
 from vulkan_public.spec.dependency import Dependency
-from vulkan_public.spec.nodes import NodeType
 
 from vulkan.core.run import RunStatus
 from vulkan.dagster.io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
@@ -80,31 +78,24 @@ def _accesses_internal_resources(op: OpDefinition) -> bool:
 
 def _as_graph_dependencies(nodes, dependencies):
     return {
-        node.name: _as_dagster_dependencies(node.type, dependencies[node.name])
+        node.name: _as_dagster_dependencies(dependencies[node.name])
         for node in nodes
         if len(node.dependencies) > 0
     }
 
 
 def _as_dagster_dependencies(
-    node_type: NodeType,
     dependencies: dict[str, Dependency] | None,
 ) -> dict[str, DependencyDefinition]:
     if dependencies is None:
         return None
 
     deps = {}
-    dep_type = (
-        DependencyDefinition
-        if node_type != NodeType.COLLECT
-        else DynamicCollectDependencyDefinition
-    )
-
     for k, v in dependencies.items():
         # Check if the dependency specifies an output name or a key
         if v.output is not None:
-            definition = dep_type(v.node, v.output)
+            definition = DependencyDefinition(v.node, v.output)
         else:
-            definition = dep_type(v.node, "result")
+            definition = DependencyDefinition(v.node, "result")
         deps[k] = definition
     return deps

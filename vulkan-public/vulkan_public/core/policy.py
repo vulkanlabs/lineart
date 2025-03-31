@@ -25,7 +25,7 @@ class Policy(GraphDefinition):
             if not callable(output_callback):
                 msg = "Output callback must be callable (a function or method)"
                 raise TypeError(msg)
-            nodes = self._with_output_callback(nodes)
+            nodes = self._with_output_callback(nodes, output_callback)
 
         if not all(
             isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()

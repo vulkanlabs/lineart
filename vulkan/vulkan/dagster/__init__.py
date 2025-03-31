@@ -1,4 +1,3 @@
-from . import component
 from . import io_manager
 from . import nodes
 from . import policy

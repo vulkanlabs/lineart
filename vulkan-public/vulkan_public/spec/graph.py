@@ -51,10 +51,6 @@ class GraphDefinition:
         return self._node_definitions
 
     @property
-    def dependency_definitions(self) -> dict[str, list[Dependency]]:
-        return self._dependency_definitions
-
-    @property
     def valid(self) -> bool:
         return self._valid
 
