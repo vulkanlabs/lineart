@@ -1,7 +1,7 @@
 from enum import Enum
 
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes import BranchNode, TerminateNode
+from vulkan_public.spec.nodes.base import BranchNode, TerminateNode
 from vulkan_public.spec.policy import PolicyDefinition
 
 
@@ -25,7 +25,7 @@ branch = BranchNode(
     dependencies={
         "inputs": Dependency(INPUT_NODE),
     },
-    outputs=["approved", "denied"],
+    choices=["approved", "denied"],
 )
 
 approved = TerminateNode(

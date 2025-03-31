@@ -5,7 +5,7 @@ import requests
 
 from vulkan_public.spec.component import ComponentInstance, ComponentInstanceConfig
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes import BranchNode, TerminateNode, TransformNode
+from vulkan_public.spec.nodes.base import BranchNode, TerminateNode, TransformNode
 from vulkan_public.spec.policy import PolicyDefinition
 
 DATA_SERVER_URL = "http://testdata:5000"
@@ -46,7 +46,7 @@ def _early_return_scr(context, scr_score, **kwargs):
 early_return_scr = BranchNode(
     name="early_return_scr",
     func=_early_return_scr,
-    outputs=["CONTINUE", Status.DENIED_SCR_LOW.value, Status.APPROVED_SCR.value],
+    choices=["CONTINUE", Status.DENIED_SCR_LOW.value, Status.APPROVED_SCR.value],
     dependencies={"scr_score": Dependency(scr_component.config.name)},
 )
 
@@ -115,7 +115,7 @@ branch_1 = BranchNode(
     name="branch",
     description="BranchNode data",
     dependencies={"scores": Dependency("join_transform")},
-    outputs=["approved", "analysis", "denied"],
+    choices=["approved", "analysis", "denied"],
 )
 
 approved = TerminateNode(

@@ -219,7 +219,7 @@ def test_sort_nodes():
         nodes=[approved, branch, denied, transform],
         input_schema={"number": int},
     )
-    nodes = policy.flattened_nodes
-    sorted_nodes = sort_nodes(nodes, policy.flattened_dependencies)
+    nodes = policy.nodes
+    sorted_nodes = sort_nodes(nodes, policy.depednencies)
     expected = [INPUT_NODE, "transform", "branch", "approved", "denied"]
     assert [n.name for n in sorted_nodes] == expected

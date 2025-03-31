@@ -1,1 +1,0 @@
-from .component import vendor_data_source_example

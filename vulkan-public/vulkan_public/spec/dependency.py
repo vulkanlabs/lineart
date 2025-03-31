@@ -32,6 +32,7 @@ class Dependency:
     node: str
     output: str | None = None
     key: str | None = None
+    hierarchy: list[str] | None = None
 
     def __post_init__(self):
         assert (
@@ -42,12 +43,24 @@ class Dependency:
             self.output is None or self.key is None
         ), "Cannot specify both output and key at the moment"
 
+    @property
+    def id(self) -> str:
+        hierarchy = "-".join(self.hierarchy) if self.hierarchy is not None else ""
+
+        str_repr = self.node
+        if len(hierarchy) > 0:
+            str_repr = f"{hierarchy}.{self.node}"
+
+        return str_repr
+
     def __str__(self) -> str:
+        node_id = self.id
+
         if self.output is not None:
-            return f"{self.node}.{self.output}"
+            return node_id + f".{self.output}"
         if self.key is not None:
-            return f"{self.node}[{self.key}]"
-        return self.node
+            return node_id + f"[{self.key}]"
+        return node_id
 
     @classmethod
     def from_dict(cls, data: dict) -> "Dependency":

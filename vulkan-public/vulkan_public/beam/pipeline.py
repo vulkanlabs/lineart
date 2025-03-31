@@ -15,11 +15,11 @@ from vulkan_public.beam.nodes import (
     BeamNode,
     to_beam_node,
 )
-from vulkan_public.core.graph import GraphEdges, GraphNodes, sort_nodes
 from vulkan_public.core.policy import Policy
 from vulkan_public.schemas import DataSourceSpec
 from vulkan_public.spec.dependency import INPUT_NODE
-from vulkan_public.spec.nodes import NodeType
+from vulkan_public.spec.graph import GraphEdges, GraphNodes, sort_nodes
+from vulkan_public.spec.nodes.base import NodeType
 
 LOCAL_RESULTS_FILE_NAME = "output.json"
 
@@ -32,8 +32,8 @@ class BeamPipelineBuilder:
         data_sources: dict[str, DataSourceSpec] | None,
         config_variables: dict[str, str],
     ):
-        self.nodes: GraphNodes = policy.flattened_nodes
-        self.edges: GraphEdges = policy.flattened_dependencies
+        self.nodes: GraphNodes = policy.nodes
+        self.edges: GraphEdges = policy.edges
         self._validate_nodes()
 
         self.output_path = output_path
@@ -53,7 +53,7 @@ class BeamPipelineBuilder:
         # TODO: We may want to save the input schema instead of creating this node.
         #       This would allow us to create the input collection and output schema directly.
         for node in self.nodes:
-            if node.type == NodeType.INPUT:
+            if node.type == NodeType.INPUT and node.hierarchy is None:
                 input_node = BeamInput.from_spec(
                     node,
                     data_path=input_data_path,
@@ -64,14 +64,14 @@ class BeamPipelineBuilder:
         pipeline = beam.Pipeline(options=pipeline_options)
 
         # Create the input PCollection and the collections map
-        input_data = pipeline | "Read Input" >> ReadParquet(source_path=input_data_path)
+        input_data = pipeline | "Read Input" >> ReadParquet(data_path=input_data_path)
         collections = {INPUT_NODE: input_data}
 
         # Build the nodes into the pipeline
         result, metadata = build_pipeline(pipeline, collections, sorted_nodes)
 
         # TODO: We should resolve this schema inside of the Write transform
-        output_schema = _make_output_schema(input_node.name, input_node.schema)
+        output_schema = _make_output_schema(input_node.id, input_node.schema)
         output_prefix = self.output_path + "/output"
 
         # Write the output to a Parquet file
@@ -133,11 +133,11 @@ class BeamPipelineBuilder:
     def _make_sorted_beam_nodes(self) -> list[BeamNode]:
         nodes = []
         for node in self.nodes:
-            if node.type == NodeType.INPUT:
+            if node.type == NodeType.INPUT and node.hierarchy is None:
                 continue
 
             if node.type == NodeType.DATA_INPUT:
-                source_spec = self.data_sources[node.source]
+                source_spec = self.data_sources[node.data_source]
                 node = BeamDataInput.from_spec(node, source_spec)
                 node = node.with_context(self.context)
             else:
@@ -200,9 +200,10 @@ class __PipelineBuilder:
 
         # Join terminate nodes into a single output
         leaves = [
-            self.collections[node.name]
+            self.collections[node.id]
             for node in sorted_nodes
-            if node.type == NodeType.TERMINATE
+            # TODO: replace with actual leaves method
+            if node.type == NodeType.TERMINATE and node.hierarchy is None
         ]
         statuses = leaves | "Join Terminate Nodes" >> beam.Flatten()
         result = {
@@ -216,23 +217,32 @@ class __PipelineBuilder:
         if not node.dependencies:
             return self.pipeline
 
-        dependencies = list(node.dependencies.values())
-        if len(dependencies) == 1:
-            return self.collections[str(dependencies[0])]
+        dependency_definitions = list(node.dependencies.values())
+        if len(dependency_definitions) == 1:
+            return self.collections[str(dependency_definitions[0])]
 
-        deps = {str(d): self.collections[str(d)] for d in dependencies}
-        return deps | f"Join Deps: {node.name}" >> beam.CoGroupByKey()
+        deps = {str(d): self.collections[str(d)] for d in dependency_definitions}
+        return deps | f"Join Deps: {node.id}" >> beam.CoGroupByKey()
 
     def __build_step(self, pcoll: PCollection, node: BeamNode) -> None:
         if node.type == NodeType.TRANSFORM:
-            output = pcoll | f"Transform: {node.name}" >> node.op()
-            self.collections[node.name] = output
+            output = pcoll | f"Transform: {node.id}" >> node.op()
+            self.collections[node.id] = output
+
+        elif node.type == NodeType.TERMINATE:
+            output = pcoll | f"Terminate: {node.id}" >> node.op()
+            self.collections[node.id] = output
+
+        elif node.type == NodeType.DATA_INPUT:
+            output = pcoll | f"Data Input: {node.id}" >> node.op()
+            self.collections[node.id] = output.data
+            self.metadata[node.id] = output.metadata
 
         elif node.type == NodeType.BRANCH:
-            output = pcoll | f"Branch: {node.name}" >> node.op()
+            output = pcoll | f"Branch: {node.id}" >> node.op()
 
-            for output_name in node.outputs:
-                branch_name = f"{node.name}.{output_name}"
+            for output_name in node.choices:
+                branch_name = f"{node.id}.{output_name}"
                 filter_value = (
                     self.pipeline
                     | f"[{branch_name}] Create Filter Value: {output_name}"
@@ -246,15 +256,6 @@ class __PipelineBuilder:
                         v=AsSingleton(filter_value),
                     )
                 )
-
-        elif node.type == NodeType.TERMINATE:
-            output = pcoll | f"Terminate: {node.name}" >> node.op()
-            self.collections[node.name] = output
-
-        elif node.type == NodeType.DATA_INPUT:
-            output = pcoll | f"Data Input: {node.name}" >> node.op()
-            self.collections[node.name] = output.data
-            self.metadata[node.name] = output.metadata
 
         else:
             raise NotImplementedError(f"Node type: {node.type.value}")

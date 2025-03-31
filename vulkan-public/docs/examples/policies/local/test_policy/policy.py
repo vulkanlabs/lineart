@@ -1,5 +1,5 @@
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes import BranchNode, DataInputNode, TerminateNode
+from vulkan_public.spec.nodes.base import BranchNode, DataInputNode, TerminateNode
 from vulkan_public.spec.policy import PolicyDefinition
 
 data_source = DataInputNode(
@@ -25,7 +25,7 @@ branch = BranchNode(
     dependencies={
         "bureau": Dependency(data_source.name),
     },
-    outputs=["approved", "denied"],
+    choices=["approved", "denied"],
 )
 
 approved = TerminateNode(

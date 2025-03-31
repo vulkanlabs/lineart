@@ -4,9 +4,7 @@ from vulkan_public.exceptions import (
     InvalidDefinitionError,
     UserImportException,
 )
-from vulkan_public.spec.component import ComponentDefinition
 from vulkan_public.spec.environment.packing import find_definitions
-from vulkan_public.spec.environment.workspace import VulkanCodeLocation
 from vulkan_public.spec.policy import PolicyDefinition
 
 
@@ -33,14 +31,3 @@ def load_single_definition(module_name: str, definition_type: type):
 
 def load_policy_definition(module_name: str) -> PolicyDefinition:
     return load_single_definition(module_name, PolicyDefinition)
-
-
-def load_component_definition_from_alias(
-    alias: str, components_base_dir: str
-) -> ComponentDefinition:
-    code_location = VulkanCodeLocation.from_workspace(f"{components_base_dir}/{alias}")
-    return load_component_definition(code_location.module_name)
-
-
-def load_component_definition(module_name: str) -> ComponentDefinition:
-    return load_single_definition(module_name, ComponentDefinition)

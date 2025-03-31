@@ -2,7 +2,7 @@ import json
 from enum import Enum
 
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes import (
+from vulkan_public.spec.nodes.base import (
     BranchNode,
     DataInputNode,
     TerminateNode,
@@ -67,7 +67,7 @@ branch_1 = BranchNode(
     name="branch_1",
     description="BranchNode data",
     dependencies={"scores": Dependency(process_data.name)},
-    outputs=["approved", "analysis", "denied"],
+    choices=["approved", "analysis", "denied"],
 )
 
 approved = TerminateNode(

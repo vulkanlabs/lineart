@@ -1,10 +1,17 @@
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Any, Callable
 
-from vulkan_public.spec.component import ComponentInstance
-from vulkan_public.spec.dependency import INPUT_NODE
+from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 from vulkan_public.spec.graph import GraphDefinition
-from vulkan_public.spec.nodes import Node, NodeType
+from vulkan_public.spec.nodes import (
+    BranchNode,
+    DataInputNode,
+    InputNode,
+    TerminateNode,
+    TransformNode,
+)
+from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
+from vulkan_public.spec.nodes.metadata import PolicyNodeMetadata
 
 
 @dataclass
@@ -42,11 +49,6 @@ class PolicyDefinition(GraphDefinition):
     output_callback : Callable, optional
         A callback that is called when the policy finishes execution.
         The callback receives the output of the policy as input.
-    components : list[ComponentInstance], optional
-        The components used in the policy.
-        Components are reusable blocks of code that can be used in multiple
-        policies. They are defined using a `ComponentDefinition`, and can be
-        instantiated multiple times with different configurations.
     config_variables : list[str], optional
         The configuration variables that are used to parameterize policy.
         They provide a way to customize the behavior of the policy without
@@ -57,11 +59,10 @@ class PolicyDefinition(GraphDefinition):
     nodes: list[Node]
     input_schema: dict[str, type]
     output_callback: Callable | None = None
-    components: list[ComponentInstance] = field(default_factory=list)
     config_variables: list[str] = field(default_factory=list)
 
     def __post_init__(self):
-        # TODO: Perform type checking with pydantic.
+        super().__post_init__()
         if self.output_callback is not None:
             if not callable(self.output_callback):
                 raise ValueError("Output callback must be a callable")
@@ -72,28 +73,105 @@ class PolicyDefinition(GraphDefinition):
             ):
                 raise ValueError("config_variables must be a list of strings")
 
-        self.validate_nodes()
-
-        nodes = {node.name: node.dependencies for node in self.nodes}
-        nodes.update({c.config.name: c.config.dependencies for c in self.components})
-        self.validate_node_dependencies(nodes)
-
-    def validate_nodes(self):
-        # TODO: we should assert that all leaves are terminate nodes
-        terminate_nodes = [
-            node for node in self.nodes if node.type == NodeType.TERMINATE
-        ]
-        if len(terminate_nodes) == 0:
-            raise ValueError("No terminate node found in policy.")
-
-        nodes = {node.name: node for node in self.nodes}
-        components = {c.config.name: c.config for c in self.components}
         for node in self.nodes:
-            for dependency in node.dependencies.values():
-                if dependency.node in components or dependency.node == INPUT_NODE:
-                    continue
+            if node.name == INPUT_NODE:
+                raise ValueError(f"Node name`{INPUT_NODE}` is reserved")
 
-                if nodes[dependency.node].type == NodeType.TERMINATE:
-                    raise ValueError(
-                        f"Node {node.name} depends on terminate node {dependency}"
-                    )
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "nodes": [node.to_dict() for node in self.nodes],
+            "input_schema": self.input_schema,
+            "output_callback": self.output_callback,
+            "config_variables": self.config_variables,
+        }
+
+    @classmethod
+    def from_dict(self, spec: dict[str, Any]) -> "PolicyDefinition":
+        nodes = [node_from_spec(node) for node in spec["nodes"]]
+        return PolicyDefinition(
+            nodes=nodes,
+            input_schema=spec["input_schema"],
+            output_callback=spec.get("output_callback", None),
+            config_variables=spec.get("config_variables", []),
+        )
+
+
+class PolicyDefinitionNode(Node):
+    """A node that represents a policy definition.
+    Policy nodes are used to "invoke" policies from within other policies.
+    They're used to insert additional metadata for the policy so that it
+    can be appropriately connectied to the rest of the workflow.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        policy_definition: PolicyDefinition,
+        description: str | None = None,
+        dependencies: dict[str, Dependency] | None = None,
+    ):
+        super().__init__(
+            name=name,
+            description=description,
+            typ=NodeType.POLICY,
+            dependencies=dependencies,
+        )
+        self.policy_definition = policy_definition
+
+    def node_definition(self) -> NodeDefinition:
+        return NodeDefinition(
+            name=self.name,
+            description=self.description,
+            node_type=self.type.value,
+            dependencies=self.dependencies,
+            metadata=PolicyNodeMetadata(self.policy_definition),
+        )
+
+    @classmethod
+    def from_dict(cls, spec: dict[str, Any]) -> "PolicyDefinitionNode":
+        definition = NodeDefinition.from_dict(spec)
+        if definition.node_type != NodeType.POLICY.value:
+            raise ValueError(f"Expected NodeType.POLICY, got {definition.node_type}")
+        if definition.metadata is None or definition.metadata.policy_definition is None:
+            raise ValueError("Missing policy definition metadata")
+
+        policy_def = PolicyDefinition.from_dict(definition.metadata.policy_definition)
+        return cls(
+            name=definition.name,
+            description=definition.description,
+            dependencies=definition.dependencies,
+            policy_definition=policy_def,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "node_type": self.type.value,
+            "description": self.description,
+            "dependencies": self.dependencies,
+            "metadata": {
+                "policy_definition": self.policy_definition.to_dict(),
+            },
+        }
+
+
+def node_from_spec(spec: dict[str, Any]) -> Node:
+    node_type = spec.get("node_type")
+    if node_type is None:
+        raise ValueError("Missing node_type")
+
+    node_type = NodeType(node_type)
+    if node_type == NodeType.TRANSFORM:
+        return TransformNode.from_dict(spec)
+    elif node_type == NodeType.TERMINATE:
+        return TerminateNode.from_dict(spec)
+    elif node_type == NodeType.INPUT:
+        return InputNode.from_dict(spec)
+    elif node_type == NodeType.DATA_INPUT:
+        return DataInputNode.from_dict(spec)
+    elif node_type == NodeType.BRANCH:
+        return BranchNode.from_dict(spec)
+    elif node_type == NodeType.POLICY:
+        return PolicyDefinitionNode.from_dict(spec)
+    else:
+        raise ValueError(f"Unsupported node type: {node_type}")

@@ -1,5 +1,0 @@
-name: test_component
-description: ""
-packaging:
-  mode: python_package
-  entrypoint: test_component

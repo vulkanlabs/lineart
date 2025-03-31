@@ -5,6 +5,8 @@ description = "A monorepo for all Vulkan projects."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "google-cloud-aiplatform>=1.85.0",
+    "networkx>=3.4.2",
     "vulkan",
     "vulkan-public",
     "vulkan-server",
@@ -15,6 +17,8 @@ dev-dependencies = [
     "questionary>=2.0.1",
     "pre-commit>=4",
     "ruff>=0.9.6",
+    "jupyterlab>=4.3.6",
+    "ipython-autotime>=0.3.2",
 ]
 
 [tool.uv.workspace]
