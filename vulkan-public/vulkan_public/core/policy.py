@@ -84,9 +84,10 @@ def _make_input_node(input_schema) -> InputNode:
 def resolve(nodes: list[Node]) -> list[Node]:
     """Resolve a Policy Definition into a Policy.
     The resolution step consists of a couple of things:
-    # 1. Expand components into their inner nodes;
-    2. Resolving any policy definition node into their corresponding policy;
-    3. Resolving dependencies between the previously expanded nodes;
+    1. Resolve any policy definition node into their corresponding policy;
+    2. Join the outputs of each subpolicy into a single node;
+    3. Remove the subpolicy nodes from the list of nodes;
+    4. Update the dependencies for nodes that depend on subpolicies.
     """
     node_map = {node.id: node for node in nodes}
     resolved = []
