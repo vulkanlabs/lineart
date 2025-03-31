@@ -15,6 +15,7 @@ dependencies = [
     "cookiecutter>=2.6.0",
     "pandas>=2.2.3",
     "graphviz>=0.20.3",
+    "networkx>=3.4.2",
 ]
 
 [tool.uv]
