@@ -398,4 +398,3 @@ def _identity(**kwargs):
     if len(kwargs) == 1:
         return list(kwargs.values())[0]
     return kwargs
-    return kwargs
