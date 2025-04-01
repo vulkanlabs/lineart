@@ -1,11 +1,11 @@
 import { Node, NodeProps, XYPosition } from "@xyflow/react";
 import { nanoid } from "nanoid";
 
-import { NODE_SIZE } from "./base";
+// import { NODE_SIZE } from "./base";
+export const NODE_SIZE = { width: 320, height: 50 };
 
 export type WorkflowNodeData = {
-    title?: string;
-    label?: string;
+    name?: string;
     // icon?: keyof typeof iconMapping;
     icon?: string;
     minHeight?: number;
@@ -15,7 +15,7 @@ export type WorkflowNodeData = {
 
 export type NodeConfig = {
     id: string;
-    title: string;
+    name: string;
     icon: string;
     height?: number;
     width?: number;
@@ -24,39 +24,92 @@ export type NodeConfig = {
 export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
     "input-node": {
         id: "input-node",
-        title: "Input Node",
+        name: "Input Node",
+        width: 260,
+        height: 50,
         icon: null,
     },
     "connection-node": {
         id: "connection-node",
-        title: "Connection Node",
+        name: "Connection Node",
         icon: "Link",
     },
     "data-source-node": {
         id: "data-source-node",
-        title: "Data Source Node",
+        name: "Data Source Node",
         icon: "ArrowDown01",
     },
     "transform-node": {
         id: "transform-node",
-        title: "Transform Node",
+        name: "Transform Node",
+        width: 400,
         height: 300,
-        width: 600,
         icon: "Code2",
     },
     "branch-node": {
         id: "branch-node",
-        title: "Branch Node",
+        name: "Branch Node",
+        width: 500,
+        height: 500,
         icon: "Split",
     },
     "terminate-node": {
         id: "terminate-node",
-        title: "Terminate Node",
-        height: 200,
+        name: "Terminate Node",
         width: 400,
+        height: 200,
         icon: "ArrowRightFromLine",
     },
 };
+
+export type NodeDependency = {
+    node: string;
+    output?: string | null;
+    key?: string | null;
+};
+
+export type GenericNodeDefinition<MetadataType> = {
+    name: string;
+    node_type: string;
+    // description: string;
+    metadata?: MetadataType;
+    dependencies?: NodeDependency[];
+};
+
+export type TerminateNodeMetadata = {
+    returnStatus: string;
+};
+
+export type TransformNodeMetadata = {
+    sourceCode: string;
+};
+
+export type BranchNodeMetadata = {
+    sourceCode: string;
+    choices: string[];
+};
+
+export type NodeDefinition = GenericNodeDefinition<
+    TerminateNodeMetadata | TransformNodeMetadata | BranchNodeMetadata
+>;
+
+function initMetadata(type: VulkanNodeType) {
+    if (type === "terminate-node") {
+        return {
+            returnStatus: "",
+        };
+    } else if (type === "transform-node") {
+        return {
+            sourceCode: "",
+        };
+    } else if (type === "branch-node") {
+        return {
+            sourceCode: "",
+            choices: ["", ""],
+        };
+    }
+    return {};
+}
 
 export function createNodeByType({
     type,
@@ -70,22 +123,25 @@ export function createNodeByType({
     data?: WorkflowNodeData;
 }): VulkanNode {
     const node = nodesConfig[type];
+    const width = node.width ?? NODE_SIZE.width;
+    const height = node.height ?? NODE_SIZE.height;
+    const metadata = initMetadata(type);
 
     const newNode: VulkanNode = {
         id: id ?? nanoid(),
         data: data ?? {
-            title: node.title,
-            // status: node.status,
-            minHeight: node.height,
-            minWidth: node.width,
+            name: node.name,
+            minWidth: width,
+            minHeight: height,
             icon: node.icon,
+            metadata: metadata,
         },
         position: {
-            x: position.x - NODE_SIZE.width * 0.5,
-            y: position.y - NODE_SIZE.height * 0.5,
+            x: position.x - width * 0.5,
+            y: position.y - height * 0.5,
         },
-        height: node.height ?? NODE_SIZE.height,
-        width: node.width ?? NODE_SIZE.width,
+        width: width,
+        height: height,
         type,
     };
 

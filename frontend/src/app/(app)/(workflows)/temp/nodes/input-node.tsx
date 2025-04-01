@@ -1,7 +1,9 @@
 import { Position } from "@xyflow/react";
 
 import { BaseHandle } from "@/components/flow/base-handle";
-import { NODE_SIZE, HANDLE_STYLE } from "./base";
+import { HANDLE_STYLE } from "./base";
+
+export const NODE_SIZE = { width: 260, height: 50 };
 
 export function InputNode({ id, data, selected, height, width }) {
     return (
@@ -11,7 +13,7 @@ export function InputNode({ id, data, selected, height, width }) {
             className="react-flow__node-default"
         >
             <div>Input</div>
-            <BaseHandle type="source" position={Position.Bottom} style={{ ...HANDLE_STYLE }} />
+            <BaseHandle type="source" position={Position.Right} style={{ ...HANDLE_STYLE }} />
         </div>
     );
 }

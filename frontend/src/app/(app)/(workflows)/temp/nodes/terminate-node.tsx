@@ -28,6 +28,7 @@ export function TerminateNode({ id, data, selected, height, width }) {
             height={height}
             width={width}
             isOutput
+            notPlayable
         >
             <div className="flex flex-col gap-1 space-y-2 p-3">
                 <span>Return status:</span>

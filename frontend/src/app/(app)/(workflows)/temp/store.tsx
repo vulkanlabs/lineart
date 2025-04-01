@@ -13,7 +13,11 @@ import {
     type Edge,
 } from "@xyflow/react";
 
-import { VulkanNode, VulkanNodeType, createNodeByType } from "./nodes";
+import { VulkanNode, VulkanNodeType, createNodeByType, NodeDefinition, BranchNodeMetadata } from "./nodes";
+
+export type GraphDefinition = {
+    [key: string]: NodeDefinition;
+};
 
 type WorkflowState = {
     nodes: VulkanNode[];
@@ -21,6 +25,7 @@ type WorkflowState = {
 };
 
 type WorkflowActions = {
+    getSpec: () => GraphDefinition;
     onNodesChange: OnNodesChange<VulkanNode>;
     setNodes: (nodes: VulkanNode[]) => void;
     addNode: (node: VulkanNode) => void;
@@ -51,6 +56,42 @@ type WorkflowStore = WorkflowState & WorkflowActions;
 const createWorkflowStore = (initProps: WorkflowState = defaultState) => {
     return createStore<WorkflowStore>()((set, get) => ({
         ...initProps,
+
+        getSpec: () => {
+            const nodes = get().nodes;
+            const edges = get().edges;
+
+            const spec: GraphDefinition = {};
+
+            nodes.forEach((node) => {
+                spec[node.id] = {
+                    name: node.data.name,
+                    node_type: node.type,
+                    // description: node.data.description,
+                    metadata: node.data.metadata,
+                };
+            });
+
+            edges.forEach((edge) => {
+                const sourceNode = spec[edge.source];
+                const targetNode = spec[edge.target];
+                let output = null;
+
+                if (sourceNode.node_type === "branch-node") {
+                    const metadata = sourceNode.metadata as BranchNodeMetadata;
+                    output = metadata.choices[edge.sourceHandle]
+                }
+ 
+                if (sourceNode && targetNode) {
+                    targetNode.dependencies = [
+                        ...(targetNode.dependencies || []),
+                        { node: sourceNode.name, output: output },
+                    ];
+                }
+            });
+
+            return spec;
+        },
 
         onNodesChange: async (changes) => {
             const nextNodes = applyNodeChanges(changes, get().nodes);

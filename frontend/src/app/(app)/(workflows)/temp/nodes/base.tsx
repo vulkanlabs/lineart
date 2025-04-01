@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
-import { Play, Link, ArrowRightFromLine, Split, ArrowDown01, Code2 } from "lucide-react";
-import { Node, NodeProps, Handle, Position, XYPosition, NodeResizer } from "@xyflow/react";
+import { Play, FoldVertical, UnfoldVertical, PanelRight } from "lucide-react";
+import { Node, NodeProps, Position, XYPosition, NodeResizer } from "@xyflow/react";
+import { useShallow } from "zustand/react/shallow";
 
 import { BaseNode } from "@/components/flow/base-node";
 import { BaseHandle } from "@/components/flow/base-handle";
@@ -13,14 +14,16 @@ import {
     NodeHeaderDeleteAction,
     NodeHeaderIcon,
 } from "@/components/flow/node-header";
+import { cn } from "@/lib/utils";
 
+import { useWorkflowStore } from "../store";
 import { iconMapping } from "./icons";
 
-export const NODE_SIZE = { width: 260, height: 50 };
+export const NODE_SIZE = { width: 350, height: 50 };
 
 export const HANDLE_STYLE = {
-    width: 11,
-    height: 11,
+    width: 12,
+    height: 12,
     borderRadius: "9999px",
     borderWidth: "1px",
     borderColor: "#cbd5e1",
@@ -30,24 +33,57 @@ export const HANDLE_STYLE = {
 export function WorkflowNode({
     id,
     data,
-    height,
     width,
+    height,
     selected,
     isOutput,
+    notPlayable,
     children,
 }: {
     id: string;
     // data: WorkflowNodeData;
     data: any;
-    height?: number;
     width?: number;
+    height?: number;
     selected?: boolean;
     isOutput?: boolean;
+    notPlayable?: boolean;
     children?: React.ReactNode;
 }) {
     const [isNameEditing, setIsNameEditing] = useState(false);
-    const [nodeName, setNodeName] = useState(data?.title ?? "New Node");
-    const onClick = useCallback(() => {}, []);
+    const [showDetails, setShowDetails] = useState(true);
+
+    const { updateNodeData } = useWorkflowStore(
+        useShallow((state) => ({
+            updateNodeData: state.updateNodeData,
+        })),
+    );
+    const setNodeName = useCallback(
+        (name: string) => {
+            updateNodeData(id, { ...data, name: name });
+        },
+        [id, data, updateNodeData],
+    );
+
+    const openPanel = useCallback(() => {
+        // openPanel(id);
+    }, [id]);
+
+    const toggleDetails = () => {
+        setShowDetails((prev) => !prev);
+        // onNodesChange([
+        //     {
+        //         id: id,
+        //         type: "dimensions",
+        //         resizing: true,
+        //         setAttributes: true,
+        //         dimensions: {
+        //             width: width,
+        //             height: newHeight,
+        //         },
+        //     },
+        // ] as NodeChange<VulkanNode>[]);
+    };
 
     const toggleNameEditor = useCallback(() => {
         setIsNameEditing((prev) => !prev);
@@ -73,41 +109,51 @@ export function WorkflowNode({
                     height: height ?? NODE_SIZE.height,
                 }}
             >
-                <NodeHeader>
-                    <NodeHeaderIcon>
-                        {IconComponent ? <IconComponent aria-label={data?.icon} /> : null}
-                    </NodeHeaderIcon>
-                    {isNameEditing ? (
-                        <input
-                            value={nodeName}
-                            onChange={(e) => setNodeName(e.target.value)}
-                            onBlur={toggleNameEditor}
-                            autoFocus
-                        />
-                    ) : (
-                        <NodeHeaderTitle
-                            onDoubleClick={toggleNameEditor}
-                            className="overflow-hidden whitespace-nowrap text-ellipsis"
-                        >
-                            {nodeName}
-                        </NodeHeaderTitle>
-                    )}
-                    <NodeHeaderActions>
-                        <NodeHeaderAction onClick={onClick} label="Run node">
-                            <Play className="stroke-blue-500 fill-blue-500" />
-                        </NodeHeaderAction>
-                        <NodeHeaderDeleteAction />
-                    </NodeHeaderActions>
-                </NodeHeader>
-                <BaseHandle type="target" position={Position.Top} style={{ ...HANDLE_STYLE }} />
+                <div className="h-full flex flex-col gap-1">
+                    <NodeHeader>
+                        <NodeHeaderIcon>
+                            {IconComponent ? <IconComponent aria-label={data?.icon} /> : null}
+                        </NodeHeaderIcon>
+                        {isNameEditing ? (
+                            <input
+                                value={data.name}
+                                onChange={(e) => setNodeName(e.target.value)}
+                                onBlur={toggleNameEditor}
+                                autoFocus
+                            />
+                        ) : (
+                            <NodeHeaderTitle
+                                onDoubleClick={toggleNameEditor}
+                                className="overflow-hidden whitespace-nowrap text-ellipsis"
+                            >
+                                {data.name}
+                            </NodeHeaderTitle>
+                        )}
+                        <NodeHeaderActions>
+                            <NodeHeaderAction onClick={openPanel} label="Fold/Unfold">
+                                <PanelRight />
+                            </NodeHeaderAction>
+                            <NodeHeaderAction onClick={toggleDetails} label="Fold/Unfold">
+                                {showDetails ? <FoldVertical /> : <UnfoldVertical />}
+                            </NodeHeaderAction>
+                            {notPlayable ?? (
+                                <NodeHeaderAction onClick={() => {}} label="Run node">
+                                    <Play className="stroke-blue-500 fill-blue-500" />
+                                </NodeHeaderAction>
+                            )}
+                            <NodeHeaderDeleteAction />
+                        </NodeHeaderActions>
+                    </NodeHeader>
+                    {showDetails && children}
+                </div>
+                <BaseHandle type="target" position={Position.Left} style={{ ...HANDLE_STYLE }} />
                 {isOutput ?? (
                     <BaseHandle
                         type="source"
-                        position={Position.Bottom}
+                        position={Position.Right}
                         style={{ ...HANDLE_STYLE }}
                     />
                 )}
-                {children}
             </BaseNode>
         </>
         // </NodeStatusIndicator>

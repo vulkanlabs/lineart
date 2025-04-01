@@ -53,6 +53,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick }) {
     const {
         nodes,
         edges,
+        getSpec,
         addNodeByType,
         getNodes,
         getEdges,
@@ -63,6 +64,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick }) {
         useShallow((state) => ({
             nodes: state.nodes,
             edges: state.edges,
+            getSpec: state.getSpec,
             addNodeByType: state.addNodeByType,
             getNodes: state.getNodes,
             getEdges: state.getEdges,
@@ -75,10 +77,12 @@ function VulkanWorkflow({ onNodeClick, onPaneClick }) {
     const { fitView, screenToFlowPosition } = useReactFlow();
 
     const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
-    const { isOpen, connectingNode, toggleDropdown, ref } = useDropdown();
+    const { isOpen, connectingHandle, toggleDropdown, ref } = useDropdown();
 
     useEffect(() => {
-        console.log(nodes);
+        // console.log(nodes);
+        // console.log(getSpec());
+        console.log(JSON.stringify(getSpec()));
     }, [nodes]);
 
     const clickNode = (e, node) => {};
@@ -117,7 +121,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick }) {
                 "changedTouches" in event ? event.changedTouches[0] : event;
 
             setDropdownPosition({ x: clientX, y: clientY });
-            toggleDropdown(connectionState.fromNode.id);
+            toggleDropdown(connectionState.fromHandle);
         }
     }, []);
 
@@ -130,9 +134,9 @@ function VulkanWorkflow({ onNodeClick, onPaneClick }) {
             }),
         );
         onConnect({
-            source: connectingNode,
+            source: connectingHandle.nodeId,
             target: nodeId,
-            sourceHandle: null,
+            sourceHandle: connectingHandle.id,
             targetHandle: null,
         });
     }
@@ -216,12 +220,12 @@ function AppDropdownMenu({
                     .map((item) => {
                         const IconComponent = item?.icon ? iconMapping[item.icon] : undefined;
                         return (
-                            <a key={item.title} onMouseDown={() => onAddNode(item.id)}>
+                            <a key={item.name} onMouseDown={() => onAddNode(item.id)}>
                                 <DropdownMenuItem className="flex items-center space-x-2">
                                     {IconComponent ? (
                                         <IconComponent aria-label={item?.icon} />
                                     ) : null}
-                                    <span>New {item.title}</span>
+                                    <span>New {item.name}</span>
                                 </DropdownMenuItem>
                             </a>
                         );

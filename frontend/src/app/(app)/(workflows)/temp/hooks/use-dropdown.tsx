@@ -3,17 +3,17 @@ import { useEffect, useRef, useState } from "react";
 
 export function useDropdown() {
     const [isOpen, setIsOpen] = useState(false);
-    const [connectingNode, setConnectingNode] = useState(null);
+    const [connectingHandle, setConnectingHandle] = useState(null);
     const ref = useRef<HTMLDivElement>(null);
 
-    const toggleDropdown = (connectingNode) => {
+    const toggleDropdown = (connectingHandle) => {
         setIsOpen((prev) => !prev)
-        setConnectingNode(connectingNode);
+        setConnectingHandle(connectingHandle);
     };
 
     const closeDropdown = () => {
         setIsOpen(false);
-        setConnectingNode(null);
+        setConnectingHandle(null);
     }
 
     useEffect(() => {
@@ -32,5 +32,5 @@ export function useDropdown() {
         };
     }, [isOpen]);
 
-    return { isOpen, connectingNode, toggleDropdown, closeDropdown, ref };
+    return { isOpen, connectingHandle, toggleDropdown, closeDropdown, ref };
 }
