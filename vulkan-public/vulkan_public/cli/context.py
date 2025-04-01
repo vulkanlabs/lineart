@@ -3,7 +3,6 @@ import os
 import click
 from requests import Session
 
-from vulkan_public.cli.auth import LoginContext
 from vulkan_public.cli.logger import init_logger
 
 
@@ -26,4 +25,3 @@ class CliContext(Context):
 
 
 pass_context = click.make_pass_decorator(CliContext, ensure=True)
-pass_login_context = click.make_pass_decorator(LoginContext, ensure=True)
