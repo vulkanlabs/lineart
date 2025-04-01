@@ -5,7 +5,6 @@ from . import (
     files,
     policies,
     policy_versions,
-    projects,
     runs,
     users,
 )

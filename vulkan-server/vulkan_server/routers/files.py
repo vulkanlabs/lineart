@@ -3,10 +3,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from sqlalchemy.orm import Session
-from vulkan.backtest.definitions import SupportedFileFormat
 
+from vulkan.backtest.definitions import SupportedFileFormat
 from vulkan_server import definitions, schemas
-from vulkan_server.auth import get_project_id
 from vulkan_server.db import UploadedFile, get_db
 from vulkan_server.services.file_ingestion import VulkanFileIngestionServiceClient
 
@@ -19,25 +18,20 @@ router = APIRouter(
 
 @router.get("/", response_model=list[schemas.UploadedFile])
 def list_uploaded_files(
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    filters = dict(project_id=project_id)
-
-    files = db.query(UploadedFile).filter_by(**filters).all()
+    files = db.query(UploadedFile).all()
     if len(files) == 0:
         return Response(status_code=204)
     return files
 
 
 def _make_file_input_service(
-    project_id: str = Depends(get_project_id),
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
     ),
 ) -> VulkanFileIngestionServiceClient:
     return VulkanFileIngestionServiceClient(
-        project_id=project_id,
         server_url=server_config.upload_service_url,
     )
 
@@ -48,7 +42,6 @@ async def upload_file(
     file_format: Annotated[SupportedFileFormat, Form()],
     schema: Annotated[str, Form()],
     file_name: str | None = None,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     file_input_client=Depends(_make_file_input_service),
 ):
@@ -64,7 +57,6 @@ async def upload_file(
         raise HTTPException(status_code=500, detail={"msg": str(e)})
 
     uploaded_file = UploadedFile(
-        project_id=project_id,
         file_name=file_name,
         file_path=file_info["file_path"],
         file_schema=schema,

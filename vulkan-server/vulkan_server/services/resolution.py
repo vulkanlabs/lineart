@@ -2,7 +2,6 @@ from fastapi import Depends, Response
 from requests import Request, Session
 
 from vulkan_server import definitions
-from vulkan_server.auth import get_project_id
 from vulkan_server.exceptions import raise_interservice_error
 from vulkan_server.logger import init_logger
 
@@ -14,10 +13,8 @@ class ResolutionServiceClient:
 
     def __init__(
         self,
-        project_id: str,
         server_url: str,
     ) -> None:
-        self.project_id = project_id
         self.server_url = server_url
         self.session = Session()
 
@@ -63,12 +60,10 @@ class ResolutionServiceClient:
 
 
 def get_resolution_service_client(
-    project_id: str = Depends(get_project_id),
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
     ),
 ) -> ResolutionServiceClient:
     return ResolutionServiceClient(
-        project_id=project_id,
         server_url=server_config.resolution_service_url,
     )

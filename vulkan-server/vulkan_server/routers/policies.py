@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 
 from vulkan.core.run import RunStatus
 from vulkan_server import definitions, schemas
-from vulkan_server.auth import AuthContext, get_auth_context, get_project_id
 from vulkan_server.dagster.client import get_dagster_client
 from vulkan_server.dagster.launch_run import allocate_runs
 from vulkan_server.db import (
@@ -34,11 +33,10 @@ router = APIRouter(
 
 @router.get("/", response_model=list[schemas.Policy])
 def list_policies(
-    project_id: str = Depends(get_project_id),
     include_archived: bool = False,
     db: Session = Depends(get_db),
 ):
-    filters = dict(project_id=project_id)
+    filters = dict()
     if not include_archived:
         filters["archived"] = False
 
@@ -51,11 +49,10 @@ def list_policies(
 @router.post("/", response_model=schemas.Policy)
 def create_policy(
     config: schemas.PolicyCreate,
-    auth: AuthContext = Depends(get_auth_context),
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
 ):
-    policy = Policy(project_id=auth.project_id, **config.model_dump())
+    policy = Policy(**config.model_dump())
     db.add(policy)
     db.commit()
     logger.event(
@@ -67,11 +64,14 @@ def create_policy(
 @router.get("/{policy_id}", response_model=schemas.Policy)
 def get_policy(
     policy_id: str,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     policy = (
-        db.query(Policy).filter_by(policy_id=policy_id, project_id=project_id).first()
+        db.query(Policy)
+        .filter_by(
+            policy_id=policy_id,
+        )
+        .first()
     )
     if policy is None:
         return Response(status_code=404)
@@ -82,13 +82,14 @@ def get_policy(
 def update_policy(
     policy_id: str,
     config: schemas.PolicyBase,
-    auth: AuthContext = Depends(get_auth_context),
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
 ):
     policy = (
         db.query(Policy)
-        .filter_by(policy_id=policy_id, project_id=auth.project_id)
+        .filter_by(
+            policy_id=policy_id,
+        )
         .first()
     )
     if policy is None:
@@ -96,7 +97,8 @@ def update_policy(
         raise HTTPException(status_code=404, detail=msg)
 
     allocation_strategy = _validate_allocation_strategy(
-        db, auth.project_id, config.allocation_strategy
+        db,
+        config.allocation_strategy,
     )
     policy.allocation_strategy = allocation_strategy.model_dump()
 
@@ -164,13 +166,14 @@ def _validate_policy_version(db, project_id, policy_version_id):
 @router.delete("/{policy_id}")
 def delete_policy(
     policy_id: str,
-    auth: AuthContext = Depends(get_auth_context),
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
 ):
     policy = (
         db.query(Policy)
-        .filter_by(policy_id=policy_id, project_id=auth.project_id)
+        .filter_by(
+            policy_id=policy_id,
+        )
         .first()
     )
     if policy is None or policy.archived:
@@ -179,7 +182,10 @@ def delete_policy(
 
     policy_versions = (
         db.query(PolicyVersion)
-        .filter_by(policy_id=policy_id, project_id=auth.project_id, archived=False)
+        .filter_by(
+            policy_id=policy_id,
+            archived=False,
+        )
         .all()
     )
     if len(policy_versions) > 0:
@@ -199,12 +205,10 @@ def delete_policy(
 def list_policy_versions(
     policy_id: str,
     include_archived: bool = False,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     filters = dict(
         policy_id=policy_id,
-        project_id=project_id,
         status=PolicyVersionStatus.VALID,
     )
     if not include_archived:
@@ -224,12 +228,13 @@ def list_policy_versions(
 @router.get("/{policy_id}/runs", response_model=list[schemas.Run])
 def list_runs_by_policy(
     policy_id: str,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     policy_versions = (
         db.query(PolicyVersion)
-        .filter_by(policy_id=policy_id, project_id=project_id)
+        .filter_by(
+            policy_id=policy_id,
+        )
         .all()
     )
     policy_version_ids = [v.policy_version_id for v in policy_versions]
@@ -244,7 +249,6 @@ def create_run_group(
     policy_id: str,
     input_data: Annotated[dict, Body()],
     config_variables: Annotated[dict, Body(default_factory=list)],
-    auth: AuthContext = Depends(get_auth_context),
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
     dagster_client=Depends(get_dagster_client),
@@ -255,7 +259,9 @@ def create_run_group(
     try:
         policy = (
             db.query(Policy)
-            .filter_by(policy_id=policy_id, project_id=auth.project_id)
+            .filter_by(
+                policy_id=policy_id,
+            )
             .first()
         )
     except sqlalchemy.exc.DataError:
@@ -285,7 +291,8 @@ def create_run_group(
         )
 
     run_group = RunGroup(
-        policy_id=policy_id, project_id=auth.project_id, input_data=input_data
+        policy_id=policy_id,
+        input_data=input_data,
     )
     db.add(run_group)
     db.commit()
@@ -303,7 +310,6 @@ def create_run_group(
             db=db,
             dagster_client=dagster_client,
             server_url=server_config.server_url,
-            project_id=auth.project_id,
             input_data=input_data,
             run_group_id=run_group.run_group_id,
             allocation_strategy=strategy,

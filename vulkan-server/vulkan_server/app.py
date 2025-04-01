@@ -2,8 +2,7 @@ import asyncio
 import os
 from contextlib import asynccontextmanager
 
-import requests
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -50,7 +49,6 @@ app.include_router(routers.data.broker)
 app.include_router(routers.files.router)
 app.include_router(routers.policies.router)
 app.include_router(routers.policy_versions.router)
-app.include_router(routers.projects.router)
 app.include_router(routers.runs.router)
 app.include_router(routers.users.router)
 
@@ -60,39 +58,6 @@ logger = init_logger("vulkan_server")
 
 STACK_PROJECT_ID = os.getenv("STACK_PROJECT_ID")
 STACK_SECRET_SERVER_KEY = os.getenv("STACK_SECRET_SERVER_KEY")
-
-
-@app.middleware("http")
-async def auth_user(request: Request, call_next):
-    x_stack_access_token = request.headers.get("x-stack-access-token")
-    x_stack_refresh_token = request.headers.get("x-stack-refresh-token")
-    # TODO: This leaves some endpoints unprotected. We should add a list of
-    # endpoints that should be authenticated through a diffent method (i.e.,
-    # for internal API calls).
-    if not x_stack_access_token or not x_stack_refresh_token:
-        return await call_next(request)
-
-    url = "https://api.stack-auth.com/api/v1/users/me"
-    headers = {
-        "x-stack-access-type": "server",
-        "x-stack-project-id": STACK_PROJECT_ID,
-        "x-stack-secret-server-key": STACK_SECRET_SERVER_KEY,
-        "x-stack-access-token": x_stack_access_token,
-        "x-stack-refresh-token": x_stack_refresh_token,
-    }
-    response = requests.get(url, headers=headers)
-    user_id = response.json().get("id", None)
-
-    if user_id is None:
-        return JSONResponse(content="Unauthorized", status_code=401)
-
-    # Create a new headers object with the user id entry.
-    # We add this both to the headers and the scope for consistency.
-    headers = request.headers.mutablecopy()
-    headers.append("x-user-id", user_id)
-    request._headers = headers
-    request.scope["headers"] = request.headers.raw
-    return await call_next(request)
 
 
 class ErrorResponse(BaseModel):

@@ -4,8 +4,8 @@ from typing import Any
 
 from fastapi import Response
 from requests import Request, Session
-from vulkan.backtest.definitions import SupportedFileFormat
 
+from vulkan.backtest.definitions import SupportedFileFormat
 from vulkan_server.exceptions import raise_interservice_error
 from vulkan_server.logger import init_logger
 
@@ -15,8 +15,7 @@ logger = init_logger("services")
 class VulkanFileIngestionServiceClient:
     """Client to interact with the file ingestion service."""
 
-    def __init__(self, project_id: str, server_url: str) -> "None":
-        self.project_id = project_id
+    def __init__(self, server_url: str) -> "None":
         self.server_url = server_url
         self.session = Session()
 
@@ -31,7 +30,6 @@ class VulkanFileIngestionServiceClient:
             method="POST",
             url="/file",
             params={
-                "project_id": self.project_id,
                 "file_format": file_format.value,
                 "schema": json.dumps(schema),
             },

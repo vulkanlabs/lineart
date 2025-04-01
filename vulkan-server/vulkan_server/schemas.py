@@ -235,7 +235,6 @@ class RunLogs(BaseModel):
 
 class DataSource(DataSourceSpec):
     data_source_id: UUID
-    project_id: UUID
     variables: list[str] | None
     archived: bool
     created_at: datetime
@@ -246,7 +245,6 @@ class DataSource(DataSourceSpec):
         spec = data.to_spec()
         return cls(
             data_source_id=data.data_source_id,
-            project_id=data.project_id,
             variables=data.variables,
             archived=data.archived,
             created_at=data.created_at,

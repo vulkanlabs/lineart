@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 
 from vulkan.core.run import JobStatus
 from vulkan_server import schemas
-from vulkan_server.auth import get_project_id
 from vulkan_server.backtest.backtest import ensure_beam_workspace, resolve_backtest_envs
 from vulkan_server.backtest.launcher import BacktestLauncher, get_launcher
 from vulkan_server.backtest.results import ResultsDB, get_results_db
@@ -33,10 +32,9 @@ router = APIRouter(
 @router.get("/", response_model=list[schemas.Backtest])
 def list_backtests(
     policy_version_id: str | None = None,
-    project_id: str = Depends(get_project_id),
     db=Depends(get_db),
 ):
-    filters = dict(project_id=project_id)
+    filters = dict()
     if policy_version_id is not None:
         filters["policy_version_id"] = policy_version_id
 
@@ -54,13 +52,10 @@ def launch_backtest(
     config_variables: Annotated[list[dict] | None, Body()],
     metrics_config: Annotated[schemas.BacktestMetricsConfig | None, Body()] = None,
     db: Session = Depends(get_db),
-    project_id: str = Depends(get_project_id),
     run_launcher: BacktestLauncher = Depends(get_launcher),
 ):
     policy_version = (
-        db.query(PolicyVersion)
-        .filter_by(project_id=project_id, policy_version_id=policy_version_id)
-        .first()
+        db.query(PolicyVersion).filter_by(policy_version_id=policy_version_id).first()
     )
     if policy_version is None:
         raise HTTPException(
@@ -80,7 +75,6 @@ def launch_backtest(
     input_file = (
         db.query(UploadedFile)
         .filter_by(
-            project_id=project_id,
             uploaded_file_id=input_file_id,
         )
         .first()
@@ -113,7 +107,6 @@ def launch_backtest(
         resolved_envs = [{}]
 
     backtest = Backtest(
-        project_id=project_id,
         policy_version_id=policy_version_id,
         input_file_id=input_file_id,
         environments=resolved_envs,
@@ -131,7 +124,6 @@ def launch_backtest(
     for i, env in enumerate(resolved_envs, start=1):
         logger.debug(f"Launching backfill ({i / N})")
         backfill = run_launcher.create_backfill(
-            project_id=project_id,
             backtest_id=backtest.backtest_id,
             workspace=workspace,
             policy_version=policy_version,
@@ -146,14 +138,9 @@ def launch_backtest(
 @router.get("/{backtest_id}/", response_model=schemas.Backtest)
 def get_backtest(
     backtest_id: str,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    backtest = (
-        db.query(Backtest)
-        .filter_by(backtest_id=backtest_id, project_id=project_id)
-        .first()
-    )
+    backtest = db.query(Backtest).filter_by(backtest_id=backtest_id).first()
     if backtest is None:
         raise HTTPException(
             status_code=404,
@@ -166,12 +153,13 @@ def get_backtest(
 @router.get("/{backtest_id}/status", response_model=schemas.BacktestStatus)
 def get_backtest_status(
     backtest_id: str,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     backtest = (
         db.query(Backtest)
-        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .filter_by(
+            backtest_id=backtest_id,
+        )
         .first()
     )
     if backtest is None:
@@ -182,7 +170,9 @@ def get_backtest_status(
 
     backfills = (
         db.query(Backfill)
-        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .filter_by(
+            backtest_id=backtest_id,
+        )
         .all()
     )
     if len(backfills) == 0:
@@ -231,11 +221,10 @@ def launch_metrics_job(
     )
 
     # Attention: This may be specific to GCS, we still need to validate for other FS
-    results_path = f"{launcher.backtest_output_path(backtest.project_id, backtest_id)}/backfills/**"
+    results_path = f"{launcher.backtest_output_path(backtest_id)}/backfills/**"
 
     metrics = launcher.create_metrics(
         backtest_id=backtest_id,
-        project_id=str(backtest.project_id),
         input_data_path=input_file.file_path,
         results_data_path=results_path,
         target_column=backtest.target_column,
@@ -248,12 +237,13 @@ def launch_metrics_job(
 @router.get("/{backtest_id}/metrics", response_model=schemas.BacktestMetrics)
 def get_metrics_job(
     backtest_id: str,
-    project_id=Depends(get_project_id),
     db=Depends(get_db),
 ):
     backtest = (
         db.query(Backtest)
-        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .filter_by(
+            backtest_id=backtest_id,
+        )
         .first()
     )
     if backtest is None:
@@ -263,7 +253,9 @@ def get_metrics_job(
 
     metrics_job = (
         db.query(BacktestMetrics)
-        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .filter_by(
+            backtest_id=backtest_id,
+        )
         .first()
     )
     if metrics_job is None:
@@ -278,13 +270,14 @@ def get_metrics_job(
 @router.get("/{backtest_id}/results")
 def get_backtest_results(
     backtest_id: str,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     results_db: ResultsDB = Depends(get_results_db),
 ):
     backtest = (
         db.query(Backtest)
-        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .filter_by(
+            backtest_id=backtest_id,
+        )
         .first()
     )
     if backtest is None:
@@ -300,7 +293,9 @@ def get_backtest_results(
 
     backfills = (
         db.query(Backfill)
-        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .filter_by(
+            backtest_id=backtest_id,
+        )
         .all()
     )
 
@@ -327,12 +322,13 @@ def get_backtest_metrics(
     target: bool = False,
     time: bool = False,
     column: str | None = None,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     backtest = (
         db.query(Backtest)
-        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .filter_by(
+            backtest_id=backtest_id,
+        )
         .first()
     )
     if backtest is None:
@@ -342,7 +338,9 @@ def get_backtest_metrics(
 
     backtest_metrics = (
         db.query(BacktestMetrics)
-        .filter_by(backtest_id=backtest_id, project_id=project_id)
+        .filter_by(
+            backtest_id=backtest_id,
+        )
         .first()
     )
     if backtest_metrics is None:

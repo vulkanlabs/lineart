@@ -4,10 +4,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
-from vulkan.core.run import RunStatus
 
+from vulkan.core.run import RunStatus
 from vulkan_server import definitions, schemas
-from vulkan_server.auth import get_project_id
 from vulkan_server.dagster.client import DagsterDataClient, get_dagster_client
 from vulkan_server.dagster.launch_run import launch_run
 from vulkan_server.db import Run, RunGroup, StepMetadata, get_db
@@ -25,9 +24,8 @@ router = APIRouter(
 def get_run_data(
     run_id: str,
     db: Session = Depends(get_db),
-    project_id: str = Depends(get_project_id),
 ):
-    run = db.query(Run).filter_by(run_id=run_id, project_id=project_id).first()
+    run = db.query(Run).filter_by(run_id=run_id).first()
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
 
@@ -200,7 +198,6 @@ def _trigger_pending_runs(
                 db=db,
                 dagster_client=dagster_client,
                 server_url=server_url,
-                project_id=run.project_id,
                 run=run,
                 input_data=input_data,
             )

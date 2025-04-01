@@ -5,7 +5,6 @@ from vulkan_public.data_source import DataSourceType
 from vulkan_public.schemas import DataSourceSpec
 
 from vulkan_server import schemas
-from vulkan_server.auth import get_project_id
 from vulkan_server.data.broker import DataBroker
 from vulkan_server.db import (
     DataObject,
@@ -28,11 +27,10 @@ sources = APIRouter(
 
 @sources.get("/", response_model=list[schemas.DataSource])
 def list_data_sources(
-    project_id: str = Depends(get_project_id),
     include_archived: bool = False,
     db: Session = Depends(get_db),
 ):
-    filters = dict(project_id=project_id)
+    filters = dict()
     if not include_archived:
         filters["archived"] = False
     data_sources = db.query(DataSource).filter_by(**filters).all()
@@ -43,10 +41,15 @@ def list_data_sources(
 @sources.post("/")
 def create_data_source(
     spec: DataSourceSpec,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
-    ds = db.query(DataSource).filter_by(project_id=project_id, name=spec.name).first()
+    ds = (
+        db.query(DataSource)
+        .filter_by(
+            name=spec.name,
+        )
+        .first()
+    )
     if ds is not None:
         raise HTTPException(status_code=400, detail="Data source already exists")
 
@@ -66,7 +69,7 @@ def create_data_source(
 
         spec.source.path = uploaded_file.file_path
 
-    data_source = DataSource.from_spec(spec, project_id)
+    data_source = DataSource.from_spec(spec)
     db.add(data_source)
     db.commit()
 
@@ -76,12 +79,13 @@ def create_data_source(
 @sources.get("/{data_source_id}", response_model=schemas.DataSource)
 def get_data_source(
     data_source_id: str,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     data_source = (
         db.query(DataSource)
-        .filter_by(data_source_id=data_source_id, project_id=project_id)
+        .filter_by(
+            data_source_id=data_source_id,
+        )
         .first()
     )
     if data_source is None:
@@ -94,7 +98,6 @@ def get_data_source(
 @sources.delete("/{data_source_id}")
 def delete_data_source(
     data_source_id: str,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     # TODO: ensure this function can only be executed by ADMIN level users
@@ -102,7 +105,6 @@ def delete_data_source(
         db.query(DataSource)
         .filter_by(
             data_source_id=data_source_id,
-            project_id=project_id,
             archived=False,
         )
         .first()
@@ -140,12 +142,13 @@ def delete_data_source(
 )
 def list_data_objects(
     data_source_id: str,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     data_source = (
         db.query(DataSource)
-        .filter_by(data_source_id=data_source_id, project_id=project_id)
+        .filter_by(
+            data_source_id=data_source_id,
+        )
         .first()
     )
     if data_source is None:
@@ -170,12 +173,14 @@ def list_data_objects(
 def get_data_object(
     data_source_id: str,
     data_object_id: str,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     data_object = (
         db.query(DataObject)
-        .filter_by(data_object_id=data_object_id, project_id=project_id)
+        .filter_by(
+            data_source_id=data_source_id,
+            data_object_id=data_object_id,
+        )
         .first()
     )
     if data_object is None:
