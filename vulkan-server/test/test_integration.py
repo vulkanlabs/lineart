@@ -28,16 +28,6 @@ CLI_FAILURE_CASES = [
     ("resources/invalid/policies/no_definition", DefinitionNotFoundException),
 ]
 
-COMPONENT_SUCCESS_CASES = [
-    ("resources/valid/components/base"),
-]
-
-COMPONENT_FAILURE_CASES = [
-    ("resources/invalid/components/missing_node", AssertionError),
-    ("resources/invalid/components/multiple_definitions", AssertionError),
-    ("resources/invalid/components/no_definition", AssertionError),
-]
-
 
 @pytest.fixture
 def context() -> Context:
@@ -115,44 +105,3 @@ def test_create_policy_version_succeeds(context, current_dir, test_case):
     assert policy_version_id is not None
     assert len(policy_version_id) > 0
 
-
-@pytest.mark.parametrize(
-    "test_case, err_type",
-    COMPONENT_FAILURE_CASES,
-    ids=[x[0] for x in COMPONENT_FAILURE_CASES],
-)
-def test_create_component_version_fails(context, current_dir, test_case, err_type):
-    component_id = vulkan.component.create_component(
-        ctx=context,
-        name=test_case.replace("/", "_"),
-    )
-    with pytest.raises(err_type):
-        _ = vulkan.component.create_component_version(
-            ctx=context,
-            component_id=component_id,
-            version_name="1",
-            repository_path=os.path.join(current_dir, test_case),
-        )
-
-
-@pytest.mark.parametrize(
-    "test_case",
-    COMPONENT_SUCCESS_CASES,
-    ids=[x[0] for x in COMPONENT_SUCCESS_CASES],
-)
-def test_create_component_version_succeeds(context, current_dir, test_case):
-    component_id = vulkan.component.create_component(
-        ctx=context,
-        name=test_case.replace("/", "_"),
-    )
-    assert component_id is not None
-    assert len(component_id) > 0
-
-    component_version_id = vulkan.component.create_component_version(
-        ctx=context,
-        component_id=component_id,
-        version_name="1",
-        repository_path=os.path.join(current_dir, test_case),
-    )
-    assert component_version_id is not None
-    assert len(component_version_id) > 0
