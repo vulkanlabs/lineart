@@ -1,8 +1,6 @@
 from . import (
     backfills,
     backtests,
-    component_versions,
-    components,
     data,
     files,
     policies,

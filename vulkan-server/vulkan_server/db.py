@@ -122,7 +122,9 @@ class ProjectUser(TimedUpdateMixin, AuthorizationMixin, Base):
 class LogRecord(AuthorizationMixin, Base):
     __tablename__ = "log_record"
 
-    log_record_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    log_record_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
     level = Column(String)
     message = Column(JSON)
     timestamp = Column(String)
@@ -138,43 +140,6 @@ class Policy(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base):
     allocation_strategy = Column(JSON, nullable=True)
 
 
-class Component(AuthorizationMixin, Base):
-    __tablename__ = "component"
-
-    component_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    name = Column(String)
-    archived = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    __table_args__ = (
-        Index(
-            "unique_component_name",
-            "project_id",
-            "name",
-            "archived",
-            unique=True,
-            postgresql_where=(archived == False),  # noqa: E712
-        ),
-    )
-
-
-class ComponentVersion(AuthorizationMixin, ArchivableMixin, Base):
-    __tablename__ = "component_version"
-
-    component_version_id = Column(
-        Uuid, primary_key=True, server_default=func.gen_random_uuid()
-    )
-    component_id = Column(Uuid, ForeignKey("component.component_id"))
-    alias = Column(String)
-    input_schema = Column(String)
-    output_schema = Column(String, nullable=True)
-    instance_params_schema = Column(String)
-    node_definitions = Column(String)
-    repository = Column(String)
-    variables = Column(ARRAY(String), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-
 class PolicyVersion(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base):
     __tablename__ = "policy_version"
 
@@ -184,9 +149,8 @@ class PolicyVersion(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base)
     policy_id = Column(Uuid, ForeignKey("policy.policy_id"))
     alias = Column(String)
     status = Column(Enum(PolicyVersionStatus))
-    repository = Column(String)
-    # TODO: We can reuse the version as an incremental number for edits.
-    repository_version = Column(String)
+    spec = Column(JSON, nullable=False)
+    requirements = Column(ARRAY(String), nullable=False)
     # The fields below require the policy version to be resolved
     # first, hence the "nullable=True". With regards to the application,
     # `input_schema` and `graph_definition` are actually non-nullable.
@@ -221,18 +185,6 @@ class BeamWorkspace(TimedUpdateMixin, Base):
     )
     status = Column(Enum(WorkspaceStatus))
     image = Column(String, nullable=True)
-
-
-class ComponentVersionDependency(Base):
-    __tablename__ = "component_version_dependency"
-
-    component_version_dependency_id = Column(
-        Uuid, primary_key=True, server_default=func.gen_random_uuid()
-    )
-    policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
-    component_version_id = Column(
-        Uuid, ForeignKey("component_version.component_version_id")
-    )
 
 
 class ConfigurationValue(AuthorizationMixin, TimedUpdateMixin, Base):
@@ -352,16 +304,6 @@ class DataSource(TimedUpdateMixin, AuthorizationMixin, Base):
             description=self.description,
             metadata=self.config_metadata,
         )
-
-
-class ComponentDataDependency(Base):
-    __tablename__ = "component_data_dependency"
-
-    id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
-    component_version_id = Column(
-        Uuid, ForeignKey("component_version.component_version_id")
-    )
 
 
 class PolicyDataDependency(Base):

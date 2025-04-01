@@ -6,12 +6,12 @@ authors = []
 readme = "README.md"
 dependencies = [
     "fastapi[standard]>=0.112.1",
-    "google-cloud-build>=3.27.1",
-    "vulkan[dagster]",
+    "tomlkit>=0.13.2",
+    "vulkan-public",
 ]
 
 [tool.ruff]
 exclude = ["templates"]
 
 [tool.uv.sources]
-vulkan = { path = "../vulkan" }
+vulkan-public = { path = "../vulkan-public" }

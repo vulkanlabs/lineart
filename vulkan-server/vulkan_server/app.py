@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from vulkan_server import routers, exceptions
+from vulkan_server import exceptions, routers
 from vulkan_server.backtest.daemon import BacktestDaemon
 from vulkan_server.logger import init_logger
 
@@ -45,8 +45,6 @@ app.add_middleware(
 )
 app.include_router(routers.backfills.router)
 app.include_router(routers.backtests.router)
-app.include_router(routers.components.router)
-app.include_router(routers.component_versions.router)
 app.include_router(routers.data.sources)
 app.include_router(routers.data.broker)
 app.include_router(routers.files.router)

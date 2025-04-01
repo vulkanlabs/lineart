@@ -9,57 +9,59 @@ from vulkan_public.exceptions import (
     DefinitionNotFoundException,
     InvalidDefinitionError,
 )
-from vulkan_public.spec.environment.packing import unpack_workspace
 from vulkan_public.spec.environment.workspace import VulkanCodeLocation
 
 from resolution_svc.config import VulkanConfig
+from resolution_svc.pyproject import get_pyproject, set_dependencies
 
 VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
 SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
 
 
 class VulkanWorkspaceManager:
-    def __init__(
-        self, project_id: str, workspace_name: str, config: VulkanConfig
-    ) -> None:
-        self.project_id = project_id
+    def __init__(self, workspace_name: str, config: VulkanConfig) -> None:
         self.workspace_name = workspace_name
         self._code_location = None
         self.config = config
 
     @property
-    def venv_path(self) -> str:
-        return f"{self.config.venvs_path}/{self.workspace_name}"
-
-    @property
-    def workspace_base_path(self) -> str:
-        return f"{self.config.home}/workspaces"
-
-    @property
     def workspace_path(self) -> str:
-        return f"{self.workspace_base_path}/{self.workspace_name}"
+        return f"{self.config.home}/workspaces/{self.workspace_name}"
 
-    @property
-    def components_path(self) -> str:
-        return f"{self.config.home}/components/{self.project_id}"
-
-    @property
-    def code_location(self) -> VulkanCodeLocation:
-        if self._code_location is None:
-            self._code_location = VulkanCodeLocation.from_workspace(self.workspace_path)
-        return self._code_location
-
-    def unpack_workspace(self, repository: bytes) -> str:
-        workspace_path = unpack_workspace(
-            self.workspace_base_path, self.workspace_name, repository
+    def create_workspace(self) -> str:
+        completed_process = subprocess.run(
+            [
+                "bash",
+                f"{SCRIPTS_PATH}/create_venv.sh",
+                self.workspace_path,
+            ],
+            capture_output=True,
         )
-        return workspace_path
+        if completed_process.returncode != 0:
+            msg = f"Failed to create virtual environment: {completed_process.stderr}"
+            raise Exception(msg)
+        return self.workspace_path
+
+    def set_requirements(self, requirements: list[str]) -> None:
+        if not os.path.exists(self.workspace_path):
+            raise ValueError(f"Workspace does not exist: {self.workspace_path}")
+
+        try:
+            pyproject_path = f"{self.workspace_path}/pyproject.toml"
+            set_dependencies(pyproject_path, requirements)
+        except Exception as e:
+            raise ValueError(f"Failed to set requirements: {e}")
+
+    def get_requirements(self) -> list[str]:
+        try:
+            pyproject_path = f"{self.workspace_path}/pyproject.toml"
+            pyproject = get_pyproject(pyproject_path)
+            return pyproject["project"]["dependencies"]
+        except Exception as e:
+            raise ValueError(f"Failed to get requirements: {e}")
 
     def get_policy_definition_settings(self) -> dict:
         return _get_policy_definition_settings(self.code_location, self.workspace_name)
-
-    def create_venv(self) -> str:
-        return _create_venv_for_workspace(self.venv_path, self.workspace_path)
 
     def get_resolved_policy_settings(self):
         return _get_resolved_policy_settings(
@@ -68,23 +70,6 @@ class VulkanWorkspaceManager:
 
     def delete_resources(self):
         rmtree(self.workspace_path)
-        rmtree(f"{self.config.venvs_path}/{self.workspace_name}")
-
-
-def _create_venv_for_workspace(venv_path, workspace_path):
-    completed_process = subprocess.run(
-        [
-            "bash",
-            f"{SCRIPTS_PATH}/create_venv.sh",
-            venv_path,
-            workspace_path,
-        ],
-        capture_output=True,
-    )
-    if completed_process.returncode != 0:
-        msg = f"Failed to create virtual environment: {completed_process.stderr}"
-        raise Exception(msg)
-    return venv_path
 
 
 def _get_policy_definition_settings(
@@ -120,7 +105,8 @@ def _get_policy_definition_settings(
 
 
 def _get_resolved_policy_settings(
-    code_location: VulkanCodeLocation, workspace_name: str, components_base_dir: str
+    code_location: VulkanCodeLocation,
+    workspace_name: str,
 ):
     tmp_path = f"/tmp/{workspace_name}-{str(time())}.json"
     completed_process = subprocess.run(

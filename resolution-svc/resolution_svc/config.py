@@ -1,7 +1,6 @@
 import os
 
 from pydantic.dataclasses import dataclass
-from vulkan.artifacts.gcs import GCSArtifactManager
 
 
 @dataclass
@@ -23,12 +22,4 @@ def get_vulkan_config() -> VulkanConfig:
         home=VULKAN_HOME,
         venvs_path=VULKAN_VENVS_PATH,
         server_path=VULKAN_SERVER_PATH,
-    )
-
-
-def get_artifact_manager():
-    return GCSArtifactManager(
-        project_id=os.getenv("GCP_PROJECT_ID"),
-        bucket_name=os.getenv("GCP_BUCKET_NAME"),
-        token=os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
     )

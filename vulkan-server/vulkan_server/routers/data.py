@@ -8,8 +8,6 @@ from vulkan_server import schemas
 from vulkan_server.auth import get_project_id
 from vulkan_server.data.broker import DataBroker
 from vulkan_server.db import (
-    ComponentDataDependency,
-    ComponentVersion,
     DataObject,
     DataSource,
     PolicyDataDependency,
@@ -112,19 +110,6 @@ def delete_data_source(
     if data_source is None:
         msg = f"Tried to delete non-existent data source {data_source_id}"
         raise HTTPException(status_code=404, detail=msg)
-
-    ds_component_uses = (
-        db.query(ComponentDataDependency, ComponentVersion)
-        .join(ComponentVersion)
-        .filter(
-            ComponentDataDependency.data_source_id == data_source_id,
-            ComponentVersion.archived == False,  # noqa: E712
-        )
-        .all()
-    )
-    if len(ds_component_uses) > 0:
-        msg = f"Data source {data_source_id} is used by one or more component versions"
-        raise HTTPException(status_code=400, detail=msg)
 
     ds_policy_uses = (
         db.query(PolicyDataDependency, PolicyVersion)

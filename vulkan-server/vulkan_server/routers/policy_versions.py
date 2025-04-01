@@ -1,7 +1,9 @@
+from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
+from vulkan_public.exceptions import DataSourceNotFoundException
 
 from vulkan_server import definitions, schemas
 from vulkan_server.auth import AuthContext, get_auth_context, get_project_id
@@ -13,15 +15,13 @@ from vulkan_server.dagster.service_client import (
 )
 from vulkan_server.db import (
     BeamWorkspace,
-    Component,
-    ComponentVersion,
-    ComponentVersionDependency,
     ConfigurationValue,
     DagsterWorkspace,
     DataSource,
     Policy,
     PolicyDataDependency,
     PolicyVersion,
+    PolicyVersionStatus,
     Run,
     WorkspaceStatus,
     get_db,
@@ -39,6 +39,176 @@ router = APIRouter(
     tags=["policy-versions"],
     responses={404: {"description": "Not found"}},
 )
+
+
+@router.post("", response_model=schemas.PolicyVersionCreateResponse)
+def create_policy_version(
+    config: schemas.PolicyVersionCreate,
+    logger: VulkanLogger = Depends(get_logger),
+    db: Session = Depends(get_db),
+    resolution_service: ResolutionServiceClient = Depends(
+        get_resolution_service_client
+    ),
+):
+    extra = {"policy_id": config.policy_id, "policy_version_alias": config.alias}
+    logger.system.info("Creating policy version", extra={"extra": extra})
+
+    policy = db.query(Policy).filter_by(policy_id=config.policy_id).first()
+    if policy is None:
+        msg = f"Tried to create a version for non-existent policy {config.policy_id}"
+        logger.system.error(msg)
+        raise HTTPException(status_code=404, detail=msg)
+
+    version = PolicyVersion(
+        policy_id=config.policy_id,
+        alias=config.alias,
+        spec=config.spec,
+        requirements=config.requirements,
+        input_schema=config.input_schema,
+        status=PolicyVersionStatus.INVALID,
+    )
+    db.add(version)
+    db.commit()
+
+    # START of policy version creation logic
+    try:
+        resolution_service.create_workspace(
+            name=version.policy_version_id,
+            requirements=None,
+        )
+        version.status = PolicyVersionStatus.VALID
+    except Exception as e:
+        logger.system.error(
+            f"Failed to create workspace ({version.policy_version_id}): {e}",
+            exc_info=True,
+        )
+        msg = (
+            "This is usually an issue with Vulkan's internal services. "
+            "Contact support for assistance. "
+            f"Workspace ID: {version.policy_version_id}"
+        )
+        raise HTTPException(status_code=500, detail={"msg": msg})
+    db.commit()
+
+    logger.event(
+        VulkanEvent.POLICY_VERSION_CREATED,
+        policy_id=config.policy_id,
+        policy_version_id=version.policy_version_id,
+        policy_version_alias=config.alias,
+    )
+
+    return {
+        "policy_id": config.policy_id,
+        "policy_version_id": version.policy_version_id,
+        "alias": version.alias,
+        "status": version.status.value,
+    }
+
+    # # START policy version creation logic
+    # version_name = definitions.version_name(version.policy_version_id)
+    # try:
+    #     settings = _create_policy_version_workspace(
+    #         resolution=resolution_service,
+    #         name=version_name,
+    #         repository=config.repository,
+    #     )
+    #     variables = settings.config_variables or []
+
+    #     extra["policy_version_id"] = version.policy_version_id
+    #     logger.system.info("Workspace created", extra={"extra": extra})
+
+    # except Exception as e:
+    #     if isinstance(e, VulkanInternalException):
+    #         handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
+    #     handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
+
+    # try:
+    #     if settings.data_sources:
+    #         added_sources = _add_data_source_dependencies(
+    #             db, version, settings.data_sources
+    #         )
+    #         inner_variables = [ds.variables for ds in added_sources if ds.variables]
+    #         variables += list(chain.from_iterable(inner_variables))
+    #     logger.system.debug("Processed data sources", extra={"extra": extra})
+
+    #     if len(variables) > 0:
+    #         version.variables = list(set(variables))
+    #     logger.system.debug("Processed variables", extra={"extra": extra})
+
+    #     version.input_schema = settings.input_schema
+    #     version.graph_definition = json.dumps(settings.graph_definition)
+    #     version.module_name = settings.module_name
+    #     version.base_worker_image = settings.image_path
+    # except Exception as e:
+    #     if isinstance(e, VulkanInternalException):
+    #         handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
+    #     resolution_service.delete_workspace(version_name)
+    #     handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
+    # finally:
+    #     db.commit()
+
+
+def _add_data_source_dependencies(
+    db: Session, version: PolicyVersion, data_sources: list[str]
+) -> list[DataSource]:
+    matched = (
+        db.query(DataSource)
+        .filter(
+            DataSource.name.in_(data_sources),
+            DataSource.project_id == version.project_id,
+            DataSource.archived.is_(False),
+        )
+        .all()
+    )
+    missing = list(set(data_sources) - set([m.name for m in matched]))
+    if missing:
+        raise DataSourceNotFoundException(
+            msg=f"The following data sources are not defined: {missing}"
+        )
+
+    for m in matched:
+        dependency = PolicyDataDependency(
+            data_source_id=m.data_source_id,
+            policy_version_id=version.policy_version_id,
+        )
+        db.add(dependency)
+
+    return matched
+
+
+@dataclass
+class PolicyVersionSettings:
+    module_name: str
+    input_schema: dict[str, str]
+    graph_definition: str
+    workspace_path: str
+    image_path: str
+    config_variables: list[str] | None = None
+    data_sources: list[str] | None = None
+
+
+def _create_policy_version_workspace(
+    resolution: ResolutionServiceClient,
+    name: str,
+    repository: str,
+) -> PolicyVersionSettings:
+    try:
+        response = resolution.create_workspace(name=name, repository=repository)
+        response_data = response.json()
+    except Exception as e:
+        raise e
+
+    definition_settings = response_data["policy_definition_settings"]
+
+    version_settings = PolicyVersionSettings(
+        module_name=response_data["module_name"],
+        input_schema=response_data["input_schema"],
+        graph_definition=response_data["graph_definition"],
+        data_sources=response_data.get("data_sources", []),
+        config_variables=definition_settings.get("config_variables", []),
+        workspace_path=response_data["workspace_path"],
+    )
+    return version_settings
 
 
 @router.get("/{policy_version_id}", response_model=schemas.PolicyVersion)
@@ -251,71 +421,6 @@ def list_runs_by_policy_version(policy_version_id: str, db: Session = Depends(ge
     if len(runs) == 0:
         return Response(status_code=204)
     return runs
-
-
-@router.get(
-    "/{policy_version_id}/components",
-    response_model=list[schemas.ComponentVersionDependencyExpanded],
-)
-def list_dependencies_by_policy_version(
-    policy_version_id: str,
-    project_id: str = Depends(get_project_id),
-    db: Session = Depends(get_db),
-):
-    policy_version = (
-        db.query(PolicyVersion)
-        .filter_by(policy_version_id=policy_version_id, project_id=project_id)
-        .first()
-    )
-    if policy_version is None:
-        raise ValueError(f"Policy version {policy_version_id} not found")
-
-    component_version_uses = (
-        db.query(ComponentVersionDependency)
-        .filter_by(policy_version_id=policy_version_id)
-        .all()
-    )
-    if len(component_version_uses) == 0:
-        return Response(status_code=204)
-
-    policy: Policy = (
-        db.query(Policy).filter_by(policy_id=policy_version.policy_id).first()
-    )
-
-    dependencies = []
-    for use in component_version_uses:
-        component_version = (
-            db.query(ComponentVersion)
-            .filter_by(component_version_id=use.component_version_id)
-            .first()
-        )
-
-        if component_version is None:
-            msg = (
-                f"Component version {use.component_version_id} not found, "
-                f"but used by policy version {policy_version_id}"
-            )
-            raise HTTPException(status_code=500, detail=msg)
-
-        component: Component = (
-            db.query(Component)
-            .filter_by(component_id=component_version.component_id)
-            .first()
-        )
-        dependencies.append(
-            schemas.ComponentVersionDependencyExpanded(
-                component_id=component.component_id,
-                component_name=component.name,
-                component_version_id=component_version.component_version_id,
-                component_version_alias=component_version.alias,
-                policy_id=policy.policy_id,
-                policy_name=policy.name,
-                policy_version_id=policy_version.policy_version_id,
-                policy_version_alias=policy_version.alias,
-            )
-        )
-
-    return dependencies
 
 
 @router.get(
