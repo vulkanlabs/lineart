@@ -1,31 +1,16 @@
 import { useCallback } from "react";
 import { SquareX } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
+import {Position, type NodeChange } from "@xyflow/react";
 import Editor from "@monaco-editor/react";
-import { Node, Position, type NodeChange } from "@xyflow/react";
 
 import { Input } from "@/components/ui/input";
-import { BaseHandle } from "@/components/flow/base-handle";
+import { BaseHandle } from "@/components/reactflow/base-handle";
 import { Button } from "@/components/ui/button";
 
+import { VulkanNode } from "../types";
 import { useWorkflowStore } from "../store";
-import { WorkflowNode, HANDLE_STYLE } from "./base";
-
-type WorkflowNodeData = {
-    name?: string;
-    // icon?: keyof typeof iconMapping;
-    icon?: string;
-    minHeight?: number;
-    minWidth?: number;
-    metadata?: any;
-};
-type VulkanNode =
-    | Node<WorkflowNodeData, "input-node">
-    | Node<WorkflowNodeData, "connection-node">
-    | Node<WorkflowNodeData, "data-source-node">
-    | Node<WorkflowNodeData, "transform-node">
-    | Node<WorkflowNodeData, "branch-node">
-    | Node<WorkflowNodeData, "terminate-node">;
+import { WorkflowNode, defaultHandleStyle } from "./base";
 
 export function BranchNode({ id, data, selected, height, width }) {
     const { updateNodeData, onNodesChange } = useWorkflowStore(
@@ -142,7 +127,7 @@ export function BranchNode({ id, data, selected, height, width }) {
                             type="source"
                             position={Position.Right}
                             id={`${index}`}
-                            style={{ ...HANDLE_STYLE }}
+                            style={{ ...defaultHandleStyle }}
                         />
                         <Input
                             type="text"

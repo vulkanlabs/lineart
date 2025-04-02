@@ -13,11 +13,8 @@ import {
     type Edge,
 } from "@xyflow/react";
 
-import { VulkanNode, VulkanNodeType, createNodeByType, NodeDefinition, BranchNodeMetadata } from "./nodes";
-
-export type GraphDefinition = {
-    [key: string]: NodeDefinition;
-};
+import { VulkanNode, VulkanNodeType, GraphDefinition, BranchNodeMetadata } from "./types";
+import { createNodeByType } from "./nodes";
 
 type WorkflowState = {
     nodes: VulkanNode[];
@@ -79,9 +76,9 @@ const createWorkflowStore = (initProps: WorkflowState = defaultState) => {
 
                 if (sourceNode.node_type === "branch-node") {
                     const metadata = sourceNode.metadata as BranchNodeMetadata;
-                    output = metadata.choices[edge.sourceHandle]
+                    output = metadata.choices[edge.sourceHandle];
                 }
- 
+
                 if (sourceNode && targetNode) {
                     targetNode.dependencies = [
                         ...(targetNode.dependencies || []),

@@ -3,8 +3,8 @@ import { Play, FoldVertical, UnfoldVertical, PanelRight } from "lucide-react";
 import { Node, NodeProps, Position, XYPosition, NodeResizer } from "@xyflow/react";
 import { useShallow } from "zustand/react/shallow";
 
-import { BaseNode } from "@/components/flow/base-node";
-import { BaseHandle } from "@/components/flow/base-handle";
+import { BaseNode } from "@/components/reactflow/base-node";
+import { BaseHandle } from "@/components/reactflow/base-handle";
 import {
     NodeHeaderTitle,
     NodeHeader,
@@ -13,15 +13,13 @@ import {
     NodeHeaderMenuAction,
     NodeHeaderDeleteAction,
     NodeHeaderIcon,
-} from "@/components/flow/node-header";
+} from "@/components/reactflow/node-header";
 import { cn } from "@/lib/utils";
 
 import { useWorkflowStore } from "../store";
-import { iconMapping } from "./icons";
+import { iconMapping } from "../icons";
 
-export const NODE_SIZE = { width: 350, height: 50 };
-
-export const HANDLE_STYLE = {
+export const defaultHandleStyle = {
     width: 12,
     height: 12,
     borderRadius: "9999px",
@@ -101,14 +99,7 @@ export function WorkflowNode({
                 minWidth={data.minWidth}
                 minHeight={data.minHeight}
             />
-            <BaseNode
-                selected={selected}
-                className="p-1"
-                style={{
-                    width: width ?? NODE_SIZE.width,
-                    height: height ?? NODE_SIZE.height,
-                }}
-            >
+            <BaseNode selected={selected} className="p-1" style={{ width: width, height: height }}>
                 <div className="h-full flex flex-col gap-1">
                     <NodeHeader>
                         <NodeHeaderIcon>
@@ -146,12 +137,12 @@ export function WorkflowNode({
                     </NodeHeader>
                     {showDetails && children}
                 </div>
-                <BaseHandle type="target" position={Position.Left} style={{ ...HANDLE_STYLE }} />
+                <BaseHandle type="target" position={Position.Left} style={{ ...defaultHandleStyle }} />
                 {isOutput ?? (
                     <BaseHandle
                         type="source"
                         position={Position.Right}
-                        style={{ ...HANDLE_STYLE }}
+                        style={{ ...defaultHandleStyle }}
                     />
                 )}
             </BaseNode>
@@ -159,5 +150,3 @@ export function WorkflowNode({
         // </NodeStatusIndicator>
     );
 }
-
-// export default WorkflowNode;

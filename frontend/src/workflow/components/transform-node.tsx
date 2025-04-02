@@ -3,9 +3,6 @@ import { useCallback, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import Editor from "@monaco-editor/react";
 
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-
 import { useWorkflowStore } from "../store";
 import { WorkflowNode } from "./base";
 

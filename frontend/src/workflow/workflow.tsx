@@ -2,7 +2,6 @@
 
 import { useShallow } from "zustand/react/shallow";
 import React, { useState, useLayoutEffect, useCallback, useEffect } from "react";
-import { Rocket, ArrowRightFromLine, Split, ArrowDown01, Code2 } from "lucide-react";
 import {
     ReactFlow,
     ReactFlowProvider,
@@ -30,24 +29,9 @@ import {
 
 import { useDropdown } from "./hooks/use-dropdown";
 import { nodesConfig } from "./nodes";
-import { iconMapping } from "./nodes/icons";
+import { iconMapping } from "./icons";
+import { nodeTypes } from "./components";
 import { WorkflowProvider, useWorkflowStore } from "./store";
-
-import { TransformNode } from "./nodes/transform-node";
-import { BranchNode } from "./nodes/branch-node";
-import { TerminateNode } from "./nodes/terminate-node";
-import { InputNode } from "./nodes/input-node";
-import { ConnectionNode } from "./nodes/connection-node";
-import { DataSourceNode } from "./nodes/data-source-node";
-
-export const nodeTypes = {
-    "input-node": InputNode,
-    "connection-node": ConnectionNode,
-    "data-source-node": DataSourceNode,
-    "transform-node": TransformNode,
-    "branch-node": BranchNode,
-    "terminate-node": TerminateNode,
-};
 
 function VulkanWorkflow({ onNodeClick, onPaneClick }) {
     const {
