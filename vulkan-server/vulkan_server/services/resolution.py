@@ -19,7 +19,9 @@ class ResolutionServiceClient:
         self.session = Session()
 
     def create_workspace(
-        self, name: str, requirements: list[str] | None = None
+        self,
+        name: str,
+        requirements: list[str] | None,
     ) -> Response:
         response = self._make_request(
             method="POST",

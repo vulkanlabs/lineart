@@ -73,7 +73,7 @@ def create_policy_version(
     try:
         resolution_service.create_workspace(
             name=version.policy_version_id,
-            requirements=None,
+            requirements=config.requirements,
         )
         version.status = PolicyVersionStatus.VALID
     except Exception as e:

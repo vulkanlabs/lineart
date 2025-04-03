@@ -65,7 +65,6 @@ class PolicyBase(BaseModel):
 
 class Policy(PolicyBase):
     policy_id: UUID
-    project_id: UUID
     archived: bool
     created_at: datetime
     last_updated_at: datetime
@@ -122,10 +121,10 @@ class ComponentVersionDependencyExpanded(BaseModel):
 
 class PolicyVersionCreate(BaseModel):
     policy_id: UUID
-    alias: str | None = None
-    spec: dict | None = None
-    requirements: list[str] | None = None
-    input_schema: dict[str, str] | None = None
+    alias: str | None
+    spec: dict | None
+    requirements: list[str] | None
+    input_schema: dict[str, str] | None
 
 
 class PolicyVersionCreateResponse(BaseModel):

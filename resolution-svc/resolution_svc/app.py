@@ -17,7 +17,7 @@ logger.setLevel(logging.INFO)
 @app.post("/workspaces/{name}")
 def create_workspace(
     name: str,
-    requirements: Annotated[list[str] | None, Body()] = None,
+    requirements: Annotated[list[str] | None, Body(embed=True)],
     vulkan_config: VulkanConfig = Depends(get_vulkan_config),
 ):
     logger.info(f"Creating workspace: {name}")
