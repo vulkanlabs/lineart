@@ -21,12 +21,14 @@ class ResolutionServiceClient:
     def create_workspace(
         self,
         name: str,
-        requirements: list[str] | None,
+        spec: dict,
+        requirements: list[str],
     ) -> Response:
         response = self._make_request(
             method="POST",
             url=f"/workspaces/{name}",
             json={
+                "spec": spec,
                 "requirements": requirements,
             },
             on_error="Failed to create workspace",

@@ -17,7 +17,8 @@ logger.setLevel(logging.INFO)
 @app.post("/workspaces/{name}")
 def create_workspace(
     name: str,
-    requirements: Annotated[list[str] | None, Body(embed=True)],
+    spec: Annotated[dict, Body()],
+    requirements: Annotated[list[str], Body()],
     vulkan_config: VulkanConfig = Depends(get_vulkan_config),
 ):
     logger.info(f"Creating workspace: {name}")
@@ -30,6 +31,8 @@ def create_workspace(
         if requirements:
             logger.info(f"Adding requirements to workspace: {vm.workspace_path}")
             vm.set_requirements(requirements)
+        if spec:
+            logger.info(f"Adding spec to workspace: {spec}")
 
     logger.info(f"Created workspace at: {vm.workspace_path}")
     return {"workspace_path": vm.workspace_path}

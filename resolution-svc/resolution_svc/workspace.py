@@ -32,7 +32,7 @@ class VulkanWorkspaceManager:
         completed_process = subprocess.run(
             [
                 "bash",
-                f"{SCRIPTS_PATH}/create_venv.sh",
+                f"{SCRIPTS_PATH}/venv_create.sh",
                 self.workspace_path,
             ],
             capture_output=True,
@@ -48,7 +48,11 @@ class VulkanWorkspaceManager:
 
         try:
             pyproject_path = f"{self.workspace_path}/pyproject.toml"
-            set_dependencies(pyproject_path, requirements)
+            # TODO: is there a better way to do this?
+            # We need to ensure vulkan-public is always in the requirements.
+            reqs = list({"vulkan-public"} + set(requirements))
+            set_dependencies(pyproject_path, reqs)
+            self._sync_requirements()
         except Exception as e:
             raise ValueError(f"Failed to set requirements: {e}")
 
@@ -59,6 +63,19 @@ class VulkanWorkspaceManager:
             return pyproject["project"]["dependencies"]
         except Exception as e:
             raise ValueError(f"Failed to get requirements: {e}")
+
+    def _sync_requirements(self) -> None:
+        completed_process = subprocess.run(
+            [
+                "bash",
+                f"{SCRIPTS_PATH}/venv_sync.sh",
+            ],
+            cwd=self.workspace_path,
+            capture_output=True,
+        )
+        if completed_process.returncode != 0:
+            msg = f"Failed to sync requirements: {completed_process.stderr}"
+            raise Exception(msg)
 
     def get_policy_definition_settings(self) -> dict:
         return _get_policy_definition_settings(self.code_location, self.workspace_name)

@@ -73,6 +73,7 @@ def create_policy_version(
     try:
         resolution_service.create_workspace(
             name=version.policy_version_id,
+            spec=config.spec,
             requirements=config.requirements,
         )
         version.status = PolicyVersionStatus.VALID
@@ -82,11 +83,10 @@ def create_policy_version(
             exc_info=True,
         )
         msg = (
-            "This is usually an issue with Vulkan's internal services. "
-            "Contact support for assistance. "
-            f"Workspace ID: {version.policy_version_id}"
+            "Failed to create policy version workspace. "
+            f"Policy Version ID: {version.policy_version_id}"
         )
-        raise HTTPException(status_code=500, detail={"msg": msg})
+        raise HTTPException(status_code=500, detail={"msg": msg}) from e
     db.commit()
 
     logger.event(
