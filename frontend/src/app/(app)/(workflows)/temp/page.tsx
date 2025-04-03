@@ -1,4 +1,4 @@
-import WorkflowFrame from "./workflow";
+import WorkflowFrame from "@/workflow/workflow";
 
 export default async function Page(props) {
     return <WorkflowFrame />;
