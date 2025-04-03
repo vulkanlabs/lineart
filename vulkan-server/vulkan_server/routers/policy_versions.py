@@ -40,7 +40,7 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=schemas.PolicyVersionCreateResponse)
+@router.post("", response_model=schemas.PolicyVersion)
 def create_policy_version(
     config: schemas.PolicyVersionCreate,
     logger: VulkanLogger = Depends(get_logger),
@@ -96,12 +96,20 @@ def create_policy_version(
         policy_version_alias=config.alias,
     )
 
-    return {
-        "policy_id": config.policy_id,
-        "policy_version_id": version.policy_version_id,
-        "alias": version.alias,
-        "status": version.status.value,
-    }
+    return version
+
+
+@router.get("/{policy_version_id}", response_model=schemas.PolicyVersion)
+def get_policy_version(
+    policy_version_id: str,
+    db: Session = Depends(get_db),
+):
+    policy_version = (
+        db.query(PolicyVersion).filter_by(policy_version_id=policy_version_id).first()
+    )
+    if policy_version is None:
+        return Response(status_code=204)
+    return policy_version
 
 
 # # START policy version creation logic

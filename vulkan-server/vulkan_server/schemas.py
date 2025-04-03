@@ -4,10 +4,10 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
+from vulkan.core.run import JobStatus, RunStatus
 from vulkan_public.schemas import DataSourceSpec, PolicyAllocationStrategy
 
-from vulkan.core.run import JobStatus, RunStatus
-from vulkan_server.db import DataSource, PolicyVersionStatus
+from vulkan_server.db import DataSource
 
 
 class Project(BaseModel):
@@ -127,24 +127,18 @@ class PolicyVersionCreate(BaseModel):
     input_schema: dict[str, str] | None
 
 
-class PolicyVersionCreateResponse(BaseModel):
-    policy_version_id: UUID
-    policy_id: UUID
-    status: PolicyVersionStatus
-    alias: str | None = None
-
-
 class PolicyVersion(BaseModel):
     policy_version_id: UUID
     policy_id: UUID
     alias: str | None = None
     input_schema: dict[str, str]
-    graph_definition: str
-    project_id: UUID
+    spec: dict
+    requirements: list[str]
     archived: bool
+    variables: list[str] | None = None
     created_at: datetime
     last_updated_at: datetime
-    variables: list[str] | None = None
+    # graph_definition: str
 
     class Config:
         from_attributes = True
