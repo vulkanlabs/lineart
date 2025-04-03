@@ -18,15 +18,15 @@ class ResolutionServiceClient:
         self.server_url = server_url
         self.session = Session()
 
-    def create_workspace(
+    def update_workspace(
         self,
-        name: str,
+        workspace_id: str,
         spec: dict,
         requirements: list[str],
     ) -> Response:
         response = self._make_request(
             method="POST",
-            url=f"/workspaces/{name}",
+            url=f"/workspaces/{workspace_id}",
             json={
                 "spec": spec,
                 "requirements": requirements,
@@ -35,14 +35,18 @@ class ResolutionServiceClient:
         )
         return response
 
-    def delete_workspace(self, name: str) -> Response:
+    def get_workspace(self, workspace_id: str) -> Response:
         response = self._make_request(
-            method="POST",
-            url="/workspaces/delete",
-            json={
-                "name": name,
-                "project_id": self.project_id,
-            },
+            method="GET",
+            url=f"/workspaces/{workspace_id}",
+            on_error="Failed to get workspace",
+        )
+        return response
+
+    def delete_workspace(self, workspace_id: str) -> Response:
+        response = self._make_request(
+            method="DELETE",
+            url=f"/workspaces/{workspace_id}",
             on_error="Failed to delete workspace",
         )
         return response

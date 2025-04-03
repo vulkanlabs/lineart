@@ -4,9 +4,9 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
-from vulkan.core.run import JobStatus, RunStatus
 from vulkan_public.schemas import DataSourceSpec, PolicyAllocationStrategy
 
+from vulkan.core.run import JobStatus, RunStatus
 from vulkan_server.db import DataSource
 
 
@@ -119,12 +119,15 @@ class ComponentVersionDependencyExpanded(BaseModel):
     policy_version_alias: str
 
 
-class PolicyVersionCreate(BaseModel):
-    policy_id: UUID
+class PolicyVersionBase(BaseModel):
     alias: str | None
-    spec: dict | None
-    requirements: list[str] | None
-    input_schema: dict[str, str] | None
+    spec: dict
+    requirements: list[str]
+    input_schema: dict[str, str]
+
+
+class PolicyVersionCreate(PolicyVersionBase):
+    policy_id: UUID
 
 
 class PolicyVersion(BaseModel):

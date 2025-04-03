@@ -51,12 +51,58 @@ def create(
     if response.status_code != 200:
         raise ValueError(f"Failed to create policy version: {response.content}")
 
-    policy_version_id = response.json()["policy_version_id"]
-    ctx.logger.debug(response.json())
+    policy_version = response.json()
+    policy_version_id = policy_version["policy_version_id"]
     ctx.logger.info(
         f"Created workspace {version_name} with policy version {policy_version_id}"
     )
-    return policy_version_id
+    return policy_version
+
+
+def update(
+    ctx: Context,
+    policy_version_id: str,
+    version_name: str,
+    input_schema: dict,
+    spec: dict,
+    requirements: list[str],
+):
+    response = ctx.session.put(
+        url=f"{ctx.server_url}/policy-versions/{policy_version_id}",
+        json={
+            "alias": version_name,
+            "spec": spec,
+            "requirements": requirements,
+            "input_schema": input_schema,
+        },
+    )
+
+    if response.status_code == 400:
+        detail = response.json().get("detail", "")
+        error = detail.get("error")
+        ctx.logger.debug(f"Error: {error}")
+        if error == "InvalidDefinitionError":
+            ctx.logger.debug(detail)
+            raise ValueError(
+                "The PolicyDefinition instance was improperly configured. "
+                "It may be missing a node or have missing/invalid attributes. "
+                "It could also be that an imported python package wasn't specified "
+                "as a dependency in the pyproject.toml file."
+            )
+        if error == "ConflictingDefinitionsError":
+            raise ValueError(
+                "More than one PolicyDefinition instances was found in the "
+                "specified repository."
+            )
+        raise ValueError(f"Bad request: {detail}")
+
+    if response.status_code != 200:
+        raise ValueError(f"Failed to create policy version: {response.content}")
+
+    policy_version = response.json()
+    policy_version_id = policy_version["policy_version_id"]
+    ctx.logger.info(f"Updated policy version {policy_version_id}")
+    return policy_version
 
 
 def get(ctx: Context, policy_version_id: str):
@@ -89,27 +135,6 @@ def set_variables(
         raise ValueError("Failed to set variables")
 
     return response.json()
-
-
-def create_backtest_workspace(
-    ctx: Context,
-    policy_version_id: str,
-):
-    response = ctx.session.post(
-        f"{ctx.server_url}/policy-versions/{policy_version_id}/backtest-workspace"
-    )
-
-    assert (
-        response.status_code == 200
-    ), f"Failed to create backtest workspace: {response.content}"
-    return response.json()
-
-
-def get_policy_version_graph(ctx: Context, policy_version_id: str):
-    response = ctx.session.get(f"{ctx.server_url}/policy-versions/{policy_version_id}")
-    if response.status_code != 200:
-        raise ValueError(f"Failed to get policy version graph: {response.content}")
-    return response.json()["graph_definition"]
 
 
 def delete_policy_version(

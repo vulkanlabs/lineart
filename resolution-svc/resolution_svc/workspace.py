@@ -28,7 +28,7 @@ class VulkanWorkspaceManager:
     def workspace_path(self) -> str:
         return f"{self.config.home}/workspaces/{self.workspace_name}"
 
-    def create_workspace(self) -> str:
+    def create_workspace(self) -> None:
         completed_process = subprocess.run(
             [
                 "bash",
@@ -40,7 +40,7 @@ class VulkanWorkspaceManager:
         if completed_process.returncode != 0:
             msg = f"Failed to create virtual environment: {completed_process.stderr}"
             raise Exception(msg)
-        return self.workspace_path
+        return
 
     def set_requirements(self, requirements: list[str]) -> None:
         if not os.path.exists(self.workspace_path):
@@ -50,7 +50,7 @@ class VulkanWorkspaceManager:
             pyproject_path = f"{self.workspace_path}/pyproject.toml"
             # TODO: is there a better way to do this?
             # We need to ensure vulkan-public is always in the requirements.
-            reqs = list({"vulkan-public"} + set(requirements))
+            reqs = list({"vulkan-public"}.union(set(requirements)))
             set_dependencies(pyproject_path, reqs)
             self._sync_requirements()
         except Exception as e:
@@ -69,6 +69,7 @@ class VulkanWorkspaceManager:
             [
                 "bash",
                 f"{SCRIPTS_PATH}/venv_sync.sh",
+                self.workspace_path,
             ],
             cwd=self.workspace_path,
             capture_output=True,

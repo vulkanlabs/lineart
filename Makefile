@@ -36,3 +36,12 @@ push-config:
 .PHONY: clean-pycache
 clean-pycache:
 	 find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
+
+# Testing
+.PHONY: test
+test:
+	uv run pytest -sv --tb=short --disable-warnings -m "not integration"
+
+.PHONY: test-integration
+test-integration:
+	uv run pytest -sv --tb=short --disable-warnings -m "integration"
