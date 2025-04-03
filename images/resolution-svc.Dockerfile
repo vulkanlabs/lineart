@@ -23,6 +23,11 @@ WORKDIR ${VULKAN_SERVER_PATH}
 COPY vulkan-public vulkan-public
 COPY resolution-svc resolution-svc
 RUN uv pip install --system --no-cache resolution-svc/
+## Use symlink installations after the initial setup to avoid duplicating
+## the same packages in the container.
+## Note: This has to be set after running the --no-cache installation,
+##       as the two options are mutually exclusive.
+ENV UV_LINK_MODE=symlink
 
 # Run server
 ENTRYPOINT ["fastapi", "dev", "./resolution-svc/resolution_svc/app.py", "--host", "0.0.0.0", "--port", "8080", "--no-reload"]
