@@ -22,7 +22,7 @@ export function BranchNode({ id, data, selected, height, width }) {
 
     const setSourceCode = useCallback(
         (code: string) => {
-            const metadata = { ...data.metadata, sourceCode: code };
+            const metadata = { ...data.metadata, source_code: code };
             updateNodeData(id, { ...data, metadata });
         },
         [id, data, updateNodeData],
@@ -111,7 +111,7 @@ export function BranchNode({ id, data, selected, height, width }) {
                         // width={width}
                         // height={height}
                         language="python"
-                        value={data.metadata?.sourceCode || ""}
+                        value={data.metadata?.source_code || ""}
                         theme="vs-dark"
                         defaultValue="// some comment"
                         onChange={setSourceCode}

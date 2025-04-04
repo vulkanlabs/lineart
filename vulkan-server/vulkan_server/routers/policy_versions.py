@@ -45,8 +45,11 @@ def create_policy_version(
     config: schemas.PolicyVersionCreate,
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
-    resolution_service: ResolutionServiceClient = Depends(
-        get_resolution_service_client
+    # resolution_service: ResolutionServiceClient = Depends(
+    #     get_resolution_service_client
+    # ),
+    dagster_service_client: VulkanDagsterServiceClient = Depends(
+        get_dagster_service_client
     ),
 ):
     extra = {"policy_id": config.policy_id, "policy_version_alias": config.alias}
@@ -70,7 +73,7 @@ def create_policy_version(
     db.commit()
 
     try:
-        resolution_service.update_workspace(
+        dagster_service_client.update_workspace(
             workspace_id=version.policy_version_id,
             spec=config.spec,
             requirements=config.requirements,
@@ -117,8 +120,11 @@ def update_policy_version(
     config: schemas.PolicyVersionBase,
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
-    resolution_service: ResolutionServiceClient = Depends(
-        get_resolution_service_client
+    # resolution_service: ResolutionServiceClient = Depends(
+    #     get_resolution_service_client
+    # ),
+    dagster_service_client: VulkanDagsterServiceClient = Depends(
+        get_dagster_service_client
     ),
 ):
     version = (
@@ -145,7 +151,7 @@ def update_policy_version(
 
     # Update the workspace with the new spec and requirements
     try:
-        resolution_service.update_workspace(
+        dagster_service_client.update_workspace(
             workspace_id=version.policy_version_id,
             spec=config.spec,
             requirements=config.requirements,

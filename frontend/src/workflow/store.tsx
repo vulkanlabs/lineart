@@ -39,7 +39,7 @@ type WorkflowActions = {
 };
 
 const inputNode = createNodeByType({
-    type: "input-node",
+    type: "INPUT",
     position: { x: 200, y: 200 },
 });
 
@@ -74,7 +74,7 @@ const createWorkflowStore = (initProps: WorkflowState = defaultState) => {
                 const targetNode = spec[edge.target];
                 let output = null;
 
-                if (sourceNode.node_type === "branch-node") {
+                if (sourceNode.node_type === "BRANCH") {
                     const metadata = sourceNode.metadata as BranchNodeMetadata;
                     output = metadata.choices[edge.sourceHandle];
                 }

@@ -150,7 +150,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
                 >
                     <AppDropdownMenu
                         onAddNode={onAddNode}
-                        filterNodes={(node: any) => node.id != "input-node"}
+                        filterNodes={(node: any) => node.id != "INPUT"}
                     />
                 </div>
             )}

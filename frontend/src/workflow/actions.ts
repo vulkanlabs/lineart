@@ -8,7 +8,9 @@ export async function saveWorkflowSpec(policyVersionId: string, spec: any) {
         alias: null,
         spec: spec,
         requirements: [],
-        input_schema: {},
+        input_schema: {
+            "score": "int",
+        },
     };
 
     return fetch(`${serverUrl}/policy-versions/${policyVersionId}`, {

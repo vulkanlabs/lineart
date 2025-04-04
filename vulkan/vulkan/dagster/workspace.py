@@ -84,7 +84,7 @@ class DagsterWorkspaceManager:
                     "- python_file:\n"
                     f"    relative_path: {self.workspace_path}/__init__.py\n"
                     f"    working_directory: {self.workspace_path}\n"
-                    f"    executable_path: {self.workspace_path}/bin/python\n"
+                    f"    executable_path: {self.workspace_path}/.venv/bin/python\n"
                     f"    location_name: {workspace_id}\n"
                 )
             )

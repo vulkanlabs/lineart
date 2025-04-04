@@ -34,28 +34,35 @@ class VulkanDagsterServiceClient:
         if request_config is None:
             self.request_config = VulkanDagsterRequestConfig()
 
-    def create_workspace(
-        self, name: str, repository: str, components: list[str]
+    def update_workspace(
+        self,
+        workspace_id: str,
+        spec: dict,
+        requirements: list[str],
     ) -> Response:
         response = self._make_request(
             method="POST",
-            url="/workspaces/create",
+            url=f"/workspaces/{workspace_id}",
             json={
-                "name": name,
-                "repository": repository,
-                "required_components": components,
+                "spec": spec,
+                "requirements": requirements,
             },
             on_error="Failed to create workspace",
         )
         return response
 
-    def delete_workspace(self, name: str) -> Response:
+    def get_workspace(self, workspace_id: str) -> Response:
         response = self._make_request(
-            method="POST",
-            url="/workspaces/delete",
-            json={
-                "name": name,
-            },
+            method="GET",
+            url=f"/workspaces/{workspace_id}",
+            on_error="Failed to get workspace",
+        )
+        return response
+
+    def delete_workspace(self, workspace_id: str) -> Response:
+        response = self._make_request(
+            method="DELETE",
+            url=f"/workspaces/{workspace_id}",
             on_error="Failed to delete workspace",
         )
         return response

@@ -15,7 +15,7 @@ export function TerminateNode({ id, data, selected, height, width }) {
 
     const setReturnStatus = useCallback(
         (status: string) => {
-            updateNodeData(id, { ...data, metadata: { returnStatus: status } });
+            updateNodeData(id, { ...data, metadata: { return_status: status } });
         },
         [id, data, updateNodeData],
     );
@@ -34,11 +34,10 @@ export function TerminateNode({ id, data, selected, height, width }) {
                 <span>Return status:</span>
                 <Input
                     type="text"
-                    value={data.metadata?.returnStatus}
+                    value={data.metadata?.return_status}
                     onChange={(e) => setReturnStatus(e.target.value)}
                 />
             </div>
         </WorkflowNode>
     );
 }
-

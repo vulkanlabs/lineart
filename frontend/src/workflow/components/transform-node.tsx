@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 
 import { useShallow } from "zustand/react/shallow";
 import Editor from "@monaco-editor/react";
@@ -15,7 +15,7 @@ export function TransformNode({ id, data, selected, height, width }) {
 
     const setSourceCode = useCallback(
         (status: string) => {
-            updateNodeData(id, { ...data, metadata: { sourceCode: status } });
+            updateNodeData(id, { ...data, metadata: { source_code: status } });
         },
         [id, data, updateNodeData],
     );
@@ -29,7 +29,7 @@ export function TransformNode({ id, data, selected, height, width }) {
                         // width={width}
                         height={height * 0.5}
                         language="python"
-                        value={data.metadata?.sourceCode || ""}
+                        value={data.metadata?.source_code || ""}
                         theme="vs-dark"
                         defaultValue="// some comment"
                         onChange={setSourceCode}
