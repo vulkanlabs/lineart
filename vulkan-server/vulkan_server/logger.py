@@ -104,7 +104,6 @@ def get_stream_handler():
 
 @dataclass
 class StructuredLogRecord:
-    project_id: str
     level: str
     message: str
     timestamp: str
@@ -122,7 +121,6 @@ class SQLAlchemyHandler(logging.Handler):
         try:
             log: StructuredLogRecord = self.format(record)
             log_record = LogRecord(
-                project_id=log.project_id,
                 level=log.level,
                 message=log.message,
                 timestamp=log.timestamp,
@@ -137,9 +135,7 @@ class SQLAlchemyHandler(logging.Handler):
 
 class StructuredFormatter(logging.Formatter):
     def format(self, record):
-        extra = getattr(record, "extra", {})
         return StructuredLogRecord(
-            project_id=extra.get("project_id"),
             level=record.levelname,
             message=record.getMessage(),
             timestamp=self.formatTime(record, "%Y-%m-%d %H:%M:%S"),
@@ -161,7 +157,6 @@ class CloudLoggingFormatter(logging.Formatter):
     def format(self, record):
         extra = getattr(record, "extra", {})
         log_record = {
-            "project_id": extra.get("project_id"),
             "message": record.getMessage(),
             "extra": extra,
         }

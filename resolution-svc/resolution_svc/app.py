@@ -11,36 +11,41 @@ from resolution_svc.workspace import VulkanWorkspaceManager
 app = FastAPI()
 
 logger = logging.getLogger("uvicorn.error")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
-@app.post("/workspaces/{name}")
+@app.post("/workspaces/{workspace_id}")
 def create_workspace(
-    name: str,
-    requirements: Annotated[list[str] | None, Body()] = None,
+    workspace_id: str,
+    spec: Annotated[dict, Body()],
+    requirements: Annotated[list[str], Body()],
     vulkan_config: VulkanConfig = Depends(get_vulkan_config),
 ):
-    logger.info(f"Creating workspace: {name}")
-    vm = VulkanWorkspaceManager(name, vulkan_config)
+    logger.debug(f"Creating workspace: {workspace_id}")
+    vm = VulkanWorkspaceManager(workspace_id, vulkan_config)
 
     with ExecutionContext(logger) as ctx:
-        workspace_path = vm.create_workspace()
-        ctx.register_asset(workspace_path)
+        if not os.path.exists(vm.workspace_path):
+            logger.debug(f"Creating workspace: {vm.workspace_path}")
+            vm.create_workspace()
+            ctx.register_asset(vm.workspace_path)
 
         if requirements:
-            logger.info(f"Adding requirements to workspace: {vm.workspace_path}")
+            logger.debug(f"Adding requirements to workspace: {vm.workspace_path}")
             vm.set_requirements(requirements)
+        if spec:
+            logger.debug(f"Adding spec to workspace: {spec}")
 
-    logger.info(f"Created workspace at: {vm.workspace_path}")
+    logger.debug(f"Created workspace at: {vm.workspace_path}")
     return {"workspace_path": vm.workspace_path}
 
 
-@app.get("/workspaces/{name}")
+@app.get("/workspaces/{workspace_id}")
 def get_workspace(
-    name: str,
+    workspace_id: str,
     vulkan_config: VulkanConfig = Depends(get_vulkan_config),
 ):
-    vm = VulkanWorkspaceManager(name, vulkan_config)
+    vm = VulkanWorkspaceManager(workspace_id, vulkan_config)
     if not os.path.exists(vm.workspace_path):
         return Response(status_code=404)
 
@@ -48,36 +53,15 @@ def get_workspace(
     return {"workspace_path": vm.workspace_path, "requirements": requirements}
 
 
-@app.put("/workspaces/{name}")
-def update_workspace(
-    name: str,
-    requirements: Annotated[list[str] | None, Body()] = None,
-    vulkan_config: VulkanConfig = Depends(get_vulkan_config),
-):
-    logger.info(f"Creating workspace: {name}")
-    vm = VulkanWorkspaceManager(name, vulkan_config)
-
-    with ExecutionContext(logger):
-        if not os.path.exists(vm.workspace_path):
-            raise ValueError(f"Workspace does not exist: {vm.workspace_path}")
-
-        if requirements:
-            logger.info(f"Adding requirements to workspace: {vm.workspace_path}")
-            vm.set_requirements(requirements)
-    logger.info(f"Workspace updated: {vm.workspace_path}")
-
-    return Response(status_code=200)
-
-
-@app.delete("/workspaces/{name}")
+@app.delete("/workspaces/{workspace_id}")
 def delete_workspace(
-    name: str,
+    workspace_id: str,
     vulkan_config: VulkanConfig = Depends(get_vulkan_config),
 ):
-    logger.info(f"Deleting workspace: {name}")
-    vm = VulkanWorkspaceManager(name, vulkan_config)
+    logger.debug(f"Deleting workspace: {workspace_id}")
+    vm = VulkanWorkspaceManager(workspace_id, vulkan_config)
     with ExecutionContext(logger):
         vm.delete_resources()
 
-    logger.info(f"Successfully deleted workspace: {name}")
+    logger.debug(f"Successfully deleted workspace: {workspace_id}")
     return {"workspace_path": vm.workspace_path}

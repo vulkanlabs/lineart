@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from vulkan_public.schemas import DataSourceSpec, PolicyAllocationStrategy
 
 from vulkan.core.run import JobStatus, RunStatus
-from vulkan_server.db import DataSource, PolicyVersionStatus
+from vulkan_server.db import DataSource
 
 
 class Project(BaseModel):
@@ -65,7 +65,6 @@ class PolicyBase(BaseModel):
 
 class Policy(PolicyBase):
     policy_id: UUID
-    project_id: UUID
     archived: bool
     created_at: datetime
     last_updated_at: datetime
@@ -120,19 +119,15 @@ class ComponentVersionDependencyExpanded(BaseModel):
     policy_version_alias: str
 
 
-class PolicyVersionCreate(BaseModel):
-    policy_id: UUID
-    alias: str | None = None
-    spec: dict | None = None
-    requirements: list[str] | None = None
-    input_schema: dict[str, str] | None = None
+class PolicyVersionBase(BaseModel):
+    alias: str | None
+    spec: dict
+    requirements: list[str]
+    input_schema: dict[str, str]
 
 
-class PolicyVersionCreateResponse(BaseModel):
-    policy_version_id: UUID
+class PolicyVersionCreate(PolicyVersionBase):
     policy_id: UUID
-    status: PolicyVersionStatus
-    alias: str | None = None
 
 
 class PolicyVersion(BaseModel):
@@ -140,12 +135,13 @@ class PolicyVersion(BaseModel):
     policy_id: UUID
     alias: str | None = None
     input_schema: dict[str, str]
-    graph_definition: str
-    project_id: UUID
+    spec: dict
+    requirements: list[str]
     archived: bool
+    variables: list[str] | None = None
     created_at: datetime
     last_updated_at: datetime
-    variables: list[str] | None = None
+    # graph_definition: str
 
     class Config:
         from_attributes = True

@@ -40,7 +40,7 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=schemas.PolicyVersionCreateResponse)
+@router.post("", response_model=schemas.PolicyVersion)
 def create_policy_version(
     config: schemas.PolicyVersionCreate,
     logger: VulkanLogger = Depends(get_logger),
@@ -50,7 +50,7 @@ def create_policy_version(
     ),
 ):
     extra = {"policy_id": config.policy_id, "policy_version_alias": config.alias}
-    logger.system.info("Creating policy version", extra={"extra": extra})
+    logger.system.debug("Creating policy version", extra={"extra": extra})
 
     policy = db.query(Policy).filter_by(policy_id=config.policy_id).first()
     if policy is None:
@@ -69,11 +69,11 @@ def create_policy_version(
     db.add(version)
     db.commit()
 
-    # START of policy version creation logic
     try:
-        resolution_service.create_workspace(
-            name=version.policy_version_id,
-            requirements=None,
+        resolution_service.update_workspace(
+            workspace_id=version.policy_version_id,
+            spec=config.spec,
+            requirements=config.requirements,
         )
         version.status = PolicyVersionStatus.VALID
     except Exception as e:
@@ -82,11 +82,10 @@ def create_policy_version(
             exc_info=True,
         )
         msg = (
-            "This is usually an issue with Vulkan's internal services. "
-            "Contact support for assistance. "
-            f"Workspace ID: {version.policy_version_id}"
+            "Failed to create policy version workspace. "
+            f"Policy Version ID: {version.policy_version_id}"
         )
-        raise HTTPException(status_code=500, detail={"msg": msg})
+        raise HTTPException(status_code=500, detail={"msg": msg}) from e
     db.commit()
 
     logger.event(
@@ -96,12 +95,81 @@ def create_policy_version(
         policy_version_alias=config.alias,
     )
 
-    return {
-        "policy_id": config.policy_id,
-        "policy_version_id": version.policy_version_id,
-        "alias": version.alias,
-        "status": version.status.value,
-    }
+    return version
+
+
+@router.get("/{policy_version_id}", response_model=schemas.PolicyVersion)
+def get_policy_version(
+    policy_version_id: str,
+    db: Session = Depends(get_db),
+):
+    policy_version = (
+        db.query(PolicyVersion).filter_by(policy_version_id=policy_version_id).first()
+    )
+    if policy_version is None:
+        return Response(status_code=204)
+    return policy_version
+
+
+@router.put("/{policy_version_id}", response_model=schemas.PolicyVersion)
+def update_policy_version(
+    policy_version_id: str,
+    config: schemas.PolicyVersionBase,
+    logger: VulkanLogger = Depends(get_logger),
+    db: Session = Depends(get_db),
+    resolution_service: ResolutionServiceClient = Depends(
+        get_resolution_service_client
+    ),
+):
+    version = (
+        db.query(PolicyVersion)
+        .filter_by(
+            policy_version_id=policy_version_id,
+            archived=False,
+        )
+        .first()
+    )
+    if version is None:
+        msg = f"Policy version {policy_version_id} not found"
+        raise HTTPException(status_code=404, detail=msg)
+
+    extra = {"policy_version_id": policy_version_id}
+    logger.system.debug("Updating policy version", extra={"extra": extra})
+    # Update the policy version with the new spec and requirements
+    version.alias = config.alias
+    version.input_schema = config.input_schema
+    version.spec = config.spec
+    version.requirements = config.requirements
+    version.status = PolicyVersionStatus.INVALID
+    db.commit()
+
+    # Update the workspace with the new spec and requirements
+    try:
+        resolution_service.update_workspace(
+            workspace_id=version.policy_version_id,
+            spec=config.spec,
+            requirements=config.requirements,
+        )
+        version.status = PolicyVersionStatus.VALID
+    except Exception as e:
+        logger.system.error(
+            f"Failed to update workspace ({version.policy_version_id}): {e}",
+            exc_info=True,
+        )
+        msg = (
+            "Failed to update policy version workspace. "
+            f"Policy Version ID: {version.policy_version_id}"
+        )
+        raise HTTPException(status_code=500, detail={"msg": msg}) from e
+
+    db.commit()
+    logger.event(
+        VulkanEvent.POLICY_VERSION_UPDATED,
+        policy_id=version.policy_id,
+        policy_version_id=policy_version_id,
+        policy_version_alias=version.alias,
+    )
+    return version
 
 
 # # START policy version creation logic
@@ -236,7 +304,7 @@ def _create_policy_version_workspace(
     repository: str,
 ) -> PolicyVersionSettings:
     try:
-        response = resolution.create_workspace(name=name, repository=repository)
+        response = resolution.create_workspace(workspace_id=name, repository=repository)
         response_data = response.json()
     except Exception as e:
         raise e
