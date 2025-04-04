@@ -19,8 +19,9 @@ class TransformNode(Node):
     def __init__(
         self,
         name: str,
-        func: Callable | str,
         dependencies: dict[str, Any],
+        func: Callable | None = None,
+        source_code: str | None = None,
         description: str | None = None,
         hierarchy: list[str] | None = None,
     ):
@@ -64,20 +65,36 @@ class TransformNode(Node):
             dependencies=dependencies,
             hierarchy=hierarchy,
         )
-        if callable(func):
-            self.func = func
-            self.user_code = getsource(func)
-        elif isinstance(func, str):
-            self.user_code = func
+        if func is None and source_code is None:
+            raise ValueError("TransformNode must have a function or source code")
+        if func is not None and source_code is not None:
+            raise ValueError(
+                "TransformNode cannot have both a function and source code"
+            )
+
+        if source_code is not None:
+            if not isinstance(source_code, str):
+                msg = f"Expected source code as string, got ({type(source_code)})"
+                raise TypeError(msg)
+
             try:
-                udf_instance = get_udf_instance(func)
+                udf_instance = get_udf_instance(source_code)
             except UserCodeException as e:
                 raise ValueError(f"Invalid user code in node {name}") from e
             self.func = udf_instance
-        else:
-            raise TypeError(
-                f"`func` should be a function or function declaration, got {type(func)}"
-            )
+            self.user_func = None
+            self.source_code = source_code
+            self.function_code = source_code
+
+        if func is not None:
+            if not callable(func):
+                msg = f"Expected callable, got ({type(func)})"
+                raise TypeError(msg)
+
+            self.func = func
+            self.user_func = func
+            self.source_code = None
+            self.function_code = getsource(func)
 
     def node_definition(self) -> NodeDefinition:
         return NodeDefinition(
@@ -86,7 +103,9 @@ class TransformNode(Node):
             node_type=self.type.value,
             dependencies=self.dependencies,
             metadata=TransformNodeMetadata(
-                source=self.user_code,
+                source_code=self.source_code,
+                func=self.user_func,
+                function_code=self.function_code,
             ),
             hierarchy=self.hierarchy,
         )
@@ -102,6 +121,7 @@ class TransformNode(Node):
             name=definition.name,
             description=definition.description,
             dependencies=definition.dependencies,
-            func=metadata.source,
+            func=metadata.func,
+            source_code=metadata.source_code,
             hierarchy=definition.hierarchy,
         )

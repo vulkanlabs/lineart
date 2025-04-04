@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Callable
 
 
 class NodeMetadata(ABC):
@@ -37,14 +37,14 @@ class BranchNodeMetadata(NodeMetadata):
     def __init__(
         self,
         choices: list[str],
-        function_code: str,
+        func: Callable | None,
         source_code: str | None,
-        func: bytes | None,
+        function_code: str,
     ):
         self.choices = choices
-        self.function_code = function_code
         self.func = func
         self.source_code = source_code
+        self.function_code = function_code
 
     @staticmethod
     def entries() -> list[str]:
@@ -52,12 +52,19 @@ class BranchNodeMetadata(NodeMetadata):
 
 
 class TransformNodeMetadata(NodeMetadata):
-    def __init__(self, source: str):
-        self.source = source
+    def __init__(
+        self,
+        func: Callable | None,
+        source_code: str | None,
+        function_code: str,
+    ):
+        self.func = func
+        self.source_code = source_code
+        self.function_code = function_code
 
     @staticmethod
     def entries() -> list[str]:
-        return ["source"]
+        return ["func", "source_code", "function_code"]
 
 
 class TerminateNodeMetadata(NodeMetadata):

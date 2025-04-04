@@ -157,6 +157,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick }) {
                 isValidConnection={isValidConnection}
                 fitViewOptions={{ maxZoom: 1 }}
                 fitView
+                proOptions={{ hideAttribution: true }}
             >
                 <Background color="#ccc" variant={BackgroundVariant.Dots} />
                 <MiniMap nodeStrokeWidth={3} zoomable pannable />
