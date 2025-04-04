@@ -27,11 +27,14 @@ import {
 } from "@/components/ui/form";
 import { createPolicyVersion } from "@/lib/api";
 import { useStackApp } from "@stackframe/stack";
+import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
 
 const formSchema = z.object({
-    alias: z.string({ description: "Name of the Version" }).min(1),
-    repository: z.string({ description: "Repository" }).optional(),
-    repository_version: z.string({ description: "Repository Version" }).min(0).optional(),
+    policy_id: z.string(),
+    alias: z.string({ description: "Name of the Version" }).optional(),
+    // spec: z.object({}).optional(),
+    // requirements: z.array(z.string()).optional(),
+    // input_schema: z.object({}).optional(),
 });
 
 export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
@@ -43,14 +46,24 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
+            policy_id: policyId,
             alias: "",
-            repository: "null",
-            repository_version: "0",
+            // spec: {},
+            // requirements: [],
+            // input_schema: {},
         },
     });
 
     const onSubmit = async (data: any) => {
-        await createPolicyVersion(user, { policy_id: policyId, ...data })
+        const requestData: PolicyVersionCreate = {
+            alias: data.alias,
+            spec: {},
+            requirements: [],
+            input_schema: {},
+            policy_id: data.policy_id,
+        };
+
+        await createPolicyVersion(user, { ...requestData })
             .then(() => {
                 setOpen(false);
                 form.reset();

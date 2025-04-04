@@ -1,13 +1,8 @@
-import { stackServerApp } from "@/stack";
-
-import WorkflowPage from "@/components/workflow/workflow";
-import { fetchPolicyVersion } from "@/lib/api";
+import WorkflowFrame from "@/workflow/workflow";
 
 export default async function Page(props) {
-    const params = await props.params;
-    const user = await stackServerApp.getUser();
-    const policyVersion = await fetchPolicyVersion(user, params.policy_version_id);
-    const graphData = JSON.parse(policyVersion.graph_definition);
+    const { policy_version_id } = await props.params;
 
-    return <WorkflowPage graphData={graphData} />;
+    console.log("[policy version page] Policy Version ID:", policy_version_id);
+    return <WorkflowFrame policyVersionId={policy_version_id} />;
 }
