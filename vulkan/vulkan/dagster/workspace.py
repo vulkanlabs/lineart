@@ -1,5 +1,4 @@
 import os
-from shutil import rmtree
 
 import yaml
 from dagster import Definitions, EnvVar, IOManagerDefinition
@@ -19,14 +18,10 @@ from vulkan.dagster.run_config import (
     VulkanPolicyConfig,
     VulkanRunConfig,
 )
-from vulkan.environment.loaders import resolve_policy
-from vulkan_public.spec.environment.workspace import VulkanCodeLocation
+from vulkan.environment.loaders import load_and_resolve_policy
 
 
-def make_workspace_definition(
-    module_name: str,
-    components_base_dir: str,
-) -> Definitions:
+def make_workspace_definition(spec_location: str) -> Definitions:
     run_config = VulkanRunConfig.configure_at_launch()
     resources = {
         # Vulkan Configurable Resources
@@ -55,13 +50,13 @@ def make_workspace_definition(
 
     # Up to this point, everything should be defined in terms of core elements.
     # Nodes and components should be configured, resolved, checked in core.
-    resolved_policy = resolve_policy(module_name, components_base_dir)
+    resolved_policy = load_and_resolve_policy()
     # From here, each implementation should handle transforming core to its own
     # needs, ie. Core -> Dagster
     # -> Transform nodes in dagster nodes
     dagster_flow = DagsterFlow(
-        nodes=resolved_policy.flattened_nodes,
-        dependencies=resolved_policy.flattened_dependencies,
+        nodes=resolved_policy.nodes,
+        dependencies=resolved_policy.edges,
     )
     # By definition, Vulkan dagster worskpaces have a single job.
     jobs = [dagster_flow.to_job(resources)]
@@ -77,29 +72,24 @@ class DagsterWorkspaceManager:
     def __init__(
         self,
         base_dir: str,
-        code_location: VulkanCodeLocation,
+        workspace_path: str,
     ) -> None:
         self.base_dir = base_dir
-        self.code_location = code_location
+        self.workspace_path = workspace_path
 
-    @property
-    def definitions_path(self):
-        return self._get_definitions_path()
-
-    def add_workspace_config(self, name: str, venvs_path: str):
+    def add_workspace_config(self, workspace_id: str):
         with open(os.path.join(self.base_dir, "workspace.yaml"), "a") as ws:
-            init_path = os.path.join(self.definitions_path, "__init__.py")
             ws.write(
                 (
                     "- python_file:\n"
-                    f"    relative_path: {init_path}\n"
-                    f"    working_directory: {self.definitions_path}\n"
-                    f"    executable_path: {venvs_path}/{name}/bin/python\n"
-                    f"    location_name: {name}\n"
+                    f"    relative_path: {self.workspace_path}/__init__.py\n"
+                    f"    working_directory: {self.workspace_path}\n"
+                    f"    executable_path: {self.workspace_path}/bin/python\n"
+                    f"    location_name: {workspace_id}\n"
                 )
             )
 
-    def remove_workspace_config(self, name: str):
+    def remove_workspace_config(self, workspace_id: str):
         path = os.path.join(self.base_dir, "workspace.yaml")
 
         with open(path, "r") as fn:
@@ -107,38 +97,26 @@ class DagsterWorkspaceManager:
 
         load_from = []
         for location in workspace_config["load_from"]:
-            if location.get("python_file", {}).get("location_name") != name:
+            if location.get("python_file", {}).get("location_name") != workspace_id:
                 load_from.append(location)
 
         with open(path, "w") as fn:
             yaml.dump(dict(load_from=load_from), fn)
 
-    def create_init_file(self, components_path: str) -> str:
-        definitions_path = self.definitions_path
-        os.makedirs(definitions_path, exist_ok=True)
-        init_path = os.path.join(definitions_path, "__init__.py")
+    def create_init_file(self) -> str:
+        init_path = os.path.join(self.workspace_path, "__init__.py")
 
-        init_contents = DAGSTER_ENTRYPOINT.format(
-            module_name=self.code_location.module_name,
-            components_path=components_path,
-        )
         with open(init_path, "w") as fp:
-            fp.write(init_contents)
+            fp.write(DAGSTER_ENTRYPOINT)
 
         return init_path
 
-    def delete_resources(self, name: str):
-        rmtree(self.definitions_path)
-        self.remove_workspace_config(name)
-
-    def _get_definitions_path(self):
-        # TODO: we're replacing /workspaces with /definitions as a convenience.
-        # We could have a more thorough definition of where the defs are stored.
-        return self.code_location.working_dir.replace("/workspaces", "/definitions", 1)
+    def delete_resources(self, workspace_id: str):
+        self.remove_workspace_config(workspace_id)
 
 
 DAGSTER_ENTRYPOINT = """
 from vulkan.dagster.workspace import make_workspace_definition
                 
-definitions = make_workspace_definition("{module_name}", "{components_path}")
+definitions = make_workspace_definition()
 """

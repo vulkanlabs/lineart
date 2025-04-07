@@ -8,8 +8,12 @@ from vulkan_public.exceptions import UNHANDLED_ERROR_NAME, VULKAN_INTERNAL_EXCEP
 def raise_interservice_error(logger: Logger, response: Response, message: str) -> None:
     try:
         detail = response.json()["detail"]
-        error_msg = f"{message}: {detail}"
+        if not isinstance(detail, dict):
+            logger.error(f"Got err: {detail}")
+            error_msg = f"{message}: {detail}"
+            raise ValueError(error_msg)
 
+        error_msg = f"{message}: {detail}"
         if detail["error"] == "VulkanInternalException":
             logger.error(f"Got err: {detail}")
             exception = VULKAN_INTERNAL_EXCEPTIONS[detail["exit_status"]]

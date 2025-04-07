@@ -4,9 +4,9 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
-from vulkan.core.run import JobStatus, RunStatus
 from vulkan_public.schemas import DataSourceSpec, PolicyAllocationStrategy
 
+from vulkan.core.run import JobStatus, RunStatus
 from vulkan_server.db import DataSource
 
 
@@ -56,6 +56,7 @@ class PolicyCreate(BaseModel):
     name: str
     description: str
 
+
 class PolicyBase(BaseModel):
     name: str | None = None
     description: str | None = None
@@ -64,7 +65,6 @@ class PolicyBase(BaseModel):
 
 class Policy(PolicyBase):
     policy_id: UUID
-    project_id: UUID
     archived: bool
     created_at: datetime
     last_updated_at: datetime
@@ -120,24 +120,28 @@ class ComponentVersionDependencyExpanded(BaseModel):
 
 
 class PolicyVersionBase(BaseModel):
-    policy_id: UUID
-    alias: str | None = None
+    alias: str | None
+    spec: dict
+    requirements: list[str]
+    input_schema: dict[str, str]
 
 
 class PolicyVersionCreate(PolicyVersionBase):
-    repository: str
-    repository_version: str
+    policy_id: UUID
 
 
-class PolicyVersion(PolicyVersionBase):
+class PolicyVersion(BaseModel):
     policy_version_id: UUID
+    policy_id: UUID
+    alias: str | None = None
     input_schema: dict[str, str]
-    graph_definition: str
-    project_id: UUID
+    spec: dict
+    requirements: list[str]
     archived: bool
+    variables: list[str] | None = None
     created_at: datetime
     last_updated_at: datetime
-    variables: list[str] | None = None
+    # graph_definition: str
 
     class Config:
         from_attributes = True
@@ -227,7 +231,6 @@ class RunLogs(BaseModel):
 
 class DataSource(DataSourceSpec):
     data_source_id: UUID
-    project_id: UUID
     variables: list[str] | None
     archived: bool
     created_at: datetime
@@ -238,7 +241,6 @@ class DataSource(DataSourceSpec):
         spec = data.to_spec()
         return cls(
             data_source_id=data.data_source_id,
-            project_id=data.project_id,
             variables=data.variables,
             archived=data.archived,
             created_at=data.created_at,

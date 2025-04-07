@@ -29,7 +29,7 @@ def run_test_job(
         input_schema=input_schema,
         output_callback=lambda _, **kwargs: None,
     )
-    f = DagsterFlow(p.flattened_nodes, p.flattened_dependencies)
+    f = DagsterFlow(p.nodes, p.edges)
     job = f.to_job(resources=_TEST_RESOURCES)
     job_result = job.execute_in_process(run_config=config)
     return job_result

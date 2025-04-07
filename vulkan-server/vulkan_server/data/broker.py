@@ -48,7 +48,6 @@ class DataBroker:
             data = DataObject(
                 key=key,
                 value=response.content,
-                project_id=self.spec.project_id,
                 data_source_id=self.spec.data_source_id,
             )
             self.db.add(data)

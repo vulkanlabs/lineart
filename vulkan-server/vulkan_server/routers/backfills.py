@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-from vulkan.core.run import RunStatus
 
+from vulkan.core.run import RunStatus
 from vulkan_server import schemas
-from vulkan_server.auth import get_project_id
 from vulkan_server.backtest.launcher import get_backtest_job_status
 from vulkan_server.backtest.results import ResultsDB, get_results_db
 from vulkan_server.db import Backfill, get_db
@@ -16,8 +15,8 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[schemas.Backfill])
-def list_backfills(project_id: str = Depends(get_project_id), db=Depends(get_db)):
-    results = db.query(Backfill).filter_by(project_id=project_id).all()
+def list_backfills(db=Depends(get_db)):
+    results = db.query(Backfill).all()
     if len(results) == 0:
         return Response(status_code=204)
     return results
@@ -26,12 +25,13 @@ def list_backfills(project_id: str = Depends(get_project_id), db=Depends(get_db)
 @router.get("/{backfill_id}", response_model=schemas.Backfill)
 def get_backfill(
     backfill_id: str,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     backfill = (
         db.query(Backfill)
-        .filter_by(backfill_id=backfill_id, project_id=project_id)
+        .filter_by(
+            backfill_id=backfill_id,
+        )
         .first()
     )
     if backfill is None:
@@ -42,12 +42,13 @@ def get_backfill(
 @router.get("/{backfill_id}/status", response_model=schemas.BackfillStatus)
 def get_backfill_status(
     backfill_id: str,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
 ):
     backfill = (
         db.query(Backfill)
-        .filter_by(backfill_id=backfill_id, project_id=project_id)
+        .filter_by(
+            backfill_id=backfill_id,
+        )
         .first()
     )
     if backfill is None:
@@ -63,11 +64,12 @@ def update_backfill(
     status: RunStatus,
     results_path: str,
     db: Session = Depends(get_db),
-    project_id: str = Depends(get_project_id),
 ):
     backfill = (
         db.query(Backfill)
-        .filter_by(backfill_id=backfill_id, project_id=project_id)
+        .filter_by(
+            backfill_id=backfill_id,
+        )
         .first()
     )
     if backfill is None:
@@ -82,13 +84,14 @@ def update_backfill(
 @router.get("/{backfill_id}/results")
 def get_backfill_results(
     backfill_id: str,
-    project_id: str = Depends(get_project_id),
     db: Session = Depends(get_db),
     results_db: ResultsDB = Depends(get_results_db),
 ):
     backfill = (
         db.query(Backfill)
-        .filter_by(backfill_id=backfill_id, project_id=project_id)
+        .filter_by(
+            backfill_id=backfill_id,
+        )
         .first()
     )
     if backfill is None:

@@ -84,20 +84,8 @@ class TimedUpdateMixin:
     )
 
 
-class AuthorizationMixin:
-    project_id = Column(Uuid, ForeignKey("project.project_id"))
-
-
 class ArchivableMixin:
     archived = Column(Boolean, default=False)
-
-
-class Project(Base):
-    __tablename__ = "project"
-
-    project_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    name = Column(String, unique=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class User(TimedUpdateMixin, Base):
@@ -109,27 +97,19 @@ class User(TimedUpdateMixin, Base):
     name = Column(String)
 
 
-class ProjectUser(TimedUpdateMixin, AuthorizationMixin, Base):
-    __tablename__ = "project_user"
-
-    project_user_id = Column(
-        Uuid, primary_key=True, server_default=func.gen_random_uuid()
-    )
-    user_id = Column(Uuid, ForeignKey("users.user_id"))
-    role = Column(Enum(Role))
-
-
-class LogRecord(AuthorizationMixin, Base):
+class LogRecord(Base):
     __tablename__ = "log_record"
 
-    log_record_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    log_record_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
     level = Column(String)
     message = Column(JSON)
     timestamp = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-class Policy(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base):
+class Policy(TimedUpdateMixin, ArchivableMixin, Base):
     __tablename__ = "policy"
 
     policy_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
@@ -138,44 +118,7 @@ class Policy(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base):
     allocation_strategy = Column(JSON, nullable=True)
 
 
-class Component(AuthorizationMixin, Base):
-    __tablename__ = "component"
-
-    component_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    name = Column(String)
-    archived = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    __table_args__ = (
-        Index(
-            "unique_component_name",
-            "project_id",
-            "name",
-            "archived",
-            unique=True,
-            postgresql_where=(archived == False),  # noqa: E712
-        ),
-    )
-
-
-class ComponentVersion(AuthorizationMixin, ArchivableMixin, Base):
-    __tablename__ = "component_version"
-
-    component_version_id = Column(
-        Uuid, primary_key=True, server_default=func.gen_random_uuid()
-    )
-    component_id = Column(Uuid, ForeignKey("component.component_id"))
-    alias = Column(String)
-    input_schema = Column(String)
-    output_schema = Column(String, nullable=True)
-    instance_params_schema = Column(String)
-    node_definitions = Column(String)
-    repository = Column(String)
-    variables = Column(ARRAY(String), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-
-class PolicyVersion(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base):
+class PolicyVersion(TimedUpdateMixin, ArchivableMixin, Base):
     __tablename__ = "policy_version"
 
     policy_version_id = Column(
@@ -184,9 +127,8 @@ class PolicyVersion(TimedUpdateMixin, AuthorizationMixin, ArchivableMixin, Base)
     policy_id = Column(Uuid, ForeignKey("policy.policy_id"))
     alias = Column(String)
     status = Column(Enum(PolicyVersionStatus))
-    repository = Column(String)
-    # TODO: We can reuse the version as an incremental number for edits.
-    repository_version = Column(String)
+    spec = Column(JSON, nullable=False)
+    requirements = Column(ARRAY(String), nullable=False)
     # The fields below require the policy version to be resolved
     # first, hence the "nullable=True". With regards to the application,
     # `input_schema` and `graph_definition` are actually non-nullable.
@@ -223,19 +165,7 @@ class BeamWorkspace(TimedUpdateMixin, Base):
     image = Column(String, nullable=True)
 
 
-class ComponentVersionDependency(Base):
-    __tablename__ = "component_version_dependency"
-
-    component_version_dependency_id = Column(
-        Uuid, primary_key=True, server_default=func.gen_random_uuid()
-    )
-    policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
-    component_version_id = Column(
-        Uuid, ForeignKey("component_version.component_version_id")
-    )
-
-
-class ConfigurationValue(AuthorizationMixin, TimedUpdateMixin, Base):
+class ConfigurationValue(TimedUpdateMixin, Base):
     __tablename__ = "configuration_value"
 
     configuration_value_id = Column(
@@ -261,7 +191,7 @@ class ConfigurationValue(AuthorizationMixin, TimedUpdateMixin, Base):
     )
 
 
-class RunGroup(TimedUpdateMixin, AuthorizationMixin, Base):
+class RunGroup(TimedUpdateMixin, Base):
     __tablename__ = "run_group"
 
     run_group_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
@@ -269,7 +199,7 @@ class RunGroup(TimedUpdateMixin, AuthorizationMixin, Base):
     input_data = Column(JSON)
 
 
-class Run(TimedUpdateMixin, AuthorizationMixin, Base):
+class Run(TimedUpdateMixin, Base):
     __tablename__ = "run"
 
     run_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
@@ -297,7 +227,7 @@ class StepMetadata(Base):
     extra = Column(JSON, nullable=True)
 
 
-class DataSource(TimedUpdateMixin, AuthorizationMixin, Base):
+class DataSource(TimedUpdateMixin, Base):
     __tablename__ = "data_source"
 
     data_source_id = Column(
@@ -317,7 +247,6 @@ class DataSource(TimedUpdateMixin, AuthorizationMixin, Base):
     __table_args__ = (
         Index(
             "unique_data_source_name",
-            "project_id",
             "name",
             "archived",
             unique=True,
@@ -326,10 +255,9 @@ class DataSource(TimedUpdateMixin, AuthorizationMixin, Base):
     )
 
     @classmethod
-    def from_spec(cls, spec: DataSourceSpec, project_id: str):
+    def from_spec(cls, spec: DataSourceSpec):
         variables = spec.extract_env_vars()
         return cls(
-            project_id=project_id,
             name=spec.name,
             description=spec.description,
             keys=spec.keys,
@@ -354,16 +282,6 @@ class DataSource(TimedUpdateMixin, AuthorizationMixin, Base):
         )
 
 
-class ComponentDataDependency(Base):
-    __tablename__ = "component_data_dependency"
-
-    id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
-    component_version_id = Column(
-        Uuid, ForeignKey("component_version.component_version_id")
-    )
-
-
 class PolicyDataDependency(Base):
     __tablename__ = "policy_data_dependency"
 
@@ -372,7 +290,7 @@ class PolicyDataDependency(Base):
     policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
 
 
-class DataObject(AuthorizationMixin, Base):
+class DataObject(Base):
     __tablename__ = "data_object"
 
     data_object_id = Column(
@@ -394,7 +312,7 @@ class RunDataCache(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-class UploadedFile(AuthorizationMixin, Base):
+class UploadedFile(Base):
     __tablename__ = "uploaded_file"
 
     uploaded_file_id = Column(
@@ -406,7 +324,7 @@ class UploadedFile(AuthorizationMixin, Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-class Backfill(AuthorizationMixin, TimedUpdateMixin, Base):
+class Backfill(TimedUpdateMixin, Base):
     __tablename__ = "backfill"
 
     backfill_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
@@ -421,7 +339,7 @@ class Backfill(AuthorizationMixin, TimedUpdateMixin, Base):
     gcp_job_id = Column(String, nullable=True)
 
 
-class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
+class Backtest(TimedUpdateMixin, Base):
     __tablename__ = "backtest"
 
     backtest_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
@@ -441,7 +359,7 @@ class Backtest(AuthorizationMixin, TimedUpdateMixin, Base):
     group_by_columns = Column(ARRAY(String), nullable=True)
 
 
-class BacktestMetrics(AuthorizationMixin, TimedUpdateMixin, Base):
+class BacktestMetrics(TimedUpdateMixin, Base):
     __tablename__ = "backtest_metrics"
 
     backtest_metrics_id = Column(

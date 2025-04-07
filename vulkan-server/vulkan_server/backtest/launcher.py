@@ -32,17 +32,15 @@ class BacktestLauncher:
         # FIXME: This path should be set by a shared environment variable
         self.backend_launcher = _DataflowLauncher(components_path="/opt/dependencies/")
 
-    def backtest_output_path(self, project_id, backtest_id: str) -> str:
+    def backtest_output_path(self, backtest_id: str) -> str:
         return os.path.join(
             self.backend_launcher.config.output_bucket,
             self.backend_launcher.config.project,
-            str(project_id),
             str(backtest_id),
         )
 
     def create_backfill(
         self,
-        project_id: str,
         backtest_id: str,
         policy_version: PolicyVersion,
         workspace: BeamWorkspace,
@@ -54,7 +52,6 @@ class BacktestLauncher:
             input_data_path=input_data_path,
             status=RunStatus.PENDING,
             config_variables=resolved_config_variables,
-            project_id=project_id,
         )
         self.db.add(backfill)
         self.db.commit()
@@ -62,7 +59,7 @@ class BacktestLauncher:
         data_sources = get_required_data_source_specs(policy_version, self.db)
 
         output_path = os.path.join(
-            self.backtest_output_path(project_id, backtest_id),
+            self.backtest_output_path(backtest_id),
             "backfills",
             str(backfill.backfill_id),
         )
@@ -87,7 +84,6 @@ class BacktestLauncher:
 
     def create_metrics(
         self,
-        project_id: str,
         backtest_id: str,
         input_data_path: str,
         results_data_path: str,
@@ -96,13 +92,12 @@ class BacktestLauncher:
         group_by_columns: list[str] | None = None,
     ) -> schemas.Backfill:
         output_path = os.path.join(
-            self.backtest_output_path(project_id, backtest_id),
+            self.backtest_output_path(backtest_id),
             "metrics",
         )
         metrics = BacktestMetrics(
             backtest_id=backtest_id,
             status=RunStatus.PENDING,
-            project_id=project_id,
             output_path=os.path.join(output_path, "metrics.json"),
         )
         self.db.add(metrics)

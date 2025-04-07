@@ -5,7 +5,6 @@ from fastapi import Depends, Response
 from requests import Request, Session
 
 from vulkan_server import definitions
-from vulkan_server.auth import get_project_id
 from vulkan_server.dagster.client import get_dagster_client
 from vulkan_server.dagster.trigger_run import _update_repository
 from vulkan_server.exceptions import raise_interservice_error
@@ -23,12 +22,10 @@ class VulkanDagsterServiceClient:
 
     def __init__(
         self,
-        project_id: str,
         server_url: str,
         dagster_client: str,
         request_config: VulkanDagsterRequestConfig | None = None,
     ) -> None:
-        self.project_id = project_id
         self.server_url = server_url
         self.dagster_client = dagster_client
         self.session = Session()
@@ -46,7 +43,6 @@ class VulkanDagsterServiceClient:
             json={
                 "name": name,
                 "repository": repository,
-                "project_id": self.project_id,
                 "required_components": components,
             },
             on_error="Failed to create workspace",
@@ -59,7 +55,6 @@ class VulkanDagsterServiceClient:
             url="/workspaces/delete",
             json={
                 "name": name,
-                "project_id": self.project_id,
             },
             on_error="Failed to delete workspace",
         )
@@ -101,14 +96,12 @@ class VulkanDagsterServiceClient:
 
 
 def get_dagster_service_client(
-    project_id: str = Depends(get_project_id),
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
     ),
     dagster_client=Depends(get_dagster_client),
 ) -> VulkanDagsterServiceClient:
     return VulkanDagsterServiceClient(
-        project_id=project_id,
         server_url=server_config.vulkan_dagster_server_url,
         dagster_client=dagster_client,
     )

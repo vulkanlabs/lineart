@@ -11,7 +11,6 @@ from google.cloud.logging.handlers import CloudLoggingHandler
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from vulkan_server.auth import AuthContext, get_auth_context
 from vulkan_server.db import LogRecord, get_db
 
 SYS_LOGGER_NAME = "vulkan"
@@ -22,27 +21,24 @@ GCP_LOGGER_NAME = "vulkan-server"
 class EventMessage(BaseModel):
     event: str
     metadata: dict
-    auth: AuthContext
 
 
 class VulkanLogger:
-    def __init__(self, db: Session, auth: AuthContext):
-        self.auth = auth
+    def __init__(self, db: Session):
         self.system = get_system_logger()
         self.user = get_user_logger(db)
 
     def event(self, event_name: str, **kwargs):
-        message = EventMessage(event=event_name, metadata=kwargs, auth=self.auth)
+        message = EventMessage(event=event_name, metadata=kwargs)
         self.user.info(
             message.model_dump_json(),
-            extra={"extra": json.loads(self.auth.model_dump_json())},
         )
 
 
 def get_logger(
-    db: Session = Depends(get_db), auth: AuthContext = Depends(get_auth_context)
+    db: Session = Depends(get_db),
 ) -> VulkanLogger:
-    return VulkanLogger(db, auth)
+    return VulkanLogger(db)
 
 
 def get_system_logger() -> logging.Logger:
@@ -108,7 +104,6 @@ def get_stream_handler():
 
 @dataclass
 class StructuredLogRecord:
-    project_id: str
     level: str
     message: str
     timestamp: str
@@ -126,7 +121,6 @@ class SQLAlchemyHandler(logging.Handler):
         try:
             log: StructuredLogRecord = self.format(record)
             log_record = LogRecord(
-                project_id=log.project_id,
                 level=log.level,
                 message=log.message,
                 timestamp=log.timestamp,
@@ -141,9 +135,7 @@ class SQLAlchemyHandler(logging.Handler):
 
 class StructuredFormatter(logging.Formatter):
     def format(self, record):
-        extra = getattr(record, "extra", {})
         return StructuredLogRecord(
-            project_id=extra.get("project_id"),
             level=record.levelname,
             message=record.getMessage(),
             timestamp=self.formatTime(record, "%Y-%m-%d %H:%M:%S"),
@@ -165,7 +157,6 @@ class CloudLoggingFormatter(logging.Formatter):
     def format(self, record):
         extra = getattr(record, "extra", {})
         log_record = {
-            "project_id": extra.get("project_id"),
             "message": record.getMessage(),
             "extra": extra,
         }

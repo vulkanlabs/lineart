@@ -14,18 +14,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential vim \
     && rm -rf /var/lib/apt/lists/*
 
+COPY resolution-svc/scripts/* ${VULKAN_SCRIPTS_PATH}/
+
 RUN pip install uv
 
 # Install resolution-svc
-COPY vulkan-public ${VULKAN_SERVER_PATH}/vulkan-public
-COPY vulkan ${VULKAN_SERVER_PATH}/vulkan
-
-COPY resolution-svc ${VULKAN_SERVER_PATH}/resolution-svc
-RUN uv pip install --system --no-cache ${VULKAN_SERVER_PATH}/resolution-svc
-
-RUN mkdir ${VULKAN_VENVS_PATH}
-COPY resolution-svc/scripts/* ${VULKAN_SCRIPTS_PATH}/
+WORKDIR ${VULKAN_SERVER_PATH}
+COPY vulkan-public vulkan-public
+COPY resolution-svc resolution-svc
+RUN uv pip install --system --no-cache resolution-svc/
+## Use symlink installations after the initial setup to avoid duplicating
+## the same packages in the container.
+## Note: This has to be set after running the --no-cache installation,
+##       as the two options are mutually exclusive.
+ENV UV_LINK_MODE=symlink
 
 # Run server
-WORKDIR ${VULKAN_SERVER_PATH}
 ENTRYPOINT ["fastapi", "dev", "./resolution-svc/resolution_svc/app.py", "--host", "0.0.0.0", "--port", "8080", "--no-reload"]

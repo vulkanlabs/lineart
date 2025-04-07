@@ -2,10 +2,10 @@ import logging
 import os
 from typing import Annotated
 
-from fastapi import Body, Depends, FastAPI
-from vulkan.artifacts.gcs import GCSArtifactManager
+from fastapi import Body, Depends, FastAPI, Response
 from vulkan.dagster.workspace import DagsterWorkspaceManager
 
+from .config import VulkanConfig, get_vulkan_config
 from .context import ExecutionContext
 from .workspace import VulkanWorkspaceManager
 
@@ -14,71 +14,65 @@ app = FastAPI()
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
-VULKAN_HOME = os.getenv("VULKAN_HOME")
-VENVS_PATH = os.getenv("VULKAN_VENVS_PATH")
-SCRIPTS_PATH = os.getenv("VULKAN_SCRIPTS_PATH")
 
-
-def get_artifact_manager():
-    GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
-    GCP_BUCKET_NAME = os.getenv("GCP_BUCKET_NAME")
-    GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-
-    if not GCP_PROJECT_ID or not GCP_BUCKET_NAME or not GOOGLE_APPLICATION_CREDENTIALS:
-        raise ValueError("GCP configuration missing")
-
-    return GCSArtifactManager(
-        project_id=GCP_PROJECT_ID,
-        bucket_name=GCP_BUCKET_NAME,
-        token=GOOGLE_APPLICATION_CREDENTIALS,
-    )
-
-
-@app.post("/workspaces/create")
+@app.post("/workspaces/{workspace_id}")
 def create_workspace(
-    name: Annotated[str, Body()],
-    project_id: Annotated[str, Body()],
-    required_components: Annotated[list[str], Body()],
-    artifacts: GCSArtifactManager = Depends(get_artifact_manager),
+    workspace_id: str,
+    spec: Annotated[dict, Body()],
+    requirements: Annotated[list[str], Body()],
+    vulkan_config: VulkanConfig = Depends(get_vulkan_config),
 ):
-    """
-    Create the dagster workspace and venv used to run a policy version.
-
-    """
-    logger.info(f"[{project_id}] Creating workspace: {name} (python_module)")
-    vm = VulkanWorkspaceManager(project_id, name)
+    logger.debug(f"Creating/updating workspace: {workspace_id}")
+    vm = VulkanWorkspaceManager(vulkan_config, workspace_id)
 
     with ExecutionContext(logger) as ctx:
-        vm.unpack_workspace(artifacts, name)
-        ctx.register_asset(vm.workspace_path)
+        if not os.path.exists(vm.workspace_path):
+            vm.create_workspace()
+            ctx.register_asset(vm.workspace_path)
+            logger.debug(f"Created workspace at {vm.workspace_path}")
 
-        venv_path = vm.create_venv()
-        ctx.register_asset(venv_path)
+        if requirements:
+            logger.debug(f"Adding requirements to workspace: {vm.workspace_path}")
+            vm.set_requirements(requirements)
+        if spec:
+            logger.debug(f"Adding spec to workspace: {spec}")
+            vm.add_spec(spec)
 
-        vm.install_components(artifacts, required_components)
-
-        dm = DagsterWorkspaceManager(VULKAN_HOME, vm.code_location)
-        _ = dm.create_init_file(vm.components_path)
-        dm.add_workspace_config(name, VENVS_PATH)
-        logger.info(f"Successfully installed workspace: {name}")
+        dm = DagsterWorkspaceManager(vulkan_config.home, workspace_id, vm.workspace_path)
+        dm.create_init_file()
+        dm.add_workspace_config(workspace_id)
+        logger.info(f"Successfully installed workspace: {workspace_id}")
 
     return {
         "workspace_path": vm.workspace_path,
     }
 
 
-@app.post("/workspaces/delete")
-def delete_workspace(
-    name: Annotated[str, Body()],
-    project_id: Annotated[str, Body()],
+@app.get("/workspaces/{workspace_id}")
+def get_workspace(
+    workspace_id: str,
+    vulkan_config: VulkanConfig = Depends(get_vulkan_config),
 ):
-    logger.info(f"[{project_id}] Deleting workspace: {name}")
-    vm = VulkanWorkspaceManager(project_id, name)
-    dm = DagsterWorkspaceManager(VULKAN_HOME, vm.code_location)
+    vm = VulkanWorkspaceManager(vulkan_config, workspace_id)
+    if not os.path.exists(vm.workspace_path):
+        return Response(status_code=404)
+
+    requirements = vm.get_requirements()
+    return {"workspace_path": vm.workspace_path, "requirements": requirements}
+
+
+@app.delete("/workspaces/{workspace_id}")
+def delete_workspace(
+    workspace_id: str,
+    vulkan_config: VulkanConfig = Depends(get_vulkan_config),
+):
+    logger.info(f"Deleting workspace: {workspace_id}")
+    vm = VulkanWorkspaceManager(vulkan_config, workspace_id)
+    dm = DagsterWorkspaceManager(vulkan_config.home, vm.workspace_path)
 
     with ExecutionContext(logger):
-        dm.delete_resources(name)
+        dm.delete_resources(workspace_id)
         vm.delete_resources()
 
-    logger.info(f"Successfully deleted workspace: {name}")
+    logger.info(f"Successfully deleted workspace: {workspace_id}")
     return {"workspace_path": vm.workspace_path}
