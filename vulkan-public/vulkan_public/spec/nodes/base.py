@@ -25,7 +25,7 @@ class NodeType(Enum):
     POLICY = "POLICY"
 
 
-@dataclass(frozen=True)
+@dataclass()
 class NodeDefinition:
     "Internal representation of a node."
 
@@ -46,6 +46,18 @@ class NodeDefinition:
                 )
                 raise TypeError(msg)
         if self.dependencies is not None:
+            deps = {}
+            for key, dep in self.dependencies.items():
+                if isinstance(dep, Dependency):
+                    deps[key] = dep
+                else:
+                    try:
+                        dep = Dependency.from_dict(dep)
+                        deps[key] = dep
+                    except Exception as e:
+                        msg = f"Error parsing dependency {key}: {e}"
+                        raise ValueError(msg) from e
+            self.dependencies = deps
             if not all(isinstance(d, Dependency) for d in self.dependencies.values()):
                 msg = f"Dependencies must be of type Dependency: {self.dependencies}"
                 raise ValueError(msg)

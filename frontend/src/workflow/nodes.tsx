@@ -6,38 +6,38 @@ import { VulkanNodeType, VulkanNode, NodeConfig } from "./types";
 export const NODE_SIZE = { width: 320, height: 50 };
 
 export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
-    "INPUT": {
+    INPUT: {
         id: "INPUT",
-        name: "InputNode",
+        name: "input_node",
         width: 260,
         height: 50,
         icon: null,
     },
-    "CONNECTION": {
+    CONNECTION: {
         id: "CONNECTION",
         name: "ConnectionNode",
         icon: "Link",
     },
-    "DATA_INPUT": {
+    DATA_INPUT: {
         id: "DATA_INPUT",
         name: "DataSourceNode",
         icon: "ArrowDown01",
     },
-    "TRANSFORM": {
+    TRANSFORM: {
         id: "TRANSFORM",
         name: "TransformNode",
         width: 400,
         height: 300,
         icon: "Code2",
     },
-    "BRANCH": {
+    BRANCH: {
         id: "BRANCH",
         name: "BranchNode",
         width: 500,
         height: 500,
         icon: "Split",
     },
-    "TERMINATE": {
+    TERMINATE: {
         id: "TERMINATE",
         name: "TerminateNode",
         width: 400,
@@ -55,11 +55,13 @@ function initMetadata(type: VulkanNodeType) {
         return {
             func: null,
             source_code: "",
+            function_code: "",
         };
     } else if (type === "BRANCH") {
         return {
             func: null,
             source_code: "",
+            function_code: "",
             choices: ["", ""],
         };
     }

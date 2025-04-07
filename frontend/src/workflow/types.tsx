@@ -38,7 +38,7 @@ export type GenericNodeDefinition<MetadataType> = {
     node_type: string;
     // description: string;
     metadata?: MetadataType;
-    dependencies?: NodeDependency[];
+    dependencies?: Map<string, NodeDependency>;
 };
 
 export type TerminateNodeMetadata = {

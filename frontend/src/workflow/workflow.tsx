@@ -36,6 +36,7 @@ import { WorkflowProvider, useWorkflowStore } from "./store";
 import { SaveIcon } from "lucide-react";
 import { saveWorkflowSpec } from "./actions";
 import { toast } from "sonner";
+import { GraphDefinition, NodeDefinition } from "./types";
 
 type VulkanWorkflowProps = {
     onNodeClick: (e: React.MouseEvent, node: any) => void;
@@ -74,8 +75,6 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
     const { isOpen, connectingHandle, toggleDropdown, ref } = useDropdown();
 
     useEffect(() => {
-        // console.log(nodes);
-        // console.log(getSpec());
         console.log(JSON.stringify(getSpec()));
     }, [nodes]);
 
@@ -134,7 +133,6 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
             targetHandle: null,
         });
     }
-    console.log("[workflow] Policy Version ID:", policyVersionId);
 
     return (
         <div className="w-full h-full">
@@ -145,7 +143,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
                     style={{
                         top: `${dropdownPosition.y}px`,
                         left: `${dropdownPosition.x}px`,
-                        transform: "translate(-50%, -50%)",
+                        transform: "translate(0, -100%)",
                     }}
                 >
                     <AppDropdownMenu
@@ -193,11 +191,11 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
     );
 }
 
-async function saveWorkflowState(policyVersionId: string, spec: any) {
-    const result = await saveWorkflowSpec(policyVersionId, spec);
+async function saveWorkflowState(policyVersionId: string, graph: GraphDefinition) {
+    const graphNodes = Object.values(graph).filter((node) => node.node_type !== "INPUT");
+    const result = await saveWorkflowSpec(policyVersionId, graphNodes);
 
     if (result.success) {
-        console.log("Workflow saved successfully:", result.data);
         toast("Workflow saved ", {
             description: `Workflow saved successfully.`,
             duration: 2000,

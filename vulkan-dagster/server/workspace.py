@@ -1,12 +1,12 @@
+import json
 import os
 import subprocess
 from shutil import rmtree
-import json
-
-from vulkan.environment.loaders import SPEC_FILE_NAME
 
 from .config import VulkanConfig
 from .pyproject import get_pyproject, set_dependencies
+
+SPEC_FILE_NAME = "policy.json"
 
 
 class VulkanWorkspaceManager:
@@ -37,7 +37,7 @@ class VulkanWorkspaceManager:
                 json.dump(spec, fp)
         except Exception as e:
             raise ValueError(f"Failed to add spec: {e}")
-    
+
     def set_requirements(self, requirements: list[str]) -> None:
         if not os.path.exists(self.workspace_path):
             raise ValueError(f"Workspace does not exist: {self.workspace_path}")

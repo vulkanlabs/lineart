@@ -1,16 +1,28 @@
 "use server";
 
 import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
+import { NodeDefinition } from "./types";
 
-export async function saveWorkflowSpec(policyVersionId: string, spec: any) {
+export async function saveWorkflowSpec(policyVersionId: string, nodes: NodeDefinition[]) {
+    if (!policyVersionId) {
+        throw new Error("Policy version ID is required");
+    }
+    if (!nodes) {
+        throw new Error("Workflow spec is required");
+    }
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    const spec = {
+        nodes: nodes,
+        input_schema: {
+            score: "int",
+        },
+    };
+
     const request: PolicyVersionBase = {
         alias: null,
         spec: spec,
         requirements: [],
-        input_schema: {
-            "score": "int",
-        },
+        input_schema: {},
     };
 
     return fetch(`${serverUrl}/policy-versions/${policyVersionId}`, {

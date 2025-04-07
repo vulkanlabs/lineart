@@ -80,10 +80,13 @@ const createWorkflowStore = (initProps: WorkflowState = defaultState) => {
                 }
 
                 if (sourceNode && targetNode) {
-                    targetNode.dependencies = [
-                        ...(targetNode.dependencies || []),
-                        { node: sourceNode.name, output: output },
-                    ];
+                    targetNode.dependencies = Object.assign({}, targetNode.dependencies, {
+                        [sourceNode.name]: {
+                            node: sourceNode.name,
+                            output: output,
+                            key: null,
+                        },
+                    });
                 }
             });
 

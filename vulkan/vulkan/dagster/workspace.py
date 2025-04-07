@@ -21,7 +21,7 @@ from vulkan.dagster.run_config import (
 from vulkan.environment.loaders import load_and_resolve_policy
 
 
-def make_workspace_definition(spec_location: str) -> Definitions:
+def make_workspace_definition(spec_file_path: str) -> Definitions:
     run_config = VulkanRunConfig.configure_at_launch()
     resources = {
         # Vulkan Configurable Resources
@@ -50,7 +50,7 @@ def make_workspace_definition(spec_location: str) -> Definitions:
 
     # Up to this point, everything should be defined in terms of core elements.
     # Nodes and components should be configured, resolved, checked in core.
-    resolved_policy = load_and_resolve_policy()
+    resolved_policy = load_and_resolve_policy(spec_file_path)
     # From here, each implementation should handle transforming core to its own
     # needs, ie. Core -> Dagster
     # -> Transform nodes in dagster nodes
@@ -78,16 +78,26 @@ class DagsterWorkspaceManager:
         self.workspace_path = workspace_path
 
     def add_workspace_config(self, workspace_id: str):
-        with open(os.path.join(self.base_dir, "workspace.yaml"), "a") as ws:
-            ws.write(
-                (
-                    "- python_file:\n"
-                    f"    relative_path: {self.workspace_path}/__init__.py\n"
-                    f"    working_directory: {self.workspace_path}\n"
-                    f"    executable_path: {self.workspace_path}/.venv/bin/python\n"
-                    f"    location_name: {workspace_id}\n"
-                )
-            )
+        workspace_file = os.path.join(self.base_dir, "workspace.yaml")
+        with open(workspace_file, "r") as fp:
+            workspace_config = yaml.safe_load(fp)
+
+        for cfg in workspace_config["load_from"]:
+            if cfg.get("python_file", {}).get("location_name") == workspace_id:
+                return
+
+        # If we get here, the workspace_id is not in the config file
+        new_config = {
+            "python_file": {
+                "relative_path": f"{self.workspace_path}/__init__.py",
+                "working_directory": self.workspace_path,
+                "executable_path": f"{self.workspace_path}/.venv/bin/python",
+                "location_name": workspace_id,
+            }
+        }
+        workspace_config["load_from"].append(new_config)
+        with open(workspace_file, "w") as fp:
+            yaml.dump(workspace_config, fp)
 
     def remove_workspace_config(self, workspace_id: str):
         path = os.path.join(self.base_dir, "workspace.yaml")
@@ -107,7 +117,10 @@ class DagsterWorkspaceManager:
         init_path = os.path.join(self.workspace_path, "__init__.py")
 
         with open(init_path, "w") as fp:
-            fp.write(DAGSTER_ENTRYPOINT)
+            init_contents = DAGSTER_ENTRYPOINT.format(
+                spec_file_path=os.path.join(self.workspace_path, "policy.json"),
+            )
+            fp.write(init_contents)
 
         return init_path
 
@@ -118,5 +131,5 @@ class DagsterWorkspaceManager:
 DAGSTER_ENTRYPOINT = """
 from vulkan.dagster.workspace import make_workspace_definition
                 
-definitions = make_workspace_definition()
+definitions = make_workspace_definition("{spec_file_path}")
 """

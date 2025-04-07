@@ -14,8 +14,8 @@ export function TransformNode({ id, data, selected, height, width }) {
     );
 
     const setSourceCode = useCallback(
-        (status: string) => {
-            updateNodeData(id, { ...data, metadata: { source_code: status } });
+        (code: string) => {
+            updateNodeData(id, { ...data, metadata: { source_code: code, function_code: code } });
         },
         [id, data, updateNodeData],
     );

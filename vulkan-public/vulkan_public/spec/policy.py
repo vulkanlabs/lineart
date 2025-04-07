@@ -11,6 +11,7 @@ from vulkan_public.spec.nodes import (
     TransformNode,
 )
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
+from vulkan_public.spec.nodes.input import parse_input_schema
 from vulkan_public.spec.nodes.metadata import PolicyNodeMetadata
 
 
@@ -88,9 +89,11 @@ class PolicyDefinition(GraphDefinition):
     @classmethod
     def from_dict(self, spec: dict[str, Any]) -> "PolicyDefinition":
         nodes = [node_from_spec(node) for node in spec["nodes"]]
+        schema = parse_input_schema(spec["input_schema"])
+
         return PolicyDefinition(
             nodes=nodes,
-            input_schema=spec["input_schema"],
+            input_schema=schema,
             output_callback=spec.get("output_callback", None),
             config_variables=spec.get("config_variables", []),
         )
