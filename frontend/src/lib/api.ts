@@ -9,6 +9,7 @@ import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 import { ComponentVersion } from "@vulkan-server/ComponentVersion";
 import { PolicyBase } from "@vulkan-server/PolicyBase";
 import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
+import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
 import { Configuration, PoliciesApi } from "../../generated";
 import { CreatePolicyVersionPoliciesPolicyIdVersionsPostRequest } from "../../generated/apis/PoliciesApi";
 
@@ -144,6 +145,26 @@ export async function createPolicyVersion(
         })
         .catch((error) => {
             throw new Error(`Error policy version ${data}`, { cause: error });
+        });
+}
+
+export async function createDataSource(
+    data: DataSourceSpec,
+) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+
+    return fetch(new URL(`/data-sources`, serverUrl), {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+    })
+        .then((response) => {
+            return response.json();
+        })
+        .catch((error) => {
+            throw new Error(`Error creating data source ${data}`, { cause: error });
         });
 }
 
