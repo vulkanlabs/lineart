@@ -16,6 +16,7 @@ import {
     useNodesState,
     useEdgesState,
     useReactFlow,
+    ControlButton,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -26,14 +27,24 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDropdown } from "./hooks/use-dropdown";
 import { nodesConfig } from "./nodes";
 import { iconMapping } from "./icons";
 import { nodeTypes } from "./components";
 import { WorkflowProvider, useWorkflowStore } from "./store";
+import { SaveIcon } from "lucide-react";
+import { saveWorkflowSpec } from "./actions";
+import { toast } from "sonner";
+import { GraphDefinition, NodeDefinition } from "./types";
 
-function VulkanWorkflow({ onNodeClick, onPaneClick }) {
+type VulkanWorkflowProps = {
+    onNodeClick: (e: React.MouseEvent, node: any) => void;
+    onPaneClick: (e: React.MouseEvent) => void;
+    policyVersionId?: string;
+};
+
+function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWorkflowProps) {
     const {
         nodes,
         edges,
@@ -64,8 +75,6 @@ function VulkanWorkflow({ onNodeClick, onPaneClick }) {
     const { isOpen, connectingHandle, toggleDropdown, ref } = useDropdown();
 
     useEffect(() => {
-        // console.log(nodes);
-        // console.log(getSpec());
         console.log(JSON.stringify(getSpec()));
     }, [nodes]);
 
@@ -134,12 +143,12 @@ function VulkanWorkflow({ onNodeClick, onPaneClick }) {
                     style={{
                         top: `${dropdownPosition.y}px`,
                         left: `${dropdownPosition.x}px`,
-                        transform: "translate(-50%, -50%)",
+                        transform: "translate(0, -100%)",
                     }}
                 >
                     <AppDropdownMenu
                         onAddNode={onAddNode}
-                        filterNodes={(node: any) => node.id != "input-node"}
+                        filterNodes={(node: any) => node.id != "INPUT"}
                     />
                 </div>
             )}
@@ -155,15 +164,47 @@ function VulkanWorkflow({ onNodeClick, onPaneClick }) {
                 nodeTypes={nodeTypes}
                 // connectionLineType={ConnectionLineType.SmoothStep}
                 isValidConnection={isValidConnection}
-                fitViewOptions={{ maxZoom: 1 }}
                 fitView
+                proOptions={{ hideAttribution: true }}
             >
                 <Background color="#ccc" variant={BackgroundVariant.Dots} />
                 <MiniMap nodeStrokeWidth={3} zoomable pannable />
-                <Controls />
+                <Controls showZoom={false} showInteractive={false} orientation="horizontal">
+                    <ControlButton
+                        onClick={() => {
+                            const spec = getSpec();
+                            saveWorkflowState(policyVersionId, spec);
+                        }}
+                    >
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <SaveIcon />
+                                </TooltipTrigger>
+                                <TooltipContent>Save</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </ControlButton>
+                </Controls>
             </ReactFlow>
         </div>
     );
+}
+
+async function saveWorkflowState(policyVersionId: string, graph: GraphDefinition) {
+    const graphNodes = Object.values(graph).filter((node) => node.node_type !== "INPUT");
+    const result = await saveWorkflowSpec(policyVersionId, graphNodes);
+
+    if (result.success) {
+        toast("Workflow saved ", {
+            description: `Workflow saved successfully.`,
+            duration: 2000,
+            dismissible: true,
+        });
+    } else {
+        console.error("Error saving workflow:", result);
+        alert("Failed to save workflow: " + result.error);
+    }
 }
 
 const compatibleNodeTypes = (type: "source" | "target") => {
@@ -219,13 +260,14 @@ function AppDropdownMenu({
     );
 }
 
-export default function WorkflowFrame() {
+export default function WorkflowFrame({ policyVersionId }: { policyVersionId?: string }) {
     return (
         <ReactFlowProvider>
             <WorkflowProvider>
                 <VulkanWorkflow
                     onNodeClick={(_: any, node: any) => console.log(node)}
                     onPaneClick={() => console.log("pane")}
+                    policyVersionId={policyVersionId}
                 />
             </WorkflowProvider>
         </ReactFlowProvider>

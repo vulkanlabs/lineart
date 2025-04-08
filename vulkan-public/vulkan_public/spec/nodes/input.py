@@ -46,9 +46,9 @@ class InputNode(Node):
     @classmethod
     def from_dict(cls, spec: dict[str, Any]) -> "InputNode":
         definition = NodeDefinition.from_dict(spec)
+        schema = parse_input_schema(definition.metadata.schema)
         return cls(
-            # FIXME: shouldnt be using eval here
-            schema={k: eval(t) for k, t in definition.metadata.schema.items()},
+            schema=schema,
             name=definition.name,
             description=definition.description,
             hierarchy=definition.hierarchy,
@@ -57,3 +57,33 @@ class InputNode(Node):
     def with_dependencies(self, dependencies: dict[str, Dependency]) -> "InputNode":
         self._dependencies = dependencies
         return self
+
+
+def parse_input_schema(schema: dict[str, str]) -> dict[str, type]:
+    """Parse a schema dictionary into a dictionary of types.
+
+    Args:
+        schema (dict[str, str]): A dictionary of field names and their types.
+
+    Returns:
+        dict[str, type]: A dictionary of field names and their types.
+    """
+    parsed_schema = {}
+    for key, value in schema.items():
+        try:
+            parsed_schema[key] = _SUPPORTED_TYPES[value]
+        except KeyError as e:
+            raise ValueError(f"Unsupported type {value} for field {key}") from e
+    return parsed_schema
+
+
+_SUPPORTED_TYPES = {
+    "int": int,
+    "float": float,
+    "str": str,
+    "bool": bool,
+    "list": list,
+    "dict": dict,
+    "tuple": tuple,
+    "set": set,
+}

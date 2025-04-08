@@ -18,12 +18,12 @@ export type VulkanNodeData = {
 };
 
 export type VulkanNode =
-    | Node<VulkanNodeData, "input-node">
-    | Node<VulkanNodeData, "connection-node">
-    | Node<VulkanNodeData, "data-source-node">
-    | Node<VulkanNodeData, "transform-node">
-    | Node<VulkanNodeData, "branch-node">
-    | Node<VulkanNodeData, "terminate-node">;
+    | Node<VulkanNodeData, "INPUT">
+    | Node<VulkanNodeData, "CONNECTION">
+    | Node<VulkanNodeData, "DATA_INPUT">
+    | Node<VulkanNodeData, "TRANSFORM">
+    | Node<VulkanNodeData, "BRANCH">
+    | Node<VulkanNodeData, "TERMINATE">;
 
 export type VulkanNodeType = NonNullable<VulkanNode["type"]>;
 
@@ -38,19 +38,21 @@ export type GenericNodeDefinition<MetadataType> = {
     node_type: string;
     // description: string;
     metadata?: MetadataType;
-    dependencies?: NodeDependency[];
+    dependencies?: Map<string, NodeDependency>;
 };
 
 export type TerminateNodeMetadata = {
-    returnStatus: string;
+    return_status: string;
 };
 
 export type TransformNodeMetadata = {
-    sourceCode: string;
+    source_code: string;
+    func?: string | null;
 };
 
 export type BranchNodeMetadata = {
-    sourceCode: string;
+    source_code: string;
+    func?: string | null;
     choices: string[];
 };
 

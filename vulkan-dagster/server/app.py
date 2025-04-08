@@ -3,6 +3,7 @@ import os
 from typing import Annotated
 
 from fastapi import Body, Depends, FastAPI, Response
+
 from vulkan.dagster.workspace import DagsterWorkspaceManager
 
 from .config import VulkanConfig, get_vulkan_config
@@ -38,7 +39,7 @@ def create_workspace(
             logger.debug(f"Adding spec to workspace: {spec}")
             vm.add_spec(spec)
 
-        dm = DagsterWorkspaceManager(vulkan_config.home, workspace_id, vm.workspace_path)
+        dm = DagsterWorkspaceManager(vulkan_config.home, vm.workspace_path)
         dm.create_init_file()
         dm.add_workspace_config(workspace_id)
         logger.info(f"Successfully installed workspace: {workspace_id}")

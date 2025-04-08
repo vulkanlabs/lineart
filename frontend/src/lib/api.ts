@@ -131,7 +131,7 @@ export async function createPolicyVersion(
     const headers = await getAuthHeaders(user);
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
 
-    return fetch(new URL(`/policies/${data.policy_id}/versions`, serverUrl), {
+    return fetch(new URL(`/policy-versions`, serverUrl), {
         method: "POST",
         headers: {
             ...headers,

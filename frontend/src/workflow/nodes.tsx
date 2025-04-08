@@ -6,39 +6,39 @@ import { VulkanNodeType, VulkanNode, NodeConfig } from "./types";
 export const NODE_SIZE = { width: 320, height: 50 };
 
 export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
-    "input-node": {
-        id: "input-node",
-        name: "InputNode",
+    INPUT: {
+        id: "INPUT",
+        name: "input_node",
         width: 260,
         height: 50,
         icon: null,
     },
-    "connection-node": {
-        id: "connection-node",
+    CONNECTION: {
+        id: "CONNECTION",
         name: "ConnectionNode",
         icon: "Link",
     },
-    "data-source-node": {
-        id: "data-source-node",
+    DATA_INPUT: {
+        id: "DATA_INPUT",
         name: "DataSourceNode",
         icon: "ArrowDown01",
     },
-    "transform-node": {
-        id: "transform-node",
+    TRANSFORM: {
+        id: "TRANSFORM",
         name: "TransformNode",
         width: 400,
         height: 300,
         icon: "Code2",
     },
-    "branch-node": {
-        id: "branch-node",
+    BRANCH: {
+        id: "BRANCH",
         name: "BranchNode",
         width: 500,
         height: 500,
         icon: "Split",
     },
-    "terminate-node": {
-        id: "terminate-node",
+    TERMINATE: {
+        id: "TERMINATE",
         name: "TerminateNode",
         width: 400,
         height: 200,
@@ -47,17 +47,21 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
 };
 
 function initMetadata(type: VulkanNodeType) {
-    if (type === "terminate-node") {
+    if (type === "TERMINATE") {
         return {
-            returnStatus: "",
+            return_status: "",
         };
-    } else if (type === "transform-node") {
+    } else if (type === "TRANSFORM") {
         return {
-            sourceCode: "",
+            func: null,
+            source_code: "",
+            function_code: "",
         };
-    } else if (type === "branch-node") {
+    } else if (type === "BRANCH") {
         return {
-            sourceCode: "",
+            func: null,
+            source_code: "",
+            function_code: "",
             choices: ["", ""],
         };
     }
@@ -86,7 +90,7 @@ export function createNodeByType({
             metadata: metadata,
         },
         position: {
-            x: position.x - width * 0.5,
+            x: position.x,
             y: position.y - height * 0.5,
         },
         width: width,

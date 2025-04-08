@@ -45,8 +45,11 @@ def create_policy_version(
     config: schemas.PolicyVersionCreate,
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
-    resolution_service: ResolutionServiceClient = Depends(
-        get_resolution_service_client
+    # resolution_service: ResolutionServiceClient = Depends(
+    #     get_resolution_service_client
+    # ),
+    dagster_service_client: VulkanDagsterServiceClient = Depends(
+        get_dagster_service_client
     ),
 ):
     extra = {"policy_id": config.policy_id, "policy_version_alias": config.alias}
@@ -70,7 +73,7 @@ def create_policy_version(
     db.commit()
 
     try:
-        resolution_service.update_workspace(
+        dagster_service_client.update_workspace(
             workspace_id=version.policy_version_id,
             spec=config.spec,
             requirements=config.requirements,
@@ -117,8 +120,11 @@ def update_policy_version(
     config: schemas.PolicyVersionBase,
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
-    resolution_service: ResolutionServiceClient = Depends(
-        get_resolution_service_client
+    # resolution_service: ResolutionServiceClient = Depends(
+    #     get_resolution_service_client
+    # ),
+    dagster_service_client: VulkanDagsterServiceClient = Depends(
+        get_dagster_service_client
     ),
 ):
     version = (
@@ -145,7 +151,7 @@ def update_policy_version(
 
     # Update the workspace with the new spec and requirements
     try:
-        resolution_service.update_workspace(
+        dagster_service_client.update_workspace(
             workspace_id=version.policy_version_id,
             spec=config.spec,
             requirements=config.requirements,
@@ -170,93 +176,6 @@ def update_policy_version(
         policy_version_alias=version.alias,
     )
     return version
-
-
-# # START policy version creation logic
-# version_name = definitions.version_name(version.policy_version_id)
-# try:
-#     settings = _create_policy_version_workspace(
-#         resolution=resolution_service,
-#         name=version_name,
-#         repository=config.repository,
-#     )
-#     variables = settings.config_variables or []
-
-#     extra["policy_version_id"] = version.policy_version_id
-#     logger.system.info("Workspace created", extra={"extra": extra})
-
-# except Exception as e:
-#     if isinstance(e, VulkanInternalException):
-#         handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
-#     handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
-
-# try:
-#     if settings.data_sources:
-#         added_sources = _add_data_source_dependencies(
-#             db, version, settings.data_sources
-#         )
-#         inner_variables = [ds.variables for ds in added_sources if ds.variables]
-#         variables += list(chain.from_iterable(inner_variables))
-#     logger.system.debug("Processed data sources", extra={"extra": extra})
-
-#     if len(variables) > 0:
-#         version.variables = list(set(variables))
-#     logger.system.debug("Processed variables", extra={"extra": extra})
-
-#     version.input_schema = settings.input_schema
-#     version.graph_definition = json.dumps(settings.graph_definition)
-#     version.module_name = settings.module_name
-#     version.base_worker_image = settings.image_path
-# except Exception as e:
-#     if isinstance(e, VulkanInternalException):
-#         handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
-#     resolution_service.delete_workspace(version_name)
-#     handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
-# finally:
-#     db.commit()
-
-# # START policy version creation logic
-# version_name = definitions.version_name(version.policy_version_id)
-# try:
-#     settings = _create_policy_version_workspace(
-#         resolution=resolution_service,
-#         name=version_name,
-#         repository=config.repository,
-#     )
-#     variables = settings.config_variables or []
-
-#     extra["policy_version_id"] = version.policy_version_id
-#     logger.system.info("Workspace created", extra={"extra": extra})
-
-# except Exception as e:
-#     if isinstance(e, VulkanInternalException):
-#         handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
-#     handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
-
-# try:
-#     if settings.data_sources:
-#         added_sources = _add_data_source_dependencies(
-#             db, version, settings.data_sources
-#         )
-#         inner_variables = [ds.variables for ds in added_sources if ds.variables]
-#         variables += list(chain.from_iterable(inner_variables))
-#     logger.system.debug("Processed data sources", extra={"extra": extra})
-
-#     if len(variables) > 0:
-#         version.variables = list(set(variables))
-#     logger.system.debug("Processed variables", extra={"extra": extra})
-
-#     version.input_schema = settings.input_schema
-#     version.graph_definition = json.dumps(settings.graph_definition)
-#     version.module_name = settings.module_name
-#     version.base_worker_image = settings.image_path
-# except Exception as e:
-#     if isinstance(e, VulkanInternalException):
-#         handler.raise_exception(400, e.__class__.__name__, str(e), e.metadata)
-#     resolution_service.delete_workspace(version_name)
-#     handler.raise_exception(500, UNHANDLED_ERROR_NAME, str(e))
-# finally:
-#     db.commit()
 
 
 def _add_data_source_dependencies(

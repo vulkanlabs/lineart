@@ -173,23 +173,26 @@ class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
         self,
         name: str,
         description: str,
-        func: callable,
+        user_func: Callable | None,
+        source_code: str | None,
         dependencies: dict[str, Any],
     ):
         super().__init__(
             name=name,
             description=description,
-            func=func,
+            func=user_func,
+            source_code=source_code,
             dependencies=dependencies,
         )
-        self._func = _with_vulkan_context(func)
+        self._func = _with_vulkan_context(self.func)
 
     @classmethod
     def from_spec(cls, node: TransformNode):
         return cls(
             name=node.name,
             description=node.description,
-            func=node.func,
+            user_func=node.user_func,
+            source_code=node.source_code,
             dependencies=node.dependencies,
         )
 
@@ -275,18 +278,20 @@ class DagsterBranch(BranchNode, DagsterNode):
         self,
         name: str,
         description: str,
-        func: callable,
-        outputs: list[str],
+        user_func: Callable | None,
+        source_code: str | None,
+        choices: list[str],
         dependencies: dict[str, Any],
     ):
         super().__init__(
             name=name,
             description=description,
-            func=func,
-            outputs=outputs,
+            func=user_func,
+            source_code=source_code,
+            choices=choices,
             dependencies=dependencies,
         )
-        self._func = _with_vulkan_context(func)
+        self._func = _with_vulkan_context(self.func)
 
     def op(self) -> OpDefinition:
         def fn(context, inputs):
@@ -306,11 +311,11 @@ class DagsterBranch(BranchNode, DagsterNode):
                     start_time,
                     end_time,
                     error,
-                    extra={"choices": self.outputs},
+                    extra={"choices": self.choices},
                 )
                 yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 
-        branch_paths = {out: Out(is_required=False) for out in self.outputs}
+        branch_paths = {out: Out(is_required=False) for out in self.choices}
         node_op = OpDefinition(
             compute_fn=fn,
             name=self.name,
@@ -328,8 +333,9 @@ class DagsterBranch(BranchNode, DagsterNode):
         return cls(
             name=node.name,
             description=node.description,
-            func=node.func,
-            outputs=node.outputs,
+            user_func=node.user_func,
+            source_code=node.source_code,
+            choices=node.choices,
             dependencies=node.dependencies,
         )
 

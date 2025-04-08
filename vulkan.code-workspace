@@ -38,7 +38,7 @@
 			"editor.defaultFormatter": "charliermarsh.ruff",
 		},
 		"ruff.interpreter": [
-			"${workspaceFolder}/.venv/bin/python"
+			"${workspaceFolder}/.venv/bin/python",
 		]
 	}
 }

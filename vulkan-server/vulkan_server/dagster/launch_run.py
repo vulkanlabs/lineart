@@ -28,7 +28,6 @@ def allocate_runs(
     db: Session,
     dagster_client: DagsterGraphQLClient,
     server_url: str,
-    project_id: str,
     input_data: dict,
     run_group_id: UUID,
     allocation_strategy: PolicyAllocationStrategy,
@@ -40,7 +39,6 @@ def allocate_runs(
             run = Run(
                 policy_version_id=policy_version_id,
                 status=RunStatus.PENDING,
-                project_id=project_id,
                 run_group_id=run_group_id,
             )
             db.add(run)
@@ -55,7 +53,6 @@ def allocate_runs(
         db=db,
         dagster_client=dagster_client,
         server_url=server_url,
-        project_id=project_id,
         input_data=input_data,
         run_group_id=run_group_id,
         policy_version_id=policy_version_id,
@@ -67,7 +64,6 @@ def create_run(
     db: Session,
     dagster_client: DagsterGraphQLClient,
     server_url: str,
-    project_id: str,
     input_data: dict,
     policy_version_id: str,
     run_group_id: UUID | None = None,
@@ -77,7 +73,6 @@ def create_run(
         db=db,
         dagster_client=dagster_client,
         server_url=server_url,
-        project_id=project_id,
     )
     return launcher.create_run(
         input_data=input_data,
@@ -91,7 +86,6 @@ def launch_run(
     db: Session,
     dagster_client: DagsterGraphQLClient,
     server_url: str,
-    project_id: str,
     run: Run,
     input_data: dict,
     run_config_variables: dict[str, str] | None = None,
@@ -100,7 +94,6 @@ def launch_run(
         db=db,
         dagster_client=dagster_client,
         server_url=server_url,
-        project_id=project_id,
     )
     return launcher.launch_run(
         run=run,
@@ -121,11 +114,9 @@ class DagsterRunLauncher:
         db: Session,
         dagster_client: DagsterGraphQLClient,
         server_url: str,
-        project_id: str,
     ):
         self.db = db
         self.server_url = server_url
-        self.project_id = project_id
         self.dagster_client = dagster_client
 
     def create_run(
@@ -144,7 +135,6 @@ class DagsterRunLauncher:
         run = Run(
             policy_version_id=policy_version_id,
             status=RunStatus.PENDING,
-            project_id=self.project_id,
             run_group_id=run_group_id,
         )
         self.db.add(run)
@@ -182,7 +172,6 @@ class DagsterRunLauncher:
             self.db.query(PolicyVersion)
             .filter_by(
                 policy_version_id=policy_version_id,
-                project_id=self.project_id,
                 archived=False,
             )
             .first()

@@ -88,7 +88,11 @@ TEST_TABLE = {
             "node_type": NodeType.TRANSFORM.value,
             "dependencies": {},
             "metadata": {
-                "source": """
+                "func": None,
+                "source_code": """
+            return 10**2
+            """,
+                "function_code": """
             return 10**2
             """,
             },
@@ -104,7 +108,12 @@ TEST_TABLE = {
                 "node_a": Dependency("node_a"),
             },
             "metadata": {
-                "source": """
+                "func": None,
+                "source_code": """
+            import os
+            os.environ
+            """,
+                "function_code": """
             import os
             os.environ
             """,
