@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any, Callable, TypedDict
 
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 from vulkan_public.spec.graph import GraphDefinition
@@ -10,9 +10,22 @@ from vulkan_public.spec.nodes import (
     TerminateNode,
     TransformNode,
 )
-from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
-from vulkan_public.spec.nodes.input import parse_input_schema
+from vulkan_public.spec.nodes.base import (
+    Node,
+    NodeDefinition,
+    NodeDefinitionDict,
+    NodeType,
+)
 from vulkan_public.spec.nodes.metadata import PolicyNodeMetadata
+
+
+class PolicyDefinitionDict(TypedDict):
+    """Dict representation of a PolicyDefinition object."""
+
+    nodes: list[NodeDefinitionDict]
+    input_schema: dict[str, str]
+    output_callable: Any | None
+    config_variables: list[str]
 
 
 @dataclass
@@ -78,7 +91,7 @@ class PolicyDefinition(GraphDefinition):
             if node.name == INPUT_NODE:
                 raise ValueError(f"Node name`{INPUT_NODE}` is reserved")
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> PolicyDefinitionDict:
         return {
             "nodes": [node.to_dict() for node in self.nodes],
             "input_schema": self.input_schema,
@@ -87,13 +100,12 @@ class PolicyDefinition(GraphDefinition):
         }
 
     @classmethod
-    def from_dict(self, spec: dict[str, Any]) -> "PolicyDefinition":
+    def from_dict(self, spec: PolicyDefinitionDict) -> "PolicyDefinition":
         nodes = [node_from_spec(node) for node in spec["nodes"]]
-        schema = parse_input_schema(spec["input_schema"])
 
         return PolicyDefinition(
             nodes=nodes,
-            input_schema=schema,
+            input_schema=spec["input_schema"],
             output_callback=spec.get("output_callback", None),
             config_variables=spec.get("config_variables", []),
         )

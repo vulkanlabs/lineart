@@ -1,22 +1,19 @@
 "use client";
 
 import { useShallow } from "zustand/react/shallow";
-import React, { useState, useLayoutEffect, useCallback, useEffect } from "react";
+import React, { useState, useLayoutEffect, useCallback, useEffect, useMemo } from "react";
 import {
     ReactFlow,
     ReactFlowProvider,
     MiniMap,
     Controls,
     ConnectionLineType,
-    useConnection,
     Background,
     BackgroundVariant,
-    addEdge,
     getOutgoers,
-    useNodesState,
-    useEdgesState,
     useReactFlow,
     ControlButton,
+    type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -29,14 +26,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDropdown } from "./hooks/use-dropdown";
-import { nodesConfig } from "./nodes";
+import { createNodeByType, nodesConfig } from "./nodes";
 import { iconMapping } from "./icons";
 import { nodeTypes } from "./components";
 import { WorkflowProvider, useWorkflowStore } from "./store";
 import { SaveIcon } from "lucide-react";
 import { saveWorkflowSpec } from "./actions";
 import { toast } from "sonner";
-import { GraphDefinition, NodeDefinition } from "./types";
+import { GraphDefinition, WorkflowState, VulkanNode } from "./types";
+import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 
 type VulkanWorkflowProps = {
     onNodeClick: (e: React.MouseEvent, node: any) => void;
@@ -69,7 +67,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
         })),
     );
 
-    const { fitView, screenToFlowPosition } = useReactFlow();
+    const { screenToFlowPosition } = useReactFlow();
 
     const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
     const { isOpen, connectingHandle, toggleDropdown, ref } = useDropdown();
@@ -260,10 +258,47 @@ function AppDropdownMenu({
     );
 }
 
-export default function WorkflowFrame({ policyVersionId }: { policyVersionId?: string }) {
+export default function WorkflowFrame({ policyVersion }: { policyVersion: PolicyVersion }) {
+    const policyVersionId = policyVersion.policy_version_id;
+    const typedPolicyVersion = policyVersion as WorkflowPolicyVersion;
+    const nodes = typedPolicyVersion.spec.nodes;
+
+    // Create a proper initial state by validating the incoming spec
+    const initialState: WorkflowState = useMemo(() => {
+        // Check if spec exists and has valid nodes array
+        if (policyVersion?.spec && Array.isArray(nodes) && nodes.length > 0) {
+            console.log("Nodes", nodes);
+            const positionedNodes = nodes.map((node) => {
+                return {
+                    id: node.id || node.name,
+                    type: node.type,
+                    data: {
+                        name: node.name,
+                        icon: node.type,
+                        minHeight: 50,
+                        minWidth: 100,
+                        metadata: node.metadata,
+                    },
+                    position: {
+                        x: 0,
+                        y: 0,
+                    },
+                };
+            });
+            console.log("positionedNodes", positionedNodes);
+            return {
+                nodes: positionedNodes,
+                edges: [],
+            };
+        }
+
+        // Fall back to default state if spec is invalid
+        return defaultState;
+    }, [policyVersion]);
+
     return (
         <ReactFlowProvider>
-            <WorkflowProvider>
+            <WorkflowProvider initialState={initialState}>
                 <VulkanWorkflow
                     onNodeClick={(_: any, node: any) => console.log(node)}
                     onPaneClick={() => console.log("pane")}
@@ -273,3 +308,13 @@ export default function WorkflowFrame({ policyVersionId }: { policyVersionId?: s
         </ReactFlowProvider>
     );
 }
+
+const inputNode = createNodeByType({
+    type: "INPUT",
+    position: { x: 200, y: 200 },
+});
+
+const defaultState: WorkflowState = {
+    nodes: [inputNode],
+    edges: [],
+};

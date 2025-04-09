@@ -1,4 +1,4 @@
-import { type Node } from "@xyflow/react";
+import { type Node, type Edge } from "@xyflow/react";
 import { iconMapping } from "./icons";
 
 export type NodeConfig = {
@@ -62,4 +62,9 @@ export type NodeDefinition = GenericNodeDefinition<
 
 export type GraphDefinition = {
     [key: string]: NodeDefinition;
+};
+
+export type WorkflowState = {
+    nodes: VulkanNode[];
+    edges: Edge[];
 };

@@ -1,4 +1,14 @@
 from dataclasses import dataclass
+from typing import TypedDict
+
+
+class DependencyDict(TypedDict):
+    """Dict representation of a Dependency object."""
+
+    node: str
+    output: str | None
+    key: str | None
+    hierarchy: list[str] | None
 
 
 @dataclass
@@ -63,11 +73,12 @@ class Dependency:
         return node_id
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Dependency":
+    def from_dict(cls, data: DependencyDict) -> "Dependency":
         return cls(
             node=data["node"],
-            output=data.get("output"),
-            key=data.get("key"),
+            output=data["output"],
+            key=data["key"],
+            hierarchy=data.get("hierarchy"),
         )
 
 
