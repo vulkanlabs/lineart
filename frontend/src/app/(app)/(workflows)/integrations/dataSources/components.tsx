@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 
 import { DataTable } from "@/components/data-table";
@@ -21,7 +21,6 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-    DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,6 +34,7 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { createDataSource } from "@/lib/api";
+import { Switch } from "@/components/ui/switch";
 
 export default function DataSourcesPage({ dataSources }: { dataSources: DataSource[] }) {
     const router = useRouter();
@@ -59,90 +59,80 @@ export default function DataSourcesPage({ dataSources }: { dataSources: DataSour
 }
 
 const formSchema = z.object({
-    name: z.string().min(1),
+    name: z
+        .string()
+        .min(1)
+        .regex(/^[a-zA-Z0-9-_]+$/, {
+            message: "Name must only contain letters, numbers, dashes, and underscores",
+        }),
     description: z.string().min(0),
-    keys: z.string().transform((val) => val.split(',').map(s => s.trim()).filter(s => s !== '')),
+    keys: z
+        .string()
+        .optional()
+        .transform((val) =>
+            val
+                .split(",")
+                .map((s) => s.trim())
+                .filter((s) => s !== ""),
+        ),
     source: z.object({
         url: z.string().min(1),
         method: z.string().optional(),
-        headers: z.string().optional().transform(val => {
-            if (!val) return undefined;
-            try {
-                return JSON.parse(val);
-            } catch (e) {
-                return {};
-            }
-        }),
-        params: z.string().optional().transform(val => {
-            if (!val) return undefined;
-            try {
-                return JSON.parse(val);
-            } catch (e) {
-                return {};
-            }
-        }),
-        body_schema: z.string().optional().transform(val => {
-            if (!val) return undefined;
-            try {
-                return JSON.parse(val);
-            } catch (e) {
-                return {};
-            }
-        }),
-        timeout: z.string().optional().transform(val => val ? parseInt(val) : undefined),
-        retry: z.string().optional().transform(val => {
-            if (!val) return undefined;
-            try {
-                return JSON.parse(val);
-            } catch (e) {
-                return undefined;
-            }
-        }),
-        path: z.string().optional(),
-        file_id: z.string().optional(),
+        headers: z.string().optional().transform(parseJSON),
+        params: z.string().optional().transform(parseJSON),
+        body_schema: z.string().optional().transform(parseJSON),
+        timeout: z
+            .string()
+            .optional()
+            .transform((val) => (val ? parseInt(val) : undefined)),
+        retry: z
+            .string()
+            .optional()
+            .transform((val) => {
+                if (!val) return undefined;
+                try {
+                    return JSON.parse(val);
+                } catch (e) {
+                    return undefined;
+                }
+            }),
     }),
-    caching: z.object({
-        enabled: z.boolean().optional(),
-        ttl: z.string().optional().transform(val => val ? parseInt(val) : undefined)
-    }).optional(),
-    metadata: z.string().optional().transform((val) => {
+    caching: z
+        .object({
+            enabled: z.boolean().optional(),
+            ttl: z
+                .string()
+                .optional()
+                .transform((val) => (val ? parseInt(val) : undefined)),
+        })
+        .optional(),
+    metadata: z.string().optional().transform(parseJSON),
+});
+
+function parseJSON(val: string) {
+    {
         if (!val) return undefined;
         try {
             return JSON.parse(val);
         } catch (e) {
             return {};
         }
-    })
-});
+    }
+}
 
 function CreateDataSourceDialog() {
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState(1);
     const router = useRouter();
 
-    const headersParamsPlaceholderText = JSON.stringify({
-        "Authorization": "Bearer {{secrets.API_TOKEN}}",
-        "Content-Type": "application/json"
-    }, null, 2);
-
-    const retryPolicyPlaceholderText = JSON.stringify({
-        max_retries: 3,
-        initial_delay_ms: 1000,
-        max_delay_ms: 10000,
-        backoff_factor: 2
-    }, null, 2);
-
-    const bodySchemaPlaceholderText = JSON.stringify({
-        "type": "object",
-        "properties": {
-            "query": { "type": "string" }
-        }
-    }, null, 2);
-
-    const metadataPlaceholderText = JSON.stringify({ 
-        owner: "team-name",
-        environment: "production" 
-    }, null, 2);
+    const metadataPlaceholderText = JSON.stringify(
+        {
+            owner: "team-name",
+            environment: "production",
+        },
+        null,
+        2,
+    );
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -158,16 +148,14 @@ function CreateDataSourceDialog() {
                 body_schema: "",
                 timeout: "",
                 retry: "",
-                path: "",
-                file_id: "",
             },
             caching: {
                 enabled: false,
-                ttl: ""
+                ttl: "",
             },
-            metadata: ""
+            metadata: "",
         },
-        mode: "onChange"
+        mode: "onChange",
     });
 
     useEffect(() => {
@@ -178,28 +166,32 @@ function CreateDataSourceDialog() {
 
     const goToNextStep = async () => {
         let fieldsToValidate: string[] = [];
-        
+
         switch (step) {
             case 1:
                 fieldsToValidate = ["name", "keys", "description"];
                 break;
             case 2:
                 fieldsToValidate = [
-                    "source.url", "source.method", "source.headers", 
-                    "source.params", "source.body_schema", "source.timeout",
-                    "source.retry", "source.path", "source.file_id"
+                    "source.url",
+                    "source.method",
+                    "source.headers",
+                    "source.params",
+                    "source.body_schema",
+                    "source.timeout",
+                    "source.retry",
                 ];
                 break;
         }
 
-        const result = await form.trigger(fieldsToValidate as any, { shouldFocus: true });
-        if (result) {
-            setStep(prevStep => prevStep + 1);
+        const isValid = await form.trigger(fieldsToValidate as any, { shouldFocus: true });
+        if (isValid) {
+            setStep((prevStep) => prevStep + 1);
         }
     };
 
     const goToPreviousStep = () => {
-        setStep(prevStep => Math.max(prevStep - 1, 1));
+        setStep((prevStep) => Math.max(prevStep - 1, 1));
     };
 
     const onSubmit = async (data: any) => {
@@ -207,29 +199,33 @@ function CreateDataSourceDialog() {
         if (step !== 3) {
             return;
         }
-        
+
         const dataSourceSpec = {
             name: data.name,
             keys: data.keys,
             source: {
                 url: data.source.url,
-                method: data.source.method || undefined,
+                method: data.source.method,
                 headers: data.source.headers,
                 params: data.source.params,
                 body_schema: data.source.body_schema,
                 timeout: data.source.timeout,
                 retry: data.source.retry,
-                path: data.source.path || "",
-                file_id: data.source.file_id || "",
+                // ignore these fields for now
+                path: "",
+                file_id: "",
             },
             description: data.description || null,
-            caching: data.caching?.enabled || data.caching?.ttl ? {
-                enabled: data.caching.enabled,
-                ttl: data.caching.ttl
-            } : undefined,
-            metadata: data.metadata || null
+            caching:
+                data.caching?.enabled || data.caching?.ttl
+                    ? {
+                          enabled: data.caching.enabled,
+                          ttl: data.caching.ttl,
+                      }
+                    : undefined,
+            metadata: data.metadata || null,
         };
-        
+
         await createDataSource(dataSourceSpec)
             .then(() => {
                 setOpen(false);
@@ -261,14 +257,7 @@ function CreateDataSourceDialog() {
                     </DialogHeader>
                     <form
                         className="flex flex-col gap-4 py-4"
-                        onSubmit={(e) => {
-                            // Only submit the form on the final step
-                            if (step < 3) {
-                                e.preventDefault();
-                                return;
-                            }
-                            form.handleSubmit(onSubmit)(e);
-                        }}
+                        onSubmit={(e) => form.handleSubmit(onSubmit)(e)}
                     >
                         {step === 1 && (
                             <div className="space-y-4">
@@ -279,29 +268,41 @@ function CreateDataSourceDialog() {
                                         <FormItem>
                                             <FormLabel htmlFor="name">Name *</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="New Data Source" type="text" {...field} />
+                                                <Input placeholder="" type="text" {...field} />
                                             </FormControl>
-                                            <FormDescription>Name of the new Data Source</FormDescription>
-                                            <FormMessage>{form.formState.errors.name?.message}</FormMessage>
+                                            <FormDescription>
+                                                Name of the new Data Source
+                                            </FormDescription>
+                                            <FormMessage>
+                                                {form.formState.errors.name?.message}
+                                            </FormMessage>
                                         </FormItem>
                                     )}
                                 />
-                                
+
                                 <FormField
                                     name="keys"
                                     control={form.control}
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel htmlFor="keys">Keys *</FormLabel>
+                                            <FormLabel htmlFor="keys">Keys</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="key1, key2, key3" type="text" {...field} />
+                                                <Input
+                                                    placeholder="key1, key2, key3"
+                                                    type="text"
+                                                    {...field}
+                                                />
                                             </FormControl>
-                                            <FormDescription>Comma-separated list of keys for this data source</FormDescription>
-                                            <FormMessage>{form.formState.errors.keys?.message}</FormMessage>
+                                            <FormDescription>
+                                                Comma-separated list of keys for this Data Source
+                                            </FormDescription>
+                                            <FormMessage>
+                                                {form.formState.errors.keys?.message}
+                                            </FormMessage>
                                         </FormItem>
                                     )}
                                 />
-                                
+
                                 <FormField
                                     name="description"
                                     control={form.control}
@@ -309,7 +310,10 @@ function CreateDataSourceDialog() {
                                         <FormItem>
                                             <FormLabel htmlFor="description">Description</FormLabel>
                                             <FormControl>
-                                                <Textarea placeholder="A brand new data source." {...field} />
+                                                <Textarea
+                                                    placeholder="A brand new data source."
+                                                    {...field}
+                                                />
                                             </FormControl>
                                             <FormDescription>
                                                 Description of the new Data Source (optional)
@@ -322,234 +326,18 @@ function CreateDataSourceDialog() {
                                 />
                             </div>
                         )}
-                        
+
                         {step === 2 && (
                             <div className="space-y-4">
                                 <h3 className="text-lg font-medium mb-4">Source Configuration</h3>
-                                
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="source.url"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>URL *</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="https://api.example.com/data" {...field} />
-                                                </FormControl>
-                                                <FormDescription>
-                                                    Endpoint URL
-                                                </FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    
-                                    <FormField
-                                        control={form.control}
-                                        name="source.method"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Method</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="GET" {...field} />
-                                                </FormControl>
-                                                <FormDescription>
-                                                    HTTP method (GET, POST, etc.)
-                                                </FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="source.timeout"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Timeout (ms)</FormLabel>
-                                                <FormControl>
-                                                    <Input type="number" min="0" placeholder="5000" {...field} />
-                                                </FormControl>
-                                                <FormDescription>
-                                                    Request timeout in milliseconds
-                                                </FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    
-                                    <FormField
-                                        control={form.control}
-                                        name="source.path"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Path</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="/data/path" {...field} />
-                                                </FormControl>
-                                                <FormDescription>
-                                                    Path for file sources
-                                                </FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                
-                                <FormField
-                                    control={form.control}
-                                    name="source.file_id"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>File ID</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="file_123abc" {...field} />
-                                            </FormControl>
-                                            <FormDescription>
-                                                ID for registered file sources
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                
-                                <FormField
-                                    control={form.control}
-                                    name="source.headers"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Headers</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                    className="min-h-24 font-mono text-sm"
-                                                    placeholder={headersParamsPlaceholderText}
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                HTTP headers in JSON format
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                
-                                <FormField
-                                    control={form.control}
-                                    name="source.params"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Query Parameters</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                    className="min-h-24 font-mono text-sm"
-                                                    placeholder={headersParamsPlaceholderText}
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Query parameters in JSON format
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                
-                                <FormField
-                                    control={form.control}
-                                    name="source.body_schema"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Body Schema</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                    className="min-h-24 font-mono text-sm"
-                                                    placeholder={bodySchemaPlaceholderText}
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                JSON schema for request body
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                
-                                <FormField
-                                    control={form.control}
-                                    name="source.retry"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Retry Policy</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                    className="min-h-24 font-mono text-sm"
-                                                    placeholder={retryPolicyPlaceholderText}
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Retry configuration in JSON format
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                <HTTPOptions form={form} />
                             </div>
                         )}
-                        
+
                         {step === 3 && (
                             <div className="space-y-4">
-                                <div className="border p-4 rounded-md mb-4">
-                                    <h3 className="text-lg font-medium mb-4">Caching Options</h3>
-                                    
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="caching.enabled"
-                                            render={({ field }) => (
-                                                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                                    <FormControl>
-                                                        <input
-                                                            type="checkbox"
-                                                            className="h-4 w-4"
-                                                            checked={field.value}
-                                                            onChange={field.onChange}
-                                                        />
-                                                    </FormControl>
-                                                    <div className="space-y-1 leading-none">
-                                                        <FormLabel>Enable Caching</FormLabel>
-                                                        <FormDescription>
-                                                            Toggle caching for this data source
-                                                        </FormDescription>
-                                                    </div>
-                                                </FormItem>
-                                            )}
-                                        />
-                                        
-                                        <FormField
-                                            control={form.control}
-                                            name="caching.ttl"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Cache TTL (seconds)</FormLabel>
-                                                    <FormControl>
-                                                        <Input type="number" min="0" placeholder="3600" {...field} />
-                                                    </FormControl>
-                                                    <FormDescription>
-                                                        Time to live for cached data
-                                                    </FormDescription>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-                                </div>
-                                
+                                <CachingOptions form={form} />
+
                                 <FormField
                                     control={form.control}
                                     name="metadata"
@@ -572,20 +360,20 @@ function CreateDataSourceDialog() {
                                 />
                             </div>
                         )}
-                        
+
                         <div className="flex justify-between mt-4">
-                            <Button 
-                                type="button" 
-                                variant="outline" 
+                            <Button
+                                type="button"
+                                variant="outline"
                                 onClick={goToPreviousStep}
                                 disabled={step === 1}
                             >
                                 Back
                             </Button>
-                            
+
                             {step < 3 ? (
-                                <Button 
-                                    type="button" 
+                                <Button
+                                    type="button"
                                     onClick={(e) => {
                                         e.preventDefault();
                                         goToNextStep();
@@ -601,6 +389,297 @@ function CreateDataSourceDialog() {
                 </DialogContent>
             </Form>
         </Dialog>
+    );
+}
+
+function HTTPOptions({ form }) {
+    const headersParamsPlaceholderText = JSON.stringify(
+        {
+            Authorization: "Bearer {{secrets.API_TOKEN}}",
+            "Content-Type": "application/json",
+        },
+        null,
+        2,
+    );
+
+    const retryPolicyPlaceholderText = JSON.stringify(
+        {
+            max_retries: 3,
+            initial_delay_ms: 1000,
+            max_delay_ms: 10000,
+            backoff_factor: 2,
+        },
+        null,
+        2,
+    );
+
+    const bodySchemaPlaceholderText = JSON.stringify(
+        {
+            type: "object",
+            properties: {
+                query: { type: "string" },
+            },
+        },
+        null,
+        2,
+    );
+
+    return (
+        <>
+            <FormField
+                control={form.control}
+                name="source.url"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>URL *</FormLabel>
+                        <FormControl>
+                            <Input placeholder="https://api.example.com/data" {...field} />
+                        </FormControl>
+                        <FormDescription>Endpoint URL</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="source.method"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Method</FormLabel>
+                            <FormControl>
+                                <Input placeholder="GET" {...field} />
+                            </FormControl>
+                            <FormDescription>HTTP method (GET, POST, etc.)</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="source.timeout"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Timeout (ms)</FormLabel>
+                            <FormControl>
+                                <Input type="number" min="0" placeholder="5000" {...field} />
+                            </FormControl>
+                            <FormDescription>Request timeout in milliseconds</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+
+            <FormField
+                control={form.control}
+                name="source.headers"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Headers</FormLabel>
+                        <FormControl>
+                            <Textarea
+                                className="min-h-24 font-mono text-sm"
+                                placeholder={headersParamsPlaceholderText}
+                                {...field}
+                            />
+                        </FormControl>
+                        <FormDescription>HTTP headers in JSON format</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            <FormField
+                control={form.control}
+                name="source.params"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Query Parameters</FormLabel>
+                        <FormControl>
+                            <Textarea
+                                className="min-h-24 font-mono text-sm"
+                                placeholder={headersParamsPlaceholderText}
+                                {...field}
+                            />
+                        </FormControl>
+                        <FormDescription>Query parameters in JSON format</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            <FormField
+                control={form.control}
+                name="source.body_schema"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Body Schema</FormLabel>
+                        <FormControl>
+                            <Textarea
+                                className="min-h-24 font-mono text-sm"
+                                placeholder={bodySchemaPlaceholderText}
+                                {...field}
+                            />
+                        </FormControl>
+                        <FormDescription>JSON schema for request body</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            <FormField
+                control={form.control}
+                name="source.retry"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Retry Policy</FormLabel>
+                        <FormControl>
+                            <Textarea
+                                className="min-h-24 font-mono text-sm"
+                                placeholder={retryPolicyPlaceholderText}
+                                {...field}
+                            />
+                        </FormControl>
+                        <FormDescription>Retry configuration in JSON format</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+        </>
+    );
+}
+
+function CachingOptions({ form }) {
+    const [days, setDays] = useState(0);
+    const [hours, setHours] = useState(0);
+    const [minutes, setMinutes] = useState(0);
+    const [seconds, setSeconds] = useState(0);
+    const isCachingEnabled = form.watch("caching.enabled");
+
+    // Initialize time fields from seconds when the component loads or ttl value changes
+    useEffect(() => {
+        const totalSeconds = form.watch("caching.ttl") ? parseInt(form.watch("caching.ttl")) : 0;
+        if (totalSeconds > 0) {
+            const d = Math.floor(totalSeconds / 86400);
+            const h = Math.floor((totalSeconds % 86400) / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+
+            setDays(d);
+            setHours(h);
+            setMinutes(m);
+            setSeconds(s);
+        }
+    }, [form.watch("caching.ttl")]);
+
+    // Calculate total seconds when any time unit changes
+    const calculateTotalSeconds = useCallback(() => {
+        const d = parseInt(days.toString()) || 0;
+        const h = parseInt(hours.toString()) || 0;
+        const m = parseInt(minutes.toString()) || 0;
+        const s = parseInt(seconds.toString()) || 0;
+
+        return d * 86400 + h * 3600 + m * 60 + s;
+    }, [days, hours, minutes, seconds]);
+
+    // Update form value when any time unit changes
+    useEffect(() => {
+        const totalSeconds = calculateTotalSeconds();
+        form.setValue("caching.ttl", totalSeconds.toString());
+    }, [days, hours, minutes, seconds, calculateTotalSeconds, form]);
+
+    return (
+        <div className="border p-4 rounded-md mb-4">
+            <h3 className="text-lg font-medium mb-4">Caching Options</h3>
+
+            <div className="mb-6">
+                <FormField
+                    control={form.control}
+                    name="caching.enabled"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between space-y-0">
+                            <div className="space-y-0.5">
+                                <FormLabel className="text-base">Enable Caching</FormLabel>
+                                <FormDescription>
+                                    Toggle caching for this data source
+                                </FormDescription>
+                            </div>
+                            <FormControl>
+                                <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                            </FormControl>
+                        </FormItem>
+                    )}
+                />
+            </div>
+
+            {isCachingEnabled && (
+                <FormField
+                    control={form.control}
+                    name="caching.ttl"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Cache TTL</FormLabel>
+                            <div className="grid grid-cols-4 gap-2">
+                                <div>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={days}
+                                        onChange={(e) => setDays(parseInt(e.target.value) || 0)}
+                                    />
+                                    <span className="text-xs text-gray-500">Days</span>
+                                </div>
+                                <div>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        max="23"
+                                        placeholder="0"
+                                        value={hours}
+                                        onChange={(e) => setHours(parseInt(e.target.value) || 0)}
+                                    />
+                                    <span className="text-xs text-gray-500">Hours</span>
+                                </div>
+                                <div>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        max="59"
+                                        placeholder="0"
+                                        value={minutes}
+                                        onChange={(e) => setMinutes(parseInt(e.target.value) || 0)}
+                                    />
+                                    <span className="text-xs text-gray-500">Minutes</span>
+                                </div>
+                                <div>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        max="59"
+                                        placeholder="0"
+                                        value={seconds}
+                                        onChange={(e) => setSeconds(parseInt(e.target.value) || 0)}
+                                    />
+                                    <span className="text-xs text-gray-500">Seconds</span>
+                                </div>
+                            </div>
+                            <FormDescription>
+                                Time to live for cached data (total: {calculateTotalSeconds()} seconds)
+                            </FormDescription>
+                            <FormMessage />
+                            <input type="hidden" {...field} />
+                        </FormItem>
+                    )}
+                />
+            )}
+        </div>
     );
 }
 
