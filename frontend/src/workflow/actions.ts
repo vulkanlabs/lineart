@@ -5,14 +5,20 @@ import { NodeDefinition, NodeMetadata, NodeDependency } from "./types";
 import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
 import { Metadata } from "@vulkan-server/Metadata";
 import { DependencyDict } from "@vulkan-server/DependencyDict";
+import { UIMetadata } from "@vulkan-server/UIMetadata";
 
-export async function saveWorkflowSpec(policyVersionId: string, nodes: NodeDefinition[]) {
+export async function saveWorkflowSpec(
+    policyVersionId: string,
+    nodes: NodeDefinition[],
+    uiMetadata: { [key: string]: UIMetadata },
+): Promise<{ success: boolean; error: string | null; data: any }> {
     if (!policyVersionId) {
         throw new Error("Policy version ID is required");
     }
     if (!nodes) {
         throw new Error("Workflow spec is required");
     }
+
     const nodeDefs = nodes.map((node) => AsNodeDefinitionDict(node));
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const spec = {
@@ -24,12 +30,14 @@ export async function saveWorkflowSpec(policyVersionId: string, nodes: NodeDefin
         config_variables: null,
     };
 
-    console.log("Saving workflow spec:", spec);
+    console.log("Saving workflow spec:", JSON.stringify(spec));
+    console.log("Saving Metadata:", uiMetadata);
     const request: PolicyVersionBase = {
         alias: null,
         spec: spec,
         requirements: [],
         input_schema: {},
+        ui_metadata: uiMetadata,
     };
 
     return fetch(`${serverUrl}/policy-versions/${policyVersionId}`, {

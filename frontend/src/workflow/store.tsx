@@ -116,7 +116,8 @@ const createWorkflowStore = (initProps: WorkflowState) => {
         removeNode: (nodeId) => set({ nodes: get().nodes.filter((node) => node.id !== nodeId) }),
 
         addNodeByType: (type, position) => {
-            const newNode = createNodeByType({ type, position });
+            const existingNodes = get().nodes;
+            const newNode = createNodeByType({ type, position, existingNodes });
 
             if (!newNode) return null;
 

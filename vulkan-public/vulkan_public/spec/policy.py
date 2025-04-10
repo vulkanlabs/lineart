@@ -101,7 +101,7 @@ class PolicyDefinition(GraphDefinition):
 
     @classmethod
     def from_dict(self, data: PolicyDefinitionDict) -> "PolicyDefinition":
-        spec = data.policy_definition
+        spec = data["policy_definition"]
         nodes = [node_from_spec(node) for node in spec["nodes"]]
 
         return PolicyDefinition(

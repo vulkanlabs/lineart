@@ -23,7 +23,7 @@ export function Sending() {
                     />
                 </svg>
             </span>
-            Sending...
+            Creating...
         </>
     );
 }

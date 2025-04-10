@@ -12,6 +12,7 @@ import {
     getOutgoers,
     useReactFlow,
     ControlButton,
+    XYPosition,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -24,15 +25,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDropdown } from "./hooks/use-dropdown";
-import { createNodeByType, nodesConfig } from "./nodes";
+import { createNodeByType, nodesConfig, standardizeNodeName } from "./nodes";
 import { iconMapping } from "./icons";
 import { nodeTypes } from "./components";
 import { WorkflowProvider, useWorkflowStore } from "./store";
 import { SaveIcon } from "lucide-react";
 import { saveWorkflowSpec } from "./actions";
 import { toast } from "sonner";
-import { GraphDefinition, WorkflowState } from "./types";
+import { GraphDefinition, VulkanNode, WorkflowState } from "./types";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
+import { width } from "@mui/system";
 
 type VulkanWorkflowProps = {
     onNodeClick: (e: React.MouseEvent, node: any) => void;
@@ -115,13 +117,11 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
     }, []);
 
     function onAddNode(type: any) {
-        const nodeId = addNodeByType(
-            type,
-            screenToFlowPosition({
-                x: dropdownPosition.x,
-                y: dropdownPosition.y,
-            }),
-        );
+        const position = screenToFlowPosition({
+            x: dropdownPosition.x,
+            y: dropdownPosition.y,
+        });
+        const nodeId = addNodeByType(type, position);
         onConnect({
             source: connectingHandle.nodeId,
             target: nodeId,
@@ -169,7 +169,8 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
                     <ControlButton
                         onClick={() => {
                             const spec = getSpec();
-                            saveWorkflowState(policyVersionId, spec);
+                            const nodes = getNodes();
+                            saveWorkflowState(policyVersionId, nodes, spec);
                         }}
                     >
                         <TooltipProvider>
@@ -187,9 +188,30 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
     );
 }
 
-async function saveWorkflowState(policyVersionId: string, graph: GraphDefinition) {
-    const graphNodes = Object.values(graph).filter((node) => node.node_type !== "INPUT");
-    const result = await saveWorkflowSpec(policyVersionId, graphNodes);
+async function saveWorkflowState(
+    policyVersionId: string,
+    nodes: VulkanNode[],
+    graph: GraphDefinition,
+) {
+    // Save workflow UI state
+    const uiMetadata = Object.fromEntries(
+        nodes.map((node) => [
+            node.data.name,
+            { position: node.position, width: node.width, height: node.height },
+        ]),
+    );
+
+    // Filter out INPUT nodes and include positions in metadata
+    const graphNodes = Object.entries(graph)
+        .filter(([_, node]) => node.node_type !== "INPUT")
+        .map(([_, node]) => {
+            return {
+                ...node,
+                metadata: node.metadata,
+            };
+        });
+
+    const result = await saveWorkflowSpec(policyVersionId, graphNodes, uiMetadata);
 
     if (result.success) {
         toast("Workflow saved ", {
@@ -199,30 +221,12 @@ async function saveWorkflowState(policyVersionId: string, graph: GraphDefinition
         });
     } else {
         console.error("Error saving workflow:", result);
-        alert("Failed to save workflow: " + result.error);
+        toast("Failed to save workflow", {
+            description: result.error,
+            duration: 5000,
+        });
     }
 }
-
-const compatibleNodeTypes = (type: "source" | "target") => {
-    if (type === "source") {
-        return (node: any) => {
-            return (
-                node.id === "transform-node" ||
-                node.id === "join-node" ||
-                node.id === "branch-node" ||
-                node.id === "output-node"
-            );
-        };
-    }
-    return (node: any) => {
-        return (
-            node.id === "transform-node" ||
-            node.id === "join-node" ||
-            node.id === "branch-node" ||
-            node.id === "initial-node"
-        );
-    };
-};
 
 function AppDropdownMenu({
     onAddNode,
@@ -261,29 +265,39 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
     const nodes = policyVersion.spec.nodes || [];
     const edges = [];
 
+    console.log("Loaded Spec:", JSON.stringify(policyVersion.spec));
+
     // Create a proper initial state by validating the incoming spec
     const initialState: WorkflowState = useMemo(() => {
         // Check if spec exists and has valid nodes array
         if (policyVersion?.spec && Array.isArray(nodes) && nodes.length > 0) {
-            console.log("Processing server spec:", policyVersion.spec);
+            const uiMetadata = policyVersion.ui_metadata;
+            console.log("UI Metadata", uiMetadata);
+            console.log("Nodes", nodes);
 
             // Map server nodes to ReactFlow node format
             const flowNodes = nodes.map((node) => {
+                const nodeUIMetadata = uiMetadata? uiMetadata[node.name] : null;
+                const position: XYPosition = nodeUIMetadata?.position || {
+                    x: Math.random() * 500,
+                    y: Math.random() * 300,
+                };
+                const height = nodeUIMetadata?.height || 100;
+                const width = nodeUIMetadata?.width || 100;
+
+                const nodeId = standardizeNodeName(node.name);
+                const nodeType = node.node_type as keyof typeof iconMapping;
                 return {
-                    id: nanoid(),
-                    type: node.node_type,
+                    id: nodeId,
+                    type: nodeType,
+                    height: height,
+                    width: width,
                     data: {
                         name: node.name,
-                        icon: node.node_type as keyof typeof iconMapping,
-                        minHeight: 50,
-                        minWidth: 100,
+                        icon: nodeType,
                         metadata: node.metadata || {},
                     },
-                    // TODO: Should be replaced with a proper position
-                    position: {
-                        x: Math.random() * 500,
-                        y: Math.random() * 300,
-                    },
+                    position: position,
                 };
             });
 
@@ -297,16 +311,14 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
                 type: edge.type || "default",
             }));
 
-            console.log("Initialized nodes:", flowNodes);
-            console.log("Initialized edges:", flowEdges);
-
             return {
-                nodes: flowNodes,
+                // Always include the input node at the beginning of the nodes array
+                nodes: [inputNode, ...flowNodes],
                 edges: flowEdges,
             };
         }
 
-        // If no valid spec is found, create a default state with an input node
+        // If no valid spec is found, create a default state with just the input node
         console.log("Using default workflow state");
         return defaultState;
     }, [policyVersion]);
@@ -324,9 +336,11 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
     );
 }
 
+// Always start with the input node
 const inputNode = createNodeByType({
     type: "INPUT",
     position: { x: 200, y: 200 },
+    existingNodes: [],
 });
 
 const defaultState: WorkflowState = {
