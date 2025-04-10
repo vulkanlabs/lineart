@@ -35,6 +35,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { createPolicy } from "@/lib/api";
 import { useStackApp } from "@stackframe/stack";
+import { Sending } from "@/components/animations/sending";
 
 export function PoliciesPage({ policies }: { policies: any[] }) {
     const router = useRouter();
@@ -68,6 +69,7 @@ function CreatePolicyDialog() {
     const stackApp = useStackApp();
     const user = stackApp.getUser();
     const [open, setOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -79,19 +81,21 @@ function CreatePolicyDialog() {
     });
 
     const onSubmit = async (data: any) => {
-        await createPolicy(user, data)
-            .then(() => {
-                setOpen(false);
-                form.reset();
-                toast("Policy Created", {
-                    description: `Policy ${data.name} has been created.`,
-                    dismissible: true,
-                });
-                router.refresh();
-            })
-            .catch((error) => {
-                console.error(error);
+        setIsSubmitting(true);
+        try {
+            await createPolicy(user, data);
+            setOpen(false);
+            form.reset();
+            toast("Policy Created", {
+                description: `Policy ${data.name} has been created.`,
+                dismissible: true,
             });
+            router.refresh();
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -141,7 +145,9 @@ function CreatePolicyDialog() {
                             )}
                         />
                         <DialogFooter>
-                            <Button type="submit">Create Policy</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? <Sending /> : "Create Policy"}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

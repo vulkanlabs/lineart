@@ -16,33 +16,33 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
     CONNECTION: {
         id: "CONNECTION",
         name: "ConnectionNode",
-        icon: "Link",
+        icon: "CONNECTION",
     },
     DATA_INPUT: {
         id: "DATA_INPUT",
         name: "DataSourceNode",
-        icon: "ArrowDown01",
+        icon: "DATA_INPUT",
     },
     TRANSFORM: {
         id: "TRANSFORM",
         name: "TransformNode",
         width: 400,
         height: 300,
-        icon: "Code2",
+        icon: "TRANSFORM",
     },
     BRANCH: {
         id: "BRANCH",
         name: "BranchNode",
         width: 500,
         height: 500,
-        icon: "Split",
+        icon: "BRANCH",
     },
     TERMINATE: {
         id: "TERMINATE",
         name: "TerminateNode",
         width: 400,
         height: 200,
-        icon: "ArrowRightFromLine",
+        icon: "TERMINATE",
     },
 };
 

@@ -1,94 +1,53 @@
-from abc import ABC, abstractmethod
-from typing import Any, Callable
+from typing import Any
+
+from pydantic import BaseModel
 
 
-class NodeMetadata(ABC):
-    @staticmethod
-    @abstractmethod
-    def entries() -> list[str]:
-        """Return a list of all the attributes that should be serialized."""
-
+class BaseNodeMetadata(BaseModel):
     def to_dict(self) -> dict[str, Any]:
-        return {k: v for k, v in self.__dict__.items() if k in self.entries()}
+        """Convert the metadata to a dictionary."""
+        return self.model_dump()
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "NodeMetadata":
-        missing_keys = set(cls.entries()) - set(data.keys())
-        if missing_keys:
-            raise ValueError(f"Missing keys: {missing_keys}")
-        return cls(**data)
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, NodeMetadata):
-            return False
-        return self.__dict__ == other.__dict__
+    def from_dict(cls, data: dict[str, Any]) -> None:
+        """Load the metadata from a dictionary."""
+        return cls.model_validate(data)
 
 
-class InputNodeMetadata(NodeMetadata):
-    def __init__(self, schema: dict[str, type]):
-        self.schema = schema
-
-    @staticmethod
-    def entries() -> list[str]:
-        return ["schema"]
+class InputNodeMetadata(BaseNodeMetadata):
+    schema: dict[str, str]
 
 
-class BranchNodeMetadata(NodeMetadata):
-    def __init__(
-        self,
-        choices: list[str],
-        func: Callable | None,
-        source_code: str | None,
-        function_code: str,
-    ):
-        self.choices = choices
-        self.func = func
-        self.source_code = source_code
-        self.function_code = function_code
-
-    @staticmethod
-    def entries() -> list[str]:
-        return ["choices", "func", "source_code", "function_code"]
+class BranchNodeMetadata(BaseNodeMetadata):
+    choices: list[str]
+    func: Any | None
+    source_code: str | None
+    function_code: str
 
 
-class TransformNodeMetadata(NodeMetadata):
-    def __init__(
-        self,
-        func: Callable | None,
-        source_code: str | None,
-        function_code: str,
-    ):
-        self.func = func
-        self.source_code = source_code
-        self.function_code = function_code
-
-    @staticmethod
-    def entries() -> list[str]:
-        return ["func", "source_code", "function_code"]
+class TransformNodeMetadata(BaseNodeMetadata):
+    func: Any | None
+    source_code: str | None
+    function_code: str
 
 
-class TerminateNodeMetadata(NodeMetadata):
-    def __init__(self, return_status: str):
-        self.return_status = return_status
-
-    @staticmethod
-    def entries() -> list[str]:
-        return ["return_status"]
+class TerminateNodeMetadata(BaseNodeMetadata):
+    return_status: str
 
 
-class DataInputNodeMetadata(NodeMetadata):
-    def __init__(self, data_source: str):
-        self.data_source = data_source
-
-    @staticmethod
-    def entries() -> list[str]:
-        return ["data_source"]
+class DataInputNodeMetadata(BaseNodeMetadata):
+    data_source: str
 
 
-class PolicyNodeMetadata(NodeMetadata):
-    def __init__(self, policy_definition):
-        self.policy_definition = policy_definition
+class PolicyNodeMetadata(BaseNodeMetadata):
+    policy_definition: dict
 
-    @staticmethod
-    def entries() -> list[str]:
-        return ["policy_definition"]
+
+NodeMetadata = (
+    InputNodeMetadata
+    | BranchNodeMetadata
+    | TransformNodeMetadata
+    | TerminateNodeMetadata
+    | DataInputNodeMetadata
+    | PolicyNodeMetadata
+)

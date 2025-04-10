@@ -74,7 +74,7 @@ TEST_TABLE = {
                             "metadata": {"return_status": "DENIED"},
                         },
                     ],
-                    "input_schema": {"tax_id": str, "score": int},
+                    "input_schema": {"tax_id": "str", "score": "int"},
                     "output_callback": None,
                     "config_variables": ["SCORE_CUTOFF"],
                 }
@@ -143,7 +143,7 @@ TEST_TABLE = {
                             "metadata": {"return_status": "DENIED"},
                         },
                     ],
-                    "input_schema": {"tax_id": str, "score": int},
+                    "input_schema": {"tax_id": "str", "score": "int"},
                     "output_callback": None,
                     "config_variables": ["SCORE_CUTOFF"],
                 }
@@ -212,7 +212,7 @@ TEST_TABLE = {
                             "metadata": {"return_status": "DENIED"},
                         },
                     ],
-                    "input_schema": {"tax_id": str, "score": int},
+                    "input_schema": {"tax_id": "str", "score": "int"},
                     "output_callback": None,
                     "config_variables": ["SCORE_CUTOFF"],
                 }

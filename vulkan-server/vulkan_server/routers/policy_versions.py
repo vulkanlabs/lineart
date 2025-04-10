@@ -138,13 +138,14 @@ def update_policy_version(
     if version is None:
         msg = f"Policy version {policy_version_id} not found"
         raise HTTPException(status_code=404, detail=msg)
+    spec = convert_pydantic_to_dict(config.spec)
 
-    extra = {"policy_version_id": policy_version_id}
+    extra = {"policy_version_id": policy_version_id, "spec": spec}
     logger.system.debug("Updating policy version", extra={"extra": extra})
     # Update the policy version with the new spec and requirements
     version.alias = config.alias
     version.input_schema = config.input_schema
-    version.spec = config.spec
+    version.spec = spec
     version.requirements = config.requirements
     version.status = PolicyVersionStatus.INVALID
     db.commit()
@@ -153,7 +154,7 @@ def update_policy_version(
     try:
         dagster_service_client.update_workspace(
             workspace_id=version.policy_version_id,
-            spec=config.spec,
+            spec=spec,
             requirements=config.requirements,
         )
         version.status = PolicyVersionStatus.VALID
@@ -566,3 +567,15 @@ def create_beam_workspace(
         VulkanEvent.BEAM_WORKSPACE_CREATED, policy_version_id=policy_version_id
     )
     return beam_workspace
+
+
+def convert_pydantic_to_dict(obj):
+    """Recursively convert Pydantic models to dictionaries."""
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump()
+    elif isinstance(obj, dict):
+        return {k: convert_pydantic_to_dict(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_pydantic_to_dict(i) for i in obj]
+    else:
+        return obj

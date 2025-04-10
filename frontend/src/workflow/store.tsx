@@ -13,13 +13,14 @@ import {
     type Edge,
 } from "@xyflow/react";
 
-import { VulkanNode, VulkanNodeType, GraphDefinition, BranchNodeMetadata } from "./types";
 import { createNodeByType } from "./nodes";
-
-type WorkflowState = {
-    nodes: VulkanNode[];
-    edges: Edge[];
-};
+import {
+    VulkanNode,
+    VulkanNodeType,
+    GraphDefinition,
+    BranchNodeMetadata,
+    WorkflowState,
+} from "./types";
 
 type WorkflowActions = {
     getSpec: () => GraphDefinition;
@@ -38,26 +39,17 @@ type WorkflowActions = {
     onEdgesChange: OnEdgesChange<Edge>;
 };
 
-const inputNode = createNodeByType({
-    type: "INPUT",
-    position: { x: 200, y: 200 },
-});
-
-const defaultState: WorkflowState = {
-    nodes: [inputNode],
-    edges: [],
-};
-
 type WorkflowStore = WorkflowState & WorkflowActions;
 
-const createWorkflowStore = (initProps: WorkflowState = defaultState) => {
+const createWorkflowStore = (initProps: WorkflowState) => {
     return createStore<WorkflowStore>()((set, get) => ({
         ...initProps,
 
         getSpec: () => {
-            const nodes = get().nodes;
-            const edges = get().edges;
+            const nodes = get().nodes || [];
+            const edges = get().edges || [];
 
+            console.log("nodes", nodes);
             const spec: GraphDefinition = {};
 
             nodes.forEach((node) => {
@@ -74,7 +66,7 @@ const createWorkflowStore = (initProps: WorkflowState = defaultState) => {
                 const targetNode = spec[edge.target];
                 let output = null;
 
-                if (sourceNode.node_type === "BRANCH") {
+                if (sourceNode && sourceNode.node_type === "BRANCH") {
                     const metadata = sourceNode.metadata as BranchNodeMetadata;
                     output = metadata.choices[edge.sourceHandle];
                 }

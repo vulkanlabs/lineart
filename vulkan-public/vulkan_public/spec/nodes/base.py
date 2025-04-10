@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, TypedDict
 
-from vulkan_public.spec.dependency import Dependency
+from vulkan_public.spec.dependency import Dependency, DependencyDict
 from vulkan_public.spec.nodes.metadata import (
     BranchNodeMetadata,
     DataInputNodeMetadata,
@@ -25,6 +25,17 @@ class NodeType(Enum):
     POLICY = "POLICY"
 
 
+class NodeDefinitionDict(TypedDict):
+    """Dict representation of a NodeDefinition object."""
+
+    name: str
+    node_type: str
+    dependencies: dict[str, DependencyDict] | None = None
+    metadata: NodeMetadata | None = None
+    description: str | None = None
+    hierarchy: list[str] | None = None
+
+
 @dataclass()
 class NodeDefinition:
     "Internal representation of a node."
@@ -32,7 +43,7 @@ class NodeDefinition:
     name: str
     node_type: str
     description: str | None = None
-    dependencies: dict[str, Dependency] | None = None
+    dependencies: dict[str, DependencyDict] | None = None
     metadata: NodeMetadata | None = None
     hierarchy: list[str] | None = None
 
@@ -63,7 +74,7 @@ class NodeDefinition:
                 raise ValueError(msg)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "NodeDefinition":
+    def from_dict(cls, data: NodeDefinitionDict) -> "NodeDefinition":
         missing_keys = cls._REQUIRED_KEYS - set(data.keys())
         if missing_keys:
             raise ValueError(f"Missing keys: {missing_keys}")
@@ -95,7 +106,7 @@ class NodeDefinition:
             hierarchy=data.get("hierarchy"),
         )
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> NodeDefinitionDict:
         data: dict[str, Any] = {
             "name": self.name,
             "node_type": self.node_type,
@@ -103,7 +114,9 @@ class NodeDefinition:
         if self.description is not None:
             data["description"] = self.description
         if self.dependencies is not None:
-            data["dependencies"] = self.dependencies
+            data["dependencies"] = {
+                key: d.to_dict() for key, d in self.dependencies.items()
+            }
         if self.metadata is not None:
             data["metadata"] = self.metadata.to_dict()
         if self.hierarchy is not None:
@@ -160,7 +173,7 @@ class Node(ABC):
         pass
 
     @abstractmethod
-    def from_dict(cls, spec: dict[str, Any]) -> "Node":
+    def from_dict(cls, spec: NodeDefinitionDict) -> "Node":
         pass
 
     @property
@@ -195,7 +208,7 @@ class Node(ABC):
     def node_dependencies(self) -> list[Dependency]:
         return list(self.dependencies.values())
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> NodeDefinitionDict:
         return self.node_definition().to_dict()
 
     def __eq__(self, other) -> bool:
