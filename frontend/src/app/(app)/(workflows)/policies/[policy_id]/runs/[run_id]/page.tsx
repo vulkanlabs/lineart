@@ -1,7 +1,7 @@
 import { stackServerApp } from "@/stack";
 import { Suspense } from "react";
 
-import Loader from "@/components/loader";
+import Loader from "@/components/animations/loader";
 import { RunPage } from "@/components/run/run-page-server";
 
 export default async function Page(props) {

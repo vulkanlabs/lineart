@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { stackServerApp } from "@/stack";
 
-import Loader from "@/components/loader";
+import Loader from "@/components/animations/loader";
 import { fetchPolicy, fetchPolicyVersions } from "@/lib/api";
 
 import { AllocatedVersionsTable } from "./_components/table";

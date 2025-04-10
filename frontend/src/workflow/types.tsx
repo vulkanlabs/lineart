@@ -1,4 +1,4 @@
-import { type Node } from "@xyflow/react";
+import { type Node, type Edge } from "@xyflow/react";
 import { iconMapping } from "./icons";
 
 export type NodeConfig = {
@@ -36,9 +36,10 @@ export type NodeDependency = {
 export type GenericNodeDefinition<MetadataType> = {
     name: string;
     node_type: string;
-    // description: string;
     metadata?: MetadataType;
-    dependencies?: Map<string, NodeDependency>;
+    dependencies?: { [key: string]: NodeDependency };
+    description?: string;
+    hierarchy?: string[];
 };
 
 export type BranchNodeMetadata = {
@@ -60,10 +61,19 @@ export type TransformNodeMetadata = {
     func?: string | null;
 };
 
-export type NodeDefinition = GenericNodeDefinition<
-    BranchNodeMetadata | DataInputNodeMetadata | TerminateNodeMetadata | TransformNodeMetadata
->;
+export type NodeMetadata =
+    | BranchNodeMetadata
+    | DataInputNodeMetadata
+    | TerminateNodeMetadata
+    | TransformNodeMetadata;
+
+export type NodeDefinition = GenericNodeDefinition<NodeMetadata>;
 
 export type GraphDefinition = {
     [key: string]: NodeDefinition;
+};
+
+export type WorkflowState = {
+    nodes: VulkanNode[];
+    edges: Edge[];
 };

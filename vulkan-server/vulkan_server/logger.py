@@ -144,6 +144,8 @@ class StructuredFormatter(logging.Formatter):
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, o):
+        if isinstance(o, BaseModel):
+            return o.model_dump()
         if isinstance(o, type):
             return o.__name__
 

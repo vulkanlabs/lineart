@@ -1,17 +1,13 @@
 import { formatISO } from "date-fns";
 
 import { CurrentUser, CurrentInternalUser } from "@stackframe/stack";
-import { Component } from "@vulkan-server/Component";
 import { Run } from "@vulkan-server/Run";
 import { RunData } from "@vulkan-server/RunData";
 import { RunLogs } from "@vulkan-server/RunLogs";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
-import { ComponentVersion } from "@vulkan-server/ComponentVersion";
 import { PolicyBase } from "@vulkan-server/PolicyBase";
 import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
 import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
-import { Configuration, PoliciesApi } from "../../generated";
-import { CreatePolicyVersionPoliciesPolicyIdVersionsPostRequest } from "../../generated/apis/PoliciesApi";
 
 type StackUser = CurrentUser | CurrentInternalUser;
 
@@ -39,18 +35,9 @@ export async function getUserProjectId(user: StackUser) {
     });
 }
 
-export async function fetchServerData({
-    user,
-    endpoint,
-    label,
-}: {
-    user: StackUser;
-    endpoint: string;
-    label?: string;
-}) {
-    const headers = await getAuthHeaders(user);
+export async function fetchServerData({ endpoint, label }: { endpoint: string; label?: string }) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    return fetch(new URL(endpoint, serverUrl), { headers })
+    return fetch(new URL(endpoint, serverUrl))
         .then((response) => {
             if (response.status === 204) {
                 return [];
@@ -90,7 +77,6 @@ export async function fetchPolicies(
     includeArchived: boolean = false,
 ): Promise<Policy[]> {
     return fetchServerData({
-        user: user,
         endpoint: `/policies?include_archived=${includeArchived}`,
         label: "list of policies",
     });
@@ -98,7 +84,6 @@ export async function fetchPolicies(
 
 export async function fetchPolicy(user: StackUser, policyId: string) {
     return fetchServerData({
-        user: user,
         endpoint: `/policies/${policyId}`,
         label: `policy ${policyId}`,
     });
@@ -170,7 +155,6 @@ export async function createDataSource(
 
 export async function fetchPolicyRuns(user: StackUser, policyId: string): Promise<Run[]> {
     return fetchServerData({
-        user: user,
         endpoint: `/policies/${policyId}/runs`,
         label: `runs for policy ${policyId}`,
     });
@@ -178,7 +162,6 @@ export async function fetchPolicyRuns(user: StackUser, policyId: string): Promis
 
 export async function fetchPolicyVersionRuns(user: StackUser, policyVersionId: string) {
     return fetchServerData({
-        user: user,
         endpoint: `/policy-versions/${policyVersionId}/runs`,
         label: `runs for policy version ${policyVersionId}`,
     });
@@ -190,18 +173,13 @@ export async function fetchPolicyVersions(
     includeArchived: boolean = false,
 ): Promise<PolicyVersion[]> {
     return fetchServerData({
-        user: user,
         endpoint: `/policies/${policyId}/versions?include_archived=${includeArchived}`,
         label: `versions for policy ${policyId}`,
     });
 }
 
-export async function fetchPolicyVersion(
-    user: StackUser,
-    policyVersionId: string,
-): Promise<PolicyVersion> {
+export async function fetchPolicyVersion(policyVersionId: string): Promise<PolicyVersion> {
     return fetchServerData({
-        user: user,
         endpoint: `/policy-versions/${policyVersionId}`,
         label: `policy version ${policyVersionId}`,
     });
@@ -209,7 +187,6 @@ export async function fetchPolicyVersion(
 
 export async function fetchPolicyVersionVariables(user: StackUser, policyVersionId: string) {
     return fetchServerData({
-        user: user,
         endpoint: `/policy-versions/${policyVersionId}/variables`,
         label: `variables for policy version ${policyVersionId}`,
     });
@@ -217,7 +194,6 @@ export async function fetchPolicyVersionVariables(user: StackUser, policyVersion
 
 export async function fetchPolicyVersionComponents(user: StackUser, policyVersionId: string) {
     return fetchServerData({
-        user: user,
         endpoint: `/policy-versions/${policyVersionId}/components`,
         label: `component usage for policy version ${policyVersionId}`,
     });
@@ -225,7 +201,6 @@ export async function fetchPolicyVersionComponents(user: StackUser, policyVersio
 
 export async function fetchPolicyVersionDataSources(user: StackUser, policyVersionId: string) {
     return fetchServerData({
-        user: user,
         endpoint: `/policy-versions/${policyVersionId}/data-sources`,
         label: `data sources for policy version ${policyVersionId}`,
     });
@@ -236,15 +211,13 @@ export async function fetchComponents(
     includeArchived: boolean = false,
 ): Promise<any[]> {
     return fetchServerData({
-        user: user,
         endpoint: `/components?include_archived=${includeArchived}`,
         label: "list of components",
     });
 }
 
-export async function fetchComponent(user: StackUser, componentId: string): Promise<Component> {
+export async function fetchComponent(user: StackUser, componentId: string) {
     return fetchServerData({
-        user: user,
         endpoint: `/components/${componentId}`,
         label: `component ${componentId}`,
     });
@@ -256,18 +229,13 @@ export async function fetchComponentVersions(
     includeArchived: boolean = false,
 ) {
     return fetchServerData({
-        user: user,
         endpoint: `/components/${componentId}/versions?include_archived=${includeArchived}`,
         label: `component versions for component ${componentId}`,
     });
 }
 
-export async function fetchComponentVersion(
-    user: StackUser,
-    componentVersionId: string,
-): Promise<ComponentVersion> {
+export async function fetchComponentVersion(user: StackUser, componentVersionId: string) {
     return fetchServerData({
-        user: user,
         endpoint: `/component-versions/${componentVersionId}`,
         label: `component version ${componentVersionId}`,
     });
@@ -275,7 +243,6 @@ export async function fetchComponentVersion(
 
 export async function fetchComponentVersionUsage(user: StackUser, componentId: string) {
     return fetchServerData({
-        user: user,
         endpoint: `/components/${componentId}/usage`,
         label: `component usage for component ${componentId}`,
     });
@@ -283,7 +250,6 @@ export async function fetchComponentVersionUsage(user: StackUser, componentId: s
 
 export async function fetchRun(user: StackUser, runId: string): Promise<Run> {
     return fetchServerData({
-        user: user,
         endpoint: `/runs/${runId}`,
         label: `run ${runId}`,
     });
@@ -291,7 +257,6 @@ export async function fetchRun(user: StackUser, runId: string): Promise<Run> {
 
 export async function fetchRunsData(user: StackUser, runId: string): Promise<RunData> {
     return fetchServerData({
-        user: user,
         endpoint: `/runs/${runId}/data`,
         label: `data for run ${runId}`,
     });
@@ -299,7 +264,6 @@ export async function fetchRunsData(user: StackUser, runId: string): Promise<Run
 
 export async function fetchRunLogs(user: StackUser, runId: string): Promise<RunLogs> {
     return fetchServerData({
-        user: user,
         endpoint: `/runs/${runId}/logs`,
         label: `logs for run ${runId}`,
     });
@@ -307,7 +271,6 @@ export async function fetchRunLogs(user: StackUser, runId: string): Promise<RunL
 
 export async function fetchDataSources(user: StackUser) {
     return fetchServerData({
-        user: user,
         endpoint: `/data-sources`,
         label: `data sources`,
     });
@@ -315,7 +278,6 @@ export async function fetchDataSources(user: StackUser) {
 
 export async function fetchDataSource(user: StackUser, dataSourceId: string) {
     return fetchServerData({
-        user: user,
         endpoint: `/data-sources/${dataSourceId}`,
         label: `data source ${dataSourceId}`,
     });
@@ -323,7 +285,6 @@ export async function fetchDataSource(user: StackUser, dataSourceId: string) {
 
 export async function fetchBacktestWorkspace(user: StackUser, policyVersionId: string) {
     return fetchServerData({
-        user: user,
         endpoint: `/policy-versions/${policyVersionId}/backtest-workspace`,
         label: `policy version ${policyVersionId} backtest workspace`,
     });
@@ -331,7 +292,6 @@ export async function fetchBacktestWorkspace(user: StackUser, policyVersionId: s
 
 export async function fetchPolicyVersionBacktests(user: StackUser, policyVersionId: string) {
     return fetchServerData({
-        user: user,
         endpoint: `/backtests?policy_version_id=${policyVersionId}`,
         label: `backtests for policy version ${policyVersionId}`,
     });
@@ -339,7 +299,6 @@ export async function fetchPolicyVersionBacktests(user: StackUser, policyVersion
 
 export async function listUploadedFiles(user: StackUser) {
     return fetchServerData({
-        user: user,
         endpoint: `/files`,
         label: `backtests files`,
     });
@@ -347,7 +306,6 @@ export async function listUploadedFiles(user: StackUser) {
 
 export async function fetchBacktest(user: StackUser, backtestId: string) {
     return fetchServerData({
-        user: user,
         endpoint: `/backtests/${backtestId}/`,
         label: `backtest ${backtestId}`,
     });
@@ -355,7 +313,6 @@ export async function fetchBacktest(user: StackUser, backtestId: string) {
 
 export async function fetchBacktestStatus(user: StackUser, backtestId: string) {
     return fetchServerData({
-        user: user,
         endpoint: `/backtests/${backtestId}/status`,
         label: `status for backtest ${backtestId}`,
     });
@@ -369,7 +326,6 @@ export async function fetchBacktestMetrics(
     column: string | null = null,
 ) {
     return fetchServerData({
-        user: user,
         endpoint: `/backtests/${backtestId}/metrics/data?target=${target}&time=${time}${column ? `&column=${column}` : ""}`,
         label: `example metric for backtest ${backtestId}`,
     });

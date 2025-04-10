@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 from vulkan_public.schemas import DataSourceSpec, PolicyAllocationStrategy
+from vulkan_public.spec.policy import PolicyDefinitionDict
 
 from vulkan.core.run import JobStatus, RunStatus
 from vulkan_server.db import DataSource
@@ -121,7 +122,7 @@ class ComponentVersionDependencyExpanded(BaseModel):
 
 class PolicyVersionBase(BaseModel):
     alias: str | None
-    spec: dict
+    spec: PolicyDefinitionDict
     requirements: list[str]
     input_schema: dict[str, str]
 
@@ -135,7 +136,7 @@ class PolicyVersion(BaseModel):
     policy_id: UUID
     alias: str | None = None
     input_schema: dict[str, str]
-    spec: dict
+    spec: PolicyDefinitionDict
     requirements: list[str]
     archived: bool
     variables: list[str] | None = None

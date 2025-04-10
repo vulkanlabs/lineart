@@ -1,20 +1,15 @@
 "use client";
-
+import { nanoid } from "nanoid";
 import { useShallow } from "zustand/react/shallow";
-import React, { useState, useLayoutEffect, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
     ReactFlow,
     ReactFlowProvider,
     MiniMap,
     Controls,
-    ConnectionLineType,
-    useConnection,
     Background,
     BackgroundVariant,
-    addEdge,
     getOutgoers,
-    useNodesState,
-    useEdgesState,
     useReactFlow,
     ControlButton,
 } from "@xyflow/react";
@@ -29,14 +24,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDropdown } from "./hooks/use-dropdown";
-import { nodesConfig } from "./nodes";
+import { createNodeByType, nodesConfig } from "./nodes";
 import { iconMapping } from "./icons";
 import { nodeTypes } from "./components";
 import { WorkflowProvider, useWorkflowStore } from "./store";
 import { SaveIcon } from "lucide-react";
 import { saveWorkflowSpec } from "./actions";
 import { toast } from "sonner";
-import { GraphDefinition, NodeDefinition } from "./types";
+import { GraphDefinition, WorkflowState } from "./types";
+import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 
 type VulkanWorkflowProps = {
     onNodeClick: (e: React.MouseEvent, node: any) => void;
@@ -69,7 +65,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
         })),
     );
 
-    const { fitView, screenToFlowPosition } = useReactFlow();
+    const { screenToFlowPosition } = useReactFlow();
 
     const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
     const { isOpen, connectingHandle, toggleDropdown, ref } = useDropdown();
@@ -260,10 +256,64 @@ function AppDropdownMenu({
     );
 }
 
-export default function WorkflowFrame({ policyVersionId }: { policyVersionId?: string }) {
+export default function WorkflowFrame({ policyVersion }: { policyVersion: PolicyVersion }) {
+    const policyVersionId = policyVersion.policy_version_id;
+    const nodes = policyVersion.spec.nodes || [];
+    const edges = [];
+
+    // Create a proper initial state by validating the incoming spec
+    const initialState: WorkflowState = useMemo(() => {
+        // Check if spec exists and has valid nodes array
+        if (policyVersion?.spec && Array.isArray(nodes) && nodes.length > 0) {
+            console.log("Processing server spec:", policyVersion.spec);
+
+            // Map server nodes to ReactFlow node format
+            const flowNodes = nodes.map((node) => {
+                return {
+                    id: nanoid(),
+                    type: node.node_type,
+                    data: {
+                        name: node.name,
+                        icon: node.node_type as keyof typeof iconMapping,
+                        minHeight: 50,
+                        minWidth: 100,
+                        metadata: node.metadata || {},
+                    },
+                    // TODO: Should be replaced with a proper position
+                    position: {
+                        x: Math.random() * 500,
+                        y: Math.random() * 300,
+                    },
+                };
+            });
+
+            // Map server edges to ReactFlow edge format
+            const flowEdges = edges.map((edge) => ({
+                id: `${edge.source}-${edge.sourceHandle || "default"}-${edge.target}`,
+                source: edge.source,
+                target: edge.target,
+                sourceHandle: edge.sourceHandle || null,
+                targetHandle: edge.targetHandle || null,
+                type: edge.type || "default",
+            }));
+
+            console.log("Initialized nodes:", flowNodes);
+            console.log("Initialized edges:", flowEdges);
+
+            return {
+                nodes: flowNodes,
+                edges: flowEdges,
+            };
+        }
+
+        // If no valid spec is found, create a default state with an input node
+        console.log("Using default workflow state");
+        return defaultState;
+    }, [policyVersion]);
+
     return (
         <ReactFlowProvider>
-            <WorkflowProvider>
+            <WorkflowProvider initialState={initialState}>
                 <VulkanWorkflow
                     onNodeClick={(_: any, node: any) => console.log(node)}
                     onPaneClick={() => console.log("pane")}
@@ -273,3 +323,13 @@ export default function WorkflowFrame({ policyVersionId }: { policyVersionId?: s
         </ReactFlowProvider>
     );
 }
+
+const inputNode = createNodeByType({
+    type: "INPUT",
+    position: { x: 200, y: 200 },
+});
+
+const defaultState: WorkflowState = {
+    nodes: [inputNode],
+    edges: [],
+};

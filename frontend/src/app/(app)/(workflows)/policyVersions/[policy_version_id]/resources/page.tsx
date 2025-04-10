@@ -7,7 +7,7 @@ import {
     fetchPolicyVersionComponents,
     fetchPolicyVersionDataSources,
 } from "@/lib/api";
-import Loader from "@/components/loader";
+import Loader from "@/components/animations/loader";
 import { PolicyVersionComponentDependenciesTable } from "@/components/component/dependencies-table";
 
 import { ConfigVariablesTable, DataSourcesTable } from "./components";

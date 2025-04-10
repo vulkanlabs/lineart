@@ -1,5 +1,5 @@
 "use client";
-import Loader from "@/components/loader";
+import Loader from "@/components/animations/loader";
 import PolicyMetrics from "./policy-metrics";
 import { PolicyVersionsTable } from "./policy-versions-table";
 import { fetchMetricsData, fetchPolicyOutcomeStats } from "@/lib/actions";
