@@ -41,6 +41,16 @@ export type GenericNodeDefinition<MetadataType> = {
     dependencies?: Map<string, NodeDependency>;
 };
 
+export type BranchNodeMetadata = {
+    source_code: string;
+    func?: string | null;
+    choices: string[];
+};
+
+export type DataInputNodeMetadata = {
+    data_source: string;
+};
+
 export type TerminateNodeMetadata = {
     return_status: string;
 };
@@ -50,14 +60,8 @@ export type TransformNodeMetadata = {
     func?: string | null;
 };
 
-export type BranchNodeMetadata = {
-    source_code: string;
-    func?: string | null;
-    choices: string[];
-};
-
 export type NodeDefinition = GenericNodeDefinition<
-    TerminateNodeMetadata | TransformNodeMetadata | BranchNodeMetadata
+    BranchNodeMetadata | DataInputNodeMetadata | TerminateNodeMetadata | TransformNodeMetadata
 >;
 
 export type GraphDefinition = {

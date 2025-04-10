@@ -164,7 +164,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
                 nodeTypes={nodeTypes}
                 // connectionLineType={ConnectionLineType.SmoothStep}
                 isValidConnection={isValidConnection}
-                fitView
+                // fitView
                 proOptions={{ hideAttribution: true }}
             >
                 <Background color="#ccc" variant={BackgroundVariant.Dots} />
@@ -245,7 +245,7 @@ function AppDropdownMenu({
                     .map((item) => {
                         const IconComponent = item?.icon ? iconMapping[item.icon] : undefined;
                         return (
-                            <a key={item.name} onMouseDown={() => onAddNode(item.id)}>
+                            <a key={item.name} onMouseDown={() => onAddNode(item.id.trim())}>
                                 <DropdownMenuItem className="flex items-center space-x-2">
                                     {IconComponent ? (
                                         <IconComponent aria-label={item?.icon} />

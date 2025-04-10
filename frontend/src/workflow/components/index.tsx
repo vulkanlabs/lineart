@@ -3,12 +3,12 @@ import { BranchNode } from "./branch-node";
 import { TerminateNode } from "./terminate-node";
 import { InputNode } from "./input-node";
 import { ConnectionNode } from "./connection-node";
-import { DataSourceNode } from "./data-source-node";
+import { DataInputNode } from "./data-input-node";
 
 export const nodeTypes = {
     "INPUT": InputNode,
     "CONNECTION": ConnectionNode,
-    "DATA_INPUT": DataSourceNode,
+    "DATA_INPUT": DataInputNode,
     "TRANSFORM": TransformNode,
     "BRANCH": BranchNode,
     "TERMINATE": TerminateNode,

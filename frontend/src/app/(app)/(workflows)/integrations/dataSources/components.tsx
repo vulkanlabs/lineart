@@ -402,12 +402,20 @@ function HTTPOptions({ form }) {
         2,
     );
 
+    const queryParamsPlaceholderText = JSON.stringify(
+        {
+            key1: "value1",
+            key2: "value2",
+        },
+        null,
+        2,
+    );
+
     const retryPolicyPlaceholderText = JSON.stringify(
         {
             max_retries: 3,
-            initial_delay_ms: 1000,
-            max_delay_ms: 10000,
             backoff_factor: 2,
+            status_forcelist: [500, 502, 503, 504],
         },
         null,
         2,
@@ -501,7 +509,7 @@ function HTTPOptions({ form }) {
                         <FormControl>
                             <Textarea
                                 className="min-h-24 font-mono text-sm"
-                                placeholder={headersParamsPlaceholderText}
+                                placeholder={queryParamsPlaceholderText}
                                 {...field}
                             />
                         </FormControl>
