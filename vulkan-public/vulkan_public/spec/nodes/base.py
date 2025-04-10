@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypedDict
 
-from vulkan_public.spec.dependency import Dependency
+from vulkan_public.spec.dependency import Dependency, DependencyDict
 from vulkan_public.spec.nodes.metadata import (
     BranchNodeMetadata,
     DataInputNodeMetadata,
@@ -30,10 +30,10 @@ class NodeDefinitionDict(TypedDict):
 
     name: str
     node_type: str
-    description: str | None
-    dependencies: dict[str, Dependency] | None
-    metadata: NodeMetadata | None
-    hierarchy: list[str] | None
+    dependencies: dict[str, DependencyDict] | None = None
+    metadata: NodeMetadata | None = None
+    description: str | None = None
+    hierarchy: list[str] | None = None
 
 
 @dataclass()
@@ -43,7 +43,7 @@ class NodeDefinition:
     name: str
     node_type: str
     description: str | None = None
-    dependencies: dict[str, Dependency] | None = None
+    dependencies: dict[str, DependencyDict] | None = None
     metadata: NodeMetadata | None = None
     hierarchy: list[str] | None = None
 
@@ -114,7 +114,9 @@ class NodeDefinition:
         if self.description is not None:
             data["description"] = self.description
         if self.dependencies is not None:
-            data["dependencies"] = self.dependencies
+            data["dependencies"] = {
+                key: d.to_dict() for key, d in self.dependencies.items()
+            }
         if self.metadata is not None:
             data["metadata"] = self.metadata.to_dict()
         if self.hierarchy is not None:

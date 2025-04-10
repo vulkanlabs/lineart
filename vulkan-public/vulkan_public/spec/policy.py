@@ -24,8 +24,8 @@ class PolicyDefinitionDict(TypedDict):
 
     nodes: list[NodeDefinitionDict]
     input_schema: dict[str, str]
-    output_callable: Any | None
-    config_variables: list[str]
+    output_callable: Any | None = None
+    config_variables: list[str] | None = None
 
 
 @dataclass
@@ -100,7 +100,8 @@ class PolicyDefinition(GraphDefinition):
         }
 
     @classmethod
-    def from_dict(self, spec: PolicyDefinitionDict) -> "PolicyDefinition":
+    def from_dict(self, data: PolicyDefinitionDict) -> "PolicyDefinition":
+        spec = data.policy_definition
         nodes = [node_from_spec(node) for node in spec["nodes"]]
 
         return PolicyDefinition(
@@ -134,12 +135,15 @@ class PolicyDefinitionNode(Node):
         self.policy_definition = policy_definition
 
     def node_definition(self) -> NodeDefinition:
+        metadata = PolicyNodeMetadata(
+            policy_definition=self.policy_definition.to_dict()
+        )
         return NodeDefinition(
             name=self.name,
             description=self.description,
             node_type=self.type.value,
             dependencies=self.dependencies,
-            metadata=PolicyNodeMetadata(self.policy_definition),
+            metadata=metadata,
         )
 
     @classmethod
@@ -150,7 +154,7 @@ class PolicyDefinitionNode(Node):
         if definition.metadata is None or definition.metadata.policy_definition is None:
             raise ValueError("Missing policy definition metadata")
 
-        policy_def = PolicyDefinition.from_dict(definition.metadata.policy_definition)
+        policy_def = PolicyDefinition.from_dict(definition.metadata)
         return cls(
             name=definition.name,
             description=definition.description,

@@ -6,9 +6,9 @@ class DependencyDict(TypedDict):
     """Dict representation of a Dependency object."""
 
     node: str
-    output: str | None
-    key: str | None
-    hierarchy: list[str] | None
+    output: str | None = None
+    key: str | None = None
+    hierarchy: list[str] | None = None
 
 
 @dataclass
@@ -79,6 +79,14 @@ class Dependency:
             output=data["output"],
             key=data["key"],
             hierarchy=data.get("hierarchy"),
+        )
+
+    def to_dict(self) -> DependencyDict:
+        return DependencyDict(
+            node=self.node,
+            output=self.output,
+            key=self.key,
+            hierarchy=self.hierarchy,
         )
 
 
