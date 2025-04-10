@@ -36,9 +36,10 @@ export type NodeDependency = {
 export type GenericNodeDefinition<MetadataType> = {
     name: string;
     node_type: string;
-    // description: string;
     metadata?: MetadataType;
-    dependencies?: Map<string, NodeDependency>;
+    dependencies?: { [key: string]: NodeDependency };
+    description?: string;
+    hierarchy?: string[];
 };
 
 export type TerminateNodeMetadata = {
@@ -55,10 +56,8 @@ export type BranchNodeMetadata = {
     func?: string | null;
     choices: string[];
 };
-
-export type NodeDefinition = GenericNodeDefinition<
-    TerminateNodeMetadata | TransformNodeMetadata | BranchNodeMetadata
->;
+export type NodeMetadata = TerminateNodeMetadata | TransformNodeMetadata | BranchNodeMetadata;
+export type NodeDefinition = GenericNodeDefinition<NodeMetadata>;
 
 export type GraphDefinition = {
     [key: string]: NodeDefinition;

@@ -30,11 +30,7 @@ import { useStackApp } from "@stackframe/stack";
 import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
 
 const formSchema = z.object({
-    policy_id: z.string(),
     alias: z.string({ description: "Name of the Version" }).optional(),
-    // spec: z.object({}).optional(),
-    // requirements: z.array(z.string()).optional(),
-    // input_schema: z.object({}).optional(),
 });
 
 export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
@@ -46,21 +42,22 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            policy_id: policyId,
             alias: "",
-            // spec: {},
-            // requirements: [],
-            // input_schema: {},
         },
     });
 
     const onSubmit = async (data: any) => {
         const requestData: PolicyVersionCreate = {
+            policy_id: policyId,
             alias: data.alias,
-            spec: {},
+            spec: {
+                nodes: [],
+                input_schema: {},
+                output_callable: null,
+                config_variables: null,
+            },
             requirements: [],
             input_schema: {},
-            policy_id: data.policy_id,
         };
 
         await createPolicyVersion(user, { ...requestData })

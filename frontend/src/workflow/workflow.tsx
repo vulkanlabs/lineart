@@ -1,19 +1,17 @@
 "use client";
-
+import { nanoid } from "nanoid";
 import { useShallow } from "zustand/react/shallow";
-import React, { useState, useLayoutEffect, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
     ReactFlow,
     ReactFlowProvider,
     MiniMap,
     Controls,
-    ConnectionLineType,
     Background,
     BackgroundVariant,
     getOutgoers,
     useReactFlow,
     ControlButton,
-    type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -33,7 +31,7 @@ import { WorkflowProvider, useWorkflowStore } from "./store";
 import { SaveIcon } from "lucide-react";
 import { saveWorkflowSpec } from "./actions";
 import { toast } from "sonner";
-import { GraphDefinition, WorkflowState, VulkanNode } from "./types";
+import { GraphDefinition, WorkflowState } from "./types";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 
 type VulkanWorkflowProps = {
@@ -260,39 +258,56 @@ function AppDropdownMenu({
 
 export default function WorkflowFrame({ policyVersion }: { policyVersion: PolicyVersion }) {
     const policyVersionId = policyVersion.policy_version_id;
-    const typedPolicyVersion = policyVersion as WorkflowPolicyVersion;
-    const nodes = typedPolicyVersion.spec.nodes;
+    const nodes = policyVersion.spec.nodes || [];
+    const edges = [];
 
     // Create a proper initial state by validating the incoming spec
     const initialState: WorkflowState = useMemo(() => {
         // Check if spec exists and has valid nodes array
         if (policyVersion?.spec && Array.isArray(nodes) && nodes.length > 0) {
-            console.log("Nodes", nodes);
-            const positionedNodes = nodes.map((node) => {
+            console.log("Processing server spec:", policyVersion.spec);
+
+            // Map server nodes to ReactFlow node format
+            const flowNodes = nodes.map((node) => {
                 return {
-                    id: node.id || node.name,
-                    type: node.type,
+                    id: nanoid(),
+                    type: node.node_type,
                     data: {
                         name: node.name,
-                        icon: node.type,
+                        icon: node.node_type as keyof typeof iconMapping,
                         minHeight: 50,
                         minWidth: 100,
-                        metadata: node.metadata,
+                        metadata: node.metadata || {},
                     },
+                    // TODO: Should be replaced with a proper position
                     position: {
-                        x: 0,
-                        y: 0,
+                        x: Math.random() * 500,
+                        y: Math.random() * 300,
                     },
                 };
             });
-            console.log("positionedNodes", positionedNodes);
+
+            // Map server edges to ReactFlow edge format
+            const flowEdges = edges.map((edge) => ({
+                id: `${edge.source}-${edge.sourceHandle || "default"}-${edge.target}`,
+                source: edge.source,
+                target: edge.target,
+                sourceHandle: edge.sourceHandle || null,
+                targetHandle: edge.targetHandle || null,
+                type: edge.type || "default",
+            }));
+
+            console.log("Initialized nodes:", flowNodes);
+            console.log("Initialized edges:", flowEdges);
+
             return {
-                nodes: positionedNodes,
-                edges: [],
+                nodes: flowNodes,
+                edges: flowEdges,
             };
         }
 
-        // Fall back to default state if spec is invalid
+        // If no valid spec is found, create a default state with an input node
+        console.log("Using default workflow state");
         return defaultState;
     }, [policyVersion]);
 
