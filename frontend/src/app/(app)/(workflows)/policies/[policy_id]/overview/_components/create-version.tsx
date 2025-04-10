@@ -28,6 +28,7 @@ import {
 import { createPolicyVersion } from "@/lib/api";
 import { useStackApp } from "@stackframe/stack";
 import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
+import { Sending } from "@/components/animations/sending";
 
 const formSchema = z.object({
     alias: z.string({ description: "Name of the Version" }).optional(),
@@ -37,6 +38,7 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
     const stackApp = useStackApp();
     const user = stackApp.getUser();
     const [open, setOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -47,6 +49,7 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
     });
 
     const onSubmit = async (data: any) => {
+        setIsSubmitting(true);
         const requestData: PolicyVersionCreate = {
             policy_id: policyId,
             alias: data.alias,
@@ -60,19 +63,20 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
             input_schema: {},
         };
 
-        await createPolicyVersion(user, { ...requestData })
-            .then(() => {
-                setOpen(false);
-                form.reset();
-                toast("Policy Version Created", {
-                    description: `Policy Version ${data.alias} has been created.`,
-                    dismissible: true,
-                });
-                router.refresh();
-            })
-            .catch((error) => {
-                console.error(error);
+        try {
+            await createPolicyVersion(user, { ...requestData });
+            setOpen(false);
+            form.reset();
+            toast("Policy Version Created", {
+                description: `Policy Version ${data.alias} has been created.`,
+                dismissible: true,
             });
+            router.refresh();
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const formFields: Array<React.ReactElement> = [];
@@ -114,7 +118,9 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
                         {formFields}
 
                         <DialogFooter>
-                            <Button type="submit">Create Policy Version</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? <Sending /> : "Create Policy Version"}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
