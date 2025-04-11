@@ -55,15 +55,11 @@ function initMetadata(type: VulkanNodeType) {
         };
     } else if (type === "TRANSFORM") {
         return {
-            func: null,
             source_code: "",
-            function_code: "",
         };
     } else if (type === "BRANCH") {
         return {
-            func: null,
             source_code: "",
-            function_code: "",
             choices: ["", ""],
         };
     }

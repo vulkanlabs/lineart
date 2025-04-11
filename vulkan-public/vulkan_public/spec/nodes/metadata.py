@@ -20,15 +20,11 @@ class InputNodeMetadata(BaseNodeMetadata):
 
 class BranchNodeMetadata(BaseNodeMetadata):
     choices: list[str]
-    func: Any | None
-    source_code: str | None
-    function_code: str
+    source_code: str
 
 
 class TransformNodeMetadata(BaseNodeMetadata):
-    func: Any | None
-    source_code: str | None
-    function_code: str
+    source_code: str
 
 
 class TerminateNodeMetadata(BaseNodeMetadata):

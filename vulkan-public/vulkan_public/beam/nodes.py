@@ -289,19 +289,17 @@ class BeamBranch(BranchNode, BeamLogicNode):
     def __init__(
         self,
         name: str,
+        func: Callable,
         choices: list[str],
         dependencies: dict[str, Dependency],
-        func: Callable | None = None,
-        source_code: str | None = None,
         description: str | None = None,
         hierarchy: list[str] | None = None,
     ):
         super().__init__(
             name=name,
+            func=func,
             choices=choices,
             dependencies=dependencies,
-            func=func,
-            source_code=source_code,
             description=description,
             hierarchy=hierarchy,
         )
@@ -310,11 +308,10 @@ class BeamBranch(BranchNode, BeamLogicNode):
     def from_spec(cls, node: BranchNode):
         return cls(
             name=node.name,
-            description=node.description,
             func=node.func,
-            source_code=node.source_code,
             choices=node.choices,
             dependencies=node.dependencies,
+            description=node.description,
             hierarchy=node._hierarchy,
         )
 

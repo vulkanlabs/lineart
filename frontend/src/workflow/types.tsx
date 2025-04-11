@@ -44,7 +44,6 @@ export type GenericNodeDefinition<MetadataType> = {
 
 export type BranchNodeMetadata = {
     source_code: string;
-    func?: string | null;
     choices: string[];
 };
 
@@ -58,7 +57,6 @@ export type TerminateNodeMetadata = {
 
 export type TransformNodeMetadata = {
     source_code: string;
-    func?: string | null;
 };
 
 export type NodeMetadata =

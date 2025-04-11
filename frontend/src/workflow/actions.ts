@@ -86,9 +86,7 @@ function AsMetadata(metadata: NodeMetadata | undefined): Metadata | null {
     const baseMetadata: Metadata = {
         schema: {},
         choices: [],
-        func: null,
         source_code: "",
-        function_code: "",
         return_status: "",
         data_source: "",
         policy_definition: null,
@@ -103,11 +101,6 @@ function AsMetadata(metadata: NodeMetadata | undefined): Metadata | null {
     if ("source_code" in metadata) {
         // Handle TransformNodeMetadata and BranchNodeMetadata
         baseMetadata.source_code = metadata.source_code;
-
-        if (metadata.func) {
-            console.warn("`func` is not supported yet. Setting it to null.");
-            baseMetadata.func = null;
-        }
 
         // Handle BranchNodeMetadata specific fields
         if ("choices" in metadata && Array.isArray(metadata.choices)) {

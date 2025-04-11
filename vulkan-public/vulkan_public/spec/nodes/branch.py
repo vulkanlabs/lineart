@@ -1,9 +1,12 @@
-from inspect import getsource
 from typing import Any, Callable, cast
 
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
 from vulkan_public.spec.nodes.metadata import BranchNodeMetadata
-from vulkan_public.spec.nodes.user_code import UserCodeException, get_udf_instance
+from vulkan_public.spec.nodes.user_code import (
+    UserCodeException,
+    get_source_code,
+    get_udf_instance,
+)
 
 
 class BranchNode(Node):
@@ -27,10 +30,9 @@ class BranchNode(Node):
     def __init__(
         self,
         name: str,
+        func: Callable,
         choices: list[str],
         dependencies: dict[str, Any],
-        func: Callable | None = None,
-        source_code: str | None = None,
         description: str | None = None,
         hierarchy: list[str] | None = None,
     ):
@@ -71,40 +73,18 @@ class BranchNode(Node):
             raise ValueError("BranchNode must have at least one possible output")
         self.choices = choices
 
-        if func is None and source_code is None:
-            raise ValueError("BranchNode must have a function or source code")
-        if func is not None and source_code is not None:
-            raise ValueError("BranchNode cannot have both a function and source code")
-
-        if source_code is not None:
-            if not isinstance(source_code, str):
-                msg = f"Expected source code as string, got ({type(source_code)})"
-                raise TypeError(msg)
-
-            try:
-                udf_instance = get_udf_instance(source_code)
-            except UserCodeException as e:
-                raise ValueError(f"Invalid user code in node {name}") from e
-            self.func = udf_instance
-            self.user_func = None
-            self.source_code = source_code
-            self.function_code = source_code
-
-        if func is not None:
-            if not callable(func):
-                msg = f"Expected callable, got ({type(func)})"
-                raise TypeError(msg)
-
-            self.func = func
-            self.user_func = func
-            self.source_code = None
-            self.function_code = getsource(func)
+        if not callable(func):
+            raise TypeError(f"Expected callable, got ({type(func)})")
+        self.func = func
 
         # TODO: we can likely use the AST to check if the given function
         # returns a string, and if it has the correct outputs, ie covers
         # all possible choices.
 
     def node_definition(self) -> NodeDefinition:
+        # Get the text of source code for the user function
+        source_code: str = get_source_code(self.func)
+
         return NodeDefinition(
             name=self.name,
             description=self.description,
@@ -112,9 +92,7 @@ class BranchNode(Node):
             dependencies=self.dependencies,
             metadata=BranchNodeMetadata(
                 choices=self.choices,
-                func=self.user_func,
-                source_code=self.source_code,
-                function_code=self.function_code,
+                source_code=source_code,
             ),
             hierarchy=self.hierarchy,
         )
@@ -127,12 +105,19 @@ class BranchNode(Node):
             raise ValueError(f"Metadata not set for node {definition.name}")
 
         metadata = cast(BranchNodeMetadata, definition.metadata)
+
+        try:
+            # Load the stringified source code into a Python executable and
+            # encapsulate it in a callable object.
+            udf_instance: Callable = get_udf_instance(metadata.source_code)
+        except UserCodeException as e:
+            raise ValueError(f"Invalid user code in node {definition.name}") from e
+
         return cls(
             name=definition.name,
             description=definition.description,
             dependencies=definition.dependencies,
             choices=metadata.choices,
-            func=metadata.func,
-            source_code=metadata.source_code,
+            func=udf_instance,
             hierarchy=definition.hierarchy,
         )
