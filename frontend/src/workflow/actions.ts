@@ -30,8 +30,6 @@ export async function saveWorkflowSpec(
         config_variables: null,
     };
 
-    console.log("Saving workflow spec:", JSON.stringify(spec));
-    console.log("Saving Metadata:", uiMetadata);
     const request: PolicyVersionBase = {
         alias: null,
         spec: spec,

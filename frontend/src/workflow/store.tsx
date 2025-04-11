@@ -49,14 +49,12 @@ const createWorkflowStore = (initProps: WorkflowState) => {
             const nodes = get().nodes || [];
             const edges = get().edges || [];
 
-            console.log("nodes", nodes);
             const spec: GraphDefinition = {};
 
             nodes.forEach((node) => {
                 spec[node.id] = {
                     name: node.data.name,
                     node_type: node.type,
-                    // description: node.data.description,
                     metadata: node.data.metadata,
                 };
             });

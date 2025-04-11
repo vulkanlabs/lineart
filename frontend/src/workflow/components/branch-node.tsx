@@ -77,7 +77,7 @@ export function BranchNode({ id, data, selected, height, width }) {
 
             updateNodeData(id, { ...data, metadata, minHeight: newHeight });
 
-            // remove the edge whose source was deleted
+            // TODO: remove the edge whose source was deleted
 
             onNodesChange([
                 {
@@ -105,7 +105,6 @@ export function BranchNode({ id, data, selected, height, width }) {
             isOutput
         >
             <div className="h-full flex flex-col gap-1 space-y-2 m-3">
-                <span>Source code:</span>
                 <div className="h-full rounded-md overflow-hidden">
                     <Editor
                         // width={width}
@@ -113,7 +112,7 @@ export function BranchNode({ id, data, selected, height, width }) {
                         language="python"
                         value={data.metadata?.source_code || ""}
                         theme="vs-dark"
-                        defaultValue="// some comment"
+                        defaultValue="# some comment"
                         onChange={setSourceCode}
                     />
                 </div>

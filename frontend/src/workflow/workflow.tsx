@@ -1,7 +1,6 @@
 "use client";
-import { nanoid } from "nanoid";
 import { useShallow } from "zustand/react/shallow";
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
     ReactFlow,
     ReactFlowProvider,
@@ -13,6 +12,7 @@ import {
     useReactFlow,
     ControlButton,
     XYPosition,
+    type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -34,7 +34,8 @@ import { saveWorkflowSpec } from "./actions";
 import { toast } from "sonner";
 import { GraphDefinition, VulkanNode, WorkflowState } from "./types";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
-import { width } from "@mui/system";
+import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
+import { PolicyVersionComponentDependenciesTable } from "@/components/component/dependencies-table";
 
 type VulkanWorkflowProps = {
     onNodeClick: (e: React.MouseEvent, node: any) => void;
@@ -72,13 +73,8 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
     const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
     const { isOpen, connectingHandle, toggleDropdown, ref } = useDropdown();
 
-    useEffect(() => {
-        console.log(JSON.stringify(getSpec()));
-    }, [nodes]);
-
-    const clickNode = (e, node) => {};
-
-    const clickPane = (e) => {};
+    const clickNode = (e, node) => onNodeClick(e, node);
+    const clickPane = (e) => onPaneClick(e);
 
     const isValidConnection = useCallback(
         (connection) => {
@@ -263,64 +259,44 @@ function AppDropdownMenu({
 export default function WorkflowFrame({ policyVersion }: { policyVersion: PolicyVersion }) {
     const policyVersionId = policyVersion.policy_version_id;
     const nodes = policyVersion.spec.nodes || [];
-    const edges = [];
-
-    console.log("Loaded Spec:", JSON.stringify(policyVersion.spec));
+    const edges = makeEdgesFromDependencies(nodes);
 
     // Create a proper initial state by validating the incoming spec
     const initialState: WorkflowState = useMemo(() => {
-        // Check if spec exists and has valid nodes array
-        if (policyVersion?.spec && Array.isArray(nodes) && nodes.length > 0) {
-            const uiMetadata = policyVersion.ui_metadata;
-            console.log("UI Metadata", uiMetadata);
-            console.log("Nodes", nodes);
-
-            // Map server nodes to ReactFlow node format
-            const flowNodes = nodes.map((node) => {
-                const nodeUIMetadata = uiMetadata? uiMetadata[node.name] : null;
-                const position: XYPosition = nodeUIMetadata?.position || {
-                    x: Math.random() * 500,
-                    y: Math.random() * 300,
-                };
-                const height = nodeUIMetadata?.height || 100;
-                const width = nodeUIMetadata?.width || 100;
-
-                const nodeId = standardizeNodeName(node.name);
-                const nodeType = node.node_type as keyof typeof iconMapping;
-                return {
-                    id: nodeId,
-                    type: nodeType,
-                    height: height,
-                    width: width,
-                    data: {
-                        name: node.name,
-                        icon: nodeType,
-                        metadata: node.metadata || {},
-                    },
-                    position: position,
-                };
-            });
-
-            // Map server edges to ReactFlow edge format
-            const flowEdges = edges.map((edge) => ({
-                id: `${edge.source}-${edge.sourceHandle || "default"}-${edge.target}`,
-                source: edge.source,
-                target: edge.target,
-                sourceHandle: edge.sourceHandle || null,
-                targetHandle: edge.targetHandle || null,
-                type: edge.type || "default",
-            }));
-
-            return {
-                // Always include the input node at the beginning of the nodes array
-                nodes: [inputNode, ...flowNodes],
-                edges: flowEdges,
-            };
+        // If no spec is given or nodes are empty, return default state
+        if (!policyVersion.spec || !Array.isArray(nodes) || nodes.length === 0) {
+            return defaultState;
         }
 
-        // If no valid spec is found, create a default state with just the input node
-        console.log("Using default workflow state");
-        return defaultState;
+        const uiMetadata = policyVersion.ui_metadata;
+
+        // Map server nodes to ReactFlow node format
+        const flowNodes = nodes.map((node) => {
+            const nodeUIMetadata = uiMetadata ? uiMetadata[node.name] : null;
+            const position: XYPosition = nodeUIMetadata.position;
+            const height = nodeUIMetadata.height;
+            const width = nodeUIMetadata.width;
+
+            const nodeType = node.node_type as keyof typeof iconMapping;
+            return {
+                id: standardizeNodeName(node.name),
+                type: nodeType,
+                height: height,
+                width: width,
+                data: {
+                    name: node.name,
+                    icon: nodeType,
+                    metadata: node.metadata || {},
+                },
+                position: position,
+            };
+        });
+
+        return {
+            // Always include the input node at the beginning of the nodes array
+            nodes: [inputNode, ...flowNodes],
+            edges: edges,
+        };
     }, [policyVersion]);
 
     return (
@@ -347,3 +323,75 @@ const defaultState: WorkflowState = {
     nodes: [inputNode],
     edges: [],
 };
+
+function makeEdgesFromDependencies(nodes: NodeDefinitionDict[]): Edge[] {
+    // Return early if nodes array is empty or invalid
+    if (!nodes || nodes.length === 0) {
+        return [];
+    }
+
+    const allNodes: NodeDefinitionDict[] = [
+        ...nodes,
+        { name: "input_node", node_type: "INPUT" } as NodeDefinitionDict,
+    ];
+    const edgeList = [];
+
+    // Process each node's dependencies
+    allNodes.forEach((node) => {
+        // Skip if node has no dependencies
+        if (!node.dependencies) {
+            return;
+        }
+
+        const target = standardizeNodeName(node.name);
+        const targetHandle = null;
+
+        Object.entries(node.dependencies).forEach(([_, dep]) => {
+            const source = standardizeNodeName(dep.node);
+            let sourceHandle = null;
+
+            // If the output is specified, we need to find the corresponding
+            // handle index in the node.
+            if (dep.output) {
+                const sourceNode = nodes.find((n) => n.name === dep.node);
+                if (!sourceNode) {
+                    console.error(`Node ${dep.node} not found`);
+                    return;
+                }
+
+                // Check if the source node has the specified output and get its index
+                console.log("Choices", sourceNode.metadata.choices);
+                const outputIndex = sourceNode.metadata.choices.findIndex(
+                    (output) => output === dep.output,
+                );
+                if (outputIndex === -1) {
+                    console.error(`Output ${dep.output} not found in node ${dep.node}`);
+                    return;
+                }
+
+                sourceHandle = outputIndex;
+            }
+
+            // Skip if source is the same as target
+            if (source === target) {
+                return;
+            }
+            console.log("Source", source, "Target", target, "SourceHandle", sourceHandle);
+
+            // Create edge object
+            const edge = {
+                id: `${source}-${target}`,
+                source: source,
+                target: target,
+                sourceHandle: sourceHandle ? `${sourceHandle}` : null,
+                targetHandle: targetHandle || null,
+                type: "default",
+            };
+
+            // Add edge to the list
+            edgeList.push(edge);
+        });
+    });
+
+    return edgeList;
+}
