@@ -32,6 +32,11 @@ export function TransformNode({ id, data, selected, height, width }) {
                         theme="vs-dark"
                         defaultValue="# some comment"
                         onChange={setSourceCode}
+                        options={{
+                            minimap: {
+                                enabled: false,
+                            },
+                        }}
                     />
                 </div>
             </div>

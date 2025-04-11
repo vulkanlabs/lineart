@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { SquareX } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
-import {Position, type NodeChange } from "@xyflow/react";
+import { Position, type NodeChange } from "@xyflow/react";
 import Editor from "@monaco-editor/react";
 
 import { Input } from "@/components/ui/input";
@@ -114,6 +114,11 @@ export function BranchNode({ id, data, selected, height, width }) {
                         theme="vs-dark"
                         defaultValue="# some comment"
                         onChange={setSourceCode}
+                        options={{
+                            minimap: {
+                                enabled: false,
+                            },
+                        }}
                     />
                 </div>
                 <span>Outputs:</span>

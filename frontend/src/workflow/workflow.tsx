@@ -35,11 +35,13 @@ import { toast } from "sonner";
 import { GraphDefinition, VulkanNode, WorkflowState } from "./types";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
-import { PolicyVersionComponentDependenciesTable } from "@/components/component/dependencies-table";
+
+type OnNodeClick = (e: React.MouseEvent, node: any) => void;
+type OnPaneClick = (e: React.MouseEvent) => void;
 
 type VulkanWorkflowProps = {
-    onNodeClick: (e: React.MouseEvent, node: any) => void;
-    onPaneClick: (e: React.MouseEvent) => void;
+    onNodeClick: OnNodeClick;
+    onPaneClick: OnPaneClick;
     policyVersionId?: string;
 };
 
@@ -73,8 +75,8 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
     const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
     const { isOpen, connectingHandle, toggleDropdown, ref } = useDropdown();
 
-    const clickNode = (e, node) => onNodeClick(e, node);
-    const clickPane = (e) => onPaneClick(e);
+    const clickNode: OnNodeClick = (e, node) => onNodeClick(e, node);
+    const clickPane: OnPaneClick = (e) => onPaneClick(e);
 
     const isValidConnection = useCallback(
         (connection) => {
@@ -360,7 +362,6 @@ function makeEdgesFromDependencies(nodes: NodeDefinitionDict[]): Edge[] {
                 }
 
                 // Check if the source node has the specified output and get its index
-                console.log("Choices", sourceNode.metadata.choices);
                 const outputIndex = sourceNode.metadata.choices.findIndex(
                     (output) => output === dep.output,
                 );
