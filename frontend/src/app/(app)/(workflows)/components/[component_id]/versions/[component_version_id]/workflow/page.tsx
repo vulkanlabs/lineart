@@ -1,21 +1,15 @@
-import { stackServerApp } from "@/stack";
-
 import WorkflowPage from "@/components/workflow/workflow";
 import { fetchComponentVersion } from "@/lib/api";
 
 export default async function Page(props) {
     const params = await props.params;
-    const user = await stackServerApp.getUser();
-    const graphData = await fetchComponentVersion(
-        user,
-        params.component_version_id,
-    )
+    const graphData = await fetchComponentVersion(params.component_version_id)
         .then((data) => {
-            return JSON.parse(data['node_definitions']);
+            return JSON.parse(data["node_definitions"]);
         })
         .catch((error) => {
             console.error(error);
-            return null
+            return null;
         });
     // TODO: temporary fix to add input node (ComponentDefinition doesn't have
     // an internally inserted input node).

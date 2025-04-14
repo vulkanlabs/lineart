@@ -7,13 +7,12 @@ import { BacktestMetrics, BacktestPlotData } from "./types";
 
 export default async function Page(props) {
     const params = await props.params;
-    const user = await stackServerApp.getUser();
-    const backtest = await fetchBacktest(user, params.backtest_id).catch((error) => {
+    const backtest = await fetchBacktest(params.backtest_id).catch((error) => {
         console.error(error);
         return null;
     });
 
-    const backtestStatus = await fetchBacktestStatus(user, params.backtest_id).catch((error) => {
+    const backtestStatus = await fetchBacktestStatus(params.backtest_id).catch((error) => {
         console.error(error);
         return null;
     });
@@ -40,11 +39,10 @@ async function getPlotData(
     availability: BacktestMetrics,
 ): Promise<Record<string, any>> {
     const plotData: BacktestPlotData = {};
-    const user = await stackServerApp.getUser();
     const backtestId = backtest.backtest_id;
 
     if (availability.distributionPerOutcome) {
-        const data = await fetchBacktestMetrics(user, backtestId, false).catch((error) => {
+        const data = await fetchBacktestMetrics(backtestId, false).catch((error) => {
             console.error(error);
             return null;
         });
@@ -54,7 +52,7 @@ async function getPlotData(
     }
 
     if (availability.targetMetrics) {
-        const data = await fetchBacktestMetrics(user, backtestId, true).catch((error) => {
+        const data = await fetchBacktestMetrics(backtestId, true).catch((error) => {
             console.error(error);
             return null;
         });
@@ -64,7 +62,7 @@ async function getPlotData(
     }
 
     if (availability.eventRate) {
-        const data = await fetchBacktestMetrics(user, backtestId, true, true).catch((error) => {
+        const data = await fetchBacktestMetrics(backtestId, true, true).catch((error) => {
             console.error(error);
             return null;
         });

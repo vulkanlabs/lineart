@@ -264,13 +264,13 @@ function AppDropdownMenu({
 }
 
 export default function WorkflowFrame({ policyVersion }: { policyVersion: PolicyVersion }) {
-    // Create a proper initial state by validating the incoming spec
     const initialState: WorkflowState = useMemo(() => {
         // If no spec and input schema are defined, return default state: new version
         if (!policyVersion.spec && !policyVersion.input_schema) {
             return defaultWorkflowState;
         }
 
+        // Create a proper initial state by validating the incoming spec
         const nodes = policyVersion.spec.nodes || [];
         const edges = makeEdgesFromDependencies(nodes);
 
@@ -278,7 +278,7 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
         const inputNode = makeInputNode(policyVersion.input_schema, uiMetadata["input_node"]);
 
         // Map server nodes to ReactFlow node format
-        const flowNodes = nodes.map((node) => {
+        const flowNodes: VulkanNode[] = nodes.map((node) => {
             const nodeUIMetadata = uiMetadata ? uiMetadata[node.name] : null;
             const position: XYPosition = nodeUIMetadata.position;
             const height = nodeUIMetadata?.height;
@@ -343,13 +343,13 @@ function makeInputNode(inputSchema: { [key: string]: string }, inputNodeUIMetada
     return inputNode;
 }
 
-// Always start with the input node
 const defaultInputNode = createNodeByType({
     type: "INPUT",
     position: { x: 200, y: 200 },
     existingNodes: [],
 });
 
+// Always start with the input node
 const defaultWorkflowState: WorkflowState = {
     nodes: [defaultInputNode],
     edges: [],

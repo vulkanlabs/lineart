@@ -60,6 +60,7 @@ export type BranchNodeMetadata = {
     func?: string | null;
     choices: string[];
 };
+
 export type NodeMetadata = TerminateNodeMetadata | TransformNodeMetadata | BranchNodeMetadata | InputNodeMetadata;
 export type NodeDefinition = GenericNodeDefinition<NodeMetadata>;
 

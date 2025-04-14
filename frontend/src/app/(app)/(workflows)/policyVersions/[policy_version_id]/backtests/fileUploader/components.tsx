@@ -26,14 +26,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { AuthHeaders } from "@/lib/auth";
 
 export function FileUploaderPage({
-    authHeaders,
     uploadFn,
     policyVersionId,
 }: {
-    authHeaders: AuthHeaders;
     uploadFn: any;
     policyVersionId: string;
 }) {
@@ -54,7 +51,6 @@ export function FileUploaderPage({
                     setFileId={setFileId}
                     setError={setError}
                     uploadFn={uploadFn}
-                    headers={authHeaders}
                 />
             </div>
             {fileId && <FileUploadedCard fileId={fileId} policyVersionId={policyVersionId} />}
@@ -69,7 +65,7 @@ const formSchema = z.object({
     schema: z.string().refine(ensureJSON, { message: "Not a valid JSON object" }),
 });
 
-function FileUploader({ policyVersionId, setFileId, setError, uploadFn, headers }) {
+function FileUploader({ policyVersionId, setFileId, setError, uploadFn }) {
     const [submitting, setSubmitting] = useState(false);
 
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
@@ -90,7 +86,7 @@ function FileUploader({ policyVersionId, setFileId, setError, uploadFn, headers 
         setError(null);
         setFileId(null);
 
-        uploadFn({ uploadUrl, body, headers })
+        uploadFn({ uploadUrl, body })
             .then((data) => {
                 setError(null);
                 setFileId(data.uploaded_file_id);

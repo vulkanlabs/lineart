@@ -1,14 +1,10 @@
 import { FileUploaderPage } from "./components";
-import { stackServerApp } from "@/stack";
 import { getAuthHeaders } from "@/lib/auth";
 
 export default async function Page(props) {
     const params = await props.params;
-    const user = await stackServerApp.getUser();
-    const authHeaders = await getAuthHeaders(user);
     return (
         <FileUploaderPage
-            authHeaders={authHeaders}
             uploadFn={uploadFileFormAction}
             policyVersionId={params.policy_version_id}
         />

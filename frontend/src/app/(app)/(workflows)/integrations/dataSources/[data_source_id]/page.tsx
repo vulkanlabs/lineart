@@ -1,5 +1,3 @@
-import { stackServerApp } from "@/stack";
-
 import { fetchDataSource } from "@/lib/api";
 import { DataSource } from "../types";
 import { ColumnDef } from "@tanstack/react-table";
@@ -8,13 +6,10 @@ import { DataTable } from "@/components/data-table";
 
 export default async function Page(props) {
     const params = await props.params;
-    const user = await stackServerApp.getUser();
-    const dataSource: DataSource = await fetchDataSource(user, params.data_source_id).catch(
-        (error) => {
-            console.error(error);
-            return [];
-        },
-    );
+    const dataSource: DataSource = await fetchDataSource(params.data_source_id).catch((error) => {
+        console.error(error);
+        return [];
+    });
     return (
         <div className="m-10 flex flex-col gap-6">
             <div className="flex flex-row gap-4">
@@ -63,9 +58,12 @@ export default async function Page(props) {
             </div>
             <div className="flex flex-row gap-4">
                 <h1 className="font-semibold text-stone-700">Status Forcelist:</h1>
-                <p>{dataSource.retry?.status_forcelist ? dataSource.retry.status_forcelist.join(", ") : "null"}</p>
+                <p>
+                    {dataSource.retry?.status_forcelist
+                        ? dataSource.retry.status_forcelist.join(", ")
+                        : "null"}
+                </p>
             </div>
-
         </div>
     );
 }
@@ -86,4 +84,3 @@ const paramsTableColumns: ColumnDef<ConfigurationVariablesBase>[] = [
 function ParamsTable({ params }) {
     return <DataTable columns={paramsTableColumns} data={params} />;
 }
-

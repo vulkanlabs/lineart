@@ -334,13 +334,16 @@ def list_config_variables(
         raise HTTPException(status_code=404, detail=msg)
 
     required_variables = version.variables
+    if required_variables is None:
+        return Response(status_code=204)
+
     variables = (
         db.query(ConfigurationValue)
         .filter_by(policy_version_id=policy_version_id)
         .all()
     )
-
     variable_map = {v.name: v for v in variables}
+
     result = []
     for variable_name in required_variables:
         entry = {"name": variable_name}

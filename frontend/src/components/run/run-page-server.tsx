@@ -1,5 +1,3 @@
-import { CurrentUser } from "@stackframe/stack";
-
 import { fetchPolicyVersion, fetchRun, fetchRunsData, fetchRunLogs } from "@/lib/api";
 
 import RunPageContent from "@/components/run/run-page-content";
@@ -9,12 +7,12 @@ import { makeGraphElements } from "@/lib/workflow/graph";
 import type { RunNodeLayout } from "@/components/run/types";
 import { defaultElkOptions } from "@/components/run/options";
 
-export async function RunPage({ user, runId }: { user: CurrentUser; runId: string }) {
-    const runLogs = await fetchRunLogs(user, runId)
-    const runData = await fetchRunsData(user, runId)
-    const run = await fetchRun(user, runId)
+export async function RunPage({ runId }: { runId: string }) {
+    const runLogs = await fetchRunLogs(runId);
+    const runData = await fetchRunsData(runId);
+    const run = await fetchRun(runId);
 
-    const graphDefinition = await getGraphDefinition(user, run['policy_version_id']);
+    const graphDefinition = await getGraphDefinition(run["policy_version_id"]);
     const [nodes, edges] = makeGraphElements(graphDefinition, defaultElkOptions);
     const flatNodes = nodes.reduce((acc: NodeLayoutConfig[], node) => {
         if (node.data.type === "COMPONENT") {
@@ -38,11 +36,8 @@ export async function RunPage({ user, runId }: { user: CurrentUser; runId: strin
     return <RunPageContent nodes={runNodes} edges={edges} runLogs={runLogs} runData={runData} />;
 }
 
-async function getGraphDefinition(
-    user: CurrentUser,
-    policyVersionId: string,
-): Promise<GraphDefinition> {
-    const policyVersion = await fetchPolicyVersion(user, policyVersionId).catch((e) => {
+async function getGraphDefinition(policyVersionId: string): Promise<GraphDefinition> {
+    const policyVersion = await fetchPolicyVersion(policyVersionId).catch((e) => {
         console.error(`Failed to fetch policy version: ${e}`);
         return null;
     });
