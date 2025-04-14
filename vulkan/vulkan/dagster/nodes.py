@@ -9,6 +9,7 @@ from dagster import In, OpDefinition, OpExecutionContext, Out, Output
 from vulkan_public.constants import POLICY_CONFIG_KEY
 from vulkan_public.core.context import VulkanExecutionContext
 from vulkan_public.exceptions import UserCodeException
+from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes import (
     BranchNode,
     DataInputNode,
@@ -41,13 +42,13 @@ class DagsterDataInput(DataInputNode, DagsterNode):
     def __init__(
         self,
         name: str,
-        source: str,
+        data_source: str,
         description: str | None = None,
         dependencies: dict | None = None,
     ):
         super().__init__(
             name=name,
-            source=source,
+            data_source=data_source,
             description=description,
             dependencies=dependencies,
         )
@@ -73,12 +74,12 @@ class DagsterDataInput(DataInputNode, DagsterNode):
         context.log.debug(f"Body: {body}")
 
         response = client.get_data(
-            source=self.source, body=body, variables=env.variables
+            data_source=self.data_source, body=body, variables=env.variables
         )
         context.log.debug(f"Response: {response}")
 
         error = None
-        extra = dict(data_source=self.source, status_code=response.status_code)
+        extra = dict(data_source=self.data_source, status_code=response.status_code)
 
         try:
             response.raise_for_status()
@@ -111,10 +112,10 @@ class DagsterDataInput(DataInputNode, DagsterNode):
     @classmethod
     def from_spec(cls, node: DataInputNode):
         return cls(
-            name=node.name,
-            source=node.source,
+            name=_format_dagster_name(node.name),
+            data_source=node.data_source,
             description=node.description,
-            dependencies=node.dependencies,
+            dependencies=_format_dagster_dependencies(node.dependencies),
         )
 
 
@@ -173,15 +174,13 @@ class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
         self,
         name: str,
         description: str,
-        user_func: Callable | None,
-        source_code: str | None,
+        func: Callable,
         dependencies: dict[str, Any],
     ):
         super().__init__(
             name=name,
             description=description,
-            func=user_func,
-            source_code=source_code,
+            func=func,
             dependencies=dependencies,
         )
         self._func = _with_vulkan_context(self.func)
@@ -189,11 +188,10 @@ class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
     @classmethod
     def from_spec(cls, node: TransformNode):
         return cls(
-            name=node.name,
+            name=_format_dagster_name(node.name),
             description=node.description,
-            user_func=node.user_func,
-            source_code=node.source_code,
-            dependencies=node.dependencies,
+            func=node.func,
+            dependencies=_format_dagster_dependencies(node.dependencies),
         )
 
 
@@ -265,10 +263,10 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
     @classmethod
     def from_spec(cls, node: TerminateNode):
         return cls(
-            name=node.name,
+            name=_format_dagster_name(node.name),
             description=node.description,
             return_status=node.return_status,
-            dependencies=node.dependencies,
+            dependencies=_format_dagster_dependencies(node.dependencies),
             callback=node.callback,
         )
 
@@ -278,16 +276,14 @@ class DagsterBranch(BranchNode, DagsterNode):
         self,
         name: str,
         description: str,
-        user_func: Callable | None,
-        source_code: str | None,
+        func: Callable,
         choices: list[str],
         dependencies: dict[str, Any],
     ):
         super().__init__(
             name=name,
             description=description,
-            func=user_func,
-            source_code=source_code,
+            func=func,
             choices=choices,
             dependencies=dependencies,
         )
@@ -331,12 +327,11 @@ class DagsterBranch(BranchNode, DagsterNode):
     @classmethod
     def from_spec(cls, node: BranchNode):
         return cls(
-            name=node.name,
+            name=_format_dagster_name(node.name),
             description=node.description,
-            user_func=node.user_func,
-            source_code=node.source_code,
+            func=node.func,
             choices=node.choices,
-            dependencies=node.dependencies,
+            dependencies=_format_dagster_dependencies(node.dependencies),
         )
 
 
@@ -388,6 +383,18 @@ def to_dagster_node(node: Node) -> DagsterNode:
         raise ValueError(msg)
 
     return impl_type.from_spec(node)
+
+
+def _format_dagster_dependencies(
+    dependencies: dict[str, Dependency],
+) -> dict[str, Dependency]:
+    return {k: _format_dagster_dependency(v) for k, v in dependencies.items()}
+
+
+def _format_dagster_dependency(dependency: Dependency) -> Dependency:
+    args = dependency.to_dict()
+    args["node"] = _format_dagster_name(dependency.node)
+    return Dependency.from_dict(args)
 
 
 def _format_dagster_name(name: str) -> str:

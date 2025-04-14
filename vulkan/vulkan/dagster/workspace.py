@@ -54,10 +54,7 @@ def make_workspace_definition(spec_file_path: str) -> Definitions:
     # From here, each implementation should handle transforming core to its own
     # needs, ie. Core -> Dagster
     # -> Transform nodes in dagster nodes
-    dagster_flow = DagsterFlow(
-        nodes=resolved_policy.nodes,
-        dependencies=resolved_policy.edges,
-    )
+    dagster_flow = DagsterFlow(nodes=resolved_policy.nodes)
     # By definition, Vulkan dagster worskpaces have a single job.
     jobs = [dagster_flow.to_job(resources)]
     definition = Definitions(
