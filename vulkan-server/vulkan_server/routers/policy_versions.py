@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from vulkan_public.exceptions import DataSourceNotFoundException
+from vulkan_public.spec.nodes.base import NodeType
 
 from vulkan_server import definitions, schemas
 from vulkan_server.dagster.client import get_dagster_client
@@ -45,9 +46,6 @@ def create_policy_version(
     config: schemas.PolicyVersionCreate,
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
-    # resolution_service: ResolutionServiceClient = Depends(
-    #     get_resolution_service_client
-    # ),
     dagster_service_client: VulkanDagsterServiceClient = Depends(
         get_dagster_service_client
     ),
@@ -64,7 +62,7 @@ def create_policy_version(
     version = PolicyVersion(
         policy_id=config.policy_id,
         alias=config.alias,
-        spec=config.spec,
+        spec=config.spec.model_dump(),
         requirements=config.requirements,
         input_schema=config.input_schema,
         status=PolicyVersionStatus.INVALID,
@@ -72,12 +70,29 @@ def create_policy_version(
     db.add(version)
     db.commit()
 
+    data_sources = [
+        node.metadata.data_source
+        for node in config.spec.nodes
+        if node.node_type == NodeType.DATA_INPUT.value
+    ]
+    if data_sources:
+        try:
+            _add_data_source_dependencies(db, version, data_sources)
+        except DataSourceNotFoundException as e:
+            err = "Failed to add data source dependencies"
+            logger.system.error(
+                f"{err} ({version.policy_version_id}): {e}", exc_info=True
+            )
+            msg = f"{err}. Policy Version ID: {version.policy_version_id}"
+            raise HTTPException(status_code=500, detail={"msg": msg}) from e
+
     try:
         dagster_service_client.update_workspace(
             workspace_id=version.policy_version_id,
-            spec=config.spec,
+            spec=config.spec.model_dump(),
             requirements=config.requirements,
         )
+        dagster_service_client.ensure_workspace_added(str(version.policy_version_id))
         version.status = PolicyVersionStatus.VALID
     except Exception as e:
         logger.system.error(
@@ -120,9 +135,6 @@ def update_policy_version(
     config: schemas.PolicyVersionBase,
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
-    # resolution_service: ResolutionServiceClient = Depends(
-    #     get_resolution_service_client
-    # ),
     dagster_service_client: VulkanDagsterServiceClient = Depends(
         get_dagster_service_client
     ),
@@ -186,7 +198,6 @@ def _add_data_source_dependencies(
         db.query(DataSource)
         .filter(
             DataSource.name.in_(data_sources),
-            DataSource.project_id == version.project_id,
             DataSource.archived.is_(False),
         )
         .all()
@@ -240,19 +251,6 @@ def _create_policy_version_workspace(
         workspace_path=response_data["workspace_path"],
     )
     return version_settings
-
-
-@router.get("/{policy_version_id}", response_model=schemas.PolicyVersion)
-def get_policy_version(
-    policy_version_id: str,
-    db: Session = Depends(get_db),
-):
-    policy_version = (
-        db.query(PolicyVersion).filter_by(policy_version_id=policy_version_id).first()
-    )
-    if policy_version is None:
-        return Response(status_code=204)
-    return policy_version
 
 
 @router.delete("/{policy_version_id}")

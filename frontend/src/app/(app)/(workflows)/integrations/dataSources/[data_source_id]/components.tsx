@@ -261,7 +261,7 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
                                         <div>
                                             <p className="text-sm font-medium">Timeout</p>
                                             <p className="text-sm text-muted-foreground">
-                                                {dataSource.source.timeout}ms
+                                                {dataSource.source.timeout}s
                                             </p>
                                         </div>
                                     )}
@@ -337,7 +337,7 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
                                                 Backoff Factor
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                {dataSource.source.retry.backoff_factor}ms
+                                                {dataSource.source.retry.backoff_factor}
                                             </p>
                                         </div>
                                         <div>

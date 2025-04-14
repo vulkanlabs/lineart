@@ -37,11 +37,12 @@ class DataBroker:
                 )
 
         logger.debug(
-            f"Request: body {request_body}\n headers {self.spec.request.headers} \n"
-            f"url {self.spec.request.url}"
+            f"Request: body {request_body}\n headers {self.spec.source.headers} \n"
+            f"url {self.spec.source.url}"
         )
-        req = make_request(self.spec, request_body, variables)
-        response = requests.Session().send(req, timeout=self.spec.request.timeout)
+        # TODO: validate request_body is compatible with spec.source.body_schema
+        req = make_request(self.spec.source, request_body, variables)
+        response = requests.Session().send(req, timeout=self.spec.source.timeout)
         response.raise_for_status()
 
         if response.status_code == 200:

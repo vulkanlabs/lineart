@@ -8,7 +8,6 @@ from vulkan_public.schemas import DataSourceSpec, PolicyAllocationStrategy
 from vulkan_public.spec.policy import PolicyDefinitionDict
 
 from vulkan.core.run import JobStatus, RunStatus
-from vulkan_server.db import DataSource
 
 
 class Project(BaseModel):
@@ -123,8 +122,8 @@ class ComponentVersionDependencyExpanded(BaseModel):
 class PolicyVersionBase(BaseModel):
     alias: str | None
     spec: PolicyDefinitionDict
-    requirements: list[str]
-    input_schema: dict[str, str]
+    input_schema: dict[str, str] | None = None
+    requirements: list[str] | None = None
 
 
 class PolicyVersionCreate(PolicyVersionBase):
@@ -237,7 +236,7 @@ class DataSource(DataSourceSpec):
     last_updated_at: datetime
 
     @classmethod
-    def from_orm(cls, data: DataSource) -> "DataSource":
+    def from_orm(cls, data) -> "DataSource":
         spec = data.to_spec()
         return cls(
             data_source_id=data.data_source_id,
@@ -279,6 +278,7 @@ class DataBrokerRequest(BaseModel):
     data_source_name: str
     request_body: dict[str, Any]
     variables: dict[str, str | None]
+    run_id: str
 
 
 class DataBrokerResponse(BaseModel):

@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
-from typing import Any, Callable, TypedDict
+from typing import Any, Callable
+
+from pydantic import BaseModel
 
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
 from vulkan_public.spec.graph import GraphDefinition
@@ -19,12 +21,12 @@ from vulkan_public.spec.nodes.base import (
 from vulkan_public.spec.nodes.metadata import PolicyNodeMetadata
 
 
-class PolicyDefinitionDict(TypedDict):
+class PolicyDefinitionDict(BaseModel):
     """Dict representation of a PolicyDefinition object."""
 
     nodes: list[NodeDefinitionDict]
     input_schema: dict[str, str]
-    output_callable: Any | None = None
+    output_callback: Any | None = None
     config_variables: list[str] | None = None
 
 
@@ -71,7 +73,7 @@ class PolicyDefinition(GraphDefinition):
     """
 
     nodes: list[Node]
-    input_schema: dict[str, type]
+    input_schema: dict[str, str]
     output_callback: Callable | None = None
     config_variables: list[str] = field(default_factory=list)
 

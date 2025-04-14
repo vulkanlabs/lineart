@@ -6,7 +6,7 @@ from requests import Request, Session
 
 from vulkan_server import definitions
 from vulkan_server.dagster.client import get_dagster_client
-from vulkan_server.dagster.trigger_run import _update_repository
+from vulkan_server.dagster.trigger_run import update_repository
 from vulkan_server.exceptions import raise_interservice_error
 from vulkan_server.logger import init_logger
 
@@ -83,20 +83,20 @@ class VulkanDagsterServiceClient:
 
         return response
 
-    def ensure_workspace_added(self, version_name: str) -> None:
-        loaded_repos = _update_repository(self.dagster_client)
-        if loaded_repos.get(version_name, False) is False:
+    def ensure_workspace_added(self, workspace_id: str) -> None:
+        loaded_repos = update_repository(self.dagster_client)
+        if loaded_repos.get(workspace_id, False) is False:
             msg = (
-                f"Failed to load repository {version_name}.\n"
+                f"Failed to load repository {workspace_id}.\n"
                 f"Repository load status: {loaded_repos}"
             )
             raise ValueError(msg)
 
-    def ensure_workspace_removed(self, version_name: str) -> None:
-        loaded_repos = _update_repository(self.dagster_client)
-        if loaded_repos.get(version_name, None) is not None:
+    def ensure_workspace_removed(self, workspace_id: str) -> None:
+        loaded_repos = update_repository(self.dagster_client)
+        if loaded_repos.get(workspace_id, None) is not None:
             msg = (
-                f"Failed to remove repository {version_name}.\n"
+                f"Failed to remove repository {workspace_id}.\n"
                 f"Repository load status: {loaded_repos}"
             )
             raise ValueError(msg)

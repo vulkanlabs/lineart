@@ -39,16 +39,16 @@ class GraphDefinition:
         self._valid = valid
         self._errors = errors
 
-        self._node_definitions = {n.id: n.node_definition() for n in self.nodes}
+        # self._node_definitions = {n.id: n.node_definition() for n in self.nodes}
         self._dependency_definitions = {n.id: n.dependencies for n in self.nodes}
 
     @property
     def edges(self) -> GraphEdges:
         return self._dependency_definitions
 
-    @property
-    def node_definitions(self) -> dict[str, NodeDefinition]:
-        return self._node_definitions
+    # @property
+    # def node_definitions(self) -> dict[str, NodeDefinition]:
+    #     return self._node_definitions
 
     @property
     def valid(self) -> bool:

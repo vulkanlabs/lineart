@@ -13,7 +13,7 @@ def list_data_sources(ctx: Context, include_archived: bool = False) -> list[dict
     return response.json()
 
 
-def create_data_source(ctx: Context, config: dict) -> str:
+def create_data_source(ctx: Context, config: DataSourceSpec | dict) -> str:
     data_source = DataSourceSpec.model_validate(config)
 
     response = ctx.session.post(

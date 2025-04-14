@@ -23,7 +23,11 @@ from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.dagster.io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
 from vulkan.dagster.resources import DATA_CLIENT_KEY, VulkanDataClient
-from vulkan.dagster.run_config import RUN_CONFIG_KEY, VulkanPolicyConfig
+from vulkan.dagster.run_config import (
+    RUN_CONFIG_KEY,
+    VulkanPolicyConfig,
+    VulkanRunConfig,
+)
 
 
 # TODO: we should review how to require users to define the possible return
@@ -62,19 +66,23 @@ class DagsterDataInput(DataInputNode, DagsterNode):
                 "result": Out(),
                 METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
             },
-            required_resource_keys={POLICY_CONFIG_KEY, DATA_CLIENT_KEY},
+            required_resource_keys={DATA_CLIENT_KEY, POLICY_CONFIG_KEY, RUN_CONFIG_KEY},
         )
 
     def run(self, context, inputs):
         start_time = time.time()
         client: VulkanDataClient = getattr(context.resources, DATA_CLIENT_KEY)
         env: VulkanPolicyConfig = getattr(context.resources, POLICY_CONFIG_KEY)
+        run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
 
         body = inputs.get("body", None)
         context.log.debug(f"Body: {body}")
 
         response = client.get_data(
-            data_source=self.data_source, body=body, variables=env.variables
+            data_source=self.data_source,
+            body=body,
+            variables=env.variables,
+            run_id=run_config.run_id,
         )
         context.log.debug(f"Response: {response}")
 

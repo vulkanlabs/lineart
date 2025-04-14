@@ -2,7 +2,9 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any
+
+from pydantic import BaseModel
 
 from vulkan_public.spec.dependency import Dependency, DependencyDict
 from vulkan_public.spec.nodes.metadata import (
@@ -25,7 +27,7 @@ class NodeType(Enum):
     POLICY = "POLICY"
 
 
-class NodeDefinitionDict(TypedDict):
+class NodeDefinitionDict(BaseModel):
     """Dict representation of a NodeDefinition object."""
 
     name: str
