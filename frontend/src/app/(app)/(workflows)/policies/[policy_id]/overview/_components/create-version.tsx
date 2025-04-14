@@ -66,11 +66,11 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
         try {
             await createPolicyVersion(user, { ...requestData });
             setOpen(false);
-            form.reset();
             toast("Policy Version Created", {
                 description: `Policy Version ${data.alias} has been created.`,
                 dismissible: true,
             });
+            form.reset();
             router.refresh();
         } catch (error) {
             console.error(error);

@@ -59,6 +59,7 @@ def create_policy_version(
         logger.system.error(msg)
         raise HTTPException(status_code=404, detail=msg)
 
+    spec = convert_pydantic_to_dict(config.spec)
     version = PolicyVersion(
         policy_id=config.policy_id,
         alias=config.alias,
@@ -154,12 +155,14 @@ def update_policy_version(
 
     extra = {"policy_version_id": policy_version_id, "spec": spec}
     logger.system.debug("Updating policy version", extra={"extra": extra})
+    # TODO: any simpler way to do this?
     # Update the policy version with the new spec and requirements
     version.alias = config.alias
     version.input_schema = config.input_schema
     version.spec = spec
     version.requirements = config.requirements
     version.status = PolicyVersionStatus.INVALID
+    version.ui_metadata = convert_pydantic_to_dict(config.ui_metadata)
     db.commit()
 
     # Update the workspace with the new spec and requirements
@@ -227,30 +230,6 @@ class PolicyVersionSettings:
     image_path: str
     config_variables: list[str] | None = None
     data_sources: list[str] | None = None
-
-
-def _create_policy_version_workspace(
-    resolution: ResolutionServiceClient,
-    name: str,
-    repository: str,
-) -> PolicyVersionSettings:
-    try:
-        response = resolution.create_workspace(workspace_id=name, repository=repository)
-        response_data = response.json()
-    except Exception as e:
-        raise e
-
-    definition_settings = response_data["policy_definition_settings"]
-
-    version_settings = PolicyVersionSettings(
-        module_name=response_data["module_name"],
-        input_schema=response_data["input_schema"],
-        graph_definition=response_data["graph_definition"],
-        data_sources=response_data.get("data_sources", []),
-        config_variables=definition_settings.get("config_variables", []),
-        workspace_path=response_data["workspace_path"],
-    )
-    return version_settings
 
 
 @router.delete("/{policy_version_id}")

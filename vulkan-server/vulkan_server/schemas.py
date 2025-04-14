@@ -119,11 +119,23 @@ class ComponentVersionDependencyExpanded(BaseModel):
     policy_version_alias: str
 
 
+class UINodePosition(BaseModel):
+    x: float
+    y: float
+
+
+class UIMetadata(BaseModel):
+    position: UINodePosition
+    width: float
+    height: float
+
+
 class PolicyVersionBase(BaseModel):
     alias: str | None
     spec: PolicyDefinitionDict
     input_schema: dict[str, str] | None = None
     requirements: list[str] | None = None
+    ui_metadata: dict[str, UIMetadata] | None = None
 
 
 class PolicyVersionCreate(PolicyVersionBase):
@@ -141,7 +153,7 @@ class PolicyVersion(BaseModel):
     variables: list[str] | None = None
     created_at: datetime
     last_updated_at: datetime
-    # graph_definition: str
+    ui_metadata: dict[str, UIMetadata] | None = None
 
     class Config:
         from_attributes = True

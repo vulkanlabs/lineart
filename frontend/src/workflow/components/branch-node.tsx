@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { SquareX } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
-import {Position, type NodeChange } from "@xyflow/react";
+import { Position, type NodeChange } from "@xyflow/react";
 import Editor from "@monaco-editor/react";
 
 import { Input } from "@/components/ui/input";
@@ -32,14 +32,6 @@ export function BranchNode({ id, data, selected, height, width }) {
         (choices: string[]) => {
             const metadata = { ...data.metadata, choices: choices };
             updateNodeData(id, { ...data, metadata });
-        },
-        [id, data, updateNodeData],
-    );
-
-    const updateMetadata = useCallback(
-        (metadata: any) => {
-            const newMetadata = { ...data.metadata, ...metadata };
-            updateNodeData(id, { ...data, metadata: newMetadata });
         },
         [id, data, updateNodeData],
     );
@@ -77,7 +69,7 @@ export function BranchNode({ id, data, selected, height, width }) {
 
             updateNodeData(id, { ...data, metadata, minHeight: newHeight });
 
-            // remove the edge whose source was deleted
+            // TODO: remove the edge whose source was deleted
 
             onNodesChange([
                 {
@@ -105,7 +97,6 @@ export function BranchNode({ id, data, selected, height, width }) {
             isOutput
         >
             <div className="h-full flex flex-col gap-1 space-y-2 m-3">
-                <span>Source code:</span>
                 <div className="h-full rounded-md overflow-hidden">
                     <Editor
                         // width={width}
@@ -113,8 +104,13 @@ export function BranchNode({ id, data, selected, height, width }) {
                         language="python"
                         value={data.metadata?.source_code || ""}
                         theme="vs-dark"
-                        defaultValue="// some comment"
+                        defaultValue="# some comment"
                         onChange={setSourceCode}
+                        options={{
+                            minimap: {
+                                enabled: false,
+                            },
+                        }}
                     />
                 </div>
                 <span>Outputs:</span>

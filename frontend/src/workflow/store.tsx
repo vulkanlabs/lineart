@@ -20,10 +20,12 @@ import {
     GraphDefinition,
     BranchNodeMetadata,
     WorkflowState,
+    InputNodeMetadata,
 } from "./types";
 
 type WorkflowActions = {
     getSpec: () => GraphDefinition;
+    getInputSchema: () => { [key: string]: string };
     onNodesChange: OnNodesChange<VulkanNode>;
     setNodes: (nodes: VulkanNode[]) => void;
     addNode: (node: VulkanNode) => void;
@@ -45,18 +47,28 @@ const createWorkflowStore = (initProps: WorkflowState) => {
     return createStore<WorkflowStore>()((set, get) => ({
         ...initProps,
 
+        getInputSchema: () => {
+            const nodes = get().nodes;
+
+            for (const node of nodes) {
+                if (node.type === "INPUT") {
+                    const data = node.data.metadata as InputNodeMetadata;
+                    return data.schema;
+                }
+            }
+            throw new Error("No input node found");
+        },
+
         getSpec: () => {
             const nodes = get().nodes || [];
             const edges = get().edges || [];
 
-            console.log("nodes", nodes);
             const spec: GraphDefinition = {};
 
             nodes.forEach((node) => {
                 spec[node.id] = {
                     name: node.data.name,
                     node_type: node.type,
-                    // description: node.data.description,
                     metadata: node.data.metadata,
                 };
             });
@@ -116,7 +128,8 @@ const createWorkflowStore = (initProps: WorkflowState) => {
         removeNode: (nodeId) => set({ nodes: get().nodes.filter((node) => node.id !== nodeId) }),
 
         addNodeByType: (type, position) => {
-            const newNode = createNodeByType({ type, position });
+            const existingNodes = get().nodes;
+            const newNode = createNodeByType({ type, position, existingNodes });
 
             if (!newNode) return null;
 

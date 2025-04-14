@@ -134,9 +134,8 @@ class PolicyVersion(TimedUpdateMixin, ArchivableMixin, Base):
     # first, hence the "nullable=True". With regards to the application,
     # `input_schema` and `graph_definition` are actually non-nullable.
     input_schema = Column(JSON, nullable=True)
-    graph_definition = Column(String, nullable=True)
     variables = Column(ARRAY(String), nullable=True)
-    module_name = Column(String, nullable=True)
+    ui_metadata = Column(JSON, nullable=True)
 
     # Base worker image
     base_worker_image = Column(String, nullable=True)

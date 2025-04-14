@@ -33,7 +33,7 @@ class NodeDefinitionDict(BaseModel):
     name: str
     node_type: str
     dependencies: dict[str, DependencyDict] | None = None
-    metadata: NodeMetadata | None = None
+    metadata: dict | None = None
     description: str | None = None
     hierarchy: list[str] | None = None
 

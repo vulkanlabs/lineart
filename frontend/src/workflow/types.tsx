@@ -50,6 +50,9 @@ export type BranchNodeMetadata = {
 export type DataInputNodeMetadata = {
     data_source: string;
 };
+export type InputNodeMetadata = {
+    schema: { [key: string]: string };
+}
 
 export type TerminateNodeMetadata = {
     return_status: string;
