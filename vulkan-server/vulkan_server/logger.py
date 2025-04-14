@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from vulkan_server.db import LogRecord, get_db
+from vulkan_server.events import VulkanEvent
 
 SYS_LOGGER_NAME = "vulkan"
 USER_LOGGER_NAME = f"{SYS_LOGGER_NAME}.user"
@@ -19,7 +20,7 @@ GCP_LOGGER_NAME = "vulkan-server"
 
 
 class EventMessage(BaseModel):
-    event: str
+    event: VulkanEvent
     metadata: dict
 
 
@@ -28,7 +29,7 @@ class VulkanLogger:
         self.system = get_system_logger()
         self.user = get_user_logger(db)
 
-    def event(self, event_name: str, **kwargs):
+    def event(self, event_name: VulkanEvent, **kwargs):
         message = EventMessage(event=event_name, metadata=kwargs)
         self.user.info(
             message.model_dump_json(),

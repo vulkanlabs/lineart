@@ -28,6 +28,15 @@ make pull-config
 make config
 ```
 
+#### Pre-Commit
+
+Pre-commit hooks are already configured in the repo.
+Activate them by running
+
+```bash
+uv run pre-commit install
+```
+
 ### Frontend
 
 1. npm: We use npm as our TS package manager. We recommend installing [`nvm`](https://github.com/nvm-sh/nvm?tab=readme-ov-file#installing-and-updating) and using it to install Node >= 22 and npm version >=10

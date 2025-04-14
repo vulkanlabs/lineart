@@ -1,38 +1,44 @@
 "use server";
 
 import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
-import { NodeDefinition, NodeMetadata, NodeDependency } from "./types";
+import { NodeDefinition, NodeDependency } from "./types";
 import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
-import { Metadata } from "@vulkan-server/Metadata";
 import { DependencyDict } from "@vulkan-server/DependencyDict";
+import { UIMetadata } from "@vulkan-server/UIMetadata";
+import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 
-export async function saveWorkflowSpec(policyVersionId: string, nodes: NodeDefinition[]) {
-    if (!policyVersionId) {
+export async function saveWorkflowSpec(
+    policyVersion: PolicyVersion,
+    nodes: NodeDefinition[],
+    uiMetadata: { [key: string]: UIMetadata },
+    inputSchema: { [key: string]: string },
+): Promise<{ success: boolean; error: string | null; data: any }> {
+    if (!policyVersion || !policyVersion.policy_version_id) {
         throw new Error("Policy version ID is required");
     }
     if (!nodes) {
         throw new Error("Workflow spec is required");
     }
+
     const nodeDefs = nodes.map((node) => AsNodeDefinitionDict(node));
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const spec = {
         nodes: nodeDefs,
-        input_schema: {
-            score: "int",
-        },
+        input_schema: inputSchema,
         output_callable: null,
         config_variables: null,
     };
 
-    console.log("Saving workflow spec:", spec);
     const request: PolicyVersionBase = {
-        alias: null,
+        alias: policyVersion.alias,
         spec: spec,
         requirements: [],
-        input_schema: {},
+        input_schema: inputSchema,
+        ui_metadata: uiMetadata,
     };
+    console.log("Input Schema:", JSON.stringify(inputSchema, null, 2));
 
-    return fetch(`${serverUrl}/policy-versions/${policyVersionId}`, {
+    return fetch(`${serverUrl}/policy-versions/${policyVersion.policy_version_id}`, {
         method: "PUT",
         headers: {
             "Content-Type": "application/json",
@@ -42,7 +48,8 @@ export async function saveWorkflowSpec(policyVersionId: string, nodes: NodeDefin
     })
         .then(async (response) => {
             if (!response.ok) {
-                console.error(`Server responded with status: ${response.status}: ${response.body}`);
+                console.error(`Server responded with status: ${response.status}:`, response);
+                console.error("Response body:", JSON.stringify(await response.json()));
                 throw new Error(`Server responded with status: ${response.status}: ${response}`);
             }
 
@@ -62,7 +69,7 @@ function AsNodeDefinitionDict(node: NodeDefinition): NodeDefinitionDict {
         dependencies: Object.fromEntries(
             Object.entries(node.dependencies).map(([key, value]) => [key, AsDependencyDict(value)]),
         ),
-        metadata: AsMetadata(node.metadata),
+        metadata: node.metadata,
         description: node.description || null,
         hierarchy: node.hierarchy || null,
     };
@@ -75,45 +82,4 @@ function AsDependencyDict(dependency: NodeDependency): DependencyDict {
         key: dependency.key || null,
         hierarchy: null,
     };
-}
-
-function AsMetadata(metadata: NodeMetadata | undefined): Metadata | null {
-    if (metadata === null || metadata === undefined) {
-        return null;
-    }
-
-    // Create a base metadata object
-    const baseMetadata: Metadata = {
-        schema: {},
-        choices: [],
-        func: null,
-        source_code: "",
-        function_code: "",
-        return_status: "",
-        data_source: "",
-        policy_definition: null,
-    };
-
-    // Map the specific fields from each node type to the appropriate metadata sections
-    if ("return_status" in metadata) {
-        // Handle TerminateNodeMetadata
-        baseMetadata.return_status = metadata.return_status;
-    }
-
-    if ("source_code" in metadata) {
-        // Handle TransformNodeMetadata and BranchNodeMetadata
-        baseMetadata.source_code = metadata.source_code;
-
-        if (metadata.func) {
-            console.warn("`func` is not supported yet. Setting it to null.");
-            baseMetadata.func = null;
-        }
-
-        // Handle BranchNodeMetadata specific fields
-        if ("choices" in metadata && Array.isArray(metadata.choices)) {
-            baseMetadata.choices = metadata.choices;
-        }
-    }
-
-    return baseMetadata;
 }

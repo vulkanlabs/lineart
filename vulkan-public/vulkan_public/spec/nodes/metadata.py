@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypeAlias
 
 from pydantic import BaseModel
 
@@ -43,7 +43,7 @@ class PolicyNodeMetadata(BaseNodeMetadata):
     policy_definition: dict
 
 
-NodeMetadata = (
+NodeMetadata: TypeAlias = (
     InputNodeMetadata
     | BranchNodeMetadata
     | TransformNodeMetadata

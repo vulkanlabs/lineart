@@ -1,5 +1,4 @@
 import { XYPosition } from "@xyflow/react";
-import { nanoid } from "nanoid";
 
 import { VulkanNodeType, VulkanNode, NodeConfig } from "./types";
 
@@ -15,31 +14,31 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
     },
     CONNECTION: {
         id: "CONNECTION",
-        name: "ConnectionNode",
+        name: "Connection Node",
         icon: "CONNECTION",
     },
     DATA_INPUT: {
         id: "DATA_INPUT",
-        name: "DataSourceNode",
+        name: "Data Input Node",
         icon: "DATA_INPUT",
     },
     TRANSFORM: {
         id: "TRANSFORM",
-        name: "TransformNode",
+        name: "Transform Node",
         width: 400,
         height: 300,
         icon: "TRANSFORM",
     },
     BRANCH: {
         id: "BRANCH",
-        name: "BranchNode",
+        name: "Branch Node",
         width: 500,
         height: 500,
         icon: "BRANCH",
     },
     TERMINATE: {
         id: "TERMINATE",
-        name: "TerminateNode",
+        name: "Terminate Node",
         width: 400,
         height: 200,
         icon: "TERMINATE",
@@ -64,26 +63,59 @@ function initMetadata(type: VulkanNodeType) {
             function_code: "",
             choices: ["", ""],
         };
+    } else if (type === "INPUT") {
+        return {
+            schema: {},
+        };
     }
+
     return {};
 }
 
 export function createNodeByType({
     type,
     position = { x: 0, y: 0 },
+    existingNodes = [],
 }: {
     type: VulkanNodeType;
     position?: XYPosition;
+    existingNodes: VulkanNode[];
 }): VulkanNode {
     const node = nodesConfig[type];
     const width = node.width ?? NODE_SIZE.width;
     const height = node.height ?? NODE_SIZE.height;
     const metadata = initMetadata(type);
 
+    // For INPUT node, use a fixed ID
+    if (type === "INPUT") {
+        return {
+            id: "input_node",
+            data: {
+                name: "input_node",
+                minWidth: width,
+                minHeight: height,
+                icon: node.icon,
+                metadata: metadata,
+            },
+            position: {
+                x: position.x,
+                y: position.y - height * 0.5,
+            },
+            width: width,
+            height: height,
+            type,
+        };
+    }
+
+    // Find all existing nodes of this type and create the new name
+    const sameTypeNodes = existingNodes.filter((n) => n.type === type);
+    const nextNumber = sameTypeNodes.length + 1;
+    const uniqueName = `${node.name} ${nextNumber}`;
+
     const newNode: VulkanNode = {
-        id: nanoid(),
+        id: standardizeNodeName(uniqueName),
         data: {
-            name: node.name,
+            name: uniqueName,
             minWidth: width,
             minHeight: height,
             icon: node.icon,
@@ -99,4 +131,8 @@ export function createNodeByType({
     };
 
     return newNode;
+}
+
+export function standardizeNodeName(name: string): string {
+    return name.replace(/\s+/g, "_").toLowerCase();
 }

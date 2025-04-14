@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from typing import TypedDict
+
+from pydantic import BaseModel
 
 
-class DependencyDict(TypedDict):
+class DependencyDict(BaseModel):
     """Dict representation of a Dependency object."""
 
     node: str
