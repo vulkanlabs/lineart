@@ -270,7 +270,7 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
     // Create a proper initial state by validating the incoming spec
     const initialState: WorkflowState = useMemo(() => {
         // If no spec is given or nodes are empty, return default state
-        if (!policyVersion.spec || !Array.isArray(nodes) || nodes.length === 0) {
+        if (!policyVersion.spec && !policyVersion.input_schema) {
             return defaultState;
         }
 
