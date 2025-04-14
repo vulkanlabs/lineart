@@ -32,10 +32,9 @@ import { WorkflowProvider, useWorkflowStore } from "./store";
 import { SaveIcon } from "lucide-react";
 import { saveWorkflowSpec } from "./actions";
 import { toast } from "sonner";
-import { GraphDefinition, InputNodeMetadata, VulkanNode, WorkflowState } from "./types";
+import { GraphDefinition, VulkanNode, WorkflowState } from "./types";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
-import { custom } from "zod";
 import { UIMetadata } from "@vulkan-server/UIMetadata";
 
 type OnNodeClick = (e: React.MouseEvent, node: any) => void;
@@ -44,10 +43,10 @@ type OnPaneClick = (e: React.MouseEvent) => void;
 type VulkanWorkflowProps = {
     onNodeClick: OnNodeClick;
     onPaneClick: OnPaneClick;
-    policyVersionId?: string;
+    policyVersion?: PolicyVersion;
 };
 
-function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWorkflowProps) {
+function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkflowProps) {
     const {
         nodes,
         edges,
@@ -173,7 +172,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
                             const spec = getSpec();
                             const nodes = getNodes();
                             const inputSchema = getInputSchema();
-                            saveWorkflowState(policyVersionId, nodes, spec, inputSchema);
+                            saveWorkflowState(policyVersion, nodes, spec, inputSchema);
                         }}
                     >
                         <TooltipProvider>
@@ -192,7 +191,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
 }
 
 async function saveWorkflowState(
-    policyVersionId: string,
+    policyVersion: PolicyVersion,
     nodes: VulkanNode[],
     graph: GraphDefinition,
     inputSchema: { [key: string]: string },
@@ -215,7 +214,7 @@ async function saveWorkflowState(
             };
         });
 
-    const result = await saveWorkflowSpec(policyVersionId, graphNodes, uiMetadata, inputSchema);
+    const result = await saveWorkflowSpec(policyVersion, graphNodes, uiMetadata, inputSchema);
 
     if (result.success) {
         toast("Workflow saved ", {
@@ -265,16 +264,15 @@ function AppDropdownMenu({
 }
 
 export default function WorkflowFrame({ policyVersion }: { policyVersion: PolicyVersion }) {
-    const policyVersionId = policyVersion.policy_version_id;
-    const nodes = policyVersion.spec.nodes || [];
-    const edges = makeEdgesFromDependencies(nodes);
-
     // Create a proper initial state by validating the incoming spec
     const initialState: WorkflowState = useMemo(() => {
-        // If no spec is given or nodes are empty, return default state
+        // If no spec and input schema are defined, return default state: new version
         if (!policyVersion.spec && !policyVersion.input_schema) {
             return defaultWorkflowState;
         }
+
+        const nodes = policyVersion.spec.nodes || [];
+        const edges = makeEdgesFromDependencies(nodes);
 
         const uiMetadata = policyVersion.ui_metadata || {};
         const inputNode = makeInputNode(policyVersion.input_schema, uiMetadata["input_node"]);
@@ -313,7 +311,7 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
                 <VulkanWorkflow
                     onNodeClick={(_: any, node: any) => console.log(node)}
                     onPaneClick={() => console.log("pane")}
-                    policyVersionId={policyVersionId}
+                    policyVersion={policyVersion}
                 />
             </WorkflowProvider>
         </ReactFlowProvider>
