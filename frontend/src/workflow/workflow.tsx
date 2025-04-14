@@ -35,6 +35,8 @@ import { toast } from "sonner";
 import { GraphDefinition, InputNodeMetadata, VulkanNode, WorkflowState } from "./types";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
+import { custom } from "zod";
+import { UIMetadata } from "@vulkan-server/UIMetadata";
 
 type OnNodeClick = (e: React.MouseEvent, node: any) => void;
 type OnPaneClick = (e: React.MouseEvent) => void;
@@ -271,28 +273,11 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
     const initialState: WorkflowState = useMemo(() => {
         // If no spec is given or nodes are empty, return default state
         if (!policyVersion.spec && !policyVersion.input_schema) {
-            return defaultState;
+            return defaultWorkflowState;
         }
 
         const uiMetadata = policyVersion.ui_metadata || {};
-
-        // Check if we have a saved input node in the UI metadata
-        const inputNodeMetadata = uiMetadata["input_node"];
-
-        // Create the input node with proper metadata if available
-        let customInputNode = inputNode;
-        if (inputNodeMetadata) {
-            customInputNode = {
-                ...inputNode,
-                position: inputNodeMetadata.position,
-                height: inputNodeMetadata.height,
-                width: inputNodeMetadata.width,
-                data: {
-                    ...inputNode.data,
-                    metadata: { schema: policyVersion.input_schema } as InputNodeMetadata,
-                },
-            };
-        }
+        const inputNode = makeInputNode(policyVersion.input_schema, uiMetadata["input_node"]);
 
         // Map server nodes to ReactFlow node format
         const flowNodes = nodes.map((node) => {
@@ -317,8 +302,7 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
         });
 
         return {
-            // Include the customized input node at the beginning of the nodes array
-            nodes: [customInputNode, ...flowNodes],
+            nodes: [inputNode, ...flowNodes],
             edges: edges,
         };
     }, [policyVersion]);
@@ -336,15 +320,40 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
     );
 }
 
+function makeInputNode(inputSchema: { [key: string]: string }, inputNodeUIMetadata: UIMetadata) {
+    // Create the input node with proper metadata if available
+    let inputNode = defaultInputNode;
+    if (inputNodeUIMetadata) {
+        inputNode = {
+            ...inputNode,
+            position: inputNodeUIMetadata?.position,
+            width: inputNodeUIMetadata?.width,
+        };
+    }
+    if (inputSchema) {
+        inputNode = {
+            ...inputNode,
+            data: {
+                ...inputNode.data,
+                metadata: {
+                    ...inputNode.data.metadata,
+                    schema: inputSchema,
+                },
+            },
+        };
+    }
+    return inputNode;
+}
+
 // Always start with the input node
-const inputNode = createNodeByType({
+const defaultInputNode = createNodeByType({
     type: "INPUT",
     position: { x: 200, y: 200 },
     existingNodes: [],
 });
 
-const defaultState: WorkflowState = {
-    nodes: [inputNode],
+const defaultWorkflowState: WorkflowState = {
+    nodes: [defaultInputNode],
     edges: [],
 };
 
