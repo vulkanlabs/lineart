@@ -1,10 +1,14 @@
 import { Suspense } from "react";
 
-import { fetchPolicyVersionVariables, fetchPolicyVersionDataSources } from "@/lib/api";
+import {
+    fetchPolicyVersionVariables,
+    fetchPolicyVersionDataSources,
+    fetchPolicyVersion,
+} from "@/lib/api";
 
 import Loader from "@/components/animations/loader";
 
-import { ConfigVariablesTable, DataSourcesTable } from "./components";
+import { ConfigVariablesTable, DataSourcesTable, RequirementsEditor } from "./components";
 
 export default async function Page(props: { params: Promise<{ policy_version_id: string }> }) {
     const params = await props.params;
@@ -22,6 +26,13 @@ export default async function Page(props: { params: Promise<{ policy_version_id:
                 <h1 className="mb-5 text-2xl font-bold tracking-tight">Data Sources</h1>
                 <Suspense fallback={<Loader />}>
                     <DataSourcesSection policy_version_id={params.policy_version_id} />
+                </Suspense>
+            </div>
+
+            <div>
+                <h1 className="mb-5 text-2xl font-bold tracking-tight">Python Requirements</h1>
+                <Suspense fallback={<Loader />}>
+                    <RequirementsSection policy_version_id={params.policy_version_id} />
                 </Suspense>
             </div>
         </div>
@@ -44,4 +55,13 @@ async function DataSourcesSection({ policy_version_id }: { policy_version_id: st
     });
 
     return <DataSourcesTable sources={dataSources} />;
+}
+
+async function RequirementsSection({ policy_version_id }: { policy_version_id: string }) {
+    const policyVersion = await fetchPolicyVersion(policy_version_id).catch((error) => {
+        console.error(error);
+        return null;
+    });
+
+    return <RequirementsEditor policyVersion={policyVersion} />;
 }

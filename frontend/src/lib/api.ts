@@ -3,9 +3,11 @@ import { formatISO } from "date-fns";
 import { Run } from "@vulkan-server/Run";
 import { RunData } from "@vulkan-server/RunData";
 import { RunLogs } from "@vulkan-server/RunLogs";
+import { Policy } from "@vulkan-server/Policy";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 import { PolicyBase } from "@vulkan-server/PolicyBase";
 import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
+import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
 
 export async function fetchServerData({ endpoint, label }: { endpoint: string; label?: string }) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
@@ -32,17 +34,6 @@ export async function fetchServerData({ endpoint, label }: { endpoint: string; l
             });
         });
 }
-
-type Policy = {
-    policy_id: string;
-    name: string;
-    description: string;
-    input_schema: string;
-    output_schema: string;
-    active_policy_version_id?: string;
-    created_at: string;
-    last_updated_at: string;
-};
 
 export async function fetchPolicies(includeArchived: boolean = false): Promise<Policy[]> {
     return fetchServerData({
@@ -89,7 +80,32 @@ export async function createPolicyVersion(data: PolicyVersionCreate) {
             return response.json();
         })
         .catch((error) => {
-            throw new Error(`Error policy version ${data}`, { cause: error });
+            throw new Error(`create policy version: ${data}`, { cause: error });
+        });
+}
+
+export async function updatePolicyVersion(policyVersionId: string, data: PolicyVersionBase) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    if (!serverUrl) {
+        throw new Error("Server URL is not defined");
+    }
+    if (!policyVersionId) {
+        throw new Error("Policy version ID is not defined");
+    }
+    console.log(`updatePolicyVersion: ${policyVersionId}`, data);
+
+    return fetch(new URL(`/policy-versions/${policyVersionId}`, serverUrl), {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+    })
+        .then((response) => {
+            return response.json();
+        })
+        .catch((error) => {
+            throw new Error(`update policy version ${policyVersionId}: ${data}`, { cause: error });
         });
 }
 
