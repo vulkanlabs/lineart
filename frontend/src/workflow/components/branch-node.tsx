@@ -36,14 +36,6 @@ export function BranchNode({ id, data, selected, height, width }) {
         [id, data, updateNodeData],
     );
 
-    const updateMetadata = useCallback(
-        (metadata: any) => {
-            const newMetadata = { ...data.metadata, ...metadata };
-            updateNodeData(id, { ...data, metadata: newMetadata });
-        },
-        [id, data, updateNodeData],
-    );
-
     const heightStepSize = 80; // Adjust this value as needed
 
     const addChoice = useCallback(() => {

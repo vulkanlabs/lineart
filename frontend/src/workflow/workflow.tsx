@@ -50,6 +50,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
         nodes,
         edges,
         getSpec,
+        getInputSchema,
         addNodeByType,
         getNodes,
         getEdges,
@@ -61,6 +62,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
             nodes: state.nodes,
             edges: state.edges,
             getSpec: state.getSpec,
+            getInputSchema: state.getInputSchema,
             addNodeByType: state.addNodeByType,
             getNodes: state.getNodes,
             getEdges: state.getEdges,
@@ -168,7 +170,8 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersionId }: VulkanWor
                         onClick={() => {
                             const spec = getSpec();
                             const nodes = getNodes();
-                            saveWorkflowState(policyVersionId, nodes, spec);
+                            const inputSchema = getInputSchema();
+                            saveWorkflowState(policyVersionId, nodes, spec, inputSchema);
                         }}
                     >
                         <TooltipProvider>
@@ -190,6 +193,7 @@ async function saveWorkflowState(
     policyVersionId: string,
     nodes: VulkanNode[],
     graph: GraphDefinition,
+    inputSchema: Record<string, unknown>,
 ) {
     // Save workflow UI state
     const uiMetadata = Object.fromEntries(
@@ -208,8 +212,8 @@ async function saveWorkflowState(
                 metadata: node.metadata,
             };
         });
-
-    const result = await saveWorkflowSpec(policyVersionId, graphNodes, uiMetadata);
+    
+    const result = await saveWorkflowSpec(policyVersionId, graphNodes, uiMetadata, inputSchema);
 
     if (result.success) {
         toast("Workflow saved ", {
@@ -377,7 +381,6 @@ function makeEdgesFromDependencies(nodes: NodeDefinitionDict[]): Edge[] {
             if (source === target) {
                 return;
             }
-            console.log("Source", source, "Target", target, "SourceHandle", sourceHandle);
 
             // Create edge object
             const edge = {

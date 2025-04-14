@@ -1,7 +1,7 @@
 "use server";
 
 import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
-import { NodeDefinition, NodeMetadata, NodeDependency } from "./types";
+import { NodeDefinition, NodeDependency } from "./types";
 import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
 import { DependencyDict } from "@vulkan-server/DependencyDict";
 import { UIMetadata } from "@vulkan-server/UIMetadata";
@@ -10,6 +10,7 @@ export async function saveWorkflowSpec(
     policyVersionId: string,
     nodes: NodeDefinition[],
     uiMetadata: { [key: string]: UIMetadata },
+    inputSchema: any,
 ): Promise<{ success: boolean; error: string | null; data: any }> {
     if (!policyVersionId) {
         throw new Error("Policy version ID is required");
@@ -22,9 +23,7 @@ export async function saveWorkflowSpec(
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const spec = {
         nodes: nodeDefs,
-        input_schema: {
-            score: "int",
-        },
+        input_schema: inputSchema,
         output_callable: null,
         config_variables: null,
     };
@@ -33,9 +32,11 @@ export async function saveWorkflowSpec(
         alias: null,
         spec: spec,
         requirements: [],
-        input_schema: {},
+        input_schema: inputSchema,
         ui_metadata: uiMetadata,
     };
+    console.log("Input Schema:", JSON.stringify(inputSchema, null, 2));
+    console.log("Saving workflow spec:", JSON.stringify(request, null, 2));
 
     return fetch(`${serverUrl}/policy-versions/${policyVersionId}`, {
         method: "PUT",

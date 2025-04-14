@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Play, FoldVertical, UnfoldVertical, PanelRight } from "lucide-react";
-import { Node, NodeProps, Position, XYPosition, NodeResizer } from "@xyflow/react";
+import { Position, NodeResizer } from "@xyflow/react";
 import { useShallow } from "zustand/react/shallow";
 
 import { BaseNode } from "@/components/reactflow/base-node";
@@ -10,11 +10,9 @@ import {
     NodeHeader,
     NodeHeaderActions,
     NodeHeaderAction,
-    NodeHeaderMenuAction,
     NodeHeaderDeleteAction,
     NodeHeaderIcon,
 } from "@/components/reactflow/node-header";
-import { cn } from "@/lib/utils";
 
 import { useWorkflowStore } from "../store";
 import { iconMapping } from "../icons";
@@ -28,28 +26,34 @@ export const defaultHandleStyle = {
     backgroundColor: "#f1f5f9",
 };
 
+type WorkflowNodeProps = {
+    id: string;
+    data: any;
+    width?: number;
+    height?: number;
+    selected?: boolean;
+    isInput?: boolean;
+    isOutput?: boolean;
+    notPlayable?: boolean;
+    disableNameEditing?: boolean;
+    children?: React.ReactNode;
+};
+
 export function WorkflowNode({
     id,
     data,
     width,
     height,
     selected,
+    isInput,
     isOutput,
     notPlayable,
+    disableNameEditing,
     children,
-}: {
-    id: string;
-    // data: WorkflowNodeData;
-    data: any;
-    width?: number;
-    height?: number;
-    selected?: boolean;
-    isOutput?: boolean;
-    notPlayable?: boolean;
-    children?: React.ReactNode;
-}) {
+}: WorkflowNodeProps) {
     const [isNameEditing, setIsNameEditing] = useState(false);
     const [showDetails, setShowDetails] = useState(true);
+    const [showTooltip, setShowTooltip] = useState(false);
 
     const { updateNodeData } = useWorkflowStore(
         useShallow((state) => ({
@@ -69,28 +73,21 @@ export function WorkflowNode({
 
     const toggleDetails = () => {
         setShowDetails((prev) => !prev);
-        // onNodesChange([
-        //     {
-        //         id: id,
-        //         type: "dimensions",
-        //         resizing: true,
-        //         setAttributes: true,
-        //         dimensions: {
-        //             width: width,
-        //             height: newHeight,
-        //         },
-        //     },
-        // ] as NodeChange<VulkanNode>[]);
     };
 
     const toggleNameEditor = useCallback(() => {
+        if (disableNameEditing) {
+            // Show temporary tooltip
+            setShowTooltip(true);
+            setTimeout(() => setShowTooltip(false), 2000);
+            return;
+        }
         setIsNameEditing((prev) => !prev);
-    }, []);
+    }, [disableNameEditing]);
 
     const IconComponent = data?.icon ? iconMapping[data.icon] : undefined;
 
     return (
-        // <NodeStatusIndicator status={data?.status}>
         <>
             <NodeResizer
                 nodeId={id}
@@ -113,12 +110,19 @@ export function WorkflowNode({
                                 autoFocus
                             />
                         ) : (
-                            <NodeHeaderTitle
-                                onDoubleClick={toggleNameEditor}
-                                className="overflow-hidden whitespace-nowrap text-ellipsis"
-                            >
-                                {data.name}
-                            </NodeHeaderTitle>
+                            <div className="relative">
+                                <NodeHeaderTitle
+                                    onDoubleClick={toggleNameEditor}
+                                    className="overflow-hidden whitespace-nowrap text-ellipsis"
+                                >
+                                    {data.name}
+                                </NodeHeaderTitle>
+                                {showTooltip && (
+                                    <div className="absolute -top-8 left-0 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50">
+                                        You cannot edit this node's name
+                                    </div>
+                                )}
+                            </div>
                         )}
                         <NodeHeaderActions>
                             <NodeHeaderAction onClick={openPanel} label="Fold/Unfold">
@@ -137,7 +141,13 @@ export function WorkflowNode({
                     </NodeHeader>
                     {showDetails && children}
                 </div>
-                <BaseHandle type="target" position={Position.Left} style={{ ...defaultHandleStyle }} />
+                {isInput ?? (
+                    <BaseHandle
+                        type="target"
+                        position={Position.Left}
+                        style={{ ...defaultHandleStyle }}
+                    />
+                )}
                 {isOutput ?? (
                     <BaseHandle
                         type="source"
@@ -147,6 +157,5 @@ export function WorkflowNode({
                 )}
             </BaseNode>
         </>
-        // </NodeStatusIndicator>
     );
 }

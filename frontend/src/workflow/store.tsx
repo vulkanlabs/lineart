@@ -24,6 +24,7 @@ import {
 
 type WorkflowActions = {
     getSpec: () => GraphDefinition;
+    getInputSchema: () => Record<string, unknown>;
     onNodesChange: OnNodesChange<VulkanNode>;
     setNodes: (nodes: VulkanNode[]) => void;
     addNode: (node: VulkanNode) => void;
@@ -44,6 +45,17 @@ type WorkflowStore = WorkflowState & WorkflowActions;
 const createWorkflowStore = (initProps: WorkflowState) => {
     return createStore<WorkflowStore>()((set, get) => ({
         ...initProps,
+
+        getInputSchema: () => {
+            const nodes = get().nodes || [];
+
+            nodes.forEach((node) => {
+                if (node.type === "INPUT") {
+                    return node.data.inputSchema;
+                }
+            });
+            return {};
+        },
 
         getSpec: () => {
             const nodes = get().nodes || [];
