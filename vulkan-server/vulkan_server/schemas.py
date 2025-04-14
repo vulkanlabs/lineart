@@ -135,7 +135,7 @@ class PolicyVersionBase(BaseModel):
     alias: str | None
     spec: PolicyDefinitionDict
     requirements: list[str]
-    input_schema: dict[str, str]
+    input_schema: Any
     ui_metadata: dict[str, UIMetadata] | None = None
 
 

@@ -1,30 +1,16 @@
-import asyncio
 import os
-from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from vulkan_server import exceptions, routers
-from vulkan_server.backtest.daemon import BacktestDaemon
 from vulkan_server.logger import init_logger
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    try:
-        backtest_daemon = BacktestDaemon.from_env()
-        asyncio.create_task(backtest_daemon.run_main())
-        yield
-    finally:
-        tasks = asyncio.all_tasks()
-        for task in tasks:
-            task.cancel()
-
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 origins = [
     "http://127.0.0.1",
@@ -66,8 +52,22 @@ class ErrorResponse(BaseModel):
 
 
 @app.exception_handler(exceptions.VulkanServerException)
-async def vulkan_server_exception_handler(request, exc):
+async def vulkan_server_exception_handler(
+    request: Request,
+    exc: exceptions.VulkanServerException,
+):
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorResponse(error_code=exc.error_code, message=exc.msg).model_dump(),
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
     )

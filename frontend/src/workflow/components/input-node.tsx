@@ -6,7 +6,7 @@ import { useShallow } from "zustand/react/shallow";
 import { z } from "zod";
 
 import { useWorkflowStore } from "../store";
-import { VulkanNode } from "../types";
+import { InputNodeMetadata, VulkanNode } from "../types";
 
 // Zod schema for field name validation
 const fieldNameSchema = z
@@ -24,16 +24,14 @@ export function InputNode({ id, data, selected, width }) {
         })),
     );
 
-    const inputSchema = data.inputSchema || {};
-
     // Use effect to update fieldOrder when schema changes
     const [fieldOrder, setFieldOrder] = useState(() =>
-        Object.keys(inputSchema).length > 0 ? Object.keys(inputSchema) : [],
+        Object.keys(data.metadata.schema).length > 0 ? Object.keys(data.metadata.schema) : [],
     );
 
-    // Add an effect to keep fieldOrder in sync with inputSchema
+    // Add an effect to keep fieldOrder in sync with data.metadata.schema
     useEffect(() => {
-        const schemaKeys = Object.keys(inputSchema);
+        const schemaKeys = Object.keys(data.metadata.schema);
 
         // Keep only valid keys that exist in the schema
         const validFieldOrder = fieldOrder.filter((field) => schemaKeys.includes(field));
@@ -44,18 +42,18 @@ export function InputNode({ id, data, selected, width }) {
         if (newKeys.length > 0 || validFieldOrder.length !== fieldOrder.length) {
             setFieldOrder([...validFieldOrder, ...newKeys]);
         }
-    }, [inputSchema]);
+    }, [data.metadata.schema]);
 
     const handleAddField = () => {
-        const newFieldName = `field_${Object.keys(inputSchema).length + 1}`;
+        const newFieldName = `field_${Object.keys(data.metadata.schema).length + 1}`;
         const updatedSchema = {
-            ...inputSchema,
+            ...data.metadata.schema,
             [newFieldName]: "string",
         };
+        const metadata: InputNodeMetadata = { schema: updatedSchema };
 
         setFieldOrder([...fieldOrder, newFieldName]);
-
-        updateNodeData(id, { ...data, inputSchema: updatedSchema });
+        updateNodeData(id, { ...data, metadata });
         onNodesChange([
             {
                 id: id,
@@ -64,13 +62,14 @@ export function InputNode({ id, data, selected, width }) {
                 setAttributes: true,
                 dimensions: {
                     width: width,
+                    height: 0,
                 },
             },
         ] as NodeChange<VulkanNode>[]);
     };
 
     const handleRemoveField = (fieldName: string) => {
-        const updatedSchema = { ...inputSchema };
+        const updatedSchema = { ...data.metadata.schema };
         delete updatedSchema[fieldName];
 
         // Clean up any editing state for this field
@@ -84,9 +83,10 @@ export function InputNode({ id, data, selected, width }) {
         setInvalidFields(updatedInvalidFields);
 
         // Update node data first, then update field order to ensure they stay in sync
+        const metadata: InputNodeMetadata = { schema: updatedSchema };
         updateNodeData(id, {
             ...data,
-            inputSchema: updatedSchema,
+            metadata,
         });
 
         // Update field order after updating node data
@@ -100,6 +100,7 @@ export function InputNode({ id, data, selected, width }) {
                 setAttributes: true,
                 dimensions: {
                     width: width,
+                    height: 0,
                 },
             },
         ] as NodeChange<VulkanNode>[]);
@@ -137,7 +138,7 @@ export function InputNode({ id, data, selected, width }) {
         if (!validationResult.success) {
             // Format validation failed
             updatedInvalidFields[oldName] = validationResult.error.issues[0].message;
-        } else if (newValue !== oldName && Object.keys(inputSchema).includes(newValue)) {
+        } else if (newValue !== oldName && Object.keys(data.metadata.schema).includes(newValue)) {
             // Check for duplicate - use Object.keys for a more reliable check
             updatedInvalidFields[oldName] = "Field name already exists";
         } else {
@@ -172,14 +173,15 @@ export function InputNode({ id, data, selected, width }) {
 
         // Create a new schema while preserving field order
         const updatedSchema = {};
-        const fieldType = inputSchema[oldName];
+        const fieldType = data.metadata.schema[oldName];
 
         // Update field order array
         const newFieldOrder = fieldOrder.map((name) => (name === oldName ? newName : name));
 
         // Rebuild schema in the correct order
         newFieldOrder.forEach((fieldName) => {
-            updatedSchema[fieldName] = fieldName === newName ? fieldType : inputSchema[fieldName];
+            updatedSchema[fieldName] =
+                fieldName === newName ? fieldType : data.metadata.schema[fieldName];
         });
 
         // Clean up editing state
@@ -196,16 +198,18 @@ export function InputNode({ id, data, selected, width }) {
         setFieldOrder(newFieldOrder);
         updateNodeData(id, {
             ...data,
-            inputSchema: updatedSchema,
+            metadata: { schema: updatedSchema },
         });
     };
 
     const handleFieldTypeChange = (fieldName: string, newType: string) => {
         updateNodeData(id, {
             ...data,
-            inputSchema: {
-                ...inputSchema,
-                [fieldName]: newType,
+            metadata: {
+                schema: {
+                    ...data.metadata.schema,
+                    [fieldName]: newType,
+                },
             },
         });
     };
@@ -235,7 +239,7 @@ export function InputNode({ id, data, selected, width }) {
                         </thead>
                         <tbody>
                             {fieldOrder.map((fieldName) => {
-                                const fieldType = inputSchema[fieldName];
+                                const fieldType = data.metadata.schema[fieldName];
                                 return (
                                     <tr key={fieldName} className="border-b border-gray-100">
                                         <td className="py-1 px-2">

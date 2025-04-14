@@ -20,11 +20,12 @@ import {
     GraphDefinition,
     BranchNodeMetadata,
     WorkflowState,
+    InputNodeMetadata,
 } from "./types";
 
 type WorkflowActions = {
     getSpec: () => GraphDefinition;
-    getInputSchema: () => Record<string, unknown>;
+    getInputSchema: () => { [key: string]: string };
     onNodesChange: OnNodesChange<VulkanNode>;
     setNodes: (nodes: VulkanNode[]) => void;
     addNode: (node: VulkanNode) => void;
@@ -47,14 +48,15 @@ const createWorkflowStore = (initProps: WorkflowState) => {
         ...initProps,
 
         getInputSchema: () => {
-            const nodes = get().nodes || [];
+            const nodes = get().nodes;
 
-            nodes.forEach((node) => {
+            for (const node of nodes) {
                 if (node.type === "INPUT") {
-                    return node.data.inputSchema;
+                    const data = node.data.metadata as InputNodeMetadata;
+                    return data.schema;
                 }
-            });
-            return {};
+            }
+            throw new Error("No input node found");
         },
 
         getSpec: () => {

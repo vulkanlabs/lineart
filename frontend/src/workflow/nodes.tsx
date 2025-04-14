@@ -63,7 +63,12 @@ function initMetadata(type: VulkanNodeType) {
             function_code: "",
             choices: ["", ""],
         };
+    } else if (type === "INPUT") {
+        return {
+            schema: {},
+        };
     }
+
     return {};
 }
 

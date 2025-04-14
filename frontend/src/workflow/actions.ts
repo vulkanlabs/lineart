@@ -10,7 +10,7 @@ export async function saveWorkflowSpec(
     policyVersionId: string,
     nodes: NodeDefinition[],
     uiMetadata: { [key: string]: UIMetadata },
-    inputSchema: any,
+    inputSchema: { [key: string]: string },
 ): Promise<{ success: boolean; error: string | null; data: any }> {
     if (!policyVersionId) {
         throw new Error("Policy version ID is required");
@@ -36,7 +36,6 @@ export async function saveWorkflowSpec(
         ui_metadata: uiMetadata,
     };
     console.log("Input Schema:", JSON.stringify(inputSchema, null, 2));
-    console.log("Saving workflow spec:", JSON.stringify(request, null, 2));
 
     return fetch(`${serverUrl}/policy-versions/${policyVersionId}`, {
         method: "PUT",
@@ -48,9 +47,8 @@ export async function saveWorkflowSpec(
     })
         .then(async (response) => {
             if (!response.ok) {
-                console.error(
-                    `Server responded with status: ${response.status}: ${JSON.stringify(response.body)}`,
-                );
+                console.error(`Server responded with status: ${response.status}:`, response);
+                console.error("Response body:", JSON.stringify(await response.json()));
                 throw new Error(`Server responded with status: ${response.status}: ${response}`);
             }
 

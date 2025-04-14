@@ -58,10 +58,11 @@ def create_policy_version(
         logger.system.error(msg)
         raise HTTPException(status_code=404, detail=msg)
 
+    spec = convert_pydantic_to_dict(config.spec)
     version = PolicyVersion(
         policy_id=config.policy_id,
         alias=config.alias,
-        spec=config.spec,
+        spec=spec,
         requirements=config.requirements,
         input_schema=config.input_schema,
         status=PolicyVersionStatus.INVALID,
@@ -72,7 +73,7 @@ def create_policy_version(
     try:
         dagster_service_client.update_workspace(
             workspace_id=version.policy_version_id,
-            spec=config.spec,
+            spec=spec,
             requirements=config.requirements,
         )
         version.status = PolicyVersionStatus.VALID

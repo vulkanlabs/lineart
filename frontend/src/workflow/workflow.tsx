@@ -32,7 +32,7 @@ import { WorkflowProvider, useWorkflowStore } from "./store";
 import { SaveIcon } from "lucide-react";
 import { saveWorkflowSpec } from "./actions";
 import { toast } from "sonner";
-import { GraphDefinition, VulkanNode, WorkflowState } from "./types";
+import { GraphDefinition, InputNodeMetadata, VulkanNode, WorkflowState } from "./types";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
 
@@ -193,7 +193,7 @@ async function saveWorkflowState(
     policyVersionId: string,
     nodes: VulkanNode[],
     graph: GraphDefinition,
-    inputSchema: Record<string, unknown>,
+    inputSchema: { [key: string]: string },
 ) {
     // Save workflow UI state
     const uiMetadata = Object.fromEntries(
@@ -212,7 +212,7 @@ async function saveWorkflowState(
                 metadata: node.metadata,
             };
         });
-    
+
     const result = await saveWorkflowSpec(policyVersionId, graphNodes, uiMetadata, inputSchema);
 
     if (result.success) {
@@ -274,14 +274,32 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
             return defaultState;
         }
 
-        const uiMetadata = policyVersion.ui_metadata;
+        const uiMetadata = policyVersion.ui_metadata || {};
+
+        // Check if we have a saved input node in the UI metadata
+        const inputNodeMetadata = uiMetadata["input_node"];
+
+        // Create the input node with proper metadata if available
+        let customInputNode = inputNode;
+        if (inputNodeMetadata) {
+            customInputNode = {
+                ...inputNode,
+                position: inputNodeMetadata.position,
+                height: inputNodeMetadata.height,
+                width: inputNodeMetadata.width,
+                data: {
+                    ...inputNode.data,
+                    metadata: { schema: policyVersion.input_schema } as InputNodeMetadata,
+                },
+            };
+        }
 
         // Map server nodes to ReactFlow node format
         const flowNodes = nodes.map((node) => {
             const nodeUIMetadata = uiMetadata ? uiMetadata[node.name] : null;
             const position: XYPosition = nodeUIMetadata.position;
-            const height = nodeUIMetadata.height;
-            const width = nodeUIMetadata.width;
+            const height = nodeUIMetadata?.height;
+            const width = nodeUIMetadata?.width;
 
             const nodeType = node.node_type as keyof typeof iconMapping;
             return {
@@ -299,8 +317,8 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
         });
 
         return {
-            // Always include the input node at the beginning of the nodes array
-            nodes: [inputNode, ...flowNodes],
+            // Include the customized input node at the beginning of the nodes array
+            nodes: [customInputNode, ...flowNodes],
             edges: edges,
         };
     }, [policyVersion]);
