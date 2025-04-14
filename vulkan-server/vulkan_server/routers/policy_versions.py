@@ -72,7 +72,7 @@ def create_policy_version(
     db.commit()
 
     data_sources = [
-        node.metadata.data_source
+        node.metadata["data_source"]
         for node in config.spec.nodes
         if node.node_type == NodeType.DATA_INPUT.value
     ]
