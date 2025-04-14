@@ -155,7 +155,7 @@ def update_policy_version(
             requirements=config.requirements,
         )
         version.status = PolicyVersionStatus.VALID
-    except Exception as e:
+    except ValueError as e:
         logger.system.error(
             f"Failed to update workspace ({version.policy_version_id}): {e}",
             exc_info=True,
@@ -164,6 +164,7 @@ def update_policy_version(
             "Failed to update policy version workspace. "
             f"Policy Version ID: {version.policy_version_id}"
         )
+
         raise HTTPException(status_code=500, detail={"msg": msg}) from e
 
     db.commit()

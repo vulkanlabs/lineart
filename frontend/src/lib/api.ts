@@ -100,13 +100,20 @@ export async function updatePolicyVersion(policyVersionId: string, data: PolicyV
             "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-    })
-        .then((response) => {
-            return response.json();
-        })
-        .catch((error) => {
-            throw new Error(`update policy version ${policyVersionId}: ${data}`, { cause: error });
-        });
+    }).then(async (response) => {
+        const responseData = await response.json();
+        if (!response.ok) {
+            console.error(`Failed to update policy version ${policyVersionId}`, {
+                status: response.status,
+                response: responseData,
+            });
+
+            throw new Error(`Failed to update policy version ${policyVersionId}`, {
+                cause: responseData,
+            });
+        }
+        return responseData;
+    });
 }
 
 export async function fetchPolicyRuns(policyId: string): Promise<Run[]> {
