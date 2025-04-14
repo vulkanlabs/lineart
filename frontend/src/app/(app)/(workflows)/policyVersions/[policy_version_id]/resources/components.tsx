@@ -105,6 +105,7 @@ export function RequirementsEditor({ policyVersion }: { policyVersion: PolicyVer
                 alias: policyVersion.alias,
                 input_schema: policyVersion.input_schema,
                 spec: policyVersion.spec,
+                ui_metadata: policyVersion.ui_metadata,
             });
             form.reset({ requirements: data.requirements });
             toast("Requirements saved", {
