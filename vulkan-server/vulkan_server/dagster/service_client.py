@@ -64,11 +64,12 @@ class VulkanDagsterServiceClient:
             method="DELETE",
             url=f"/workspaces/{workspace_id}",
             on_error="Failed to delete workspace",
+            json=None,
         )
         return response
 
     def _make_request(
-        self, method: str, url: str, json: dict, on_error: str
+        self, method: str, url: str, json: dict | None, on_error: str
     ) -> Response:
         request = Request(
             method=method,

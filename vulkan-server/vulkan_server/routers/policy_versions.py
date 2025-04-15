@@ -93,9 +93,22 @@ def create_policy_version(
             spec=config.spec.model_dump(),
             requirements=config.requirements,
         )
+    except (ValueError, VulkanServerException) as e:
+        logger.system.error(
+            f"Failed to create workspace ({version.policy_version_id}): {e}",
+            exc_info=True,
+        )
+        msg = (
+            "Failed to create policy version workspace. "
+            f"Policy Version ID: {version.policy_version_id}"
+        )
+        raise HTTPException(status_code=500, detail={"msg": msg}) from e
+
+    try:
         dagster_service_client.ensure_workspace_added(str(version.policy_version_id))
         version.status = PolicyVersionStatus.VALID
-    except Exception as e:
+    except ValueError as e:
+        dagster_service_client.delete_workspace(str(version.policy_version_id))
         logger.system.error(
             f"Failed to create workspace ({version.policy_version_id}): {e}",
             exc_info=True,
