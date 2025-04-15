@@ -231,7 +231,7 @@ export async function fetchRun(runId: string): Promise<Run> {
     });
 }
 
-export async function fetchRunsData(runId: string): Promise<RunData> {
+export async function fetchRunData(runId: string): Promise<RunData> {
     return fetchServerData({
         endpoint: `/runs/${runId}/data`,
         label: `data for run ${runId}`,

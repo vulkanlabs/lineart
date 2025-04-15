@@ -1,10 +1,10 @@
 import ELK from "elkjs/lib/elk.bundled.js";
+import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
 import {
     NodeLayoutConfig,
     NodeDefinition,
     EdgeLayoutConfig,
     Dict,
-    GraphDefinition,
 } from "@/lib/workflow/types";
 
 export const NodeTypeMapping = {
@@ -34,21 +34,21 @@ export async function layoutGraph(
  * @returns A tuple with the nodes and edges of the graph.
  */
 export function makeGraphElements(
-    graphData: GraphDefinition,
+    graphNodes: Array<NodeDefinitionDict>,
     options: Dict,
 ): [NodeLayoutConfig[], EdgeLayoutConfig[]] {
-    const rawNodes = Object.values(graphData);
-    const structuredNodes = structureNodes(rawNodes).map((n) => withLayoutOptions(n, options));
+    const structuredNodes = structureNodes(graphNodes).map((n) => withLayoutOptions(n, options));
     const flattenedNodes = structuredNodes.flatMap(flattenNode);
+    console.log(flattenedNodes);
 
     const nodesMap = Object.assign({}, ...flattenedNodes);
 
-    const edges = rawNodes.flatMap((node: any) => makeEdges(node, nodesMap));
+    const edges = graphNodes.flatMap((node: any) => makeEdges(node, nodesMap));
 
     return [structuredNodes, edges];
 }
 
-function structureNodes(nodes: NodeDefinition[]): NodeLayoutConfig[] {
+function structureNodes(nodes: NodeDefinitionDict[]): NodeLayoutConfig[] {
     const structuredNodes = nodes.map((node: any) => makeNode(node));
     return structuredNodes;
 }
@@ -109,13 +109,13 @@ function withLayoutOptions(n: NodeLayoutConfig, options: Dict): NodeLayoutConfig
     };
 }
 
-function makeEdges(node: NodeDefinition, nodesMap: any): any[] {
+function makeEdges(node: NodeDefinitionDict, nodesMap: any): any[] {
     if (node.dependencies === null) {
         return [];
     }
 
-    function __makeEdges(node: NodeDefinition): EdgeLayoutConfig[] {
-        return node.dependencies.flatMap((dep: any) => {
+    function __makeEdges(node: NodeDefinitionDict): EdgeLayoutConfig[] {
+        return Object.values(node.dependencies).flatMap((dep: any) => {
             // TODO: If `dep` is an object, it means that it comes from
             // a specific output of a node. For now, we discard it, as
             // we don't display the node outputs.
