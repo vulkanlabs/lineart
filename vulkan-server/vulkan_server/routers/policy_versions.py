@@ -63,7 +63,7 @@ def create_policy_version(
     version = PolicyVersion(
         policy_id=config.policy_id,
         alias=config.alias,
-        spec=config.spec.model_dump(),
+        spec=spec,
         requirements=config.requirements,
         input_schema=config.input_schema,
         status=PolicyVersionStatus.INVALID,
@@ -90,7 +90,7 @@ def create_policy_version(
     try:
         dagster_service_client.update_workspace(
             workspace_id=version.policy_version_id,
-            spec=config.spec.model_dump(),
+            spec=spec,
             requirements=config.requirements,
         )
     except (ValueError, VulkanServerException) as e:
@@ -106,18 +106,12 @@ def create_policy_version(
 
     try:
         dagster_service_client.ensure_workspace_added(str(version.policy_version_id))
-        version.status = PolicyVersionStatus.VALID
-    except ValueError as e:
-        dagster_service_client.delete_workspace(str(version.policy_version_id))
+    except ValueError:
         logger.system.error(
-            f"Failed to create workspace ({version.policy_version_id}): {e}",
+            f"Failed to create workspace ({version.policy_version_id}), but that's OK",
             exc_info=True,
         )
-        msg = (
-            "Failed to create policy version workspace. "
-            f"Policy Version ID: {version.policy_version_id}"
-        )
-        raise HTTPException(status_code=500, detail={"msg": msg}) from e
+
     db.commit()
 
     logger.event(
@@ -185,7 +179,6 @@ def update_policy_version(
             spec=spec,
             requirements=config.requirements,
         )
-        version.status = PolicyVersionStatus.VALID
     except ValueError as e:
         logger.system.error(
             f"Failed to update workspace ({version.policy_version_id}): {e}",
@@ -195,8 +188,13 @@ def update_policy_version(
             "Failed to update policy version workspace. "
             f"Policy Version ID: {version.policy_version_id}"
         )
-
         raise HTTPException(status_code=500, detail={"msg": msg}) from e
+
+    try:
+        dagster_service_client.ensure_workspace_added(version.policy_version_id)
+        version.status = PolicyVersionStatus.VALID
+    except ValueError:
+        version.status = PolicyVersionStatus.INVALID
 
     db.commit()
     logger.event(

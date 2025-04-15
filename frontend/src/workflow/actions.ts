@@ -36,7 +36,6 @@ export async function saveWorkflowSpec(
         input_schema: inputSchema,
         ui_metadata: uiMetadata,
     };
-    console.log("Input Schema:", JSON.stringify(inputSchema, null, 2));
 
     return fetch(`${serverUrl}/policy-versions/${policyVersion.policy_version_id}`, {
         method: "PUT",

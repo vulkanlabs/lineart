@@ -111,10 +111,13 @@ export async function updatePolicyVersion(policyVersionId: string, data: PolicyV
     if (!policyVersionId) {
         throw new Error("Policy version ID is not defined");
     }
-    console.log(`updatePolicyVersion: ${policyVersionId}`, data);
 
     return fetch(new URL(`/policy-versions/${policyVersionId}`, serverUrl), {
         method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
     }).then(async (response) => {
         const responseData = await response.json();
         if (!response.ok) {

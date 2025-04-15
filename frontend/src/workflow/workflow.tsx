@@ -269,7 +269,6 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
         const inputNode = makeInputNode(policyVersion.input_schema, uiMetadata["input_node"]);
 
         // If no spec is defined, return an empty state: new version
-        console.log("policyVersion", policyVersion);
         if (!policyVersion.spec || policyVersion.spec.nodes.length === 0) {
             return defaultWorkflowState(inputNode);
         }
