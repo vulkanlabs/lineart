@@ -1,11 +1,8 @@
-import { stackServerApp } from "@/stack";
-
 import { fetchComponents } from "@/lib/api";
 import ComponentPageContent from "./components";
 
 export default async function Page() {
-    const user = await stackServerApp.getUser();
-    const components = await fetchComponents(user).catch((error) => {
+    const components = await fetchComponents().catch((error) => {
         console.error(error);
         return [];
     });

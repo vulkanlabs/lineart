@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { stackServerApp } from "@/stack";
 
 import Loader from "@/components/animations/loader";
 import { fetchPolicy, fetchPolicyVersions } from "@/lib/api";
@@ -10,9 +9,8 @@ export default async function Page(props) {
     const params = await props.params;
     const policyId = params.policy_id;
 
-    const user = await stackServerApp.getUser();
-    const policyData = await fetchPolicy(user, policyId);
-    const policyVersionsData = await fetchPolicyVersions(user, policyId).catch((error) => {
+    const policyData = await fetchPolicy(policyId);
+    const policyVersionsData = await fetchPolicyVersions(policyId).catch((error) => {
         console.error(error);
         return [];
     });

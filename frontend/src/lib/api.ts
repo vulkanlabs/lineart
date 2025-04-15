@@ -1,38 +1,13 @@
 import { formatISO } from "date-fns";
 
-import { CurrentUser, CurrentInternalUser } from "@stackframe/stack";
 import { Run } from "@vulkan-server/Run";
 import { RunData } from "@vulkan-server/RunData";
 import { RunLogs } from "@vulkan-server/RunLogs";
+import { Policy } from "@vulkan-server/Policy";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 import { PolicyBase } from "@vulkan-server/PolicyBase";
 import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
-
-type StackUser = CurrentUser | CurrentInternalUser;
-
-export async function getAuthHeaders(user: StackUser) {
-    const { accessToken, refreshToken } = await user.getAuthJson();
-    const headers = {
-        "x-stack-access-token": accessToken,
-        "x-stack-refresh-token": refreshToken,
-    };
-    return headers;
-}
-
-export async function getUserProjectId(user: StackUser) {
-    const headers = await getAuthHeaders(user);
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    return fetch(new URL(`/users/${user.id}`, serverUrl), { headers }).then(async (response) => {
-        if (!response.ok) {
-            throw new Error(`Failed to fetch project ID: ${response.statusText}`, {
-                cause: response,
-            });
-        }
-        return response.json().catch((error) => {
-            throw new Error("Error parsing response", { cause: error });
-        });
-    });
-}
+import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
 
 export async function fetchServerData({ endpoint, label }: { endpoint: string; label?: string }) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
@@ -60,42 +35,25 @@ export async function fetchServerData({ endpoint, label }: { endpoint: string; l
         });
 }
 
-type Policy = {
-    policy_id: string;
-    name: string;
-    description: string;
-    input_schema: string;
-    output_schema: string;
-    active_policy_version_id?: string;
-    created_at: string;
-    last_updated_at: string;
-};
-
-export async function fetchPolicies(
-    user: StackUser,
-    includeArchived: boolean = false,
-): Promise<Policy[]> {
+export async function fetchPolicies(includeArchived: boolean = false): Promise<Policy[]> {
     return fetchServerData({
         endpoint: `/policies?include_archived=${includeArchived}`,
         label: "list of policies",
     });
 }
 
-export async function fetchPolicy(user: StackUser, policyId: string) {
+export async function fetchPolicy(policyId: string) {
     return fetchServerData({
         endpoint: `/policies/${policyId}`,
         label: `policy ${policyId}`,
     });
 }
 
-export async function createPolicy(userPromise: Promise<StackUser>, data: PolicyBase) {
-    const user = await userPromise;
-    const headers = await getAuthHeaders(user);
+export async function createPolicy(data: PolicyBase) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     return fetch(new URL(`/policies`, serverUrl), {
         method: "POST",
         headers: {
-            ...headers,
             "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
@@ -108,18 +66,12 @@ export async function createPolicy(userPromise: Promise<StackUser>, data: Policy
         });
 }
 
-export async function createPolicyVersion(
-    userPromise: Promise<StackUser>,
-    data: PolicyVersionCreate,
-) {
-    const user = await userPromise;
-    const headers = await getAuthHeaders(user);
+export async function createPolicyVersion(data: PolicyVersionCreate) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
 
     return fetch(new URL(`/policy-versions`, serverUrl), {
         method: "POST",
         headers: {
-            ...headers,
             "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
@@ -128,18 +80,50 @@ export async function createPolicyVersion(
             return response.json();
         })
         .catch((error) => {
-            throw new Error(`Error policy version ${data}`, { cause: error });
+            throw new Error(`create policy version: ${data}`, { cause: error });
         });
 }
 
-export async function fetchPolicyRuns(user: StackUser, policyId: string): Promise<Run[]> {
+export async function updatePolicyVersion(policyVersionId: string, data: PolicyVersionBase) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    if (!serverUrl) {
+        throw new Error("Server URL is not defined");
+    }
+    if (!policyVersionId) {
+        throw new Error("Policy version ID is not defined");
+    }
+    console.log(`updatePolicyVersion: ${policyVersionId}`, data);
+
+    return fetch(new URL(`/policy-versions/${policyVersionId}`, serverUrl), {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+    }).then(async (response) => {
+        const responseData = await response.json();
+        if (!response.ok) {
+            console.error(`Failed to update policy version ${policyVersionId}`, {
+                status: response.status,
+                response: responseData,
+            });
+
+            throw new Error(`Failed to update policy version ${policyVersionId}`, {
+                cause: responseData,
+            });
+        }
+        return responseData;
+    });
+}
+
+export async function fetchPolicyRuns(policyId: string): Promise<Run[]> {
     return fetchServerData({
         endpoint: `/policies/${policyId}/runs`,
         label: `runs for policy ${policyId}`,
     });
 }
 
-export async function fetchPolicyVersionRuns(user: StackUser, policyVersionId: string) {
+export async function fetchPolicyVersionRuns(policyVersionId: string) {
     return fetchServerData({
         endpoint: `/policy-versions/${policyVersionId}/runs`,
         label: `runs for policy version ${policyVersionId}`,
@@ -147,7 +131,6 @@ export async function fetchPolicyVersionRuns(user: StackUser, policyVersionId: s
 }
 
 export async function fetchPolicyVersions(
-    user: StackUser,
     policyId: string,
     includeArchived: boolean = false,
 ): Promise<PolicyVersion[]> {
@@ -164,38 +147,35 @@ export async function fetchPolicyVersion(policyVersionId: string): Promise<Polic
     });
 }
 
-export async function fetchPolicyVersionVariables(user: StackUser, policyVersionId: string) {
+export async function fetchPolicyVersionVariables(policyVersionId: string) {
     return fetchServerData({
         endpoint: `/policy-versions/${policyVersionId}/variables`,
         label: `variables for policy version ${policyVersionId}`,
     });
 }
 
-export async function fetchPolicyVersionComponents(user: StackUser, policyVersionId: string) {
+export async function fetchPolicyVersionComponents(policyVersionId: string) {
     return fetchServerData({
         endpoint: `/policy-versions/${policyVersionId}/components`,
         label: `component usage for policy version ${policyVersionId}`,
     });
 }
 
-export async function fetchPolicyVersionDataSources(user: StackUser, policyVersionId: string) {
+export async function fetchPolicyVersionDataSources(policyVersionId: string) {
     return fetchServerData({
         endpoint: `/policy-versions/${policyVersionId}/data-sources`,
         label: `data sources for policy version ${policyVersionId}`,
     });
 }
 
-export async function fetchComponents(
-    user: StackUser,
-    includeArchived: boolean = false,
-): Promise<any[]> {
+export async function fetchComponents(includeArchived: boolean = false): Promise<any[]> {
     return fetchServerData({
         endpoint: `/components?include_archived=${includeArchived}`,
         label: "list of components",
     });
 }
 
-export async function fetchComponent(user: StackUser, componentId: string) {
+export async function fetchComponent(componentId: string) {
     return fetchServerData({
         endpoint: `/components/${componentId}`,
         label: `component ${componentId}`,
@@ -203,7 +183,6 @@ export async function fetchComponent(user: StackUser, componentId: string) {
 }
 
 export async function fetchComponentVersions(
-    user: StackUser,
     componentId: string,
     includeArchived: boolean = false,
 ) {
@@ -213,84 +192,84 @@ export async function fetchComponentVersions(
     });
 }
 
-export async function fetchComponentVersion(user: StackUser, componentVersionId: string) {
+export async function fetchComponentVersion(componentVersionId: string) {
     return fetchServerData({
         endpoint: `/component-versions/${componentVersionId}`,
         label: `component version ${componentVersionId}`,
     });
 }
 
-export async function fetchComponentVersionUsage(user: StackUser, componentId: string) {
+export async function fetchComponentVersionUsage(componentId: string) {
     return fetchServerData({
         endpoint: `/components/${componentId}/usage`,
         label: `component usage for component ${componentId}`,
     });
 }
 
-export async function fetchRun(user: StackUser, runId: string): Promise<Run> {
+export async function fetchRun(runId: string): Promise<Run> {
     return fetchServerData({
         endpoint: `/runs/${runId}`,
         label: `run ${runId}`,
     });
 }
 
-export async function fetchRunsData(user: StackUser, runId: string): Promise<RunData> {
+export async function fetchRunsData(runId: string): Promise<RunData> {
     return fetchServerData({
         endpoint: `/runs/${runId}/data`,
         label: `data for run ${runId}`,
     });
 }
 
-export async function fetchRunLogs(user: StackUser, runId: string): Promise<RunLogs> {
+export async function fetchRunLogs(runId: string): Promise<RunLogs> {
     return fetchServerData({
         endpoint: `/runs/${runId}/logs`,
         label: `logs for run ${runId}`,
     });
 }
 
-export async function fetchDataSources(user: StackUser) {
+export async function fetchDataSources() {
     return fetchServerData({
         endpoint: `/data-sources`,
         label: `data sources`,
     });
 }
 
-export async function fetchDataSource(user: StackUser, dataSourceId: string) {
+export async function fetchDataSource(dataSourceId: string) {
     return fetchServerData({
         endpoint: `/data-sources/${dataSourceId}`,
         label: `data source ${dataSourceId}`,
     });
 }
 
-export async function fetchBacktestWorkspace(user: StackUser, policyVersionId: string) {
+export async function fetchBacktestWorkspace(policyVersionId: string) {
     return fetchServerData({
         endpoint: `/policy-versions/${policyVersionId}/backtest-workspace`,
         label: `policy version ${policyVersionId} backtest workspace`,
     });
 }
 
-export async function fetchPolicyVersionBacktests(user: StackUser, policyVersionId: string) {
+export async function fetchPolicyVersionBacktests(policyVersionId: string) {
     return fetchServerData({
         endpoint: `/backtests?policy_version_id=${policyVersionId}`,
         label: `backtests for policy version ${policyVersionId}`,
     });
 }
 
-export async function listUploadedFiles(user: StackUser) {
+export async function listUploadedFiles() {
     return fetchServerData({
         endpoint: `/files`,
         label: `backtests files`,
     });
 }
 
-export async function fetchBacktest(user: StackUser, backtestId: string) {
+export async function fetchBacktest(backtestId: string) {
     return fetchServerData({
         endpoint: `/backtests/${backtestId}/`,
         label: `backtest ${backtestId}`,
     });
 }
 
-export async function fetchBacktestStatus(user: StackUser, backtestId: string) {
+export async function fetchBacktestStatus(backtestId: string) {
     return fetchServerData({
         endpoint: `/backtests/${backtestId}/status`,
         label: `status for backtest ${backtestId}`,
@@ -298,7 +277,6 @@ export async function fetchBacktestStatus(user: StackUser, backtestId: string) {
 }
 
 export async function fetchBacktestMetrics(
-    user: StackUser,
     backtestId: string,
     target: boolean = false,
     time: boolean = false,

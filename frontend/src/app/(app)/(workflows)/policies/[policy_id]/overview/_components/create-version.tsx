@@ -26,7 +26,6 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { createPolicyVersion } from "@/lib/api";
-import { useStackApp } from "@stackframe/stack";
 import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
 import { Sending } from "@/components/animations/sending";
 
@@ -35,8 +34,6 @@ const formSchema = z.object({
 });
 
 export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
-    const stackApp = useStackApp();
-    const user = stackApp.getUser();
     const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
@@ -64,7 +61,7 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
         };
 
         try {
-            await createPolicyVersion(user, { ...requestData });
+            await createPolicyVersion({ ...requestData });
             setOpen(false);
             toast("Policy Version Created", {
                 description: `Policy Version ${data.alias} has been created.`,

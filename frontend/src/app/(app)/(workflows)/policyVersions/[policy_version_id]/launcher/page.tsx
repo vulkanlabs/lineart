@@ -1,23 +1,19 @@
 "use server";
 
-import { stackServerApp } from "@/stack";
-import { fetchPolicyVersion, getAuthHeaders } from "@/lib/api";
+import { fetchPolicyVersion } from "@/lib/api";
 import { LauncherPage } from "./components";
 import { postLaunchFormAction } from "./actions";
 
 export default async function Page(props) {
     const params = await props.params;
-    const user = await stackServerApp.getUser();
-    const authHeaders = await getAuthHeaders(user);
 
-    const policyVersion = await fetchPolicyVersion(user, params.policy_version_id);
+    const policyVersion = await fetchPolicyVersion(params.policy_version_id);
 
-    const graphDefinition = await JSON.parse(policyVersion.graph_definition);
-    const inputSchema = graphDefinition.input_node.metadata.schema;
+    // TODO: we should redo this to use the new policy version definitions
+    const inputSchema = null;
 
     return (
         <LauncherPage
-            authHeaders={authHeaders}
             policyVersionId={params.policy_version_id}
             inputSchema={inputSchema}
             configVariables={policyVersion.variables}

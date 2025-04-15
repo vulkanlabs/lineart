@@ -9,9 +9,8 @@ import { workspaceCreationAction } from "./actions";
 
 export default async function Page(props) {
     const params = await props.params;
-    const user = await stackServerApp.getUser();
 
-    const backtestWorkspace = await fetchBacktestWorkspace(user, params.policy_version_id).catch(
+    const backtestWorkspace = await fetchBacktestWorkspace(params.policy_version_id).catch(
         (error) => {
             console.error(error);
             return null;
@@ -59,8 +58,7 @@ export default async function Page(props) {
 }
 
 async function BacktestsTable({ policyVersionId }) {
-    const user = await stackServerApp.getUser();
-    const backtests = await fetchPolicyVersionBacktests(user, policyVersionId).catch((error) => {
+    const backtests = await fetchPolicyVersionBacktests(policyVersionId).catch((error) => {
         console.error(error);
         return [];
     });
@@ -68,8 +66,7 @@ async function BacktestsTable({ policyVersionId }) {
 }
 
 async function UploadedFilesTable({ policyVersionId }) {
-    const user = await stackServerApp.getUser();
-    const uploadedFiles = await listUploadedFiles(user).catch((error) => {
+    const uploadedFiles = await listUploadedFiles().catch((error) => {
         console.error(error);
         return [];
     });

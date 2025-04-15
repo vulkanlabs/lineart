@@ -67,7 +67,6 @@ const formSchema = z.object({
 
 function CreatePolicyDialog() {
     const stackApp = useStackApp();
-    const user = stackApp.getUser();
     const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
@@ -83,7 +82,7 @@ function CreatePolicyDialog() {
     const onSubmit = async (data: any) => {
         setIsSubmitting(true);
         try {
-            await createPolicy(user, data);
+            await createPolicy( data);
             setOpen(false);
             form.reset();
             toast("Policy Created", {

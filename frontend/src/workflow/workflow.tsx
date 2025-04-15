@@ -264,25 +264,25 @@ function AppDropdownMenu({
 }
 
 export default function WorkflowFrame({ policyVersion }: { policyVersion: PolicyVersion }) {
-    // Create a proper initial state by validating the incoming spec
     const initialState: WorkflowState = useMemo(() => {
-        // If no spec and input schema are defined, return default state: new version
-        if (!policyVersion.spec && !policyVersion.input_schema) {
-            return defaultWorkflowState;
+        const uiMetadata = policyVersion.ui_metadata || {};
+        const inputNode = makeInputNode(policyVersion.input_schema, uiMetadata["input_node"]);
+
+        // If no spec is defined, return an empty state: new version
+        console.log("policyVersion", policyVersion);
+        if (!policyVersion.spec || policyVersion.spec.nodes.length === 0) {
+            return defaultWorkflowState(inputNode);
         }
 
         const nodes = policyVersion.spec.nodes || [];
         const edges = makeEdgesFromDependencies(nodes);
 
-        const uiMetadata = policyVersion.ui_metadata || {};
-        const inputNode = makeInputNode(policyVersion.input_schema, uiMetadata["input_node"]);
-
         // Map server nodes to ReactFlow node format
-        const flowNodes = nodes.map((node) => {
+        const flowNodes: VulkanNode[] = nodes.map((node) => {
             const nodeUIMetadata = uiMetadata ? uiMetadata[node.name] : null;
             const position: XYPosition = nodeUIMetadata.position;
-            const height = nodeUIMetadata?.height;
-            const width = nodeUIMetadata?.width;
+            const height = nodeUIMetadata.height;
+            const width = nodeUIMetadata.width;
 
             const nodeType = node.node_type as keyof typeof iconMapping;
             return {
@@ -343,16 +343,18 @@ function makeInputNode(inputSchema: { [key: string]: string }, inputNodeUIMetada
     return inputNode;
 }
 
-// Always start with the input node
 const defaultInputNode = createNodeByType({
     type: "INPUT",
     position: { x: 200, y: 200 },
     existingNodes: [],
 });
 
-const defaultWorkflowState: WorkflowState = {
-    nodes: [defaultInputNode],
-    edges: [],
+// Always start with the input node
+const defaultWorkflowState = (inputNode: VulkanNode) => {
+    return {
+        nodes: [inputNode],
+        edges: [],
+    };
 };
 
 function makeEdgesFromDependencies(nodes: NodeDefinitionDict[]): Edge[] {

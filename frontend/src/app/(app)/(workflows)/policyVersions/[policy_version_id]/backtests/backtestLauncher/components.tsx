@@ -30,12 +30,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { AuthHeaders } from "@/lib/auth";
 
 export function BacktestLauncherPage({
-    authHeaders,
     policyVersionId,
     launchFn,
     uploadedFiles,
 }: {
-    authHeaders: AuthHeaders;
     policyVersionId: string;
     launchFn: any;
     uploadedFiles: any;
@@ -58,7 +56,6 @@ export function BacktestLauncherPage({
                     setBacktestId={setBacktestId}
                     setError={setError}
                     launchFn={launchFn}
-                    headers={authHeaders}
                 />
             </div>
             {backtestId && <LaunchCard backtestId={backtestId} policyVersionId={policyVersionId} />}
@@ -78,14 +75,7 @@ const formSchema = z.object({
     group_by_columns: z.string().optional(),
 });
 
-function BacktestLauncher({
-    policyVersionId,
-    uploadedFiles,
-    setBacktestId,
-    setError,
-    launchFn,
-    headers,
-}) {
+function BacktestLauncher({ policyVersionId, uploadedFiles, setBacktestId, setError, launchFn }) {
     const [submitting, setSubmitting] = useState(false);
 
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
@@ -128,7 +118,7 @@ function BacktestLauncher({
         setError(null);
         setBacktestId(null);
 
-        launchFn({ uploadUrl, body, headers })
+        launchFn({ uploadUrl, body })
             .then((data) => {
                 setError(null);
                 setBacktestId(data.backtest_id);

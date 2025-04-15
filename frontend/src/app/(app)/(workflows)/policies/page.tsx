@@ -4,8 +4,7 @@ import { PoliciesPage } from "./components";
 import { fetchPolicies } from "@/lib/api";
 
 export default async function Page() {
-    const user = await stackServerApp.getUser();
-    const policies = await fetchPolicies(user).catch((error) => {
+    const policies = await fetchPolicies().catch((error) => {
         console.error(error);
         return [];
     });
