@@ -20,6 +20,8 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
     DATA_INPUT: {
         id: "DATA_INPUT",
         name: "Data Input Node",
+        width: 400,
+        height: 200,
         icon: "DATA_INPUT",
     },
     TRANSFORM: {
@@ -52,15 +54,11 @@ function initMetadata(type: VulkanNodeType) {
         };
     } else if (type === "TRANSFORM") {
         return {
-            func: null,
             source_code: "",
-            function_code: "",
         };
     } else if (type === "BRANCH") {
         return {
-            func: null,
             source_code: "",
-            function_code: "",
             choices: ["", ""],
         };
     } else if (type === "INPUT") {

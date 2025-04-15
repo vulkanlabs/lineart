@@ -26,7 +26,7 @@ class PolicyDefinitionDict(BaseModel):
 
     nodes: list[NodeDefinitionDict]
     input_schema: dict[str, str]
-    output_callable: Any | None = None
+    output_callback: Any | None = None
     config_variables: list[str] | None = None
 
 
@@ -73,7 +73,7 @@ class PolicyDefinition(GraphDefinition):
     """
 
     nodes: list[Node]
-    input_schema: dict[str, type]
+    input_schema: dict[str, str]
     output_callback: Callable | None = None
     config_variables: list[str] = field(default_factory=list)
 
@@ -102,8 +102,7 @@ class PolicyDefinition(GraphDefinition):
         }
 
     @classmethod
-    def from_dict(self, data: PolicyDefinitionDict) -> "PolicyDefinition":
-        spec = data["policy_definition"]
+    def from_dict(self, spec: PolicyDefinitionDict) -> "PolicyDefinition":
         nodes = [node_from_spec(node) for node in spec["nodes"]]
 
         return PolicyDefinition(
@@ -156,7 +155,7 @@ class PolicyDefinitionNode(Node):
         if definition.metadata is None or definition.metadata.policy_definition is None:
             raise ValueError("Missing policy definition metadata")
 
-        policy_def = PolicyDefinition.from_dict(definition.metadata)
+        policy_def = PolicyDefinition.from_dict(definition.metadata.policy_definition)
         return cls(
             name=definition.name,
             description=definition.description,
@@ -176,23 +175,40 @@ class PolicyDefinitionNode(Node):
         }
 
 
-def node_from_spec(spec: dict[str, Any]) -> Node:
+NODE_IMPLEMENTS = {
+    NodeType.TRANSFORM: TransformNode,
+    NodeType.TERMINATE: TerminateNode,
+    NodeType.INPUT: InputNode,
+    NodeType.DATA_INPUT: DataInputNode,
+    NodeType.BRANCH: BranchNode,
+}
+
+
+def node_from_spec(spec: dict[str, str]) -> Node:
+    """Create a node from a specification dictionary.
+
+    Parameters
+    ----------
+    spec : dict[str, str]
+        The specification dictionary containing the node type and other parameters.
+
+    Returns
+    -------
+    Node
+        The created node instance.
+
+    Raises
+    ------
+    ValueError
+        If the node type is not recognized or if the specification is invalid.
+    """
     node_type = spec.get("node_type")
     if node_type is None:
         raise ValueError("Missing node_type")
 
     node_type = NodeType(node_type)
-    if node_type == NodeType.TRANSFORM:
-        return TransformNode.from_dict(spec)
-    elif node_type == NodeType.TERMINATE:
-        return TerminateNode.from_dict(spec)
-    elif node_type == NodeType.INPUT:
-        return InputNode.from_dict(spec)
-    elif node_type == NodeType.DATA_INPUT:
-        return DataInputNode.from_dict(spec)
-    elif node_type == NodeType.BRANCH:
-        return BranchNode.from_dict(spec)
-    elif node_type == NodeType.POLICY:
-        return PolicyDefinitionNode.from_dict(spec)
-    else:
-        raise ValueError(f"Unsupported node type: {node_type}")
+
+    if node_type not in NODE_IMPLEMENTS:
+        raise ValueError(f"Unknown node type: {node_type}")
+
+    return NODE_IMPLEMENTS[node_type].from_dict(spec)

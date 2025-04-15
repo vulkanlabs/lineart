@@ -33,12 +33,12 @@ def create_workspace(
             logger.debug(f"Created workspace at {vm.workspace_path}")
 
         if requirements:
-            logger.debug(f"Adding requirements to workspace: {vm.workspace_path}")
             vm.set_requirements(requirements)
+            logger.debug(f"Added requirements to workspace: {vm.workspace_path}")
 
         if spec:
-            logger.debug(f"Adding spec to workspace: {spec}")
             vm.add_spec(spec)
+            logger.debug(f"Added spec to workspace: {spec}")
 
         dm = DagsterWorkspaceManager(vulkan_config.home, vm.workspace_path)
         dm.create_init_file()

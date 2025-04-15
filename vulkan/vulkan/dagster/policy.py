@@ -8,6 +8,7 @@ from dagster import (
     failure_hook,
 )
 from vulkan_public.spec.dependency import Dependency
+from vulkan_public.spec.nodes import Node
 
 from vulkan.core.run import RunStatus
 from vulkan.dagster.io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
@@ -18,11 +19,9 @@ DEFAULT_POLICY_NAME = "default_policy"
 
 
 class DagsterFlow:
-    def __init__(self, nodes: list, dependencies: dict) -> None:
-        self._raw_nodes = nodes
-        self._raw_dependencies = dependencies
+    def __init__(self, nodes: list[Node]) -> None:
         self.nodes = to_dagster_nodes(nodes)
-        self.dependencies = _as_graph_dependencies(nodes, dependencies)
+        self.dependencies = _extract_dependencies(self.nodes)
 
     def to_job(self, resources: dict[str, ConfigurableResource]):
         g = self._graph()
@@ -76,9 +75,9 @@ def _accesses_internal_resources(op: OpDefinition) -> bool:
     return len(INTERNAL_RESOURCE_KEYS.intersection(op.required_resource_keys)) > 0
 
 
-def _as_graph_dependencies(nodes, dependencies):
+def _extract_dependencies(nodes: list[Node]) -> dict[str, dict[str, Dependency]]:
     return {
-        node.name: _as_dagster_dependencies(dependencies[node.name])
+        node.name: _as_dagster_dependencies(node.dependencies)
         for node in nodes
         if len(node.dependencies) > 0
     }

@@ -1,5 +1,11 @@
+import datetime
+from typing import Annotated, Any
+
+import pandas as pd
 import requests
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func as F
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from vulkan_public.data_source import DataSourceType
 from vulkan_public.schemas import DataSourceSpec
@@ -11,6 +17,7 @@ from vulkan_server.db import (
     DataSource,
     PolicyDataDependency,
     PolicyVersion,
+    RunDataRequest,
     UploadedFile,
     get_db,
 )
@@ -189,6 +196,45 @@ def get_data_object(
     return data_object
 
 
+def _validate_date_range(
+    start_date: datetime.date | None,
+    end_date: datetime.date | None,
+):
+    if start_date is None:
+        start_date = datetime.date.today() - datetime.timedelta(days=30)
+    if end_date is None:
+        end_date = datetime.date.today()
+    return start_date, end_date
+
+
+@sources.get("/{data_source_id}/stats", response_model=list[Any])
+def get_request_stats(
+    data_source_id: str,
+    start_date: Annotated[datetime.date | None, Query()] = None,
+    end_date: Annotated[datetime.date | None, Query()] = None,
+    db: Session = Depends(get_db),
+):
+    start_date, end_date = _validate_date_range(start_date, end_date)
+
+    date_clause = F.DATE(RunDataRequest.created_at).label("date")
+
+    q = (
+        select(
+            date_clause,
+            RunDataRequest.data_origin.label("origin"),
+            F.count(RunDataRequest.run_data_request_id).label("count"),
+        )
+        .where(
+            (RunDataRequest.data_source_id == data_source_id)
+            & (RunDataRequest.created_at >= start_date)
+            & (F.DATE(RunDataRequest.created_at) <= end_date)
+        )
+        .group_by(date_clause, RunDataRequest.data_origin)
+    )
+    df = pd.read_sql(q, db.bind).fillna(0)
+    return df.to_dict(orient="records")
+
+
 broker = APIRouter(
     prefix="/data-broker",
     tags=["data-broker"],
@@ -211,6 +257,14 @@ def request_data_from_broker(
 
     try:
         data = broker.get_data(request.request_body, request.variables)
+        request_obj = RunDataRequest(
+            run_id=request.run_id,
+            data_object_id=data.data_object_id,
+            data_source_id=spec.data_source_id,
+            data_origin=data.origin,
+        )
+        db.add(request_obj)
+        db.commit()
     except requests.exceptions.RequestException as e:
         logger.error(str(e))
         raise HTTPException(status_code=502, detail=str(e))

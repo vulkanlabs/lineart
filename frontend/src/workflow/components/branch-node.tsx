@@ -22,7 +22,7 @@ export function BranchNode({ id, data, selected, height, width }) {
 
     const setSourceCode = useCallback(
         (code: string) => {
-            const metadata = { ...data.metadata, source_code: code, function_code: code };
+            const metadata = { ...data.metadata, source_code: code };
             updateNodeData(id, { ...data, metadata });
         },
         [id, data, updateNodeData],

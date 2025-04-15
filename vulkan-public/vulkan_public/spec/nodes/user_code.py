@@ -1,7 +1,21 @@
 import ast
+from inspect import getsource
+from textwrap import dedent
 from typing import Callable
 
 from jinja2 import Template
+
+
+def get_source_code(func: Callable) -> str:
+    """Get the source code of a function.
+
+    Args:
+        func (Callable): The function to get the source code from.
+
+    Returns:
+        str: The source code of the function.
+    """
+    return dedent(getsource(func))
 
 
 def get_udf_instance(user_code: str) -> Callable:

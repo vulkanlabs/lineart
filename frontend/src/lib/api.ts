@@ -7,6 +7,7 @@ import { Policy } from "@vulkan-server/Policy";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 import { PolicyBase } from "@vulkan-server/PolicyBase";
 import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
+import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
 import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
 
 export async function fetchServerData({ endpoint, label }: { endpoint: string; label?: string }) {
@@ -84,6 +85,24 @@ export async function createPolicyVersion(data: PolicyVersionCreate) {
         });
 }
 
+export async function createDataSource(data: DataSourceSpec) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+
+    return fetch(new URL(`/data-sources`, serverUrl), {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+    })
+        .then((response) => {
+            return response.json();
+        })
+        .catch((error) => {
+            throw new Error(`Error creating data source ${data}`, { cause: error });
+        });
+}
+
 export async function updatePolicyVersion(policyVersionId: string, data: PolicyVersionBase) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     if (!serverUrl) {
@@ -92,7 +111,6 @@ export async function updatePolicyVersion(policyVersionId: string, data: PolicyV
     if (!policyVersionId) {
         throw new Error("Policy version ID is not defined");
     }
-    console.log(`updatePolicyVersion: ${policyVersionId}`, data);
 
     return fetch(new URL(`/policy-versions/${policyVersionId}`, serverUrl), {
         method: "PUT",

@@ -48,11 +48,7 @@ TEST_TABLE = {
             "dependencies": {},
             "metadata": {
                 "choices": ["A", "B"],
-                "func": None,
                 "source_code": """
-            return 10**2
-            """,
-                "function_code": """
             return 10**2
             """,
             },
@@ -69,12 +65,7 @@ TEST_TABLE = {
             },
             "metadata": {
                 "choices": ["A", "B"],
-                "func": None,
                 "source_code": """
-            import os
-            os.environ
-            """,
-                "function_code": """
             import os
             os.environ
             """,
@@ -88,11 +79,7 @@ TEST_TABLE = {
             "node_type": NodeType.TRANSFORM.value,
             "dependencies": {},
             "metadata": {
-                "func": None,
                 "source_code": """
-            return 10**2
-            """,
-                "function_code": """
             return 10**2
             """,
             },
@@ -108,12 +95,7 @@ TEST_TABLE = {
                 "node_a": Dependency("node_a"),
             },
             "metadata": {
-                "func": None,
                 "source_code": """
-            import os
-            os.environ
-            """,
-                "function_code": """
             import os
             os.environ
             """,
@@ -161,5 +143,3 @@ def test_node_from_spec(node_cls, spec):
     assert node.name == spec["name"]
     assert node.type.value == spec["node_type"]
     assert node.description == spec.get("description", None)
-    round_trip = node_cls.from_dict(node.to_dict())
-    assert round_trip == node

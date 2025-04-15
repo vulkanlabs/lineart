@@ -1,9 +1,12 @@
-from inspect import getsource
 from typing import Any, Callable, cast
 
 from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
 from vulkan_public.spec.nodes.metadata import TransformNodeMetadata
-from vulkan_public.spec.nodes.user_code import UserCodeException, get_udf_instance
+from vulkan_public.spec.nodes.user_code import (
+    UserCodeException,
+    get_source_code,
+    get_udf_instance,
+)
 
 
 class TransformNode(Node):
@@ -19,9 +22,8 @@ class TransformNode(Node):
     def __init__(
         self,
         name: str,
+        func: Callable,
         dependencies: dict[str, Any],
-        func: Callable | None = None,
-        source_code: str | None = None,
         description: str | None = None,
         hierarchy: list[str] | None = None,
     ):
@@ -65,48 +67,20 @@ class TransformNode(Node):
             dependencies=dependencies,
             hierarchy=hierarchy,
         )
-        if func is None and source_code is None:
-            raise ValueError("TransformNode must have a function or source code")
-        if func is not None and source_code is not None:
-            raise ValueError(
-                "TransformNode cannot have both a function and source code"
-            )
-
-        if source_code is not None:
-            if not isinstance(source_code, str):
-                msg = f"Expected source code as string, got ({type(source_code)})"
-                raise TypeError(msg)
-
-            try:
-                udf_instance = get_udf_instance(source_code)
-            except UserCodeException as e:
-                raise ValueError(f"Invalid user code in node {name}") from e
-            self.func = udf_instance
-            self.user_func = None
-            self.source_code = source_code
-            self.function_code = source_code
-
-        if func is not None:
-            if not callable(func):
-                msg = f"Expected callable, got ({type(func)})"
-                raise TypeError(msg)
-
-            self.func = func
-            self.user_func = func
-            self.source_code = None
-            self.function_code = getsource(func)
+        if not callable(func):
+            raise TypeError(f"Expected callable, got ({type(func)})")
+        self.func = func
 
     def node_definition(self) -> NodeDefinition:
+        # Get the text of source code for the user function
+        source_code: str = get_source_code(self.func)
+
         return NodeDefinition(
             name=self.name,
             description=self.description,
             node_type=self.type.value,
             dependencies=self.dependencies,
-            metadata=TransformNodeMetadata(
-                source_code=self.source_code,
-                func=self.user_func,
-                function_code=self.function_code,
-            ),
+            metadata=TransformNodeMetadata(source_code=source_code),
             hierarchy=self.hierarchy,
         )
 
@@ -117,11 +91,18 @@ class TransformNode(Node):
             raise ValueError(f"Metadata not set for node {definition.name}")
 
         metadata = cast(TransformNodeMetadata, definition.metadata)
+
+        try:
+            # Load the stringified source code into a Python executable and
+            # encapsulate it in a callable object.
+            udf_instance: Callable = get_udf_instance(metadata.source_code)
+        except UserCodeException as e:
+            raise ValueError(f"Invalid user code in node {definition.name}") from e
+
         return cls(
             name=definition.name,
             description=definition.description,
             dependencies=definition.dependencies,
-            func=metadata.func,
-            source_code=metadata.source_code,
+            func=udf_instance,
             hierarchy=definition.hierarchy,
         )

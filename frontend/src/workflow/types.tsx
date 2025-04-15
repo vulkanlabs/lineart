@@ -42,9 +42,18 @@ export type GenericNodeDefinition<MetadataType> = {
     hierarchy?: string[];
 };
 
+export type BranchNodeMetadata = {
+    source_code: string;
+    choices: string[];
+};
+
+export type DataInputNodeMetadata = {
+    data_source: string;
+};
+
 export type InputNodeMetadata = {
     schema: { [key: string]: string };
-}
+};
 
 export type TerminateNodeMetadata = {
     return_status: string;
@@ -52,16 +61,14 @@ export type TerminateNodeMetadata = {
 
 export type TransformNodeMetadata = {
     source_code: string;
-    func?: string | null;
 };
 
-export type BranchNodeMetadata = {
-    source_code: string;
-    func?: string | null;
-    choices: string[];
-};
+export type NodeMetadata =
+    | BranchNodeMetadata
+    | DataInputNodeMetadata
+    | TerminateNodeMetadata
+    | TransformNodeMetadata;
 
-export type NodeMetadata = TerminateNodeMetadata | TransformNodeMetadata | BranchNodeMetadata | InputNodeMetadata;
 export type NodeDefinition = GenericNodeDefinition<NodeMetadata>;
 
 export type GraphDefinition = {

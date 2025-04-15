@@ -24,6 +24,7 @@ from sqlalchemy.sql import func
 from vulkan_public.schemas import CachingOptions, DataSourceSpec
 
 from vulkan.core.run import JobStatus, RunStatus
+from vulkan_server.schemas import DataObjectOrigin
 
 Base = declarative_base()
 
@@ -308,6 +309,19 @@ class RunDataCache(Base):
 
     key = Column(String, primary_key=True)
     data_object_id = Column(Uuid, ForeignKey("data_object.data_object_id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class RunDataRequest(Base):
+    __tablename__ = "run_data_request"
+
+    run_data_request_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    run_id = Column(Uuid, ForeignKey("run.run_id"))
+    data_object_id = Column(Uuid, ForeignKey("data_object.data_object_id"))
+    data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
+    data_origin = Column(Enum(DataObjectOrigin), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

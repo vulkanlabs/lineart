@@ -161,7 +161,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
                 nodeTypes={nodeTypes}
                 // connectionLineType={ConnectionLineType.SmoothStep}
                 isValidConnection={isValidConnection}
-                fitView
+                // fitView
                 proOptions={{ hideAttribution: true }}
             >
                 <Background color="#ccc" variant={BackgroundVariant.Dots} />
@@ -248,7 +248,7 @@ function AppDropdownMenu({
                     .map((item) => {
                         const IconComponent = item?.icon ? iconMapping[item.icon] : undefined;
                         return (
-                            <a key={item.name} onMouseDown={() => onAddNode(item.id)}>
+                            <a key={item.name} onMouseDown={() => onAddNode(item.id.trim())}>
                                 <DropdownMenuItem className="flex items-center space-x-2">
                                     {IconComponent ? (
                                         <IconComponent aria-label={item?.icon} />
@@ -269,7 +269,6 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
         const inputNode = makeInputNode(policyVersion.input_schema, uiMetadata["input_node"]);
 
         // If no spec is defined, return an empty state: new version
-        console.log("policyVersion", policyVersion);
         if (!policyVersion.spec || policyVersion.spec.nodes.length === 0) {
             return defaultWorkflowState(inputNode);
         }

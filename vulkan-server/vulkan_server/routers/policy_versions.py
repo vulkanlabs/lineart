@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from vulkan_public.exceptions import DataSourceNotFoundException
+from vulkan_public.spec.nodes.base import NodeType
 
 from vulkan_server import definitions, schemas
 from vulkan_server.dagster.client import get_dagster_client
@@ -70,14 +71,29 @@ def create_policy_version(
     db.add(version)
     db.commit()
 
+    data_sources = [
+        node.metadata["data_source"]
+        for node in config.spec.nodes
+        if node.node_type == NodeType.DATA_INPUT.value
+    ]
+    if data_sources:
+        try:
+            _add_data_source_dependencies(db, version, data_sources)
+        except DataSourceNotFoundException as e:
+            err = "Failed to add data source dependencies"
+            logger.system.error(
+                f"{err} ({version.policy_version_id}): {e}", exc_info=True
+            )
+            msg = f"{err}. Policy Version ID: {version.policy_version_id}"
+            raise HTTPException(status_code=500, detail={"msg": msg}) from e
+
     try:
         dagster_service_client.update_workspace(
             workspace_id=version.policy_version_id,
             spec=spec,
             requirements=config.requirements,
         )
-        version.status = PolicyVersionStatus.VALID
-    except Exception as e:
+    except (ValueError, VulkanServerException) as e:
         logger.system.error(
             f"Failed to create workspace ({version.policy_version_id}): {e}",
             exc_info=True,
@@ -87,6 +103,15 @@ def create_policy_version(
             f"Policy Version ID: {version.policy_version_id}"
         )
         raise HTTPException(status_code=500, detail={"msg": msg}) from e
+
+    try:
+        dagster_service_client.ensure_workspace_added(str(version.policy_version_id))
+    except ValueError:
+        logger.system.error(
+            f"Failed to create workspace ({version.policy_version_id}), but that's OK",
+            exc_info=True,
+        )
+
     db.commit()
 
     logger.event(
@@ -154,7 +179,6 @@ def update_policy_version(
             spec=spec,
             requirements=config.requirements,
         )
-        version.status = PolicyVersionStatus.VALID
     except ValueError as e:
         logger.system.error(
             f"Failed to update workspace ({version.policy_version_id}): {e}",
@@ -164,8 +188,13 @@ def update_policy_version(
             "Failed to update policy version workspace. "
             f"Policy Version ID: {version.policy_version_id}"
         )
-
         raise HTTPException(status_code=500, detail={"msg": msg}) from e
+
+    try:
+        dagster_service_client.ensure_workspace_added(version.policy_version_id)
+        version.status = PolicyVersionStatus.VALID
+    except ValueError:
+        version.status = PolicyVersionStatus.INVALID
 
     db.commit()
     logger.event(
@@ -184,7 +213,6 @@ def _add_data_source_dependencies(
         db.query(DataSource)
         .filter(
             DataSource.name.in_(data_sources),
-            DataSource.project_id == version.project_id,
             DataSource.archived.is_(False),
         )
         .all()

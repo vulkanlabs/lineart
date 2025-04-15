@@ -209,7 +209,6 @@ def list_policy_versions(
 ):
     filters = dict(
         policy_id=policy_id,
-        status=PolicyVersionStatus.VALID,
     )
     if not include_archived:
         filters["archived"] = False

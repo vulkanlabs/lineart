@@ -5,8 +5,8 @@ def create(
     ctx: Context,
     policy_id: str,
     version_name: str,
-    input_schema: dict,
     spec: dict | None = None,
+    input_schema: dict[str, str] | None = None,
     requirements: list[str] | None = None,
 ):
     # TODO: improve UX by showing a loading animation

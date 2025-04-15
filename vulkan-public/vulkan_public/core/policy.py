@@ -1,3 +1,4 @@
+import builtins
 from copy import deepcopy
 from typing import Callable
 
@@ -17,7 +18,7 @@ class Policy(GraphDefinition):
     def __init__(
         self,
         nodes: list[Node],
-        input_schema: dict[str, type],
+        input_schema: dict[str, type | str],
         output_callback: Callable | None = None,
         hierarchy_level: str | None = None,
     ):
@@ -27,10 +28,7 @@ class Policy(GraphDefinition):
                 raise TypeError(msg)
             nodes = self._with_output_callback(nodes, output_callback)
 
-        if not all(
-            isinstance(k, str) and isinstance(v, type) for k, v in input_schema.items()
-        ):
-            raise TypeError("Input schema must be a dictionary of str -> type")
+        input_schema = _parse_input_schema(input_schema)
 
         all_nodes = [_make_input_node(input_schema), *nodes]
         if hierarchy_level is not None:
@@ -71,6 +69,25 @@ class Policy(GraphDefinition):
             output_callback=definition.output_callback,
             hierarchy_level=hierarchy_level,
         )
+
+
+def _parse_input_schema(input_schema: dict[str, type | str]) -> dict[str, type | str]:
+    """Parse the input schema to ensure that all types are valid."""
+    parsed_schema = {}
+    for key, value in input_schema.items():
+        if isinstance(value, str):
+            # If the type is a string, we assume it's a built-in type
+            if hasattr(builtins, value):
+                parsed_schema[key] = getattr(builtins, value)
+            else:
+                msg = f"Invalid type '{value}' for key '{key}'"
+                raise ValueError(msg)
+        elif isinstance(value, type):
+            parsed_schema[key] = value
+        else:
+            msg = f"Invalid type for key '{key}': {type(value)}"
+            raise ValueError(msg)
+    return parsed_schema
 
 
 def _make_input_node(input_schema) -> InputNode:
@@ -144,14 +161,6 @@ def resolve(nodes: list[Node]) -> list[Node]:
         resolved.append(node)
 
     return resolved
-
-
-def _make_input_node(input_schema) -> InputNode:
-    return InputNode(
-        name=INPUT_NODE,
-        description="Input node",
-        schema=input_schema,
-    )
 
 
 def _find_input_node(nodes: list[Node]) -> tuple[int, InputNode]:
