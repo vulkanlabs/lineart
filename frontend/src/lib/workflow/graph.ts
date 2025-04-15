@@ -1,11 +1,6 @@
 import ELK from "elkjs/lib/elk.bundled.js";
 import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
-import {
-    NodeLayoutConfig,
-    NodeDefinition,
-    EdgeLayoutConfig,
-    Dict,
-} from "@/lib/workflow/types";
+import { NodeLayoutConfig, NodeDefinition, EdgeLayoutConfig, Dict } from "@/lib/workflow/types";
 
 export const NodeTypeMapping = {
     TRANSFORM: "transform",
@@ -39,7 +34,6 @@ export function makeGraphElements(
 ): [NodeLayoutConfig[], EdgeLayoutConfig[]] {
     const structuredNodes = structureNodes(graphNodes).map((n) => withLayoutOptions(n, options));
     const flattenedNodes = structuredNodes.flatMap(flattenNode);
-    console.log(flattenedNodes);
 
     const nodesMap = Object.assign({}, ...flattenedNodes);
 
@@ -53,10 +47,23 @@ function structureNodes(nodes: NodeDefinitionDict[]): NodeLayoutConfig[] {
     return structuredNodes;
 }
 
-function makeNode(node: NodeDefinition, parent?: NodeDefinition): NodeLayoutConfig {
-    // TODO: Make the node width and height dynamic.
-    const nodeWidth = 210;
-    const nodeHeight = 42;
+type NodeDimensions = {
+    width: number;
+    height: number;
+};
+
+const defaultNodeDimensions: NodeDimensions = {
+    width: 210,
+    height: 42,
+};
+
+export function makeNode(
+    node: NodeDefinition,
+    parent?: NodeDefinition,
+    dimensions?: NodeDimensions,
+): NodeLayoutConfig {
+    const nodeWidth = dimensions?.width || defaultNodeDimensions.width;
+    const nodeHeight = dimensions?.height || defaultNodeDimensions.height;
 
     let nodeConfig: NodeLayoutConfig = {
         id: node.name,
@@ -102,7 +109,7 @@ function makeNode(node: NodeDefinition, parent?: NodeDefinition): NodeLayoutConf
     return nodeConfig;
 }
 
-function withLayoutOptions(n: NodeLayoutConfig, options: Dict): NodeLayoutConfig {
+export function withLayoutOptions(n: NodeLayoutConfig, options: Dict): NodeLayoutConfig {
     return {
         ...n,
         layoutOptions: options,

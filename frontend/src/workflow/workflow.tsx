@@ -1,6 +1,9 @@
 "use client";
-import { useShallow } from "zustand/react/shallow";
 import React, { useState, useCallback, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
+import { SaveIcon } from "lucide-react";
+import { toast } from "sonner";
+import ELK from "elkjs/lib/elk.bundled.js";
 import {
     ReactFlow,
     ReactFlowProvider,
@@ -16,6 +19,10 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
+import { PolicyVersion } from "@vulkan-server/PolicyVersion";
+import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
+import { UIMetadata } from "@vulkan-server/UIMetadata";
+
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -24,18 +31,16 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { layoutGraph, makeNode, withLayoutOptions } from "@/lib/workflow/graph";
+
 import { useDropdown } from "./hooks/use-dropdown";
 import { createNodeByType, nodesConfig } from "./nodes";
 import { iconMapping } from "./icons";
 import { nodeTypes } from "./components";
 import { WorkflowProvider, useWorkflowStore } from "./store";
-import { SaveIcon } from "lucide-react";
 import { saveWorkflowSpec } from "./actions";
-import { toast } from "sonner";
 import { GraphDefinition, VulkanNode, WorkflowState } from "./types";
-import { PolicyVersion } from "@vulkan-server/PolicyVersion";
-import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
-import { UIMetadata } from "@vulkan-server/UIMetadata";
+import { set } from "date-fns";
 
 type OnNodeClick = (e: React.MouseEvent, node: any) => void;
 type OnPaneClick = (e: React.MouseEvent) => void;
@@ -54,6 +59,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
         getInputSchema,
         addNodeByType,
         getNodes,
+        setNodes,
         getEdges,
         onNodesChange,
         onEdgesChange,
@@ -66,6 +72,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
             getInputSchema: state.getInputSchema,
             addNodeByType: state.addNodeByType,
             getNodes: state.getNodes,
+            setNodes: state.setNodes,
             getEdges: state.getEdges,
             onNodesChange: state.onNodesChange,
             onEdgesChange: state.onEdgesChange,
@@ -104,6 +111,32 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
         },
         [getNodes, getEdges],
     );
+
+    const onInit = useCallback(() => {
+        if (!policyVersion.ui_metadata) {
+            let unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => {
+                return {
+                    ...node,
+                    layoutOptions: defaultElkOptions,
+                };
+            });
+
+            getLayoutedNodes(unpositionedNodes, edges, defaultElkOptions).then(
+                (layoutedNodes: any) => {
+                    const nodesMap = Object.fromEntries(
+                        layoutedNodes.map((node) => [node.id, node]),
+                    );
+                    const newNodes = nodes.map((node) => {
+                        return {
+                            ...node,
+                            position: nodesMap[node.id].position,
+                        };
+                    });
+                    setNodes(newNodes);
+                },
+            );
+        }
+    }, [policyVersion, nodes, edges, setNodes]);
 
     const onConnectEnd = useCallback((event, connectionState) => {
         // when a connection is dropped on the pane it's not valid
@@ -152,6 +185,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
+                onInit={onInit}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onNodeClick={clickNode}
@@ -263,6 +297,15 @@ function AppDropdownMenu({
     );
 }
 
+function getDefaultUIMetadata(nodeType: string) {
+    const nodeConfig = nodesConfig[nodeType];
+    return {
+        position: { x: 0, y: 0 },
+        width: nodeConfig.width,
+        height: nodeConfig.height,
+    };
+}
+
 export default function WorkflowFrame({ policyVersion }: { policyVersion: PolicyVersion }) {
     const initialState: WorkflowState = useMemo(() => {
         const uiMetadata = policyVersion.ui_metadata || {};
@@ -278,7 +321,7 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
 
         // Map server nodes to ReactFlow node format
         const flowNodes: VulkanNode[] = nodes.map((node) => {
-            const nodeUIMetadata = uiMetadata ? uiMetadata[node.name] : null;
+            const nodeUIMetadata = uiMetadata[node.name] || getDefaultUIMetadata(node.node_type);
             const position: XYPosition = nodeUIMetadata.position;
             const height = nodeUIMetadata.height;
             const width = nodeUIMetadata.width;
@@ -424,4 +467,54 @@ function makeEdgesFromDependencies(nodes: NodeDefinitionDict[]): Edge[] {
     });
 
     return edgeList;
+}
+
+const defaultElkOptions = {
+    "elk.algorithm": "layered",
+    "elk.layered.nodePlacement.strategy": "SIMPLE",
+    "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
+    "elk.layered.spacing.nodeNodeBetweenLayers": 50,
+    "elk.spacing.nodeNode": 80,
+    "elk.aspectRatio": 1.0,
+    "elk.center": true,
+    "elk.direction": "RIGHT",
+};
+
+type UnlayoutedVulkanNode = VulkanNode & {
+    layoutOptions?: any;
+};
+
+async function getLayoutedNodes(nodes: any[], edges: any[], options: any): Promise<any[]> {
+    const elk = new ELK();
+    const graph = {
+        id: "root",
+        layoutOptions: options,
+        children: [{ id: "all", layoutOptions: options, children: nodes }],
+        edges: edges,
+    };
+
+    return elk
+        .layout(graph)
+        .then((layoutedGraph: any) => {
+            const format_node = (node: any) => ({
+                ...node,
+                // React Flow expects a position property on the node instead of `x`
+                // and `y` fields.
+                position: { x: node.x, y: node.y },
+            });
+
+            const extractChildren = (node: any) => {
+                if (node.children) {
+                    const children = node.children.flatMap((child: any) => extractChildren(child));
+                    return [format_node(node), ...children];
+                }
+                return format_node(node);
+            };
+
+            let nodes = layoutedGraph.children.flatMap((node: any) => extractChildren(node));
+            nodes = nodes.filter((node: any) => node.id !== "all");
+
+            return nodes;
+        })
+        .catch(console.error);
 }
