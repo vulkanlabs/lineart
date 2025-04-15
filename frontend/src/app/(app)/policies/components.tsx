@@ -34,7 +34,6 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { createPolicy } from "@/lib/api";
-import { useStackApp } from "@stackframe/stack";
 import { Sending } from "@/components/animations/sending";
 
 export function PoliciesPage({ policies }: { policies: any[] }) {
@@ -66,7 +65,6 @@ const formSchema = z.object({
 });
 
 function CreatePolicyDialog() {
-    const stackApp = useStackApp();
     const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();

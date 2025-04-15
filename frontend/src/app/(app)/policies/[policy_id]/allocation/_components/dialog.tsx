@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useStackApp } from "@stackframe/stack";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { toast } from "sonner";
