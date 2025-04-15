@@ -16,6 +16,7 @@ import {
 
 import { useWorkflowStore } from "../store";
 import { iconMapping } from "../icons";
+import { standardizeNodeName } from "../names";
 
 export const defaultHandleStyle = {
     width: 12,
@@ -106,7 +107,10 @@ export function WorkflowNode({
                             <input
                                 value={data.name}
                                 onChange={(e) => setNodeName(e.target.value)}
-                                onBlur={toggleNameEditor}
+                                onBlur={(e) => {
+                                    setNodeName(standardizeNodeName(e.target.value));
+                                    toggleNameEditor();
+                                }}
                                 autoFocus
                             />
                         ) : (

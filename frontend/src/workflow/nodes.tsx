@@ -1,6 +1,7 @@
 import { XYPosition } from "@xyflow/react";
 
 import { VulkanNodeType, VulkanNode, NodeConfig } from "./types";
+import { standardizeNodeName } from "./names";
 
 export const NODE_SIZE = { width: 320, height: 50 };
 
@@ -108,10 +109,10 @@ export function createNodeByType({
     // Find all existing nodes of this type and create the new name
     const sameTypeNodes = existingNodes.filter((n) => n.type === type);
     const nextNumber = sameTypeNodes.length + 1;
-    const uniqueName = `${node.name} ${nextNumber}`;
+    const uniqueName = standardizeNodeName(`${node.name} ${nextNumber}`);
 
     const newNode: VulkanNode = {
-        id: standardizeNodeName(uniqueName),
+        id: uniqueName,
         data: {
             name: uniqueName,
             minWidth: width,
@@ -129,8 +130,4 @@ export function createNodeByType({
     };
 
     return newNode;
-}
-
-export function standardizeNodeName(name: string): string {
-    return name.replace(/\s+/g, "_").toLowerCase();
 }

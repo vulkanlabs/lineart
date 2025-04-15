@@ -14,6 +14,8 @@ const fieldNameSchema = z
     .regex(/^[a-z0-9_]+$/, "Field names must be lowercase alphanumeric or underscores")
     .min(1, "Field name cannot be empty");
 
+const fieldTypes = ["str", "int", "float", "bool"];
+
 export function InputNode({ id, data, selected, width }) {
     const [editingFields, setEditingFields] = useState({});
     const [invalidFields, setInvalidFields] = useState({});
@@ -213,8 +215,6 @@ export function InputNode({ id, data, selected, width }) {
             },
         });
     };
-
-    const fieldTypes = ["string", "number", "boolean", "object", "array"];
 
     return (
         <WorkflowNode

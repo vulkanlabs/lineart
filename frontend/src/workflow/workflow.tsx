@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDropdown } from "./hooks/use-dropdown";
-import { createNodeByType, nodesConfig, standardizeNodeName } from "./nodes";
+import { createNodeByType, nodesConfig } from "./nodes";
 import { iconMapping } from "./icons";
 import { nodeTypes } from "./components";
 import { WorkflowProvider, useWorkflowStore } from "./store";
@@ -285,7 +285,7 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
 
             const nodeType = node.node_type as keyof typeof iconMapping;
             return {
-                id: standardizeNodeName(node.name),
+                id: node.name,
                 type: nodeType,
                 height: height,
                 width: width,
@@ -375,11 +375,11 @@ function makeEdgesFromDependencies(nodes: NodeDefinitionDict[]): Edge[] {
             return;
         }
 
-        const target = standardizeNodeName(node.name);
+        const target = node.name;
         const targetHandle = null;
 
         Object.entries(node.dependencies).forEach(([_, dep]) => {
-            const source = standardizeNodeName(dep.node);
+            const source = dep.node;
             let sourceHandle = null;
 
             // If the output is specified, we need to find the corresponding

@@ -82,8 +82,8 @@ _SUPPORTED_TYPES = {
     "float": float,
     "str": str,
     "bool": bool,
-    "list": list,
-    "dict": dict,
-    "tuple": tuple,
-    "set": set,
+    # "list": list,
+    # "dict": dict,
+    # "tuple": tuple,
+    # "set": set,
 }
