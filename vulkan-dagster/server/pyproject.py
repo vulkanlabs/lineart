@@ -24,6 +24,6 @@ def set_dependencies(
     if "project" not in pyproject:
         raise ValueError(f"Invalid pyproject file: {file_path}")
 
-    pyproject["dependencies"] = dependencies
+    pyproject["project"]["dependencies"] = dependencies
     with open(file_path, "w") as f:
         tomlkit.dump(pyproject, f)

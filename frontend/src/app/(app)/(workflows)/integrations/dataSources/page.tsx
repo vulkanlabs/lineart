@@ -1,11 +1,8 @@
-import { stackServerApp } from "@/stack";
-
 import DataSourcesPage from "./components";
 import { fetchDataSources } from "@/lib/api";
 
 export default async function Page() {
-    const user = await stackServerApp.getUser();
-    const dataSources = await fetchDataSources(user).catch((error) => {
+    const dataSources = await fetchDataSources().catch((error) => {
         console.error(error);
         return [];
     });

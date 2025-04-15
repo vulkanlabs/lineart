@@ -1,20 +1,15 @@
-import { stackServerApp } from "@/stack";
 
 import { listUploadedFiles } from "@/lib/api";
 import { BacktestLauncherPage } from "./components";
-import { getAuthHeaders } from "@/lib/auth";
 
 export default async function Page(props: any) {
     const params = await props.params;
-    const user = await stackServerApp.getUser();
-    const authHeaders = await getAuthHeaders(user);
-    const uploadedFiles = await listUploadedFiles(user).catch((error) => {
+    const uploadedFiles = await listUploadedFiles().catch((error) => {
         console.error(error);
         return [];
     });
     return (
         <BacktestLauncherPage
-            authHeaders={authHeaders}
             launchFn={launchBacktestFormAction}
             uploadedFiles={uploadedFiles}
             policyVersionId={params.policy_version_id}

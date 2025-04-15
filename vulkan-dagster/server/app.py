@@ -35,6 +35,7 @@ def create_workspace(
         if requirements:
             logger.debug(f"Adding requirements to workspace: {vm.workspace_path}")
             vm.set_requirements(requirements)
+
         if spec:
             logger.debug(f"Adding spec to workspace: {spec}")
             vm.add_spec(spec)

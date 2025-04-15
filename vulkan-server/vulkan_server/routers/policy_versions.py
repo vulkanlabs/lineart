@@ -173,7 +173,7 @@ def update_policy_version(
             requirements=config.requirements,
         )
         version.status = PolicyVersionStatus.VALID
-    except Exception as e:
+    except ValueError as e:
         logger.system.error(
             f"Failed to update workspace ({version.policy_version_id}): {e}",
             exc_info=True,
@@ -182,6 +182,7 @@ def update_policy_version(
             "Failed to update policy version workspace. "
             f"Policy Version ID: {version.policy_version_id}"
         )
+
         raise HTTPException(status_code=500, detail={"msg": msg}) from e
 
     db.commit()
@@ -351,13 +352,16 @@ def list_config_variables(
         raise HTTPException(status_code=404, detail=msg)
 
     required_variables = version.variables
+    if required_variables is None:
+        return Response(status_code=204)
+
     variables = (
         db.query(ConfigurationValue)
         .filter_by(policy_version_id=policy_version_id)
         .all()
     )
-
     variable_map = {v.name: v for v in variables}
+
     result = []
     for variable_name in required_variables:
         entry = {"name": variable_name}

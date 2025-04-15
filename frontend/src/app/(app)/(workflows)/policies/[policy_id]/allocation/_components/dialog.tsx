@@ -36,7 +36,6 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { createPolicy } from "@/lib/api";
 
 const formSchema = z.object({
@@ -52,8 +51,6 @@ enum AllocationStrategy {
 }
 
 export function UpdateAllocationsDialog({ policyVersions }: { policyVersions: PolicyVersion[] }) {
-    const stackApp = useStackApp();
-    const user = stackApp.getUser();
     const [open, setOpen] = useState(false);
     const [strategy, setStrategy] = useState(null);
     const router = useRouter();
@@ -75,7 +72,7 @@ export function UpdateAllocationsDialog({ policyVersions }: { policyVersions: Po
     }
 
     const onSubmit = async (data: any) => {
-        await createPolicy(user, data)
+        await createPolicy(data)
             .then(() => {
                 setOpen(false);
                 form.reset();

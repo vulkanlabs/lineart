@@ -20,13 +20,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { AuthHeaders } from "@/lib/auth";
 
 export function LauncherPage({
-    authHeaders,
     policyVersionId,
     inputSchema,
     configVariables,
     launchFn,
 }: {
-    authHeaders: AuthHeaders;
     policyVersionId: string;
     inputSchema: Map<string, string>;
     configVariables?: string[];
@@ -46,7 +44,6 @@ export function LauncherPage({
                     defaultInputData={asInputData(inputSchema)}
                     defaultConfigVariables={asConfigMap(configVariables)}
                     launchFn={launchFn}
-                    headers={authHeaders}
                 />
             </div>
             {createdRun && <RunCreatedCard createdRun={createdRun} />}
@@ -70,7 +67,6 @@ type LaunchRunFormProps = {
     setCreatedRun: (run: any) => void;
     setError: (error: any) => void;
     launchFn: any;
-    headers: any;
 };
 
 function LaunchRunForm({
@@ -80,7 +76,6 @@ function LaunchRunForm({
     setCreatedRun,
     setError,
     launchFn,
-    headers,
 }: LaunchRunFormProps) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const launchUrl = `${serverUrl}/policy-versions/${policy_version_id}/runs`;
@@ -109,7 +104,7 @@ function LaunchRunForm({
         setSubmitting(true);
         setError(null);
         setCreatedRun(null);
-        launchFn({ launchUrl, body, headers })
+        launchFn({ launchUrl, body })
             .then((data) => {
                 setCreatedRun(data);
                 setError(null);
