@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: '*'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install uv
+      run: |
+        pip install uv
+        
+    - name: Install dependencies with uv
+      run: |
+        uv sync
+        
+    - name: Run tests with uv
+      run: |
+        uv run pytest -m "not integration"
+
+  python-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install linting tools
+      run: |
+        pip install ruff black isort
+        
+    - name: Check imports with isort
+      run: |
+        ruff check --select I --extend-exclude="scripts/*,vulkan-public/docs/*,upload-svc/*"
+        
+    - name: Lint with ruff
+      run: |
+         ruff check . --extend-exclude="scripts/*,vulkan-public/docs/*,upload-svc/*" --extend-ignore="F401"
+
+  js-build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-directory: ['frontend']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '23'
+        cache: 'npm'
+        cache-dependency-path: '${{ matrix.node-directory }}/package-lock.json'
+        
+    - name: Install dependencies
+      working-directory: ${{ matrix.node-directory }}
+      run: npm ci
+      
+    - name: Lint JavaScript/TypeScript
+      working-directory: ${{ matrix.node-directory }}
+      run: npm run lint
+      
+    - name: Build
+      working-directory: ${{ matrix.node-directory }}
+      run: npm run build

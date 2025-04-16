@@ -51,3 +51,14 @@ To install it, the recommended path is:
 1. Install OpenJDK (pre-requisite) 
 2. Install `openapi-generator` via npm:
    1. `npm install @openapitools/openapi-generator-cli -g`
+
+### Continuous Integration
+
+This project uses GitHub Actions for CI.
+Follow the steps below to be able to run these locally.
+
+0. Ensure you have Docker installed
+1. Install [Act](https://github.com/nektos/act) using the [appropriate method](https://nektosact.com/installation/index.html)   
+2. (M-series Macs) Create an alias: `alias act="act --container-architecture=linux/amd64"`
+3. Run `act`
+   - When asked, choose the "Medium" sized image
