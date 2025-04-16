@@ -49,7 +49,7 @@ TEST_TABLE = {
             "metadata": {
                 "choices": ["A", "B"],
                 "source_code": """
-            return 10**2
+return 10**2
             """,
             },
         },
@@ -66,8 +66,8 @@ TEST_TABLE = {
             "metadata": {
                 "choices": ["A", "B"],
                 "source_code": """
-            import os
-            os.environ
+import os
+os.environ
             """,
             },
         },
@@ -80,7 +80,7 @@ TEST_TABLE = {
             "dependencies": {},
             "metadata": {
                 "source_code": """
-            return 10**2
+return 10**2
             """,
             },
         },
@@ -96,8 +96,8 @@ TEST_TABLE = {
             },
             "metadata": {
                 "source_code": """
-            import os
-            os.environ
+import os
+os.environ
             """,
             },
         },

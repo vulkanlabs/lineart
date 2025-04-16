@@ -95,7 +95,9 @@ class TransformNode(Node):
         try:
             # Load the stringified source code into a Python executable and
             # encapsulate it in a callable object.
-            udf_instance: Callable = get_udf_instance(metadata.source_code)
+            udf_instance: Callable = get_udf_instance(
+                metadata.source_code, definition.dependencies
+            )
         except UserCodeException as e:
             raise ValueError(f"Invalid user code in node {definition.name}") from e
 
