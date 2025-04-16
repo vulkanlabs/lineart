@@ -1,6 +1,6 @@
 from vulkan_public.spec.dependency import Dependency
-from vulkan_public.spec.nodes import NodeType, TransformNode, BranchNode
-from vulkan_public.spec.nodes.metadata import TransformNodeMetadata, BranchNodeMetadata
+from vulkan_public.spec.nodes import BranchNode, NodeType, TransformNode
+from vulkan_public.spec.nodes.metadata import BranchNodeMetadata, TransformNodeMetadata
 
 
 def test_transform_node():
