@@ -1,18 +1,22 @@
-import { fetchPolicyVersion, fetchRun, fetchRunsData, fetchRunLogs } from "@/lib/api";
+import { fetchPolicyVersion, fetchRunData, fetchRunLogs } from "@/lib/api";
 
 import RunPageContent from "@/components/run/run-page-content";
-import type { GraphDefinition, NodeLayoutConfig } from "@/lib/workflow/types";
+import type { NodeLayoutConfig } from "@/lib/workflow/types";
 import { makeGraphElements } from "@/lib/workflow/graph";
+
+import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
+import { PolicyVersion } from "@vulkan-server/PolicyVersion";
+import { RunData } from "@vulkan-server/RunData";
+import { RunLogs } from "@vulkan-server/RunLogs";
 
 import type { RunNodeLayout } from "@/components/run/types";
 import { defaultElkOptions } from "@/components/run/options";
 
 export async function RunPage({ runId }: { runId: string }) {
-    const runLogs = await fetchRunLogs(runId);
-    const runData = await fetchRunsData(runId);
-    const run = await fetchRun(runId);
+    const runLogs: RunLogs = await fetchRunLogs(runId);
+    const runData: RunData = await fetchRunData(runId);
 
-    const graphDefinition = await getGraphDefinition(run["policy_version_id"]);
+    const graphDefinition = await getGraphDefinition(runData.policy_version_id);
     const [nodes, edges] = makeGraphElements(graphDefinition, defaultElkOptions);
     const flatNodes = nodes.reduce((acc: NodeLayoutConfig[], node) => {
         if (node.data.type === "COMPONENT") {
@@ -36,12 +40,18 @@ export async function RunPage({ runId }: { runId: string }) {
     return <RunPageContent nodes={runNodes} edges={edges} runLogs={runLogs} runData={runData} />;
 }
 
-async function getGraphDefinition(policyVersionId: string): Promise<GraphDefinition> {
-    const policyVersion = await fetchPolicyVersion(policyVersionId).catch((e) => {
-        console.error(`Failed to fetch policy version: ${e}`);
-        return null;
-    });
-    const graphData: GraphDefinition = JSON.parse(policyVersion?.graph_definition || "{}");
-
-    return graphData;
+async function getGraphDefinition(
+    policyVersionId: string,
+): Promise<Array<NodeDefinitionDict | null>> {
+    const policyVersion: PolicyVersion = await fetchPolicyVersion(policyVersionId);
+    let nodes: Array<NodeDefinitionDict | null> = policyVersion?.spec.nodes || [];
+    if (nodes.length > 0) nodes.push(inputNode);
+    return nodes;
 }
+
+const inputNode: NodeDefinitionDict = {
+    name: "input_node",
+    node_type: "INPUT",
+    dependencies: null,
+    metadata: null,
+};

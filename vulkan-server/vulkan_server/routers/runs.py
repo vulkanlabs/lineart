@@ -31,6 +31,7 @@ def get_run_data(
 
     run_data = {
         "run_id": run_id,
+        "policy_version_id": run.policy_version_id,
         "status": run.status,
         "last_updated_at": run.last_updated_at,
         "steps": {},

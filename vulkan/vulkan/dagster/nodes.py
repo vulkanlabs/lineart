@@ -120,10 +120,10 @@ class DagsterDataInput(DataInputNode, DagsterNode):
     @classmethod
     def from_spec(cls, node: DataInputNode):
         return cls(
-            name=_format_dagster_name(node.name),
+            name=node.name,
             data_source=node.data_source,
             description=node.description,
-            dependencies=_format_dagster_dependencies(node.dependencies),
+            dependencies=node.dependencies,
         )
 
 
@@ -196,10 +196,10 @@ class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
     @classmethod
     def from_spec(cls, node: TransformNode):
         return cls(
-            name=_format_dagster_name(node.name),
+            name=node.name,
             description=node.description,
             func=node.func,
-            dependencies=_format_dagster_dependencies(node.dependencies),
+            dependencies=node.dependencies,
         )
 
 
@@ -271,10 +271,10 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
     @classmethod
     def from_spec(cls, node: TerminateNode):
         return cls(
-            name=_format_dagster_name(node.name),
+            name=node.name,
             description=node.description,
             return_status=node.return_status,
-            dependencies=_format_dagster_dependencies(node.dependencies),
+            dependencies=node.dependencies,
             callback=node.callback,
         )
 
@@ -335,11 +335,11 @@ class DagsterBranch(BranchNode, DagsterNode):
     @classmethod
     def from_spec(cls, node: BranchNode):
         return cls(
-            name=_format_dagster_name(node.name),
+            name=node.name,
             description=node.description,
             func=node.func,
             choices=node.choices,
-            dependencies=_format_dagster_dependencies(node.dependencies),
+            dependencies=node.dependencies,
         )
 
 
