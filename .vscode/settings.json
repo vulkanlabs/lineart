@@ -6,7 +6,6 @@
     "vulkan-dagster/": true,
     "vulkan-public/": true,
     "upload-svc/": true,
-    "resolution-svc/": true
   },
   "python.defaultInterpreterPath": ".venv/bin/python",
   "[javascript]": {
