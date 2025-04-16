@@ -47,6 +47,7 @@ def test_policy_version_crud_create(context):
         ctx=context,
         policy_version_id=policy_version_id,
     )
+    vulkan.policy.delete_policy(context, policy_id=policy_id)
 
 
 def test_policy_version_crud_update(context):
@@ -101,3 +102,4 @@ def test_policy_version_crud_update(context):
         ctx=context,
         policy_version_id=policy_version["policy_version_id"],
     )
+    vulkan.policy.delete_policy(context, policy_id=policy_id)
