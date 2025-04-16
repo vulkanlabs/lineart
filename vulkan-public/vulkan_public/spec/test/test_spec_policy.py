@@ -227,7 +227,7 @@ TEST_TABLE = {
     [(cls, spec) for cls, spec in TEST_TABLE.values()],
     ids=list(TEST_TABLE.keys()),
 )
-def test_node_from_spec(node_cls, spec):
+def test_policy_node_from_spec(node_cls, spec):
     node = node_cls.from_dict(spec)
     assert node.name == spec["name"]
     assert node.type.value == spec["node_type"]
