@@ -7,13 +7,7 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { DataTable } from "@/components/data-table";
-import { DetailsButton } from "@/components/details-button";
-import { ShortenedID } from "@/components/shortened-id";
 import { Button } from "@/components/ui/button";
-import { parseDate } from "@/lib/utils";
-import { ColumnDef } from "@tanstack/react-table";
-import { Policy } from "@vulkan-server/Policy";
 import {
     Dialog,
     DialogContent,
@@ -36,35 +30,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { createPolicy } from "@/lib/api";
 import { Sending } from "@/components/animations/sending";
 
-export function PoliciesPage({ policies }: { policies: any[] }) {
-    const router = useRouter();
-
-    return (
-        <div>
-            <div className="flex gap-4">
-                <Button variant="outline" onClick={() => router.refresh()}>
-                    Refresh
-                </Button>
-                <CreatePolicyDialog />
-            </div>
-            <div className="my-4">
-                <DataTable
-                    columns={PolicyTableColumns}
-                    data={policies}
-                    emptyMessage="You don't have any policies yet."
-                    className="max-h-[67vh]"
-                />
-            </div>
-        </div>
-    );
-}
-
 const formSchema = z.object({
     name: z.string().min(1),
     description: z.string().min(0),
 });
 
-function CreatePolicyDialog() {
+export function CreatePolicyDialog() {
     const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
@@ -152,39 +123,3 @@ function CreatePolicyDialog() {
         </Dialog>
     );
 }
-
-const PolicyTableColumns: ColumnDef<Policy>[] = [
-    {
-        accessorKey: "link",
-        header: "",
-        cell: ({ row }) => (
-            <DetailsButton href={`/policies/${row.getValue("policy_id")}/overview`} />
-        ),
-    },
-    {
-        header: "ID",
-        accessorKey: "policy_id",
-        cell: ({ row }) => <ShortenedID id={row.getValue("policy_id")} />,
-    },
-    { header: "Name", accessorKey: "name" },
-    {
-        header: "Description",
-        accessorKey: "description",
-        cell: ({ row }) => row.getValue("description") || "-",
-    },
-    {
-        header: "Active Version",
-        accessorKey: "active_policy_version_id",
-        cell: ({ row }) =>
-            row.getValue("active_policy_version_id") == null ? (
-                "-"
-            ) : (
-                <ShortenedID id={row.getValue("active_policy_version_id")} />
-            ),
-    },
-    {
-        header: "Last Updated At",
-        accessorKey: "last_updated_at",
-        cell: ({ row }) => parseDate(row.getValue("last_updated_at")),
-    },
-];

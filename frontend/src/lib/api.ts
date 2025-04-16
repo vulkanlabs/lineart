@@ -67,6 +67,19 @@ export async function createPolicy(data: PolicyBase) {
         });
 }
 
+export async function deletePolicy(policyId: string) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    return fetch(new URL(`/policies/${policyId}`, serverUrl), {
+        method: "DELETE",
+    })
+        .then((response) => {
+            return response.json();
+        })
+        .catch((error) => {
+            throw new Error(`Error deleting policy ${policyId}`, { cause: error });
+        });
+}
+
 export async function createPolicyVersion(data: PolicyVersionCreate) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
 
