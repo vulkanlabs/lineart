@@ -16,7 +16,6 @@ from vulkan_server.dagster.service_client import (
 from vulkan_server.db import (
     BeamWorkspace,
     ConfigurationValue,
-    DagsterWorkspace,
     DataSource,
     Policy,
     PolicyDataDependency,
@@ -252,9 +251,6 @@ def delete_policy_version(
     policy_version_id: str,
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
-    resolution_service: ResolutionServiceClient = Depends(
-        get_resolution_service_client
-    ),
     dagster_launcher_client: VulkanDagsterServiceClient = Depends(
         get_dagster_service_client
     ),
@@ -272,29 +268,23 @@ def delete_policy_version(
     policy: Policy = (
         db.query(Policy).filter_by(policy_id=policy_version.policy_id).first()
     )
-    strategy = schemas.PolicyAllocationStrategy.model_validate(
-        policy.allocation_strategy
-    )
-    active_versions = [opt.policy_version_id for opt in strategy.choice]
-    if strategy.shadow is not None:
-        active_versions += [strategy.shadow.policy_version_id]
-
-    if policy_version_id in active_versions:
-        msg = (
-            f"Policy version {policy_version_id} is currently in use by the policy "
-            f"allocation strategy for policy {policy.policy_id}"
+    if policy.allocation_strategy is not None:
+        strategy = schemas.PolicyAllocationStrategy.model_validate(
+            policy.allocation_strategy
         )
-        raise HTTPException(status_code=400, detail=msg)
+        active_versions = [opt.policy_version_id for opt in strategy.choice]
+        if strategy.shadow is not None:
+            active_versions += [strategy.shadow.policy_version_id]
 
-    workspace = (
-        db.query(DagsterWorkspace)
-        .filter_by(policy_version_id=policy_version_id)
-        .first()
-    )
+        if policy_version_id in active_versions:
+            msg = (
+                f"Policy version {policy_version_id} is currently in use by the policy "
+                f"allocation strategy for policy {policy.policy_id}"
+            )
+            raise HTTPException(status_code=400, detail=msg)
 
     name = definitions.version_name(policy_version_id)
     try:
-        _ = resolution_service.delete_workspace(name)
         dagster_launcher_client.delete_workspace(name)
         dagster_launcher_client.ensure_workspace_removed(name)
     except Exception as e:
@@ -303,7 +293,6 @@ def delete_policy_version(
             detail=f"Error deleting policy version {policy_version_id}: {str(e)}",
         )
 
-    db.delete(workspace)
     policy_version.archived = True
     db.commit()
 

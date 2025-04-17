@@ -1,32 +1,19 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
-import { ArrowUpDown, MoreHorizontal, Trash } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
-import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { DetailsButton } from "@/components/details-button";
 import { ShortenedID } from "@/components/shortened-id";
-import { ResourceTable } from "@/components/resource-table";
-import { Button } from "@/components/ui/button";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
+    DeletableResourceTable,
+    DeletableResourceTableActions,
+    SearchFilterOptions,
+    DeleteResourceOptions,
+} from "@/components/resource-table";
+
 import { parseDate } from "@/lib/utils";
 import { deletePolicyVersion } from "@/lib/api";
 
@@ -35,13 +22,6 @@ import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 
 import { CreatePolicyVersionDialog } from "./create-version";
 
-// Create a context for policy deletion
-type DeletePolicyContextType = {
-    openDeleteDialog: (policy: Policy) => void;
-};
-
-const DeletePolicyContext = React.createContext<DeletePolicyContextType | undefined>(undefined);
-
 export function PolicyVersionsTable({
     policy,
     policyVersions,
@@ -49,10 +29,6 @@ export function PolicyVersionsTable({
     policy: Policy;
     policyVersions: PolicyVersion[];
 }) {
-    const [versionToDelete, setVersionToDelete] = React.useState<PolicyVersion | null>(null);
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-    const router = useRouter();
-
     const activeVersions = getActiveVersions(policy);
     const formattedVersions = policyVersions.map((policyVersion) => {
         let status = "inactive";
@@ -65,63 +41,26 @@ export function PolicyVersionsTable({
         };
     });
 
-    const openDeleteDialog = React.useCallback((policyVersion: PolicyVersion) => {
-        setVersionToDelete(policyVersion);
-        setIsDeleteDialogOpen(true);
-    }, []);
+    const searchOptions: SearchFilterOptions = {
+        column: "alias",
+        label: "Tag",
+    };
 
-    const closeDeleteDialog = React.useCallback(() => {
-        setIsDeleteDialogOpen(false);
-    }, []);
-
-    const onDelete = async () => {
-        if (!versionToDelete) return;
-
-        try {
-            await deletePolicyVersion(versionToDelete.policy_version_id);
-            toast("Policy version deleted", {
-                description: `Policy version ${versionToDelete.alias} has been deleted.`,
-                dismissible: true,
-            });
-            closeDeleteDialog();
-            router.refresh();
-        } catch (error) {
-            closeDeleteDialog();
-            toast.error(`${error.cause}`);
-        }
+    const deleteOptions: DeleteResourceOptions = {
+        resourceType: "Policy Version",
+        resourceIdColumn: "policy_version_id",
+        resourceNameColumn: "alias",
+        deleteResourceFunction: deletePolicyVersion,
     };
 
     return (
-        <DeletePolicyContext.Provider value={{ openDeleteDialog }}>
-            <div>
-                <ResourceTable
-                    columns={policyVersionsTableColumns}
-                    data={formattedVersions}
-                    searchFilter={{ column: "alias", label: "Tag" }}
-                    CreationDialog={<CreatePolicyVersionDialog policyId={policy.policy_id} />}
-                />
-            </div>
-
-            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Delete Policy</DialogTitle>
-                        <DialogDescription>
-                            {versionToDelete &&
-                                `Are you sure you want to delete policy version "${versionToDelete.alias}"? This action cannot be undone.`}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={closeDeleteDialog}>
-                            Cancel
-                        </Button>
-                        <Button variant="destructive" onClick={onDelete}>
-                            Delete
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </DeletePolicyContext.Provider>
+        <DeletableResourceTable
+            columns={policyVersionsTableColumns}
+            data={formattedVersions}
+            searchOptions={searchOptions}
+            deleteOptions={deleteOptions}
+            CreationDialog={<CreatePolicyVersionDialog policyId={policy.policy_id} />}
+        />
     );
 }
 
@@ -200,70 +139,21 @@ const policyVersionsTableColumns: ColumnDef<PolicyVersion>[] = [
         cell: ({ row }) => parseDate(row.getValue("last_updated_at")),
     },
     {
-        id: "delete",
-        enableHiding: false,
-        cell: ({ row }) => {
-            return <DeletePolicyButton policy={row.original} />;
-        },
-    },
-    {
         id: "actions",
         enableHiding: false,
         cell: ({ row }) => {
-            return <PoliciesTableActions row={row} />;
+            const policyVersionId = row.original.policy_version_id;
+            const pageLink = `/policyVersions/${policyVersionId}/workflow`;
+            return (
+                <DeletableResourceTableActions
+                    row={row}
+                    resourceId={policyVersionId}
+                    resourcePageLink={pageLink}
+                />
+            );
         },
     },
 ];
-
-function DeletePolicyButton({ policy }: { policy: Policy }) {
-    const deleteContext = React.useContext(DeletePolicyContext);
-
-    if (!deleteContext) {
-        throw new Error("DeletePolicyButton must be used within a DeletePolicyContext Provider");
-    }
-    return (
-        <Button
-            variant="ghost"
-            className="p-0"
-            onClick={() => deleteContext.openDeleteDialog(policy)}
-        >
-            <span className="sr-only">Delete</span>
-            <Trash className="h-5 w-5" />
-        </Button>
-    );
-}
-
-function PoliciesTableActions({ row }: { row: any }) {
-    const policyVersion = row.original;
-    const router = useRouter();
-
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem
-                    onClick={() => navigator.clipboard.writeText(policyVersion.policy_version_id)}
-                >
-                    Copy Version ID
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    onClick={() =>
-                        router.push(`/policy-versions/${policyVersion.policy_version_id}/workflow`)
-                    }
-                >
-                    View Workflow
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-}
 
 function getActiveVersions(policyData) {
     if (policyData.allocation_strategy == null) {

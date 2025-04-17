@@ -14,13 +14,17 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import { ChevronDown, RefreshCcw } from "lucide-react";
+import { ChevronDown, Copy, ExternalLink, MoreHorizontal, RefreshCcw, Trash } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -32,8 +36,16 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
-export interface ResourceTableFilter {
+export interface SearchFilterOptions {
     column: string;
     label: string;
 }
@@ -42,7 +54,7 @@ export interface ResourceTableProps<TData, TValue> {
     data: TData[];
     columns: ColumnDef<TData, TValue>[];
     pageSize?: number;
-    searchFilter?: ResourceTableFilter;
+    searchOptions?: SearchFilterOptions;
     enableColumnHiding?: boolean;
     CreationDialog?: React.ReactNode;
 }
@@ -51,7 +63,7 @@ export function ResourceTable<TData, TValue>({
     data,
     columns,
     pageSize,
-    searchFilter,
+    searchOptions,
     enableColumnHiding,
     CreationDialog,
 }: ResourceTableProps<TData, TValue>) {
@@ -87,14 +99,17 @@ export function ResourceTable<TData, TValue>({
     return (
         <div className="w-full">
             <div className="flex items-center py-4">
-                {searchFilter && (
+                {searchOptions && (
                     <Input
-                        placeholder={`Filter ${searchFilter.label}...`}
+                        placeholder={`Filter ${searchOptions.label}...`}
                         value={
-                            (table.getColumn(searchFilter.column)?.getFilterValue() as string) ?? ""
+                            (table.getColumn(searchOptions.column)?.getFilterValue() as string) ??
+                            ""
                         }
                         onChange={(event) =>
-                            table.getColumn(searchFilter.column)?.setFilterValue(event.target.value)
+                            table
+                                .getColumn(searchOptions.column)
+                                ?.setFilterValue(event.target.value)
                         }
                         className="max-w-sm"
                     />
@@ -206,5 +221,175 @@ export function ResourceTable<TData, TValue>({
                 </div>
             </div>
         </div>
+    );
+}
+
+export interface DeleteResourceOptions {
+    resourceType: string;
+    resourceIdColumn: string;
+    resourceNameColumn: string;
+    deleteResourceFunction: (resourceId: string) => Promise<void>;
+}
+export interface DeletableResourceTableProps<TData, TValue>
+    extends ResourceTableProps<TData, TValue> {
+    deleteOptions: DeleteResourceOptions;
+}
+
+type DeleteResourceContextType = {
+    openDeleteDialog: (resource: any) => void;
+};
+
+export const DeleteResourceContext = React.createContext<DeleteResourceContextType | undefined>(
+    undefined,
+);
+
+export function DeletableResourceTable<TData, TValue>({
+    data,
+    columns,
+    pageSize,
+    searchOptions,
+    deleteOptions,
+    enableColumnHiding,
+    CreationDialog,
+}: DeletableResourceTableProps<TData, TValue>) {
+    const { resourceType, resourceIdColumn, resourceNameColumn, deleteResourceFunction } =
+        deleteOptions;
+    const [resourceToDelete, setResourceToDelete] = React.useState(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+    const router = useRouter();
+
+    const openDeleteDialog = React.useCallback((resource: any) => {
+        setResourceToDelete(resource);
+        setIsDeleteDialogOpen(true);
+    }, []);
+
+    const closeDeleteDialog = React.useCallback(() => {
+        setIsDeleteDialogOpen(false);
+    }, []);
+
+    const onDelete = async () => {
+        if (!resourceToDelete) return;
+
+        try {
+            await deleteResourceFunction(resourceToDelete[resourceIdColumn]);
+            toast(`${resourceType} deleted`, {
+                description: `${resourceType} ${resourceToDelete[resourceNameColumn]} has been deleted.`,
+                dismissible: true,
+            });
+            closeDeleteDialog();
+            router.refresh();
+        } catch (error) {
+            closeDeleteDialog();
+            toast.error(`${error.cause}`);
+        }
+    };
+
+    return (
+        <DeleteResourceContext.Provider value={{ openDeleteDialog }}>
+            <div>
+                <ResourceTable
+                    data={data}
+                    columns={columns}
+                    pageSize={pageSize}
+                    searchOptions={searchOptions}
+                    enableColumnHiding={enableColumnHiding}
+                    CreationDialog={CreationDialog}
+                />
+            </div>
+
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete {resourceType}</DialogTitle>
+                        <DialogDescription>
+                            {resourceToDelete &&
+                                `Are you sure you want to delete ${resourceType} "${resourceToDelete[resourceNameColumn]}"? This action cannot be undone.`}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={closeDeleteDialog}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={onDelete}>
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </DeleteResourceContext.Provider>
+    );
+}
+
+export function DeletableResourceTableActions({
+    row,
+    resourceId,
+    resourcePageLink,
+}: {
+    row: any;
+    resourceId: string;
+    resourcePageLink: string;
+}) {
+    const deleteContext = React.useContext(DeleteResourceContext);
+    const resource = row.original;
+    const router = useRouter();
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => navigator.clipboard.writeText(resourceId)}>
+                    <div className="flex items-center gap-2">
+                        <Copy className="h-5 w-5" />
+                        <span>Copy ID</span>
+                    </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push(resourcePageLink)}>
+                    <div className="flex items-center gap-2">
+                        <ExternalLink className="h-5 w-5" />
+                        <span>View</span>
+                    </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    onClick={async () => {
+                        await sleep(100);
+                        deleteContext.openDeleteDialog(resource);
+                    }}
+                >
+                    <div className="flex items-center gap-2">
+                        <Trash className="h-5 w-5" />
+                        <span>Delete</span>
+                    </div>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export function DeleteResourceButton({ resource }: { resource: any }) {
+    const deleteContext = React.useContext(DeleteResourceContext);
+
+    if (!deleteContext) {
+        throw new Error(
+            "DeleteResourceButton must be used within a DeleteResourceContext Provider",
+        );
+    }
+    return (
+        <Button
+            variant="ghost"
+            className="p-0"
+            onClick={() => deleteContext.openDeleteDialog(resource)}
+        >
+            <span className="sr-only">Delete</span>
+            <Trash className="h-5 w-5" />
+        </Button>
     );
 }

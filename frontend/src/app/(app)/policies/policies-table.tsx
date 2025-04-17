@@ -76,7 +76,7 @@ export function PoliciesTable({ policies }: { policies: Policy[] }) {
                 <ResourceTable
                     columns={policiesTableColumns}
                     data={policies}
-                    searchFilter={{ column: "name", label: "Name" }}
+                    searchOptions={{ column: "name", label: "Name" }}
                     CreationDialog={<CreatePolicyDialog />}
                 />
             </div>
