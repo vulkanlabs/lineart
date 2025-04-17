@@ -41,6 +41,7 @@ export interface ResourceTableFilter {
 export interface ResourceTableProps<TData, TValue> {
     data: TData[];
     columns: ColumnDef<TData, TValue>[];
+    pageSize?: number;
     searchFilter?: ResourceTableFilter;
     enableColumnHiding?: boolean;
     CreationDialog?: React.ReactNode;
@@ -49,6 +50,7 @@ export interface ResourceTableProps<TData, TValue> {
 export function ResourceTable<TData, TValue>({
     data,
     columns,
+    pageSize,
     searchFilter,
     enableColumnHiding,
     CreationDialog,
@@ -56,7 +58,7 @@ export function ResourceTable<TData, TValue>({
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-    const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 5 });
+    const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: pageSize ?? 5 });
     const [rowSelection, setRowSelection] = React.useState({});
 
     const router = useRouter();

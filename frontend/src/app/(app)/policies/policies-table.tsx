@@ -65,8 +65,8 @@ export function PoliciesTable({ policies }: { policies: Policy[] }) {
             closeDeleteDialog();
             router.refresh();
         } catch (error) {
-            console.error(error);
-            toast.error("Failed to delete policy");
+            closeDeleteDialog();
+            toast.error(`${error.cause}`);
         }
     };
 
@@ -123,6 +123,7 @@ export const policiesTableColumns: ColumnDef<Policy>[] = [
             return (
                 <Button
                     variant="ghost"
+                    className="p-0"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                 >
                     <span className="mr-2">Name</span>
@@ -159,6 +160,7 @@ export const policiesTableColumns: ColumnDef<Policy>[] = [
             return (
                 <Button
                     variant="ghost"
+                    className="p-0"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                 >
                     <span className="mr-2">Last Updated At</span>

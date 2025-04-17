@@ -73,10 +73,17 @@ export async function deletePolicy(policyId: string) {
         method: "DELETE",
     })
         .then((response) => {
+            if (!response.ok) {
+                return response.json().then((responseBody) => {
+                    throw new Error(responseBody.detail, {
+                        cause: response,
+                    });
+                });
+            }
             return response.json();
         })
         .catch((error) => {
-            throw new Error(`Error deleting policy ${policyId}`, { cause: error });
+            throw new Error(`Error deleting policy: ${error}`, { cause: error });
         });
 }
 
@@ -145,6 +152,26 @@ export async function updatePolicyVersion(policyVersionId: string, data: PolicyV
         }
         return responseData;
     });
+}
+
+export async function deletePolicyVersion(policyVersionId: string) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    return fetch(new URL(`/policy-versions/${policyVersionId}`, serverUrl), {
+        method: "DELETE",
+    })
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((responseBody) => {
+                    throw new Error(responseBody.detail, {
+                        cause: response,
+                    });
+                });
+            }
+            return response.json();
+        })
+        .catch((error) => {
+            throw new Error(`Error deleting policy version: ${error}`, { cause: error });
+        });
 }
 
 export async function fetchPolicyRuns(policyId: string): Promise<Run[]> {

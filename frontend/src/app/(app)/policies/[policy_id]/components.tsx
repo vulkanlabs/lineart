@@ -21,12 +21,6 @@ export function RouteLayout({ policy, children }) {
             icon: Layers,
             path: `/policies/${policy.policy_id}/runs`,
         },
-        {
-            name: "Backtests",
-            icon: GitCompare,
-            path: `/policies/${policy.policy_id}/backtests`,
-            disabled: true,
-        },
     ];
     const innerNavbarSections: InnerNavbarSectionProps[] = [{ key: "Policy:", value: policy.name }];
     return (
