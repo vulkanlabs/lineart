@@ -123,6 +123,26 @@ export async function createDataSource(data: DataSourceSpec) {
         });
 }
 
+export async function deleteDataSource(dataSourceId: string) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    return fetch(new URL(`/data-sources/${dataSourceId}`, serverUrl), {
+        method: "DELETE",
+    })
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((responseBody) => {
+                    throw new Error(responseBody.detail, {
+                        cause: response,
+                    });
+                });
+            }
+            return response.json();
+        })
+        .catch((error) => {
+            throw new Error(`Error deleting data source: ${error}`, { cause: error });
+        });
+}
+
 export async function updatePolicyVersion(policyVersionId: string, data: PolicyVersionBase) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     if (!serverUrl) {
