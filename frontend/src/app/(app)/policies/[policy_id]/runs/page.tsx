@@ -1,12 +1,7 @@
-import { fetchPolicyRuns } from "@/lib/api";
 import { RunsPage } from "@/components/run/runs-list-page";
+import { fetchRunsByPolicy } from "@/lib/actions";
 
 export default async function Page(props) {
     const params = await props.params;
-    const runs = await fetchPolicyRuns(params.policy_id).catch((error) => {
-        console.error(error);
-        return null;
-    });
-
-    return <RunsPage runs={runs} />;
+    return <RunsPage resourceId={params.policy_id} fetchRuns={fetchRunsByPolicy} />;
 }

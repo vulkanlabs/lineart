@@ -56,6 +56,7 @@ export interface ResourceTableProps<TData, TValue> {
     pageSize?: number;
     searchOptions?: SearchFilterOptions;
     enableColumnHiding?: boolean;
+    disableFilters?: boolean;
     CreationDialog?: React.ReactNode;
 }
 
@@ -65,6 +66,7 @@ export function ResourceTable<TData, TValue>({
     pageSize,
     searchOptions,
     enableColumnHiding,
+    disableFilters,
     CreationDialog,
 }: ResourceTableProps<TData, TValue>) {
     const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -98,56 +100,59 @@ export function ResourceTable<TData, TValue>({
 
     return (
         <div className="w-full">
-            <div className="flex items-center py-4">
-                {searchOptions && (
-                    <Input
-                        placeholder={`Filter ${searchOptions.label}...`}
-                        value={
-                            (table.getColumn(searchOptions.column)?.getFilterValue() as string) ??
-                            ""
-                        }
-                        onChange={(event) =>
-                            table
-                                .getColumn(searchOptions.column)
-                                ?.setFilterValue(event.target.value)
-                        }
-                        className="max-w-sm"
-                    />
-                )}
-                <div className="flex-1" />
-                <Button variant="outline" onClick={() => router.refresh()} className="mr-2">
-                    <RefreshCcw className="h-4 w-4" />
-                </Button>
-                {CreationDialog}
-                {enableColumnHiding && (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="ml-auto">
-                                Columns <ChevronDown />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            {table
-                                .getAllColumns()
-                                .filter((column) => column.getCanHide())
-                                .map((column) => {
-                                    return (
-                                        <DropdownMenuCheckboxItem
-                                            key={column.id}
-                                            className="capitalize"
-                                            checked={column.getIsVisible()}
-                                            onCheckedChange={(value) =>
-                                                column.toggleVisibility(!!value)
-                                            }
-                                        >
-                                            {column.id}
-                                        </DropdownMenuCheckboxItem>
-                                    );
-                                })}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                )}
-            </div>
+            {disableFilters ? null : (
+                <div className="flex items-center py-4">
+                    {searchOptions && (
+                        <Input
+                            placeholder={`Filter ${searchOptions.label}...`}
+                            value={
+                                (table
+                                    .getColumn(searchOptions.column)
+                                    ?.getFilterValue() as string) ?? ""
+                            }
+                            onChange={(event) =>
+                                table
+                                    .getColumn(searchOptions.column)
+                                    ?.setFilterValue(event.target.value)
+                            }
+                            className="max-w-sm"
+                        />
+                    )}
+                    <div className="flex-1" />
+                    <Button variant="outline" onClick={() => router.refresh()} className="mr-2">
+                        <RefreshCcw className="h-4 w-4" />
+                    </Button>
+                    {CreationDialog}
+                    {enableColumnHiding && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="ml-auto">
+                                    Columns <ChevronDown />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                {table
+                                    .getAllColumns()
+                                    .filter((column) => column.getCanHide())
+                                    .map((column) => {
+                                        return (
+                                            <DropdownMenuCheckboxItem
+                                                key={column.id}
+                                                className="capitalize"
+                                                checked={column.getIsVisible()}
+                                                onCheckedChange={(value) =>
+                                                    column.toggleVisibility(!!value)
+                                                }
+                                            >
+                                                {column.id}
+                                            </DropdownMenuCheckboxItem>
+                                        );
+                                    })}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+                </div>
+            )}
             <div className="rounded-md border">
                 <Table>
                     <TableHeader>
