@@ -50,7 +50,7 @@ export function InputNode({ id, data, selected, width }) {
         const newFieldName = `field_${Object.keys(data.metadata.schema).length + 1}`;
         const updatedSchema = {
             ...data.metadata.schema,
-            [newFieldName]: "string",
+            [newFieldName]: "str",
         };
         const metadata: InputNodeMetadata = { schema: updatedSchema };
 

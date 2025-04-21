@@ -8,7 +8,7 @@ from vulkan.dagster.nodes import to_dagster_node
 from vulkan.dagster.testing import run_test_job
 
 
-def test_transform():
+def test_dagster_transform():
     node = TransformNode(
         name="transform",
         description="Transform node",
@@ -43,7 +43,7 @@ class ReturnStatus(Enum):
     DENIED = "DENIED"
 
 
-def test_terminate():
+def test_dagster_terminate():
     terminate = TerminateNode(
         name="terminate",
         description="Terminate node",
