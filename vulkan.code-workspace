@@ -20,9 +20,6 @@
 			"path": "vulkan-public",
 		},
 		{
-			"path": "resolution-svc",
-		},
-		{
 			"path": "upload-svc",
 		},
 	],
@@ -33,7 +30,7 @@
 			"editor.formatOnSave": true,
 			"editor.codeActionsOnSave": {
 				"source.organizeImports": "explicit",
-				"source.fixAll": "explicit"
+				"source.fixAll": "explicit",
 			},
 			"editor.defaultFormatter": "charliermarsh.ruff",
 		},

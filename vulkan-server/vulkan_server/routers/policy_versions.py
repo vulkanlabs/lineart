@@ -1,7 +1,10 @@
+import datetime
 from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
+from sqlalchemy import func as F
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from vulkan_public.exceptions import DataSourceNotFoundException
 from vulkan_public.spec.nodes.base import NodeType
@@ -16,7 +19,6 @@ from vulkan_server.dagster.service_client import (
 from vulkan_server.db import (
     BeamWorkspace,
     ConfigurationValue,
-    DagsterWorkspace,
     DataSource,
     Policy,
     PolicyDataDependency,
@@ -33,6 +35,7 @@ from vulkan_server.services.resolution import (
     ResolutionServiceClient,
     get_resolution_service_client,
 )
+from vulkan_server.utils import validate_date_range
 
 router = APIRouter(
     prefix="/policy-versions",
@@ -252,9 +255,6 @@ def delete_policy_version(
     policy_version_id: str,
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
-    resolution_service: ResolutionServiceClient = Depends(
-        get_resolution_service_client
-    ),
     dagster_launcher_client: VulkanDagsterServiceClient = Depends(
         get_dagster_service_client
     ),
@@ -272,29 +272,23 @@ def delete_policy_version(
     policy: Policy = (
         db.query(Policy).filter_by(policy_id=policy_version.policy_id).first()
     )
-    strategy = schemas.PolicyAllocationStrategy.model_validate(
-        policy.allocation_strategy
-    )
-    active_versions = [opt.policy_version_id for opt in strategy.choice]
-    if strategy.shadow is not None:
-        active_versions += [strategy.shadow.policy_version_id]
-
-    if policy_version_id in active_versions:
-        msg = (
-            f"Policy version {policy_version_id} is currently in use by the policy "
-            f"allocation strategy for policy {policy.policy_id}"
+    if policy.allocation_strategy is not None:
+        strategy = schemas.PolicyAllocationStrategy.model_validate(
+            policy.allocation_strategy
         )
-        raise HTTPException(status_code=400, detail=msg)
+        active_versions = [opt.policy_version_id for opt in strategy.choice]
+        if strategy.shadow is not None:
+            active_versions += [strategy.shadow.policy_version_id]
 
-    workspace = (
-        db.query(DagsterWorkspace)
-        .filter_by(policy_version_id=policy_version_id)
-        .first()
-    )
+        if policy_version_id in active_versions:
+            msg = (
+                f"Policy version {policy_version_id} is currently in use by the policy "
+                f"allocation strategy for policy {policy.policy_id}"
+            )
+            raise HTTPException(status_code=400, detail=msg)
 
     name = definitions.version_name(policy_version_id)
     try:
-        _ = resolution_service.delete_workspace(name)
         dagster_launcher_client.delete_workspace(name)
         dagster_launcher_client.ensure_workspace_removed(name)
     except Exception as e:
@@ -303,7 +297,6 @@ def delete_policy_version(
             detail=f"Error deleting policy version {policy_version_id}: {str(e)}",
         )
 
-    db.delete(workspace)
     policy_version.archived = True
     db.commit()
 
@@ -428,8 +421,23 @@ def set_config_variables(
 
 
 @router.get("/{policy_version_id}/runs", response_model=list[schemas.Run])
-def list_runs_by_policy_version(policy_version_id: str, db: Session = Depends(get_db)):
-    runs = db.query(Run).filter_by(policy_version_id=policy_version_id).all()
+def list_runs_by_policy_version(
+    policy_version_id: str,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    db: Session = Depends(get_db),
+):
+    start_date, end_date = validate_date_range(start_date, end_date)
+    q = (
+        select(Run)
+        .filter(
+            (Run.policy_version_id == policy_version_id)
+            & (Run.created_at >= start_date)
+            & (F.DATE(Run.created_at) <= end_date)
+        )
+        .order_by(Run.created_at.desc())
+    )
+    runs = db.execute(q).scalars().all()
     if len(runs) == 0:
         return Response(status_code=204)
     return runs

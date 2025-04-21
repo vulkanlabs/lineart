@@ -103,24 +103,6 @@ services:
       - config/active/gcp.env
     volumes:
       - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
-  resolution-svc:
-    build:
-      context: .
-      dockerfile: images/resolution-svc.Dockerfile
-      args:
-        PYTHON_VERSION: "3.12"
-        VULKAN_HOME: /opt/vulkan
-        VULKAN_SERVER_PATH: /opt/server
-        VULKAN_SCRIPTS_PATH: /opt/scripts
-        VULKAN_VENVS_PATH: /opt/venvs
-    env_file:
-      - config/active/.env
-      - config/active/resolution-svc.env
-      - config/active/gcp.env
-    volumes:
-      - resolution_vulkan_home:/opt/vulkan
-      - resolution_venvs:/opt/venvs
-      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   # Mock services
   echo:
     image: kennethreitz/httpbin
@@ -140,5 +122,3 @@ volumes:
   postgres_data_dagster_db:
   dagster_vulkan_home:
   dagster_venvs:
-  resolution_vulkan_home:
-  resolution_venvs:

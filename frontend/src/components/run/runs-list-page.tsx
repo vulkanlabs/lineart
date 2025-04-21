@@ -1,37 +1,67 @@
 "use client";
-import { formatDistanceStrict } from "date-fns";
+
+import React, { useState, useEffect } from "react";
+import { subDays, formatDistanceStrict } from "date-fns";
+import { useRouter } from "next/navigation";
+import { ArrowUpDown, RefreshCcw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { Run } from "@vulkan-server/Run";
+import { Button } from "@/components/ui/button";
 
-import { DataTable } from "@/components/data-table";
 import { ShortenedID } from "@/components/shortened-id";
 import { DetailsButton } from "@/components/details-button";
-import { RefreshButton } from "@/components/refresh-button";
+import { DatePickerWithRange } from "@/components/charts/date-picker";
+import { ResourceTable } from "@/components/resource-table";
 import { parseDate } from "@/lib/utils";
 
-export function RunsPage({ runs }: { runs: Run[] }) {
+import { Run } from "@vulkan-server/Run";
+
+type RunsLoader = ({
+    resourceId,
+    dateRange,
+}: {
+    resourceId: string;
+    dateRange: { from: Date; to: Date };
+}) => Promise<{
+    runs: Run[] | null;
+}>;
+
+export function RunsPage({ resourceId, fetchRuns }: { resourceId: string; fetchRuns: RunsLoader }) {
+    const [dateRange, setDateRange] = useState({
+        from: subDays(new Date(), 7),
+        to: new Date(),
+    });
+    const [runs, setRuns] = useState<Run[]>([]);
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!dateRange || !dateRange.from || !dateRange.to) {
+            return;
+        }
+
+        fetchRuns({ resourceId, dateRange })
+            .then((data) => {
+                setRuns(data.runs);
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+    }, [dateRange]);
+
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
             <h1 className="text-lg font-semibold md:text-2xl">Runs</h1>
+            <div className="flex flex-row gap-2 items-center">
+                <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                <Button variant="outline" onClick={() => router.refresh()}>
+                    <RefreshCcw className="h-4 w-4" />
+                </Button>
+            </div>
             <div className="flex flex-col gap-4">
-                <div>
-                    <RefreshButton />
-                </div>
-                <RunsTableComponent runs={runs} />
+                <ResourceTable columns={RunsTableColumns} data={runs} disableFilters />
             </div>
         </div>
-    );
-}
-
-function RunsTableComponent({ runs }: { runs: Run[] }) {
-    return (
-        <DataTable
-            columns={RunsTableColumns}
-            data={runs}
-            emptyMessage="You don't have any runs yet."
-            className="max-h-[67vh]"
-        />
     );
 }
 
@@ -55,7 +85,7 @@ const RunsTableColumns: ColumnDef<Run>[] = [
         accessorKey: "run_group_id",
         header: "Run Group ID",
         cell: ({ row }) => {
-            const run_group_id : string = row.getValue("run_group_id");
+            const run_group_id: string = row.getValue("run_group_id");
             return run_group_id == null ? "-" : <ShortenedID id={run_group_id} />;
         },
     },
@@ -74,7 +104,18 @@ const RunsTableColumns: ColumnDef<Run>[] = [
     },
     {
         accessorKey: "created_at",
-        header: "Created At",
+        header: ({ column }) => {
+            return (
+                <Button
+                    variant="ghost"
+                    className="p-0"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                >
+                    <span className="mr-2">Created At</span>
+                    <ArrowUpDown className="w-5 h-5" />
+                </Button>
+            );
+        },
         cell: ({ row }) => parseDate(row.getValue("created_at")),
     },
     {
@@ -87,16 +128,17 @@ const RunsTableColumns: ColumnDef<Run>[] = [
 ];
 
 function RunStatus({ value }) {
-    const getColor = (status) => {
-        switch (status) {
-            case "SUCCESS":
-                return "bg-green-200";
-            case "FAILURE":
-                return "bg-red-200";
-            default:
-                return "bg-gray-200";
-        }
-    };
+    if (value == "SUCCESS") {
+        return <Badge className="bg-green-100 text-green-800 border-green-300">{value}</Badge>;
+    }
 
-    return <p className={`w-fit p-[0.3em] rounded-lg ${getColor(value)}`}>{value}</p>;
+    if (value == "FAILURE") {
+        return (
+            <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
+                {value}
+            </Badge>
+        );
+    }
+
+    return <Badge variant="outline">{value}</Badge>;
 }

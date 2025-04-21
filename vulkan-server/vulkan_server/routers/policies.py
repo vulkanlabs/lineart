@@ -23,6 +23,7 @@ from vulkan_server.db import (
 from vulkan_server.events import VulkanEvent
 from vulkan_server.exceptions import VulkanServerException
 from vulkan_server.logger import VulkanLogger, get_logger
+from vulkan_server.utils import validate_date_range
 
 router = APIRouter(
     prefix="/policies",
@@ -227,17 +228,22 @@ def list_policy_versions(
 @router.get("/{policy_id}/runs", response_model=list[schemas.Run])
 def list_runs_by_policy(
     policy_id: str,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
     db: Session = Depends(get_db),
 ):
-    policy_versions = (
-        db.query(PolicyVersion)
-        .filter_by(
-            policy_id=policy_id,
+    start_date, end_date = validate_date_range(start_date, end_date)
+    q = (
+        select(Run)
+        .join(PolicyVersion)
+        .filter(
+            (PolicyVersion.policy_id == policy_id)
+            & (Run.created_at >= start_date)
+            & (F.DATE(Run.created_at) <= end_date)
         )
-        .all()
+        .order_by(Run.created_at.desc())
     )
-    policy_version_ids = [v.policy_version_id for v in policy_versions]
-    runs = db.query(Run).filter(Run.policy_version_id.in_(policy_version_ids)).all()
+    runs = db.execute(q).scalars().all()
     if len(runs) == 0:
         return Response(status_code=204)
     return runs
@@ -329,17 +335,6 @@ def create_run_group(
     }
 
 
-def _validate_date_range(
-    start_date: datetime.date | None,
-    end_date: datetime.date | None,
-):
-    if start_date is None:
-        start_date = datetime.date.today() - datetime.timedelta(days=30)
-    if end_date is None:
-        end_date = datetime.date.today()
-    return start_date, end_date
-
-
 @router.post("/{policy_id}/runs/duration", response_model=list[Any])
 def run_duration_stats_by_policy(
     policy_id: str,
@@ -348,7 +343,7 @@ def run_duration_stats_by_policy(
     versions: Annotated[list[str] | None, Body(embed=True)] = None,
     db: Session = Depends(get_db),
 ):
-    start_date, end_date = _validate_date_range(start_date, end_date)
+    start_date, end_date = validate_date_range(start_date, end_date)
     if versions is None:
         versions = select(PolicyVersion.policy_version_id).where(
             PolicyVersion.policy_id == policy_id
@@ -384,7 +379,7 @@ def run_duration_stats_by_policy_status(
     versions: Annotated[list[str] | None, Body(embed=True)] = None,
     db: Session = Depends(get_db),
 ):
-    start_date, end_date = _validate_date_range(start_date, end_date)
+    start_date, end_date = validate_date_range(start_date, end_date)
 
     duration_seconds = F.extract("epoch", Run.last_updated_at - Run.created_at)
     date_clause = F.DATE(Run.created_at).label("date")
@@ -421,7 +416,7 @@ def runs_by_policy(
     versions: Annotated[list[str] | None, Body(embed=True)] = None,
     db: Session = Depends(get_db),
 ):
-    start_date, end_date = _validate_date_range(start_date, end_date)
+    start_date, end_date = validate_date_range(start_date, end_date)
     if versions is None:
         versions = select(PolicyVersion.policy_version_id).where(
             PolicyVersion.policy_id == policy_id
@@ -457,7 +452,7 @@ def runs_outcomes_by_policy(
     versions: Annotated[list[str] | None, Body(embed=True)] = None,
     db: Session = Depends(get_db),
 ):
-    start_date, end_date = _validate_date_range(start_date, end_date)
+    start_date, end_date = validate_date_range(start_date, end_date)
 
     if versions is None:
         versions = select(PolicyVersion.policy_version_id).where(
