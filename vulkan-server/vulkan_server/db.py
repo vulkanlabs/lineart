@@ -141,18 +141,6 @@ class PolicyVersion(TimedUpdateMixin, ArchivableMixin, Base):
     base_worker_image = Column(String, nullable=True)
 
 
-class DagsterWorkspace(TimedUpdateMixin, Base):
-    __tablename__ = "dagster_workspace"
-
-    policy_version_id = Column(
-        Uuid,
-        ForeignKey("policy_version.policy_version_id"),
-        primary_key=True,
-    )
-    status = Column(Enum(WorkspaceStatus))
-    path = Column(String, nullable=True)
-
-
 class BeamWorkspace(TimedUpdateMixin, Base):
     __tablename__ = "beam_workspace"
 

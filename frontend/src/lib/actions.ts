@@ -1,11 +1,15 @@
 "use server";
 
 import {
+    fetchPolicyRuns,
+    fetchPolicyVersionRuns,
     fetchRunsCount,
     fetchRunDurationStats,
     fetchRunDurationByStatus,
     fetchRunOutcomes,
 } from "@/lib/api";
+
+import { Run } from "@vulkan-server/Run";
 
 export async function fetchMetricsData({ policyId, dateRange, versions }) {
     const runsCount = await fetchRunsCount(policyId, dateRange.from, dateRange.to, versions).catch(
@@ -46,4 +50,34 @@ export async function fetchPolicyOutcomeStats({ policyId, dateRange, versions })
     });
 
     return { runOutcomes };
+}
+
+export async function fetchRunsByPolicy({
+    resourceId,
+    dateRange,
+}): Promise<{ runs: Run[] | null }> {
+    const runs = await fetchPolicyRuns(resourceId, dateRange.from, dateRange.to).catch((error) => {
+        console.error(error);
+    });
+    if (!runs) {
+        return { runs: null };
+    }
+
+    return { runs };
+}
+
+export async function fetchRunsByPolicyVersion({
+    resourceId,
+    dateRange,
+}): Promise<{ runs: Run[] | null }> {
+    const runs = await fetchPolicyVersionRuns(resourceId, dateRange.from, dateRange.to).catch(
+        (error) => {
+            console.error(error);
+        },
+    );
+    if (!runs) {
+        return { runs: null };
+    }
+
+    return { runs };
 }

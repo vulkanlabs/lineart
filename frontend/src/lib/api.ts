@@ -10,9 +10,28 @@ import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
 import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
 import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
 
-export async function fetchServerData({ endpoint, label }: { endpoint: string; label?: string }) {
+interface HTTPQueryParams {
+    [key: string]: any;
+}
+
+export async function fetchServerData({
+    endpoint,
+    params,
+    label,
+}: {
+    endpoint: string;
+    params?: HTTPQueryParams;
+    label?: string;
+}): Promise<any> {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    return fetch(new URL(endpoint, serverUrl))
+    let url = new URL(endpoint, serverUrl).toString();
+
+    if (params) {
+        const queryParams = new URLSearchParams(params);
+        url += `?${queryParams.toString()}`;
+    }
+
+    return fetch(url)
         .then((response) => {
             if (response.status === 204) {
                 return [];
@@ -67,6 +86,26 @@ export async function createPolicy(data: PolicyBase) {
         });
 }
 
+export async function deletePolicy(policyId: string) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    return fetch(new URL(`/policies/${policyId}`, serverUrl), {
+        method: "DELETE",
+    })
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((responseBody) => {
+                    throw new Error(responseBody.detail, {
+                        cause: response,
+                    });
+                });
+            }
+            return response.json();
+        })
+        .catch((error) => {
+            throw new Error(`Error deleting policy: ${error}`, { cause: error });
+        });
+}
+
 export async function createPolicyVersion(data: PolicyVersionCreate) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
 
@@ -103,6 +142,26 @@ export async function createDataSource(data: DataSourceSpec) {
         });
 }
 
+export async function deleteDataSource(dataSourceId: string) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    return fetch(new URL(`/data-sources/${dataSourceId}`, serverUrl), {
+        method: "DELETE",
+    })
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((responseBody) => {
+                    throw new Error(responseBody.detail, {
+                        cause: response,
+                    });
+                });
+            }
+            return response.json();
+        })
+        .catch((error) => {
+            throw new Error(`Error deleting data source: ${error}`, { cause: error });
+        });
+}
+
 export async function updatePolicyVersion(policyVersionId: string, data: PolicyVersionBase) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     if (!serverUrl) {
@@ -134,16 +193,52 @@ export async function updatePolicyVersion(policyVersionId: string, data: PolicyV
     });
 }
 
-export async function fetchPolicyRuns(policyId: string): Promise<Run[]> {
+export async function deletePolicyVersion(policyVersionId: string) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    return fetch(new URL(`/policy-versions/${policyVersionId}`, serverUrl), {
+        method: "DELETE",
+    })
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((responseBody) => {
+                    throw new Error(responseBody.detail, {
+                        cause: response,
+                    });
+                });
+            }
+            return response.json();
+        })
+        .catch((error) => {
+            throw new Error(`Error deleting policy version: ${error}`, { cause: error });
+        });
+}
+
+export async function fetchPolicyRuns(
+    policyId: string,
+    startDate: Date,
+    endDate: Date,
+): Promise<Run[]> {
     return fetchServerData({
         endpoint: `/policies/${policyId}/runs`,
+        params: {
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        },
         label: `runs for policy ${policyId}`,
     });
 }
 
-export async function fetchPolicyVersionRuns(policyVersionId: string) {
+export async function fetchPolicyVersionRuns(
+    policyVersionId: string,
+    startDate: Date,
+    endDate: Date,
+): Promise<Run[]> {
     return fetchServerData({
         endpoint: `/policy-versions/${policyVersionId}/runs`,
+        params: {
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        },
         label: `runs for policy version ${policyVersionId}`,
     });
 }
@@ -305,9 +400,6 @@ export async function fetchBacktestMetrics(
         label: `example metric for backtest ${backtestId}`,
     });
 }
-
-// UNAUTHENTICATED CALLS:
-// ----------------------
 
 const formatISODate = (date: Date) => formatISO(date, { representation: "date" });
 

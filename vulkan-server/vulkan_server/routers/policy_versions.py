@@ -1,7 +1,10 @@
+import datetime
 from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
+from sqlalchemy import func as F
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from vulkan_public.exceptions import DataSourceNotFoundException
 from vulkan_public.spec.nodes.base import NodeType
@@ -32,6 +35,7 @@ from vulkan_server.services.resolution import (
     ResolutionServiceClient,
     get_resolution_service_client,
 )
+from vulkan_server.utils import validate_date_range
 
 router = APIRouter(
     prefix="/policy-versions",
@@ -417,8 +421,23 @@ def set_config_variables(
 
 
 @router.get("/{policy_version_id}/runs", response_model=list[schemas.Run])
-def list_runs_by_policy_version(policy_version_id: str, db: Session = Depends(get_db)):
-    runs = db.query(Run).filter_by(policy_version_id=policy_version_id).all()
+def list_runs_by_policy_version(
+    policy_version_id: str,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    db: Session = Depends(get_db),
+):
+    start_date, end_date = validate_date_range(start_date, end_date)
+    q = (
+        select(Run)
+        .filter(
+            (Run.policy_version_id == policy_version_id)
+            & (Run.created_at >= start_date)
+            & (F.DATE(Run.created_at) <= end_date)
+        )
+        .order_by(Run.created_at.desc())
+    )
+    runs = db.execute(q).scalars().all()
     if len(runs) == 0:
         return Response(status_code=204)
     return runs

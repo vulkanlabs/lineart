@@ -22,6 +22,7 @@ from vulkan_server.db import (
     get_db,
 )
 from vulkan_server.logger import init_logger
+from vulkan_server.utils import validate_date_range
 
 logger = init_logger("data")
 
@@ -196,17 +197,6 @@ def get_data_object(
     return data_object
 
 
-def _validate_date_range(
-    start_date: datetime.date | None,
-    end_date: datetime.date | None,
-):
-    if start_date is None:
-        start_date = datetime.date.today() - datetime.timedelta(days=30)
-    if end_date is None:
-        end_date = datetime.date.today()
-    return start_date, end_date
-
-
 @sources.get("/{data_source_id}/stats", response_model=list[Any])
 def get_request_stats(
     data_source_id: str,
@@ -214,7 +204,7 @@ def get_request_stats(
     end_date: Annotated[datetime.date | None, Query()] = None,
     db: Session = Depends(get_db),
 ):
-    start_date, end_date = _validate_date_range(start_date, end_date)
+    start_date, end_date = validate_date_range(start_date, end_date)
 
     date_clause = F.DATE(RunDataRequest.created_at).label("date")
 

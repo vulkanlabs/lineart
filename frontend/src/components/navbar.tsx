@@ -29,11 +29,11 @@ export default function Navbar() {
                 </Link>
             ))
             } */}
-            <div className="absolute right-0 m-8">
+            {/* <div className="absolute right-0 m-8">
                 <UserButton
                     showUserInfo={false} 
                 />
-            </div>
+            </div> */}
         </nav>
     );
 }
