@@ -3,8 +3,6 @@ name: CI - Linting Steps
 on:
   push:
     branches: '*'
-  pull_request:
-    branches: 'main'
 
 jobs:
 
@@ -47,7 +45,11 @@ jobs:
         node-version: '23'
         cache: 'npm'
         cache-dependency-path: '${{ matrix.node-directory }}/package-lock.json'
-        
+                
+    - name: Install dependencies
+      working-directory: ${{ matrix.node-directory }}
+      run: npm ci --include dev
+
     - name: Lint JavaScript/TypeScript
       working-directory: ${{ matrix.node-directory }}
       run: npm run format:check
