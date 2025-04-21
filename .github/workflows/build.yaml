@@ -18,10 +18,8 @@ jobs:
         
     - name: Install uv
       run: |
+        set -x
         pip install uv
-        
-    - name: Install dependencies with uv
-      run: |
         uv sync
         
     - name: Run tests with uv
@@ -46,7 +44,7 @@ jobs:
         
     - name: Install dependencies with uv
       run: |
-        set -ex 
+        set -x 
         pip install uv
         uv sync
 
@@ -55,17 +53,19 @@ jobs:
         uv run python scripts/export-openapi.py --out ./generated/openapi.json
 
     - name: Generate new client
-      uses: openapi-generators/openapitools-generator-action@v1
-      with:
-        generator: typescript-fetch
-        openapi-file: ./generated/openapi.json
-        command-args: "--additional-properties modelPropertyNaming=original"
+      run: |
+        docker run --rm \
+          -v "${{ github.workspace }}:/local" \
+          openapitools/openapi-generator-cli generate \
+          -i /local/generated/openapi.json \
+          -g typescript-fetch \
+          --additional-properties=modelPropertyNaming=original \
+          -o /local/generated/ts
 
     - name: Copy generated files
       run: |
-        set -ex
-        cd typescript-fetch
-        ls -la
+        set -x
+        ls -la ${{ github.workspace }}/generated/ts
         mkdir -p ${{ github.workspace }}/frontend/generated/
         cp -r . ${{ github.workspace }}/frontend/generated/
 
