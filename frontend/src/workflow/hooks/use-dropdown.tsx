@@ -6,14 +6,14 @@ export function useDropdown() {
     const ref = useRef<HTMLDivElement>(null);
 
     const toggleDropdown = (connectingHandle) => {
-        setIsOpen((prev) => !prev)
+        setIsOpen((prev) => !prev);
         setConnectingHandle(connectingHandle);
     };
 
     const closeDropdown = () => {
         setIsOpen(false);
         setConnectingHandle(null);
-    }
+    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

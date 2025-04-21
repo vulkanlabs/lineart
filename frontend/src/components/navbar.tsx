@@ -1,9 +1,9 @@
 "use client";
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { VulkanLogo } from "@/components/logo";
-import { UserButton } from '@stackframe/stack';
+import { UserButton } from "@stackframe/stack";
 
 export default function Navbar() {
     const pathname = usePathname();

@@ -70,7 +70,6 @@ const BacktestColumns: ColumnDef<Backtest>[] = [
     },
 ];
 
-
 export function UploadedFilesTableComponent({ policyVersionId, uploadedFiles }) {
     const uploaderRef = `/policyVersions/${policyVersionId}/backtests/fileUploader`;
 

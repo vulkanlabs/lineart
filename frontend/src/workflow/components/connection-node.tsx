@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { useWorkflowStore } from "../store";
 import { WorkflowNode } from "./base";
 
-
 export function ConnectionNode({ id, data, selected, height, width }) {
     return (
         <WorkflowNode

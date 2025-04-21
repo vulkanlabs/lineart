@@ -15,7 +15,9 @@ export default async function Page() {
                 <h1 className="text-lg font-semibold md:text-2xl">Policies</h1>
                 <Separator />
             </div>
-            <div><PoliciesTable policies={policies} /></div>
+            <div>
+                <PoliciesTable policies={policies} />
+            </div>
         </div>
     );
 }
