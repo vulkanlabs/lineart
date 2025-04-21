@@ -28,6 +28,7 @@ jobs:
       run: |
         uv run pytest -m "not integration"
 
+    
   js-build:
     runs-on: ubuntu-latest
     
@@ -37,7 +38,37 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-    
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies with uv
+      run: |
+        set -ex 
+        pip install uv
+        uv sync
+
+    - name: Render OpenAPI Specification
+      run: |
+        uv run python scripts/export-openapi.py --out ./generated/openapi.json
+
+    - name: Generate new client
+      uses: openapi-generators/openapitools-generator-action@v1
+      with:
+        generator: typescript-fetch
+        openapi-file: ./generated/openapi.json
+        command-args: "--additional-properties modelPropertyNaming=original"
+
+    - name: Copy generated files
+      run: |
+        set -ex
+        cd typescript-fetch
+        ls -la
+        mkdir -p ${{ github.workspace }}/frontend/generated/
+        cp -r . ${{ github.workspace }}/frontend/generated/
+
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
@@ -52,3 +83,4 @@ jobs:
     - name: Build
       working-directory: ${{ matrix.node-directory }}
       run: npm run build
+
