@@ -65,9 +65,8 @@ jobs:
     - name: Copy generated files
       run: |
         set -x
-        ls -la ${{ github.workspace }}/generated/ts
         mkdir -p ${{ github.workspace }}/frontend/generated/
-        cp -r . ${{ github.workspace }}/frontend/generated/
+        cp -r ${{ github.workspace }}/generated/ts ${{ github.workspace }}/frontend/generated/
 
     - name: Set up Node.js
       uses: actions/setup-node@v3
