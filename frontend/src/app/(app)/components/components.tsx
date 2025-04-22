@@ -7,7 +7,6 @@ import { DataTable } from "@/components/data-table";
 import { ShortenedID } from "@/components/shortened-id";
 import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
-import { Component } from "@vulkan-server/Component";
 
 export default function ComponentPageContent({ components }) {
     const router = useRouter();
@@ -26,7 +25,7 @@ export default function ComponentPageContent({ components }) {
     );
 }
 
-const componentsTableColumns: ColumnDef<Component>[] = [
+const componentsTableColumns: ColumnDef<any>[] = [
     {
         accessorKey: "link",
         header: "",

@@ -1,4 +1,3 @@
-import { stackServerApp } from "@/stack";
 import { Suspense } from "react";
 
 import Loader from "@/components/animations/loader";

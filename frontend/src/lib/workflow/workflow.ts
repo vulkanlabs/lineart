@@ -1,5 +1,6 @@
 import { NodeLayoutConfig, NodeDefinition, EdgeLayoutConfig, Dict } from "@/lib/workflow/types";
 import { NodeTypeMapping, layoutGraph, makeGraphElements } from "@/lib/workflow/graph";
+import { PolicyDefinitionDictOutput } from "@vulkan-server/PolicyDefinitionDictOutput";
 
 /**
  * @param graphData - Raw data with the node definitions.
@@ -8,11 +9,11 @@ import { NodeTypeMapping, layoutGraph, makeGraphElements } from "@/lib/workflow/
  * @returns A Promise that returns the layouted nodes and edges of the graph.
  */
 export async function makeWorkflow(
-    graphData: NodeDefinitionDict,
+    graphData: PolicyDefinitionDictOutput,
     componentsState: ComponentStateDict,
     options: Dict = defaultElkOptions,
 ): Promise<[NodeLayoutConfig[], EdgeLayoutConfig[]]> {
-    const [nodes, edges] = makeGraphElements(graphData, options);
+    const [nodes, edges] = makeGraphElements(graphData.nodes, options);
 
     let modifiedNodes = nodes.filter((node: NodeLayoutConfig) => {
         return !node.parentId || componentsState[node.parentId].isOpen;

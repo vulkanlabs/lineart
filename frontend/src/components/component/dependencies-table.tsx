@@ -4,10 +4,9 @@ import Link from "next/link";
 
 import { DataTable } from "@/components/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { ComponentVersionDependencyExpanded } from "@vulkan-server/ComponentVersionDependencyExpanded";
 import { LinkIcon } from "lucide-react";
 
-const ComponentDependenciesTableColumns: ColumnDef<ComponentVersionDependencyExpanded>[] = [
+const ComponentDependenciesTableColumns: ColumnDef<any>[] = [
     {
         accessorKey: "component_version_id",
         header: "Component ID",
@@ -37,11 +36,7 @@ const ComponentDependenciesTableColumns: ColumnDef<ComponentVersionDependencyExp
     },
 ];
 
-export function ComponentVersionDependenciesTable({
-    entries,
-}: {
-    entries: ComponentVersionDependencyExpanded[];
-}) {
+export function ComponentVersionDependenciesTable({ entries }: { entries: any[] }) {
     return (
         <DataTable
             columns={ComponentDependenciesTableColumns}
@@ -51,7 +46,7 @@ export function ComponentVersionDependenciesTable({
     );
 }
 
-const PolicyDependenciesTableColumns: ColumnDef<ComponentVersionDependencyExpanded>[] = [
+const PolicyDependenciesTableColumns: ColumnDef<any>[] = [
     {
         accessorKey: "link",
         header: "",
@@ -81,11 +76,7 @@ const PolicyDependenciesTableColumns: ColumnDef<ComponentVersionDependencyExpand
     },
 ];
 
-export function PolicyVersionComponentDependenciesTable({
-    entries,
-}: {
-    entries: ComponentVersionDependencyExpanded[];
-}) {
+export function PolicyVersionComponentDependenciesTable({ entries }: { entries: any[] }) {
     return (
         <DataTable
             columns={PolicyDependenciesTableColumns}

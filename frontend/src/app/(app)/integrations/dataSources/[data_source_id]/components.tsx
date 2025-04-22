@@ -2,28 +2,13 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
-import {
-    CopyIcon,
-    CalendarIcon,
-    CheckIcon,
-    FileIcon,
-    LinkIcon,
-    Settings2Icon,
-    X,
-} from "lucide-react";
+import { CopyIcon, CalendarIcon, CheckIcon, FileIcon, LinkIcon, Settings2Icon } from "lucide-react";
 
 import { DataSource } from "@vulkan-server/DataSource";
 import { ConfigurationVariablesBase } from "@vulkan-server/ConfigurationVariablesBase";
 import { DataTable } from "@/components/data-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -62,12 +47,13 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
         const seconds = totalSeconds % 60;
 
         const parts = [];
-        if (days > 0) parts.push(`${days} day${days !== 1 ? 's' : ''}`);
-        if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? 's' : ''}`);
-        if (minutes > 0) parts.push(`${minutes} minute${minutes !== 1 ? 's' : ''}`);
-        if (seconds > 0 || parts.length === 0) parts.push(`${seconds} second${seconds !== 1 ? 's' : ''}`);
+        if (days > 0) parts.push(`${days} day${days !== 1 ? "s" : ""}`);
+        if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? "s" : ""}`);
+        if (minutes > 0) parts.push(`${minutes} minute${minutes !== 1 ? "s" : ""}`);
+        if (seconds > 0 || parts.length === 0)
+            parts.push(`${seconds} second${seconds !== 1 ? "s" : ""}`);
 
-        return parts.join(', ');
+        return parts.join(", ");
     };
 
     // Format JSON data for display
@@ -282,10 +268,10 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
                                 )}
 
                                 {sourceHeaders.length > 0 ? (
-                                <div className="mt-6">
-                                    <p className="text-sm font-medium mb-2">Headers</p>
-                                    <ParamsTable params={sourceHeaders} />
-                                </div>
+                                    <div className="mt-6">
+                                        <p className="text-sm font-medium mb-2">Headers</p>
+                                        <ParamsTable params={sourceHeaders} />
+                                    </div>
                                 ) : (
                                     <div className="mt-6">
                                         <p className="text-sm font-medium mb-2">Headers</p>
@@ -333,20 +319,18 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium">
-                                                Backoff Factor
-                                            </p>
+                                            <p className="text-sm font-medium">Backoff Factor</p>
                                             <p className="text-sm text-muted-foreground">
                                                 {dataSource.source.retry.backoff_factor}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium">
-                                                Status Force List
-                                            </p>
+                                            <p className="text-sm font-medium">Status Force List</p>
                                             <p className="text-sm text-muted-foreground">
                                                 {dataSource.source.retry.status_forcelist
-                                                    ? dataSource.source.retry.status_forcelist.join(", ")
+                                                    ? dataSource.source.retry.status_forcelist.join(
+                                                          ", ",
+                                                      )
                                                     : "None"}
                                             </p>
                                         </div>
@@ -382,7 +366,8 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
                                     <div>
                                         <p className="text-sm font-medium">TTL (Time to Live)</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {formatTimeFromSeconds(dataSource.caching.ttl)} ({dataSource.caching.ttl} seconds)
+                                            {formatTimeFromSeconds(dataSource.caching.ttl.seconds)}{" "}
+                                            ({dataSource.caching.ttl.seconds} seconds)
                                         </p>
                                     </div>
                                 )}

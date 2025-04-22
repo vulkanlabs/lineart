@@ -7,18 +7,14 @@ import Link from "next/link";
 import { VulkanLogo } from "@/components/logo";
 import { SidebarSectionProps } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import "@/app/globals.css";
 
 export default function RootLayout({ children }) {
     const [open, setOpen] = useState(false);
     const pathname = usePathname();
-    
+
     const sections: SidebarSectionProps[] = [
         {
             name: "Policies",
@@ -56,15 +52,15 @@ export default function RootLayout({ children }) {
                     <SheetContent side="left" className="w-[250px] sm:w-[300px]">
                         <nav className="flex flex-col space-y-4 mt-8">
                             {sections.map((section) => (
-                                <Link 
-                                    key={section.path} 
+                                <Link
+                                    key={section.path}
                                     href={section.disabled ? "#" : section.path}
                                     className={cn(
                                         "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
-                                        pathname.startsWith(section.path) 
-                                            ? "bg-muted font-medium" 
+                                        pathname.startsWith(section.path)
+                                            ? "bg-muted font-medium"
                                             : "hover:bg-muted/50",
-                                        section.disabled && "opacity-50 cursor-not-allowed"
+                                        section.disabled && "opacity-50 cursor-not-allowed",
                                     )}
                                     onClick={(e) => {
                                         if (section.disabled) e.preventDefault();
@@ -87,7 +83,7 @@ export default function RootLayout({ children }) {
                                 variant={pathname.startsWith(section.path) ? "secondary" : "ghost"}
                                 className={cn(
                                     "gap-2",
-                                    section.disabled && "opacity-50 cursor-not-allowed"
+                                    section.disabled && "opacity-50 cursor-not-allowed",
                                 )}
                                 disabled={section.disabled}
                                 asChild={!section.disabled}

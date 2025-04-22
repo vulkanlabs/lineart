@@ -192,7 +192,6 @@ export function SidebarSection({
                 >
                     {sectionProps.name}
                 </h2>
-                
             )}
         </div>
     );

@@ -22,10 +22,16 @@ function filterHiddenEdges(edges, state) {
     return edges.filter((edge) => {
         const fromOpenComponent = edge.isComponentIO && state[edge.source]?.isOpen;
         const toOpenComponent = edge.isComponentIO && state[edge.target]?.isOpen;
-        
-        const fromClosedComponentChild = edge.fromComponentChild && !state[edge.fromComponent]?.isOpen;
+
+        const fromClosedComponentChild =
+            edge.fromComponentChild && !state[edge.fromComponent]?.isOpen;
         const toClosedComponentChild = edge.toComponentChild && !state[edge.toComponent]?.isOpen;
-        return !(fromOpenComponent || toOpenComponent || toClosedComponentChild || fromClosedComponentChild);
+        return !(
+            fromOpenComponent ||
+            toOpenComponent ||
+            toClosedComponentChild ||
+            fromClosedComponentChild
+        );
     });
 }
 

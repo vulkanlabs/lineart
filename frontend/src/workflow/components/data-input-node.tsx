@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 
 import { useWorkflowStore } from "../store";
 import { WorkflowNode } from "./base";
+import { NodeProps } from "@xyflow/react";
+import { VulkanNode } from "../types";
 
-export function DataInputNode({ id, data, selected, height, width }) {
+export function DataInputNode({ id, data, selected, height, width }: NodeProps<VulkanNode>) {
     const { updateNodeData } = useWorkflowStore(
         useShallow((state) => ({
             updateNodeData: state.updateNodeData,
@@ -21,13 +23,7 @@ export function DataInputNode({ id, data, selected, height, width }) {
     );
 
     return (
-        <WorkflowNode
-            id={id}
-            selected={selected}
-            data={data}
-            height={height}
-            width={width}
-        >
+        <WorkflowNode id={id} selected={selected} data={data} height={height} width={width}>
             <div className="flex flex-col gap-1 space-y-2 p-3">
                 <span>Data Source ID:</span>
                 <Input

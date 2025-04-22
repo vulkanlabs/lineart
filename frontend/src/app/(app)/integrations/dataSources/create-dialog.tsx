@@ -110,19 +110,19 @@ export function CreateDataSourceDialog() {
         defaultValues: {
             name: "",
             description: "",
-            keys: "",
+            keys: [],
             source: {
                 url: "",
                 method: "GET",
                 headers: "",
                 params: "",
                 body_schema: "",
-                timeout: "",
+                timeout: 0,
                 retry: "",
             },
             caching: {
                 enabled: false,
-                ttl: "",
+                ttl: 0,
             },
             metadata: "",
         },

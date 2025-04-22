@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { SquareX } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
-import { Position, type NodeChange } from "@xyflow/react";
+import { Position, type NodeChange, NodeProps } from "@xyflow/react";
 import Editor from "@monaco-editor/react";
 
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { VulkanNode } from "../types";
 import { useWorkflowStore } from "../store";
 import { WorkflowNode, defaultHandleStyle } from "./base";
 
-export function BranchNode({ id, data, selected, height, width }) {
+export function BranchNode({ id, data, selected, height, width }: NodeProps<VulkanNode>) {
     const { updateNodeData, onNodesChange } = useWorkflowStore(
         useShallow((state) => ({
             updateNodeData: state.updateNodeData,

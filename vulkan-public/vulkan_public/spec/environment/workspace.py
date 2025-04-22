@@ -5,8 +5,8 @@ import yaml
 
 from vulkan_public.spec.environment.config import (
     VULKAN_CONFIG_FILENAME,
-    UserWorkspaceConfig,
     PackagingMode,
+    UserWorkspaceConfig,
 )
 from vulkan_public.spec.environment.packing import (
     find_package_entrypoint,

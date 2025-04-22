@@ -6,10 +6,10 @@ import { ConnectionNode } from "./connection-node";
 import { DataInputNode } from "./data-input-node";
 
 export const nodeTypes = {
-    "INPUT": InputNode,
-    "CONNECTION": ConnectionNode,
-    "DATA_INPUT": DataInputNode,
-    "TRANSFORM": TransformNode,
-    "BRANCH": BranchNode,
-    "TERMINATE": TerminateNode,
+    INPUT: InputNode,
+    CONNECTION: ConnectionNode,
+    DATA_INPUT: DataInputNode,
+    TRANSFORM: TransformNode,
+    BRANCH: BranchNode,
+    TERMINATE: TerminateNode,
 };

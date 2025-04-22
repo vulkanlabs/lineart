@@ -87,7 +87,8 @@ export function PoliciesTable({ policies }: { policies: Policy[] }) {
                         <DialogTitle>Delete Policy</DialogTitle>
                         <DialogDescription>
                             {policyToDelete &&
-                                `Are you sure you want to delete policy "${policyToDelete.name}"? This action cannot be undone.`}
+                                `Are you sure you want to delete policy "${policyToDelete.name}"?` +
+                                    "This action cannot be undone."}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>

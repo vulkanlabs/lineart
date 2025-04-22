@@ -1,4 +1,3 @@
-
 import { InnerNavbar, InnerNavbarSectionProps } from "@/components/inner-navbar";
 import { fetchComponent } from "@/lib/api";
 

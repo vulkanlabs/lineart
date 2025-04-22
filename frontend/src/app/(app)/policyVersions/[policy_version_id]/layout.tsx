@@ -1,4 +1,3 @@
-
 import { fetchPolicy, fetchPolicyVersion } from "@/lib/api";
 import { RouteLayout } from "./components";
 

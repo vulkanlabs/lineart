@@ -21,7 +21,7 @@ dev-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["vulkan-server", "vulkan-dagster", "resolution-svc", "upload-svc"]
+members = ["vulkan-server", "vulkan-dagster", "upload-svc"]
 
 [tool.uv.sources]
 vulkan-server = { workspace = true }

@@ -51,7 +51,7 @@ export function CreatePolicyDialog() {
     const onSubmit = async (data: any) => {
         setIsSubmitting(true);
         try {
-            await createPolicy( data);
+            await createPolicy(data);
             setOpen(false);
             form.reset();
             toast("Policy Created", {
