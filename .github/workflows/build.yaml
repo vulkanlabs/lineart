@@ -66,7 +66,7 @@ jobs:
       run: |
         set -x
         mkdir -p ${{ github.workspace }}/frontend/generated/
-        cp -r ${{ github.workspace }}/generated/ts/ ${{ github.workspace }}/frontend/generated/
+        cp -r ${{ github.workspace }}/generated/ts/* ${{ github.workspace }}/frontend/generated/
         ls -la ${{ github.workspace }}/frontend/generated/
 
     - name: Set up Node.js
