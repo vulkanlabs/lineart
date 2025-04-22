@@ -53,7 +53,6 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
             spec: {
                 nodes: [],
                 input_schema: {},
-                output_callable: null,
                 config_variables: null,
             },
             requirements: [],

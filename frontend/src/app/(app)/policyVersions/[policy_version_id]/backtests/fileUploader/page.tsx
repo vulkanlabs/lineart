@@ -1,5 +1,4 @@
 import { FileUploaderPage } from "./components";
-import { getAuthHeaders } from "@/lib/auth";
 
 export default async function Page(props) {
     const params = await props.params;

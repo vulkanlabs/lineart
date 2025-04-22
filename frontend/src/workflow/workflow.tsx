@@ -31,7 +31,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { layoutGraph, makeNode, withLayoutOptions } from "@/lib/workflow/graph";
 
 import { useDropdown } from "./hooks/use-dropdown";
 import { createNodeByType, nodesConfig } from "./nodes";
@@ -39,8 +38,7 @@ import { iconMapping } from "./icons";
 import { nodeTypes } from "./components";
 import { WorkflowProvider, useWorkflowStore } from "./store";
 import { saveWorkflowSpec } from "./actions";
-import { GraphDefinition, VulkanNode, WorkflowState } from "./types";
-import { set } from "date-fns";
+import { BranchNodeMetadata, GraphDefinition, VulkanNode, WorkflowState } from "./types";
 
 type OnNodeClick = (e: React.MouseEvent, node: any) => void;
 type OnPaneClick = (e: React.MouseEvent) => void;
@@ -435,7 +433,8 @@ function makeEdgesFromDependencies(nodes: NodeDefinitionDict[]): Edge[] {
                 }
 
                 // Check if the source node has the specified output and get its index
-                const outputIndex = sourceNode.metadata.choices.findIndex(
+                const sourceMetadata = sourceNode.metadata as BranchNodeMetadata;
+                const outputIndex = sourceMetadata.choices.findIndex(
                     (output) => output === dep.output,
                 );
                 if (outputIndex === -1) {

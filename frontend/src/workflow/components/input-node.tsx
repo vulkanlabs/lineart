@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { type NodeChange } from "@xyflow/react";
+import { NodeProps, type NodeChange } from "@xyflow/react";
 import { WorkflowNode } from "./base";
 import { PlusIcon, TrashIcon } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
@@ -16,7 +16,7 @@ const fieldNameSchema = z
 
 const fieldTypes = ["str", "int", "float", "bool"];
 
-export function InputNode({ id, data, selected, width }) {
+export function InputNode({ id, data, selected, width }: NodeProps<VulkanNode>) {
     const [editingFields, setEditingFields] = useState({});
     const [invalidFields, setInvalidFields] = useState({});
     const { updateNodeData, onNodesChange } = useWorkflowStore(
@@ -44,7 +44,7 @@ export function InputNode({ id, data, selected, width }) {
         if (newKeys.length > 0 || validFieldOrder.length !== fieldOrder.length) {
             setFieldOrder([...validFieldOrder, ...newKeys]);
         }
-    }, [data.metadata.schema]);
+    }, [data.metadata.schema, fieldOrder]);
 
     const handleAddField = () => {
         const newFieldName = `field_${Object.keys(data.metadata.schema).length + 1}`;
@@ -310,7 +310,8 @@ export function InputNode({ id, data, selected, width }) {
 
                 <div className="mt-2 flex justify-between">
                     <button
-                        className="px-2 py-1 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded flex items-center"
+                        className="px-2 py-1 text-xs bg-blue-50 text-blue-600
+                         hover:bg-blue-100 rounded flex items-center"
                         onClick={handleAddField}
                     >
                         <PlusIcon className="w-3 h-3 mr-1" />

@@ -27,7 +27,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { AuthHeaders } from "@/lib/auth";
 
 export function BacktestLauncherPage({
     policyVersionId,

@@ -185,12 +185,6 @@ function makeEdges(node: NodeDefinitionDict, nodesMap: any): any[] {
         });
     }
 
-    if (node.node_type == "COMPONENT") {
-        const innerNodes = Object.values(node.metadata.nodes);
-        const innerEdges = innerNodes.flatMap((n: any) => makeEdges(n, nodesMap));
-        return [...__makeEdges(node), ...innerEdges];
-    }
-
     return __makeEdges(node);
 }
 

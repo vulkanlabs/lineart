@@ -2,28 +2,13 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
-import {
-    CopyIcon,
-    CalendarIcon,
-    CheckIcon,
-    FileIcon,
-    LinkIcon,
-    Settings2Icon,
-    X,
-} from "lucide-react";
+import { CopyIcon, CalendarIcon, CheckIcon, FileIcon, LinkIcon, Settings2Icon } from "lucide-react";
 
 import { DataSource } from "@vulkan-server/DataSource";
 import { ConfigurationVariablesBase } from "@vulkan-server/ConfigurationVariablesBase";
 import { DataTable } from "@/components/data-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -381,8 +366,8 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
                                     <div>
                                         <p className="text-sm font-medium">TTL (Time to Live)</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {formatTimeFromSeconds(dataSource.caching.ttl)} (
-                                            {dataSource.caching.ttl} seconds)
+                                            {formatTimeFromSeconds(dataSource.caching.ttl.seconds)}{" "}
+                                            ({dataSource.caching.ttl.seconds} seconds)
                                         </p>
                                     </div>
                                 )}

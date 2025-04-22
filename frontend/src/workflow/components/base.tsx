@@ -122,7 +122,10 @@ export function WorkflowNode({
                                     {data.name}
                                 </NodeHeaderTitle>
                                 {showTooltip && (
-                                    <div className="absolute -top-8 left-0 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50">
+                                    <div
+                                        className="absolute -top-8 left-0 bg-black 
+                                    text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50"
+                                    >
                                         You cannot edit this node's name
                                     </div>
                                 )}

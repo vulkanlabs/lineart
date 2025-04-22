@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ChartSpline, Users2, Code2, ListTree, Section } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useUser } from "@stackframe/stack";
 
 import { fetchComponents, fetchPolicy, fetchPolicyVersionComponents } from "@/lib/api";
 
@@ -113,10 +112,9 @@ function SidebarNav() {
 
 function PoliciesSidebarNav() {
     const [components, setComponents] = useState([]);
-    const user = useUser();
 
     useEffect(() => {
-        fetchComponents(user).then((data) => {
+        fetchComponents().then((data) => {
             const componentData = data.map((component: { component_id: number; name: string }) => ({
                 name: component.name,
                 path: `/components/${component.component_id}`,
@@ -136,13 +134,12 @@ function PoliciesSidebarNav() {
 function PolicyDetailsSidebar({ policyId }: { policyId: string }) {
     const [currentPolicy, setCurrentPolicy] = useState(null);
     const [components, setComponents] = useState([]);
-    const user = useUser();
 
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const pathname = usePathname();
 
     useEffect(() => {
-        fetchPolicy(user, policyId)
+        fetchPolicy(policyId)
             .then((policy) => setCurrentPolicy(policy))
             .catch((error) => {
                 console.error(error);
@@ -156,7 +153,7 @@ function PolicyDetailsSidebar({ policyId }: { policyId: string }) {
         if (!currentPolicy || !currentPolicy.active_policy_version_id) {
             return;
         }
-        fetchPolicyVersionComponents(user, currentPolicy.active_policy_version_id)
+        fetchPolicyVersionComponents(currentPolicy.active_policy_version_id)
             .then((dependencies) => {
                 const componentData = dependencies.map((dep) => ({
                     name: dep.component_name,

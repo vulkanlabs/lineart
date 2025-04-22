@@ -26,7 +26,6 @@ class PolicyDefinitionDict(BaseModel):
 
     nodes: list[NodeDefinitionDict]
     input_schema: dict[str, str]
-    output_callback: Any | None = None
     config_variables: list[str] | None = None
 
 

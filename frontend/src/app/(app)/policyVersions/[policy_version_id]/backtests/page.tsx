@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { stackServerApp } from "@/stack";
 
 import { fetchBacktestWorkspace, fetchPolicyVersionBacktests, listUploadedFiles } from "@/lib/api";
 

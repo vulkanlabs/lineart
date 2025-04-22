@@ -5,8 +5,10 @@ import Editor from "@monaco-editor/react";
 
 import { useWorkflowStore } from "../store";
 import { WorkflowNode } from "./base";
+import { NodeProps } from "@xyflow/react";
+import { VulkanNode } from "../types";
 
-export function TransformNode({ id, data, selected, height, width }) {
+export function TransformNode({ id, data, selected, height, width }: NodeProps<VulkanNode>) {
     const { updateNodeData } = useWorkflowStore(
         useShallow((state) => ({
             updateNodeData: state.updateNodeData,

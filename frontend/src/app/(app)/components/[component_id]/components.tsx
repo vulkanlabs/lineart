@@ -5,9 +5,8 @@ import { DetailsButton } from "@/components/details-button";
 import { ShortenedID } from "@/components/shortened-id";
 import { parseDate } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
-import { ComponentVersion } from "@vulkan-server/ComponentVersion";
 
-const componentVersionColumns: ColumnDef<ComponentVersion>[] = [
+const componentVersionColumns: ColumnDef<any>[] = [
     {
         header: "",
         accessorKey: "link",

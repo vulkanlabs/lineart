@@ -10,30 +10,28 @@ import { fetchBacktestWorkspace } from "@/lib/api";
 
 export async function PendingWorkspaceCreation({ policyVersionId }) {
     const [ready, setReady] = useState(false);
-    const terminalStates = ["OK", "CREATION_FAILED"];
-
-    const user = useUser();
-
-    const refreshStatus = () => {
-        fetchBacktestWorkspace(user, policyVersionId)
-            .then((data) => {
-                setReady(terminalStates.includes(data.status));
-            })
-            .catch((error) => {
-                setReady(true);
-                console.error(error);
-                return null;
-            });
-    };
 
     useEffect(() => {
+        const terminalStates = ["OK", "CREATION_FAILED"];
+        const refreshStatus = () => {
+            fetchBacktestWorkspace(policyVersionId)
+                .then((data) => {
+                    setReady(terminalStates.includes(data.status));
+                })
+                .catch((error) => {
+                    setReady(true);
+                    console.error(error);
+                    return null;
+                });
+        };
+
         if (ready) {
             window.location.reload();
         }
         refreshStatus();
         const comInterval = setInterval(refreshStatus, 20000);
         return () => clearInterval(comInterval);
-    }, [ready]);
+    }, [ready, policyVersionId]);
 
     return (
         <div className="flex justify-center items-center h-full">
@@ -55,22 +53,20 @@ export async function CreateWorkspacePage({ policyVersionId, workspaceCreationAc
     const [workspaceStatus, setWorkspaceStatus] = useState(null);
     const [workspaceReady, setWorkspaceReady] = useState(null);
 
-    const user = useUser();
-
-    const refreshStatus = () => {
-        fetchBacktestWorkspace(user, policyVersionId)
-            .then((data) => {
-                setWorkspaceStatus(data.status);
-                setWorkspaceReady(data.status === "OK");
-            })
-            .catch((error) => {
-                setWorkspaceReady(false);
-                console.error(error);
-                return null;
-            });
-    };
-
     useEffect(() => {
+        const refreshStatus = () => {
+            fetchBacktestWorkspace(policyVersionId)
+                .then((data) => {
+                    setWorkspaceStatus(data.status);
+                    setWorkspaceReady(data.status === "OK");
+                })
+                .catch((error) => {
+                    setWorkspaceReady(false);
+                    console.error(error);
+                    return null;
+                });
+        };
+
         if (workspaceStatus === "OK") {
             return;
         }
@@ -78,7 +74,7 @@ export async function CreateWorkspacePage({ policyVersionId, workspaceCreationAc
         refreshStatus();
         const comInterval = setInterval(refreshStatus, refreshTime);
         return () => clearInterval(comInterval);
-    }, [workspaceReady]);
+    }, [workspaceReady, policyVersionId, workspaceStatus]);
 
     if (workspaceReady === null && workspaceStatus === null) {
         return <div>Loading...</div>;
@@ -105,12 +101,6 @@ async function WorkspaceCreationPage({
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<Error>(null);
 
-    const user = useUser();
-    const authJson = await user.getAuthJson();
-    const headers = {
-        "x-stack-access-token": authJson.accessToken,
-        "x-stack-refresh-token": authJson.refreshToken,
-    };
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const url = `${serverUrl}/policy-versions/${policyVersionId}/backtest-workspace`;
 
@@ -118,7 +108,7 @@ async function WorkspaceCreationPage({
         setSubmitting(true);
         setError(null);
 
-        workspaceCreationAction({ url, headers })
+        workspaceCreationAction({ url })
             .then((data) => {
                 window.location.reload();
             })
@@ -147,12 +137,6 @@ export async function WorkspaceCreation({
     workspaceCreationAction,
 }) {
     const [submitting, setSubmitting] = useState(false);
-    const user = useUser();
-    const authJson = await user.getAuthJson();
-    const headers = {
-        "x-stack-access-token": authJson.accessToken,
-        "x-stack-refresh-token": authJson.refreshToken,
-    };
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const url = `${serverUrl}/policy-versions/${policyVersionId}/backtest-workspace`;
 
@@ -161,7 +145,7 @@ export async function WorkspaceCreation({
     }
 
     async function createWorkspaceFn() {
-        workspaceCreationAction({ url, headers });
+        workspaceCreationAction({ url });
         setSubmitting(true);
         await sleep(5000);
         window.location.reload();
