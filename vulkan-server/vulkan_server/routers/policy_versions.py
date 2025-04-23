@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 from dataclasses import dataclass
 from typing import Annotated
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session
 from vulkan_public.exceptions import DataSourceNotFoundException
 from vulkan_public.spec.nodes.base import NodeType
 
+from vulkan.core.run import RunStatus
 from vulkan_server import definitions, schemas
 from vulkan_server.dagster.client import get_dagster_client
 from vulkan_server.dagster.launch_run import create_run
@@ -336,6 +338,59 @@ def create_run_by_policy_version(
         )
 
     return {"policy_version_id": policy_version_id, "run_id": run.run_id}
+
+
+RUN_POLLING_INTERVAL = 0.5
+RUN_POLLING_TIMEOUT = 60
+
+
+@router.post("/{policy_version_id}/run")
+async def run_workflow(
+    policy_version_id: str,
+    input_data: Annotated[dict, Body()],
+    config_variables: Annotated[dict, Body(default_factory=dict)],
+    server_config: definitions.VulkanServerConfig = Depends(
+        definitions.get_vulkan_server_config
+    ),
+    db: Session = Depends(get_db),
+    dagster_client=Depends(get_dagster_client),
+):
+    try:
+        run = create_run(
+            db=db,
+            dagster_client=dagster_client,
+            server_url=server_config.server_url,
+            policy_version_id=policy_version_id,
+            input_data=input_data,
+            run_config_variables=config_variables,
+        )
+        run_id = run.run_id
+    except VulkanServerException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={
+                "error": e.error_code,
+                "msg": e.msg,
+            },
+        )
+
+    # Poll the Run until the job is completed
+    elapsed = 0
+    run_obj: Run | None = None
+
+    while elapsed < RUN_POLLING_TIMEOUT:
+        if run_obj:
+            # Clear the database cache to ensure we get the latest run status
+            db.expire(run_obj)
+
+        run_obj = db.execute(select(Run).where(Run.run_id == run_id)).scalars().first()
+        if run_obj.status in (RunStatus.SUCCESS, RunStatus.FAILURE):
+            break
+
+        await asyncio.sleep(RUN_POLLING_INTERVAL)
+        elapsed += RUN_POLLING_INTERVAL
+
+    return {"status": run_obj.result, "metadata": run_obj.run_metadata}
 
 
 @router.get(

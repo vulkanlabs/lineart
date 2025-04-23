@@ -1,5 +1,5 @@
 import pickle
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -137,6 +137,7 @@ def update_run(
     run_id: str,
     status: Annotated[str, Body()],
     result: Annotated[str, Body()],
+    metadata: Annotated[dict[str, Any] | None, Body()] = None,
     db: Session = Depends(get_db),
     server_config: definitions.VulkanServerConfig = Depends(
         definitions.get_vulkan_server_config
@@ -154,6 +155,7 @@ def update_run(
 
     run.status = status
     run.result = result
+    run.run_metadata = metadata
     db.commit()
 
     logger.info(f"Run group_id {run.run_group_id}")
