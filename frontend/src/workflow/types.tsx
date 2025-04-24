@@ -23,7 +23,8 @@ export type VulkanNode =
     | Node<VulkanNodeData, "DATA_INPUT">
     | Node<VulkanNodeData, "TRANSFORM">
     | Node<VulkanNodeData, "BRANCH">
-    | Node<VulkanNodeData, "TERMINATE">;
+    | Node<VulkanNodeData, "TERMINATE">
+    | Node<VulkanNodeData, "POLICY">;
 
 export type VulkanNodeType = NonNullable<VulkanNode["type"]>;
 
@@ -63,11 +64,16 @@ export type TransformNodeMetadata = {
     source_code: string;
 };
 
+export type PolicyDefinitionNodeMetadata = {
+    policy_id: string;
+};
+
 export type NodeMetadata =
     | BranchNodeMetadata
     | DataInputNodeMetadata
     | TerminateNodeMetadata
-    | TransformNodeMetadata;
+    | TransformNodeMetadata
+    | PolicyDefinitionNodeMetadata;
 
 export type NodeDefinition = GenericNodeDefinition<NodeMetadata>;
 

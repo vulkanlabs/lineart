@@ -1,5 +1,4 @@
 import builtins
-from copy import deepcopy
 from typing import Callable
 
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
@@ -37,7 +36,7 @@ class Policy(GraphDefinition):
             ]
 
         self.hierarchy_level = hierarchy_level
-        self.nodes = resolve(all_nodes)
+        self.nodes = all_nodes
         self.input_schema = input_schema
         self.output_callback = output_callback
         super().__post_init__()
@@ -98,69 +97,69 @@ def _make_input_node(input_schema) -> InputNode:
     )
 
 
-def resolve(nodes: list[Node]) -> list[Node]:
-    """Resolve a Policy Definition into a Policy.
-    The resolution step consists of a couple of things:
-    1. Resolve any policy definition node into their corresponding policy;
-    2. Join the outputs of each subpolicy into a single node;
-    3. Remove the subpolicy nodes from the list of nodes;
-    4. Update the dependencies for nodes that depend on subpolicies.
-    """
-    node_map = {node.id: node for node in nodes}
-    resolved = []
-    replacement_dependencies = {}
+# def resolve(nodes: list[Node]) -> list[Node]:
+#     """Resolve a Policy Definition into a Policy.
+#     The resolution step consists of a couple of things:
+#     1. Resolve any policy definition node into their corresponding policy;
+#     2. Join the outputs of each subpolicy into a single node;
+#     3. Remove the subpolicy nodes from the list of nodes;
+#     4. Update the dependencies for nodes that depend on subpolicies.
+#     """
+#     node_map = {node.id: node for node in nodes}
+#     resolved = []
+#     replacement_dependencies = {}
 
-    # For each subpolicy, we resolve the subpolicy and then insert all
-    # its nodes into the flattened node list.
-    for node in nodes:
-        if node.type == NodeType.POLICY:
-            policy_node = Policy.from_definition(node.policy_definition, node.id)
-            # TODO: This should maybe go into the `from_definition` method?
-            i, inner_input_node = _find_input_node(policy_node.nodes)
-            policy_node.nodes[i] = inner_input_node.with_dependencies(node.dependencies)
-            # Join subpolicy outputs into an identity transform node
-            output_joiner = _make_output_joiner(
-                subpolicy_name=node.id,
-                leaves=policy_node.leaves,
-                hierarchy=inner_input_node.hierarchy,
-            )
-            policy_node.nodes.append(output_joiner)
-            replacement_dependencies[node.id] = Dependency(
-                output_joiner.name,
-                hierarchy=inner_input_node.hierarchy,
-            )
+#     # For each subpolicy, we resolve the subpolicy and then insert all
+#     # its nodes into the flattened node list.
+#     for node in nodes:
+#         if node.type == NodeType.POLICY:
+#             policy_node = Policy.from_definition(node.policy_definition, node.id)
+#             # TODO: This should maybe go into the `from_definition` method?
+#             i, inner_input_node = _find_input_node(policy_node.nodes)
+#             policy_node.nodes[i] = inner_input_node.with_dependencies(node.dependencies)
+#             # Join subpolicy outputs into an identity transform node
+#             output_joiner = _make_output_joiner(
+#                 subpolicy_name=node.id,
+#                 leaves=policy_node.leaves,
+#                 hierarchy=inner_input_node.hierarchy,
+#             )
+#             policy_node.nodes.append(output_joiner)
+#             replacement_dependencies[node.id] = Dependency(
+#                 output_joiner.name,
+#                 hierarchy=inner_input_node.hierarchy,
+#             )
 
-            for n in policy_node.nodes:
-                node_map[n.id] = n
+#             for n in policy_node.nodes:
+#                 node_map[n.id] = n
 
-    for _node in node_map.values():
-        # Avoid modifying the original node
-        node = deepcopy(_node)
+#     for _node in node_map.values():
+#         # Avoid modifying the original node
+#         node = deepcopy(_node)
 
-        if node.type == NodeType.POLICY:
-            # Policies are treated as "virtual" nodes:
-            # ie. they exist, but aren't handled in the actual computation.
-            # There's no need to modify their dependencies.
-            continue
+#         if node.type == NodeType.POLICY:
+#             # Policies are treated as "virtual" nodes:
+#             # ie. they exist, but aren't handled in the actual computation.
+#             # There's no need to modify their dependencies.
+#             continue
 
-        original_dependencies = deepcopy(node.dependencies)
-        for dep_name, dependency in original_dependencies.items():
-            dep_node = node_map.get(dependency.node)
+#         original_dependencies = deepcopy(node.dependencies)
+#         for dep_name, dependency in original_dependencies.items():
+#             dep_node = node_map.get(dependency.node)
 
-            if dep_node is None:
-                # Skip dependencies on nodes that are automatically
-                # inserted by upper layers (e.g. input nodes)
-                continue
+#             if dep_node is None:
+#                 # Skip dependencies on nodes that are automatically
+#                 # inserted by upper layers (e.g. input nodes)
+#                 continue
 
-            # Reassign dependencies on subpolicies.
-            # If a node depends on a subpolicy, it'll instead depend
-            # on any of the leaves of that subpolicy.
-            if dep_node.id in replacement_dependencies:
-                replacement_dep = replacement_dependencies[dep_node.id]
-                node.dependencies[dep_name] = replacement_dep
-        resolved.append(node)
+#             # Reassign dependencies on subpolicies.
+#             # If a node depends on a subpolicy, it'll instead depend
+#             # on any of the leaves of that subpolicy.
+#             if dep_node.id in replacement_dependencies:
+#                 replacement_dep = replacement_dependencies[dep_node.id]
+#                 node.dependencies[dep_name] = replacement_dep
+#         resolved.append(node)
 
-    return resolved
+#     return resolved
 
 
 def _find_input_node(nodes: list[Node]) -> tuple[int, InputNode]:

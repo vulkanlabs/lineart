@@ -1,4 +1,4 @@
-import { Link, ArrowRightFromLine, Split, ArrowDown01, Code2 } from "lucide-react";
+import { Link, ArrowRightFromLine, Split, ArrowDown01, Code2, Network } from "lucide-react";
 
 export const iconMapping = {
     CONNECTION: Link,
@@ -6,4 +6,5 @@ export const iconMapping = {
     BRANCH: Split,
     DATA_INPUT: ArrowDown01,
     TERMINATE: ArrowRightFromLine,
+    POLICY: Network,
 };

@@ -12,7 +12,12 @@ from vulkan.dagster.io_manager import (
     postgresql_io_manager,
 )
 from vulkan.dagster.policy import DagsterFlow
-from vulkan.dagster.resources import DATA_CLIENT_KEY, VulkanDataClient
+from vulkan.dagster.resources import (
+    DATA_CLIENT_KEY,
+    RUN_CLIENT_KEY,
+    VulkanDataClient,
+    VulkanRunClient,
+)
 from vulkan.dagster.run_config import (
     RUN_CONFIG_KEY,
     VulkanPolicyConfig,
@@ -36,6 +41,7 @@ def make_workspace_definition(spec_file_path: str) -> Definitions:
             database=EnvVar("VULKAN_DB_DATABASE"),
             object_table=EnvVar("VULKAN_DB_OBJECT_TABLE"),
         ),
+        RUN_CLIENT_KEY: VulkanRunClient(run_config=run_config),
         # IO Managers
         "io_manager": IOManagerDefinition(
             resource_fn=postgresql_io_manager,

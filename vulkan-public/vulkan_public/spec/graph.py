@@ -5,7 +5,7 @@ import graphviz
 import networkx as nx
 
 from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes.base import Node, NodeDefinition, NodeType
+from vulkan_public.spec.nodes.base import Node, NodeType
 
 GraphNodes = list[Node]
 GraphEdges = dict[str, dict[str, Dependency]]

@@ -35,7 +35,7 @@ RUN uv pip install --system --no-cache ${VULKAN_SERVER_PATH}/vulkan-dagster
 ## the same packages in the container.
 ## Note: This has to be set after running the --no-cache installation,
 ##       as the two options are mutually exclusive.
-ENV UV_LINK_MODE=symlink
+# ENV UV_LINK_MODE=symlink
 
 COPY vulkan-dagster/config/dagster.yaml ${DAGSTER_HOME}/
 COPY vulkan-dagster/config/workspace.yaml ${VULKAN_HOME}/

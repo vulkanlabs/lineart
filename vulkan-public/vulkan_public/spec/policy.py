@@ -122,7 +122,7 @@ class PolicyDefinitionNode(Node):
     def __init__(
         self,
         name: str,
-        policy_definition: PolicyDefinition,
+        policy_id: str,
         description: str | None = None,
         dependencies: dict[str, Dependency] | None = None,
     ):
@@ -132,12 +132,10 @@ class PolicyDefinitionNode(Node):
             typ=NodeType.POLICY,
             dependencies=dependencies,
         )
-        self.policy_definition = policy_definition
+        self.policy_id = policy_id
 
     def node_definition(self) -> NodeDefinition:
-        metadata = PolicyNodeMetadata(
-            policy_definition=self.policy_definition.to_dict()
-        )
+        metadata = PolicyNodeMetadata(policy_id=self.policy_id)
         return NodeDefinition(
             name=self.name,
             description=self.description,
@@ -151,15 +149,14 @@ class PolicyDefinitionNode(Node):
         definition = NodeDefinition.from_dict(spec)
         if definition.node_type != NodeType.POLICY.value:
             raise ValueError(f"Expected NodeType.POLICY, got {definition.node_type}")
-        if definition.metadata is None or definition.metadata.policy_definition is None:
-            raise ValueError("Missing policy definition metadata")
+        if definition.metadata is None or definition.metadata.policy_id is None:
+            raise ValueError("Missing policy metadata")
 
-        policy_def = PolicyDefinition.from_dict(definition.metadata.policy_definition)
         return cls(
             name=definition.name,
             description=definition.description,
             dependencies=definition.dependencies,
-            policy_definition=policy_def,
+            policy_id=definition.metadata.policy_id,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -169,7 +166,7 @@ class PolicyDefinitionNode(Node):
             "description": self.description,
             "dependencies": self.dependencies,
             "metadata": {
-                "policy_definition": self.policy_definition.to_dict(),
+                "policy_definition": self.policy_id,
             },
         }
 
@@ -180,6 +177,7 @@ NODE_IMPLEMENTS = {
     NodeType.INPUT: InputNode,
     NodeType.DATA_INPUT: DataInputNode,
     NodeType.BRANCH: BranchNode,
+    NodeType.POLICY: PolicyDefinitionNode,
 }
 
 
