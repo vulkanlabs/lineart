@@ -11,6 +11,8 @@ from vulkan_public.spec.nodes.base import NodeType
 
 from vulkan_server import definitions, schemas
 from vulkan_server.dagster.launch_run import (
+    MAX_POLLING_TIMEOUT_MS,
+    MIN_POLLING_INTERVAL_MS,
     DagsterRunLauncher,
     get_dagster_launcher,
     get_run_result,
@@ -318,11 +320,13 @@ def create_run_by_policy_version(
     return {"policy_version_id": policy_version_id, "run_id": run.run_id}
 
 
-@router.post("/{policy_version_id}/run")
+@router.post("/{policy_version_id}/run", response_model=schemas.RunResult)
 async def run_workflow(
     policy_version_id: str,
     input_data: Annotated[dict, Body()],
     config_variables: Annotated[dict, Body(default_factory=dict)],
+    polling_interval_ms: int = MIN_POLLING_INTERVAL_MS,
+    polling_timeout_ms: int = MAX_POLLING_TIMEOUT_MS,
     db: Session = Depends(get_db),
     launcher: DagsterRunLauncher = Depends(get_dagster_launcher),
 ):
@@ -331,7 +335,9 @@ async def run_workflow(
         policy_version_id=policy_version_id,
         run_config_variables=config_variables,
     )
-    result = await get_run_result(db=db, run_id=run.run_id)
+    result = await get_run_result(
+        db, run.run_id, polling_interval_ms, polling_timeout_ms
+    )
     return result
 
 

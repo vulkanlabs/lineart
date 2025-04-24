@@ -189,6 +189,13 @@ class Run(BaseModel):
         from_attributes = True
 
 
+class RunResult(BaseModel):
+    run_id: UUID
+    status: str
+    result: str | None = None
+    run_metadata: dict | None = None
+
+
 class StepMetadataBase(BaseModel):
     step_name: str
     node_type: str

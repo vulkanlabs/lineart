@@ -19,11 +19,12 @@ from vulkan_server.dagster.client import get_dagster_client
 from vulkan_server.db import PolicyVersion, Run, get_db
 from vulkan_server.exceptions import (
     NotFoundException,
+    RunPollingTimeoutException,
     UnhandledException,
     VariablesNotSetException,
 )
 from vulkan_server.logger import init_logger
-from vulkan_server.schemas import PolicyAllocationStrategy
+from vulkan_server.schemas import PolicyAllocationStrategy, RunResult
 
 logger = init_logger("run_launcher")
 
@@ -225,29 +226,51 @@ def allocate_runs(
     return {"main": main.run_id, "shadow": shadow}
 
 
-RUN_POLLING_INTERVAL = 0.5
-RUN_POLLING_TIMEOUT = 60
+MIN_POLLING_INTERVAL_MS = 500
+MAX_POLLING_TIMEOUT_MS = 300000
 
 
-async def get_run_result(db: Session, run_id: str):
+async def get_run_result(
+    db: Session, run_id: str, polling_interval_ms: int, polling_timeout_ms: int
+) -> RunResult:
     """Poll the database for the run result.
 
     This is a blocking function that will wait for the run to complete
     or timeout after a certain period.
     """
+
+    def clip(value):
+        return max(min(value, MAX_POLLING_TIMEOUT_MS), MIN_POLLING_INTERVAL_MS)
+
     elapsed = 0
+    completed = False
     run_obj: Run | None = None
 
-    while elapsed < RUN_POLLING_TIMEOUT:
+    polling_interval = clip(polling_interval_ms) / 1000
+    polling_timeout = clip(polling_timeout_ms) / 1000
+
+    while elapsed < polling_timeout:
         if run_obj:
             # Clear the database cache to ensure we get the latest run status
             db.expire(run_obj)
 
         run_obj = db.execute(select(Run).where(Run.run_id == run_id)).scalars().first()
         if run_obj.status in (RunStatus.SUCCESS, RunStatus.FAILURE):
+            completed = True
             break
 
-        await asyncio.sleep(RUN_POLLING_INTERVAL)
-        elapsed += RUN_POLLING_INTERVAL
+        await asyncio.sleep(polling_interval)
+        elapsed += polling_interval
 
-    return {"status": run_obj.result, "metadata": run_obj.run_metadata}
+    if not completed:
+        raise RunPollingTimeoutException(
+            f"Run {run_id} timed out after {polling_timeout} seconds. "
+            "Check the run logs for more details."
+        )
+
+    return RunResult(
+        run_id=run_obj.run_id,
+        status=run_obj.status,
+        result=run_obj.result,
+        run_metadata=run_obj.run_metadata,
+    )
