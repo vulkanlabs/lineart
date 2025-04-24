@@ -1,8 +1,11 @@
+import asyncio
 from dataclasses import dataclass
 from uuid import UUID
 
 from dagster_graphql import DagsterGraphQLClient
+from fastapi import Depends
 from numpy.random import choice
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from vulkan_public.constants import POLICY_CONFIG_KEY
 
@@ -12,7 +15,8 @@ from vulkan.dagster.run_config import RUN_CONFIG_KEY
 from vulkan_server import definitions
 from vulkan_server.config_variables import resolve_config_variables_from_id
 from vulkan_server.dagster import trigger_run
-from vulkan_server.db import PolicyVersion, Run
+from vulkan_server.dagster.client import get_dagster_client
+from vulkan_server.db import PolicyVersion, Run, get_db
 from vulkan_server.exceptions import (
     NotFoundException,
     UnhandledException,
@@ -22,84 +26,6 @@ from vulkan_server.logger import init_logger
 from vulkan_server.schemas import PolicyAllocationStrategy
 
 logger = init_logger("run_launcher")
-
-
-def allocate_runs(
-    db: Session,
-    dagster_client: DagsterGraphQLClient,
-    server_url: str,
-    input_data: dict,
-    run_group_id: UUID,
-    allocation_strategy: PolicyAllocationStrategy,
-):
-    shadow = []
-
-    if allocation_strategy.shadow is not None:
-        for policy_version_id in allocation_strategy.shadow:
-            run = Run(
-                policy_version_id=policy_version_id,
-                status=RunStatus.PENDING,
-                run_group_id=run_group_id,
-            )
-            db.add(run)
-            db.commit()
-            shadow.append(run.run_id)
-
-    opts = [opt.policy_version_id for opt in allocation_strategy.choice]
-    freq = [opt.frequency / 1000 for opt in allocation_strategy.choice]
-    policy_version_id = choice(opts, p=freq)
-
-    main = create_run(
-        db=db,
-        dagster_client=dagster_client,
-        server_url=server_url,
-        input_data=input_data,
-        run_group_id=run_group_id,
-        policy_version_id=policy_version_id,
-    )
-    return {"main": main.run_id, "shadow": shadow}
-
-
-def create_run(
-    db: Session,
-    dagster_client: DagsterGraphQLClient,
-    server_url: str,
-    input_data: dict,
-    policy_version_id: str,
-    run_group_id: UUID | None = None,
-    run_config_variables: dict[str, str] | None = None,
-):
-    launcher = DagsterRunLauncher(
-        db=db,
-        dagster_client=dagster_client,
-        server_url=server_url,
-    )
-    return launcher.create_run(
-        input_data=input_data,
-        run_group_id=run_group_id,
-        policy_version_id=policy_version_id,
-        run_config_variables=run_config_variables,
-    )
-
-
-def launch_run(
-    db: Session,
-    dagster_client: DagsterGraphQLClient,
-    server_url: str,
-    run: Run,
-    input_data: dict,
-    run_config_variables: dict[str, str] | None = None,
-):
-    launcher = DagsterRunLauncher(
-        db=db,
-        dagster_client=dagster_client,
-        server_url=server_url,
-    )
-    return launcher.launch_run(
-        run=run,
-        input_data=input_data,
-        run_config_variables=run_config_variables,
-    )
 
 
 @dataclass
@@ -251,3 +177,77 @@ def trigger_dagster_job(
         execution_config,
     )
     return dagster_run_id
+
+
+def get_dagster_launcher(
+    db: Session = Depends(get_db),
+    dagster_client=Depends(get_dagster_client),
+    server_config: definitions.VulkanServerConfig = Depends(
+        definitions.get_vulkan_server_config
+    ),
+) -> DagsterRunLauncher:
+    return DagsterRunLauncher(
+        db=db,
+        dagster_client=dagster_client,
+        server_url=server_config.server_url,
+    )
+
+
+def allocate_runs(
+    db: Session,
+    launcher: DagsterRunLauncher,
+    input_data: dict,
+    run_group_id: UUID,
+    allocation_strategy: PolicyAllocationStrategy,
+):
+    shadow = []
+
+    if allocation_strategy.shadow is not None:
+        for policy_version_id in allocation_strategy.shadow:
+            run = Run(
+                policy_version_id=policy_version_id,
+                status=RunStatus.PENDING,
+                run_group_id=run_group_id,
+            )
+            db.add(run)
+            db.commit()
+            shadow.append(run.run_id)
+
+    opts = [opt.policy_version_id for opt in allocation_strategy.choice]
+    freq = [opt.frequency / 1000 for opt in allocation_strategy.choice]
+    policy_version_id = choice(opts, p=freq)
+
+    main = launcher.create_run(
+        input_data=input_data,
+        run_group_id=run_group_id,
+        policy_version_id=policy_version_id,
+    )
+    return {"main": main.run_id, "shadow": shadow}
+
+
+RUN_POLLING_INTERVAL = 0.5
+RUN_POLLING_TIMEOUT = 60
+
+
+async def get_run_result(db: Session, run_id: str):
+    """Poll the database for the run result.
+
+    This is a blocking function that will wait for the run to complete
+    or timeout after a certain period.
+    """
+    elapsed = 0
+    run_obj: Run | None = None
+
+    while elapsed < RUN_POLLING_TIMEOUT:
+        if run_obj:
+            # Clear the database cache to ensure we get the latest run status
+            db.expire(run_obj)
+
+        run_obj = db.execute(select(Run).where(Run.run_id == run_id)).scalars().first()
+        if run_obj.status in (RunStatus.SUCCESS, RunStatus.FAILURE):
+            break
+
+        await asyncio.sleep(RUN_POLLING_INTERVAL)
+        elapsed += RUN_POLLING_INTERVAL
+
+    return {"status": run_obj.result, "metadata": run_obj.run_metadata}

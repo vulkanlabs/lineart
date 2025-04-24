@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 from dataclasses import dataclass
 from typing import Annotated
@@ -10,16 +9,17 @@ from sqlalchemy.orm import Session
 from vulkan_public.exceptions import DataSourceNotFoundException
 from vulkan_public.spec.nodes.base import NodeType
 
-from vulkan.core.run import RunStatus
 from vulkan_server import definitions, schemas
-from vulkan_server.dagster.client import get_dagster_client
-from vulkan_server.dagster.launch_run import create_run
+from vulkan_server.dagster.launch_run import (
+    DagsterRunLauncher,
+    get_dagster_launcher,
+    get_run_result,
+)
 from vulkan_server.dagster.service_client import (
     VulkanDagsterServiceClient,
     get_dagster_service_client,
 )
 from vulkan_server.db import (
-    BeamWorkspace,
     ConfigurationValue,
     DataSource,
     Policy,
@@ -27,16 +27,11 @@ from vulkan_server.db import (
     PolicyVersion,
     PolicyVersionStatus,
     Run,
-    WorkspaceStatus,
     get_db,
 )
 from vulkan_server.events import VulkanEvent
 from vulkan_server.exceptions import VulkanServerException
 from vulkan_server.logger import VulkanLogger, get_logger
-from vulkan_server.services.resolution import (
-    ResolutionServiceClient,
-    get_resolution_service_client,
-)
 from vulkan_server.utils import validate_date_range
 
 router = APIRouter(
@@ -313,35 +308,14 @@ def create_run_by_policy_version(
     policy_version_id: str,
     input_data: Annotated[dict, Body()],
     config_variables: Annotated[dict, Body(default_factory=dict)],
-    server_config: definitions.VulkanServerConfig = Depends(
-        definitions.get_vulkan_server_config
-    ),
-    db: Session = Depends(get_db),
-    dagster_client=Depends(get_dagster_client),
+    launcher: DagsterRunLauncher = Depends(get_dagster_launcher),
 ):
-    try:
-        run = create_run(
-            db=db,
-            dagster_client=dagster_client,
-            server_url=server_config.server_url,
-            policy_version_id=policy_version_id,
-            input_data=input_data,
-            run_config_variables=config_variables,
-        )
-    except VulkanServerException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={
-                "error": e.error_code,
-                "msg": e.msg,
-            },
-        )
-
+    run = launcher.create_run(
+        input_data=input_data,
+        policy_version_id=policy_version_id,
+        run_config_variables=config_variables,
+    )
     return {"policy_version_id": policy_version_id, "run_id": run.run_id}
-
-
-RUN_POLLING_INTERVAL = 0.5
-RUN_POLLING_TIMEOUT = 60
 
 
 @router.post("/{policy_version_id}/run")
@@ -349,48 +323,16 @@ async def run_workflow(
     policy_version_id: str,
     input_data: Annotated[dict, Body()],
     config_variables: Annotated[dict, Body(default_factory=dict)],
-    server_config: definitions.VulkanServerConfig = Depends(
-        definitions.get_vulkan_server_config
-    ),
     db: Session = Depends(get_db),
-    dagster_client=Depends(get_dagster_client),
+    launcher: DagsterRunLauncher = Depends(get_dagster_launcher),
 ):
-    try:
-        run = create_run(
-            db=db,
-            dagster_client=dagster_client,
-            server_url=server_config.server_url,
-            policy_version_id=policy_version_id,
-            input_data=input_data,
-            run_config_variables=config_variables,
-        )
-        run_id = run.run_id
-    except VulkanServerException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={
-                "error": e.error_code,
-                "msg": e.msg,
-            },
-        )
-
-    # Poll the Run until the job is completed
-    elapsed = 0
-    run_obj: Run | None = None
-
-    while elapsed < RUN_POLLING_TIMEOUT:
-        if run_obj:
-            # Clear the database cache to ensure we get the latest run status
-            db.expire(run_obj)
-
-        run_obj = db.execute(select(Run).where(Run.run_id == run_id)).scalars().first()
-        if run_obj.status in (RunStatus.SUCCESS, RunStatus.FAILURE):
-            break
-
-        await asyncio.sleep(RUN_POLLING_INTERVAL)
-        elapsed += RUN_POLLING_INTERVAL
-
-    return {"status": run_obj.result, "metadata": run_obj.run_metadata}
+    run = launcher.create_run(
+        input_data=input_data,
+        policy_version_id=policy_version_id,
+        run_config_variables=config_variables,
+    )
+    result = await get_run_result(db=db, run_id=run.run_id)
+    return result
 
 
 @router.get(
@@ -538,93 +480,6 @@ def list_data_sources_by_policy_version(
         )
 
     return data_sources
-
-
-@router.get(
-    "/{policy_version_id}/backtest-workspace", response_model=schemas.BeamWorkspace
-)
-def get_beam_workspace(
-    policy_version_id: str,
-    db=Depends(get_db),
-):
-    policy_version = (
-        db.query(PolicyVersion)
-        .filter_by(
-            policy_version_id=policy_version_id,
-        )
-        .first()
-    )
-    if policy_version is None:
-        return Response(status_code=204)
-
-    workspace = (
-        db.query(BeamWorkspace).filter_by(policy_version_id=policy_version_id).first()
-    )
-    if workspace is None:
-        return Response(status_code=204)
-
-    return workspace
-
-
-@router.post(
-    "/{policy_version_id}/backtest-workspace", response_model=schemas.BeamWorkspace
-)
-def create_beam_workspace(
-    policy_version_id: str,
-    logger: VulkanLogger = Depends(get_logger),
-    db: Session = Depends(get_db),
-    resolution_service: ResolutionServiceClient = Depends(
-        get_resolution_service_client
-    ),
-):
-    # If a workspace exists, this is a no-op.
-    current_workspace = (
-        db.query(BeamWorkspace).filter_by(policy_version_id=policy_version_id).first()
-    )
-    if current_workspace is not None:
-        return current_workspace
-
-    policy_version: PolicyVersion = (
-        db.query(PolicyVersion)
-        .filter_by(
-            policy_version_id=policy_version_id,
-        )
-        .first()
-    )
-
-    beam_workspace = BeamWorkspace(
-        policy_version_id=policy_version.policy_version_id,
-        status=WorkspaceStatus.CREATION_PENDING,
-    )
-    db.add(beam_workspace)
-    db.commit()
-
-    try:
-        response = resolution_service.create_beam_workspace(
-            policy_version_id=str(policy_version_id),
-            base_image=policy_version.base_worker_image,
-        )
-
-        beam_workspace.image = response.json()["image_path"]
-        beam_workspace.status = WorkspaceStatus.OK
-    except Exception as e:
-        beam_workspace.status = WorkspaceStatus.CREATION_FAILED
-        logger.system.error(
-            f"Failed to create workspace ({policy_version_id}): {e}", exc_info=True
-        )
-        msg = (
-            "This is usually an issue with Vulkan's internal services. "
-            "Contact support for assistance. "
-            f"Workspace ID: {policy_version_id}"
-        )
-        raise HTTPException(status_code=500, detail={"msg": msg})
-    finally:
-        db.commit()
-
-    logger.event(
-        VulkanEvent.BEAM_WORKSPACE_CREATED, policy_version_id=policy_version_id
-    )
-    return beam_workspace
 
 
 def convert_pydantic_to_dict(obj):

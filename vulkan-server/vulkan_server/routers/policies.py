@@ -9,9 +9,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from vulkan.core.run import RunStatus
-from vulkan_server import definitions, schemas
-from vulkan_server.dagster.client import get_dagster_client
-from vulkan_server.dagster.launch_run import allocate_runs
+from vulkan_server import schemas
+from vulkan_server.dagster.launch_run import (
+    DagsterRunLauncher,
+    allocate_runs,
+    get_dagster_launcher,
+)
 from vulkan_server.db import (
     Policy,
     PolicyVersion,
@@ -21,7 +24,6 @@ from vulkan_server.db import (
     get_db,
 )
 from vulkan_server.events import VulkanEvent
-from vulkan_server.exceptions import VulkanServerException
 from vulkan_server.logger import VulkanLogger, get_logger
 from vulkan_server.utils import validate_date_range
 
@@ -256,10 +258,7 @@ def create_run_group(
     config_variables: Annotated[dict, Body(default_factory=list)],
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
-    dagster_client=Depends(get_dagster_client),
-    server_config: definitions.VulkanServerConfig = Depends(
-        definitions.get_vulkan_server_config
-    ),
+    launcher: DagsterRunLauncher = Depends(get_dagster_launcher),
 ):
     try:
         policy = (
@@ -310,24 +309,13 @@ def create_run_group(
         extra={"extra": {"policy_id": policy_id}},
     )
 
-    try:
-        runs = allocate_runs(
-            db=db,
-            dagster_client=dagster_client,
-            server_url=server_config.server_url,
-            input_data=input_data,
-            run_group_id=run_group.run_group_id,
-            allocation_strategy=strategy,
-        )
-    except VulkanServerException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={
-                "error": e.error_code,
-                "msg": e.msg,
-            },
-        )
-
+    runs = allocate_runs(
+        db=db,
+        launcher=launcher,
+        input_data=input_data,
+        run_group_id=run_group.run_group_id,
+        allocation_strategy=strategy,
+    )
     return {
         "policy_id": policy.policy_id,
         "run_group_id": run_group.run_group_id,
