@@ -13,9 +13,10 @@ import { useWorkflowStore } from "../store";
 import { WorkflowNode, defaultHandleStyle } from "./base";
 
 export function BranchNode({ id, data, selected, height, width }: NodeProps<VulkanNode>) {
-    const { updateNodeData, onNodesChange } = useWorkflowStore(
+    const { updateNodeData, updateTargetDeps, onNodesChange } = useWorkflowStore(
         useShallow((state) => ({
             updateNodeData: state.updateNodeData,
+            updateTargetDeps: state.updateTargetDeps,
             onNodesChange: state.onNodesChange,
         })),
     );
@@ -32,8 +33,9 @@ export function BranchNode({ id, data, selected, height, width }: NodeProps<Vulk
         (choices: string[]) => {
             const metadata = { ...data.metadata, choices: choices };
             updateNodeData(id, { ...data, metadata });
+            updateTargetDeps(id);
         },
-        [id, data, updateNodeData],
+        [id, data, updateNodeData, updateTargetDeps],
     );
 
     const heightStepSize = 80; // Adjust this value as needed
@@ -104,7 +106,7 @@ export function BranchNode({ id, data, selected, height, width }: NodeProps<Vulk
                         language="python"
                         value={data.metadata?.source_code || ""}
                         theme="vs-dark"
-                        defaultValue="# some comment"
+                        defaultValue="# your code here"
                         onChange={setSourceCode}
                         options={{
                             minimap: {

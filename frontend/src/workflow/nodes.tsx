@@ -95,6 +95,7 @@ export function createNodeByType({
                 minHeight: height,
                 icon: node.icon,
                 metadata: metadata,
+                incomingEdges: {},
             },
             position: {
                 x: position.x,
@@ -119,6 +120,7 @@ export function createNodeByType({
             minHeight: height,
             icon: node.icon,
             metadata: metadata,
+            incomingEdges: {},
         },
         position: {
             x: position.x,

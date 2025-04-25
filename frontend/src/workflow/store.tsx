@@ -26,6 +26,7 @@ import {
 type WorkflowActions = {
     getSpec: () => GraphDefinition;
     getInputSchema: () => { [key: string]: string };
+    updateTargetDeps: (sourceNodeId: string) => void;
     onNodesChange: OnNodesChange<VulkanNode>;
     setNodes: (nodes: VulkanNode[]) => void;
     addNode: (node: VulkanNode) => void;
@@ -61,8 +62,6 @@ const createWorkflowStore = (initProps: WorkflowState) => {
 
         getSpec: () => {
             const nodes = get().nodes || [];
-            const edges = get().edges || [];
-
             const spec: GraphDefinition = {};
 
             nodes.forEach((node) => {
@@ -70,36 +69,67 @@ const createWorkflowStore = (initProps: WorkflowState) => {
                     name: node.data.name,
                     node_type: node.type,
                     metadata: node.data.metadata,
-                };
-            });
-
-            edges.forEach((edge) => {
-                const sourceNode = spec[edge.source];
-                const targetNode = spec[edge.target];
-                let output = null;
-
-                if (sourceNode && sourceNode.node_type === "BRANCH") {
-                    const metadata = sourceNode.metadata as BranchNodeMetadata;
-                    output = metadata.choices[edge.sourceHandle];
-                }
-
-                if (sourceNode && targetNode) {
-                    targetNode.dependencies = Object.assign({}, targetNode.dependencies, {
-                        [sourceNode.name]: {
-                            node: sourceNode.name,
-                            output: output,
-                            key: null,
+                    dependencies: Object.values(node.data.incomingEdges).reduce(
+                        (acc, depConfig) => {
+                            acc[depConfig.key] = depConfig.dependency;
+                            return acc;
                         },
-                    });
-                }
+                        {},
+                    ),
+                };
             });
 
             return spec;
         },
 
+        updateTargetDeps: (sourceNodeId) => {
+            const nodes = get().nodes || [];
+            const edges = get().edges || [];
+
+            const sourceNode = nodes.find((n) => n.id === sourceNodeId);
+            const targetNodesIds = edges
+                .filter((edge) => edge.source === sourceNodeId)
+                .map((edge) => edge.target);
+
+            const newNodes = nodes.map((node) => {
+                if (!targetNodesIds.includes(node.id)) return node;
+
+                const edge = edges.find(
+                    (edge) => edge.source === sourceNodeId && edge.target === node.id,
+                );
+                let output = null;
+
+                if (sourceNode && sourceNode.type === "BRANCH") {
+                    const metadata = sourceNode.data.metadata as BranchNodeMetadata;
+                    output = metadata.choices[edge.sourceHandle];
+                }
+                const depConfig = { ...node.data.incomingEdges[edge.id] };
+                depConfig.dependency = {
+                    node: sourceNode.data.name,
+                    output: output,
+                    key: null,
+                };
+
+                return {
+                    ...node,
+                    data: {
+                        ...node.data,
+                        incomingEdges: {
+                            ...node.data.incomingEdges,
+                            [edge.id]: depConfig,
+                        },
+                    },
+                };
+            });
+            set({ nodes: newNodes });
+        },
+
         onNodesChange: async (changes) => {
             const nextNodes = applyNodeChanges(changes, get().nodes);
             set({ nodes: nextNodes });
+            console.log("Nodes:", get().nodes);
+            console.log("Edges:", get().edges);
+            console.log("Spec:", get().getSpec());
         },
 
         setNodes: (nodes) => set({ nodes }),
@@ -159,12 +189,33 @@ const createWorkflowStore = (initProps: WorkflowState) => {
         },
 
         onConnect: (connection) => {
-            const newEdge: Edge = {
-                ...connection,
-                id: `${connection.source}-${connection.target}`,
+            const edgeId = `${connection.source}-${connection.target}`;
+            const newEdge: Edge = { ...connection, id: edgeId };
+            get().addEdge(newEdge);
+
+            const nodes = get().nodes;
+            const sourceNode = nodes.find((node) => node.id === connection.source);
+            const targetNode = nodes.find((node) => node.id === connection.target);
+            let output = null;
+
+            if (sourceNode.type === "BRANCH") {
+                const metadata = sourceNode.data.metadata as BranchNodeMetadata;
+                output = metadata.choices[connection.sourceHandle];
+            }
+
+            const dependency = {
+                node: sourceNode.data.name,
+                output: output,
+                key: null,
             };
 
-            get().addEdge(newEdge);
+            get().updateNodeData(connection.target, {
+                ...targetNode.data,
+                incomingEdges: {
+                    ...targetNode.data.incomingEdges,
+                    [edgeId]: { key: sourceNode.data.name, dependency },
+                },
+            });
         },
     }));
 };
