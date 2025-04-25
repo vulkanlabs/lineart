@@ -143,16 +143,21 @@ export function WorkflowNode({
                             {IconComponent ? <IconComponent aria-label={data?.icon} /> : null}
                         </NodeHeaderIcon>
                         {isNameEditing ? (
-                            <input
-                                value={data.name}
-                                onChange={(e) => setNodeName(e.target.value)}
-                                onBlur={(e) => {
-                                    setNodeName(standardizeNodeName(e.target.value));
-                                    toggleNameEditor();
-                                }}
-                                autoFocus
-                                className="bg-transparent border rounded px-1 flex-grow min-w-0"
-                            />
+                            <div
+                                className="flex-grow min-w-0 nodrag"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            >
+                                <input
+                                    value={data.name}
+                                    onChange={(e) => setNodeName(e.target.value)}
+                                    onBlur={(e) => {
+                                        setNodeName(standardizeNodeName(e.target.value));
+                                        toggleNameEditor();
+                                    }}
+                                    autoFocus
+                                    className="bg-transparent border rounded px-1 w-full"
+                                />
+                            </div>
                         ) : (
                             <div className="relative flex-grow min-w-0">
                                 <NodeHeaderTitle
@@ -188,7 +193,7 @@ export function WorkflowNode({
                     </NodeHeader>
                     {showDetails && <div className="flex-grow min-h-0">{children}</div>}
                     {!disableFooter && (
-                        <div className="flex flex-row gap-1 px-3 py-2 border-t border-slate-200 mt-1">
+                        <div className="flex gap-1 px-3 py-2 border-t border-slate-200 mt-1">
                             <Button variant="outline" size="sm" onClick={toggleInputs}>
                                 {showInputs ? "Hide Inputs" : "Show Inputs"}
                             </Button>
@@ -280,15 +285,17 @@ function NodeInputs({ incomingEdges, onUpdateDependencyKey }: NodeInputsProps) {
                     {Object.entries(incomingEdges).map(([edgeId, { key, dependency }]) => (
                         <div key={edgeId} className="grid grid-cols-2 gap-2 items-center text-sm">
                             {editingKey === key ? (
-                                <Input
-                                    type="text"
-                                    value={currentValue}
-                                    onChange={handleInputChange}
-                                    onBlur={(e) => handleInputBlur(e, edgeId, key)}
-                                    onKeyDown={(e) => handleInputKeyDown(e, edgeId, key)}
-                                    autoFocus
-                                    className="h-7 text-sm"
-                                />
+                                <div className="nodrag" onMouseDown={(e) => e.stopPropagation()}>
+                                    <Input
+                                        type="text"
+                                        value={currentValue}
+                                        onChange={handleInputChange}
+                                        onBlur={(e) => handleInputBlur(e, edgeId, key)}
+                                        onKeyDown={(e) => handleInputKeyDown(e, edgeId, key)}
+                                        autoFocus
+                                        className="h-7 text-sm"
+                                    />
+                                </div>
                             ) : (
                                 <span
                                     className="px-1 py-0.5 rounded hover:bg-slate-200 cursor-pointer truncate"

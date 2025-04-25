@@ -60,6 +60,7 @@ export type InputNodeMetadata = {
 
 export type TerminateNodeMetadata = {
     return_status: string;
+    return_metadata?: { [key: string]: NodeDependency };
 };
 
 export type TransformNodeMetadata = {

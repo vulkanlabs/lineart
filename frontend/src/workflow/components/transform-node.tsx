@@ -24,8 +24,11 @@ export function TransformNode({ id, data, selected, height, width }: NodeProps<V
 
     return (
         <WorkflowNode id={id} selected={selected} data={data} height={height} width={width}>
-            <div className="flex flex-col gap-1 space-y-2 p-3 h-full flex-grow">
-                <div className="rounded-md overflow-hidden h-full flex-grow">
+            <div className="p-3 h-full flex-grow">
+                <div
+                    className="rounded-md overflow-hidden h-full flex-grow nodrag"
+                    onMouseDown={(e) => e.stopPropagation()}
+                >
                     <Editor
                         language="python"
                         value={data.metadata?.source_code || ""}

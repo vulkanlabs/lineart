@@ -127,9 +127,7 @@ const createWorkflowStore = (initProps: WorkflowState) => {
         onNodesChange: async (changes) => {
             const nextNodes = applyNodeChanges(changes, get().nodes);
             set({ nodes: nextNodes });
-            console.log("Nodes:", get().nodes);
-            console.log("Edges:", get().edges);
-            console.log("Spec:", get().getSpec());
+            // console.log("Spec: ", get().getSpec());
         },
 
         setNodes: (nodes) => set({ nodes }),
