@@ -244,11 +244,18 @@ export async function fetchPolicyVersionRuns(
 }
 
 export async function fetchPolicyVersions(
-    policyId: string,
+    policyId: string | null = null,
     includeArchived: boolean = false,
 ): Promise<PolicyVersion[]> {
+    const params: HTTPQueryParams = {
+        include_archived: includeArchived,
+    };
+    if (policyId) {
+        params.policy_id = policyId;
+    }
     return fetchServerData({
-        endpoint: `/policies/${policyId}/versions?include_archived=${includeArchived}`,
+        endpoint: `/policy-versions`,
+        params: params,
         label: `versions for policy ${policyId}`,
     });
 }
@@ -340,7 +347,7 @@ export async function fetchRunLogs(runId: string): Promise<RunLogs> {
     });
 }
 
-export async function fetchDataSources() {
+export async function fetchDataSources(): Promise<DataSourceSpec[]> {
     return fetchServerData({
         endpoint: `/data-sources`,
         label: `data sources`,

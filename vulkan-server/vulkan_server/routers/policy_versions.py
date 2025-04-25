@@ -1,5 +1,4 @@
 import datetime
-from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
@@ -140,6 +139,23 @@ def get_policy_version(
     return policy_version
 
 
+@router.get("", response_model=list[schemas.PolicyVersion])
+def list_policy_versions(
+    policy_id: str | None = None,
+    archived: bool = False,
+    db: Session = Depends(get_db),
+):
+    stmt = select(PolicyVersion).where(PolicyVersion.archived == archived)
+    if policy_id is not None:
+        stmt = stmt.where(PolicyVersion.policy_id == policy_id)
+
+    versions = db.execute(stmt).scalars().all()
+    if len(versions) == 0:
+        return Response(status_code=204)
+
+    return versions
+
+
 @router.put("/{policy_version_id}", response_model=schemas.PolicyVersion)
 def update_policy_version(
     policy_version_id: str,
@@ -237,17 +253,6 @@ def _add_data_source_dependencies(
         db.add(dependency)
 
     return matched
-
-
-@dataclass
-class PolicyVersionSettings:
-    module_name: str
-    input_schema: dict[str, str]
-    graph_definition: str
-    workspace_path: str
-    image_path: str
-    config_variables: list[str] | None = None
-    data_sources: list[str] | None = None
 
 
 @router.delete("/{policy_version_id}")

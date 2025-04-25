@@ -38,10 +38,12 @@ def list_data_sources(
     include_archived: bool = False,
     db: Session = Depends(get_db),
 ):
-    filters = dict()
+    filters = {}
     if not include_archived:
         filters["archived"] = False
-    data_sources = db.query(DataSource).filter_by(**filters).all()
+
+    stmt = select(DataSource).filter_by(**filters)
+    data_sources = db.execute(stmt).scalars().all()
     response = [schemas.DataSource.from_orm(ds) for ds in data_sources]
     return response
 
