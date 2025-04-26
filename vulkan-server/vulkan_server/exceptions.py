@@ -80,3 +80,8 @@ class DataSourceNotFoundException(VulkanServerException):
 class UnhandledException(VulkanServerException):
     def __init__(self, msg: str):
         super().__init__(msg, 500, "UNHANDLED_EXCEPTION")
+
+
+class RunPollingTimeoutException(VulkanServerException):
+    def __init__(self, msg: str):
+        super().__init__(msg, 504, "RUN_POLLING_TIMEOUT")

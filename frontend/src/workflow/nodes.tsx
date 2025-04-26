@@ -22,7 +22,7 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
         id: "DATA_INPUT",
         name: "Data Input Node",
         width: 400,
-        height: 200,
+        height: 225,
         icon: "DATA_INPUT",
     },
     TRANSFORM: {
@@ -43,7 +43,7 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
         id: "TERMINATE",
         name: "Terminate Node",
         width: 400,
-        height: 200,
+        height: 500,
         icon: "TERMINATE",
     },
 };
@@ -95,6 +95,7 @@ export function createNodeByType({
                 minHeight: height,
                 icon: node.icon,
                 metadata: metadata,
+                incomingEdges: {},
             },
             position: {
                 x: position.x,
@@ -119,6 +120,7 @@ export function createNodeByType({
             minHeight: height,
             icon: node.icon,
             metadata: metadata,
+            incomingEdges: {},
         },
         position: {
             x: position.x,

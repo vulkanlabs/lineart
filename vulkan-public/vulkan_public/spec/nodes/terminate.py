@@ -27,6 +27,7 @@ class TerminateNode(Node):
         name: str,
         return_status: Enum | str,
         dependencies: dict[str, Dependency],
+        return_metadata: dict[str, Dependency] | None = None,
         description: str | None = None,
         callback: Callable | None = None,
         hierarchy: list[str] | None = None,
@@ -42,6 +43,8 @@ class TerminateNode(Node):
         dependencies: dict, optional
             The dependencies of the node.
             See `Dependency` for more information.
+        return_metadata: dict, optional
+            A dictionary of metadata that will be returned by the run.
         description: str, optional
             A description of the node.
         callback: Callable, optional
@@ -65,6 +68,15 @@ class TerminateNode(Node):
         )
         self.callback = callback
 
+        if return_metadata is not None:
+            if not isinstance(return_metadata, dict):
+                raise TypeError(
+                    f"Return metadata must be a dict, got: {type(return_metadata)}"
+                )
+            if not all(isinstance(d, Dependency) for d in return_metadata.values()):
+                raise ValueError("Return metadata values must be of type Dependency")
+        self.return_metadata = return_metadata
+
     def node_definition(self) -> NodeDefinition:
         return NodeDefinition(
             name=self.name,
@@ -73,6 +85,7 @@ class TerminateNode(Node):
             dependencies=self.dependencies,
             metadata=TerminateNodeMetadata(
                 return_status=self.return_status,
+                return_metadata=self.return_metadata,
             ),
             hierarchy=self.hierarchy,
         )
@@ -93,5 +106,6 @@ class TerminateNode(Node):
             description=definition.description,
             dependencies=definition.dependencies,
             return_status=metadata.return_status,
+            return_metadata=metadata.return_metadata,
             hierarchy=definition.hierarchy,
         )

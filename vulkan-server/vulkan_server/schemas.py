@@ -169,17 +169,31 @@ class ConfigurationVariables(ConfigurationVariablesBase):
     last_updated_at: datetime | None = None
 
 
+class RunUpdate(BaseModel):
+    status: str
+    result: str
+    run_metadata: dict | None = None
+
+
 class Run(BaseModel):
     run_id: UUID
     policy_version_id: UUID
     run_group_id: UUID | None = None
     status: str
     result: str | None = None
+    run_metadata: dict | None = None
     created_at: datetime
     last_updated_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class RunResult(BaseModel):
+    run_id: UUID
+    status: str
+    result: str | None = None
+    run_metadata: dict | None = None
 
 
 class StepMetadataBase(BaseModel):

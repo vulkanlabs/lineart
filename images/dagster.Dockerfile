@@ -11,12 +11,10 @@ ARG VULKAN_HOME
 ARG VULKAN_PORT
 ARG VULKAN_SERVER_PATH
 ARG VULKAN_SCRIPTS_PATH
-ARG VULKAN_VENVS_PATH
 ENV VULKAN_HOME=${VULKAN_HOME}
 ENV VULKAN_PORT=${VULKAN_PORT}
 ENV VULKAN_SERVER_PATH=${VULKAN_SERVER_PATH}
 ENV VULKAN_SCRIPTS_PATH=${VULKAN_SCRIPTS_PATH}
-ENV VULKAN_VENVS_PATH=${VULKAN_VENVS_PATH}
 EXPOSE ${VULKAN_PORT}
 
 # Install Dagster webserver + vulkan core library
@@ -35,13 +33,12 @@ RUN uv pip install --system --no-cache ${VULKAN_SERVER_PATH}/vulkan-dagster
 ## the same packages in the container.
 ## Note: This has to be set after running the --no-cache installation,
 ##       as the two options are mutually exclusive.
-ENV UV_LINK_MODE=symlink
+# ENV UV_LINK_MODE=symlink
 
 COPY vulkan-dagster/config/dagster.yaml ${DAGSTER_HOME}/
 COPY vulkan-dagster/config/workspace.yaml ${VULKAN_HOME}/
 COPY vulkan-dagster/mock_workspace ${VULKAN_HOME}/workspaces/mock_workspace
 
-RUN mkdir ${VULKAN_VENVS_PATH}
 COPY --chmod=700 vulkan-dagster/scripts/* ${VULKAN_SCRIPTS_PATH}/
 
 # Run both servers

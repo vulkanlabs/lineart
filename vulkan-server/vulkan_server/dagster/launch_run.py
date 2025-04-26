@@ -1,8 +1,11 @@
+import asyncio
 from dataclasses import dataclass
 from uuid import UUID
 
 from dagster_graphql import DagsterGraphQLClient
+from fastapi import Depends
 from numpy.random import choice
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from vulkan_public.constants import POLICY_CONFIG_KEY
 
@@ -12,94 +15,18 @@ from vulkan.dagster.run_config import RUN_CONFIG_KEY
 from vulkan_server import definitions
 from vulkan_server.config_variables import resolve_config_variables_from_id
 from vulkan_server.dagster import trigger_run
-from vulkan_server.db import PolicyVersion, Run
+from vulkan_server.dagster.client import get_dagster_client
+from vulkan_server.db import PolicyVersion, Run, get_db
 from vulkan_server.exceptions import (
     NotFoundException,
+    RunPollingTimeoutException,
     UnhandledException,
     VariablesNotSetException,
 )
 from vulkan_server.logger import init_logger
-from vulkan_server.schemas import PolicyAllocationStrategy
+from vulkan_server.schemas import PolicyAllocationStrategy, RunResult
 
 logger = init_logger("run_launcher")
-
-
-def allocate_runs(
-    db: Session,
-    dagster_client: DagsterGraphQLClient,
-    server_url: str,
-    input_data: dict,
-    run_group_id: UUID,
-    allocation_strategy: PolicyAllocationStrategy,
-):
-    shadow = []
-
-    if allocation_strategy.shadow is not None:
-        for policy_version_id in allocation_strategy.shadow:
-            run = Run(
-                policy_version_id=policy_version_id,
-                status=RunStatus.PENDING,
-                run_group_id=run_group_id,
-            )
-            db.add(run)
-            db.commit()
-            shadow.append(run.run_id)
-
-    opts = [opt.policy_version_id for opt in allocation_strategy.choice]
-    freq = [opt.frequency / 1000 for opt in allocation_strategy.choice]
-    policy_version_id = choice(opts, p=freq)
-
-    main = create_run(
-        db=db,
-        dagster_client=dagster_client,
-        server_url=server_url,
-        input_data=input_data,
-        run_group_id=run_group_id,
-        policy_version_id=policy_version_id,
-    )
-    return {"main": main.run_id, "shadow": shadow}
-
-
-def create_run(
-    db: Session,
-    dagster_client: DagsterGraphQLClient,
-    server_url: str,
-    input_data: dict,
-    policy_version_id: str,
-    run_group_id: UUID | None = None,
-    run_config_variables: dict[str, str] | None = None,
-):
-    launcher = DagsterRunLauncher(
-        db=db,
-        dagster_client=dagster_client,
-        server_url=server_url,
-    )
-    return launcher.create_run(
-        input_data=input_data,
-        run_group_id=run_group_id,
-        policy_version_id=policy_version_id,
-        run_config_variables=run_config_variables,
-    )
-
-
-def launch_run(
-    db: Session,
-    dagster_client: DagsterGraphQLClient,
-    server_url: str,
-    run: Run,
-    input_data: dict,
-    run_config_variables: dict[str, str] | None = None,
-):
-    launcher = DagsterRunLauncher(
-        db=db,
-        dagster_client=dagster_client,
-        server_url=server_url,
-    )
-    return launcher.launch_run(
-        run=run,
-        input_data=input_data,
-        run_config_variables=run_config_variables,
-    )
 
 
 @dataclass
@@ -251,3 +178,99 @@ def trigger_dagster_job(
         execution_config,
     )
     return dagster_run_id
+
+
+def get_dagster_launcher(
+    db: Session = Depends(get_db),
+    dagster_client=Depends(get_dagster_client),
+    server_config: definitions.VulkanServerConfig = Depends(
+        definitions.get_vulkan_server_config
+    ),
+) -> DagsterRunLauncher:
+    return DagsterRunLauncher(
+        db=db,
+        dagster_client=dagster_client,
+        server_url=server_config.server_url,
+    )
+
+
+def allocate_runs(
+    db: Session,
+    launcher: DagsterRunLauncher,
+    input_data: dict,
+    run_group_id: UUID,
+    allocation_strategy: PolicyAllocationStrategy,
+):
+    shadow = []
+
+    if allocation_strategy.shadow is not None:
+        for policy_version_id in allocation_strategy.shadow:
+            run = Run(
+                policy_version_id=policy_version_id,
+                status=RunStatus.PENDING,
+                run_group_id=run_group_id,
+            )
+            db.add(run)
+            db.commit()
+            shadow.append(run.run_id)
+
+    opts = [opt.policy_version_id for opt in allocation_strategy.choice]
+    freq = [opt.frequency / 1000 for opt in allocation_strategy.choice]
+    policy_version_id = choice(opts, p=freq)
+
+    main = launcher.create_run(
+        input_data=input_data,
+        run_group_id=run_group_id,
+        policy_version_id=policy_version_id,
+    )
+    return {"main": main.run_id, "shadow": shadow}
+
+
+MIN_POLLING_INTERVAL_MS = 500
+MAX_POLLING_TIMEOUT_MS = 300000
+
+
+async def get_run_result(
+    db: Session, run_id: str, polling_interval_ms: int, polling_timeout_ms: int
+) -> RunResult:
+    """Poll the database for the run result.
+
+    This is a blocking function that will wait for the run to complete
+    or timeout after a certain period.
+    """
+
+    def clip(value):
+        return max(min(value, MAX_POLLING_TIMEOUT_MS), MIN_POLLING_INTERVAL_MS)
+
+    elapsed = 0
+    completed = False
+    run_obj: Run | None = None
+
+    polling_interval = clip(polling_interval_ms) / 1000
+    polling_timeout = clip(polling_timeout_ms) / 1000
+
+    while elapsed < polling_timeout:
+        if run_obj:
+            # Clear the database cache to ensure we get the latest run status
+            db.expire(run_obj)
+
+        run_obj = db.execute(select(Run).where(Run.run_id == run_id)).scalars().first()
+        if run_obj.status in (RunStatus.SUCCESS, RunStatus.FAILURE):
+            completed = True
+            break
+
+        await asyncio.sleep(polling_interval)
+        elapsed += polling_interval
+
+    if not completed:
+        raise RunPollingTimeoutException(
+            f"Run {run_id} timed out after {polling_timeout} seconds. "
+            "Check the run logs for more details."
+        )
+
+    return RunResult(
+        run_id=run_obj.run_id,
+        status=run_obj.status,
+        result=run_obj.result,
+        run_metadata=run_obj.run_metadata,
+    )

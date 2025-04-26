@@ -209,13 +209,15 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         name: str,
         description: str,
         return_status: UserStatus | str,
-        dependencies: dict[str, Any],
+        dependencies: dict[str, Dependency],
+        return_metadata: dict[str, Dependency] | None = None,
         callback: Callable | None = None,
     ):
         super().__init__(
             name=name,
             description=description,
             return_status=return_status,
+            return_metadata=return_metadata,
             dependencies=dependencies,
             callback=callback,
         )
@@ -227,7 +229,11 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         vulkan_run_config = context.resources.vulkan_run_config
         context.log.info(f"Terminating with status {status}")
 
-        terminated = self._terminate(context, result)
+        metadata = None
+        if self.return_metadata is not None:
+            metadata = {k: kwargs.get(k) for k in self.return_metadata.keys()}
+
+        terminated = self._terminate(context, result, metadata)
         if not terminated:
             raise ValueError("Failed to terminate run")
 
@@ -247,6 +253,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         self,
         context: OpExecutionContext,
         result: str,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         vulkan_run_config = getattr(context.resources, RUN_CONFIG_KEY)
         server_url = vulkan_run_config.server_url
@@ -259,6 +266,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             url,
             json={
                 "result": result,
+                "metadata": metadata,
                 "status": RunStatus.SUCCESS.value,
             },
         )
@@ -270,11 +278,16 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
 
     @classmethod
     def from_spec(cls, node: TerminateNode):
+        dependencies = node.dependencies
+        if node.return_metadata is not None:
+            dependencies.update(node.return_metadata)
+
         return cls(
             name=node.name,
             description=node.description,
             return_status=node.return_status,
-            dependencies=node.dependencies,
+            return_metadata=node.return_metadata,
+            dependencies=dependencies,
             callback=node.callback,
         )
 

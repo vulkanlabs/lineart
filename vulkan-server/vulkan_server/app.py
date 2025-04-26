@@ -47,7 +47,7 @@ STACK_SECRET_SERVER_KEY = os.getenv("STACK_SECRET_SERVER_KEY")
 
 
 class ErrorResponse(BaseModel):
-    error_code: str
+    error: str
     message: str
 
 
@@ -58,7 +58,7 @@ async def vulkan_server_exception_handler(
 ):
     return JSONResponse(
         status_code=exc.status_code,
-        content=ErrorResponse(error_code=exc.error_code, message=exc.msg).model_dump(),
+        content=ErrorResponse(error=exc.error_code, message=exc.msg).model_dump(),
     )
 
 
