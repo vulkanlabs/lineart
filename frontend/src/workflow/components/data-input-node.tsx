@@ -57,7 +57,7 @@ export function DataInputNode({ id, data, selected, height, width }: NodeProps<V
     return (
         <WorkflowNode id={id} selected={selected} data={data} height={height} width={width}>
             <div className="flex flex-col gap-1 space-y-2 p-3">
-                <span className="text-sm font-medium">Data Source:</span>
+                <span className="nodrag text-sm font-medium">Data Source:</span>
                 <AssetCombobox
                     options={dataSources}
                     value={selectedDataSource}

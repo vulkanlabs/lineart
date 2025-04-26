@@ -9,12 +9,15 @@ export type NodeConfig = {
     width?: number;
 };
 
+export type IncomingEdges = { [edgeId: string]: { key: string; dependency: NodeDependency } };
+
 export type VulkanNodeData = {
     name?: string;
     icon?: keyof typeof iconMapping;
     minHeight?: number;
     minWidth?: number;
     metadata?: any;
+    incomingEdges?: IncomingEdges;
 };
 
 export type VulkanNode =
@@ -58,6 +61,7 @@ export type InputNodeMetadata = {
 
 export type TerminateNodeMetadata = {
     return_status: string;
+    return_metadata?: { [key: string]: NodeDependency };
 };
 
 export type TransformNodeMetadata = {

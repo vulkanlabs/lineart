@@ -324,6 +324,16 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
             const height = nodeUIMetadata.height;
             const width = nodeUIMetadata.width;
 
+            const incomingEdges = edges
+                .filter((edge) => edge.target === node.name)
+                .reduce((acc: any, edge: any) => {
+                    const [key, dependency] = Object.entries(node.dependencies).find(
+                        ([, dep]) => dep.node === edge.source,
+                    );
+                    acc[edge.id] = { key, dependency };
+                    return acc;
+                }, {});
+
             const nodeType = node.node_type as keyof typeof iconMapping;
             return {
                 id: node.name,
@@ -334,6 +344,7 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
                     name: node.name,
                     icon: nodeType,
                     metadata: node.metadata || {},
+                    incomingEdges: incomingEdges,
                 },
                 position: position,
             };

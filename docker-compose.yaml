@@ -45,7 +45,6 @@ services:
         VULKAN_PORT: 3001
         VULKAN_SERVER_PATH: /opt/server
         VULKAN_SCRIPTS_PATH: /opt/scripts
-        VULKAN_VENVS_PATH: /opt/venvs
     init: true
     ports:
       - "3000:3000"

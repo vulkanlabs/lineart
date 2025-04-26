@@ -2,6 +2,8 @@ from typing import Any, TypeAlias
 
 from pydantic import BaseModel
 
+from vulkan_public.spec.dependency import Dependency
+
 
 class BaseNodeMetadata(BaseModel):
     def to_dict(self) -> dict[str, Any]:
@@ -9,7 +11,7 @@ class BaseNodeMetadata(BaseModel):
         return self.model_dump()
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> None:
+    def from_dict(cls, data: dict[str, Any]) -> Any:
         """Load the metadata from a dictionary."""
         return cls.model_validate(data)
 
@@ -29,6 +31,7 @@ class TransformNodeMetadata(BaseNodeMetadata):
 
 class TerminateNodeMetadata(BaseNodeMetadata):
     return_status: str
+    return_metadata: dict[str, Dependency] | None = None
 
 
 class DataInputNodeMetadata(BaseNodeMetadata):

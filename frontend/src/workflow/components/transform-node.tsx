@@ -16,28 +16,30 @@ export function TransformNode({ id, data, selected, height, width }: NodeProps<V
     );
 
     const setSourceCode = useCallback(
-        (code: string) => {
-            updateNodeData(id, { ...data, metadata: { source_code: code } });
+        (code: string | undefined) => {
+            updateNodeData(id, { ...data, metadata: { source_code: code || "" } });
         },
         [id, data, updateNodeData],
     );
 
     return (
         <WorkflowNode id={id} selected={selected} data={data} height={height} width={width}>
-            <div className="flex flex-col gap-1 space-y-2 p-3">
-                <div className="rounded-md overflow-hidden">
+            <div className="p-3 h-full flex-grow">
+                <div
+                    className="rounded-md overflow-hidden h-full flex-grow nodrag"
+                    onMouseDown={(e) => e.stopPropagation()}
+                >
                     <Editor
-                        // width={width}
-                        height={height * 0.5}
                         language="python"
                         value={data.metadata?.source_code || ""}
                         theme="vs-dark"
-                        defaultValue="# some comment"
+                        defaultValue="# your code here"
                         onChange={setSourceCode}
                         options={{
                             minimap: {
                                 enabled: false,
                             },
+                            automaticLayout: true,
                         }}
                     />
                 </div>

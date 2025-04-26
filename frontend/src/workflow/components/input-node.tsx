@@ -224,6 +224,7 @@ export function InputNode({ id, data, selected, width }: NodeProps<VulkanNode>) 
             width={width}
             isInput
             disableNameEditing
+            disableFooter
         >
             <div className="flex flex-col p-2 w-full h-fit">
                 <h3 className="text-sm font-semibold mb-2">Input Schema</h3>

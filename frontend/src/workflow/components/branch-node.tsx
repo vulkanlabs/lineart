@@ -13,9 +13,10 @@ import { useWorkflowStore } from "../store";
 import { WorkflowNode, defaultHandleStyle } from "./base";
 
 export function BranchNode({ id, data, selected, height, width }: NodeProps<VulkanNode>) {
-    const { updateNodeData, onNodesChange } = useWorkflowStore(
+    const { updateNodeData, updateTargetDeps, onNodesChange } = useWorkflowStore(
         useShallow((state) => ({
             updateNodeData: state.updateNodeData,
+            updateTargetDeps: state.updateTargetDeps,
             onNodesChange: state.onNodesChange,
         })),
     );
@@ -32,8 +33,9 @@ export function BranchNode({ id, data, selected, height, width }: NodeProps<Vulk
         (choices: string[]) => {
             const metadata = { ...data.metadata, choices: choices };
             updateNodeData(id, { ...data, metadata });
+            updateTargetDeps(id);
         },
-        [id, data, updateNodeData],
+        [id, data, updateNodeData, updateTargetDeps],
     );
 
     const heightStepSize = 80; // Adjust this value as needed
@@ -96,16 +98,17 @@ export function BranchNode({ id, data, selected, height, width }: NodeProps<Vulk
             width={width}
             isOutput
         >
-            <div className="h-full flex flex-col gap-1 space-y-2 m-3">
-                <div className="h-full rounded-md overflow-hidden">
+            <div className="h-full flex flex-col gap-1 space-y-2 p-3">
+                <div
+                    className="rounded-md overflow-hidden h-full flex-grow nodrag"
+                    onMouseDown={(e) => e.stopPropagation()}
+                >
                     <Editor
-                        // width={width}
-                        // height={height}
                         language="python"
                         value={data.metadata?.source_code || ""}
                         theme="vs-dark"
-                        defaultValue="# some comment"
-                        onChange={setSourceCode}
+                        defaultValue="# your code here"
+                        onChange={(value) => setSourceCode(value || "")}
                         options={{
                             minimap: {
                                 enabled: false,
@@ -125,15 +128,17 @@ export function BranchNode({ id, data, selected, height, width }: NodeProps<Vulk
                             id={`${index}`}
                             style={{ ...defaultHandleStyle }}
                         />
-                        <Input
-                            type="text"
-                            value={choice}
-                            onChange={(e) => {
-                                const newChoices = [...data.metadata.choices];
-                                newChoices[index] = e.target.value;
-                                setBranchChoices(newChoices);
-                            }}
-                        />
+                        <div className="flex-grow nodrag" onMouseDown={(e) => e.stopPropagation()}>
+                            <Input
+                                type="text"
+                                value={choice}
+                                onChange={(e) => {
+                                    const newChoices = [...data.metadata.choices];
+                                    newChoices[index] = e.target.value;
+                                    setBranchChoices(newChoices);
+                                }}
+                            />
+                        </div>
                         <Button
                             variant="ghost"
                             className="size-6 p-1"
