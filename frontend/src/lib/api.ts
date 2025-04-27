@@ -9,6 +9,7 @@ import { PolicyBase } from "@vulkan-server/PolicyBase";
 import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
 import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
 import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
+import { DataSource } from "@vulkan-server/DataSource";
 
 interface HTTPQueryParams {
     [key: string]: any;
@@ -347,7 +348,7 @@ export async function fetchRunLogs(runId: string): Promise<RunLogs> {
     });
 }
 
-export async function fetchDataSources(): Promise<DataSourceSpec[]> {
+export async function fetchDataSources(): Promise<DataSource[]> {
     return fetchServerData({
         endpoint: `/data-sources`,
         label: `data sources`,
@@ -403,7 +404,12 @@ export async function fetchBacktestMetrics(
     column: string | null = null,
 ) {
     return fetchServerData({
-        endpoint: `/backtests/${backtestId}/metrics/data?target=${target}&time=${time}${column ? `&column=${column}` : ""}`,
+        endpoint: `/backtests/${backtestId}/metrics/data`,
+        params: {
+            target,
+            time,
+            column: column ? column : "",
+        },
         label: `example metric for backtest ${backtestId}`,
     });
 }

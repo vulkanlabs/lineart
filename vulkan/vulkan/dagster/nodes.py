@@ -9,6 +9,7 @@ from dagster import In, OpDefinition, OpExecutionContext, Out, Output
 from vulkan_public.constants import POLICY_CONFIG_KEY
 from vulkan_public.core.context import VulkanExecutionContext
 from vulkan_public.exceptions import UserCodeException
+from vulkan_public.spec.dependency import Dependency
 from vulkan_public.spec.nodes import (
     BranchNode,
     DataInputNode,
