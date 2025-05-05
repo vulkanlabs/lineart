@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { CopyIcon, CalendarIcon, CheckIcon, FileIcon, LinkIcon, Settings2Icon } from "lucide-react";
 
 import { DataSource } from "@vulkan-server/DataSource";
@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import Loader from "@/components/animations/loader";
+import DataSourceUsageAnalytics from "./usage-analytics";
 
 export default function DataSourcePage({ dataSource }: { dataSource: DataSource }) {
     const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -154,7 +156,6 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
                     <TabsTrigger value="general">General</TabsTrigger>
                     <TabsTrigger value="source">Source</TabsTrigger>
                     <TabsTrigger value="caching">Caching & Performance</TabsTrigger>
-                    {dataSource.metadata && <TabsTrigger value="metadata">Metadata</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="general">
@@ -163,23 +164,39 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <CalendarIcon className="h-5 w-5" />
-                                    Timestamps
+                                    Summary
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid grid-cols-1 gap-4">
-                                    <div>
-                                        <p className="text-sm font-medium">Created At</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {formatDate(dataSource.created_at)}
-                                        </p>
+                                <div className="grid gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-sm font-medium">Created At</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {formatDate(dataSource.created_at)}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium">Last Updated</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {formatDate(dataSource.last_updated_at)}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-sm font-medium">Last Updated</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {formatDate(dataSource.last_updated_at)}
-                                        </p>
-                                    </div>
+                                    {dataSource.metadata && (
+                                        <div>
+                                            <p className="text-sm font-medium">Metadata</p>
+                                            <Card className="bg-muted/50 mt-2">
+                                                <CardContent className="p-4">
+                                                    <ScrollArea className="h-[150px]">
+                                                        <pre className="text-xs">
+                                                            {formatJson(dataSource.metadata)}
+                                                        </pre>
+                                                    </ScrollArea>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -375,28 +392,18 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
                         </CardContent>
                     </Card>
                 </TabsContent>
-
-                {dataSource.metadata && (
-                    <TabsContent value="metadata">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Metadata</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Card className="bg-muted/50">
-                                    <CardContent className="p-4">
-                                        <ScrollArea className="h-[300px]">
-                                            <pre className="text-xs">
-                                                {formatJson(dataSource.metadata)}
-                                            </pre>
-                                        </ScrollArea>
-                                    </CardContent>
-                                </Card>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                )}
             </Tabs>
+
+            {/* Usage Analytics Section */}
+            <Suspense
+                fallback={
+                    <div className="flex justify-center p-8">
+                        <Loader />
+                    </div>
+                }
+            >
+                <DataSourceUsageAnalytics dataSourceId={dataSource.data_source_id} />
+            </Suspense>
         </div>
     );
 }

@@ -8,7 +8,7 @@ export default async function Page(props) {
 
     const dataSource: DataSource = await fetchDataSource(params.data_source_id).catch((error) => {
         console.error(error);
-        return [];
+        return null;
     });
     return <DataSourcePage dataSource={dataSource} />;
 }

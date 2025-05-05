@@ -356,10 +356,55 @@ export async function fetchDataSources(): Promise<DataSource[]> {
     });
 }
 
-export async function fetchDataSource(dataSourceId: string) {
+export async function fetchDataSource(dataSourceId: string): Promise<DataSource> {
     return fetchServerData({
         endpoint: `/data-sources/${dataSourceId}`,
         label: `data source ${dataSourceId}`,
+    });
+}
+
+export async function fetchDataSourceUsage(
+    dataSourceId: string,
+    startDate: Date,
+    endDate: Date,
+): Promise<any> {
+    return fetchServerData({
+        endpoint: `/data-sources/${dataSourceId}/usage`,
+        params: {
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        },
+        label: `usage for data source ${dataSourceId}`,
+    });
+}
+
+export async function fetchDataSourceMetrics(
+    dataSourceId: string,
+    startDate: Date,
+    endDate: Date,
+): Promise<any> {
+    return fetchServerData({
+        endpoint: `/data-sources/${dataSourceId}/metrics`,
+        params: {
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        },
+        label: `metrics for data source ${dataSourceId}`,
+    });
+}
+
+export async function fetchDataSourceCacheStats(
+    dataSourceId: string,
+    startDate: Date,
+    endDate: Date,
+): Promise<any> {
+    return fetchServerData({
+        endpoint: `/data-sources/${dataSourceId}/cache-stats`,
+        params: {
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        },
+        label: `cache statistics for data source ${dataSourceId}`,
     });
 }
 
