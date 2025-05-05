@@ -32,7 +32,7 @@ export async function fetchServerData({
         url += `?${queryParams.toString()}`;
     }
 
-    return fetch(url)
+    return fetch(url, { cache: "no-store" })
         .then((response) => {
             if (response.status === 204) {
                 return [];
@@ -58,7 +58,8 @@ export async function fetchServerData({
 
 export async function fetchPolicies(includeArchived: boolean = false): Promise<Policy[]> {
     return fetchServerData({
-        endpoint: `/policies?include_archived=${includeArchived}`,
+        endpoint: `/policies`,
+        params: { include_archived: includeArchived },
         label: "list of policies",
     });
 }
