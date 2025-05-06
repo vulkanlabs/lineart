@@ -254,7 +254,7 @@ def get_data_source_metrics(
     metrics_query = (
         select(
             F.DATE(StepMetadata.created_at).label("date"),
-            F.avg((StepMetadata.end_time - StepMetadata.start_time) * 1000).label(
+            F.avg((StepMetadata.end_time - StepMetadata.start_time)).label(
                 "avg_duration_ms"
             ),
             F.avg(StepMetadata.error.is_not(None).cast(Integer)).label("error_rate"),
@@ -274,7 +274,7 @@ def get_data_source_metrics(
     metrics_df = pd.read_sql(metrics_query, db.bind)
     sql_time = time.time() - sql_start
     logger.system.debug(
-        f"Query completed in {sql_time:.3f}s, retrieved {len(metrics_df)} rows"
+        f"data-source/metrics: Query completed in {sql_time:.3f}s, retrieved {len(metrics_df)} rows"
     )
 
     processing_start = time.time()
@@ -298,7 +298,9 @@ def get_data_source_metrics(
         error_rate = pd.DataFrame(columns=["date", "value"])
 
     processing_time = time.time() - processing_start
-    logger.system.debug(f"DataFrame processing completed in {processing_time:.3f}s")
+    logger.system.debug(
+        f"data-source/metrics: DataFrame processing completed in {processing_time:.3f}s"
+    )
 
     return {
         "avg_response_time_by_date": avg_response_time.to_dict(orient="records"),
@@ -351,9 +353,9 @@ def get_cache_statistics(
             cache_pivot["REQUEST"] = 0
 
         # Calculate hit ratio
-        cache_pivot["total"] = cache_pivot["CACHE"] + cache_pivot["SOURCE"]
+        cache_pivot["total"] = cache_pivot["CACHE"] + cache_pivot["REQUEST"]
         cache_pivot["hit_ratio"] = (
-            cache_pivot["CACHE"] / cache_pivot["total"] * 100
+            (cache_pivot["CACHE"] / cache_pivot["total"]) * 100
         ).round(2)
 
         # Handle division by zero
