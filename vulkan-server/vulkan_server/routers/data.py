@@ -257,9 +257,7 @@ def get_data_source_metrics(
             F.avg((StepMetadata.end_time - StepMetadata.start_time) * 1000).label(
                 "avg_duration_ms"
             ),
-            (100 * F.avg(StepMetadata.error.is_not(None).cast(Integer))).label(
-                "error_rate"
-            ),
+            F.avg(StepMetadata.error.is_not(None).cast(Integer)).label("error_rate"),
         )
         .where(
             (StepMetadata.created_at >= start_date)
@@ -346,11 +344,11 @@ def get_cache_statistics(
             .reset_index()
         )
 
-        # Make sure we have both CACHE and SOURCE columns
+        # Make sure we have both CACHE and REQUEST columns
         if "CACHE" not in cache_pivot.columns:
             cache_pivot["CACHE"] = 0
-        if "SOURCE" not in cache_pivot.columns:
-            cache_pivot["SOURCE"] = 0
+        if "REQUEST" not in cache_pivot.columns:
+            cache_pivot["REQUEST"] = 0
 
         # Calculate hit ratio
         cache_pivot["total"] = cache_pivot["CACHE"] + cache_pivot["SOURCE"]
