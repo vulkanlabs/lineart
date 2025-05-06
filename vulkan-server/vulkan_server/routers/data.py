@@ -1,11 +1,12 @@
 import datetime
+import time
 from typing import Annotated, Any
 
 import pandas as pd
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import Integer, select
 from sqlalchemy import func as F
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 from vulkan_public.data_source import DataSourceType
 from vulkan_public.schemas import DataSourceSpec
@@ -24,10 +25,8 @@ from vulkan_server.db import (
     UploadedFile,
     get_db,
 )
-from vulkan_server.logger import init_logger
+from vulkan_server.logger import VulkanLogger, get_logger
 from vulkan_server.utils import validate_date_range
-
-logger = init_logger("data")
 
 sources = APIRouter(
     prefix="/data-sources",
@@ -112,8 +111,8 @@ def get_data_source(
 def delete_data_source(
     data_source_id: str,
     db: Session = Depends(get_db),
+    logger: VulkanLogger = Depends(get_logger),
 ):
-    # TODO: ensure this function can only be executed by ADMIN level users
     data_source = (
         db.query(DataSource)
         .filter_by(
@@ -146,7 +145,7 @@ def delete_data_source(
 
     data_source.archived = True
     db.commit()
-    logger.info(f"Archived data source {data_source_id}")
+    logger.system.info(f"Archived data source {data_source_id}")
     return {"component_version_id": data_source_id}
 
 
@@ -245,56 +244,63 @@ def get_data_source_metrics(
     start_date: Annotated[datetime.date | None, Query()] = None,
     end_date: Annotated[datetime.date | None, Query()] = None,
     db: Session = Depends(get_db),
+    logger: VulkanLogger = Depends(get_logger),
 ):
     """Get performance metrics for a data source over time"""
+
     start_date, end_date = validate_date_range(start_date, end_date)
 
     # Get data for response time and error metrics from StepMetadata
-    date_clause = F.DATE(StepMetadata.created_at).label("date")
-
-    # Join with Run to filter by data_source_id
-    data_metrics_query = (
+    metrics_query = (
         select(
-            date_clause,
-            (StepMetadata.end_time - StepMetadata.start_time).label("duration"),
-            (StepMetadata.error.is_not(None)).label("has_error"),
+            F.DATE(StepMetadata.created_at).label("date"),
+            F.avg((StepMetadata.end_time - StepMetadata.start_time) * 1000).label(
+                "avg_duration_ms"
+            ),
+            (100 * F.avg(StepMetadata.error.is_not(None).cast(Integer))).label(
+                "error_rate"
+            ),
+        )
+        .where(
+            (StepMetadata.created_at >= start_date)
+            & (F.DATE(StepMetadata.created_at) <= end_date)
+            & (StepMetadata.node_type == NodeType.DATA_INPUT.value)
+            & (RunDataRequest.data_source_id == data_source_id)
         )
         .join(Run, Run.run_id == StepMetadata.run_id)
         .join(RunDataRequest, RunDataRequest.run_id == Run.run_id)
-        .where(
-            (RunDataRequest.data_source_id == data_source_id)
-            & (StepMetadata.created_at >= start_date)
-            & (F.DATE(StepMetadata.created_at) <= end_date)
-            & (StepMetadata.node_type == NodeType.DATA_INPUT.value)
-        )
+        .group_by(F.DATE(StepMetadata.created_at))
     )
 
-    metrics_df = pd.read_sql(data_metrics_query, db.bind)
+    sql_start = time.time()
+    metrics_df = pd.read_sql(metrics_query, db.bind)
+    sql_time = time.time() - sql_start
+    logger.system.debug(
+        f"Query completed in {sql_time:.3f}s, retrieved {len(metrics_df)} rows"
+    )
 
-    # Calculate average response time by date
+    processing_start = time.time()
+
+    # Process and format the results
     if not metrics_df.empty:
-        avg_response_time = (
-            metrics_df.groupby("date")["duration"]
-            .mean()
-            .reset_index()
-            .rename(columns={"duration": "value"})
-        )
-        # Convert to milliseconds
-        avg_response_time["value"] = (
-            avg_response_time["value"] * 1000
-        )  # Convert to milliseconds
+        # Format date for consistency and round values
+        metrics_df["date"] = pd.to_datetime(metrics_df["date"]).dt.strftime("%Y-%m-%d")
+        metrics_df["avg_duration_ms"] = metrics_df["avg_duration_ms"].round(2)
+        metrics_df["error_rate"] = (metrics_df["error_rate"] * 100).round(2)
 
-        # Calculate error rate by date
-        error_rate = (
-            metrics_df.groupby("date")["has_error"]
-            .mean()
-            .reset_index()
-            .rename(columns={"has_error": "value"})
+        # Split into separate dataframes for the API response
+        avg_response_time = metrics_df[["date", "avg_duration_ms"]].rename(
+            columns={"avg_duration_ms": "value"}
         )
-        error_rate["value"] = (error_rate["value"] * 100).round(2)
+        error_rate = metrics_df[["date", "error_rate"]].rename(
+            columns={"error_rate": "value"}
+        )
     else:
         avg_response_time = pd.DataFrame(columns=["date", "value"])
         error_rate = pd.DataFrame(columns=["date", "value"])
+
+    processing_time = time.time() - processing_start
+    logger.system.debug(f"DataFrame processing completed in {processing_time:.3f}s")
 
     return {
         "avg_response_time_by_date": avg_response_time.to_dict(orient="records"),
@@ -378,8 +384,8 @@ broker = APIRouter(
 def request_data_from_broker(
     request: schemas.DataBrokerRequest,
     db: Session = Depends(get_db),
+    logger: VulkanLogger = Depends(get_logger),
 ):
-    # TODO: Control access to the data source by project_id
     data_source = db.query(DataSource).filter_by(name=request.data_source_name).first()
     if data_source is None:
         raise HTTPException(status_code=404, detail="Data source not found")
@@ -398,10 +404,10 @@ def request_data_from_broker(
         db.add(request_obj)
         db.commit()
     except requests.exceptions.RequestException as e:
-        logger.error(str(e))
+        logger.system.error(str(e))
         raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
-        logger.error(str(e))
+        logger.system.error(str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
     return data
