@@ -16,19 +16,20 @@ import { ResourceTable } from "@/components/resource-table";
 import { parseDate } from "@/lib/utils";
 
 import { Run } from "@vulkan-server/Run";
+import { DateRange } from "react-day-picker";
 
 type RunsLoader = ({
     resourceId,
     dateRange,
 }: {
     resourceId: string;
-    dateRange: { from: Date; to: Date };
+    dateRange: DateRange;
 }) => Promise<{
     runs: Run[] | null;
 }>;
 
 export function RunsPage({ resourceId, fetchRuns }: { resourceId: string; fetchRuns: RunsLoader }) {
-    const [dateRange, setDateRange] = useState({
+    const [dateRange, setDateRange] = useState<DateRange>({
         from: subDays(new Date(), 7),
         to: new Date(),
     });

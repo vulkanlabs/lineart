@@ -12,6 +12,7 @@ import {
     CacheHitRatioChart,
     LoadingChartState,
 } from "@/components/charts/data-source-charts";
+import { DateRange } from "react-day-picker";
 
 export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceId: string }) {
     // Chart Data States
@@ -22,7 +23,7 @@ export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceI
     const [isLoading, setIsLoading] = useState(true);
 
     // Filters & Interactions
-    const [dateRange, setDateRange] = useState({
+    const [dateRange, setDateRange] = useState<DateRange>({
         from: subDays(new Date(), 7),
         to: new Date(),
     });
