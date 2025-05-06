@@ -5,8 +5,8 @@ from typing import Annotated, Any
 import pandas as pd
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import Integer, select
 from sqlalchemy import func as F
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from vulkan_public.data_source import DataSourceType
 from vulkan_public.schemas import DataSourceSpec
@@ -209,13 +209,11 @@ def get_data_source_usage(
     db: Session = Depends(get_db),
 ):
     start_date, end_date = validate_date_range(start_date, end_date)
-
     date_clause = F.DATE(RunDataRequest.created_at).label("date")
 
     q = (
         select(
             date_clause,
-            RunDataRequest.data_origin.label("origin"),
             F.count(RunDataRequest.run_data_request_id).label("count"),
         )
         .where(
@@ -223,19 +221,14 @@ def get_data_source_usage(
             & (RunDataRequest.created_at >= start_date)
             & (F.DATE(RunDataRequest.created_at) <= end_date)
         )
-        .group_by(date_clause, RunDataRequest.data_origin)
+        .group_by(date_clause)
     )
-    df = pd.read_sql(q, db.bind).fillna(0)
+    df = pd.read_sql(q, db.bind).fillna(0).sort_values("date")
+    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+    df["value"] = df["count"].astype(int)
 
-    # Format response for the frontend charts
-    results = []
-    for date, group in df.groupby("date"):
-        total_requests = group["count"].sum()
-        results.append(
-            {"date": date.strftime("%Y-%m-%d"), "value": int(total_requests)}
-        )
-
-    return {"requests_by_date": sorted(results, key=lambda x: x["date"])}
+    return {"requests_by_date": df.to_dict(orient="records")}
 
 
 @sources.get("/{data_source_id}/metrics", response_model=dict[str, Any])
@@ -251,13 +244,19 @@ def get_data_source_metrics(
     start_date, end_date = validate_date_range(start_date, end_date)
 
     # Get data for response time and error metrics from StepMetadata
+    # TODO: this query is not optimal, and it should be a point of attention.
+    # Key things of note:
+    # 1. There aren't any indices on the created_at column of StepMetadata
+    # 2. The run_id columns are also not indexed in all tables
+    # 3. It might be worth considering using a materialized view for this query
     metrics_query = (
         select(
             F.DATE(StepMetadata.created_at).label("date"),
             F.avg((StepMetadata.end_time - StepMetadata.start_time)).label(
                 "avg_duration_ms"
             ),
-            F.avg(StepMetadata.error.is_not(None).cast(Integer)).label("error_rate"),
+            # TODO: Standardize how we handle errors in data inputs
+            F.avg(F.IF(StepMetadata.error is not None, 1.0, 0.0)).label("error_rate"),
         )
         .where(
             (StepMetadata.created_at >= start_date)
@@ -268,10 +267,12 @@ def get_data_source_metrics(
         .join(Run, Run.run_id == StepMetadata.run_id)
         .join(RunDataRequest, RunDataRequest.run_id == Run.run_id)
         .group_by(F.DATE(StepMetadata.created_at))
+        .order_by(F.DATE(StepMetadata.created_at))
     )
 
     sql_start = time.time()
     metrics_df = pd.read_sql(metrics_query, db.bind)
+    logger.system.debug(f"metrics: {metrics_df.head()}")
     sql_time = time.time() - sql_start
     logger.system.debug(
         f"data-source/metrics: Query completed in {sql_time:.3f}s, retrieved {len(metrics_df)} rows"

@@ -123,6 +123,7 @@ export function CacheHitRatioChart({ chartData }: ChartDataProps) {
     if (!chartData || chartData.length === 0) {
         return <EmptyChartState />;
     }
+    console.log("Cache Hit Ratio Chart Data", chartData);
 
     return (
         <ResponsiveContainer width="100%" height={300}>

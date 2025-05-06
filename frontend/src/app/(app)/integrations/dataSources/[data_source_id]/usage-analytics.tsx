@@ -38,7 +38,7 @@ export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceI
         // Fetch request volume data
         fetchDataSourceUsage(dataSourceId, dateRange.from, dateRange.to)
             .then((data) => {
-                setRequestVolume(formatChartData(data.requests_by_date || []));
+                setRequestVolume(data.requests_by_date);
                 setIsLoading(false);
             })
             .catch((error) => {
@@ -49,8 +49,8 @@ export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceI
         // Fetch response time and error rate data
         fetchDataSourceMetrics(dataSourceId, dateRange.from, dateRange.to)
             .then((data) => {
-                setResponseTime(formatChartData(data.avg_response_time_by_date || []));
-                setErrorRate(formatChartData(data.error_rate_by_date || []));
+                setResponseTime(data.avg_response_time_by_date);
+                setErrorRate(data.error_rate_by_date);
             })
             .catch((error) => {
                 console.error("Error fetching metrics:", error);
@@ -59,20 +59,12 @@ export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceI
         // Fetch cache hit ratio data
         fetchDataSourceCacheStats(dataSourceId, dateRange.from, dateRange.to)
             .then((data) => {
-                setCacheHitRatio(formatChartData(data.cache_hit_ratio_by_date || []));
+                setCacheHitRatio(data.cache_hit_ratio_by_date);
             })
             .catch((error) => {
                 console.error("Error fetching cache stats:", error);
             });
     }, [dataSourceId, dateRange]);
-
-    // Format API data to chart-compatible format
-    const formatChartData = (data) => {
-        return data.map((item) => ({
-            date: item.date,
-            value: item.value,
-        }));
-    };
 
     const charts = [
         {
@@ -80,6 +72,12 @@ export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceI
             subtitle: "Number of requests over time",
             data: requestVolume,
             component: RequestVolumeChart,
+        },
+        {
+            title: "Cache Hit Ratio",
+            subtitle: "Percentage of requests served from cache",
+            data: cacheHitRatio,
+            component: CacheHitRatioChart,
         },
         {
             title: "Response Time",
@@ -92,12 +90,6 @@ export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceI
             subtitle: "Percentage of failed requests",
             data: errorRate,
             component: ErrorRateChart,
-        },
-        {
-            title: "Cache Hit Ratio",
-            subtitle: "Percentage of requests served from cache",
-            data: cacheHitRatio,
-            component: CacheHitRatioChart,
         },
     ];
 
