@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useUser } from "@stackframe/stack";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 

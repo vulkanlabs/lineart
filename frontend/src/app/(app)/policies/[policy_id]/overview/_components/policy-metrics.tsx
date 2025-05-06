@@ -14,6 +14,7 @@ import {
     RunOutcomeDistributionChart,
 } from "@/components/charts/policy-stats";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
+import { DateRange } from "react-day-picker";
 
 export default function PolicyMetrics({
     policyId,
@@ -25,7 +26,7 @@ export default function PolicyMetrics({
     metricsLoader: any;
     outcomesLoader: (params: {
         policyId: string;
-        dateRange: { from: Date; to: Date };
+        dateRange: DateRange;
         versions: string[];
     }) => Promise<{ runOutcomes: any[] }>;
     versions: PolicyVersion[];
@@ -37,7 +38,7 @@ export default function PolicyMetrics({
     const [runDurationStats, setRunDurationStats] = useState([]);
     const [runDurationByStatus, setRunDurationByStatus] = useState([]);
     // Filters & Interactions
-    const [dateRange, setDateRange] = useState({
+    const [dateRange, setDateRange] = useState<DateRange>({
         from: subDays(new Date(), 7),
         to: new Date(),
     });

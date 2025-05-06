@@ -1,5 +1,3 @@
-import { stackServerApp } from "@/stack";
-
 import { fetchBacktest, fetchBacktestStatus } from "@/lib/api";
 import { BacktestDetailsPage } from "./components";
 import { fetchBacktestMetrics } from "@/lib/api";

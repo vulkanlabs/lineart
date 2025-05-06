@@ -43,8 +43,15 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
         id: "TERMINATE",
         name: "Terminate Node",
         width: 400,
-        height: 500,
+        height: 400,
         icon: "TERMINATE",
+    },
+    POLICY: {
+        id: "POLICY",
+        name: "Policy Node",
+        width: 400,
+        height: 200,
+        icon: "POLICY",
     },
 };
 

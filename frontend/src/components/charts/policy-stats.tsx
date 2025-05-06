@@ -11,13 +11,7 @@ import {
 } from "@/components/ui/chart";
 
 import { roundUp } from "@/lib/chart";
-
-const DefaultGridProps = {
-    strokeDasharray: "3 3",
-    stroke: "#666",
-    strokeOpacity: 0.5,
-};
-const strokeWidth = 2;
+import { DefaultGridProps, strokeWidth } from "./constants";
 
 export function RunsChart({ chartData }) {
     const chartConfig = {

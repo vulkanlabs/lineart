@@ -22,6 +22,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 from vulkan_public.schemas import CachingOptions, DataSourceSpec
+from vulkan_public.spec.nodes.base import NodeType
 
 from vulkan.core.run import JobStatus, RunStatus
 from vulkan_server.schemas import DataObjectOrigin
@@ -210,7 +211,7 @@ class StepMetadata(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     run_id = Column(Uuid, ForeignKey("run.run_id"))
     step_name = Column(String)
-    node_type = Column(String)
+    node_type = Column(Enum(NodeType))
     start_time = Column(Float)
     end_time = Column(Float)
     error = Column(String, nullable=True)

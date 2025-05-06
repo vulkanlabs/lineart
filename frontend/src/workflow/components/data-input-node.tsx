@@ -1,12 +1,13 @@
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
+import { NodeProps } from "@xyflow/react";
 
-import { Input } from "@/components/ui/input";
+import { AssetCombobox, AssetOption } from "@/components/combobox";
 
 import { useWorkflowStore } from "../store";
 import { WorkflowNode } from "./base";
-import { NodeProps } from "@xyflow/react";
 import { VulkanNode } from "../types";
+import { fetchDataSources } from "@/lib/api";
 
 export function DataInputNode({ id, data, selected, height, width }: NodeProps<VulkanNode>) {
     const { updateNodeData } = useWorkflowStore(
@@ -15,9 +16,40 @@ export function DataInputNode({ id, data, selected, height, width }: NodeProps<V
         })),
     );
 
-    const setDataSource = useCallback(
-        (status: string) => {
-            updateNodeData(id, { ...data, metadata: { data_source: status } });
+    const [isLoading, setIsLoading] = useState(false);
+    const [dataSources, setDataSources] = useState<AssetOption[]>([]);
+    const [selectedDataSource, setSelectedDataSource] = useState(data.metadata?.data_source || "");
+
+    // Fetch data sources when component mounts
+    useEffect(() => {
+        async function fetchFn() {
+            setIsLoading(true);
+            try {
+                const data = await fetchDataSources().catch((error) => {
+                    console.error("Error fetching data sources:", error);
+                    return [];
+                });
+                setDataSources(
+                    data.map((source: any) => ({
+                        value: source.data_source_id,
+                        label: source.name || source.data_source_id,
+                    })),
+                );
+            } catch (error) {
+                console.error("Error fetching data sources:", error);
+                // Handle error appropriately
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        fetchFn();
+    }, []);
+
+    const handleDataSourceChange = useCallback(
+        (value: string) => {
+            setSelectedDataSource(value);
+            updateNodeData(id, { ...data, metadata: { data_source: value } });
         },
         [id, data, updateNodeData],
     );
@@ -25,14 +57,16 @@ export function DataInputNode({ id, data, selected, height, width }: NodeProps<V
     return (
         <WorkflowNode id={id} selected={selected} data={data} height={height} width={width}>
             <div className="flex flex-col gap-1 space-y-2 p-3">
-                <span>Data Source ID:</span>
-                <div className="nodrag" onMouseDown={(e) => e.stopPropagation()}>
-                    <Input
-                        type="text"
-                        value={data.metadata?.data_source || ""}
-                        onChange={(e) => setDataSource(e.target.value)}
-                    />
-                </div>
+                <span className="nodrag text-sm font-medium">Data Source:</span>
+                <AssetCombobox
+                    options={dataSources}
+                    value={selectedDataSource}
+                    onChange={handleDataSourceChange}
+                    placeholder="Select a data source..."
+                    searchPlaceholder="Search data sources..."
+                    isLoading={isLoading}
+                    emptyMessage="No data sources found."
+                />
             </div>
         </WorkflowNode>
     );

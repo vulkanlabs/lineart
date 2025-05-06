@@ -39,7 +39,7 @@ class DataInputNodeMetadata(BaseNodeMetadata):
 
 
 class PolicyNodeMetadata(BaseNodeMetadata):
-    policy_definition: dict
+    policy_id: str
 
 
 NodeMetadata: TypeAlias = (

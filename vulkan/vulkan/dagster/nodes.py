@@ -18,11 +18,17 @@ from vulkan_public.spec.nodes import (
     TerminateNode,
     TransformNode,
 )
+from vulkan_public.spec.policy import PolicyDefinitionNode
 
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.dagster.io_manager import METADATA_OUTPUT_KEY, PUBLISH_IO_MANAGER_KEY
-from vulkan.dagster.resources import DATA_CLIENT_KEY, VulkanDataClient
+from vulkan.dagster.resources import (
+    DATA_CLIENT_KEY,
+    RUN_CLIENT_KEY,
+    VulkanDataClient,
+    VulkanRunClient,
+)
 from vulkan.dagster.run_config import (
     RUN_CONFIG_KEY,
     VulkanPolicyConfig,
@@ -76,7 +82,6 @@ class DagsterDataInput(DataInputNode, DagsterNode):
         run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
 
         body = inputs.get("body", None)
-        context.log.debug(f"Body: {body}")
 
         response = client.get_data(
             data_source=self.data_source,
@@ -84,7 +89,6 @@ class DagsterDataInput(DataInputNode, DagsterNode):
             variables=env.variables,
             run_id=run_config.run_id,
         )
-        context.log.debug(f"Response: {response}")
 
         error = None
         extra = dict(data_source=self.data_source, status_code=response.status_code)
@@ -123,6 +127,77 @@ class DagsterDataInput(DataInputNode, DagsterNode):
             name=node.name,
             data_source=node.data_source,
             description=node.description,
+            dependencies=node.dependencies,
+        )
+
+
+class DagsterPolicy(PolicyDefinitionNode, DagsterNode):
+    def __init__(
+        self,
+        name: str,
+        policy_id: str,
+        dependencies: dict | None = None,
+    ):
+        super().__init__(
+            name=name,
+            policy_id=policy_id,
+            dependencies=dependencies,
+        )
+
+    def op(self) -> OpDefinition:
+        return OpDefinition(
+            compute_fn=self.run,
+            name=self.name,
+            ins={k: In() for k in self.dependencies.keys()},
+            outs={
+                "result": Out(),
+                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
+            },
+            required_resource_keys={POLICY_CONFIG_KEY, RUN_CONFIG_KEY, RUN_CLIENT_KEY},
+        )
+
+    def run(self, context, inputs):
+        start_time = time.time()
+        client: VulkanRunClient = getattr(context.resources, RUN_CLIENT_KEY)
+
+        body = inputs.get("body", None)
+
+        error = None
+        extra = dict()
+        try:
+            result = client.run_version_sync(
+                policy_version_id=self.policy_id,
+                data=body,
+                time_step_ms=inputs.get("time_step_ms", 1000),
+                timeout_ms=inputs.get("timeout_ms", 10000),
+            )
+            response_metadata = {
+                "policy_version_id": self.policy_id,
+                "run_id": result.get("run_id"),
+                "success": result.get("success"),
+            }
+            extra.update({"response_metadata": response_metadata})
+            yield Output(result["data"])
+        except ValueError as e:
+            context.log.error(f"Failed op {self.name}: {e}")
+            error = ("\n").join(format_exception_only(type(e), e))
+            raise e
+        finally:
+            end_time = time.time()
+            metadata = StepMetadata(
+                node_type=self.type.value,
+                start_time=start_time,
+                end_time=end_time,
+                error=error,
+                extra=extra,
+            )
+            yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+
+    @classmethod
+    def from_spec(cls, node: DataInputNode):
+        return cls(
+            name=node.name,
+            policy_id=node.policy_id,
             dependencies=node.dependencies,
         )
 
@@ -389,6 +464,7 @@ _NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
     BranchNode: DagsterBranch,
     DataInputNode: DagsterDataInput,
     InputNode: DagsterInput,
+    PolicyDefinitionNode: DagsterPolicy,
 }
 
 
@@ -404,20 +480,3 @@ def to_dagster_node(node: Node) -> DagsterNode:
         raise ValueError(msg)
 
     return impl_type.from_spec(node)
-
-
-def _format_dagster_dependencies(
-    dependencies: dict[str, Dependency],
-) -> dict[str, Dependency]:
-    return {k: _format_dagster_dependency(v) for k, v in dependencies.items()}
-
-
-def _format_dagster_dependency(dependency: Dependency) -> Dependency:
-    args = dependency.to_dict()
-    args["node"] = _format_dagster_name(dependency.node)
-    return Dependency.from_dict(args)
-
-
-def _format_dagster_name(name: str) -> str:
-    # Replace every character not in regex "^[A-Za-z0-9_]+$" with _
-    return "".join(c if c.isalnum() or c == "_" else "_" for c in name)

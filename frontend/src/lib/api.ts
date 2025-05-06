@@ -9,6 +9,7 @@ import { PolicyBase } from "@vulkan-server/PolicyBase";
 import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
 import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
 import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
+import { DataSource } from "@vulkan-server/DataSource";
 
 interface HTTPQueryParams {
     [key: string]: any;
@@ -31,7 +32,7 @@ export async function fetchServerData({
         url += `?${queryParams.toString()}`;
     }
 
-    return fetch(url)
+    return fetch(url, { cache: "no-store" })
         .then((response) => {
             if (response.status === 204) {
                 return [];
@@ -57,7 +58,8 @@ export async function fetchServerData({
 
 export async function fetchPolicies(includeArchived: boolean = false): Promise<Policy[]> {
     return fetchServerData({
-        endpoint: `/policies?include_archived=${includeArchived}`,
+        endpoint: `/policies`,
+        params: { include_archived: includeArchived },
         label: "list of policies",
     });
 }
@@ -244,11 +246,18 @@ export async function fetchPolicyVersionRuns(
 }
 
 export async function fetchPolicyVersions(
-    policyId: string,
+    policyId: string | null = null,
     includeArchived: boolean = false,
 ): Promise<PolicyVersion[]> {
+    const params: HTTPQueryParams = {
+        include_archived: includeArchived,
+    };
+    if (policyId) {
+        params.policy_id = policyId;
+    }
     return fetchServerData({
-        endpoint: `/policies/${policyId}/versions?include_archived=${includeArchived}`,
+        endpoint: `/policy-versions`,
+        params: params,
         label: `versions for policy ${policyId}`,
     });
 }
@@ -340,17 +349,62 @@ export async function fetchRunLogs(runId: string): Promise<RunLogs> {
     });
 }
 
-export async function fetchDataSources() {
+export async function fetchDataSources(): Promise<DataSource[]> {
     return fetchServerData({
         endpoint: `/data-sources`,
         label: `data sources`,
     });
 }
 
-export async function fetchDataSource(dataSourceId: string) {
+export async function fetchDataSource(dataSourceId: string): Promise<DataSource> {
     return fetchServerData({
         endpoint: `/data-sources/${dataSourceId}`,
         label: `data source ${dataSourceId}`,
+    });
+}
+
+export async function fetchDataSourceUsage(
+    dataSourceId: string,
+    startDate: Date,
+    endDate: Date,
+): Promise<any> {
+    return fetchServerData({
+        endpoint: `/data-sources/${dataSourceId}/usage`,
+        params: {
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        },
+        label: `usage for data source ${dataSourceId}`,
+    });
+}
+
+export async function fetchDataSourceMetrics(
+    dataSourceId: string,
+    startDate: Date,
+    endDate: Date,
+): Promise<any> {
+    return fetchServerData({
+        endpoint: `/data-sources/${dataSourceId}/metrics`,
+        params: {
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        },
+        label: `metrics for data source ${dataSourceId}`,
+    });
+}
+
+export async function fetchDataSourceCacheStats(
+    dataSourceId: string,
+    startDate: Date,
+    endDate: Date,
+): Promise<any> {
+    return fetchServerData({
+        endpoint: `/data-sources/${dataSourceId}/cache-stats`,
+        params: {
+            start_date: formatISODate(startDate),
+            end_date: formatISODate(endDate),
+        },
+        label: `cache statistics for data source ${dataSourceId}`,
     });
 }
 
@@ -396,7 +450,12 @@ export async function fetchBacktestMetrics(
     column: string | null = null,
 ) {
     return fetchServerData({
-        endpoint: `/backtests/${backtestId}/metrics/data?target=${target}&time=${time}${column ? `&column=${column}` : ""}`,
+        endpoint: `/backtests/${backtestId}/metrics/data`,
+        params: {
+            target,
+            time,
+            column: column ? column : "",
+        },
         label: `example metric for backtest ${backtestId}`,
     });
 }

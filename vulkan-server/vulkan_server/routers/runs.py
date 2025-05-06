@@ -8,10 +8,7 @@ from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
 from vulkan_server import schemas
 from vulkan_server.dagster.client import DagsterDataClient
-from vulkan_server.dagster.launch_run import (
-    DagsterRunLauncher,
-    get_dagster_launcher,
-)
+from vulkan_server.dagster.launch_run import DagsterRunLauncher, get_dagster_launcher
 from vulkan_server.db import Run, RunGroup, StepMetadata, get_db
 from vulkan_server.logger import init_logger
 
