@@ -5,8 +5,8 @@ from typing import Annotated, Any
 import pandas as pd
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import case, select
 from sqlalchemy import func as F
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 from vulkan_public.data_source import DataSourceType
 from vulkan_public.schemas import DataSourceSpec
@@ -256,7 +256,13 @@ def get_data_source_metrics(
                 "avg_duration_ms"
             ),
             # TODO: Standardize how we handle errors in data inputs
-            F.avg(F.IF(StepMetadata.error is not None, 1.0, 0.0)).label("error_rate"),
+            F.avg(
+                case(
+                    {True: 1.0, False: 0.0},
+                    value=StepMetadata.error.is_(None),
+                    else_=0.0,
+                )
+            ).label("error_rate"),
         )
         .where(
             (StepMetadata.created_at >= start_date)
@@ -272,15 +278,13 @@ def get_data_source_metrics(
 
     sql_start = time.time()
     metrics_df = pd.read_sql(metrics_query, db.bind)
-    logger.system.debug(f"metrics: {metrics_df.head()}")
     sql_time = time.time() - sql_start
     logger.system.debug(
         f"data-source/metrics: Query completed in {sql_time:.3f}s, retrieved {len(metrics_df)} rows"
     )
 
-    processing_start = time.time()
-
     # Process and format the results
+    processing_start = time.time()
     if not metrics_df.empty:
         # Format date for consistency and round values
         metrics_df["date"] = pd.to_datetime(metrics_df["date"]).dt.strftime("%Y-%m-%d")
