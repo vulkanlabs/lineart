@@ -16,6 +16,7 @@ from vulkan_server import schemas
 from vulkan_server.data.broker import DataBroker
 from vulkan_server.db import (
     DataObject,
+    DataObjectOrigin,
     DataSource,
     PolicyDataDependency,
     PolicyVersion,
@@ -341,6 +342,12 @@ def get_cache_statistics(
     )
 
     cache_df = pd.read_sql(cache_query, db.bind)
+    cache_df["data_origin"] = cache_df["data_origin"].map(
+        {
+            DataObjectOrigin.CACHE: DataObjectOrigin.CACHE.value,
+            DataObjectOrigin.REQUEST: DataObjectOrigin.REQUEST.value,
+        }
+    )
 
     # Calculate cache hit ratio by date
     if not cache_df.empty:
@@ -352,15 +359,18 @@ def get_cache_statistics(
         )
 
         # Make sure we have both CACHE and REQUEST columns
-        if "CACHE" not in cache_pivot.columns:
-            cache_pivot["CACHE"] = 0
-        if "REQUEST" not in cache_pivot.columns:
-            cache_pivot["REQUEST"] = 0
+        if DataObjectOrigin.CACHE.value not in cache_pivot.columns:
+            cache_pivot[DataObjectOrigin.CACHE.value,] = 0
+        if DataObjectOrigin.REQUEST.value not in cache_pivot.columns:
+            cache_pivot[DataObjectOrigin.REQUEST.value] = 0
 
         # Calculate hit ratio
-        cache_pivot["total"] = cache_pivot["CACHE"] + cache_pivot["REQUEST"]
+        cache_pivot["total"] = (
+            cache_pivot[DataObjectOrigin.CACHE.value,]
+            + cache_pivot[DataObjectOrigin.REQUEST.value]
+        )
         cache_pivot["hit_ratio"] = (
-            (cache_pivot["CACHE"] / cache_pivot["total"]) * 100
+            (cache_pivot[DataObjectOrigin.CACHE.value,] / cache_pivot["total"]) * 100
         ).round(2)
 
         # Handle division by zero
