@@ -80,15 +80,22 @@ def init_user_logger(db: Session) -> logging.Logger:
 def init_system_logger() -> logging.Logger:
     logger = logging.getLogger(SYS_LOGGER_NAME)
     logger.setLevel(logging.DEBUG)
-    cloud_handler = get_cloud_logging_handler()
     stream_handler = get_stream_handler()
-    logger.addHandler(cloud_handler)
     logger.addHandler(stream_handler)
+    
+    cloud_handler = get_cloud_logging_handler()
+    if cloud_handler:
+        logger.addHandler(cloud_handler)
+    
     return logger
 
 
 def get_cloud_logging_handler():
-    client = google.cloud.logging.Client(project=os.getenv("GCP_PROJECT_ID"))
+    gcp_project = os.getenv("GCP_PROJECT_ID", None)
+    if gcp_project is None:
+        return None
+    
+    client = google.cloud.logging.Client(project=gcp_project)
     cloud_handler = CloudLoggingHandler(client, name=GCP_LOGGER_NAME, stream=sys.stdout)
     cloud_handler.setFormatter(CloudLoggingFormatter())
     return cloud_handler
