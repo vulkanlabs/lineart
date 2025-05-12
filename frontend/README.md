@@ -6,8 +6,8 @@ An easy-to-use, fully featured console to manage your policies.
 
 ### Prerequisites
 
-- Node.js
-- npm
+-   Node.js
+-   npm
 
 ### Running the Application
 
