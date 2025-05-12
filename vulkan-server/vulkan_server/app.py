@@ -1,5 +1,3 @@
-import os
-
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -40,10 +38,6 @@ app.include_router(routers.users.router)
 
 
 logger = init_logger("vulkan_server")
-
-
-STACK_PROJECT_ID = os.getenv("STACK_PROJECT_ID")
-STACK_SECRET_SERVER_KEY = os.getenv("STACK_SECRET_SERVER_KEY")
 
 
 class ErrorResponse(BaseModel):

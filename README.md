@@ -1,6 +1,55 @@
 # Vulkan Labs Monorepo
 
-## Setup
+## Getting Started
+
+### Pre-requisites
+
+- make
+- uv: [Installation Guide](https://github.com/astral-sh/uv?tab=readme-ov-file#installation)
+- Docker: [Installation Guide](https://docs.docker.com/get-started/get-docker/)
+- git: [Installation Guide](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+- Node: [Installation Guide](https://nodejs.org/en/download)
+  - Select the option that matches your operating system
+  - Use any selection in the middle option (we reccomend nvm for developers)
+  - Choose "with npm" at the last option (default)
+
+#### Installing `make`
+
+We use the `make` command to install and manage the application. Install it using one of the following options, depending on your OS:
+
+##### Linux (Ubuntu/Debian)
+
+```
+sudo apt install make
+```
+
+##### macOS
+
+```
+brew install make
+```
+
+### Setting Up
+
+1. Cloning the repository
+```
+git clone https://github.com/vulkanlabs/lineart.git
+```
+2. Navigate to the directory:
+```
+cd lineart
+```
+3. Create the basic configuration
+```
+# Select the "local" option when prompted
+make config
+```
+4. Run everything
+```
+make run
+``` 
+
+## Contributing
 
 ### Python
 
@@ -24,7 +73,6 @@ You need to set some basic configuration values.
 Choose the "local" config option.
 
 ```bash
-make pull-config
 make config
 ```
 

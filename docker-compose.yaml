@@ -9,7 +9,6 @@ services:
     env_file:
       - config/active/app.env
       - config/active/.env
-      - config/active/gcp.env
     ports:
       - "6001:6001"
     depends_on:
@@ -40,11 +39,11 @@ services:
       args:
         PYTHON_VERSION: "3.12"
         DAGSTER_HOME: /opt/dagster
-        DAGSTER_PORT: 3000
         VULKAN_HOME: /opt/vulkan
-        VULKAN_PORT: 3001
         VULKAN_SERVER_PATH: /opt/server
         VULKAN_SCRIPTS_PATH: /opt/scripts
+        DAGSTER_PORT: 3000
+        VULKAN_PORT: 3001
     init: true
     ports:
       - "3000:3000"
@@ -52,14 +51,11 @@ services:
     env_file:
       - config/active/dagster.env
       - config/active/.env
-      - config/active/gcp.env
     depends_on:
       dagster-db:
         condition: service_healthy
     volumes:
       - dagster_vulkan_home:/opt/vulkan
-      - dagster_venvs:/opt/venvs
-      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   dagster-db:
     build:
       context: .
@@ -99,9 +95,6 @@ services:
         PYTHON_VERSION: "3.12"
     env_file:
       - config/active/upload-svc.env
-      - config/active/gcp.env
-    volumes:
-      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   # Mock services
   echo:
     image: kennethreitz/httpbin
@@ -120,4 +113,3 @@ volumes:
   postgres_data_app_db:
   postgres_data_dagster_db:
   dagster_vulkan_home:
-  dagster_venvs:

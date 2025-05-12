@@ -1,6 +1,6 @@
-//
-*
+/*
+/*/
+!/local/
+!/local/*
 !.gitkeep
 !.gitignore
-!dev/
-!local/

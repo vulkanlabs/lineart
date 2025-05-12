@@ -259,7 +259,7 @@ def get_data_source_metrics(
             # TODO: Standardize how we handle errors in data inputs
             F.avg(
                 case(
-                    {True: 1.0, False: 0.0},
+                    {True: 0.0, False: 1.0},
                     value=StepMetadata.error.is_(None),
                     else_=0.0,
                 )
@@ -360,17 +360,17 @@ def get_cache_statistics(
 
         # Make sure we have both CACHE and REQUEST columns
         if DataObjectOrigin.CACHE.value not in cache_pivot.columns:
-            cache_pivot[DataObjectOrigin.CACHE.value,] = 0
+            cache_pivot[DataObjectOrigin.CACHE.value] = 0
         if DataObjectOrigin.REQUEST.value not in cache_pivot.columns:
             cache_pivot[DataObjectOrigin.REQUEST.value] = 0
 
         # Calculate hit ratio
         cache_pivot["total"] = (
-            cache_pivot[DataObjectOrigin.CACHE.value,]
+            cache_pivot[DataObjectOrigin.CACHE.value]
             + cache_pivot[DataObjectOrigin.REQUEST.value]
         )
         cache_pivot["hit_ratio"] = (
-            (cache_pivot[DataObjectOrigin.CACHE.value,] / cache_pivot["total"]) * 100
+            (cache_pivot[DataObjectOrigin.CACHE.value] / cache_pivot["total"]) * 100
         ).round(2)
 
         # Handle division by zero
