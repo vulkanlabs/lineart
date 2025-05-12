@@ -1,3 +1,14 @@
+
+# Testing
+.PHONY: test
+test:
+	uv run pytest -sv --tb=short --disable-warnings -m "not integration"
+
+.PHONY: test-integration
+test-integration:
+	uv run pytest -sv --tb=short --disable-warnings -m "integration"
+
+# Development & Deployment
 .PHONY: down
 down:
 	rm -r ./dist/ || true
@@ -29,24 +40,7 @@ openapi:
 config:
 	uv run python scripts/config-manager.py
 
-.PHONY: pull-config
-pull-config:
-	gcloud storage cp -r gs://vulkan-bootstrap-env-config/config . 
-
-.PHONY: push-config
-push-config:
-	gcloud storage cp -r config gs://vulkan-bootstrap-env-config/
-
 # Maintenance
 .PHONY: clean-pycache
 clean-pycache:
 	 find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
-
-# Testing
-.PHONY: test
-test:
-	uv run pytest -sv --tb=short --disable-warnings -m "not integration"
-
-.PHONY: test-integration
-test-integration:
-	uv run pytest -sv --tb=short --disable-warnings -m "integration"
