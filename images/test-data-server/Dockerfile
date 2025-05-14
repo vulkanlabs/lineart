@@ -2,7 +2,7 @@ ARG PYTHON_VERSION="3.12"
 FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
-COPY test/resources/data_server.py server.py
+COPY images/test-data-server/resources/data_server.py server.py
 RUN pip install "fastapi[standard]"
 
 EXPOSE 5000

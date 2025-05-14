@@ -2,7 +2,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: images/app.Dockerfile
+      dockerfile: images/vulkan-server-app/Dockerfile
       args:
         PYTHON_VERSION: "3.12"
     init: true
@@ -59,7 +59,7 @@ services:
   dagster-db:
     build:
       context: .
-      dockerfile: images/dagster-db.Dockerfile
+      dockerfile: images/dagster-db/Dockerfile
       args:
         POSTGRES_VERSION: "16.3"
     restart: always
@@ -103,7 +103,7 @@ services:
   testdata:
     build:
       context: .
-      dockerfile: images/testdata.Dockerfile
+      dockerfile: images/test-data-server/Dockerfile
       args:
         PYTHON_VERSION: "3.12"
     ports:
