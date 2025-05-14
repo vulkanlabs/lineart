@@ -59,7 +59,7 @@ services:
   dagster-db:
     build:
       context: .
-      dockerfile: images/dagster-db.Dockerfile
+      dockerfile: images/dagster-db/Dockerfile
       args:
         POSTGRES_VERSION: "16.3"
     restart: always
