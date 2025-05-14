@@ -5,8 +5,8 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy import func as F
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from vulkan_public.exceptions import DataSourceNotFoundException
-from vulkan_public.spec.nodes.base import NodeType
+from vulkan.exceptions import DataSourceNotFoundException
+from vulkan.spec.nodes.base import NodeType
 
 from vulkan_server import definitions, schemas
 from vulkan_server.dagster.launch_run import (

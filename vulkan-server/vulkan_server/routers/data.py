@@ -8,9 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import case, select
 from sqlalchemy import func as F
 from sqlalchemy.orm import Session
-from vulkan_public.data_source import DataSourceType
-from vulkan_public.schemas import DataSourceSpec
-from vulkan_public.spec.nodes import NodeType
+from vulkan.data_source import DataSourceType
+from vulkan.schemas import DataSourceSpec
+from vulkan.spec.nodes import NodeType
 
 from vulkan_server import schemas
 from vulkan_server.data.broker import DataBroker

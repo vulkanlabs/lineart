@@ -4,10 +4,9 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
-from vulkan_public.schemas import DataSourceSpec, PolicyAllocationStrategy
-from vulkan_public.spec.policy import PolicyDefinitionDict
-
 from vulkan.core.run import JobStatus, RunStatus
+from vulkan.schemas import DataSourceSpec, PolicyAllocationStrategy
+from vulkan.spec.policy import PolicyDefinitionDict
 
 
 class Project(BaseModel):

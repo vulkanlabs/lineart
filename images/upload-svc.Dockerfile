@@ -6,7 +6,6 @@ WORKDIR /app
 
 RUN pip install uv
 
-COPY vulkan-public vulkan-public
 COPY vulkan vulkan
 COPY upload-svc upload-svc/
 RUN uv pip install --system upload-svc/

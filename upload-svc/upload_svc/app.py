@@ -5,7 +5,7 @@ from io import BytesIO
 
 import pandas as pd
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
-from vulkan.backtest.definitions import SupportedFileFormat
+from vulkan.core.backtest.definitions import SupportedFileFormat
 
 from upload_svc import schemas
 from upload_svc.logger import init_logger

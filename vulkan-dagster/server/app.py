@@ -3,8 +3,7 @@ import os
 from typing import Annotated
 
 from fastapi import Body, Depends, FastAPI, Response
-
-from vulkan.dagster.workspace import DagsterWorkspaceManager
+from vulkan.runners.dagster.workspace import DagsterWorkspaceManager
 
 from .config import VulkanConfig, get_vulkan_config
 from .context import ExecutionContext

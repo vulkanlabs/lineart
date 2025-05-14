@@ -1,5 +1,5 @@
-from vulkan_public.cli.client import backtest, policy, run
-from vulkan_public.cli.context import Context
+from vulkan.cli.client import backtest, policy, run
+from vulkan.cli.context import Context
 
 ctx = Context()
 

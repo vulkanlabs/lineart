@@ -6,8 +6,17 @@ authors = []
 readme = "README.md"
 dependencies = [
     "coloredlogs>=14.0",
-    "gcsfs>=2024.10.0",
-    "vulkan-public",
+    "requests>=2.26.0",
+    "click>=8.1.7",
+    "pyyaml>=6.0.2",
+    "tabulate>=0.9.0",
+    "pydantic>=2.9.2",
+    "cookiecutter>=2.6.0",
+    "pandas>=2.2.3",
+    "graphviz>=0.20.3",
+    "networkx>=3.4.2",
+    "jinja2>=3.1.6",
+    "gcsfs>=2025.3.2",
 ]
 
 [project.optional-dependencies]
@@ -16,7 +25,13 @@ dagster = [
     "dagster==1.8.2",
     "dagster-webserver>=1.8.2",
     "dagster-postgres>=0.24.2",
+    "sqlalchemy>=2.0.41",
 ]
+all = [
+    "vulkan[beam]",
+    "vulkan[dagster]",
+]
+
 
 [tool.uv]
 dev-dependencies = [
@@ -25,8 +40,11 @@ dev-dependencies = [
     "pytest-httpserver>=1.1.0",
 ]
 
-[tool.uv.sources]
-vulkan-public = { path = "../vulkan-public" }
+[project.scripts]
+vulkan = "vulkan.cli.main:cli"
+
+[tool.ruff]
+exclude = ["templates"]
 
 [build-system]
 requires = ["hatchling"]

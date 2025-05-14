@@ -1,8 +1,8 @@
 # import os
 
 # import pytest
-# from vulkan_public.cli import client as vulkan
-# from vulkan_public.cli.context import Context
+# from vulkan.cli import client as vulkan
+# from vulkan.cli.context import Context
 
 
 # @pytest.fixture

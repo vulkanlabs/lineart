@@ -7,11 +7,11 @@ from fastapi import Depends
 from numpy.random import choice
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from vulkan_public.constants import POLICY_CONFIG_KEY
-
+from vulkan.constants import POLICY_CONFIG_KEY
 from vulkan.core.run import RunStatus
-from vulkan.dagster.policy import DEFAULT_POLICY_NAME
-from vulkan.dagster.run_config import RUN_CONFIG_KEY
+from vulkan.runners.dagster.policy import DEFAULT_POLICY_NAME
+from vulkan.runners.dagster.run_config import RUN_CONFIG_KEY
+
 from vulkan_server import definitions
 from vulkan_server.config_variables import resolve_config_variables_from_id
 from vulkan_server.dagster import trigger_run
