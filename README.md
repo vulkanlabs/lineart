@@ -1,4 +1,8 @@
-# Vulkan Labs Monorepo
+# Vulkan
+
+[![Discord](https://img.shields.io/badge/Discord-Vulkan%20Labs-5865F2.svg?logo=discord)](https://discord.gg/sRf66v8D)
+
+A complete policy design and orchestration framework.
 
 ## Getting Started
 
