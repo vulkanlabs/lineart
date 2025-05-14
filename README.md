@@ -53,6 +53,27 @@ make config
 make run
 ``` 
 
+## Project Structure
+
+Below is an overview of the main folders and their purpose:
+
+### `vulkan`
+Core library code that implements the policy design and orchestration framework. Contains the main business logic and models.
+
+This is the best place to start exploring the code.
+
+### `frontend`
+Contains the web-based user interface built with TypeScript and React. This is where client-side code resides.
+
+### `vulkan-server`
+API server implementation that exposes the core functionality as RESTful endpoints. This is the backend that the frontend communicates with.
+
+### `vulkan-dagster`
+Integration with Dagster workflow engine for defining and executing data pipelines and policy workflows.
+
+### `upload-svc`
+Service handling file uploads and processing for the platform. Currently not used.
+
 ## Contributing
 
 ### Python
