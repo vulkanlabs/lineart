@@ -3,11 +3,11 @@ from pickle import dumps, loads
 from typing import Any
 
 import requests
+from dagster import InputContext, IOManager, OutputContext
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.sql import text
 
-from dagster import InputContext, IOManager, OutputContext
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.runners.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
 

@@ -2,8 +2,8 @@ import json
 import time
 
 import requests
-
 from dagster import ConfigurableResource, ResourceDependency
+
 from vulkan.runners.dagster.run_config import VulkanRunConfig
 
 DATA_CLIENT_KEY = "vulkan_data_client"

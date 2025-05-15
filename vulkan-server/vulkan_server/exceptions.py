@@ -2,6 +2,7 @@ from logging import Logger
 
 from fastapi import HTTPException, Response
 from requests import JSONDecodeError
+
 from vulkan.exceptions import UNHANDLED_ERROR_NAME, VULKAN_INTERNAL_EXCEPTIONS
 
 

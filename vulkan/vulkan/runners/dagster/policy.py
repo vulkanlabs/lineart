@@ -1,5 +1,4 @@
 import requests
-
 from dagster import (
     ConfigurableResource,
     DependencyDefinition,
@@ -8,6 +7,7 @@ from dagster import (
     OpDefinition,
     failure_hook,
 )
+
 from vulkan.core.run import RunStatus
 from vulkan.runners.dagster.io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
 from vulkan.runners.dagster.nodes import to_dagster_nodes

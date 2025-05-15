@@ -1,6 +1,7 @@
 from enum import Enum
 
 import vapeplot
+
 from vulkan.spec.dependency import INPUT_NODE, Dependency
 from vulkan.spec.nodes import BranchNode, TerminateNode
 from vulkan.spec.policy import PolicyDefinition

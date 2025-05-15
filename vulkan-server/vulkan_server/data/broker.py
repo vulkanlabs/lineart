@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 
 import requests
 from sqlalchemy.orm import Session
-from vulkan.connections import make_request
 
+from vulkan.connections import make_request
 from vulkan_server import schemas
 from vulkan_server.db import DataObject, RunDataCache
 from vulkan_server.logger import init_logger

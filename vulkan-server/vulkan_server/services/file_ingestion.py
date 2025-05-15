@@ -4,8 +4,8 @@ from typing import Any
 
 from fastapi import Response
 from requests import Request, Session
-from vulkan.core.backtest.definitions import SupportedFileFormat
 
+from vulkan.core.backtest.definitions import SupportedFileFormat
 from vulkan_server.exceptions import raise_interservice_error
 from vulkan_server.logger import init_logger
 

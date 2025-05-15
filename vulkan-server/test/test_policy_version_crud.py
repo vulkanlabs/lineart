@@ -1,4 +1,5 @@
 import pytest
+
 from vulkan.cli import client as vulkan
 from vulkan.cli.context import Context
 
