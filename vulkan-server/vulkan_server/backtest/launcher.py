@@ -8,9 +8,9 @@ from google.cloud import dataflow_v1beta3 as dataflow
 from pydantic.dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from vulkan_public.schemas import DataSourceSpec
 
 from vulkan.core.run import RunStatus
+from vulkan.schemas import DataSourceSpec
 from vulkan_server import schemas
 from vulkan_server.db import (
     Backfill,

@@ -6,7 +6,7 @@ steps:
           - "-m"
           - "pip"
           - "install"
-          - "./vulkan-public"
+          - "./vulkan"
           - "./vulkan"
           - "./vulkan-server"
           - "--user"

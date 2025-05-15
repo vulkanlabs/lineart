@@ -3,7 +3,8 @@ from logging import Logger
 from shutil import rmtree
 
 from fastapi import HTTPException
-from vulkan_public.exceptions import UNHANDLED_ERROR_NAME, VulkanInternalException
+
+from vulkan.exceptions import UNHANDLED_ERROR_NAME, VulkanInternalException
 
 
 class ExecutionContext:

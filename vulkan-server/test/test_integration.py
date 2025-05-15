@@ -1,9 +1,9 @@
 # import os
 
 # import pytest
-# from vulkan_public.cli import client as vulkan
-# from vulkan_public.cli.context import Context
-# from vulkan_public.exceptions import (
+# from vulkan.cli import client as vulkan
+# from vulkan.cli.context import Context
+# from vulkan.exceptions import (
 #     ConflictingDefinitionsError,
 #     DefinitionNotFoundException,
 #     InvalidDefinitionError,

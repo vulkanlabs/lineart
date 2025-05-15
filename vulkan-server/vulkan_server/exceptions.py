@@ -2,7 +2,8 @@ from logging import Logger
 
 from fastapi import HTTPException, Response
 from requests import JSONDecodeError
-from vulkan_public.exceptions import UNHANDLED_ERROR_NAME, VULKAN_INTERNAL_EXCEPTIONS
+
+from vulkan.exceptions import UNHANDLED_ERROR_NAME, VULKAN_INTERNAL_EXCEPTIONS
 
 
 def raise_interservice_error(logger: Logger, response: Response, message: str) -> None:

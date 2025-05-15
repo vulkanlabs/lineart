@@ -45,7 +45,7 @@ class VulkanWorkspaceManager:
         try:
             pyproject_path = f"{self.workspace_path}/pyproject.toml"
             # TODO: is there a better way to do this?
-            # We need to ensure vulkan-public is always in the requirements.
+            # We need to ensure vulkan is always in the requirements.
             reqs = list(DEFAULT_DEPENDENCIES.union(set(requirements)))
             set_dependencies(pyproject_path, reqs)
             self._sync_requirements()
@@ -78,4 +78,4 @@ class VulkanWorkspaceManager:
         rmtree(self.workspace_path)
 
 
-DEFAULT_DEPENDENCIES = {"vulkan-public", "vulkan[dagster]"}
+DEFAULT_DEPENDENCIES = {"vulkan[dagster]"}

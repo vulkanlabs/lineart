@@ -1,9 +1,10 @@
 from enum import Enum
 
 import vapeplot
-from vulkan_public.spec.dependency import INPUT_NODE, Dependency
-from vulkan_public.spec.nodes import BranchNode, TerminateNode
-from vulkan_public.spec.policy import PolicyDefinition
+
+from vulkan.spec.dependency import INPUT_NODE, Dependency
+from vulkan.spec.nodes import BranchNode, TerminateNode
+from vulkan.spec.policy import PolicyDefinition
 
 
 class Status(Enum):

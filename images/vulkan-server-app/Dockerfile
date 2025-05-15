@@ -8,7 +8,6 @@ WORKDIR /app
 RUN pip install uv
 RUN uv pip install --system --no-cache sqlalchemy psycopg2
 
-COPY vulkan-public vulkan-public
 COPY vulkan vulkan
 COPY vulkan-server vulkan-server/
 RUN uv pip install --system --no-cache vulkan-server/

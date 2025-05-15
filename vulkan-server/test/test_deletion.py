@@ -1,6 +1,6 @@
 # import pytest
-# from vulkan_public.cli.client import policy, policy_version
-# from vulkan_public.cli.context import Context
+# from vulkan.cli.client import policy, policy_version
+# from vulkan.cli.context import Context
 
 
 # def _create_policy(ctx):

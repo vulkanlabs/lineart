@@ -6,9 +6,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "google-cloud-aiplatform>=1.85.0",
-    "vulkan",
-    "vulkan-public",
+    "vulkan[all]",
     "vulkan-server",
+    "ruff>=0.11",
 ]
 
 [tool.uv]
@@ -26,9 +26,7 @@ members = ["vulkan-server", "vulkan-dagster", "upload-svc"]
 [tool.uv.sources]
 vulkan-server = { workspace = true }
 vulkan-dagster = { workspace = true }
-resolution-svc = { workspace = true }
 upload-svc = { workspace = true }
-vulkan-public = { path = "vulkan-public", editable = true }
 vulkan = { path = "vulkan", editable = true }
 
 [build-system]

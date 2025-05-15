@@ -4,7 +4,11 @@ version = "0.1.0"
 description = ""
 authors = []
 requires-python = ">=3.10"
-dependencies = ["fastapi[standard]>=0.112.0", "tomlkit>=0.13.2", "vulkan[dagster]"]
+dependencies = [
+    "fastapi[standard]>=0.112.0",
+    "tomlkit>=0.13.2",
+    "vulkan[dagster]",
+]
 
 [tool.setuptools]
 packages = ["server"]

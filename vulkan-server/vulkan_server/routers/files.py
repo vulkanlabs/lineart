@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from sqlalchemy.orm import Session
 
-from vulkan.backtest.definitions import SupportedFileFormat
+from vulkan.core.backtest.definitions import SupportedFileFormat
 from vulkan_server import definitions, schemas
 from vulkan_server.db import UploadedFile, get_db
 from vulkan_server.services.file_ingestion import VulkanFileIngestionServiceClient

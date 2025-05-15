@@ -21,10 +21,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
-from vulkan_public.schemas import CachingOptions, DataSourceSpec
-from vulkan_public.spec.nodes.base import NodeType
 
 from vulkan.core.run import JobStatus, RunStatus
+from vulkan.schemas import CachingOptions, DataSourceSpec
+from vulkan.spec.nodes.base import NodeType
 from vulkan_server.schemas import DataObjectOrigin
 
 Base = declarative_base()

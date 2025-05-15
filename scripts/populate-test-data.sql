@@ -1,8 +1,8 @@
 -- Populate test data for DataSource metrics for the last 7 days
 DO $$
 DECLARE
-    v_policy_version_id UUID := '7cabd823-bc51-4854-a083-e25d4f6359e1';
-    v_data_source_id UUID := 'd8cfc3f1-f024-4930-a7f6-d6fde97bed44';
+    v_policy_version_id UUID := '8b4825a0-9324-4b8f-85dc-471da7873281';
+    v_data_source_id UUID := 'a6348020-1d3f-4d98-9c7f-06e90ef45402';
     v_run_id UUID;
     v_data_object_id UUID;
     v_run_count INT;
