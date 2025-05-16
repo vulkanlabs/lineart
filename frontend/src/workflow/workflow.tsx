@@ -360,8 +360,8 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
         <ReactFlowProvider>
             <WorkflowProvider initialState={initialState}>
                 <VulkanWorkflow
-                    onNodeClick={(_: any, node: any) => console.log(node)}
-                    onPaneClick={() => console.log("pane")}
+                    onNodeClick={(_: any, node: any) => null}
+                    onPaneClick={() => null}
                     policyVersion={policyVersion}
                 />
             </WorkflowProvider>
