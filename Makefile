@@ -38,7 +38,8 @@ openapi:
 # Configuration
 .PHONY: config
 config:
-	uv run python scripts/config-manager.py
+	cp -r ./config/local ./config/active
+
 
 # Maintenance
 .PHONY: clean-pycache

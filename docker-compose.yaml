@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/vulkanlabs/app:sha-2d6f235
+    image: ghcr.io/vulkanlabs/app:latest
     init: true
     env_file:
       - config/active/app.env
@@ -29,7 +29,7 @@ services:
     volumes:
       - postgres_data_app_db:/var/lib/postgresql/data
   dagster:
-    image: ghcr.io/vulkanlabs/dagster:sha-2d6f235
+    image: ghcr.io/vulkanlabs/dagster:latest
     init: true
     ports:
       - "3000:3000"
@@ -43,7 +43,7 @@ services:
     volumes:
       - dagster_vulkan_home:/opt/vulkan
   dagster-db:
-    image: ghcr.io/vulkanlabs/dagster-db:sha-2d6f235
+    image: ghcr.io/vulkanlabs/dagster-db:latest
     restart: always
     env_file:
       - config/active/dagster-db.env
@@ -70,7 +70,7 @@ services:
   #   ports:
   #     - "3002:3000"
   upload-svc:
-    image: ghcr.io/vulkanlabs/upload-svc:sha-2d6f235
+    image: ghcr.io/vulkanlabs/upload-svc:latest
     env_file:
       - config/active/upload-svc.env
 
