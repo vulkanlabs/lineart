@@ -76,6 +76,19 @@ Service handling file uploads and processing for the platform. Currently not use
 
 ## Contributing
 
+### Building the images
+
+We have two separate `docker-compose` files.
+- `docker-compose.yaml`: Uses pre-built images from our GitHub repository.
+- `docker-compose.dev.yaml`: Builds all images locally. Requires a more complete environment.
+
+To use the complete setup, we need to override the default compose file.
+Add the following line to your `.bashrc` or equivalent.
+
+```sh
+export COMPOSE_FILE="docker-compose.yaml:docker-compose.dev.yaml"
+```
+
 ### Python
 
 #### [uv](https://github.com/astral-sh/uv)
