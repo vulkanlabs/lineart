@@ -187,10 +187,6 @@ const createWorkflowStore = (initProps: WorkflowState) => {
         },
 
         onConnect: (connection) => {
-            const edgeId = `${connection.source}-${connection.target}`;
-            const newEdge: Edge = { ...connection, id: edgeId };
-            get().addEdge(newEdge);
-
             const nodes = get().nodes;
             const sourceNode = nodes.find((node) => node.id === connection.source);
             const targetNode = nodes.find((node) => node.id === connection.target);
@@ -206,6 +202,14 @@ const createWorkflowStore = (initProps: WorkflowState) => {
                 output: output,
                 key: null,
             };
+
+            const edgeId =
+                output !== null
+                    ? `${connection.source}[${output}-${connection.sourceHandle}]-${connection.target}`
+                    : `${connection.source}-${connection.target}`;
+
+            const newEdge: Edge = { ...connection, id: edgeId };
+            get().addEdge(newEdge);
 
             get().updateNodeData(connection.target, {
                 ...targetNode.data,

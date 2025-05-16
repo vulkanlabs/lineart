@@ -105,7 +105,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
             };
 
             if (target.id === connection.source) return false;
-            return !hasCycle(target);
+            return !hasCycle(target) && !unsatisfiable;
         },
         [getNodes, getEdges],
     );
@@ -136,17 +136,20 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
         }
     }, [policyVersion, nodes, edges, setNodes]);
 
-    const onConnectEnd = useCallback((event, connectionState) => {
-        // when a connection is dropped on the pane it's not valid
-        if (!connectionState.isValid) {
-            // we need to remove the wrapper bounds, in order to get the correct position
-            const { clientX, clientY } =
-                "changedTouches" in event ? event.changedTouches[0] : event;
+    const onConnectEnd = useCallback(
+        (event, connectionState) => {
+            // when a connection is dropped on the pane it's not valid
+            if (!connectionState.isValid) {
+                // we need to remove the wrapper bounds, in order to get the correct position
+                const { clientX, clientY } =
+                    "changedTouches" in event ? event.changedTouches[0] : event;
 
-            setDropdownPosition({ x: clientX, y: clientY });
-            toggleDropdown(connectionState.fromHandle);
-        }
-    }, []);
+                setDropdownPosition({ x: clientX, y: clientY });
+                toggleDropdown(connectionState.fromHandle);
+            }
+        },
+        [toggleDropdown],
+    );
 
     function onAddNode(type: any) {
         const position = screenToFlowPosition({
