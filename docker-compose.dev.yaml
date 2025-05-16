@@ -1,6 +1,10 @@
 services:
   app:
-    image: ghcr.io/vulkanlabs/app:latest
+    build:
+      context: .
+      dockerfile: images/vulkan-server-app/Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
     init: true
     env_file:
       - config/active/app.env
@@ -29,7 +33,17 @@ services:
     volumes:
       - postgres_data_app_db:/var/lib/postgresql/data
   dagster:
-    image: ghcr.io/vulkanlabs/dagster:latest
+    build:
+      context: .
+      dockerfile: images/dagster.Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
+        DAGSTER_HOME: /opt/dagster
+        VULKAN_HOME: /opt/vulkan
+        VULKAN_SERVER_PATH: /opt/server
+        VULKAN_SCRIPTS_PATH: /opt/scripts
+        DAGSTER_PORT: 3000
+        VULKAN_PORT: 3001
     init: true
     ports:
       - "3000:3000"
@@ -43,7 +57,11 @@ services:
     volumes:
       - dagster_vulkan_home:/opt/vulkan
   dagster-db:
-    image: ghcr.io/vulkanlabs/dagster-db:latest
+    build:
+      context: .
+      dockerfile: images/dagster-db/Dockerfile
+      args:
+        POSTGRES_VERSION: "16.3"
     restart: always
     env_file:
       - config/active/dagster-db.env
@@ -70,9 +88,26 @@ services:
   #   ports:
   #     - "3002:3000"
   upload-svc:
-    image: ghcr.io/vulkanlabs/upload-svc:latest
+    build:
+      context: .
+      dockerfile: images/upload-svc.Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
     env_file:
       - config/active/upload-svc.env
+  # Mock services
+  echo:
+    image: kennethreitz/httpbin
+    env_file:
+      - config/active/echo.env
+  testdata:
+    build:
+      context: .
+      dockerfile: images/test-data-server/Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
+    ports:
+      - "5001:5000"
 
 volumes:
   postgres_data_app_db:

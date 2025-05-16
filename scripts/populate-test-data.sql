@@ -1,8 +1,8 @@
 -- Populate test data for DataSource metrics for the last 7 days
 DO $$
 DECLARE
-    v_policy_version_id UUID := '8b4825a0-9324-4b8f-85dc-471da7873281';
-    v_data_source_id UUID := 'a6348020-1d3f-4d98-9c7f-06e90ef45402';
+    v_policy_version_id UUID := '340f2051-d89c-4bb9-8ec3-a0311446123f';
+    v_data_source_id UUID := 'ed17eec6-f073-4b1c-8218-efffba816b7e';
     v_run_id UUID;
     v_data_object_id UUID;
     v_run_count INT;
@@ -47,11 +47,11 @@ BEGIN
         -- Random number of requests between 50 and 500
         floor(random() * 450 + 50)::int as request_count,
         -- Random response time between 50ms and 500ms (in seconds for StepMetadata)
-        (random() * 0.450 + 0.050)::float as avg_response_time_sec,
+        abs((random() * 0.450 + 0.050))::float as avg_response_time_sec,
         -- Random error rate between 0% and 15%
-        (random() * 0.15)::float as error_rate,
+        abs((random() * 0.15))::float as error_rate,
         -- Random cache hit ratio between 30% and 95%
-        (random() * 0.65 + 0.30)::float as cache_hit_ratio
+        abs((random() * 0.65 + 0.30))::float as cache_hit_ratio
     FROM date_series;
 
     -- Insert data into run_data_request to simulate data source usage with both SOURCE and CACHE origins

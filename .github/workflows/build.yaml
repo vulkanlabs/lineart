@@ -2,7 +2,8 @@ name: Build and Test Steps
 
 on:
   pull_request:
-    branches: 'main'
+    branches: 
+      - main
 
 jobs:
   python-tests:
