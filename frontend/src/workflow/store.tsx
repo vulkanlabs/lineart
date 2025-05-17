@@ -263,6 +263,8 @@ export function useWorkflowStore<T>(selector: (store: WorkflowStore) => T): T {
     return useStore(workflowContext, selector);
 }
 
+// TODO: we can be more granular here and provide a more specific error message
+// for each case by returning an object with all the issues.
 function isValidConnection(connection: Connection, nodes: VulkanNode[], edges: Edge[]): boolean {
     const target = nodes.find((node) => node.id === connection.target);
     const hasCycle = (node: VulkanNode, visited = new Set()) => {
