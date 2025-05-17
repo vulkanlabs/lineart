@@ -16,6 +16,8 @@ import {
     ControlButton,
     XYPosition,
     type Edge,
+    Connection,
+    getIncomers,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -85,30 +87,6 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
 
     const clickNode: OnNodeClick = (e, node) => onNodeClick(e, node);
     const clickPane: OnPaneClick = (e) => onPaneClick(e);
-
-    const isValidConnection = useCallback(
-        (connection) => {
-            // we are using getNodes and getEdges helpers here
-            // to make sure we create isValidConnection function only once
-            const nodes = getNodes();
-            const edges = getEdges();
-            const target = nodes.find((node) => node.id === connection.target);
-            const hasCycle = (node, visited = new Set()) => {
-                if (visited.has(node.id)) return false;
-
-                visited.add(node.id);
-
-                for (const outgoer of getOutgoers(node, nodes, edges)) {
-                    if (outgoer.id === connection.source) return true;
-                    if (hasCycle(outgoer, visited)) return true;
-                }
-            };
-
-            if (target.id === connection.source) return false;
-            return !hasCycle(target) && !unsatisfiable;
-        },
-        [getNodes, getEdges],
-    );
 
     const onInit = useCallback(() => {
         if (!policyVersion.ui_metadata) {
@@ -195,7 +173,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
                 onConnectEnd={onConnectEnd}
                 nodeTypes={nodeTypes}
                 // connectionLineType={ConnectionLineType.SmoothStep}
-                isValidConnection={isValidConnection}
+                // isValidConnection={isValidConnection}
                 // fitView
                 proOptions={{ hideAttribution: true }}
             >
