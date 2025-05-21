@@ -8,11 +8,9 @@ import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
-import {
-    PolicyAllocationStrategy,
-    PolicyAllocationStrategyChoice,
-    updatePolicyAllocationStrategy,
-} from "@/lib/api";
+import { PolicyAllocationStrategy } from "@vulkan-server/PolicyAllocationStrategy";
+import { PolicyRunPartition } from "@vulkan-server/PolicyRunPartition";
+import { updatePolicyAllocationStrategy } from "@/lib/api";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -41,14 +39,12 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2 } from "lucide-react";
 
 const allocationFormSchema = z
     .object({
-        description: z.string().optional(),
         choiceType: z.enum(["single", "multiple"], { required_error: "Choice type is required." }),
         singleChoiceVersionId: z.string().optional(),
         multipleChoiceVersions: z
@@ -122,7 +118,6 @@ export function UpdateAllocationsDialog({
     const form = useForm<AllocationFormValues>({
         resolver: zodResolver(allocationFormSchema),
         defaultValues: {
-            description: currentAllocation?.description || "",
             choiceType:
                 (currentAllocation?.choice?.length ?? 0) > 1 ||
                 (currentAllocation?.choice?.length === 1 &&
@@ -155,7 +150,6 @@ export function UpdateAllocationsDialog({
     useEffect(() => {
         // Reset form when dialog opens/closes or currentAllocation changes
         form.reset({
-            description: currentAllocation?.description || "",
             choiceType:
                 (currentAllocation?.choice?.length ?? 0) > 1 ||
                 (currentAllocation?.choice?.length === 1 &&
@@ -186,7 +180,7 @@ export function UpdateAllocationsDialog({
     }, [currentAllocation, policyVersions, open, form]);
 
     const onSubmit = async (values: AllocationFormValues) => {
-        let choice: PolicyAllocationStrategyChoice[];
+        let choice: PolicyRunPartition[];
         if (values.choiceType === "single") {
             if (!values.singleChoiceVersionId) {
                 toast.error("Validation Error", {
@@ -209,7 +203,6 @@ export function UpdateAllocationsDialog({
         }
 
         const payload: PolicyAllocationStrategy = {
-            description: values.description || undefined,
             choice,
             shadow:
                 values.shadowVersionIds && values.shadowVersionIds.length > 0
@@ -246,23 +239,6 @@ export function UpdateAllocationsDialog({
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-                        <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Description (Optional)</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Describe this allocation strategy..."
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
                         <FormField
                             control={form.control}
                             name="choiceType"

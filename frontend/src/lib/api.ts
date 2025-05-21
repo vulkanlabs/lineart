@@ -10,18 +10,7 @@ import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
 import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
 import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
 import { DataSource } from "@vulkan-server/DataSource";
-
-// Interfaces for policy allocation strategy
-export interface PolicyAllocationStrategyChoice {
-    policy_version_id: string;
-    frequency: number; // Backend expects 0-1000
-}
-
-export interface PolicyAllocationStrategy {
-    choice: PolicyAllocationStrategyChoice[];
-    shadow?: string[];
-    description?: string;
-}
+import { PolicyAllocationStrategy } from "@vulkan-server/PolicyAllocationStrategy";
 
 interface HTTPQueryParams {
     [key: string]: any;
@@ -76,7 +65,7 @@ export async function fetchPolicies(includeArchived: boolean = false): Promise<P
     });
 }
 
-export async function fetchPolicy(policyId: string) {
+export async function fetchPolicy(policyId: string): Promise<Policy> {
     return fetchServerData({
         endpoint: `/policies/${policyId}`,
         label: `policy ${policyId}`,

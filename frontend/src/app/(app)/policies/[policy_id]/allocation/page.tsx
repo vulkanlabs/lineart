@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 
 import Loader from "@/components/animations/loader";
-import { fetchPolicy, fetchPolicyVersions, PolicyAllocationStrategy } from "@/lib/api";
+import { fetchPolicy, fetchPolicyVersions } from "@/lib/api";
+import { PolicyAllocationStrategy } from "@vulkan-server/PolicyAllocationStrategy";
 
 import { AllocatedVersionsTable } from "./_components/table";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
@@ -15,21 +16,7 @@ export default async function Page(props: any) {
         return [];
     });
 
-    // Get IDs of versions that are currently in the allocation strategy (choice or shadow)
-    const getActiveAndShadowVersionIds = (
-        allocationStrategy: PolicyAllocationStrategy | null,
-    ): string[] => {
-        if (!allocationStrategy) {
-            return [];
-        }
-        const choiceIds = allocationStrategy.choice.map((opt) => opt.policy_version_id);
-        const shadowIds = allocationStrategy.shadow || [];
-        return Array.from(new Set([...choiceIds, ...shadowIds]));
-    };
-
-    const activeAndShadowVersionIds = getActiveAndShadowVersionIds(
-        policyData.allocation_strategy as PolicyAllocationStrategy | null,
-    );
+    const activeAndShadowVersionIds = getActiveAndShadowVersionIds(policyData?.allocation_strategy);
 
     const allocatedAndShadowVersionsToDisplay = allPolicyVersionsForPolicy.filter(
         (pv: PolicyVersion) => activeAndShadowVersionIds.includes(pv.policy_version_id),
@@ -48,3 +35,15 @@ export default async function Page(props: any) {
         </div>
     );
 }
+
+// Get IDs of versions that are currently in the allocation strategy (choice or shadow)
+const getActiveAndShadowVersionIds = (
+    allocationStrategy: PolicyAllocationStrategy | null,
+): string[] => {
+    if (!allocationStrategy) {
+        return [];
+    }
+    const choiceIds = allocationStrategy.choice.map((opt) => opt.policy_version_id);
+    const shadowIds = allocationStrategy.shadow || [];
+    return Array.from(new Set([...choiceIds, ...shadowIds]));
+};

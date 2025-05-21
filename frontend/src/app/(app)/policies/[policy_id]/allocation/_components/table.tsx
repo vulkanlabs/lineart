@@ -3,7 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 import { Policy } from "@vulkan-server/Policy";
-import { PolicyAllocationStrategy } from "@/lib/api";
+import { PolicyAllocationStrategy } from "@vulkan-server/PolicyAllocationStrategy";
 
 import { DetailsButton } from "@/components/details-button";
 import { UpdateAllocationsDialog } from "./dialog";
