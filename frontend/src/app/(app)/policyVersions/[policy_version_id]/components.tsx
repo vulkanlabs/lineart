@@ -32,6 +32,7 @@ export function RouteLayout({ policy, policyVersion, children }) {
     const innerNavbarSections: InnerNavbarSectionProps[] = [
         { key: "Policy:", value: policy.name },
         { key: "Version:", value: policyVersion.alias },
+        { key: "Status:", value: policyVersion.status },
     ];
 
     return (
