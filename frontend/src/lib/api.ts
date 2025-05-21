@@ -11,6 +11,18 @@ import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
 import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
 import { DataSource } from "@vulkan-server/DataSource";
 
+// Interfaces for policy allocation strategy
+export interface PolicyAllocationStrategyChoice {
+    policy_version_id: string;
+    frequency: number; // Backend expects 0-1000
+}
+
+export interface PolicyAllocationStrategy {
+    choice: PolicyAllocationStrategyChoice[];
+    shadow?: string[];
+    description?: string;
+}
+
 interface HTTPQueryParams {
     [key: string]: any;
 }
@@ -141,6 +153,50 @@ export async function createDataSource(data: DataSourceSpec) {
         })
         .catch((error) => {
             throw new Error(`Error creating data source ${data}`, { cause: error });
+        });
+}
+
+export async function updatePolicyAllocationStrategy(
+    policyId: string,
+    data: PolicyAllocationStrategy,
+) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    if (!serverUrl) {
+        throw new Error("Server URL is not defined");
+    }
+    const body: PolicyBase = {
+        allocation_strategy: data,
+    };
+
+    return fetch(new URL(`/policies/${policyId}`, serverUrl), {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+    })
+        .then(async (response) => {
+            if (!response.ok) {
+                const errorData = await response
+                    .json()
+                    .catch(() => ({ detail: "Unknown error updating allocation strategy." }));
+                console.error("Failed to update policy allocation strategy", {
+                    status: response.status,
+                    errorData,
+                });
+                throw new Error(
+                    errorData.detail ||
+                        `Failed to update allocation strategy for policy ${policyId}`,
+                );
+            }
+            return response.json();
+        })
+        .catch((error) => {
+            console.error(
+                `Error updating policy allocation strategy for policy ${policyId}:`,
+                error,
+            );
+            throw error;
         });
 }
 

@@ -128,7 +128,7 @@ class PolicyVersion(TimedUpdateMixin, ArchivableMixin, Base):
     )
     policy_id = Column(Uuid, ForeignKey("policy.policy_id"))
     alias = Column(String)
-    status = Column(Enum(PolicyVersionStatus))
+    status = Column(Enum(PolicyVersionStatus), nullable=False)
     spec = Column(JSON, nullable=False)
     requirements = Column(ARRAY(String), nullable=False)
     # The fields below require the policy version to be resolved

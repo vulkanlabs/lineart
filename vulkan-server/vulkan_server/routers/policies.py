@@ -100,8 +100,8 @@ def update_policy(
         raise HTTPException(status_code=404, detail=msg)
 
     allocation_strategy = _validate_allocation_strategy(
-        db,
-        config.allocation_strategy,
+        db=db,
+        allocation_strategy=config.allocation_strategy,
     )
     policy.allocation_strategy = allocation_strategy.model_dump()
 
@@ -115,7 +115,7 @@ def update_policy(
     return policy
 
 
-def _validate_allocation_strategy(db, project_id, allocation_strategy):
+def _validate_allocation_strategy(db, allocation_strategy):
     if allocation_strategy is None:
         return None
 
@@ -136,11 +136,11 @@ def _validate_allocation_strategy(db, project_id, allocation_strategy):
 
     if allocation_strategy.shadow is not None:
         for policy_version_id in allocation_strategy.shadow:
-            version = _validate_policy_version(db, project_id, policy_version_id)
+            version = _validate_policy_version(db, policy_version_id)
             schemas.append(version.input_schema)
 
     for option in allocation_strategy.choice:
-        version = _validate_policy_version(db, project_id, option.policy_version_id)
+        version = _validate_policy_version(db, option.policy_version_id)
         schemas.append(version.input_schema)
 
     # TODO: Validate if schemas are compatible
@@ -149,11 +149,9 @@ def _validate_allocation_strategy(db, project_id, allocation_strategy):
     return allocation_strategy
 
 
-def _validate_policy_version(db, project_id, policy_version_id):
+def _validate_policy_version(db, policy_version_id):
     policy_version = (
-        db.query(PolicyVersion)
-        .filter_by(policy_version_id=policy_version_id, project_id=project_id)
-        .first()
+        db.query(PolicyVersion).filter_by(policy_version_id=policy_version_id).first()
     )
     if policy_version is None:
         msg = f"Tried to use non-existent version {policy_version_id}"

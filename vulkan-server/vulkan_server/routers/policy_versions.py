@@ -107,6 +107,7 @@ def create_policy_version(
 
     try:
         dagster_service_client.ensure_workspace_added(str(version.policy_version_id))
+        version.status = PolicyVersionStatus.VALID
     except ValueError:
         logger.system.error(
             f"Failed to create workspace ({version.policy_version_id}), version is invalid",
@@ -223,6 +224,17 @@ def update_policy_version(
         policy_id=version.policy_id,
         policy_version_id=policy_version_id,
         policy_version_alias=version.alias,
+    )
+    logger.system.debug(
+        "Updated policy version",
+        extra={
+            "extra": {
+                "policy_version_id": version.policy_version_id,
+                "status": version.status,
+                "spec": version.spec,
+                "requirements": version.requirements,
+            }
+        },
     )
     return version
 

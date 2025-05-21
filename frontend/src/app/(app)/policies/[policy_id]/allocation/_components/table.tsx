@@ -3,8 +3,10 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 import { Policy } from "@vulkan-server/Policy";
+import { PolicyAllocationStrategy } from "@/lib/api";
 
 import { DetailsButton } from "@/components/details-button";
+import { UpdateAllocationsDialog } from "./dialog";
 import { DataTable } from "@/components/data-table";
 import { ShortenedID } from "@/components/shortened-id";
 import { RefreshButton } from "@/components/refresh-button";
@@ -13,22 +15,33 @@ import { parseDate } from "@/lib/utils";
 export function AllocatedVersionsTable({
     policy,
     policyVersions,
+    allocatedAndShadowVersions,
 }: {
     policy: Policy;
     policyVersions: PolicyVersion[];
+    allocatedAndShadowVersions: PolicyVersion[];
 }) {
-    const formattedVersions = formatVersions({ policy, policyVersions });
+    const formattedVersions = formatVersions({
+        policy,
+        policyVersions: allocatedAndShadowVersions,
+    });
     return (
         <div>
-            <div className="flex gap-4">
+            <div className="flex gap-4 my-4">
                 <RefreshButton />
-                {/* <UpdateAllocationsDialog policyVersions={policyVersions} /> */}
+                <UpdateAllocationsDialog
+                    policyId={policy.policy_id}
+                    currentAllocation={
+                        policy.allocation_strategy as PolicyAllocationStrategy | null
+                    }
+                    policyVersions={policyVersions}
+                />
             </div>
             <div className="my-4">
                 <DataTable
                     columns={PolicyVersionsTableColumns}
                     data={formattedVersions}
-                    emptyMessage="You don't have any allocated versions yet."
+                    emptyMessage="No versions are currently allocated. Update the allocation strategy to add versions."
                 />
             </div>
         </div>
@@ -42,46 +55,60 @@ function formatVersions({
     policy: Policy;
     policyVersions: PolicyVersion[];
 }) {
-    if (policyVersions.length === 0) {
+    if (policyVersions.length === 0 || !policy.allocation_strategy) {
         return [];
     }
-    const spec = getAllocationSpec(policy.allocation_strategy);
-    const formattedVersions = policyVersions.map((policyVersion) => {
-        return {
-            ...policyVersion,
-            mode: spec[policyVersion.policy_version_id].mode,
-            frequency: spec[policyVersion.policy_version_id].frequency,
-        };
+    const spec = getAllocationSpec(policy.allocation_strategy as PolicyAllocationStrategy);
+    const formatted = policyVersions
+        .map((policyVersion) => {
+            const versionSpec = spec[policyVersion.policy_version_id];
+            if (!versionSpec) return null; // Should not happen if policyVersions are derived from allocation_strategy
+            return {
+                ...policyVersion,
+                mode: versionSpec.mode,
+                frequency: versionSpec.frequency,
+            };
+        })
+        .filter(Boolean); // Remove any nulls if a version in allocation_strategy was not found in policyVersions list
+    return formatted as (PolicyVersion & { mode: string; frequency: number | null })[];
+}
+
+function getAllocationSpec(strategy: PolicyAllocationStrategy | null) {
+    if (!strategy) return {};
+
+    const spec: { [key: string]: { mode: string; frequency: number | null } } = {};
+
+    strategy.choice.forEach((version) => {
+        spec[version.policy_version_id] = { mode: "choice", frequency: version.frequency };
     });
-    return formattedVersions;
+
+    if (strategy.shadow) {
+        strategy.shadow.forEach((version_id) => {
+            // If a version is both in choice and shadow, 'choice' mode takes precedence for display clarity
+            if (!spec[version_id]) {
+                spec[version_id] = { mode: "shadow", frequency: null };
+            }
+        });
+    }
+    return spec;
 }
 
-function getAllocationSpec(strategy) {
-    const choiceVersions = strategy.choice.reduce((result, version) => {
-        result[version.policy_version_id] = { mode: "choice", frequency: version.frequency };
-        return result;
-    }, {});
-    const shadowVersions = strategy.shadow.reduce((result, version_id) => {
-        result[version_id] = { mode: "shadow", frequency: null };
-        return result;
-    }, {});
-    return { ...choiceVersions, ...shadowVersions };
-}
-
-const PolicyVersionsTableColumns: ColumnDef<PolicyVersion>[] = [
+const PolicyVersionsTableColumns: ColumnDef<
+    PolicyVersion & { mode: string; frequency: number | null }
+>[] = [
     {
         header: "",
         accessorKey: "link",
         cell: ({ row }) => (
-            <DetailsButton href={`/policyVersions/${row.getValue("policy_version_id")}/workflow`} />
+            <DetailsButton href={`/policyVersions/${row.original.policy_version_id}/workflow`} />
         ),
     },
     {
-        header: "ID",
+        header: "Version ID",
         accessorKey: "policy_version_id",
         cell: ({ row }) => <ShortenedID id={row.getValue("policy_version_id")} />,
     },
-    { header: "Tag", accessorKey: "alias" },
+    { header: "Alias", accessorKey: "alias", cell: ({ row }) => row.getValue("alias") || "-" },
     {
         header: "Mode",
         accessorKey: "mode",

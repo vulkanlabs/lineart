@@ -10,6 +10,12 @@ from vulkan.schemas import DataSourceSpec, PolicyAllocationStrategy
 from vulkan.spec.policy import PolicyDefinitionDict
 
 
+# Define PolicyVersionStatus directly in schemas.py to avoid circular imports
+class PolicyVersionStatusSchema(str, Enum):
+    VALID = "VALID"
+    INVALID = "INVALID"
+
+
 class Project(BaseModel):
     project_id: UUID
     name: str
@@ -146,6 +152,7 @@ class PolicyVersion(BaseModel):
     policy_version_id: UUID
     policy_id: UUID
     alias: str | None = None
+    status: PolicyVersionStatusSchema
     input_schema: dict[str, str]
     spec: PolicyDefinitionDict
     requirements: list[str]
@@ -382,4 +389,5 @@ class BacktestMetrics(BaseModel):
 class BacktestMetricsConfig(BaseModel):
     target_column: str
     time_column: str | None = None
+    group_by_columns: list[str] | None = None
     group_by_columns: list[str] | None = None
