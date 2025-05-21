@@ -19,8 +19,11 @@ import { deletePolicyVersion } from "@/lib/api";
 
 import { Policy } from "@vulkan-server/Policy";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
+import { PolicyVersionStatus } from "@vulkan-server/PolicyVersionStatus";
 
 import { CreatePolicyVersionDialog } from "./create-version";
+
+import { PolicyVersion as GeneratedPolicyVersion } from "@vulkan-server/PolicyVersion";
 
 export function PolicyVersionsTable({
     policy,
@@ -39,7 +42,7 @@ export function PolicyVersionsTable({
 
         // Use the actual status from the backend if available, or fallback to INVALID
         // In the future, this will always come from the backend
-        const validationStatus = policyVersion.status || PolicyVersionStatus.INVALID;
+        const validationStatus = policyVersion.status || PolicyVersionStatus.Invalid.valueOf();
 
         return {
             ...policyVersion,
@@ -117,7 +120,11 @@ const policyVersionsTableColumns: ColumnDef<ExtendedPolicyVersion>[] = [
             const status = row.getValue("validationStatus") as keyof typeof PolicyVersionStatus;
 
             return (
-                <Badge variant={status === PolicyVersionStatus.VALID ? "default" : "destructive"}>
+                <Badge
+                    variant={
+                        status === PolicyVersionStatus.Valid.valueOf() ? "default" : "destructive"
+                    }
+                >
                     {status}
                 </Badge>
             );
@@ -188,21 +195,8 @@ interface ExtendedPolicyVersion extends GeneratedPolicyVersion {
     activeStatus: string;
 }
 
-// Define style variants for each status
-const STATUS_VARIANT = {
-    VALID: "success",
-    INVALID: "destructive",
-};
-
 // Define active status styles
 const ACTIVE_STATUS_VARIANT = {
     active: "default",
     inactive: "outline",
-};
-import { PolicyVersion as GeneratedPolicyVersion } from "@vulkan-server/PolicyVersion";
-import { PolicyVersionStatusSchema } from "@vulkan-server/PolicyVersionStatusSchema";
-
-const PolicyVersionStatus = {
-    VALID: "VALID" as PolicyVersionStatusSchema,
-    INVALID: "INVALID" as PolicyVersionStatusSchema,
 };

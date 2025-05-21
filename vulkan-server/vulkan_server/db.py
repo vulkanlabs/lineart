@@ -1,3 +1,4 @@
+import enum
 import os
 from functools import lru_cache
 
@@ -350,6 +351,24 @@ class BacktestMetrics(TimedUpdateMixin, Base):
 
     # Known after execution
     metrics = Column(JSON, nullable=True)
+
+
+class WorkspaceStatus(enum.Enum):
+    OK = "OK"
+    CREATION_PENDING = "CREATION_PENDING"
+    CREATION_FAILED = "CREATION_FAILED"
+
+
+class BeamWorkspace(TimedUpdateMixin, Base):
+    __tablename__ = "beam_workspace"
+
+    policy_version_id = Column(
+        Uuid,
+        ForeignKey("policy_version.policy_version_id"),
+        primary_key=True,
+    )
+    status = Column(Enum(WorkspaceStatus))
+    image = Column(String, nullable=True)
 
 
 if __name__ == "__main__":
