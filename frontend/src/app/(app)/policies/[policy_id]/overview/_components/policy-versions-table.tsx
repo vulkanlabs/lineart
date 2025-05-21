@@ -19,8 +19,11 @@ import { deletePolicyVersion } from "@/lib/api";
 
 import { Policy } from "@vulkan-server/Policy";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
+import { PolicyVersionStatus } from "@vulkan-server/PolicyVersionStatus";
 
 import { CreatePolicyVersionDialog } from "./create-version";
+
+import { PolicyVersion as GeneratedPolicyVersion } from "@vulkan-server/PolicyVersion";
 
 export function PolicyVersionsTable({
     policy,
@@ -30,16 +33,23 @@ export function PolicyVersionsTable({
     policyVersions: PolicyVersion[];
 }) {
     const activeVersions = getActiveVersions(policy);
-    const formattedVersions = policyVersions.map((policyVersion) => {
-        let status = "inactive";
+    const formattedVersions = policyVersions.map((policyVersion: PolicyVersion) => {
+        console.log("Policy Version:", policyVersion);
+        let activeStatus = "inactive";
         if (activeVersions.includes(policyVersion.policy_version_id)) {
-            status = "active";
+            activeStatus = "active";
         }
+
+        // Use the actual status from the backend if available, or fallback to INVALID
+        // In the future, this will always come from the backend
+        const validationStatus = policyVersion.status || PolicyVersionStatus.Invalid.valueOf();
+
         return {
             ...policyVersion,
-            status: status,
+            validationStatus: validationStatus,
+            activeStatus: activeStatus,
         };
-    });
+    }) as ExtendedPolicyVersion[];
 
     const searchOptions: SearchFilterOptions = {
         column: "alias",
@@ -64,7 +74,7 @@ export function PolicyVersionsTable({
     );
 }
 
-const policyVersionsTableColumns: ColumnDef<PolicyVersion>[] = [
+const policyVersionsTableColumns: ColumnDef<ExtendedPolicyVersion>[] = [
     {
         id: "link",
         enableHiding: false,
@@ -94,14 +104,28 @@ const policyVersionsTableColumns: ColumnDef<PolicyVersion>[] = [
         cell: ({ row }) => <div>{row.getValue("alias")}</div>,
     },
     {
-        header: "Status",
-        accessorKey: "status",
+        header: "Active",
+        accessorKey: "activeStatus",
         cell: ({ row }) => {
-            const status = row.getValue("status");
+            const status = row.getValue("activeStatus") as string;
+            const variant = ACTIVE_STATUS_VARIANT[status] || "outline";
+
+            return <Badge variant={variant as any}>{status}</Badge>;
+        },
+    },
+    {
+        header: "Valid",
+        accessorKey: "validationStatus",
+        cell: ({ row }) => {
+            const status = row.getValue("validationStatus") as keyof typeof PolicyVersionStatus;
 
             return (
-                <Badge variant={status == "active" ? "default" : "outline"}>
-                    {row.getValue("status")}
+                <Badge
+                    variant={
+                        status === PolicyVersionStatus.Valid.valueOf() ? "default" : "destructive"
+                    }
+                >
+                    {status}
                 </Badge>
             );
         },
@@ -164,3 +188,15 @@ function getActiveVersions(policyData) {
     });
     return choiceVersions + policyData.allocation_strategy.shadow;
 }
+
+// Define interfaces for the policy version with status fields
+interface ExtendedPolicyVersion extends GeneratedPolicyVersion {
+    validationStatus: keyof typeof PolicyVersionStatus;
+    activeStatus: string;
+}
+
+// Define active status styles
+const ACTIVE_STATUS_VARIANT = {
+    active: "default",
+    inactive: "outline",
+};

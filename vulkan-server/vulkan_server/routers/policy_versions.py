@@ -51,9 +51,6 @@ def create_policy_version(
         get_dagster_service_client
     ),
 ):
-    extra = {"policy_id": config.policy_id, "policy_version_alias": config.alias}
-    logger.system.debug("Creating policy version", extra={"extra": extra})
-
     policy = db.query(Policy).filter_by(policy_id=config.policy_id).first()
     if policy is None:
         msg = f"Tried to create a version for non-existent policy {config.policy_id}"
@@ -107,6 +104,7 @@ def create_policy_version(
 
     try:
         dagster_service_client.ensure_workspace_added(str(version.policy_version_id))
+        version.status = PolicyVersionStatus.VALID
     except ValueError:
         logger.system.error(
             f"Failed to create workspace ({version.policy_version_id}), version is invalid",
@@ -178,8 +176,6 @@ def update_policy_version(
         raise HTTPException(status_code=404, detail=msg)
     spec = convert_pydantic_to_dict(config.spec)
 
-    extra = {"policy_version_id": policy_version_id, "spec": spec}
-    logger.system.debug("Updating policy version", extra={"extra": extra})
     # TODO: any simpler way to do this?
     # Update the policy version with the new spec and requirements
     version.alias = config.alias

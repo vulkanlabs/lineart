@@ -12,3 +12,8 @@ class JobStatus(Enum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
     DONE = "DONE"
+
+
+class PolicyVersionStatus(Enum):
+    VALID = "VALID"
+    INVALID = "INVALID"

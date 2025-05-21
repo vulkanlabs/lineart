@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from vulkan.core.run import JobStatus, RunStatus
+from vulkan.core.run import JobStatus, PolicyVersionStatus, RunStatus
 from vulkan.schemas import DataSourceSpec, PolicyAllocationStrategy
 from vulkan.spec.policy import PolicyDefinitionDict
 
@@ -146,6 +146,7 @@ class PolicyVersion(BaseModel):
     policy_version_id: UUID
     policy_id: UUID
     alias: str | None = None
+    status: PolicyVersionStatus
     input_schema: dict[str, str]
     spec: PolicyDefinitionDict
     requirements: list[str]
@@ -382,4 +383,5 @@ class BacktestMetrics(BaseModel):
 class BacktestMetricsConfig(BaseModel):
     target_column: str
     time_column: str | None = None
+    group_by_columns: list[str] | None = None
     group_by_columns: list[str] | None = None
