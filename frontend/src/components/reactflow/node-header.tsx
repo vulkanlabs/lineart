@@ -165,11 +165,14 @@ NodeHeaderMenuAction.displayName = "NodeHeaderMenuAction";
 
 export const NodeHeaderDeleteAction = () => {
     const id = useNodeId();
-    const { setNodes } = useReactFlow();
+    const { setNodes, setEdges } = useReactFlow();
 
     const handleClick = useCallback(() => {
         setNodes((prevNodes) => prevNodes.filter((node) => node.id !== id));
-    }, [id, setNodes]);
+        setEdges((prevEdges) =>
+            prevEdges.filter((edge) => edge.source !== id && edge.target !== id),
+        );
+    }, [id, setNodes, setEdges]);
 
     return (
         <NodeHeaderAction onClick={handleClick} variant="ghost" label="Delete node">

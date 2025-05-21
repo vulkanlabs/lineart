@@ -129,6 +129,7 @@ export function WorkflowNode({
 
     return (
         <>
+            {/* TODO: use a custom icon for resizer */}
             <NodeResizer
                 nodeId={id}
                 color="#ff0071"

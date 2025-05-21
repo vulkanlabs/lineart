@@ -5,6 +5,9 @@ import { createStore, useStore } from "zustand";
 import {
     addEdge,
     applyEdgeChanges,
+    Connection,
+    getOutgoers,
+    getIncomers,
     applyNodeChanges,
     OnConnect,
     OnEdgesChange,
@@ -22,6 +25,7 @@ import {
     WorkflowState,
     InputNodeMetadata,
 } from "./types";
+import { toast } from "sonner";
 
 type WorkflowActions = {
     getSpec: () => GraphDefinition;
@@ -127,7 +131,6 @@ const createWorkflowStore = (initProps: WorkflowState) => {
         onNodesChange: async (changes) => {
             const nextNodes = applyNodeChanges(changes, get().nodes);
             set({ nodes: nextNodes });
-            // console.log("Spec: ", get().getSpec());
         },
 
         setNodes: (nodes) => set({ nodes }),
@@ -162,7 +165,6 @@ const createWorkflowStore = (initProps: WorkflowState) => {
             if (!newNode) return null;
 
             get().addNode(newNode);
-
             return newNode.id;
         },
 
@@ -187,14 +189,20 @@ const createWorkflowStore = (initProps: WorkflowState) => {
         },
 
         onConnect: (connection) => {
-            const edgeId = `${connection.source}-${connection.target}`;
-            const newEdge: Edge = { ...connection, id: edgeId };
-            get().addEdge(newEdge);
-
             const nodes = get().nodes;
             const sourceNode = nodes.find((node) => node.id === connection.source);
             const targetNode = nodes.find((node) => node.id === connection.target);
             let output = null;
+
+            if (!isValidConnection(connection, nodes, get().edges)) {
+                console.warn("Invalid connection");
+                toast("Invalid connection", {
+                    description:
+                        "This connection would create a cycle or unsatisfiable dependencies.",
+                    dismissible: true,
+                });
+                return;
+            }
 
             if (sourceNode.type === "BRANCH") {
                 const metadata = sourceNode.data.metadata as BranchNodeMetadata;
@@ -206,6 +214,14 @@ const createWorkflowStore = (initProps: WorkflowState) => {
                 output: output,
                 key: null,
             };
+
+            const edgeId =
+                output !== null
+                    ? `${connection.source}[${output}-${connection.sourceHandle}]-${connection.target}`
+                    : `${connection.source}-${connection.target}`;
+
+            const newEdge: Edge = { ...connection, id: edgeId };
+            get().addEdge(newEdge);
 
             get().updateNodeData(connection.target, {
                 ...targetNode.data,
@@ -245,4 +261,53 @@ export function useWorkflowStore<T>(selector: (store: WorkflowStore) => T): T {
     }
 
     return useStore(workflowContext, selector);
+}
+
+// TODO: we can be more granular here and provide a more specific error message
+// for each case by returning an object with all the issues.
+function isValidConnection(connection: Connection, nodes: VulkanNode[], edges: Edge[]): boolean {
+    const target = nodes.find((node) => node.id === connection.target);
+    const hasCycle = (node: VulkanNode, visited = new Set()) => {
+        if (visited.has(node.id)) return false;
+
+        visited.add(node.id);
+
+        for (const outgoer of getOutgoers(node, nodes, edges)) {
+            if (outgoer.id === connection.source) return true;
+            if (hasCycle(outgoer, visited)) return true;
+        }
+    };
+
+    const satisfiable = (node: VulkanNode) => {
+        const cumulativeDependencies = (node: VulkanNode, deps: Map<string, Set<string>>) => {
+            const incomers = node.data.incomingEdges;
+
+            for (const incomer of Object.values(incomers)) {
+                if (!deps.has(incomer.key)) {
+                    deps.set(incomer.key, new Set());
+                }
+
+                deps.get(incomer.key).add(incomer.dependency.output);
+                const incomerNode = nodes.find((n) => n.id === incomer.dependency.node);
+                cumulativeDependencies(incomerNode, deps);
+            }
+            return deps;
+        };
+
+        const deps = cumulativeDependencies(node, new Map());
+        for (const [key, values] of deps) {
+            if (values.size > 1) {
+                console.warn(
+                    `Node ${node.id} has multiple dependencies on node ${key}: ${Array.from(
+                        values,
+                    ).join(", ")}`,
+                );
+                return false;
+            }
+        }
+        return true;
+    };
+
+    if (target.id === connection.source) return false;
+    return !hasCycle(target) && satisfiable(target);
 }

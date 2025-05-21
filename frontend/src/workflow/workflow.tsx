@@ -16,6 +16,8 @@ import {
     ControlButton,
     XYPosition,
     type Edge,
+    Connection,
+    getIncomers,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -58,7 +60,6 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
         addNodeByType,
         getNodes,
         setNodes,
-        getEdges,
         onNodesChange,
         onEdgesChange,
         onConnect,
@@ -71,7 +72,6 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
             addNodeByType: state.addNodeByType,
             getNodes: state.getNodes,
             setNodes: state.setNodes,
-            getEdges: state.getEdges,
             onNodesChange: state.onNodesChange,
             onEdgesChange: state.onEdgesChange,
             onConnect: state.onConnect,
@@ -85,30 +85,6 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
 
     const clickNode: OnNodeClick = (e, node) => onNodeClick(e, node);
     const clickPane: OnPaneClick = (e) => onPaneClick(e);
-
-    const isValidConnection = useCallback(
-        (connection) => {
-            // we are using getNodes and getEdges helpers here
-            // to make sure we create isValidConnection function only once
-            const nodes = getNodes();
-            const edges = getEdges();
-            const target = nodes.find((node) => node.id === connection.target);
-            const hasCycle = (node, visited = new Set()) => {
-                if (visited.has(node.id)) return false;
-
-                visited.add(node.id);
-
-                for (const outgoer of getOutgoers(node, nodes, edges)) {
-                    if (outgoer.id === connection.source) return true;
-                    if (hasCycle(outgoer, visited)) return true;
-                }
-            };
-
-            if (target.id === connection.source) return false;
-            return !hasCycle(target);
-        },
-        [getNodes, getEdges],
-    );
 
     const onInit = useCallback(() => {
         if (!policyVersion.ui_metadata) {
@@ -136,17 +112,20 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
         }
     }, [policyVersion, nodes, edges, setNodes]);
 
-    const onConnectEnd = useCallback((event, connectionState) => {
-        // when a connection is dropped on the pane it's not valid
-        if (!connectionState.isValid) {
-            // we need to remove the wrapper bounds, in order to get the correct position
-            const { clientX, clientY } =
-                "changedTouches" in event ? event.changedTouches[0] : event;
+    const onConnectEnd = useCallback(
+        (event, connectionState) => {
+            // when a connection is dropped on the pane it's not valid
+            if (!connectionState.isValid) {
+                // we need to remove the wrapper bounds, in order to get the correct position
+                const { clientX, clientY } =
+                    "changedTouches" in event ? event.changedTouches[0] : event;
 
-            setDropdownPosition({ x: clientX, y: clientY });
-            toggleDropdown(connectionState.fromHandle);
-        }
-    }, []);
+                setDropdownPosition({ x: clientX, y: clientY });
+                toggleDropdown(connectionState.fromHandle);
+            }
+        },
+        [toggleDropdown],
+    );
 
     function onAddNode(type: any) {
         const position = screenToFlowPosition({
@@ -192,7 +171,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
                 onConnectEnd={onConnectEnd}
                 nodeTypes={nodeTypes}
                 // connectionLineType={ConnectionLineType.SmoothStep}
-                isValidConnection={isValidConnection}
+                // isValidConnection={isValidConnection}
                 // fitView
                 proOptions={{ hideAttribution: true }}
             >
@@ -360,8 +339,8 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
         <ReactFlowProvider>
             <WorkflowProvider initialState={initialState}>
                 <VulkanWorkflow
-                    onNodeClick={(_: any, node: any) => console.log(node)}
-                    onPaneClick={() => console.log("pane")}
+                    onNodeClick={(_: any, node: any) => null}
+                    onPaneClick={() => null}
                     policyVersion={policyVersion}
                 />
             </WorkflowProvider>
