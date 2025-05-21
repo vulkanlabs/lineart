@@ -1,4 +1,3 @@
-import enum
 import os
 from functools import lru_cache
 
@@ -22,7 +21,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 
-from vulkan.core.run import JobStatus, RunStatus
+from vulkan.core.run import JobStatus, PolicyVersionStatus, RunStatus
 from vulkan.schemas import CachingOptions, DataSourceSpec
 from vulkan.spec.nodes.base import NodeType
 from vulkan_server.schemas import DataObjectOrigin
@@ -61,22 +60,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-class PolicyVersionStatus(enum.Enum):
-    VALID = "VALID"
-    INVALID = "INVALID"
-
-
-class WorkspaceStatus(enum.Enum):
-    OK = "OK"
-    CREATION_PENDING = "CREATION_PENDING"
-    CREATION_FAILED = "CREATION_FAILED"
-
-
-class Role(enum.Enum):
-    ADMIN = "ADMIN"
-    MEMBER = "MEMBER"
 
 
 class TimedUpdateMixin:
@@ -140,18 +123,6 @@ class PolicyVersion(TimedUpdateMixin, ArchivableMixin, Base):
 
     # Base worker image
     base_worker_image = Column(String, nullable=True)
-
-
-class BeamWorkspace(TimedUpdateMixin, Base):
-    __tablename__ = "beam_workspace"
-
-    policy_version_id = Column(
-        Uuid,
-        ForeignKey("policy_version.policy_version_id"),
-        primary_key=True,
-    )
-    status = Column(Enum(WorkspaceStatus))
-    image = Column(String, nullable=True)
 
 
 class ConfigurationValue(TimedUpdateMixin, Base):
