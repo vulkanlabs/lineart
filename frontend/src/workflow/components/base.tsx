@@ -177,7 +177,11 @@ function BaseWorkflowNodeCore({
                     <BaseHandle
                         type="target"
                         position={Position.Left}
-                        style={{ ...defaultHandleStyle }}
+                        style={{ 
+                            ...defaultHandleStyle,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                        }}
                     />
                 )}
                 {!isOutput && (
@@ -186,7 +190,8 @@ function BaseWorkflowNodeCore({
                         position={Position.Right}
                         style={{
                             ...defaultHandleStyle,
-                            top: isExpanded ? undefined : "50%",
+                            top: "50%",
+                            transform: "translateY(-50%)",
                         }}
                     />
                 )}
@@ -302,6 +307,7 @@ export function InputWorkflowNode({
             height={height}
             selected={selected}
             isInput={true}
+            isOutput={false}
             headerActions={null}
             allowNameEditing={false}
         >

@@ -10,7 +10,7 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
         id: "INPUT",
         name: "input_node",
         width: 260,
-        height: 50,
+        height: 150, // Changed from 50 to 150 to give it a proper expanded height
         icon: null,
     },
     CONNECTION: {
@@ -110,7 +110,7 @@ export function createNodeByType({
                 y: position.y - height * 0.5,
             },
             width: width,
-            height: height,
+            height: height, // This will now be 150px instead of 50px
             type,
         };
     }

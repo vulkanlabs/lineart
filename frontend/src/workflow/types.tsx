@@ -19,6 +19,7 @@ export type VulkanNodeData = {
     metadata?: any;
     incomingEdges?: IncomingEdges;
     detailsExpanded?: boolean;
+    collapsed?: boolean;
 };
 
 export type VulkanNode =

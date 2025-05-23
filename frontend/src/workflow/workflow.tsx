@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { SaveIcon } from "lucide-react";
+import { SaveIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { toast } from "sonner";
 import ELK from "elkjs/lib/elk.bundled.js";
 import {
@@ -63,6 +63,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
         onNodesChange,
         onEdgesChange,
         onConnect,
+        toggleAllNodesCollapsed,
     } = useWorkflowStore(
         useShallow((state) => ({
             nodes: state.nodes,
@@ -75,6 +76,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
             onNodesChange: state.onNodesChange,
             onEdgesChange: state.onEdgesChange,
             onConnect: state.onConnect,
+            toggleAllNodesCollapsed: state.toggleAllNodesCollapsed,
         })),
     );
 
@@ -141,6 +143,10 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
         });
     }
 
+    const areAllNodesCollapsed = useMemo(() => {
+        return nodes.every((node) => node.data?.detailsExpanded === false);
+    }, [nodes]);
+
     return (
         <div className="w-full h-full">
             {isOpen && (
@@ -192,6 +198,18 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
                                     <SaveIcon />
                                 </TooltipTrigger>
                                 <TooltipContent>Save</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </ControlButton>
+                    <ControlButton onClick={toggleAllNodesCollapsed}>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    {areAllNodesCollapsed ? <ChevronDownIcon /> : <ChevronUpIcon />}
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    {areAllNodesCollapsed ? "Expand All" : "Collapse All"}
+                                </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     </ControlButton>
