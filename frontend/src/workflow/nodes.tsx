@@ -103,6 +103,7 @@ export function createNodeByType({
                 icon: node.icon,
                 metadata: metadata,
                 incomingEdges: {},
+                detailsExpanded: true,
             },
             position: {
                 x: position.x,
@@ -128,6 +129,7 @@ export function createNodeByType({
             icon: node.icon,
             metadata: metadata,
             incomingEdges: {},
+            detailsExpanded: true,
         },
         position: {
             x: position.x,

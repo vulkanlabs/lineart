@@ -89,71 +89,99 @@ export function BranchNode({ id, data, selected, height, width }: NodeProps<Vulk
         [id, data, height, width, updateNodeData, onNodesChange],
     );
 
+    const isExpanded = data.detailsExpanded ?? true;
+
     return (
-        <WorkflowNode
-            id={id}
-            selected={selected}
-            data={data}
-            height={height}
-            width={width}
-            isOutput
-        >
-            <div className="h-full flex flex-col gap-1 space-y-2 p-3">
-                <div
-                    className="rounded-md overflow-hidden h-full flex-grow nodrag"
-                    onMouseDown={(e) => e.stopPropagation()}
-                >
-                    <Editor
-                        language="python"
-                        value={data.metadata?.source_code || ""}
-                        theme="vs-dark"
-                        defaultValue="# your code here"
-                        onChange={(value) => setSourceCode(value || "")}
-                        options={{
-                            minimap: {
-                                enabled: false,
-                            },
-                        }}
-                    />
-                </div>
-                <span>Outputs:</span>
-                {data.metadata.choices.map((choice, index) => (
+        <>
+            <WorkflowNode
+                id={id}
+                selected={selected}
+                data={data}
+                height={height}
+                width={width}
+                isOutput
+            >
+                <div className="h-full flex flex-col gap-1 space-y-2 p-3">
                     <div
-                        key={index}
-                        className="relative flex flex-row items-center gap-2 p-2 pr-4 border border-gray-300 rounded-md"
+                        className="rounded-md overflow-hidden h-full flex-grow nodrag"
+                        onMouseDown={(e) => e.stopPropagation()}
                     >
-                        <BaseHandle
-                            type="source"
-                            position={Position.Right}
-                            id={`${index}`}
-                            style={{ ...defaultHandleStyle }}
+                        <Editor
+                            language="python"
+                            value={data.metadata?.source_code || ""}
+                            theme="vs-dark"
+                            defaultValue="# your code here"
+                            onChange={(value) => setSourceCode(value || "")}
+                            options={{
+                                minimap: {
+                                    enabled: false,
+                                },
+                            }}
                         />
-                        <div className="flex-grow nodrag" onMouseDown={(e) => e.stopPropagation()}>
-                            <Input
-                                type="text"
-                                value={choice}
-                                onChange={(e) => {
-                                    const newChoices = [...data.metadata.choices];
-                                    newChoices[index] = e.target.value;
-                                    setBranchChoices(newChoices);
-                                }}
-                            />
-                        </div>
-                        <Button
-                            variant="ghost"
-                            className="size-6 p-1"
-                            onClick={() => removeChoice(index)}
+                    </div>
+                    <span>Outputs:</span>
+                    {data.metadata.choices.map((choice, index) => (
+                        <div
+                            key={index}
+                            className="relative flex flex-row items-center gap-2 p-2 pr-4 border 
+                                border-gray-300 rounded-md"
                         >
-                            <SquareX className="stroke-red-700" />
+                            {/* Only show handles when expanded */}
+                            {isExpanded && (
+                                <BaseHandle
+                                    type="source"
+                                    position={Position.Right}
+                                    id={`${index}`}
+                                    style={{ ...defaultHandleStyle }}
+                                />
+                            )}
+                            <div
+                                className="flex-grow nodrag"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            >
+                                <Input
+                                    type="text"
+                                    value={choice}
+                                    onChange={(e) => {
+                                        const newChoices = [...data.metadata.choices];
+                                        newChoices[index] = e.target.value;
+                                        setBranchChoices(newChoices);
+                                    }}
+                                />
+                            </div>
+                            <Button
+                                variant="ghost"
+                                className="size-6 p-1"
+                                onClick={() => removeChoice(index)}
+                            >
+                                <SquareX className="stroke-red-700" />
+                            </Button>
+                        </div>
+                    ))}
+                    <div className="flex justify-center">
+                        <Button variant="ghost" className="p-1 text-blue-500" onClick={addChoice}>
+                            Add output
                         </Button>
                     </div>
-                ))}
-                <div className="flex justify-center">
-                    <Button variant="ghost" className="p-1 text-blue-500" onClick={addChoice}>
-                        Add output
-                    </Button>
                 </div>
-            </div>
-        </WorkflowNode>
+            </WorkflowNode>
+            {/* Render collapsed handles outside WorkflowNode to avoid conflicts */}
+            {!isExpanded &&
+                data.metadata.choices.map((choice, index) => (
+                    <BaseHandle
+                        key={`collapsed-${index}`}
+                        type="source"
+                        position={Position.Right}
+                        id={`${index}`}
+                        style={{
+                            ...defaultHandleStyle,
+                            top: "50%",
+                            right: -20,
+                            position: "absolute",
+                            transform: `translateY(${-20 + index * 12}px)`,
+                        }}
+                    />
+                ))}
+        </>
     );
 }

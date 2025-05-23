@@ -58,14 +58,14 @@ export function WorkflowNode({
     children,
 }: WorkflowNodeProps) {
     const [isNameEditing, setIsNameEditing] = useState(false);
-    const [showDetails, setShowDetails] = useState(true);
     const [showTooltip, setShowTooltip] = useState(false);
     const [showInputs, setShowInputs] = useState(false);
 
-    const { updateNodeData, updateTargetDeps } = useWorkflowStore(
+    const { updateNodeData, updateTargetDeps, toggleNodeDetails } = useWorkflowStore(
         useShallow((state) => ({
             updateNodeData: state.updateNodeData,
             updateTargetDeps: state.updateTargetDeps,
+            toggleNodeDetails: state.toggleNodeDetails,
         })),
     );
     const setNodeName = useCallback(
@@ -82,7 +82,7 @@ export function WorkflowNode({
     }, [id]);
 
     const toggleDetails = () => {
-        setShowDetails((prev) => !prev);
+        toggleNodeDetails(id);
     };
 
     const toggleInputs = () => {
@@ -126,6 +126,7 @@ export function WorkflowNode({
     );
 
     const IconComponent = data?.icon ? iconMapping[data.icon] : undefined;
+    const isExpanded = data.detailsExpanded ?? true;
 
     return (
         <>
@@ -182,7 +183,11 @@ export function WorkflowNode({
                                 <PanelRight />
                             </NodeHeaderAction>
                             <NodeHeaderAction onClick={toggleDetails} label="Toggle Details">
-                                {showDetails ? <FoldVertical /> : <UnfoldVertical />}
+                                {(data.detailsExpanded ?? true) ? (
+                                    <FoldVertical />
+                                ) : (
+                                    <UnfoldVertical />
+                                )}
                             </NodeHeaderAction>
                             {!notPlayable && (
                                 <NodeHeaderAction onClick={() => {}} label="Run node">
@@ -192,8 +197,8 @@ export function WorkflowNode({
                             <NodeHeaderDeleteAction />
                         </NodeHeaderActions>
                     </NodeHeader>
-                    {showDetails && <div className="flex-grow min-h-0">{children}</div>}
-                    {!disableFooter && (
+                    {isExpanded && <div className="flex-grow min-h-0">{children}</div>}
+                    {isExpanded && !disableFooter && (
                         <div className="flex gap-1 px-3 py-2 border-t border-slate-200 mt-1">
                             <Button variant="outline" size="sm" onClick={toggleInputs}>
                                 {showInputs ? "Hide Inputs" : "Show Inputs"}
@@ -209,11 +214,42 @@ export function WorkflowNode({
                     />
                 )}
                 {!isOutput && (
-                    <BaseHandle
-                        type="source"
-                        position={Position.Right}
-                        style={{ ...defaultHandleStyle }}
-                    />
+                    <>
+                        {/* For branch nodes, let the branch component handle collapsed handles */}
+                        {data.icon === "BRANCH" ? (
+                            isExpanded && (
+                                <BaseHandle
+                                    type="source"
+                                    position={Position.Right}
+                                    style={{ ...defaultHandleStyle }}
+                                />
+                            )
+                        ) : /* For non-branch nodes when collapsed, show multiple handles */
+                        !isExpanded && data.metadata?.choices ? (
+                            data.metadata.choices.map((choice, index) => (
+                                <BaseHandle
+                                    key={index}
+                                    id={index.toString()}
+                                    type="source"
+                                    position={Position.Right}
+                                    style={{
+                                        ...defaultHandleStyle,
+                                        top: `${25 + index * 50}%`,
+                                        transform: "translateY(-50%)",
+                                    }}
+                                />
+                            ))
+                        ) : (
+                            <BaseHandle
+                                type="source"
+                                position={Position.Right}
+                                style={{
+                                    ...defaultHandleStyle,
+                                    top: isExpanded ? undefined : "50%",
+                                }}
+                            />
+                        )}
+                    </>
                 )}
             </BaseNode>
             {showInputs && (
