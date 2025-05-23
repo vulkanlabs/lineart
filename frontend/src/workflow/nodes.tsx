@@ -9,8 +9,8 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
     INPUT: {
         id: "INPUT",
         name: "input_node",
-        width: 260,
-        height: 50,
+        width: 400,
+        height: 225,
         icon: null,
     },
     CONNECTION: {
@@ -35,7 +35,7 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
     BRANCH: {
         id: "BRANCH",
         name: "Branch Node",
-        width: 500,
+        width: 400,
         height: 500,
         icon: "BRANCH",
     },
@@ -103,6 +103,7 @@ export function createNodeByType({
                 icon: node.icon,
                 metadata: metadata,
                 incomingEdges: {},
+                detailsExpanded: true,
             },
             position: {
                 x: position.x,
@@ -128,6 +129,7 @@ export function createNodeByType({
             icon: node.icon,
             metadata: metadata,
             incomingEdges: {},
+            detailsExpanded: true,
         },
         position: {
             x: position.x,

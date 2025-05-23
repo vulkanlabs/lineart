@@ -4,7 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 import { AssetCombobox, AssetOption } from "@/components/combobox";
 
 import { useWorkflowStore } from "../store";
-import { WorkflowNode } from "./base";
+import { StandardWorkflowNode } from "./base";
 import { NodeProps } from "@xyflow/react";
 import { VulkanNode } from "../types";
 import { fetchPolicyVersions } from "@/lib/api";
@@ -55,7 +55,7 @@ export function PolicyNode({ id, data, selected, height, width }: NodeProps<Vulk
     }, []);
 
     return (
-        <WorkflowNode id={id} selected={selected} data={data} height={height} width={width}>
+        <StandardWorkflowNode id={id} selected={selected} data={data} height={height} width={width}>
             <div className="flex flex-col gap-4 p-4">
                 <span>Policy Version:</span>
                 <AssetCombobox
@@ -72,6 +72,6 @@ export function PolicyNode({ id, data, selected, height, width }: NodeProps<Vulk
                     emptyMessage="No policies found."
                 />
             </div>
-        </WorkflowNode>
+        </StandardWorkflowNode>
     );
 }

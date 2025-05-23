@@ -44,6 +44,11 @@ type WorkflowActions = {
     removeEdge: (edgeId: string) => void;
     onConnect: OnConnect;
     onEdgesChange: OnEdgesChange<Edge>;
+    setCollapsedNodeHeight: (nodeId: string, height: number) => void;
+    removeCollapsedNodeHeight: (nodeId: string) => void;
+    toggleNodeDetails: (nodeId: string) => void;
+    updateNode: (nodeId: string, updates: Partial<VulkanNode>) => void;
+    toggleAllNodesCollapsed: () => void;
 };
 
 type WorkflowStore = WorkflowState & WorkflowActions;
@@ -51,6 +56,8 @@ type WorkflowStore = WorkflowState & WorkflowActions;
 const createWorkflowStore = (initProps: WorkflowState) => {
     return createStore<WorkflowStore>()((set, get) => ({
         ...initProps,
+
+        collapsedNodeHeights: {},
 
         getInputSchema: () => {
             const nodes = get().nodes;
@@ -230,6 +237,130 @@ const createWorkflowStore = (initProps: WorkflowState) => {
                     [edgeId]: { key: sourceNode.data.name, dependency },
                 },
             });
+        },
+
+        setCollapsedNodeHeight: (nodeId: string, height: number) => {
+            set((state) => ({
+                collapsedNodeHeights: {
+                    ...state.collapsedNodeHeights,
+                    [nodeId]: height,
+                },
+            }));
+        },
+
+        removeCollapsedNodeHeight: (nodeId: string) => {
+            set((state) => {
+                const { [nodeId]: removed, ...rest } = state.collapsedNodeHeights;
+                return { collapsedNodeHeights: rest };
+            });
+        },
+
+        toggleNodeDetails: (nodeId: string) => {
+            const state = get();
+            const node = state.nodes.find((n) => n.id === nodeId);
+            if (!node) return;
+
+            const currentHeight = node.height;
+            const isCurrentlyExpanded = node.data.detailsExpanded ?? true;
+            let updatedNode;
+
+            if (isCurrentlyExpanded) {
+                // Collapsing: save current height and set to 50
+                state.setCollapsedNodeHeight(nodeId, currentHeight);
+                updatedNode = {
+                    ...node,
+                    height: 50,
+                    data: { ...node.data, detailsExpanded: false },
+                };
+            } else {
+                // Expanding: restore original height
+                const originalHeight = state.collapsedNodeHeights[nodeId] || node.data.minHeight;
+                state.removeCollapsedNodeHeight(nodeId);
+                updatedNode = {
+                    ...node,
+                    height: originalHeight,
+                    data: { ...node.data, detailsExpanded: true },
+                };
+            }
+
+            // Update the nodes
+            const updatedNodes = state.nodes.map((n) => (n.id === nodeId ? updatedNode : n));
+            set({ nodes: updatedNodes });
+
+            // Trigger proper dimension change through onNodesChange
+            state.onNodesChange([
+                {
+                    id: nodeId,
+                    type: "dimensions",
+                    dimensions: {
+                        width: updatedNode.width || node.width,
+                        height: updatedNode.height,
+                    },
+                },
+            ]);
+        },
+
+        updateNode: (nodeId: string, updates: Partial<VulkanNode>) => {
+            const nextNodes = get().nodes.map((node) => {
+                if (node.id === nodeId) {
+                    return {
+                        ...node,
+                        ...updates,
+                    };
+                }
+                return node;
+            });
+            set({ nodes: nextNodes });
+        },
+
+        toggleAllNodesCollapsed: () => {
+            const state = get();
+            const nodes = state.nodes;
+
+            // Check if all nodes are currently collapsed (detailsExpanded === false)
+            const allCollapsed = nodes.every((node) => node.data.detailsExpanded === false);
+
+            // Toggle all nodes to the opposite state
+            const updatedNodes = nodes.map((node) => {
+                const currentHeight = node.height;
+                const isCurrentlyExpanded = node.data.detailsExpanded ?? true;
+
+                if (allCollapsed) {
+                    // Expanding all: restore original height
+                    const originalHeight =
+                        state.collapsedNodeHeights[node.id] || node.data.minHeight || currentHeight;
+                    return {
+                        ...node,
+                        height: originalHeight,
+                        data: { ...node.data, detailsExpanded: true },
+                    };
+                } else {
+                    // Collapsing all: save current height and set to 50
+                    if (isCurrentlyExpanded) {
+                        state.setCollapsedNodeHeight(node.id, currentHeight);
+                    }
+                    return {
+                        ...node,
+                        height: 50,
+                        data: { ...node.data, detailsExpanded: false },
+                    };
+                }
+            });
+
+            // Update nodes
+            set({ nodes: updatedNodes });
+
+            // Trigger dimension changes for all affected nodes
+            const dimensionChanges = updatedNodes.map((node) => ({
+                id: node.id,
+                type: "dimensions" as const,
+                dimensions: {
+                    width: node.width || 320,
+                    height: node.height,
+                },
+            }));
+
+            state.onNodesChange(dimensionChanges);
         },
     }));
 };

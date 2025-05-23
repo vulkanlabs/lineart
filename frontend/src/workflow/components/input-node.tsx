@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { NodeProps, type NodeChange } from "@xyflow/react";
-import { WorkflowNode } from "./base";
+import { InputWorkflowNode } from "./base";
 import { PlusIcon, TrashIcon } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { z } from "zod";
@@ -217,15 +217,7 @@ export function InputNode({ id, data, selected, width }: NodeProps<VulkanNode>) 
     };
 
     return (
-        <WorkflowNode
-            id={id}
-            selected={selected}
-            data={data}
-            width={width}
-            isInput
-            disableNameEditing
-            disableFooter
-        >
+        <InputWorkflowNode id={id} selected={selected} data={data} width={width}>
             <div className="flex flex-col p-2 w-full h-fit">
                 <h3 className="text-sm font-semibold mb-2">Input Schema</h3>
 
@@ -320,6 +312,6 @@ export function InputNode({ id, data, selected, width }: NodeProps<VulkanNode>) 
                     </button>
                 </div>
             </div>
-        </WorkflowNode>
+        </InputWorkflowNode>
     );
 }

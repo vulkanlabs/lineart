@@ -18,6 +18,8 @@ export type VulkanNodeData = {
     minWidth?: number;
     metadata?: any;
     incomingEdges?: IncomingEdges;
+    detailsExpanded?: boolean;
+    collapsed?: boolean;
 };
 
 export type VulkanNode =
@@ -88,4 +90,5 @@ export type GraphDefinition = {
 export type WorkflowState = {
     nodes: VulkanNode[];
     edges: Edge[];
+    collapsedNodeHeights?: { [key: string]: number };
 };

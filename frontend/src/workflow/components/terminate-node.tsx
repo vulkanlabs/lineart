@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 
 import { useWorkflowStore } from "../store";
-import { WorkflowNode } from "./base";
+import { TerminateWorkflowNode } from "./base";
 import { NodeProps } from "@xyflow/react";
 import { VulkanNode, NodeDependency, TerminateNodeMetadata } from "../types";
 
@@ -118,15 +118,12 @@ export function TerminateNode({ id, data, selected, height, width }: NodeProps<V
     };
 
     return (
-        <WorkflowNode
+        <TerminateWorkflowNode
             id={id}
             selected={selected}
             data={data}
             height={height}
             width={width}
-            isOutput
-            notPlayable
-            disableFooter
         >
             <div className="flex flex-col gap-1 space-y-2 p-3 h-full">
                 <div className="flex flex-col gap-2">
@@ -147,8 +144,7 @@ export function TerminateNode({ id, data, selected, height, width }: NodeProps<V
                                 <TableRow>
                                     <TableHead>Field</TableHead>
                                     <TableHead>Source Node</TableHead>
-                                    <TableHead className="w-[40px]"></TableHead>{" "}
-                                    {/* For remove button */}
+                                    <TableHead className="w-[40px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -217,6 +213,6 @@ export function TerminateNode({ id, data, selected, height, width }: NodeProps<V
                     </div>
                 </div>
             </div>
-        </WorkflowNode>
+        </TerminateWorkflowNode>
     );
 }

@@ -4,7 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 import Editor from "@monaco-editor/react";
 
 import { useWorkflowStore } from "../store";
-import { WorkflowNode } from "./base";
+import { StandardWorkflowNode } from "./base";
 import { NodeProps } from "@xyflow/react";
 import { VulkanNode } from "../types";
 
@@ -23,7 +23,7 @@ export function TransformNode({ id, data, selected, height, width }: NodeProps<V
     );
 
     return (
-        <WorkflowNode id={id} selected={selected} data={data} height={height} width={width}>
+        <StandardWorkflowNode id={id} selected={selected} data={data} height={height} width={width}>
             <div className="p-3 h-full flex-grow">
                 <div
                     className="rounded-md overflow-hidden h-full flex-grow nodrag"
@@ -44,6 +44,6 @@ export function TransformNode({ id, data, selected, height, width }: NodeProps<V
                     />
                 </div>
             </div>
-        </WorkflowNode>
+        </StandardWorkflowNode>
     );
 }
