@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { SaveIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
+import { SaveIcon, ChevronDownIcon, ChevronUpIcon, LayoutIcon, CopyIcon } from "lucide-react";
 import { toast } from "sonner";
 import ELK from "elkjs/lib/elk.bundled.js";
 import {
@@ -80,7 +80,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
         })),
     );
 
-    const { screenToFlowPosition } = useReactFlow();
+    const { screenToFlowPosition, fitView } = useReactFlow();
 
     const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
     const { isOpen, connectingHandle, toggleDropdown, ref } = useDropdown();
@@ -109,10 +109,15 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
                         };
                     });
                     setNodes(newNodes);
+                    // Fit the view after nodes are positioned
+                    setTimeout(() => fitView(), 0);
                 },
             );
+        } else {
+            // Also fit view when ui_metadata exists
+            setTimeout(() => fitView(), 0);
         }
-    }, [policyVersion, nodes, edges, setNodes]);
+    }, [policyVersion, nodes, edges, setNodes, fitView]);
 
     const onConnectEnd = useCallback(
         (event, connectionState) => {
@@ -147,6 +152,47 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
         return nodes.every((node) => node.data?.detailsExpanded === false);
     }, [nodes]);
 
+    const autoLayoutNodes = useCallback(async () => {
+        const unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => ({
+            ...node,
+            layoutOptions: defaultElkOptions,
+        }));
+
+        try {
+            const layoutedNodes = await getLayoutedNodes(unpositionedNodes, edges, defaultElkOptions);
+            const nodesMap = Object.fromEntries(
+                layoutedNodes.map((node) => [node.id, node]),
+            );
+            const newNodes = nodes.map((node) => ({
+                ...node,
+                position: nodesMap[node.id].position,
+            }));
+            setNodes(newNodes);
+            setTimeout(() => fitView(), 0);
+        } catch (error) {
+            console.error("Error applying auto-layout:", error);
+        }
+    }, [nodes, edges, setNodes, fitView]);
+
+    const copySpecToClipboard = useCallback(async () => {
+        try {
+            const spec = getSpec();
+            const jsonString = JSON.stringify(spec, null, 2);
+            await navigator.clipboard.writeText(jsonString);
+            toast("Specification copied", {
+                description: "Workflow specification copied to clipboard",
+                duration: 2000,
+                dismissible: true,
+            });
+        } catch (error) {
+            console.error("Failed to copy specification:", error);
+            toast("Failed to copy", {
+                description: "Could not copy specification to clipboard",
+                duration: 3000,
+            });
+        }
+    }, [getSpec]);
+
     return (
         <div className="w-full h-full">
             {isOpen && (
@@ -176,6 +222,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
                 onConnect={onConnect}
                 onConnectEnd={onConnectEnd}
                 nodeTypes={nodeTypes}
+                minZoom={0.1}
                 // connectionLineType={ConnectionLineType.SmoothStep}
                 // isValidConnection={isValidConnection}
                 // fitView
@@ -210,6 +257,26 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
                                 <TooltipContent>
                                     {areAllNodesCollapsed ? "Expand All" : "Collapse All"}
                                 </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </ControlButton>
+                    <ControlButton onClick={autoLayoutNodes}>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <LayoutIcon />
+                                </TooltipTrigger>
+                                <TooltipContent>Auto Layout</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </ControlButton>
+                    <ControlButton onClick={copySpecToClipboard}>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <CopyIcon />
+                                </TooltipTrigger>
+                                <TooltipContent>Copy Specification</TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     </ControlButton>

@@ -9,8 +9,8 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
     INPUT: {
         id: "INPUT",
         name: "input_node",
-        width: 260,
-        height: 150, // Changed from 50 to 150 to give it a proper expanded height
+        width: 400,
+        height: 225,
         icon: null,
     },
     CONNECTION: {
@@ -35,7 +35,7 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
     BRANCH: {
         id: "BRANCH",
         name: "Branch Node",
-        width: 500,
+        width: 400,
         height: 500,
         icon: "BRANCH",
     },
@@ -110,7 +110,7 @@ export function createNodeByType({
                 y: position.y - height * 0.5,
             },
             width: width,
-            height: height, // This will now be 150px instead of 50px
+            height: height,
             type,
         };
     }
