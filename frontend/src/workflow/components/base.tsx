@@ -30,7 +30,7 @@ export const defaultHandleStyle = {
     backgroundColor: "#f1f5f9",
 };
 
-type WorkflowNodeProps = {
+type BaseWorkflowNodeProps = {
     id: string;
     data: any;
     width?: number;
@@ -38,13 +38,19 @@ type WorkflowNodeProps = {
     selected?: boolean;
     isInput?: boolean;
     isOutput?: boolean;
-    notPlayable?: boolean;
-    disableNameEditing?: boolean;
-    disableFooter?: boolean;
     children?: React.ReactNode;
 };
 
-export function WorkflowNode({
+type StandardWorkflowNodeProps = BaseWorkflowNodeProps & {
+    showInputsToggle?: boolean;
+};
+
+type InputWorkflowNodeProps = BaseWorkflowNodeProps;
+
+type TerminateWorkflowNodeProps = BaseWorkflowNodeProps;
+
+// Base component with shared functionality
+function BaseWorkflowNodeCore({
     id,
     data,
     width,
@@ -52,14 +58,17 @@ export function WorkflowNode({
     selected,
     isInput,
     isOutput,
-    notPlayable,
-    disableNameEditing,
-    disableFooter,
     children,
-}: WorkflowNodeProps) {
+    headerActions,
+    footerContent,
+    allowNameEditing = true,
+}: BaseWorkflowNodeProps & {
+    headerActions: React.ReactNode;
+    footerContent?: React.ReactNode;
+    allowNameEditing?: boolean;
+}) {
     const [isNameEditing, setIsNameEditing] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
-    const [showInputs, setShowInputs] = useState(false);
 
     const { updateNodeData, updateTargetDeps, toggleNodeDetails } = useWorkflowStore(
         useShallow((state) => ({
@@ -68,6 +77,7 @@ export function WorkflowNode({
             toggleNodeDetails: state.toggleNodeDetails,
         })),
     );
+
     const setNodeName = useCallback(
         (name: string) => {
             updateNodeData(id, { ...data, name: name });
@@ -77,7 +87,6 @@ export function WorkflowNode({
     );
 
     const openPanel = useCallback(() => {
-        // openPanel(id);
         console.log(id);
     }, [id]);
 
@@ -85,52 +94,20 @@ export function WorkflowNode({
         toggleNodeDetails(id);
     };
 
-    const toggleInputs = () => {
-        setShowInputs((prev) => !prev);
-    };
-
     const toggleNameEditor = useCallback(() => {
-        if (disableNameEditing) {
+        if (!allowNameEditing) {
             setShowTooltip(true);
             setTimeout(() => setShowTooltip(false), 2000);
             return;
         }
         setIsNameEditing((prev) => !prev);
-    }, [disableNameEditing]);
-
-    const handleUpdateDependencyKey = useCallback(
-        (edgeId: string, oldKey: string, newKey: string) => {
-            if (!newKey || oldKey === newKey) return;
-
-            const dependencies = Object.values(data.incomingEdges as IncomingEdges).reduce(
-                (acc, depConfig) => {
-                    acc[depConfig.key] = depConfig.dependency;
-                    return acc;
-                },
-                {},
-            );
-            if (dependencies[oldKey] && !dependencies[newKey]) {
-                const depConfig = { ...data.incomingEdges[edgeId] };
-                depConfig.key = newKey;
-                updateNodeData(id, {
-                    ...data,
-                    incomingEdges: { ...data.incomingEdges, [edgeId]: depConfig },
-                });
-            } else {
-                console.warn(
-                    `Cannot rename dependency key: "${newKey}" might already exist or is invalid.`,
-                );
-            }
-        },
-        [id, data, updateNodeData],
-    );
+    }, [allowNameEditing]);
 
     const IconComponent = data?.icon ? iconMapping[data.icon] : undefined;
     const isExpanded = data.detailsExpanded ?? true;
 
     return (
         <>
-            {/* TODO: use a custom icon for resizer */}
             <NodeResizer
                 nodeId={id}
                 color="#ff0071"
@@ -189,22 +166,12 @@ export function WorkflowNode({
                                     <UnfoldVertical />
                                 )}
                             </NodeHeaderAction>
-                            {!notPlayable && (
-                                <NodeHeaderAction onClick={() => {}} label="Run node">
-                                    <Play className="stroke-blue-500 fill-blue-500" />
-                                </NodeHeaderAction>
-                            )}
+                            {headerActions}
                             <NodeHeaderDeleteAction />
                         </NodeHeaderActions>
                     </NodeHeader>
                     {isExpanded && <div className="flex-grow min-h-0">{children}</div>}
-                    {isExpanded && !disableFooter && (
-                        <div className="flex gap-1 px-3 py-2 border-t border-slate-200 mt-1">
-                            <Button variant="outline" size="sm" onClick={toggleInputs}>
-                                {showInputs ? "Hide Inputs" : "Show Inputs"}
-                            </Button>
-                        </div>
-                    )}
+                    {isExpanded && footerContent}
                 </div>
                 {!isInput && (
                     <BaseHandle
@@ -214,44 +181,100 @@ export function WorkflowNode({
                     />
                 )}
                 {!isOutput && (
-                    <>
-                        {/* For branch nodes, let the branch component handle collapsed handles */}
-                        {data.icon === "BRANCH" ? (
-                            isExpanded && (
-                                <BaseHandle
-                                    type="source"
-                                    position={Position.Right}
-                                    style={{ ...defaultHandleStyle }}
-                                />
-                            )
-                        ) : /* For non-branch nodes when collapsed, show multiple handles */
-                        !isExpanded && data.metadata?.choices ? (
-                            data.metadata.choices.map((choice, index) => (
-                                <BaseHandle
-                                    key={index}
-                                    id={index.toString()}
-                                    type="source"
-                                    position={Position.Right}
-                                    style={{
-                                        ...defaultHandleStyle,
-                                        top: `${25 + index * 50}%`,
-                                        transform: "translateY(-50%)",
-                                    }}
-                                />
-                            ))
-                        ) : (
-                            <BaseHandle
-                                type="source"
-                                position={Position.Right}
-                                style={{
-                                    ...defaultHandleStyle,
-                                    top: isExpanded ? undefined : "50%",
-                                }}
-                            />
-                        )}
-                    </>
+                    <BaseHandle
+                        type="source"
+                        position={Position.Right}
+                        style={{
+                            ...defaultHandleStyle,
+                            top: isExpanded ? undefined : "50%",
+                        }}
+                    />
                 )}
             </BaseNode>
+        </>
+    );
+}
+
+// Standard workflow node for most node types
+export function StandardWorkflowNode({
+    id,
+    data,
+    width,
+    height,
+    selected,
+    isInput,
+    isOutput,
+    children,
+    showInputsToggle = true,
+}: StandardWorkflowNodeProps) {
+    const [showInputs, setShowInputs] = useState(false);
+
+    const { updateNodeData } = useWorkflowStore(
+        useShallow((state) => ({
+            updateNodeData: state.updateNodeData,
+        })),
+    );
+
+    const handleUpdateDependencyKey = useCallback(
+        (edgeId: string, oldKey: string, newKey: string) => {
+            if (!newKey || oldKey === newKey) return;
+
+            const dependencies = Object.values(data.incomingEdges as IncomingEdges).reduce(
+                (acc, depConfig) => {
+                    acc[depConfig.key] = depConfig.dependency;
+                    return acc;
+                },
+                {},
+            );
+            if (dependencies[oldKey] && !dependencies[newKey]) {
+                const depConfig = { ...data.incomingEdges[edgeId] };
+                depConfig.key = newKey;
+                updateNodeData(id, {
+                    ...data,
+                    incomingEdges: { ...data.incomingEdges, [edgeId]: depConfig },
+                });
+            } else {
+                console.warn(
+                    `Cannot rename dependency key: "${newKey}" might already exist or is invalid.`,
+                );
+            }
+        },
+        [id, data, updateNodeData],
+    );
+
+    const toggleInputs = () => {
+        setShowInputs((prev) => !prev);
+    };
+
+    const headerActions = (
+        <NodeHeaderAction onClick={() => {}} label="Run node">
+            <Play className="stroke-blue-500 fill-blue-500" />
+        </NodeHeaderAction>
+    );
+
+    const footerContent = showInputsToggle ? (
+        <div className="flex gap-1 px-3 py-2 border-t border-slate-200 mt-1">
+            <Button variant="outline" size="sm" onClick={toggleInputs}>
+                {showInputs ? "Hide Inputs" : "Show Inputs"}
+            </Button>
+        </div>
+    ) : undefined;
+
+    return (
+        <>
+            <BaseWorkflowNodeCore
+                id={id}
+                data={data}
+                width={width}
+                height={height}
+                selected={selected}
+                isInput={isInput}
+                isOutput={isOutput}
+                headerActions={headerActions}
+                footerContent={footerContent}
+            >
+                {children}
+            </BaseWorkflowNodeCore>
             {showInputs && (
                 <NodeInputs
                     incomingEdges={data.incomingEdges || {}}
@@ -261,6 +284,58 @@ export function WorkflowNode({
         </>
     );
 }
+
+// Input workflow node (no name editing, no footer)
+export function InputWorkflowNode({
+    id,
+    data,
+    width,
+    height,
+    selected,
+    children,
+}: InputWorkflowNodeProps) {
+    return (
+        <BaseWorkflowNodeCore
+            id={id}
+            data={data}
+            width={width}
+            height={height}
+            selected={selected}
+            isInput={true}
+            headerActions={null}
+            allowNameEditing={false}
+        >
+            {children}
+        </BaseWorkflowNodeCore>
+    );
+}
+
+// Terminate workflow node (not playable, no footer, output only)
+export function TerminateWorkflowNode({
+    id,
+    data,
+    width,
+    height,
+    selected,
+    children,
+}: TerminateWorkflowNodeProps) {
+    return (
+        <BaseWorkflowNodeCore
+            id={id}
+            data={data}
+            width={width}
+            height={height}
+            selected={selected}
+            isOutput={true}
+            headerActions={null}
+        >
+            {children}
+        </BaseWorkflowNodeCore>
+    );
+}
+
+// Legacy export for backwards compatibility (if needed)
+export const WorkflowNode = StandardWorkflowNode;
 
 type NodeInputsProps = {
     incomingEdges: IncomingEdges;

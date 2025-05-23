@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 
 import { VulkanNode } from "../types";
 import { useWorkflowStore } from "../store";
-import { WorkflowNode, defaultHandleStyle } from "./base";
+import { StandardWorkflowNode, defaultHandleStyle } from "./base";
 
 export function BranchNode({ id, data, selected, height, width }: NodeProps<VulkanNode>) {
     const { updateNodeData, updateTargetDeps, onNodesChange } = useWorkflowStore(
@@ -93,7 +93,7 @@ export function BranchNode({ id, data, selected, height, width }: NodeProps<Vulk
 
     return (
         <>
-            <WorkflowNode
+            <StandardWorkflowNode
                 id={id}
                 selected={selected}
                 data={data}
@@ -164,7 +164,7 @@ export function BranchNode({ id, data, selected, height, width }: NodeProps<Vulk
                         </Button>
                     </div>
                 </div>
-            </WorkflowNode>
+            </StandardWorkflowNode>
             {/* Render collapsed handles outside WorkflowNode to avoid conflicts */}
             {!isExpanded &&
                 data.metadata.choices.map((choice, index) => (

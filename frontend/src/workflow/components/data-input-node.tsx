@@ -5,7 +5,7 @@ import { NodeProps } from "@xyflow/react";
 import { AssetCombobox, AssetOption } from "@/components/combobox";
 
 import { useWorkflowStore } from "../store";
-import { WorkflowNode } from "./base";
+import { StandardWorkflowNode } from "./base";
 import { VulkanNode } from "../types";
 import { fetchDataSources } from "@/lib/api";
 
@@ -55,7 +55,7 @@ export function DataInputNode({ id, data, selected, height, width }: NodeProps<V
     );
 
     return (
-        <WorkflowNode id={id} selected={selected} data={data} height={height} width={width}>
+        <StandardWorkflowNode id={id} selected={selected} data={data} height={height} width={width}>
             <div className="flex flex-col gap-1 space-y-2 p-3">
                 <span className="nodrag text-sm font-medium">Data Source:</span>
                 <AssetCombobox
@@ -68,6 +68,6 @@ export function DataInputNode({ id, data, selected, height, width }: NodeProps<V
                     emptyMessage="No data sources found."
                 />
             </div>
-        </WorkflowNode>
+        </StandardWorkflowNode>
     );
 }
