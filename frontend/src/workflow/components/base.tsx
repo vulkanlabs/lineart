@@ -177,7 +177,7 @@ function BaseWorkflowNodeCore({
                     <BaseHandle
                         type="target"
                         position={Position.Left}
-                        style={{ 
+                        style={{
                             ...defaultHandleStyle,
                             top: "50%",
                             transform: "translateY(-50%)",

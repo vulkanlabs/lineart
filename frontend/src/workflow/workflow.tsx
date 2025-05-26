@@ -159,10 +159,12 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
         }));
 
         try {
-            const layoutedNodes = await getLayoutedNodes(unpositionedNodes, edges, defaultElkOptions);
-            const nodesMap = Object.fromEntries(
-                layoutedNodes.map((node) => [node.id, node]),
+            const layoutedNodes = await getLayoutedNodes(
+                unpositionedNodes,
+                edges,
+                defaultElkOptions,
             );
+            const nodesMap = Object.fromEntries(layoutedNodes.map((node) => [node.id, node]));
             const newNodes = nodes.map((node) => ({
                 ...node,
                 position: nodesMap[node.id].position,
