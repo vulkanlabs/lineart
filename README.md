@@ -17,6 +17,25 @@ A complete policy design and orchestration framework.
   - Use any selection in the middle option (we reccomend nvm for developers)
   - Choose "with npm" at the last option (default)
 
+### Setting Up
+
+1. Cloning the repository
+```
+git clone https://github.com/vulkanlabs/lineart.git
+```
+2. Navigate to the directory:
+```
+cd lineart
+```
+3. Create the basic configuration
+```
+make config
+```
+4. Run everything
+```
+make run
+``` 
+
 #### Installing `make`
 
 We use the `make` command to install and manage the application. Install it using one of the following options, depending on your OS:
@@ -33,25 +52,6 @@ sudo apt install make
 brew install make
 ```
 
-### Setting Up
-
-1. Cloning the repository
-```
-git clone https://github.com/vulkanlabs/lineart.git
-```
-2. Navigate to the directory:
-```
-cd lineart
-```
-3. Create the basic configuration
-```
-# Select the "local" option when prompted
-make config
-```
-4. Run everything
-```
-make run
-``` 
 
 ## Project Structure
 
