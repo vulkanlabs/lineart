@@ -79,8 +79,8 @@ services:
       context: .
       dockerfile: images/vulkan-web-app.Dockerfile
       args:
-        - PYTHON_VERSION="3.12"
-        - NEXT_PUBLIC_VULKAN_SERVER_URL="http://app:6001"
+        PYTHON_VERSION: "3.12"
+        NEXT_PUBLIC_VULKAN_SERVER_URL: "http://app:6001"
     ports:
       - "3003:3000"
   upload-svc:
