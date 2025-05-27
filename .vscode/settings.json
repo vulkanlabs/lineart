@@ -1,11 +1,4 @@
 {
-  "files.exclude": {
-    "frontend/": true,
-    "vulkan/": true,
-    "vulkan-server/": true,
-    "vulkan-dagster/": true,
-    "upload-svc/": true,
-  },
   "python.defaultInterpreterPath": ".venv/bin/python",
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"

@@ -4,23 +4,15 @@
 			"path": ".",
 			"name": "root"
 		},
-		{
-			"path": "frontend",
-		},
-		{
-			"path": "vulkan",
-		},
-		{
-			"path": "vulkan-server",
-		},
-		{
-			"path": "vulkan-dagster",
-		},
-		{
-			"path": "upload-svc",
-		},
 	],
 	"settings": {
+		"files.exclude": {
+			"**/.venv/": true,
+			"**/.pytest_cache/": true,
+			"**/.ruff_cache/": true,
+			"**/node_modules/": true,
+			"**/.next/": true,
+		},
 		"files.autoSave": "afterDelay",
 		"[python]": {
 			"editor.formatOnType": true,

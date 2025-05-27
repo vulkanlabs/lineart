@@ -25,9 +25,9 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { createPolicyVersion } from "@/lib/api";
 import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
 import { Sending } from "@/components/animations/sending";
+import { createPolicyVersionAction } from "./actions";
 
 const formSchema = z.object({
     alias: z.string({ description: "Name of the Version" }).optional(),
@@ -60,7 +60,7 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
         };
 
         try {
-            await createPolicyVersion({ ...requestData });
+            await createPolicyVersionAction(requestData);
             setOpen(false);
             toast("Policy Version Created", {
                 description: `Policy Version ${data.alias} has been created.`,

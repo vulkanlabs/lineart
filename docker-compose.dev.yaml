@@ -14,8 +14,6 @@ services:
     depends_on:
       app-db:
         condition: service_healthy
-    volumes:
-      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   app-db:
     image: postgres:16.3
     env_file:
@@ -76,17 +74,15 @@ services:
       retries: 10
     volumes:
       - postgres_data_dagster_db:/var/lib/postgresql/data
-  # vulkan-web-app:
-  #   build:
-  #     context: .
-  #     dockerfile: images/vulkan-web-app.Dockerfile
-  #     args:
-  #       - NEXT_PUBLIC_VULKAN_SERVER_URL=${NEXT_PUBLIC_VULKAN_SERVER_URL}
-  #       - NEXT_PUBLIC_STACK_PROJECT_ID=${NEXT_PUBLIC_STACK_PROJECT_ID}
-  #       - NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=${NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY}
-  #       - STACK_SECRET_SERVER_KEY=${STACK_SECRET_SERVER_KEY}
-  #   ports:
-  #     - "3002:3000"
+  vulkan-web-app:
+    build:
+      context: .
+      dockerfile: images/vulkan-web-app.Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
+        NEXT_PUBLIC_VULKAN_SERVER_URL: "http://app:6001"
+    ports:
+      - "3003:3000"
   upload-svc:
     build:
       context: .

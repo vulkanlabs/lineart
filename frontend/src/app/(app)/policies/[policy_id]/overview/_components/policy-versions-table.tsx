@@ -34,7 +34,6 @@ export function PolicyVersionsTable({
 }) {
     const activeVersions = getActiveVersions(policy);
     const formattedVersions = policyVersions.map((policyVersion: PolicyVersion) => {
-        console.log("Policy Version:", policyVersion);
         let activeStatus = "inactive";
         if (activeVersions.includes(policyVersion.policy_version_id)) {
             activeStatus = "active";

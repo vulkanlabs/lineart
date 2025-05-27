@@ -72,7 +72,7 @@ export async function fetchPolicy(policyId: string): Promise<Policy> {
     });
 }
 
-export async function createPolicy(data: PolicyBase) {
+export async function createPolicy(data: PolicyBase): Promise<Policy> {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     return fetch(new URL(`/policies`, serverUrl), {
         method: "POST",
