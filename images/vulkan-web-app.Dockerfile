@@ -15,7 +15,7 @@ FROM openapitools/openapi-generator-cli:latest AS openapi
 COPY --from=python-package /app/generated/openapi.json /app/openapi.json
 RUN docker-entrypoint.sh generate -g typescript-fetch -i /app/openapi.json -o /app/frontend --additional-properties="modelPropertyNaming=original"
 
-
+# Node.js image: Build the Next.js application
 FROM node:23-alpine AS base
 
 # Install dependencies only when needed

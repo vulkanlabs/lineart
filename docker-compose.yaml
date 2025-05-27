@@ -58,21 +58,10 @@ services:
       retries: 10
     volumes:
       - postgres_data_dagster_db:/var/lib/postgresql/data
-  # vulkan-web-app:
-  #   build:
-  #     context: .
-  #     dockerfile: images/vulkan-web-app.Dockerfile
-  #     args:
-  #       - NEXT_PUBLIC_VULKAN_SERVER_URL=${NEXT_PUBLIC_VULKAN_SERVER_URL}
-  #       - NEXT_PUBLIC_STACK_PROJECT_ID=${NEXT_PUBLIC_STACK_PROJECT_ID}
-  #       - NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=${NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY}
-  #       - STACK_SECRET_SERVER_KEY=${STACK_SECRET_SERVER_KEY}
-  #   ports:
-  #     - "3002:3000"
-  upload-svc:
-    image: ghcr.io/vulkanlabs/upload-svc:latest
-    env_file:
-      - config/active/upload-svc.env
+  vulkan-web-app:
+    image: ghcr.io/vulkanlabs/vulkan-web-app:latest
+    ports:
+      - "3003:3000"
 
 volumes:
   postgres_data_app_db:
