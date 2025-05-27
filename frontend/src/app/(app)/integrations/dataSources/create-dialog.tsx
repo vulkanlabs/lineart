@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { createDataSource } from "@/lib/api";
+import { createDataSourceAction } from "./actions";
 
 const formSchema = z.object({
     name: z
@@ -197,7 +197,7 @@ export function CreateDataSourceDialog() {
             metadata: data.metadata || null,
         };
 
-        await createDataSource(dataSourceSpec)
+        await createDataSourceAction(dataSourceSpec)
             .then(() => {
                 setOpen(false);
                 form.reset();

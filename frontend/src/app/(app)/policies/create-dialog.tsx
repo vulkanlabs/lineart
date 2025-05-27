@@ -27,8 +27,8 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { createPolicy } from "@/lib/api";
 import { Sending } from "@/components/animations/sending";
+import { createPolicyAction } from "./actions";
 
 const formSchema = z.object({
     name: z.string().min(1),
@@ -51,7 +51,7 @@ export function CreatePolicyDialog() {
     const onSubmit = async (data: any) => {
         setIsSubmitting(true);
         try {
-            await createPolicy(data);
+            const response = await createPolicyAction(data);
             setOpen(false);
             form.reset();
             toast("Policy Created", {
