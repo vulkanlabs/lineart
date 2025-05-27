@@ -33,7 +33,7 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY ./frontend/ .
-COPY --from=openapi /app/frontend ./frontend/generated
+COPY --from=openapi /app/frontend ./generated
 
 ARG NEXT_PUBLIC_VULKAN_SERVER_URL
 ENV NEXT_PUBLIC_VULKAN_SERVER_URL=${NEXT_PUBLIC_VULKAN_SERVER_URL}
