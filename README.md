@@ -32,7 +32,7 @@ git clone https://github.com/vulkanlabs/lineart.git
 cd lineart
 ```
 
-3. Run: The app will be available at port 8080
+3. Run: The app will be available at port 3003
 
 ```
 make run
