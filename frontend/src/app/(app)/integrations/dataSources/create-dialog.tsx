@@ -54,6 +54,7 @@ const formSchema = z.object({
                 message: "URL must start with http:// or https://",
             }),
         method: z.string().optional(),
+        response_type: z.string().optional(),
         headers: z.string().optional().transform(parseJSON),
         params: z.string().optional().transform(parseJSON),
         body: z.string().optional().transform(parseJSON),
@@ -111,6 +112,7 @@ export function CreateDataSourceDialog() {
             source: {
                 url: "",
                 method: "GET",
+                response_type: "JSON",
                 headers: "",
                 params: "",
                 body: "",
@@ -147,6 +149,7 @@ export function CreateDataSourceDialog() {
                 fieldsToValidate = [
                     "source.url",
                     "source.method",
+                    "source.response_type",
                     "source.headers",
                     "source.params",
                     "source.body",
@@ -179,6 +182,7 @@ export function CreateDataSourceDialog() {
             source: {
                 url: data.source.url,
                 method: data.source.method,
+                response_type: data.source.response_type,
                 headers: data.source.headers,
                 params: data.source.params,
                 body: data.source.body,
@@ -234,7 +238,7 @@ export function CreateDataSourceDialog() {
                     >
                         {step === 1 && (
                             <div className="space-y-4">
-                                <h3 className="text-lg font-medium mb-4">Basic Options</h3>
+                                <h3 className="text-lg font-medium mb-4">General Options</h3>
                                 <FormField
                                     name="name"
                                     control={form.control}
@@ -419,6 +423,33 @@ function HTTPOptions({ form }) {
                     )}
                 />
 
+                <FormField
+                    control={form.control}
+                    name="source.response_type"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Response Type</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select response type" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="JSON">JSON</SelectItem>
+                                    <SelectItem value="XML">XML</SelectItem>
+                                    <SelectItem value="CSV">CSV</SelectItem>
+                                    <SelectItem value="PLAIN_TEXT">Plain Text</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormDescription>Expected response content type</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
                 <FormField
                     control={form.control}
                     name="source.timeout"
