@@ -241,6 +241,13 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
                                         </p>
                                     </div>
 
+                                    <div>
+                                        <p className="text-sm font-medium">Response Type</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {dataSource.source.response_type || "JSON"}
+                                        </p>
+                                    </div>
+
                                     {dataSource.source.timeout && (
                                         <div>
                                             <p className="text-sm font-medium">Timeout</p>

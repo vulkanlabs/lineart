@@ -1,5 +1,8 @@
+import csv
 import hashlib
+import io
 import json
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from logging import Logger
 
@@ -7,6 +10,7 @@ import requests
 from sqlalchemy.orm import Session
 
 from vulkan.connections import make_request
+from vulkan.data_source import ResponseType
 from vulkan_server import schemas
 from vulkan_server.db import DataObject, RunDataCache
 
@@ -31,7 +35,7 @@ class DataBroker:
                     data_object_id=data.data_object_id,
                     origin=schemas.DataObjectOrigin.CACHE,
                     key=key,
-                    value=data.value,
+                    value=self._format_data(data.value),
                 )
 
         # self.logger.info(f"Fetching data for key {key} from source {self.spec.source.url}")
@@ -56,8 +60,28 @@ class DataBroker:
                 data_object_id=data.data_object_id,
                 origin=schemas.DataObjectOrigin.REQUEST,
                 key=key,
-                value=data.value,
+                value=self._format_data(data.value),
             )
+
+    def _format_data(self, value: bytes):
+        data = value.decode("utf-8")
+        if (
+            not hasattr(self.spec.source, "response_type")
+            or self.spec.source.response_type is None
+            or self.spec.source.response_type == ResponseType.PLAIN_TEXT.value
+        ):
+            return data
+
+        response_type = self.spec.source.response_type
+
+        if response_type == ResponseType.JSON.value:
+            return json.loads(data)
+        elif response_type == ResponseType.XML.value:
+            return _xml_to_dict(ET.fromstring(data))
+        elif response_type == ResponseType.CSV.value:
+            csv_reader = csv.DictReader(io.StringIO(data))
+            return list(csv_reader)
+        return data
 
 
 class CacheManager:
@@ -105,3 +129,32 @@ def make_cache_key(spec: schemas.DataSource, variables: dict) -> str:
     content = dict(data_source_id=str(spec.data_source_id), variables=variables)
     content_str = json.dumps(content, sort_keys=True)
     return hashlib.md5(content_str.encode("utf-8")).hexdigest()
+
+
+def _xml_to_dict(element: ET.Element) -> dict:
+    """Convert XML element to dictionary"""
+    result = {}
+
+    # Add attributes
+    if element.attrib:
+        result.update(element.attrib)
+
+    # Add text content
+    if element.text and element.text.strip():
+        if len(element) == 0:  # No children
+            return element.text.strip()
+        else:
+            result["text"] = element.text.strip()
+
+    # Add children
+    for child in element:
+        child_data = _xml_to_dict(child)
+        if child.tag in result:
+            # Convert to list if multiple elements with same tag
+            if not isinstance(result[child.tag], list):
+                result[child.tag] = [result[child.tag]]
+            result[child.tag].append(child_data)
+        else:
+            result[child.tag] = child_data
+
+    return result

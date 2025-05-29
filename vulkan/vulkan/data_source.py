@@ -73,6 +73,13 @@ class RetryPolicy(BaseModel):
     status_forcelist: list[int] | None = None
 
 
+class ResponseType(Enum):
+    JSON = "JSON"
+    XML = "XML"
+    CSV = "CSV"
+    PLAIN_TEXT = "PLAIN_TEXT"
+
+
 class HTTPSource(BaseModel, SourceSpecBase):
     url: str
     method: str = "GET"
@@ -81,6 +88,7 @@ class HTTPSource(BaseModel, SourceSpecBase):
     body: ConfigurableMapping | None = dict()
     timeout: int | None = None
     retry: RetryPolicy | None = RetryPolicy(max_retries=1)
+    response_type: str | None = ResponseType.PLAIN_TEXT.value
 
     def extract_env_vars(self) -> list[str]:
         env_vars = []
