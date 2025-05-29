@@ -199,7 +199,7 @@ class BeamDataInput(DataInputNode, BeamNode):
                 self.context,
                 self.data_source,
                 self.spec.source.path,
-                self.spec.keys,
+                self.spec.caching.keys,
             )
         else:
             raise NotImplementedError(

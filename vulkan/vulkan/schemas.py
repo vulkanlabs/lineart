@@ -12,6 +12,7 @@ class CachingTTL(BaseModel):
 
 class CachingOptions(BaseModel):
     enabled: bool = False
+    keys: list[str] | None = None
     ttl: CachingTTL | int | None = None
 
     def calculate_ttl(self) -> int | None:
@@ -25,7 +26,6 @@ class CachingOptions(BaseModel):
 
 class DataSourceSpec(BaseModel):
     name: str
-    keys: list[str]
     source: HTTPSource | LocalFileSource | RegisteredFileSource
     caching: CachingOptions = CachingOptions()
     description: str | None = None

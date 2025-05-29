@@ -223,7 +223,7 @@ class DataSource(TimedUpdateMixin, Base):
         return cls(
             name=spec.name,
             description=spec.description,
-            keys=spec.keys,
+            keys=spec.caching.keys,
             source=spec.source.model_dump(),
             caching_enabled=spec.caching.enabled,
             caching_ttl=spec.caching.calculate_ttl(),
@@ -234,10 +234,10 @@ class DataSource(TimedUpdateMixin, Base):
     def to_spec(self) -> DataSourceSpec:
         return DataSourceSpec(
             name=self.name,
-            keys=self.keys,
             source=self.source,
             caching=CachingOptions(
                 enabled=self.caching_enabled,
+                keys=self.keys,
                 ttl=self.caching_ttl,
             ),
             description=self.description,
