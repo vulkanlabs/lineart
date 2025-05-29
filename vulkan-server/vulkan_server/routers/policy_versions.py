@@ -87,27 +87,19 @@ def create_policy_version(
             msg = f"{err}. Policy Version ID: {version.policy_version_id}"
             raise HTTPException(status_code=500, detail={"msg": msg}) from e
 
-        # Check if all runtime params from the data source are configured
+        # Check if the data source's required runtime params are configured
         # in the node parameters field.
         for node in data_input_nodes:
             ds = data_sources[node.metadata["data_source"]]
             if ds.runtime_params is not None:
-                missing = {ds.runtime_params} - set(node.metadata["parameters"].keys())
-                if missing:
+                configured_params = node.metadata["parameters"].keys()
+                if set(ds.runtime_params) != set(configured_params):
                     msg = (
                         f"Data source {ds.name} requires runtime parameters "
-                        f"{missing} but they are not configured in the node "
-                        f"{node.name}"
-                    )
-                    logger.system.error(
-                        msg, policy_version_id=version.policy_version_id
+                        f"{ds.runtime_params} but got {list(configured_params)} "
+                        f"from {node.name}"
                     )
                     raise HTTPException(status_code=400, detail={"msg": msg})
-
-                # TODO: should we raise an error if the node parameters has
-                # additional parameters that are not in the data source?
-
-        version.variables = [v for ds in data_sources.values() for v in ds.variables]
 
     try:
         dagster_service_client.update_workspace(

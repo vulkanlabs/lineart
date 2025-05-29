@@ -21,7 +21,7 @@ class DataBroker:
         self, node_variables: dict, env_variables: dict
     ) -> schemas.DataBrokerResponse:
         cache = CacheManager(self.db, self.logger, self.spec)
-        key = make_cache_key(self.spec, node_variables, env_variables)
+        key = make_cache_key(self.spec, node_variables)
 
         if self.spec.caching.enabled:
             data = cache.get_data(key)
@@ -100,10 +100,8 @@ class CacheManager:
         self.db.commit()
 
 
-def make_cache_key(spec: schemas.DataSource, body: dict, variables: dict) -> str:
+def make_cache_key(spec: schemas.DataSource, variables: dict) -> str:
     # TODO: make sure all fields in body are json serializable
-    content = dict(
-        data_source_id=str(spec.data_source_id), body=body, variables=variables
-    )
+    content = dict(data_source_id=str(spec.data_source_id), variables=variables)
     content_str = json.dumps(content, sort_keys=True)
     return hashlib.md5(content_str.encode("utf-8")).hexdigest()

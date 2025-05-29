@@ -4,7 +4,7 @@ from typing import Annotated, Any
 
 import pandas as pd
 import requests
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy import case, select
 from sqlalchemy import func as F
 from sqlalchemy.orm import Session
@@ -18,6 +18,7 @@ from vulkan_server.db import (
     DataObject,
     DataObjectOrigin,
     DataSource,
+    DataSourceEnvVar,
     PolicyDataDependency,
     PolicyVersion,
     Run,
@@ -87,6 +88,88 @@ def create_data_source(
     db.commit()
 
     return {"data_source_id": data_source.data_source_id}
+
+
+@sources.put("/{data_source_id}/variables")
+def set_data_source_env_variables(
+    data_source_id: str,
+    variables: Annotated[list[schemas.DataSourceEnvVarBase], Body()],
+    db: Session = Depends(get_db),
+):
+    data_source = (
+        db.query(DataSource)
+        .filter_by(
+            data_source_id=data_source_id,
+            archived=False,
+        )
+        .first()
+    )
+    if data_source is None:
+        raise HTTPException(status_code=404, detail="Data source not found")
+
+    if data_source.variables is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Data source does not support environment variables",
+        )
+
+    if len(variables) == 0:
+        raise HTTPException(status_code=400, detail="No variables provided")
+
+    if not all(isinstance(v, schemas.DataSourceEnvVarBase) for v in variables):
+        raise HTTPException(
+            status_code=400,
+            detail="All variables must be of type DataSourceEnvVarBase",
+        )
+
+    extra_vars = set(v.name for v in variables) - set(data_source.variables)
+    if extra_vars:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Variables {extra_vars} are not supported by the data source",
+        )
+
+    for v in variables:
+        env_var = (
+            db.query(DataSourceEnvVar)
+            .filter_by(data_source_id=data_source_id, name=v.name)
+            .first()
+        )
+
+        if env_var is None:
+            env_var = DataSourceEnvVar(
+                data_source_id=data_source_id,
+                name=v.name,
+                value=v.value,
+            )
+            db.add(env_var)
+        else:
+            env_var.value = v.value
+
+    db.commit()
+    return {"data_source_id": data_source_id, "variables": variables}
+
+
+@sources.get(
+    "/{data_source_id}/variables", response_model=list[schemas.DataSourceEnvVar]
+)
+def get_data_source_env_variables(
+    data_source_id: str,
+    db: Session = Depends(get_db),
+):
+    data_source = (
+        db.query(DataSource)
+        .filter_by(
+            data_source_id=data_source_id,
+            archived=False,
+        )
+        .first()
+    )
+    if data_source is None:
+        raise HTTPException(status_code=404, detail="Data source not found")
+
+    env_vars = db.query(DataSourceEnvVar).filter_by(data_source_id=data_source_id).all()
+    return env_vars
 
 
 @sources.get("/{data_source_id}", response_model=schemas.DataSource)
@@ -408,8 +491,19 @@ def request_data_from_broker(
     spec = schemas.DataSource.from_orm(data_source)
     broker = DataBroker(db, logger.system, spec)
 
+    env_vars = (
+        db.query(DataSourceEnvVar).filter_by(data_source_id=spec.data_source_id).all()
+    )
+    env_variables = {ev.name: ev.value for ev in env_vars} if env_vars else {}
+    missing_vars = set(spec.variables) - set(env_variables.keys())
+    if missing_vars:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing environment variables: {', '.join(missing_vars)}",
+        )
+
     try:
-        data = broker.get_data(request.node_variables, request.env_variables)
+        data = broker.get_data(request.node_variables, env_variables)
         request_obj = RunDataRequest(
             run_id=request.run_id,
             data_object_id=data.data_object_id,

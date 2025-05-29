@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +26,13 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { createDataSource } from "@/lib/api";
@@ -37,36 +45,26 @@ const formSchema = z.object({
             message: "Name must only contain letters, numbers, dashes, and underscores",
         }),
     description: z.string().min(0),
-    keys: z
-        .string()
-        .optional()
-        .transform((val) =>
-            val
-                .split(",")
-                .map((s) => s.trim())
-                .filter((s) => s !== ""),
-        ),
     source: z.object({
-        url: z.string().min(1),
+        url: z
+            .string()
+            .min(1, "URL is required")
+            .url("Please enter a valid URL")
+            .regex(/^https?:\/\//, {
+                message: "URL must start with http:// or https://",
+            }),
         method: z.string().optional(),
         headers: z.string().optional().transform(parseJSON),
         params: z.string().optional().transform(parseJSON),
-        body_schema: z.string().optional().transform(parseJSON),
-        timeout: z
-            .string()
-            .optional()
-            .transform((val) => (val ? parseInt(val) : undefined)),
+        body: z.string().optional().transform(parseJSON),
+        timeout: z.number().optional(),
         retry: z
-            .string()
-            .optional()
-            .transform((val) => {
-                if (!val) return undefined;
-                try {
-                    return JSON.parse(val);
-                } catch (e) {
-                    return undefined;
-                }
-            }),
+            .object({
+                max_retries: z.number().optional(),
+                backoff_factor: z.number().optional(),
+                status_forcelist: z.array(z.number()).optional(),
+            })
+            .optional(),
     }),
     caching: z
         .object({
@@ -110,15 +108,18 @@ export function CreateDataSourceDialog() {
         defaultValues: {
             name: "",
             description: "",
-            keys: [],
             source: {
                 url: "",
                 method: "GET",
                 headers: "",
                 params: "",
-                body_schema: "",
-                timeout: 0,
-                retry: "",
+                body: "",
+                timeout: 5000,
+                retry: {
+                    max_retries: 3,
+                    backoff_factor: 2,
+                    status_forcelist: [500, 502, 503, 504],
+                },
             },
             caching: {
                 enabled: false,
@@ -140,7 +141,7 @@ export function CreateDataSourceDialog() {
 
         switch (step) {
             case 1:
-                fieldsToValidate = ["name", "keys", "description"];
+                fieldsToValidate = ["name", "description", "metadata"];
                 break;
             case 2:
                 fieldsToValidate = [
@@ -148,9 +149,11 @@ export function CreateDataSourceDialog() {
                     "source.method",
                     "source.headers",
                     "source.params",
-                    "source.body_schema",
+                    "source.body",
                     "source.timeout",
-                    "source.retry",
+                    "source.retry.max_retries",
+                    "source.retry.backoff_factor",
+                    "source.retry.status_forcelist",
                 ];
                 break;
         }
@@ -173,13 +176,12 @@ export function CreateDataSourceDialog() {
 
         const dataSourceSpec = {
             name: data.name,
-            keys: data.keys,
             source: {
                 url: data.source.url,
                 method: data.source.method,
                 headers: data.source.headers,
                 params: data.source.params,
-                body_schema: data.source.body_schema,
+                body: data.source.body,
                 timeout: data.source.timeout,
                 retry: data.source.retry,
                 // ignore these fields for now
@@ -232,6 +234,7 @@ export function CreateDataSourceDialog() {
                     >
                         {step === 1 && (
                             <div className="space-y-4">
+                                <h3 className="text-lg font-medium mb-4">Basic Options</h3>
                                 <FormField
                                     name="name"
                                     control={form.control}
@@ -246,29 +249,6 @@ export function CreateDataSourceDialog() {
                                             </FormDescription>
                                             <FormMessage>
                                                 {form.formState.errors.name?.message}
-                                            </FormMessage>
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    name="keys"
-                                    control={form.control}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel htmlFor="keys">Keys</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="key1, key2, key3"
-                                                    type="text"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Comma-separated list of keys for this Data Source
-                                            </FormDescription>
-                                            <FormMessage>
-                                                {form.formState.errors.keys?.message}
                                             </FormMessage>
                                         </FormItem>
                                     )}
@@ -295,19 +275,6 @@ export function CreateDataSourceDialog() {
                                         </FormItem>
                                     )}
                                 />
-                            </div>
-                        )}
-
-                        {step === 2 && (
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-medium mb-4">Source Configuration</h3>
-                                <HTTPOptions form={form} />
-                            </div>
-                        )}
-
-                        {step === 3 && (
-                            <div className="space-y-4">
-                                <CachingOptions form={form} />
 
                                 <FormField
                                     control={form.control}
@@ -329,6 +296,20 @@ export function CreateDataSourceDialog() {
                                         </FormItem>
                                     )}
                                 />
+                            </div>
+                        )}
+
+                        {step === 2 && (
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-medium mb-4">HTTP Options</h3>
+                                <HTTPOptions form={form} />
+                            </div>
+                        )}
+
+                        {step === 3 && (
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-medium mb-4">Caching Options</h3>
+                                <CachingOptions form={form} />
                             </div>
                         )}
 
@@ -364,9 +345,10 @@ export function CreateDataSourceDialog() {
 }
 
 function HTTPOptions({ form }) {
+    const [showRetryPolicy, setShowRetryPolicy] = useState(false);
     const headersParamsPlaceholderText = JSON.stringify(
         {
-            Authorization: "Bearer {{secrets.API_TOKEN}}",
+            // Authorization: "Bearer {{secrets.API_TOKEN}}",
             "Content-Type": "application/json",
         },
         null,
@@ -382,22 +364,10 @@ function HTTPOptions({ form }) {
         2,
     );
 
-    const retryPolicyPlaceholderText = JSON.stringify(
+    const bodyPlaceholderText = JSON.stringify(
         {
-            max_retries: 3,
-            backoff_factor: 2,
-            status_forcelist: [500, 502, 503, 504],
-        },
-        null,
-        2,
-    );
-
-    const bodySchemaPlaceholderText = JSON.stringify(
-        {
-            type: "object",
-            properties: {
-                query: { type: "string" },
-            },
+            key1: "value1",
+            key2: "value2",
         },
         null,
         2,
@@ -427,10 +397,23 @@ function HTTPOptions({ form }) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Method</FormLabel>
-                            <FormControl>
-                                <Input placeholder="GET" {...field} />
-                            </FormControl>
-                            <FormDescription>HTTP method (GET, POST, etc.)</FormDescription>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select HTTP method" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="GET">GET</SelectItem>
+                                    <SelectItem value="POST">POST</SelectItem>
+                                    <SelectItem value="PUT">PUT</SelectItem>
+                                    <SelectItem value="PATCH">PATCH</SelectItem>
+                                    <SelectItem value="DELETE">DELETE</SelectItem>
+                                    <SelectItem value="HEAD">HEAD</SelectItem>
+                                    <SelectItem value="OPTIONS">OPTIONS</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormDescription>HTTP method for the request</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -454,25 +437,6 @@ function HTTPOptions({ form }) {
 
             <FormField
                 control={form.control}
-                name="source.headers"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Headers</FormLabel>
-                        <FormControl>
-                            <Textarea
-                                className="min-h-24 font-mono text-sm"
-                                placeholder={headersParamsPlaceholderText}
-                                {...field}
-                            />
-                        </FormControl>
-                        <FormDescription>HTTP headers in JSON format</FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-
-            <FormField
-                control={form.control}
                 name="source.params"
                 render={({ field }) => (
                     <FormItem>
@@ -492,18 +456,18 @@ function HTTPOptions({ form }) {
 
             <FormField
                 control={form.control}
-                name="source.body_schema"
+                name="source.headers"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Body Schema</FormLabel>
+                        <FormLabel>Headers</FormLabel>
                         <FormControl>
                             <Textarea
                                 className="min-h-24 font-mono text-sm"
-                                placeholder={bodySchemaPlaceholderText}
+                                placeholder={headersParamsPlaceholderText}
                                 {...field}
                             />
                         </FormControl>
-                        <FormDescription>JSON schema for request body</FormDescription>
+                        <FormDescription>HTTP headers in JSON format</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -511,22 +475,121 @@ function HTTPOptions({ form }) {
 
             <FormField
                 control={form.control}
-                name="source.retry"
+                name="source.body"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Retry Policy</FormLabel>
+                        <FormLabel>Body</FormLabel>
                         <FormControl>
                             <Textarea
                                 className="min-h-24 font-mono text-sm"
-                                placeholder={retryPolicyPlaceholderText}
+                                placeholder={bodyPlaceholderText}
                                 {...field}
                             />
                         </FormControl>
-                        <FormDescription>Retry configuration in JSON format</FormDescription>
+                        <FormDescription>HTTP body in JSON format</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}
             />
+
+            <div className="space-y-4">
+                <div
+                    className="flex items-center gap-2 cursor-pointer"
+                    onClick={() => setShowRetryPolicy(!showRetryPolicy)}
+                >
+                    <FormLabel className="cursor-pointer">Retry Policy</FormLabel>
+                    {showRetryPolicy ? (
+                        <ChevronDown className="h-4 w-4" />
+                    ) : (
+                        <ChevronRight className="h-4 w-4" />
+                    )}
+                </div>
+
+                {showRetryPolicy && (
+                    <div className="border rounded-md p-4">
+                        <div className="grid grid-cols-1 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="source.retry.max_retries"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Max Retries</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="number"
+                                                min="0"
+                                                placeholder="3"
+                                                {...field}
+                                                onChange={(e) =>
+                                                    field.onChange(parseInt(e.target.value) || 0)
+                                                }
+                                            />
+                                        </FormControl>
+                                        <FormDescription>
+                                            Maximum number of retry attempts
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="source.retry.backoff_factor"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Backoff Factor</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="number"
+                                                min="0"
+                                                step="0.1"
+                                                placeholder="2"
+                                                {...field}
+                                                onChange={(e) =>
+                                                    field.onChange(parseFloat(e.target.value) || 0)
+                                                }
+                                            />
+                                        </FormControl>
+                                        <FormDescription>
+                                            Exponential backoff multiplier
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="source.retry.status_forcelist"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Status Force List</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                placeholder="500,502,503,504"
+                                                {...field}
+                                                value={field.value ? field.value.join(",") : ""}
+                                                onChange={(e) => {
+                                                    const values = e.target.value
+                                                        .split(",")
+                                                        .map((v) => parseInt(v.trim()))
+                                                        .filter((v) => !isNaN(v));
+                                                    field.onChange(values);
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <FormDescription>
+                                            HTTP status codes to retry (comma-separated)
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
         </>
     );
 }
@@ -571,9 +634,7 @@ function CachingOptions({ form }) {
     }, [days, hours, minutes, seconds, calculateTotalSeconds, form]);
 
     return (
-        <div className="border p-4 rounded-md mb-4">
-            <h3 className="text-lg font-medium mb-4">Caching Options</h3>
-
+        <>
             <div className="mb-6">
                 <FormField
                     control={form.control}
@@ -656,6 +717,6 @@ function CachingOptions({ form }) {
                     )}
                 />
             )}
-        </div>
+        </>
     );
 }

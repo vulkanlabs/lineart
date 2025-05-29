@@ -278,6 +278,19 @@ class DataSource(DataSourceSpec):
         )
 
 
+class DataSourceEnvVarBase(BaseModel):
+    name: str
+    value: str | float | int | bool | None = None
+
+
+class DataSourceEnvVar(DataSourceEnvVarBase):
+    created_at: datetime | None = None
+    last_updated_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
 class DataSourceReference(BaseModel):
     data_source_id: UUID
     name: str
@@ -307,7 +320,6 @@ class DataObjectOrigin(Enum):
 class DataBrokerRequest(BaseModel):
     data_source_name: str
     node_variables: dict[str, Any]
-    env_variables: dict[str, str | None]
     run_id: str
 
 

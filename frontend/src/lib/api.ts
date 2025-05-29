@@ -10,6 +10,7 @@ import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
 import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
 import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
 import { DataSource } from "@vulkan-server/DataSource";
+import { DataSourceEnvVarBase } from "@vulkan-server/DataSourceEnvVarBase";
 import { PolicyAllocationStrategy } from "@vulkan-server/PolicyAllocationStrategy";
 
 interface HTTPQueryParams {
@@ -503,6 +504,51 @@ export async function fetchBacktestMetrics(
         },
         label: `example metric for backtest ${backtestId}`,
     });
+}
+
+export async function fetchDataSourceEnvVars(dataSourceId: string) {
+    return fetchServerData({
+        endpoint: `/data-sources/${dataSourceId}/variables`,
+        label: `environment variables for data source ${dataSourceId}`,
+    });
+}
+
+export async function setDataSourceEnvVars(
+    dataSourceId: string,
+    variables: DataSourceEnvVarBase[],
+) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+
+    return fetch(new URL(`/data-sources/${dataSourceId}/variables`, serverUrl), {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(variables),
+    })
+        .then(async (response) => {
+            if (!response.ok) {
+                const errorData = await response
+                    .json()
+                    .catch(() => ({ detail: "Unknown error setting environment variables." }));
+                console.error("Failed to set data source environment variables", {
+                    status: response.status,
+                    errorData,
+                });
+                throw new Error(
+                    errorData.detail ||
+                        `Failed to set environment variables for data source ${dataSourceId}`,
+                );
+            }
+            return response.json();
+        })
+        .catch((error) => {
+            console.error(
+                `Error setting environment variables for data source ${dataSourceId}:`,
+                error,
+            );
+            throw error;
+        });
 }
 
 const formatISODate = (date: Date) => formatISO(date, { representation: "date" });

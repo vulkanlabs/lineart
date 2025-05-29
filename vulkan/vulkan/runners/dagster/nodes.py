@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 import requests
 from dagster import In, OpDefinition, OpExecutionContext, Out, Output
+from requests.exceptions import HTTPError
 
 from vulkan.constants import POLICY_CONFIG_KEY
 from vulkan.core.context import VulkanExecutionContext
@@ -24,7 +25,6 @@ from vulkan.runners.dagster.resources import (
 )
 from vulkan.runners.dagster.run_config import (
     RUN_CONFIG_KEY,
-    VulkanPolicyConfig,
     VulkanRunConfig,
 )
 from vulkan.spec.dependency import Dependency
@@ -83,7 +83,6 @@ class DagsterDataInput(DataInputNode, DagsterNode):
     def run(self, context, inputs):
         start_time = time.time()
         client: VulkanDataClient = getattr(context.resources, DATA_CLIENT_KEY)
-        env: VulkanPolicyConfig = getattr(context.resources, POLICY_CONFIG_KEY)
         run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
 
         try:
@@ -97,7 +96,6 @@ class DagsterDataInput(DataInputNode, DagsterNode):
             response = client.get_data(
                 data_source=self.data_source,
                 node_variables=node_variables,
-                env_variables=env.variables,
                 run_id=run_config.run_id,
             )
 
@@ -114,9 +112,10 @@ class DagsterDataInput(DataInputNode, DagsterNode):
                 }
                 extra.update({"response_metadata": response_metadata})
                 yield Output(data["value"])
-        except requests.exceptions.RequestException as e:
+        except (requests.exceptions.RequestException, HTTPError) as e:
             context.log.error(
-                f"Failed op {self.name} with status {response.status_code}"
+                f"Failed op {self.name} with status {response.status_code}: "
+                f"{response.json().get('detail', '')}"
             )
             error = ("\n").join(format_exception_only(type(e), e))
             raise e
