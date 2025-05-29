@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { useState, Suspense, useEffect } from "react";
+import { useState, Suspense, useEffect, useCallback } from "react";
 import {
     CopyIcon,
     CalendarIcon,
@@ -398,7 +398,7 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
     const [visibleVariables, setVisibleVariables] = useState<Set<number>>(new Set());
 
     // Load environment variables from API
-    const loadEnvVars = async () => {
+    const loadEnvVars = useCallback(async () => {
         try {
             setIsLoading(true);
             const variables = await fetchDataSourceEnvVars(dataSource.data_source_id);
@@ -409,12 +409,12 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [dataSource.data_source_id]);
 
     // Load env vars on component mount
     useEffect(() => {
         loadEnvVars();
-    }, [dataSource.data_source_id]);
+    }, [loadEnvVars]);
 
     // Initialize editing variables from predefined variables
     const initializeEditingVariables = () => {
@@ -548,7 +548,10 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
                             {predefinedVariables.map((variableName, index) => {
                                 const envVar = envVars.find((env) => env.name === variableName);
                                 const isConfigured =
-                                    envVar && envVar.value && envVar.value.trim() !== "";
+                                    envVar &&
+                                    envVar.value &&
+                                    typeof envVar.value === "string" &&
+                                    envVar.value.trim() !== "";
                                 return (
                                     <div
                                         key={index}
@@ -577,7 +580,7 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
                                             id={`var-value-${index}`}
                                             type={visibleVariables.has(index) ? "text" : "password"}
                                             placeholder="Enter variable value"
-                                            value={variable.value || ""}
+                                            value={variable.value ? String(variable.value) : ""}
                                             onChange={(e) =>
                                                 handleVariableChange(index, e.target.value)
                                             }
