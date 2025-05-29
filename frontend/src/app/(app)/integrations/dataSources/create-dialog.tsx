@@ -385,7 +385,11 @@ function HTTPOptions({ form }) {
                     <FormItem>
                         <FormLabel>URL *</FormLabel>
                         <FormControl>
-                            <Input placeholder="https://api.example.com/data" {...field} />
+                            <Input
+                                placeholder="https://api.example.com/data"
+                                autoFocus
+                                {...field}
+                            />
                         </FormControl>
                         <FormDescription>Endpoint URL</FormDescription>
                         <FormMessage />
@@ -560,7 +564,11 @@ function CachingOptions({ form }) {
                                 </FormDescription>
                             </div>
                             <FormControl>
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                <Switch
+                                    autoFocus
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
                             </FormControl>
                         </FormItem>
                     )}
