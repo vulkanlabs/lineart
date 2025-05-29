@@ -198,12 +198,12 @@ class DataSource(TimedUpdateMixin, Base):
     )
     name = Column(String)
     description = Column(String, nullable=True)
-    keys = Column(ARRAY(String))
     source = Column(JSON, nullable=False)
     caching_enabled = Column(Boolean)
     caching_ttl = Column(Integer, nullable=True)
     # Attribute name 'metadata' is reserved when using the Declarative API.
     config_metadata = Column(JSON, nullable=True)
+    runtime_params = Column(ARRAY(String), nullable=True)
     variables = Column(ARRAY(String), nullable=True)
     archived = Column(Boolean, default=False)
 
@@ -220,21 +220,22 @@ class DataSource(TimedUpdateMixin, Base):
     @classmethod
     def from_spec(cls, spec: DataSourceSpec):
         variables = spec.extract_env_vars()
+        runtime_params = spec.extract_runtime_params()
+
         return cls(
             name=spec.name,
             description=spec.description,
-            keys=spec.keys,
             source=spec.source.model_dump(),
             caching_enabled=spec.caching.enabled,
             caching_ttl=spec.caching.calculate_ttl(),
             config_metadata=spec.metadata,
+            runtime_params=runtime_params,
             variables=variables,
         )
 
     def to_spec(self) -> DataSourceSpec:
         return DataSourceSpec(
             name=self.name,
-            keys=self.keys,
             source=self.source,
             caching=CachingOptions(
                 enabled=self.caching_enabled,
@@ -243,6 +244,32 @@ class DataSource(TimedUpdateMixin, Base):
             description=self.description,
             metadata=self.config_metadata,
         )
+
+
+class DataSourceEnvVar(TimedUpdateMixin, Base):
+    __tablename__ = "data_source_env_var"
+
+    data_source_env_var_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
+
+    name = Column(String)
+    value = Column(JSON, nullable=True)
+    nullable = Column(Boolean)
+
+    __table_args__ = (
+        Index(
+            "unique_data_source_env_var_name",
+            "data_source_id",
+            "name",
+            unique=True,
+        ),
+        CheckConstraint(
+            sqltext="value IS NOT NULL OR nullable = TRUE",
+            name="value_null_only_if_allowed",
+        ),
+    )
 
 
 class PolicyDataDependency(Base):

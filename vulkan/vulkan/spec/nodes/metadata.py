@@ -36,6 +36,7 @@ class TerminateNodeMetadata(BaseNodeMetadata):
 
 class DataInputNodeMetadata(BaseNodeMetadata):
     data_source: str
+    parameters: dict[str, Any] | None = None
 
 
 class PolicyNodeMetadata(BaseNodeMetadata):

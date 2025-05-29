@@ -25,7 +25,6 @@ class CachingOptions(BaseModel):
 
 class DataSourceSpec(BaseModel):
     name: str
-    keys: list[str]
     source: HTTPSource | LocalFileSource | RegisteredFileSource
     caching: CachingOptions = CachingOptions()
     description: str | None = None
@@ -33,6 +32,9 @@ class DataSourceSpec(BaseModel):
 
     def extract_env_vars(self) -> list[str]:
         return self.source.extract_env_vars()
+
+    def extract_runtime_params(self) -> list[str]:
+        return self.source.extract_runtime_params()
 
 
 class BacktestOptions(BaseModel):

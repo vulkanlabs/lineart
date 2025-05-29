@@ -23,7 +23,14 @@ export function TransformNode({ id, data, selected, height, width }: NodeProps<V
     );
 
     return (
-        <StandardWorkflowNode id={id} selected={selected} data={data} height={height} width={width}>
+        <StandardWorkflowNode
+            id={id}
+            selected={selected}
+            data={data}
+            height={height}
+            width={width}
+            resizable
+        >
             <div className="p-3 h-full flex-grow">
                 <div
                     className="rounded-md overflow-hidden h-full flex-grow nodrag"
