@@ -2,17 +2,12 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
-from vulkan.data_source import EnvVarConfig, HTTPSource
+from vulkan.data_source import EnvVarConfig, HTTPSource, RunTimeParam
 
 
-def make_request(source: HTTPSource, body: dict, variables: dict) -> requests.Request:
-    if source.headers.get("Content-Type") == "application/json":
-        json = body
-        data = None
-    else:
-        json = None
-        data = body
-
+def make_request(
+    source: HTTPSource, node_variables: dict, env_variables: dict
+) -> requests.PreparedRequest:
     retry = Retry(
         total=source.retry.max_retries,
         backoff_factor=source.retry.backoff_factor,
@@ -23,8 +18,16 @@ def make_request(source: HTTPSource, body: dict, variables: dict) -> requests.Re
     session.mount("https://", adapter)
     session.mount("http://", adapter)
 
-    headers = _configure_fields(source.headers, variables)
-    params = _configure_fields(source.params, variables)
+    headers = _configure_fields(source.headers, node_variables, env_variables)
+    params = _configure_fields(source.params, node_variables, env_variables)
+    body = _configure_fields(source.body, node_variables, env_variables)
+
+    if source.headers.get("Content-Type") == "application/json":
+        json = body
+        data = None
+    else:
+        json = None
+        data = body
 
     req = requests.Request(
         method=source.method,
@@ -37,12 +40,14 @@ def make_request(source: HTTPSource, body: dict, variables: dict) -> requests.Re
     return req
 
 
-def _configure_fields(spec: dict, variables: dict) -> dict:
+def _configure_fields(spec: dict, node_variables: dict, env_variables: dict) -> dict:
     if spec is None:
         spec = {}
 
     for key, value in spec.items():
+        if isinstance(value, RunTimeParam):
+            spec[key] = node_variables[value.param]
         if isinstance(value, EnvVarConfig):
-            spec[key] = variables[value.env]
+            spec[key] = env_variables[value.env]
 
     return spec

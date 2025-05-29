@@ -258,20 +258,22 @@ class RunLogs(BaseModel):
 
 class DataSource(DataSourceSpec):
     data_source_id: UUID
-    variables: list[str] | None
     archived: bool
     created_at: datetime
     last_updated_at: datetime
+    variables: list[str] | None = None
+    runtime_params: list[str] | None = None
 
     @classmethod
     def from_orm(cls, data) -> "DataSource":
         spec = data.to_spec()
         return cls(
             data_source_id=data.data_source_id,
-            variables=data.variables,
             archived=data.archived,
             created_at=data.created_at,
             last_updated_at=data.last_updated_at,
+            variables=data.variables,
+            runtime_params=data.runtime_params,
             **spec.model_dump(),
         )
 
@@ -304,8 +306,8 @@ class DataObjectOrigin(Enum):
 
 class DataBrokerRequest(BaseModel):
     data_source_name: str
-    request_body: dict[str, Any]
-    variables: dict[str, str | None]
+    node_variables: dict[str, Any]
+    env_variables: dict[str, str | None]
     run_id: str
 
 

@@ -204,6 +204,7 @@ class DataSource(TimedUpdateMixin, Base):
     caching_ttl = Column(Integer, nullable=True)
     # Attribute name 'metadata' is reserved when using the Declarative API.
     config_metadata = Column(JSON, nullable=True)
+    runtime_params = Column(ARRAY(String), nullable=True)
     variables = Column(ARRAY(String), nullable=True)
     archived = Column(Boolean, default=False)
 
@@ -220,6 +221,8 @@ class DataSource(TimedUpdateMixin, Base):
     @classmethod
     def from_spec(cls, spec: DataSourceSpec):
         variables = spec.extract_env_vars()
+        runtime_params = spec.extract_runtime_params()
+
         return cls(
             name=spec.name,
             description=spec.description,
@@ -228,6 +231,7 @@ class DataSource(TimedUpdateMixin, Base):
             caching_enabled=spec.caching.enabled,
             caching_ttl=spec.caching.calculate_ttl(),
             config_metadata=spec.metadata,
+            runtime_params=runtime_params,
             variables=variables,
         )
 

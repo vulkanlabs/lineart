@@ -57,12 +57,14 @@ class DagsterDataInput(DataInputNode, DagsterNode):
         name: str,
         data_source: str,
         description: str | None = None,
+        parameters: dict | None = None,
         dependencies: dict | None = None,
     ):
         super().__init__(
             name=name,
             data_source=data_source,
             description=description,
+            parameters=parameters,
             dependencies=dependencies,
         )
 
@@ -84,19 +86,24 @@ class DagsterDataInput(DataInputNode, DagsterNode):
         env: VulkanPolicyConfig = getattr(context.resources, POLICY_CONFIG_KEY)
         run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
 
-        body = inputs.get("body", None)
-
-        response = client.get_data(
-            data_source=self.data_source,
-            body=body,
-            variables=env.variables,
-            run_id=run_config.run_id,
-        )
-
-        error = None
-        extra = dict(data_source=self.data_source, status_code=response.status_code)
-
         try:
+            node_variables = {}
+            for k, v in self.parameters.items():
+                if isinstance(v, str):
+                    node_variables[k] = inputs[v]
+                else:
+                    node_variables[k] = inputs[v["variable"]][v["key"]]
+
+            response = client.get_data(
+                data_source=self.data_source,
+                node_variables=node_variables,
+                env_variables=env.variables,
+                run_id=run_config.run_id,
+            )
+
+            error = None
+            extra = dict(data_source=self.data_source, status_code=response.status_code)
+
             response.raise_for_status()
             if response.status_code == 200:
                 data = response.json()
@@ -130,6 +137,7 @@ class DagsterDataInput(DataInputNode, DagsterNode):
             name=node.name,
             data_source=node.data_source,
             description=node.description,
+            parameters=node.parameters,
             dependencies=node.dependencies,
         )
 

@@ -127,7 +127,7 @@ class _HTTPHandler(EnrichmentSourceHandler):
         key = request[0]
         values = request[1]
 
-        prepared_request = make_request(self.spec.source, values, {})
+        prepared_request = make_request(self.spec.source, values, self.context.env)
         raw_response = self._session.send(
             prepared_request, timeout=self.spec.source.timeout
         )

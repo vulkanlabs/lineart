@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { XIcon } from "lucide-react";
+import { NodeProps, type NodeChange } from "@xyflow/react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,6 @@ import {
 
 import { useWorkflowStore } from "../store";
 import { TerminateWorkflowNode } from "./base";
-import { NodeProps } from "@xyflow/react";
 import { VulkanNode, NodeDependency, TerminateNodeMetadata } from "../types";
 
 // Define the structure for a metadata mapping row
@@ -32,9 +32,10 @@ type MetadataMapping = {
 };
 
 export function TerminateNode({ id, data, selected, height, width }: NodeProps<VulkanNode>) {
-    const { updateNodeData, nodes } = useWorkflowStore(
+    const { updateNodeData, onNodesChange, nodes } = useWorkflowStore(
         useShallow((state) => ({
             updateNodeData: state.updateNodeData,
+            onNodesChange: state.onNodesChange,
             nodes: state.nodes, // Get all nodes
         })),
     );
@@ -101,6 +102,18 @@ export function TerminateNode({ id, data, selected, height, width }: NodeProps<V
         const newMappings = [...metadataMappings, { field: " ", nodeId: availableNodes[0].id }];
         setMetadataMappings(newMappings);
         updateReturnMetadata(newMappings); // Update node data immediately
+        onNodesChange([
+            {
+                id: id,
+                type: "dimensions",
+                resizing: true,
+                setAttributes: true,
+                dimensions: {
+                    width: width,
+                    height: 0,
+                },
+            },
+        ] as NodeChange<VulkanNode>[]);
     };
 
     const handleUpdateRow = (index: number, field: keyof MetadataMapping, value: string) => {
@@ -115,101 +128,116 @@ export function TerminateNode({ id, data, selected, height, width }: NodeProps<V
         const newMappings = metadataMappings.filter((_, i) => i !== index);
         setMetadataMappings(newMappings);
         updateReturnMetadata(newMappings); // Update node data immediately
+        onNodesChange([
+            {
+                id: id,
+                type: "dimensions",
+                resizing: true,
+                setAttributes: true,
+                dimensions: {
+                    width: width,
+                    height: 0,
+                },
+            },
+        ] as NodeChange<VulkanNode>[]);
     };
 
     return (
-        <TerminateWorkflowNode
-            id={id}
-            selected={selected}
-            data={data}
-            height={height}
-            width={width}
-        >
-            <div className="flex flex-col gap-1 space-y-2 p-3 h-full">
-                <div className="flex flex-col gap-2">
-                    <span>Return status:</span>
-                    <div className="nodrag" onMouseDown={(e) => e.stopPropagation()}>
-                        <Input
-                            type="text"
-                            value={data.metadata?.return_status || ""}
-                            onChange={(e) => setReturnStatus(e.target.value)}
-                        />
+        <TerminateWorkflowNode id={id} selected={selected} data={data} width={width}>
+            <div className="flex flex-col p-2 w-full h-fit">
+                <div className="flex flex-col gap-1 space-y-2 p-3 h-full">
+                    <div className="flex flex-col gap-2">
+                        <span>Return status:</span>
+                        <div className="nodrag" onMouseDown={(e) => e.stopPropagation()}>
+                            <Input
+                                type="text"
+                                value={data.metadata?.return_status || ""}
+                                onChange={(e) => setReturnStatus(e.target.value)}
+                            />
+                        </div>
                     </div>
-                </div>
-                <div className="flex flex-col gap-2 flex-grow min-h-0">
-                    <span>Return metadata:</span>
-                    <div className="nodrag flex flex-col gap-2 h-full overflow-y-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Field</TableHead>
-                                    <TableHead>Source Node</TableHead>
-                                    <TableHead className="w-[40px]"></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {metadataMappings.map((row, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell>
-                                            <Input
-                                                type="text"
-                                                value={row.field}
-                                                onChange={(e) =>
-                                                    handleUpdateRow(index, "field", e.target.value)
-                                                }
-                                                placeholder="Field Name"
-                                                className="h-8"
-                                                onMouseDown={(e) => e.stopPropagation()}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Select
-                                                value={row.nodeId}
-                                                onValueChange={(value) =>
-                                                    handleUpdateRow(index, "nodeId", value)
-                                                }
-                                            >
-                                                <SelectTrigger
+                    <div className="flex flex-col gap-2 flex-grow min-h-0">
+                        <span>Return metadata:</span>
+                        <div className="nodrag flex flex-col gap-2 h-full overflow-y-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Field</TableHead>
+                                        <TableHead>Source Node</TableHead>
+                                        <TableHead className="w-[40px]"></TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {metadataMappings.map((row, index) => (
+                                        <TableRow key={index}>
+                                            <TableCell>
+                                                <Input
+                                                    type="text"
+                                                    value={row.field}
+                                                    onChange={(e) =>
+                                                        handleUpdateRow(
+                                                            index,
+                                                            "field",
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    placeholder="Field Name"
                                                     className="h-8"
                                                     onMouseDown={(e) => e.stopPropagation()}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Select
+                                                    value={row.nodeId}
+                                                    onValueChange={(value) =>
+                                                        handleUpdateRow(index, "nodeId", value)
+                                                    }
                                                 >
-                                                    <SelectValue placeholder="Select Node" />
-                                                </SelectTrigger>
-                                                <SelectContent
+                                                    <SelectTrigger
+                                                        className="h-8"
+                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                    >
+                                                        <SelectValue placeholder="Select Node" />
+                                                    </SelectTrigger>
+                                                    <SelectContent
+                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                    >
+                                                        {availableNodes.map((node) => (
+                                                            <SelectItem
+                                                                key={node.id}
+                                                                value={node.id}
+                                                            >
+                                                                {node.data.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                    onClick={() => handleRemoveRow(index)}
                                                     onMouseDown={(e) => e.stopPropagation()}
                                                 >
-                                                    {availableNodes.map((node) => (
-                                                        <SelectItem key={node.id} value={node.id}>
-                                                            {node.data.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8"
-                                                onClick={() => handleRemoveRow(index)}
-                                                onMouseDown={(e) => e.stopPropagation()}
-                                            >
-                                                <XIcon className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        <Button
-                            onClick={handleAddRow}
-                            variant="outline"
-                            size="sm"
-                            className="mt-2"
-                            onMouseDown={(e) => e.stopPropagation()}
-                        >
-                            Add Metadata Field
-                        </Button>
+                                                    <XIcon className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                            <Button
+                                onClick={handleAddRow}
+                                variant="outline"
+                                size="sm"
+                                className="mt-2"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            >
+                                Add Metadata Field
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>

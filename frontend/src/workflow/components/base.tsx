@@ -38,6 +38,7 @@ type BaseWorkflowNodeProps = {
     selected?: boolean;
     isInput?: boolean;
     isOutput?: boolean;
+    resizable?: boolean;
     children?: React.ReactNode;
 };
 
@@ -59,6 +60,7 @@ function BaseWorkflowNodeCore({
     isInput,
     isOutput,
     children,
+    resizable,
     headerActions,
     footerContent,
     allowNameEditing = true,
@@ -108,13 +110,15 @@ function BaseWorkflowNodeCore({
 
     return (
         <>
-            <NodeResizer
-                nodeId={id}
-                color="#ff0071"
-                isVisible={selected}
-                minWidth={data.minWidth}
-                minHeight={data.minHeight}
-            />
+            {resizable && (
+                <NodeResizer
+                    nodeId={id}
+                    color="#ff0071"
+                    isVisible={selected}
+                    minWidth={data.minWidth}
+                    minHeight={data.minHeight}
+                />
+            )}
             <BaseNode selected={selected} className="p-1" style={{ width: width, height: height }}>
                 <div className="h-full flex flex-col gap-1">
                     <NodeHeader>
@@ -210,6 +214,7 @@ export function StandardWorkflowNode({
     isInput,
     isOutput,
     children,
+    resizable,
     showInputsToggle = true,
 }: StandardWorkflowNodeProps) {
     const [showInputs, setShowInputs] = useState(false);
@@ -275,6 +280,7 @@ export function StandardWorkflowNode({
                 selected={selected}
                 isInput={isInput}
                 isOutput={isOutput}
+                resizable={resizable}
                 headerActions={headerActions}
                 footerContent={footerContent}
             >

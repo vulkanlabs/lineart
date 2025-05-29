@@ -34,6 +34,9 @@ class DataSourceSpec(BaseModel):
     def extract_env_vars(self) -> list[str]:
         return self.source.extract_env_vars()
 
+    def extract_runtime_params(self) -> list[str]:
+        return self.source.extract_runtime_params()
+
 
 class BacktestOptions(BaseModel):
     target_column: str

@@ -1,6 +1,7 @@
 import hashlib
 import json
 from datetime import datetime, timezone
+from logging import Logger
 
 import requests
 from sqlalchemy.orm import Session
@@ -8,24 +9,21 @@ from sqlalchemy.orm import Session
 from vulkan.connections import make_request
 from vulkan_server import schemas
 from vulkan_server.db import DataObject, RunDataCache
-from vulkan_server.logger import init_logger
-
-logger = init_logger("data_broker")
 
 
 class DataBroker:
-    def __init__(self, db: Session, spec: schemas.DataSource) -> None:
+    def __init__(self, db: Session, logger: Logger, spec: schemas.DataSource) -> None:
         self.db = db
+        self.logger = logger
         self.spec = spec
 
     def get_data(
-        self, request_body: dict, variables: dict
+        self, node_variables: dict, env_variables: dict
     ) -> schemas.DataBrokerResponse:
-        cache = CacheManager(self.db, self.spec)
-        key = make_cache_key(self.spec, request_body, variables)
+        cache = CacheManager(self.db, self.logger, self.spec)
+        key = make_cache_key(self.spec, node_variables, env_variables)
 
         if self.spec.caching.enabled:
-            logger.debug("Trying to get data from cache")
             data = cache.get_data(key)
 
             if data is not None:
@@ -36,12 +34,8 @@ class DataBroker:
                     value=data.value,
                 )
 
-        logger.debug(
-            f"Request: body {request_body}\n headers {self.spec.source.headers} \n"
-            f"url {self.spec.source.url}"
-        )
-        # TODO: validate request_body is compatible with spec.source.body_schema
-        req = make_request(self.spec.source, request_body, variables)
+        # self.logger.info(f"Fetching data for key {key} from source {self.spec.source.url}")
+        req = make_request(self.spec.source, node_variables, env_variables)
         response = requests.Session().send(req, timeout=self.spec.source.timeout)
         response.raise_for_status()
 
@@ -53,7 +47,7 @@ class DataBroker:
             )
             self.db.add(data)
             self.db.commit()
-            logger.info(f"Stored object with id {data.data_object_id}")
+            # self.logger.info(f"Stored object with id {data.data_object_id}")
 
             if self.spec.caching.enabled:
                 cache.set_cache(key, data.data_object_id)
@@ -67,8 +61,9 @@ class DataBroker:
 
 
 class CacheManager:
-    def __init__(self, db: Session, spec: schemas.DataSource) -> None:
+    def __init__(self, db: Session, logger: Logger, spec: schemas.DataSource) -> None:
         self.db = db
+        self.logger = logger
         self.spec = spec
 
     def get_data(self, key: str) -> DataObject | None:
@@ -87,7 +82,7 @@ class CacheManager:
         elapsed = (datetime.now(timezone.utc) - data.created_at).total_seconds()
 
         if ttl is not None and elapsed > ttl:
-            logger.info(f"Deleting cache with key {key}: TTL expired")
+            # self.logger.info(f"Deleting cache with key {key}: TTL expired")
             self.db.delete(cache)
             self.db.commit()
             return None
@@ -95,7 +90,7 @@ class CacheManager:
         return data
 
     def set_cache(self, key: str, data_object_id: str) -> None:
-        logger.info(f"Setting cache with key {key}")
+        # self.logger.info(f"Setting cache with key {key}")
         cache = RunDataCache(
             key=key,
             data_object_id=data_object_id,

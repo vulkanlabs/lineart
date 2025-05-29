@@ -406,10 +406,10 @@ def request_data_from_broker(
         raise HTTPException(status_code=404, detail="Data source not found")
 
     spec = schemas.DataSource.from_orm(data_source)
-    broker = DataBroker(db, spec)
+    broker = DataBroker(db, logger.system, spec)
 
     try:
-        data = broker.get_data(request.request_body, request.variables)
+        data = broker.get_data(request.node_variables, request.env_variables)
         request_obj = RunDataRequest(
             run_id=request.run_id,
             data_object_id=data.data_object_id,

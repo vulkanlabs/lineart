@@ -69,14 +69,16 @@ def create_policy_version(
     db.add(version)
     db.commit()
 
-    data_sources = [
-        node.metadata["data_source"]
+    data_input_nodes = [
+        node
         for node in config.spec.nodes
         if node.node_type == NodeType.DATA_INPUT.value
     ]
-    if data_sources:
+    used_data_sources = [node.metadata["data_source"] for node in data_input_nodes]
+
+    if used_data_sources:
         try:
-            _add_data_source_dependencies(db, version, data_sources)
+            data_sources = _add_data_source_dependencies(db, version, used_data_sources)
         except DataSourceNotFoundException as e:
             err = "Failed to add data source dependencies"
             logger.system.error(
@@ -84,6 +86,28 @@ def create_policy_version(
             )
             msg = f"{err}. Policy Version ID: {version.policy_version_id}"
             raise HTTPException(status_code=500, detail={"msg": msg}) from e
+
+        # Check if all runtime params from the data source are configured
+        # in the node parameters field.
+        for node in data_input_nodes:
+            ds = data_sources[node.metadata["data_source"]]
+            if ds.runtime_params is not None:
+                missing = {ds.runtime_params} - set(node.metadata["parameters"].keys())
+                if missing:
+                    msg = (
+                        f"Data source {ds.name} requires runtime parameters "
+                        f"{missing} but they are not configured in the node "
+                        f"{node.name}"
+                    )
+                    logger.system.error(
+                        msg, policy_version_id=version.policy_version_id
+                    )
+                    raise HTTPException(status_code=400, detail={"msg": msg})
+
+                # TODO: should we raise an error if the node parameters has
+                # additional parameters that are not in the data source?
+
+        version.variables = [v for ds in data_sources.values() for v in ds.variables]
 
     try:
         dagster_service_client.update_workspace(
@@ -225,7 +249,7 @@ def update_policy_version(
 
 def _add_data_source_dependencies(
     db: Session, version: PolicyVersion, data_sources: list[str]
-) -> list[DataSource]:
+) -> dict[str, DataSource]:
     matched = (
         db.query(DataSource)
         .filter(
@@ -247,7 +271,7 @@ def _add_data_source_dependencies(
         )
         db.add(dependency)
 
-    return matched
+    return {matched.name: matched for matched in matched}
 
 
 @router.delete("/{policy_version_id}")

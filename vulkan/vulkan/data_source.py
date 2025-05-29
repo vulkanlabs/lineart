@@ -7,10 +7,14 @@ BaseType = str | int | float | bool
 
 
 class EnvVarConfig(BaseModel):
-    env: BaseType | list[BaseType]
+    env: str
 
 
-ConfigurableMapping = dict[str, BaseType | list[BaseType] | EnvVarConfig]
+class RunTimeParam(BaseModel):
+    param: str
+
+
+ConfigurableMapping = dict[str, BaseType | list[BaseType] | EnvVarConfig | RunTimeParam]
 
 
 class DataSourceType(Enum):
@@ -22,6 +26,10 @@ class DataSourceType(Enum):
 class SourceSpecBase(ABC):
     @abstractmethod
     def extract_env_vars(self) -> dict:
+        pass
+
+    @abstractmethod
+    def extract_runtime_params(self) -> dict:
         pass
 
     @property
@@ -37,6 +45,9 @@ class RegisteredFileSource(BaseModel, SourceSpecBase):
     def extract_env_vars(self) -> list[str]:
         return []
 
+    def extract_runtime_params(self) -> list[str]:
+        return []
+
     @property
     def source_type(self) -> DataSourceType:
         return DataSourceType.REGISTERED_FILE
@@ -46,6 +57,9 @@ class LocalFileSource(BaseModel):
     path: str
 
     def extract_env_vars(self) -> list[str]:
+        return []
+
+    def extract_runtime_params(self) -> list[str]:
         return []
 
     @property
@@ -64,18 +78,25 @@ class HTTPSource(BaseModel, SourceSpecBase):
     method: str = "GET"
     headers: ConfigurableMapping | None = dict()
     params: ConfigurableMapping | None = dict()
-    body_schema: dict | None = None
+    body: ConfigurableMapping | None = dict()
     timeout: int | None = None
     retry: RetryPolicy | None = RetryPolicy(max_retries=1)
 
     def extract_env_vars(self) -> list[str]:
-        env = []
-        if self.headers:
-            env += _extract_env_vars(self.headers)
-        if self.params:
-            env += _extract_env_vars(self.params)
+        env_vars = []
+        for spec in [self.headers, self.params, self.body]:
+            if spec:
+                env_vars += _extract_env_vars(spec)
+        return env_vars
 
-        return env
+    def extract_runtime_params(self) -> list[str]:
+        params = []
+        for spec in [self.headers, self.params, self.body]:
+            if spec:
+                params += [
+                    v.param for v in spec.values() if isinstance(v, RunTimeParam)
+                ]
+        return params
 
     @property
     def source_type(self) -> DataSourceType:
