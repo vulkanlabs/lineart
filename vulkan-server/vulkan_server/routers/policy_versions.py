@@ -42,7 +42,7 @@ router = APIRouter(
 
 
 @router.post("", response_model=schemas.PolicyVersion)
-def create_update_policy_version(
+def create_policy_version(
     config: schemas.PolicyVersionCreate,
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
