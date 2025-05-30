@@ -111,7 +111,7 @@ class PolicyVersion(TimedUpdateMixin, ArchivableMixin, Base):
         Uuid, primary_key=True, server_default=func.gen_random_uuid()
     )
     policy_id = Column(Uuid, ForeignKey("policy.policy_id"))
-    alias = Column(String)
+    alias = Column(String, nullable=True)
     status = Column(Enum(PolicyVersionStatus), nullable=False)
     spec = Column(JSON, nullable=False)
     requirements = Column(ARRAY(String), nullable=False)

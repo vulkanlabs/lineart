@@ -31,7 +31,6 @@ from vulkan_server.db import (
     get_db,
 )
 from vulkan_server.events import VulkanEvent
-from vulkan_server.exceptions import VulkanServerException
 from vulkan_server.logger import VulkanLogger, get_logger
 from vulkan_server.utils import validate_date_range
 
@@ -43,13 +42,10 @@ router = APIRouter(
 
 
 @router.post("", response_model=schemas.PolicyVersion)
-def create_policy_version(
+def create_update_policy_version(
     config: schemas.PolicyVersionCreate,
     logger: VulkanLogger = Depends(get_logger),
     db: Session = Depends(get_db),
-    dagster_service_client: VulkanDagsterServiceClient = Depends(
-        get_dagster_service_client
-    ),
 ):
     policy = db.query(Policy).filter_by(policy_id=config.policy_id).first()
     if policy is None:
@@ -57,76 +53,15 @@ def create_policy_version(
         logger.system.error(msg)
         raise HTTPException(status_code=404, detail=msg)
 
-    spec = convert_pydantic_to_dict(config.spec)
     version = PolicyVersion(
         policy_id=config.policy_id,
         alias=config.alias,
-        spec=spec,
-        requirements=config.requirements,
-        input_schema=config.input_schema,
         status=PolicyVersionStatus.INVALID,
+        spec={"nodes": [], "input_schema": {}},
+        input_schema={},
+        requirements=[],
     )
     db.add(version)
-    db.commit()
-
-    data_input_nodes = [
-        node
-        for node in config.spec.nodes
-        if node.node_type == NodeType.DATA_INPUT.value
-    ]
-    used_data_sources = [node.metadata["data_source"] for node in data_input_nodes]
-
-    if used_data_sources:
-        try:
-            data_sources = _add_data_source_dependencies(db, version, used_data_sources)
-        except DataSourceNotFoundException as e:
-            err = "Failed to add data source dependencies"
-            logger.system.error(
-                f"{err} ({version.policy_version_id}): {e}", exc_info=True
-            )
-            msg = f"{err}. Policy Version ID: {version.policy_version_id}"
-            raise HTTPException(status_code=500, detail={"msg": msg}) from e
-
-        # Check if the data source's required runtime params are configured
-        # in the node parameters field.
-        for node in data_input_nodes:
-            ds = data_sources[node.metadata["data_source"]]
-            if ds.runtime_params is not None:
-                configured_params = node.metadata["parameters"].keys()
-                if set(ds.runtime_params) != set(configured_params):
-                    msg = (
-                        f"Data source {ds.name} requires runtime parameters "
-                        f"{ds.runtime_params} but got {list(configured_params)} "
-                        f"from {node.name}"
-                    )
-                    raise HTTPException(status_code=400, detail={"msg": msg})
-
-    try:
-        dagster_service_client.update_workspace(
-            workspace_id=version.policy_version_id,
-            spec=spec,
-            requirements=config.requirements,
-        )
-    except (ValueError, VulkanServerException) as e:
-        logger.system.error(
-            f"Failed to create workspace ({version.policy_version_id}): {e}",
-            exc_info=True,
-        )
-        msg = (
-            "Failed to create policy version workspace. "
-            f"Policy Version ID: {version.policy_version_id}"
-        )
-        raise HTTPException(status_code=500, detail={"msg": msg}) from e
-
-    try:
-        dagster_service_client.ensure_workspace_added(str(version.policy_version_id))
-        version.status = PolicyVersionStatus.VALID
-    except ValueError:
-        logger.system.error(
-            f"Failed to create workspace ({version.policy_version_id}), version is invalid",
-            exc_info=True,
-        )
-
     db.commit()
 
     logger.event(
@@ -190,10 +125,10 @@ def update_policy_version(
     if version is None:
         msg = f"Policy version {policy_version_id} not found"
         raise HTTPException(status_code=404, detail=msg)
-    spec = convert_pydantic_to_dict(config.spec)
 
     # TODO: any simpler way to do this?
     # Update the policy version with the new spec and requirements
+    spec = convert_pydantic_to_dict(config.spec)
     version.alias = config.alias
     version.input_schema = config.input_schema
     version.spec = spec
@@ -202,7 +137,39 @@ def update_policy_version(
     version.ui_metadata = convert_pydantic_to_dict(config.ui_metadata)
     db.commit()
 
-    # Update the workspace with the new spec and requirements
+    data_input_nodes = [
+        node
+        for node in config.spec.nodes
+        if node.node_type == NodeType.DATA_INPUT.value
+    ]
+    used_data_sources = [node.metadata["data_source"] for node in data_input_nodes]
+
+    if used_data_sources:
+        try:
+            data_sources = _add_data_source_dependencies(db, version, used_data_sources)
+        except DataSourceNotFoundException as e:
+            err = "Failed to add data source dependencies"
+            logger.system.error(
+                f"{err} ({version.policy_version_id}): {e}", exc_info=True
+            )
+            msg = f"{err}. Policy Version ID: {version.policy_version_id}"
+            raise HTTPException(status_code=500, detail={"msg": msg}) from e
+
+        # Check if the data source's required runtime params are configured
+        # in the node parameters field.
+        for node in data_input_nodes:
+            ds = data_sources[node.metadata["data_source"]]
+            if ds.runtime_params is not None:
+                configured_params = node.metadata["parameters"].keys()
+                if set(ds.runtime_params) != set(configured_params):
+                    msg = (
+                        f"Data source {ds.name} requires runtime parameters "
+                        f"{ds.runtime_params} but got {list(configured_params)} "
+                        f"from {node.name}"
+                    )
+                    raise HTTPException(status_code=400, detail={"msg": msg})
+
+    # Ensure the workspace is created or updated with the new spec and requirements
     try:
         dagster_service_client.update_workspace(
             workspace_id=version.policy_version_id,
@@ -221,11 +188,11 @@ def update_policy_version(
         raise HTTPException(status_code=500, detail={"msg": msg}) from e
 
     try:
-        dagster_service_client.ensure_workspace_added(version.policy_version_id)
+        dagster_service_client.ensure_workspace_added(str(version.policy_version_id))
         version.status = PolicyVersionStatus.VALID
-    except ValueError:
+    except ValueError as e:
         logger.system.error(
-            f"Failed to update workspace ({version.policy_version_id}), version is invalid",
+            f"Failed to update workspace ({version.policy_version_id}), version is invalid:\n{e}",
             exc_info=False,
         )
 

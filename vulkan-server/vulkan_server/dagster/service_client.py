@@ -86,10 +86,11 @@ class VulkanDagsterServiceClient:
 
     def ensure_workspace_added(self, workspace_id: str) -> None:
         loaded_repos = update_repository(self.dagster_client)
-        if loaded_repos.get(workspace_id, False) is False:
+        repo_loaded = loaded_repos.get(workspace_id, False)
+        if not repo_loaded:
             msg = (
                 f"Failed to load repository {workspace_id}.\n"
-                f"Repository load status: {loaded_repos}"
+                f"Repository load status: {loaded_repos}\n"
             )
             raise ValueError(msg)
 
