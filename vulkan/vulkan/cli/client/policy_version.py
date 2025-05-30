@@ -113,13 +113,6 @@ def _update_policy_version(
     requirements: list[str],
     input_schema: dict[str, str | None],
 ):
-    response = ctx.session.get(f"{ctx.server_url}/policy-versions/{policy_version_id}")
-    if response.status_code != 200:
-        raise ValueError(f"Failed to get policy version: {response.content}")
-
-    policy_version = response.json()
-    ctx.logger.info(f"Updating policy version {policy_version_id}")
-
     response = ctx.session.put(
         url=f"{ctx.server_url}/policy-versions/{policy_version_id}",
         json={
