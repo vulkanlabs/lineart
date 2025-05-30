@@ -50,13 +50,6 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
         const requestData: PolicyVersionCreate = {
             policy_id: policyId,
             alias: data.alias,
-            spec: {
-                nodes: [],
-                input_schema: {},
-                config_variables: null,
-            },
-            requirements: [],
-            input_schema: {},
         };
 
         try {

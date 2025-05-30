@@ -17,46 +17,29 @@ def create(
     if spec is None:
         spec = {}
 
-    body = {
-        "policy_id": policy_id,
-        "alias": version_name,
-        "spec": spec,
-        "requirements": requirements,
-        "input_schema": input_schema,
-    }
-
     response = ctx.session.post(
         f"{ctx.server_url}/policy-versions",
-        json=body,
+        json={
+            "policy_id": policy_id,
+            "alias": version_name,
+        },
     )
-    if response.status_code == 400:
-        detail = response.json().get("detail", "")
-        error = detail.get("error")
-        ctx.logger.debug(f"Error: {error}")
-        if error == "InvalidDefinitionError":
-            ctx.logger.debug(detail)
-            raise ValueError(
-                "The PolicyDefinition instance was improperly configured. "
-                "It may be missing a node or have missing/invalid attributes. "
-                "It could also be that an imported python package wasn't specified "
-                "as a dependency in the pyproject.toml file."
-            )
-        if error == "ConflictingDefinitionsError":
-            raise ValueError(
-                "More than one PolicyDefinition instances was found in the "
-                "specified repository."
-            )
-        raise ValueError(f"Bad request: {detail}")
+    if response.status_code == 404:
+        raise ValueError(
+            f"Policy with ID {policy_id} not found. "
+            "Please ensure the policy exists and you have the correct ID."
+        )
 
-    if response.status_code != 200:
-        raise ValueError(f"Failed to create policy version: {response.content}")
-
-    policy_version = response.json()
-    policy_version_id = policy_version["policy_version_id"]
-    ctx.logger.info(
-        f"Created workspace {version_name} with policy version {policy_version_id}"
+    policy_version_id = response.json()["policy_version_id"]
+    ctx.logger.debug(f"Created policy version {policy_version_id}")
+    return _update_policy_version(
+        ctx,
+        policy_version_id,
+        version_name,
+        spec,
+        requirements,
+        input_schema or {},
     )
-    return policy_version
 
 
 def update(
@@ -67,42 +50,14 @@ def update(
     spec: dict,
     requirements: list[str],
 ):
-    response = ctx.session.put(
-        url=f"{ctx.server_url}/policy-versions/{policy_version_id}",
-        json={
-            "alias": version_name,
-            "spec": spec,
-            "requirements": requirements,
-            "input_schema": input_schema,
-        },
+    return _update_policy_version(
+        ctx,
+        policy_version_id,
+        version_name,
+        spec,
+        requirements,
+        input_schema,
     )
-
-    if response.status_code == 400:
-        detail = response.json().get("detail", "")
-        error = detail.get("error")
-        ctx.logger.debug(f"Error: {error}")
-        if error == "InvalidDefinitionError":
-            ctx.logger.debug(detail)
-            raise ValueError(
-                "The PolicyDefinition instance was improperly configured. "
-                "It may be missing a node or have missing/invalid attributes. "
-                "It could also be that an imported python package wasn't specified "
-                "as a dependency in the pyproject.toml file."
-            )
-        if error == "ConflictingDefinitionsError":
-            raise ValueError(
-                "More than one PolicyDefinition instances was found in the "
-                "specified repository."
-            )
-        raise ValueError(f"Bad request: {detail}")
-
-    if response.status_code != 200:
-        raise ValueError(f"Failed to create policy version: {response.content}")
-
-    policy_version = response.json()
-    policy_version_id = policy_version["policy_version_id"]
-    ctx.logger.info(f"Updated policy version {policy_version_id}")
-    return policy_version
 
 
 def get(ctx: Context, policy_version_id: str):
@@ -147,3 +102,47 @@ def delete_policy_version(
     if response.status_code != 200:
         raise ValueError(f"Failed to delete policy version: {response.content}")
     ctx.logger.info(f"Deleted policy version {policy_version_id}")
+    ctx.logger.info(f"Deleted policy version {policy_version_id}")
+
+
+def _update_policy_version(
+    ctx: Context,
+    policy_version_id: str,
+    version_name: str,
+    spec: dict,
+    requirements: list[str],
+    input_schema: dict[str, str | None],
+):
+    response = ctx.session.put(
+        url=f"{ctx.server_url}/policy-versions/{policy_version_id}",
+        json={
+            "alias": version_name,
+            "spec": spec,
+            "requirements": requirements,
+            "input_schema": input_schema or {},
+        },
+    )
+
+    if response.status_code == 400:
+        detail = response.json().get("detail", "")
+        error = detail.get("error")
+        ctx.logger.debug(f"Error: {error}")
+        if error == "InvalidDefinitionError":
+            ctx.logger.debug(detail)
+            raise ValueError(
+                "The PolicyDefinition instance was improperly configured. "
+                "It may be missing a node or have missing/invalid attributes. "
+                "It could also be that an imported python package wasn't specified "
+                "as a dependency."
+            )
+        raise ValueError(f"Bad request: {detail}")
+
+    if response.status_code != 200:
+        raise ValueError(f"Failed to create policy version: {response.content}")
+
+    policy_version = response.json()
+    policy_version_id = policy_version["policy_version_id"]
+    ctx.logger.info(
+        f"Created workspace {version_name} with policy version {policy_version_id}"
+    )
+    return policy_version

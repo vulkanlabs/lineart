@@ -138,8 +138,9 @@ class PolicyVersionBase(BaseModel):
     ui_metadata: dict[str, UIMetadata] | None = None
 
 
-class PolicyVersionCreate(PolicyVersionBase):
+class PolicyVersionCreate(BaseModel):
     policy_id: UUID
+    alias: str | None
 
 
 class PolicyVersion(BaseModel):
