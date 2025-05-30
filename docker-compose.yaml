@@ -10,8 +10,6 @@ services:
     depends_on:
       app-db:
         condition: service_healthy
-    volumes:
-      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   app-db:
     image: postgres:16.3
     env_file:
