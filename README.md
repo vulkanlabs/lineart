@@ -54,6 +54,12 @@ sudo apt install make
 brew install make
 ```
 
+### Tutorial and Documentation
+
+We have a [short tutorial](docs/how-to/) and [example notebooks](vulkan/docs/notebooks) to get you started!
+
+More detailed documentation coming soon.
+
 ## Project Structure
 
 Below is an overview of the main folders and their purpose:
