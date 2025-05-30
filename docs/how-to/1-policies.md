@@ -113,3 +113,14 @@ vulkan.run.get_run_data(ctx, run_id)
 
 Each policy can have multiple Versions.
 Versions can be executed, A/B tested, and monitored individually.
+We can "allocate" a version to make it the default version for a Policy.
+This is useful so users can just call the "onboarding workflow", instead of knowing which specific version of the workflow we want them to use.
+
+To allocate a version, go to the "Allocation" section in the policy page.
+Then, select the version you want to use (or many!).
+This is the same flow you would use to create an A/B testing scenario or roll back a change.
+
+You can also deploy a version in "shadow" mode, so that it'll be run, but the response won't be sent to the users.
+This is useful when you want to test or validate new versions with real workloads.
+
+![policy allocation form](./1-policies/allocation.png)
