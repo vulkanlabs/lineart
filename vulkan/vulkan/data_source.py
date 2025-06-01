@@ -14,7 +14,8 @@ class RunTimeParam(BaseModel):
     param: str
 
 
-ConfigurableMapping = dict[str, BaseType | list[BaseType] | EnvVarConfig | RunTimeParam]
+ParameterType = BaseType | list[BaseType] | EnvVarConfig | RunTimeParam
+ConfigurableMapping = dict[str, ParameterType]
 
 
 class DataSourceType(Enum):
@@ -84,7 +85,8 @@ class HTTPSource(BaseModel, SourceSpecBase):
     url: str
     method: str = "GET"
     headers: ConfigurableMapping | None = dict()
-    params: ConfigurableMapping | None = dict()
+    path_params: list[ParameterType] | None = None
+    query_params: ConfigurableMapping | None = dict()
     body: ConfigurableMapping | None = dict()
     timeout: int | None = None
     retry: RetryPolicy | None = RetryPolicy(max_retries=1)
@@ -92,14 +94,18 @@ class HTTPSource(BaseModel, SourceSpecBase):
 
     def extract_env_vars(self) -> list[str]:
         env_vars = []
-        for spec in [self.headers, self.params, self.body]:
+        if self.path_params is not None:
+            env_vars += [v.env for v in self.path_params if isinstance(v, EnvVarConfig)]
+        for spec in [self.headers, self.query_params, self.body]:
             if spec:
                 env_vars += _extract_env_vars(spec)
         return env_vars
 
     def extract_runtime_params(self) -> list[str]:
         params = []
-        for spec in [self.headers, self.params, self.body]:
+        if self.path_params is not None:
+            params += [v for v in self.path_params if isinstance(v, RunTimeParam)]
+        for spec in [self.headers, self.query_params, self.body]:
             if spec:
                 params += [
                     v.param for v in spec.values() if isinstance(v, RunTimeParam)

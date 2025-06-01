@@ -37,6 +37,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { KeyValueTable, keyValuePairsToMap } from "@/components/ui/key-value-table";
 import { createDataSourceAction } from "./actions";
+import { ExpandableList, listToJsonString } from "@/components/ui/expandable-list";
 
 const formSchema = z.object({
     name: z
@@ -56,6 +57,7 @@ const formSchema = z.object({
             }),
         method: z.string().optional(),
         response_type: z.string().optional(),
+        path: z.string().optional().transform(parseJSON),
         headers: z.string().optional().transform(parseJSON),
         params: z.string().optional().transform(parseJSON),
         body: z.string().optional().transform(parseJSON),
@@ -113,6 +115,7 @@ export function CreateDataSourceDialog() {
                 url: "",
                 method: "GET",
                 response_type: "JSON",
+                path: "",
                 headers: "",
                 params: "",
                 body: "",
@@ -176,6 +179,8 @@ export function CreateDataSourceDialog() {
             return;
         }
 
+        console.log("Submitting Data Source:", data);
+
         const dataSourceSpec = {
             name: data.name,
             source: {
@@ -183,7 +188,8 @@ export function CreateDataSourceDialog() {
                 method: data.source.method,
                 response_type: data.source.response_type,
                 headers: data.source.headers,
-                params: data.source.params,
+                path_params: data.source.path,
+                query_params: data.source.params,
                 body: data.source.body,
                 timeout: data.source.timeout,
                 retry: data.source.retry,
@@ -242,12 +248,12 @@ export function CreateDataSourceDialog() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel htmlFor="name">Name *</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="" type="text" {...field} />
-                                            </FormControl>
                                             <FormDescription>
                                                 Name of the new Data Source
                                             </FormDescription>
+                                            <FormControl>
+                                                <Input placeholder="" type="text" {...field} />
+                                            </FormControl>
                                             <FormMessage>
                                                 {form.formState.errors.name?.message}
                                             </FormMessage>
@@ -261,15 +267,15 @@ export function CreateDataSourceDialog() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel htmlFor="description">Description</FormLabel>
+                                            <FormDescription>
+                                                Description of the new Data Source (optional)
+                                            </FormDescription>
                                             <FormControl>
                                                 <Textarea
                                                     placeholder="A brand new data source."
                                                     {...field}
                                                 />
                                             </FormControl>
-                                            <FormDescription>
-                                                Description of the new Data Source (optional)
-                                            </FormDescription>
                                             <FormMessage>
                                                 {form.formState.errors.description?.message}
                                             </FormMessage>
@@ -283,6 +289,9 @@ export function CreateDataSourceDialog() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Metadata</FormLabel>
+                                            <FormDescription>
+                                                Additional metadata as key-value pairs (optional)
+                                            </FormDescription>
                                             <FormControl>
                                                 <KeyValueTable
                                                     value={field.value}
@@ -291,9 +300,6 @@ export function CreateDataSourceDialog() {
                                                     valuePlaceholder="Value"
                                                 />
                                             </FormControl>
-                                            <FormDescription>
-                                                Additional metadata as key-value pairs (optional)
-                                            </FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -383,6 +389,7 @@ function HTTPOptions({ form }) {
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>URL *</FormLabel>
+                        <FormDescription>Endpoint URL</FormDescription>
                         <FormControl>
                             <Input
                                 placeholder="https://api.example.com/data"
@@ -390,7 +397,6 @@ function HTTPOptions({ form }) {
                                 {...field}
                             />
                         </FormControl>
-                        <FormDescription>Endpoint URL</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -403,6 +409,7 @@ function HTTPOptions({ form }) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Method</FormLabel>
+                            <FormDescription>HTTP method for the request</FormDescription>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
@@ -416,10 +423,8 @@ function HTTPOptions({ form }) {
                                     <SelectItem value="PATCH">PATCH</SelectItem>
                                     <SelectItem value="DELETE">DELETE</SelectItem>
                                     <SelectItem value="HEAD">HEAD</SelectItem>
-                                    <SelectItem value="OPTIONS">OPTIONS</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <FormDescription>HTTP method for the request</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -431,6 +436,7 @@ function HTTPOptions({ form }) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Response Type</FormLabel>
+                            <FormDescription>Expected response content type</FormDescription>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
@@ -444,7 +450,6 @@ function HTTPOptions({ form }) {
                                     <SelectItem value="PLAIN_TEXT">Plain Text</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <FormDescription>Expected response content type</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -458,10 +463,10 @@ function HTTPOptions({ form }) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Timeout (ms)</FormLabel>
+                            <FormDescription>Request timeout in milliseconds</FormDescription>
                             <FormControl>
                                 <Input type="number" min="0" placeholder="5000" {...field} />
                             </FormControl>
-                            <FormDescription>Request timeout in milliseconds</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -470,10 +475,36 @@ function HTTPOptions({ form }) {
 
             <FormField
                 control={form.control}
+                name="source.path"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Path</FormLabel>
+                        <FormDescription>
+                            {`Path parameters to append to the URL, eg. /resource/{resourceId}`}
+                        </FormDescription>
+                        <FormControl>
+                            <ExpandableList
+                                value={field.value || []}
+                                onChange={(fieldValue) => {
+                                    field.onChange(listToJsonString(fieldValue));
+                                }}
+                                placeholder="Parameter value or variable name"
+                                disabled={false}
+                                label="Path Parameters"
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            <FormField
+                control={form.control}
                 name="source.params"
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Query Parameters</FormLabel>
+                        <FormDescription>Query parameters in JSON format</FormDescription>
                         <FormControl>
                             <Textarea
                                 className="min-h-24 font-mono text-sm"
@@ -481,7 +512,6 @@ function HTTPOptions({ form }) {
                                 {...field}
                             />
                         </FormControl>
-                        <FormDescription>Query parameters in JSON format</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -493,6 +523,7 @@ function HTTPOptions({ form }) {
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Headers</FormLabel>
+                        <FormDescription>HTTP headers in JSON format</FormDescription>
                         <FormControl>
                             <Textarea
                                 className="min-h-24 font-mono text-sm"
@@ -500,7 +531,6 @@ function HTTPOptions({ form }) {
                                 {...field}
                             />
                         </FormControl>
-                        <FormDescription>HTTP headers in JSON format</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -512,6 +542,7 @@ function HTTPOptions({ form }) {
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Body</FormLabel>
+                        <FormDescription>HTTP body in JSON format</FormDescription>
                         <FormControl>
                             <Textarea
                                 className="min-h-24 font-mono text-sm"
@@ -519,7 +550,6 @@ function HTTPOptions({ form }) {
                                 {...field}
                             />
                         </FormControl>
-                        <FormDescription>HTTP body in JSON format</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -547,6 +577,9 @@ function HTTPOptions({ form }) {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Max Retries</FormLabel>
+                                        <FormDescription>
+                                            Maximum number of retry attempts
+                                        </FormDescription>
                                         <FormControl>
                                             <Input
                                                 type="number"
@@ -558,9 +591,6 @@ function HTTPOptions({ form }) {
                                                 }
                                             />
                                         </FormControl>
-                                        <FormDescription>
-                                            Maximum number of retry attempts
-                                        </FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -572,6 +602,9 @@ function HTTPOptions({ form }) {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Backoff Factor</FormLabel>
+                                        <FormDescription>
+                                            Exponential backoff multiplier
+                                        </FormDescription>
                                         <FormControl>
                                             <Input
                                                 type="number"
@@ -584,9 +617,6 @@ function HTTPOptions({ form }) {
                                                 }
                                             />
                                         </FormControl>
-                                        <FormDescription>
-                                            Exponential backoff multiplier
-                                        </FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -598,6 +628,9 @@ function HTTPOptions({ form }) {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Status Force List</FormLabel>
+                                        <FormDescription>
+                                            HTTP status codes to retry (comma-separated)
+                                        </FormDescription>
                                         <FormControl>
                                             <Input
                                                 placeholder="500,502,503,504"
@@ -612,9 +645,6 @@ function HTTPOptions({ form }) {
                                                 }}
                                             />
                                         </FormControl>
-                                        <FormDescription>
-                                            HTTP status codes to retry (comma-separated)
-                                        </FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -700,6 +730,10 @@ function CachingOptions({ form }) {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Cache TTL</FormLabel>
+                                <FormDescription>
+                                    Time to live for cached data (total: {calculateTotalSeconds()}{" "}
+                                    seconds)
+                                </FormDescription>
                                 <div className="grid grid-cols-4 gap-2">
                                     <div>
                                         <Input
@@ -751,10 +785,6 @@ function CachingOptions({ form }) {
                                         <span className="text-xs text-gray-500">Seconds</span>
                                     </div>
                                 </div>
-                                <FormDescription>
-                                    Time to live for cached data (total: {calculateTotalSeconds()}{" "}
-                                    seconds)
-                                </FormDescription>
                                 <FormMessage />
                                 <input type="hidden" {...field} />
                             </FormItem>

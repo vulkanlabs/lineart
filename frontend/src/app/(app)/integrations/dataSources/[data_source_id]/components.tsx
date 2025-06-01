@@ -83,8 +83,8 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
     };
 
     // Prepare params for the params table
-    const sourceParams = dataSource.source.params
-        ? Object.entries(dataSource.source.params).map(([key, value]) => ({
+    const sourceParams = dataSource.source.query_params
+        ? Object.entries(dataSource.source.query_params).map(([key, value]) => ({
               key,
               value: typeof value === "object" ? JSON.stringify(value, null, 2) : String(value),
           }))
