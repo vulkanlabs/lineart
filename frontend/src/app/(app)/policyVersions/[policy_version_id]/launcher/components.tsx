@@ -30,6 +30,7 @@ type LauncherPageProps = {
     configVariables?: string[];
     launchFn: any;
 };
+
 export function LauncherPage({
     policyVersionId,
     inputSchema,

@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { KeyValueTable, keyValuePairsToMap } from "@/components/ui/key-value-table";
 import { createDataSourceAction } from "./actions";
 
 const formSchema = z.object({
@@ -76,7 +77,15 @@ const formSchema = z.object({
                 .transform((val) => (val ? parseInt(val) : undefined)),
         })
         .optional(),
-    metadata: z.string().optional().transform(parseJSON),
+    metadata: z
+        .array(
+            z.object({
+                key: z.string().default(""),
+                value: z.string().default(""),
+            }),
+        )
+        .optional()
+        .default(undefined),
 });
 
 function parseJSON(val: string) {
@@ -94,15 +103,6 @@ export function CreateDataSourceDialog() {
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState(1);
     const router = useRouter();
-
-    const metadataPlaceholderText = JSON.stringify(
-        {
-            owner: "team-name",
-            environment: "production",
-        },
-        null,
-        2,
-    );
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -127,7 +127,6 @@ export function CreateDataSourceDialog() {
                 enabled: false,
                 ttl: 0,
             },
-            metadata: "",
         },
         mode: "onChange",
     });
@@ -193,16 +192,14 @@ export function CreateDataSourceDialog() {
                 file_id: "",
             },
             description: data.description || null,
-            caching:
-                data.caching?.enabled || data.caching?.ttl
-                    ? {
-                          enabled: data.caching.enabled,
-                          ttl: data.caching.ttl,
-                      }
-                    : undefined,
-            metadata: data.metadata || null,
+            caching: {
+                enabled: data.caching.enabled,
+                ttl: data.caching.ttl,
+            },
+            metadata: keyValuePairsToMap(data.metadata),
         };
 
+        console.log("Data Source Spec:", JSON.stringify(dataSourceSpec, null, 2));
         await createDataSourceAction(dataSourceSpec)
             .then(() => {
                 setOpen(false);
@@ -287,14 +284,15 @@ export function CreateDataSourceDialog() {
                                         <FormItem>
                                             <FormLabel>Metadata</FormLabel>
                                             <FormControl>
-                                                <Textarea
-                                                    className="min-h-24 font-mono text-sm"
-                                                    placeholder={metadataPlaceholderText}
-                                                    {...field}
+                                                <KeyValueTable
+                                                    value={field.value}
+                                                    onChange={field.onChange}
+                                                    keyPlaceholder="Key"
+                                                    valuePlaceholder="Value"
                                                 />
                                             </FormControl>
                                             <FormDescription>
-                                                Additional metadata in JSON format (optional)
+                                                Additional metadata as key-value pairs (optional)
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>
@@ -386,7 +384,11 @@ function HTTPOptions({ form }) {
                     <FormItem>
                         <FormLabel>URL *</FormLabel>
                         <FormControl>
-                            <Input placeholder="https://api.example.com/data" {...field} />
+                            <Input
+                                placeholder="https://api.example.com/data"
+                                autoFocus
+                                {...field}
+                            />
                         </FormControl>
                         <FormDescription>Endpoint URL</FormDescription>
                         <FormMessage />
@@ -646,7 +648,7 @@ function CachingOptions({ form }) {
             setMinutes(m);
             setSeconds(s);
         }
-    }, [form.watch("caching.ttl")]);
+    }, [form]);
 
     // Calculate total seconds when any time unit changes
     const calculateTotalSeconds = useCallback(() => {
@@ -679,7 +681,11 @@ function CachingOptions({ form }) {
                                 </FormDescription>
                             </div>
                             <FormControl>
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                <Switch
+                                    autoFocus
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
                             </FormControl>
                         </FormItem>
                     )}
@@ -687,66 +693,74 @@ function CachingOptions({ form }) {
             </div>
 
             {isCachingEnabled && (
-                <FormField
-                    control={form.control}
-                    name="caching.ttl"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Cache TTL</FormLabel>
-                            <div className="grid grid-cols-4 gap-2">
-                                <div>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        placeholder="0"
-                                        value={days}
-                                        onChange={(e) => setDays(parseInt(e.target.value) || 0)}
-                                    />
-                                    <span className="text-xs text-gray-500">Days</span>
+                <>
+                    <FormField
+                        control={form.control}
+                        name="caching.ttl"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Cache TTL</FormLabel>
+                                <div className="grid grid-cols-4 gap-2">
+                                    <div>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            placeholder="0"
+                                            value={days}
+                                            onChange={(e) => setDays(parseInt(e.target.value) || 0)}
+                                        />
+                                        <span className="text-xs text-gray-500">Days</span>
+                                    </div>
+                                    <div>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            max="23"
+                                            placeholder="0"
+                                            value={hours}
+                                            onChange={(e) =>
+                                                setHours(parseInt(e.target.value) || 0)
+                                            }
+                                        />
+                                        <span className="text-xs text-gray-500">Hours</span>
+                                    </div>
+                                    <div>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            max="59"
+                                            placeholder="0"
+                                            value={minutes}
+                                            onChange={(e) =>
+                                                setMinutes(parseInt(e.target.value) || 0)
+                                            }
+                                        />
+                                        <span className="text-xs text-gray-500">Minutes</span>
+                                    </div>
+                                    <div>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            max="59"
+                                            placeholder="0"
+                                            value={seconds}
+                                            onChange={(e) =>
+                                                setSeconds(parseInt(e.target.value) || 0)
+                                            }
+                                        />
+                                        <span className="text-xs text-gray-500">Seconds</span>
+                                    </div>
                                 </div>
-                                <div>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        max="23"
-                                        placeholder="0"
-                                        value={hours}
-                                        onChange={(e) => setHours(parseInt(e.target.value) || 0)}
-                                    />
-                                    <span className="text-xs text-gray-500">Hours</span>
-                                </div>
-                                <div>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        max="59"
-                                        placeholder="0"
-                                        value={minutes}
-                                        onChange={(e) => setMinutes(parseInt(e.target.value) || 0)}
-                                    />
-                                    <span className="text-xs text-gray-500">Minutes</span>
-                                </div>
-                                <div>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        max="59"
-                                        placeholder="0"
-                                        value={seconds}
-                                        onChange={(e) => setSeconds(parseInt(e.target.value) || 0)}
-                                    />
-                                    <span className="text-xs text-gray-500">Seconds</span>
-                                </div>
-                            </div>
-                            <FormDescription>
-                                Time to live for cached data (total: {calculateTotalSeconds()}{" "}
-                                seconds)
-                            </FormDescription>
-                            <FormMessage />
-                            <input type="hidden" {...field} />
-                        </FormItem>
-                    )}
-                />
+                                <FormDescription>
+                                    Time to live for cached data (total: {calculateTotalSeconds()}{" "}
+                                    seconds)
+                                </FormDescription>
+                                <FormMessage />
+                                <input type="hidden" {...field} />
+                            </FormItem>
+                        )}
+                    />
+                </>
             )}
         </>
     );

@@ -239,6 +239,7 @@ class DataSource(TimedUpdateMixin, Base):
             source=self.source,
             caching=CachingOptions(
                 enabled=self.caching_enabled,
+                keys=self.keys,
                 ttl=self.caching_ttl,
             ),
             description=self.description,
