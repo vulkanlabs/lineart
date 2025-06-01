@@ -15,20 +15,27 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
+
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { LauncherFnParams } from "./types";
+import { Run } from "@vulkan-server/Run";
+import { Play } from "lucide-react";
+import { Sending } from "@/components/animations/sending";
 
+type LauncherPageProps = {
+    policyVersionId: string;
+    inputSchema: Map<string, string>;
+    configVariables?: string[];
+    launchFn: any;
+};
 export function LauncherPage({
     policyVersionId,
     inputSchema,
     configVariables,
     launchFn,
-}: {
-    policyVersionId: string;
-    inputSchema: Map<string, string>;
-    configVariables?: string[];
-    launchFn: any;
-}) {
+}: LauncherPageProps) {
     const [createdRun, setCreatedRun] = useState(null);
     const [error, setError] = useState<Error>(null);
 
@@ -37,7 +44,7 @@ export function LauncherPage({
             <h1 className="text-2xl font-bold tracking-tight">Launcher</h1>
             <div>
                 <LaunchRunForm
-                    policy_version_id={policyVersionId}
+                    policyVersionId={policyVersionId}
                     setCreatedRun={setCreatedRun}
                     setError={setError}
                     defaultInputData={asInputData(inputSchema)}
@@ -45,9 +52,65 @@ export function LauncherPage({
                     launchFn={launchFn}
                 />
             </div>
-            {createdRun && <RunCreatedCard createdRun={createdRun} />}
+            {createdRun && (
+                <RunCreatedCard createdRun={createdRun} closeDialog={() => setCreatedRun(null)} />
+            )}
             {error && <RunCreationErrorCard error={error} />}
         </div>
+    );
+}
+
+export function LauncherButton({
+    policyVersionId,
+    inputSchema,
+    configVariables,
+    launchFn,
+}: LauncherPageProps) {
+    const [createdRun, setCreatedRun] = useState(null);
+    const [error, setError] = useState<Error>(null);
+    const [open, setOpen] = useState(false);
+
+    const handleOpenChange = (open: boolean) => {
+        setOpen(open);
+        if (!open) {
+            setError(null);
+            setCreatedRun(null);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+                <Button variant="outline">
+                    <>
+                        <Play />
+                        <span>Launch Run</span>
+                    </>
+                </Button>
+            </DialogTrigger>
+            <DialogTitle className="sr-only">Launch a Run</DialogTitle>
+            <DialogContent className="md:max-w-[60%]">
+                {!error && !createdRun && (
+                    <LaunchRunForm
+                        policyVersionId={policyVersionId}
+                        launchFn={launchFn}
+                        defaultConfigVariables={asConfigMap(configVariables)}
+                        defaultInputData={asInputData(inputSchema)}
+                        setCreatedRun={setCreatedRun}
+                        setError={setError}
+                    />
+                )}
+                {error && <RunCreationErrorCard error={error} />}
+                {createdRun && (
+                    <RunCreatedCard
+                        createdRun={createdRun}
+                        closeDialog={() => {
+                            handleOpenChange(false);
+                        }}
+                    />
+                )}
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -60,16 +123,16 @@ const formSchema = z.object({
 });
 
 type LaunchRunFormProps = {
-    policy_version_id: string;
+    policyVersionId: string;
     defaultInputData: Object;
     defaultConfigVariables: Object;
     setCreatedRun: (run: any) => void;
     setError: (error: any) => void;
-    launchFn: any;
+    launchFn: (LauncherFnParams) => Promise<Run>;
 };
 
 function LaunchRunForm({
-    policy_version_id,
+    policyVersionId,
     defaultInputData,
     defaultConfigVariables,
     setCreatedRun,
@@ -77,7 +140,7 @@ function LaunchRunForm({
     launchFn,
 }: LaunchRunFormProps) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    const launchUrl = `${serverUrl}/policy-versions/${policy_version_id}/runs`;
+    const launchUrl = `${serverUrl}/policy-versions/${policyVersionId}/runs`;
 
     const form = useForm({
         resolver: zodResolver(formSchema),
@@ -105,8 +168,9 @@ function LaunchRunForm({
         setCreatedRun(null);
         launchFn({ launchUrl, body })
             .then((data) => {
-                setCreatedRun(data);
                 setError(null);
+                setCreatedRun(data);
+
                 return data;
             })
             .catch((error) => {
@@ -185,9 +249,12 @@ function LaunchRunFormCard({ form, onSubmit, submitting, setDefaults }) {
                         />
                         <div className="flex flex-row gap-4">
                             <Button type="submit" disabled={submitting}>
-                                Launch Run
+                                {submitting ? (
+                                    <Sending text={"Launching..."} />
+                                ) : (
+                                    <span>Launch Run</span>
+                                )}
                             </Button>
-                            {submitting && <p>Submitting...</p>}
                             <Button
                                 type="button"
                                 variant="secondary"
@@ -242,7 +309,7 @@ function asConfigMap(configVariables: string[]) {
     return Object.fromEntries(configVariables.map((key) => [key, ""]));
 }
 
-function RunCreatedCard({ createdRun }) {
+function RunCreatedCard({ createdRun, closeDialog }) {
     return (
         <Card className="flex flex-col w-fit border-green-600 border-2">
             <CardHeader>
@@ -251,7 +318,9 @@ function RunCreatedCard({ createdRun }) {
                     <Link
                         href={`/policyVersions/${createdRun.policy_version_id}/runs/${createdRun.run_id}`}
                     >
-                        <Button className="bg-green-600 hover:bg-green-500">View Run</Button>
+                        <Button className="bg-green-600 hover:bg-green-500" onClick={closeDialog}>
+                            View Run
+                        </Button>
                     </Link>
                 </CardDescription>
             </CardHeader>
