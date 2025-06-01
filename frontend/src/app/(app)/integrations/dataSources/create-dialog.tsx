@@ -35,9 +35,14 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { KeyValueTable, keyValuePairsToMap } from "@/components/ui/key-value-table";
+import {
+    KeyValueTable,
+    keyValuePairsFromObject,
+    keyValuePairsToMap,
+} from "@/components/ui/key-value-table";
 import { createDataSourceAction } from "./actions";
 import { ExpandableList, listToJsonString } from "@/components/ui/expandable-list";
+import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
 
 const formSchema = z.object({
     name: z
@@ -57,9 +62,9 @@ const formSchema = z.object({
             }),
         method: z.string().optional(),
         response_type: z.string().optional(),
-        path: z.string().optional().transform(parseJSON),
         headers: z.string().optional().transform(parseJSON),
-        params: z.string().optional().transform(parseJSON),
+        path_params: z.string().optional().transform(parseJSON),
+        query_params: z.string().optional().transform(parseJSON),
         body: z.string().optional().transform(parseJSON),
         timeout: z.number().optional(),
         retry: z
@@ -115,9 +120,9 @@ export function CreateDataSourceDialog() {
                 url: "",
                 method: "GET",
                 response_type: "JSON",
-                path: "",
                 headers: "",
-                params: "",
+                path_params: "",
+                query_params: "",
                 body: "",
                 timeout: 5000,
                 retry: {
@@ -173,7 +178,7 @@ export function CreateDataSourceDialog() {
         setStep((prevStep) => Math.max(prevStep - 1, 1));
     };
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: DataSourceSpec) => {
         // Only process submission on the final step
         if (step !== 3) {
             return;
@@ -188,8 +193,8 @@ export function CreateDataSourceDialog() {
                 method: data.source.method,
                 response_type: data.source.response_type,
                 headers: data.source.headers,
-                path_params: data.source.path,
-                query_params: data.source.params,
+                path_params: data.source.path_params,
+                query_params: data.source.query_params,
                 body: data.source.body,
                 timeout: data.source.timeout,
                 retry: data.source.retry,
@@ -202,7 +207,7 @@ export function CreateDataSourceDialog() {
                 enabled: data.caching.enabled,
                 ttl: data.caching.ttl,
             },
-            metadata: keyValuePairsToMap(data.metadata),
+            metadata: keyValuePairsToMap(keyValuePairsFromObject(data.metadata)),
         };
 
         console.log("Data Source Spec:", JSON.stringify(dataSourceSpec, null, 2));
@@ -475,7 +480,7 @@ function HTTPOptions({ form }) {
 
             <FormField
                 control={form.control}
-                name="source.path"
+                name="source.path_params"
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Path</FormLabel>
@@ -500,7 +505,7 @@ function HTTPOptions({ form }) {
 
             <FormField
                 control={form.control}
-                name="source.params"
+                name="source.query_params"
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Query Parameters</FormLabel>

@@ -38,6 +38,8 @@ import { setDataSourceEnvVars, fetchDataSourceEnvVars } from "@/lib/api";
 export default function DataSourcePage({ dataSource }: { dataSource: DataSource }) {
     const [copiedField, setCopiedField] = useState<string | null>(null);
 
+    console.log("Retrieved Data Source Spec: ", dataSource);
+
     const copyToClipboard = (text: string, field: string) => {
         navigator.clipboard.writeText(text);
         setCopiedField(field);
@@ -83,7 +85,14 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
     };
 
     // Prepare params for the params table
-    const sourceParams = dataSource.source.query_params
+    const sourcePathParams = dataSource.source.path_params
+        ? Object.entries(dataSource.source.path_params).map(([key, value]) => ({
+              key,
+              value: JSON.stringify(value, null, 2),
+          }))
+        : [];
+
+    const sourceQueryParams = dataSource.source.query_params
         ? Object.entries(dataSource.source.query_params).map(([key, value]) => ({
               key,
               value: typeof value === "object" ? JSON.stringify(value, null, 2) : String(value),
@@ -258,10 +267,24 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
                                     )}
                                 </div>
 
-                                {sourceParams.length > 0 ? (
+                                {sourcePathParams.length > 0 ? (
+                                    <div className="mt-6">
+                                        <p className="text-sm font-medium mb-2">Path Parameters</p>
+                                        <ParamsTable params={sourcePathParams} />
+                                    </div>
+                                ) : (
+                                    <div className="mt-6">
+                                        <p className="text-sm font-medium mb-2">Path Parameters</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            No path parameters provided.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {sourceQueryParams.length > 0 ? (
                                     <div className="mt-6">
                                         <p className="text-sm font-medium mb-2">Query Parameters</p>
-                                        <ParamsTable params={sourceParams} />
+                                        <ParamsTable params={sourceQueryParams} />
                                     </div>
                                 ) : (
                                     <div className="mt-6">

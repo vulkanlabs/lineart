@@ -14,11 +14,13 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
+type NameTypeTuple = [name: string, type: "FIXED" | "ENVIRONMENT" | "RUNTIME"];
+
 export interface ExpandableListProps {
-    /** Array of string values */
-    value?: string[];
+    /** Array of name-type tuples */
+    value?: NameTypeTuple[];
     /** Called when the list items change */
-    onChange?: (items: string[]) => void;
+    onChange?: (items: NameTypeTuple[]) => void;
     /** Placeholder text for the input */
     placeholder?: string;
     /** Whether the table is disabled */
@@ -41,23 +43,23 @@ export function ExpandableList({
     className,
     label = "Value",
 }: ExpandableListProps) {
-    const [items, setItems] = useState<string[]>(() => {
+    const [items, setItems] = useState<NameTypeTuple[]>(() => {
         if (value == null || value.length === 0) {
             return [];
         }
-        return value.map((item) => item || "");
+        return value.map((item) => item || (["", "FIXED"] as NameTypeTuple));
     });
 
     const updateItems = useCallback(
-        (newItems: string[]) => {
+        (newItems: NameTypeTuple[]) => {
             setItems(newItems);
-            onChange?.(newItems.filter((item) => (item || "").trim() !== ""));
+            onChange?.(newItems.filter(([itemName, itemType]) => (itemName || "").trim() !== ""));
         },
         [onChange],
     );
 
     const handleItemChange = useCallback(
-        (index: number, newValue: string) => {
+        (index: number, newValue: NameTypeTuple) => {
             const newItems = [...items];
             newItems[index] = newValue;
             updateItems(newItems);
@@ -66,7 +68,7 @@ export function ExpandableList({
     );
 
     const addRow = useCallback(() => {
-        updateItems([...items, ""]);
+        updateItems([...items, ["", "FIXED"] as NameTypeTuple]);
     }, [items, updateItems]);
 
     const removeRow = useCallback(
@@ -93,15 +95,23 @@ export function ExpandableList({
                             <TableRow key={index}>
                                 <TableCell className="p-2">
                                     <Input
-                                        value={item}
-                                        onChange={(e) => handleItemChange(index, e.target.value)}
+                                        value={item[0]}
+                                        onChange={(e) =>
+                                            handleItemChange(index, [e.target.value, item[1]])
+                                        }
                                         placeholder={placeholder}
                                         disabled={disabled}
                                         className="border-0 shadow-none focus-visible:ring-0 bg-transparent"
                                     />
                                 </TableCell>
                                 <TableCell className="p-2">
-                                    <SelectableType disabled={disabled} />
+                                    <SelectableType
+                                        disabled={disabled}
+                                        value={item[1]}
+                                        onChange={(newType) =>
+                                            handleItemChange(index, [item[0], newType])
+                                        }
+                                    />
                                 </TableCell>
                                 <TableCell className="p-2 text-center">
                                     <Button
@@ -122,30 +132,34 @@ export function ExpandableList({
                 </Table>
             </div>
 
-            {
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addRow}
-                    disabled={disabled}
-                    className="w-full"
-                >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Item
-                </Button>
-            }
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addRow}
+                disabled={disabled}
+                className="w-full"
+            >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item
+            </Button>
         </div>
     );
 }
 
-function SelectableType({ disabled = false }: { disabled?: boolean }) {
-    const [value, setValue] = useState<string>("FIXED");
-
+function SelectableType({
+    disabled = false,
+    value,
+    onChange,
+}: {
+    disabled?: boolean;
+    value: "FIXED" | "ENVIRONMENT" | "RUNTIME";
+    onChange: (value: "FIXED" | "ENVIRONMENT" | "RUNTIME") => void;
+}) {
     return (
-        <Select value={value} onValueChange={setValue} disabled={disabled}>
+        <Select value={value} onValueChange={onChange} disabled={disabled}>
             <SelectTrigger>
-                <SelectValue placeholder="Select HTTP method" />
+                <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
                 <SelectItem value="FIXED">Fixed</SelectItem>
@@ -157,28 +171,33 @@ function SelectableType({ disabled = false }: { disabled?: boolean }) {
 }
 
 /**
- * Utility function to convert array of strings to JSON string
+ * Utility function to convert array of tuples to JSON string
  */
-export function listToJsonString(items: string[]): string {
+export function listToJsonString(items: NameTypeTuple[]): string {
     if (items == null || items.length === 0) {
         return "[]";
     }
     if (!Array.isArray(items)) {
-        throw new Error("Input must be an array of strings");
+        throw new Error("Input must be an array of tuples");
     }
 
-    console.log("passing items to JSON string:", items);
-    return JSON.stringify(items.filter((item) => item.trim() !== ""));
+    // TODO: handle different param types.
+    return JSON.stringify(items.filter(([name]) => name.trim() !== ""));
 }
 
 /**
- * Utility function to convert JSON string to array of strings
+ * Utility function to convert JSON string to array of tuples
  */
-export function jsonStringToList(jsonString: string): string[] {
+export function jsonStringToExpandableList(jsonString: string): NameTypeTuple[] {
     try {
         const parsed = JSON.parse(jsonString);
         if (Array.isArray(parsed)) {
-            return parsed.map((item) => (typeof item === "string" ? item : String(item)));
+            return parsed.map((item) => {
+                if (Array.isArray(item) && item.length >= 2) {
+                    return [String(item[0]), item[1] || "FIXED"] as NameTypeTuple;
+                }
+                return ["", "FIXED"] as NameTypeTuple;
+            });
         }
         return [];
     } catch (error) {

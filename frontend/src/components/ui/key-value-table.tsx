@@ -156,6 +156,16 @@ export function KeyValueTable({
         </div>
     );
 }
+// FIXME: hideous
+export function keyValuePairsFromObject(obj: Record<string, any>): KeyValuePair[] {
+    if (obj == null || Object.keys(obj).length === 0) {
+        return [];
+    }
+    return Object.entries(obj).map(([key, value]) => ({
+        key,
+        value: typeof value === "string" ? value : JSON.stringify(value),
+    }));
+}
 
 /**
  * Utility function to convert key-value pairs to a map object
