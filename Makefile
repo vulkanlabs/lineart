@@ -26,7 +26,6 @@ up:
 .PHONY: run
 run: config
 	docker-compose up -d
-	cd frontend && npm install && npm run dev
 
 # Code generation for frontend types
 .PHONY: openapi

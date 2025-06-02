@@ -10,8 +10,6 @@ services:
     depends_on:
       app-db:
         condition: service_healthy
-    volumes:
-      - ${HOME}/.config/gcloud/application_default_credentials.json:/opt/keys/application-default-credentials.json
   app-db:
     image: postgres:16.3
     env_file:
@@ -31,9 +29,6 @@ services:
   dagster:
     image: ghcr.io/vulkanlabs/dagster:latest
     init: true
-    ports:
-      - "3000:3000"
-      - "3001:3001"
     env_file:
       - config/active/dagster.env
       - config/active/.env
