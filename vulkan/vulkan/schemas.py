@@ -1,6 +1,11 @@
 from pydantic import BaseModel, Field
 
-from vulkan.data_source import HTTPSource, LocalFileSource, RegisteredFileSource
+from vulkan.data_source import (
+    BaseType,
+    HTTPSource,
+    LocalFileSource,
+    RegisteredFileSource,
+)
 
 
 class CachingTTL(BaseModel):
@@ -36,6 +41,9 @@ class DataSourceSpec(BaseModel):
     def extract_runtime_params(self) -> list[str]:
         return self.source.extract_runtime_params()
 
+    def extract_fixed_values(self) -> dict[str, BaseType]:
+        return self.source.extract_fixed_values()
+
 
 class BacktestOptions(BaseModel):
     target_column: str
@@ -48,6 +56,11 @@ class BacktestOptions(BaseModel):
 class PolicyRunPartition(BaseModel):
     policy_version_id: str
     frequency: int = Field(gt=0, le=1000)
+
+
+class PolicyAllocationStrategy(BaseModel):
+    choice: list[PolicyRunPartition]
+    shadow: list[str] | None = None
 
 
 class PolicyAllocationStrategy(BaseModel):

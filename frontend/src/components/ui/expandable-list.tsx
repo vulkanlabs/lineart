@@ -170,9 +170,6 @@ function SelectableType({
     );
 }
 
-/**
- * Utility function to convert array of tuples to JSON string
- */
 export function listToJsonString(items: NameTypeTuple[]): string {
     if (items == null || items.length === 0) {
         return "[]";
@@ -181,26 +178,39 @@ export function listToJsonString(items: NameTypeTuple[]): string {
         throw new Error("Input must be an array of tuples");
     }
 
-    // TODO: handle different param types.
-    return JSON.stringify(items.filter(([name]) => name.trim() !== ""));
+    const formattedVariables = items
+        .filter(([itemName]) => itemName.trim() !== "")
+        .map(([itemName, itemType]) => {
+            if (itemType === "ENVIRONMENT") {
+                return { env: itemName };
+            }
+            if (itemType === "RUNTIME") {
+                return { param: itemName };
+            }
+            // Default case for "FIXED"
+            return { value: itemName }; // Default case
+        });
+    return JSON.stringify(formattedVariables);
 }
 
-/**
- * Utility function to convert JSON string to array of tuples
- */
 export function jsonStringToExpandableList(jsonString: string): NameTypeTuple[] {
-    try {
-        const parsed = JSON.parse(jsonString);
-        if (Array.isArray(parsed)) {
-            return parsed.map((item) => {
-                if (Array.isArray(item) && item.length >= 2) {
-                    return [String(item[0]), item[1] || "FIXED"] as NameTypeTuple;
-                }
-                return ["", "FIXED"] as NameTypeTuple;
-            });
-        }
+    const parsed = JSON.parse(jsonString).catch(() => {
         return [];
-    } catch (error) {
+    });
+    if (!Array.isArray(parsed)) {
         return [];
     }
+
+    return parsed.map((item) => {
+        if (item.env) {
+            return [item.env, "ENVIRONMENT"] as NameTypeTuple;
+        }
+        if (item.param) {
+            return [item.param, "RUNTIME"] as NameTypeTuple;
+        }
+        if (item.value) {
+            return [item.value, "FIXED"] as NameTypeTuple;
+        }
+        return ["", "FIXED"] as NameTypeTuple; // Default case for empty or unknown items
+    });
 }

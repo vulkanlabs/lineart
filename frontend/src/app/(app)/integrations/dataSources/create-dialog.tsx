@@ -43,6 +43,7 @@ import {
 import { createDataSourceAction } from "./actions";
 import { ExpandableList, listToJsonString } from "@/components/ui/expandable-list";
 import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
+import { DataSource } from "@vulkan-server/DataSource";
 
 const formSchema = z.object({
     name: z
@@ -69,7 +70,7 @@ const formSchema = z.object({
         timeout: z.number().optional(),
         retry: z
             .object({
-                max_retries: z.number().optional(),
+                max_retries: z.number(),
                 backoff_factor: z.number().optional(),
                 status_forcelist: z.array(z.number()).optional(),
             })
@@ -178,7 +179,7 @@ export function CreateDataSourceDialog() {
         setStep((prevStep) => Math.max(prevStep - 1, 1));
     };
 
-    const onSubmit = async (data: DataSourceSpec) => {
+    const onSubmit = async (data: any) => {
         // Only process submission on the final step
         if (step !== 3) {
             return;
@@ -186,7 +187,7 @@ export function CreateDataSourceDialog() {
 
         console.log("Submitting Data Source:", data);
 
-        const dataSourceSpec = {
+        const dataSourceSpec: DataSourceSpec = {
             name: data.name,
             source: {
                 url: data.source.url,

@@ -12,8 +12,6 @@ import {
     EditIcon,
     SaveIcon,
     XIcon,
-    PlusIcon,
-    TrashIcon,
     EyeIcon,
     EyeOffIcon,
 } from "lucide-react";
@@ -533,7 +531,7 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
                 <div>
                     <h4 className="text-sm font-medium mb-3">Runtime Parameters</h4>
                     <p className="text-xs text-muted-foreground mb-3">
-                        These parameters are configured on data-input nodes in workflows.
+                        These parameters are configured in the workflows that use the data source.
                     </p>
                     {runtimeParams.length > 0 ? (
                         <div className="space-y-2">
@@ -544,7 +542,6 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
                                         border-l-2 border-blue-500"
                                 >
                                     <span className="text-sm font-medium">{param}</span>
-                                    <Badge variant="secondary">Runtime</Badge>
                                 </div>
                             ))}
                         </div>

@@ -65,7 +65,8 @@ def create_data_source(
         .first()
     )
     if ds is not None:
-        raise HTTPException(status_code=400, detail="Data source already exists")
+        msg = f"A Data Source with this name already exists: {spec.name}"
+        raise HTTPException(status_code=400, detail=msg)
 
     if spec.source.source_type == DataSourceType.LOCAL_FILE:
         msg = "Local file data sources are not supported for remote execution"
@@ -81,7 +82,7 @@ def create_data_source(
             msg = f"Uploaded file {spec.source.file_id} not found"
             raise HTTPException(status_code=400, detail=msg)
 
-        spec.source.path_params = uploaded_file.file_path
+        spec.source.path = uploaded_file.file_path
 
     data_source = DataSource.from_spec(spec)
     db.add(data_source)
