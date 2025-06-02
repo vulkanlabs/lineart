@@ -61,8 +61,3 @@ class PolicyRunPartition(BaseModel):
 class PolicyAllocationStrategy(BaseModel):
     choice: list[PolicyRunPartition]
     shadow: list[str] | None = None
-
-
-class PolicyAllocationStrategy(BaseModel):
-    choice: list[PolicyRunPartition]
-    shadow: list[str] | None = None
