@@ -19,7 +19,7 @@ def make_request(
     session.mount("http://", adapter)
 
     headers = _configure_fields(source.headers, node_variables, env_variables)
-    params = _configure_fields(source.params, node_variables, env_variables)
+    params = _configure_fields(source.query_params, node_variables, env_variables)
     body = _configure_fields(source.body, node_variables, env_variables)
 
     if source.headers.get("Content-Type") == "application/json":

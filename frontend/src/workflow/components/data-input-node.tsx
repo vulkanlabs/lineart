@@ -44,13 +44,13 @@ export function DataInputNode({ id, data, selected, height, width }: NodeProps<V
                 });
                 setDataSources(
                     sources.reduce((acc: Record<string, DataSource>, source: DataSource) => {
-                        acc[source.data_source_id] = source;
+                        acc[source.name] = source;
                         return acc;
                     }, {}),
                 );
                 setDataSourcesMap(
                     sources.map((source: any) => ({
-                        value: source.data_source_id,
+                        value: source.name,
                         label: source.name || source.data_source_id,
                     })),
                 );

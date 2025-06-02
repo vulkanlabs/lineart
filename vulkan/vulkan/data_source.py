@@ -14,7 +14,12 @@ class RunTimeParam(BaseModel):
     param: str
 
 
-ConfigurableMapping = dict[str, BaseType | list[BaseType] | EnvVarConfig | RunTimeParam]
+class FixedValue(BaseModel):
+    value: BaseType
+
+
+ParameterType = BaseType | list[BaseType] | EnvVarConfig | RunTimeParam
+ConfigurableMapping = dict[str, ParameterType]
 
 
 class DataSourceType(Enum):
@@ -25,11 +30,15 @@ class DataSourceType(Enum):
 
 class SourceSpecBase(ABC):
     @abstractmethod
-    def extract_env_vars(self) -> dict:
+    def extract_env_vars(self) -> list[str]:
         pass
 
     @abstractmethod
-    def extract_runtime_params(self) -> dict:
+    def extract_runtime_params(self) -> list[str]:
+        pass
+
+    @abstractmethod
+    def extract_fixed_values(self) -> list[str]:
         pass
 
     @property
@@ -48,6 +57,9 @@ class RegisteredFileSource(BaseModel, SourceSpecBase):
     def extract_runtime_params(self) -> list[str]:
         return []
 
+    def extract_fixed_values(self) -> list[str]:
+        return []
+
     @property
     def source_type(self) -> DataSourceType:
         return DataSourceType.REGISTERED_FILE
@@ -60,6 +72,9 @@ class LocalFileSource(BaseModel):
         return []
 
     def extract_runtime_params(self) -> list[str]:
+        return []
+
+    def extract_fixed_values(self) -> list[str]:
         return []
 
     @property
@@ -84,23 +99,41 @@ class HTTPSource(BaseModel, SourceSpecBase):
     url: str
     method: str = "GET"
     headers: ConfigurableMapping | None = dict()
-    params: ConfigurableMapping | None = dict()
+    path_params: list[ConfigurableMapping] | None = None
+    query_params: ConfigurableMapping | None = dict()
     body: ConfigurableMapping | None = dict()
     timeout: int | None = None
     retry: RetryPolicy | None = RetryPolicy(max_retries=1)
     response_type: str | None = ResponseType.PLAIN_TEXT.value
 
+    def extract_fixed_values(self) -> list[str]:
+        fixed_values = []
+        if self.path_params is not None:
+            fixed_values += [
+                v.value for v in self.path_params if isinstance(v, FixedValue)
+            ]
+        for spec in [self.headers, self.query_params, self.body]:
+            if spec is not None:
+                fixed_values += [
+                    v.value for v in spec.values() if isinstance(v, FixedValue)
+                ]
+        return fixed_values
+
     def extract_env_vars(self) -> list[str]:
         env_vars = []
-        for spec in [self.headers, self.params, self.body]:
-            if spec:
+        if self.path_params is not None:
+            env_vars += [v.env for v in self.path_params if isinstance(v, EnvVarConfig)]
+        for spec in [self.headers, self.query_params, self.body]:
+            if spec is not None:
                 env_vars += _extract_env_vars(spec)
         return env_vars
 
     def extract_runtime_params(self) -> list[str]:
         params = []
-        for spec in [self.headers, self.params, self.body]:
-            if spec:
+        if self.path_params is not None:
+            params += [v for v in self.path_params if isinstance(v, RunTimeParam)]
+        for spec in [self.headers, self.query_params, self.body]:
+            if spec is not None:
                 params += [
                     v.param for v in spec.values() if isinstance(v, RunTimeParam)
                 ]

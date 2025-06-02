@@ -62,6 +62,8 @@ class BeamInput(InputNode, BeamNode):
         )
 
 
+# TODO: this handler needs the data source keys to retrieve
+# specific rows from the request.
 class _FileHandler(EnrichmentSourceHandler):
     def __init__(
         self, context: VulkanExecutionContext, source: str, path: str, keys: str
@@ -199,7 +201,6 @@ class BeamDataInput(DataInputNode, BeamNode):
                 self.context,
                 self.data_source,
                 self.spec.source.path,
-                self.spec.keys,
             )
         else:
             raise NotImplementedError(

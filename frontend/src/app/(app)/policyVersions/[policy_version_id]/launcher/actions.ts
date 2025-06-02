@@ -1,15 +1,13 @@
 "use server";
+import { Run } from "@vulkan-server/Run";
+import { LauncherFnParams } from "./types";
+
 export async function postLaunchFormAction({
     launchUrl,
     body,
     headers,
     label,
-}: {
-    launchUrl: string;
-    body: any;
-    headers: any;
-    label?: string;
-}) {
+}: LauncherFnParams): Promise<Run> {
     return fetch(launchUrl, {
         method: "POST",
         headers: {
@@ -34,16 +32,14 @@ export async function postLaunchFormAction({
                     throw new Error(errorObjAsString);
                 }
 
-                throw new Error("Failed to create Run: " + response, { cause: response });
+                throw new Error("Failed to create Run: " + JSON.stringify(responseBody, null, 2));
             }
-            const data = await response.json();
+            const data: Run = await response.json();
             return data;
         })
         .catch((error) => {
-            const baseMsg = "Error fetching data";
+            const baseMsg = error.message;
             const errorMsg = label ? `${baseMsg}: ${label}` : baseMsg;
-            throw new Error(errorMsg, {
-                cause: error,
-            });
+            throw new Error(errorMsg, { cause: error });
         });
 }

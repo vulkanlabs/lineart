@@ -35,7 +35,15 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import {
+    KeyValueTable,
+    keyValuePairsFromObject,
+    keyValuePairsToMap,
+} from "@/components/ui/key-value-table";
 import { createDataSourceAction } from "./actions";
+import { ExpandableList, listToJsonString } from "@/components/ui/expandable-list";
+import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
+import { DataSource } from "@vulkan-server/DataSource";
 
 const formSchema = z.object({
     name: z
@@ -56,12 +64,13 @@ const formSchema = z.object({
         method: z.string().optional(),
         response_type: z.string().optional(),
         headers: z.string().optional().transform(parseJSON),
-        params: z.string().optional().transform(parseJSON),
+        path_params: z.string().optional().transform(parseJSON),
+        query_params: z.string().optional().transform(parseJSON),
         body: z.string().optional().transform(parseJSON),
         timeout: z.number().optional(),
         retry: z
             .object({
-                max_retries: z.number().optional(),
+                max_retries: z.number(),
                 backoff_factor: z.number().optional(),
                 status_forcelist: z.array(z.number()).optional(),
             })
@@ -76,7 +85,15 @@ const formSchema = z.object({
                 .transform((val) => (val ? parseInt(val) : undefined)),
         })
         .optional(),
-    metadata: z.string().optional().transform(parseJSON),
+    metadata: z
+        .array(
+            z.object({
+                key: z.string().default(""),
+                value: z.string().default(""),
+            }),
+        )
+        .optional()
+        .default(undefined),
 });
 
 function parseJSON(val: string) {
@@ -95,15 +112,6 @@ export function CreateDataSourceDialog() {
     const [step, setStep] = useState(1);
     const router = useRouter();
 
-    const metadataPlaceholderText = JSON.stringify(
-        {
-            owner: "team-name",
-            environment: "production",
-        },
-        null,
-        2,
-    );
-
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -114,7 +122,8 @@ export function CreateDataSourceDialog() {
                 method: "GET",
                 response_type: "JSON",
                 headers: "",
-                params: "",
+                path_params: "",
+                query_params: "",
                 body: "",
                 timeout: 5000,
                 retry: {
@@ -127,7 +136,6 @@ export function CreateDataSourceDialog() {
                 enabled: false,
                 ttl: 0,
             },
-            metadata: "",
         },
         mode: "onChange",
     });
@@ -177,14 +185,17 @@ export function CreateDataSourceDialog() {
             return;
         }
 
-        const dataSourceSpec = {
+        console.log("Submitting Data Source:", data);
+
+        const dataSourceSpec: DataSourceSpec = {
             name: data.name,
             source: {
                 url: data.source.url,
                 method: data.source.method,
                 response_type: data.source.response_type,
                 headers: data.source.headers,
-                params: data.source.params,
+                path_params: data.source.path_params,
+                query_params: data.source.query_params,
                 body: data.source.body,
                 timeout: data.source.timeout,
                 retry: data.source.retry,
@@ -193,16 +204,14 @@ export function CreateDataSourceDialog() {
                 file_id: "",
             },
             description: data.description || null,
-            caching:
-                data.caching?.enabled || data.caching?.ttl
-                    ? {
-                          enabled: data.caching.enabled,
-                          ttl: data.caching.ttl,
-                      }
-                    : undefined,
-            metadata: data.metadata || null,
+            caching: {
+                enabled: data.caching.enabled,
+                ttl: data.caching.ttl,
+            },
+            metadata: keyValuePairsToMap(keyValuePairsFromObject(data.metadata)),
         };
 
+        console.log("Data Source Spec:", JSON.stringify(dataSourceSpec, null, 2));
         await createDataSourceAction(dataSourceSpec)
             .then(() => {
                 setOpen(false);
@@ -245,12 +254,12 @@ export function CreateDataSourceDialog() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel htmlFor="name">Name *</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="" type="text" {...field} />
-                                            </FormControl>
                                             <FormDescription>
                                                 Name of the new Data Source
                                             </FormDescription>
+                                            <FormControl>
+                                                <Input placeholder="" type="text" {...field} />
+                                            </FormControl>
                                             <FormMessage>
                                                 {form.formState.errors.name?.message}
                                             </FormMessage>
@@ -264,15 +273,15 @@ export function CreateDataSourceDialog() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel htmlFor="description">Description</FormLabel>
+                                            <FormDescription>
+                                                Description of the new Data Source (optional)
+                                            </FormDescription>
                                             <FormControl>
                                                 <Textarea
                                                     placeholder="A brand new data source."
                                                     {...field}
                                                 />
                                             </FormControl>
-                                            <FormDescription>
-                                                Description of the new Data Source (optional)
-                                            </FormDescription>
                                             <FormMessage>
                                                 {form.formState.errors.description?.message}
                                             </FormMessage>
@@ -286,16 +295,17 @@ export function CreateDataSourceDialog() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Metadata</FormLabel>
+                                            <FormDescription>
+                                                Additional metadata as key-value pairs (optional)
+                                            </FormDescription>
                                             <FormControl>
-                                                <Textarea
-                                                    className="min-h-24 font-mono text-sm"
-                                                    placeholder={metadataPlaceholderText}
-                                                    {...field}
+                                                <KeyValueTable
+                                                    value={field.value}
+                                                    onChange={field.onChange}
+                                                    keyPlaceholder="Key"
+                                                    valuePlaceholder="Value"
                                                 />
                                             </FormControl>
-                                            <FormDescription>
-                                                Additional metadata in JSON format (optional)
-                                            </FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -385,10 +395,14 @@ function HTTPOptions({ form }) {
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>URL *</FormLabel>
-                        <FormControl>
-                            <Input placeholder="https://api.example.com/data" {...field} />
-                        </FormControl>
                         <FormDescription>Endpoint URL</FormDescription>
+                        <FormControl>
+                            <Input
+                                placeholder="https://api.example.com/data"
+                                autoFocus
+                                {...field}
+                            />
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -401,6 +415,7 @@ function HTTPOptions({ form }) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Method</FormLabel>
+                            <FormDescription>HTTP method for the request</FormDescription>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
@@ -414,10 +429,8 @@ function HTTPOptions({ form }) {
                                     <SelectItem value="PATCH">PATCH</SelectItem>
                                     <SelectItem value="DELETE">DELETE</SelectItem>
                                     <SelectItem value="HEAD">HEAD</SelectItem>
-                                    <SelectItem value="OPTIONS">OPTIONS</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <FormDescription>HTTP method for the request</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -429,6 +442,7 @@ function HTTPOptions({ form }) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Response Type</FormLabel>
+                            <FormDescription>Expected response content type</FormDescription>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
@@ -442,7 +456,6 @@ function HTTPOptions({ form }) {
                                     <SelectItem value="PLAIN_TEXT">Plain Text</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <FormDescription>Expected response content type</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -456,10 +469,10 @@ function HTTPOptions({ form }) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Timeout (ms)</FormLabel>
+                            <FormDescription>Request timeout in milliseconds</FormDescription>
                             <FormControl>
                                 <Input type="number" min="0" placeholder="5000" {...field} />
                             </FormControl>
-                            <FormDescription>Request timeout in milliseconds</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -468,10 +481,36 @@ function HTTPOptions({ form }) {
 
             <FormField
                 control={form.control}
-                name="source.params"
+                name="source.path_params"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Path</FormLabel>
+                        <FormDescription>
+                            {`Path parameters to append to the URL, eg. /resource/{resourceId}`}
+                        </FormDescription>
+                        <FormControl>
+                            <ExpandableList
+                                value={field.value || []}
+                                onChange={(fieldValue) => {
+                                    field.onChange(listToJsonString(fieldValue));
+                                }}
+                                placeholder="Parameter value or variable name"
+                                disabled={false}
+                                label="Path Parameters"
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            <FormField
+                control={form.control}
+                name="source.query_params"
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Query Parameters</FormLabel>
+                        <FormDescription>Query parameters in JSON format</FormDescription>
                         <FormControl>
                             <Textarea
                                 className="min-h-24 font-mono text-sm"
@@ -479,7 +518,6 @@ function HTTPOptions({ form }) {
                                 {...field}
                             />
                         </FormControl>
-                        <FormDescription>Query parameters in JSON format</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -491,6 +529,7 @@ function HTTPOptions({ form }) {
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Headers</FormLabel>
+                        <FormDescription>HTTP headers in JSON format</FormDescription>
                         <FormControl>
                             <Textarea
                                 className="min-h-24 font-mono text-sm"
@@ -498,7 +537,6 @@ function HTTPOptions({ form }) {
                                 {...field}
                             />
                         </FormControl>
-                        <FormDescription>HTTP headers in JSON format</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -510,6 +548,7 @@ function HTTPOptions({ form }) {
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Body</FormLabel>
+                        <FormDescription>HTTP body in JSON format</FormDescription>
                         <FormControl>
                             <Textarea
                                 className="min-h-24 font-mono text-sm"
@@ -517,7 +556,6 @@ function HTTPOptions({ form }) {
                                 {...field}
                             />
                         </FormControl>
-                        <FormDescription>HTTP body in JSON format</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -545,6 +583,9 @@ function HTTPOptions({ form }) {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Max Retries</FormLabel>
+                                        <FormDescription>
+                                            Maximum number of retry attempts
+                                        </FormDescription>
                                         <FormControl>
                                             <Input
                                                 type="number"
@@ -556,9 +597,6 @@ function HTTPOptions({ form }) {
                                                 }
                                             />
                                         </FormControl>
-                                        <FormDescription>
-                                            Maximum number of retry attempts
-                                        </FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -570,6 +608,9 @@ function HTTPOptions({ form }) {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Backoff Factor</FormLabel>
+                                        <FormDescription>
+                                            Exponential backoff multiplier
+                                        </FormDescription>
                                         <FormControl>
                                             <Input
                                                 type="number"
@@ -582,9 +623,6 @@ function HTTPOptions({ form }) {
                                                 }
                                             />
                                         </FormControl>
-                                        <FormDescription>
-                                            Exponential backoff multiplier
-                                        </FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -596,6 +634,9 @@ function HTTPOptions({ form }) {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Status Force List</FormLabel>
+                                        <FormDescription>
+                                            HTTP status codes to retry (comma-separated)
+                                        </FormDescription>
                                         <FormControl>
                                             <Input
                                                 placeholder="500,502,503,504"
@@ -610,9 +651,6 @@ function HTTPOptions({ form }) {
                                                 }}
                                             />
                                         </FormControl>
-                                        <FormDescription>
-                                            HTTP status codes to retry (comma-separated)
-                                        </FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -646,7 +684,7 @@ function CachingOptions({ form }) {
             setMinutes(m);
             setSeconds(s);
         }
-    }, [form.watch("caching.ttl")]);
+    }, [form]);
 
     // Calculate total seconds when any time unit changes
     const calculateTotalSeconds = useCallback(() => {
@@ -679,7 +717,11 @@ function CachingOptions({ form }) {
                                 </FormDescription>
                             </div>
                             <FormControl>
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                <Switch
+                                    autoFocus
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
                             </FormControl>
                         </FormItem>
                     )}
@@ -687,66 +729,74 @@ function CachingOptions({ form }) {
             </div>
 
             {isCachingEnabled && (
-                <FormField
-                    control={form.control}
-                    name="caching.ttl"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Cache TTL</FormLabel>
-                            <div className="grid grid-cols-4 gap-2">
-                                <div>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        placeholder="0"
-                                        value={days}
-                                        onChange={(e) => setDays(parseInt(e.target.value) || 0)}
-                                    />
-                                    <span className="text-xs text-gray-500">Days</span>
+                <>
+                    <FormField
+                        control={form.control}
+                        name="caching.ttl"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Cache TTL</FormLabel>
+                                <FormDescription>
+                                    Time to live for cached data (total: {calculateTotalSeconds()}{" "}
+                                    seconds)
+                                </FormDescription>
+                                <div className="grid grid-cols-4 gap-2">
+                                    <div>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            placeholder="0"
+                                            value={days}
+                                            onChange={(e) => setDays(parseInt(e.target.value) || 0)}
+                                        />
+                                        <span className="text-xs text-gray-500">Days</span>
+                                    </div>
+                                    <div>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            max="23"
+                                            placeholder="0"
+                                            value={hours}
+                                            onChange={(e) =>
+                                                setHours(parseInt(e.target.value) || 0)
+                                            }
+                                        />
+                                        <span className="text-xs text-gray-500">Hours</span>
+                                    </div>
+                                    <div>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            max="59"
+                                            placeholder="0"
+                                            value={minutes}
+                                            onChange={(e) =>
+                                                setMinutes(parseInt(e.target.value) || 0)
+                                            }
+                                        />
+                                        <span className="text-xs text-gray-500">Minutes</span>
+                                    </div>
+                                    <div>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            max="59"
+                                            placeholder="0"
+                                            value={seconds}
+                                            onChange={(e) =>
+                                                setSeconds(parseInt(e.target.value) || 0)
+                                            }
+                                        />
+                                        <span className="text-xs text-gray-500">Seconds</span>
+                                    </div>
                                 </div>
-                                <div>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        max="23"
-                                        placeholder="0"
-                                        value={hours}
-                                        onChange={(e) => setHours(parseInt(e.target.value) || 0)}
-                                    />
-                                    <span className="text-xs text-gray-500">Hours</span>
-                                </div>
-                                <div>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        max="59"
-                                        placeholder="0"
-                                        value={minutes}
-                                        onChange={(e) => setMinutes(parseInt(e.target.value) || 0)}
-                                    />
-                                    <span className="text-xs text-gray-500">Minutes</span>
-                                </div>
-                                <div>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        max="59"
-                                        placeholder="0"
-                                        value={seconds}
-                                        onChange={(e) => setSeconds(parseInt(e.target.value) || 0)}
-                                    />
-                                    <span className="text-xs text-gray-500">Seconds</span>
-                                </div>
-                            </div>
-                            <FormDescription>
-                                Time to live for cached data (total: {calculateTotalSeconds()}{" "}
-                                seconds)
-                            </FormDescription>
-                            <FormMessage />
-                            <input type="hidden" {...field} />
-                        </FormItem>
-                    )}
-                />
+                                <FormMessage />
+                                <input type="hidden" {...field} />
+                            </FormItem>
+                        )}
+                    />
+                </>
             )}
         </>
     );

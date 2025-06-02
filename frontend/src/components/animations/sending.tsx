@@ -1,4 +1,4 @@
-export function Sending() {
+export function Sending({ text = "Creating..." }: { text?: string }) {
     return (
         <>
             <span className="mr-2">
@@ -23,7 +23,7 @@ export function Sending() {
                     />
                 </svg>
             </span>
-            Creating...
+            <span className="text-sm text-gray-500">{text}</span>
         </>
     );
 }

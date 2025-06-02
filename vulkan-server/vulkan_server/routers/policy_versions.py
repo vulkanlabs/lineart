@@ -142,6 +142,7 @@ def update_policy_version(
         for node in config.spec.nodes
         if node.node_type == NodeType.DATA_INPUT.value
     ]
+    # List of data source names used in the data input nodes
     used_data_sources = [node.metadata["data_source"] for node in data_input_nodes]
 
     if used_data_sources:
@@ -209,19 +210,17 @@ def update_policy_version(
 def _add_data_source_dependencies(
     db: Session, version: PolicyVersion, data_sources: list[str]
 ) -> dict[str, DataSource]:
-    matched = (
-        db.query(DataSource)
-        .filter(
-            DataSource.name.in_(data_sources),
-            DataSource.archived.is_(False),
-        )
-        .all()
+    q = select(
+        DataSource,
+    ).where(
+        DataSource.name.in_(data_sources),
+        DataSource.archived.is_(False),
     )
+    matched = db.execute(q).scalars().all()
     missing = list(set(data_sources) - set([m.name for m in matched]))
     if missing:
-        raise DataSourceNotFoundException(
-            msg=f"The following data sources are not defined: {missing}"
-        )
+        msg = f"The following data sources are not defined: {missing}"
+        raise DataSourceNotFoundException(msg)
 
     for m in matched:
         dependency = PolicyDataDependency(
@@ -230,7 +229,7 @@ def _add_data_source_dependencies(
         )
         db.add(dependency)
 
-    return {matched.name: matched for matched in matched}
+    return {str(m.name): m for m in matched}
 
 
 @router.delete("/{policy_version_id}")
