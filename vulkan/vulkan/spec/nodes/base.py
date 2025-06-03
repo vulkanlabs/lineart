@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from vulkan.spec.dependency import Dependency, DependencyDict
 from vulkan.spec.nodes.metadata import (
     BranchNodeMetadata,
+    ConnectionNodeMetadata,
     DataInputNodeMetadata,
     InputNodeMetadata,
     NodeMetadata,
@@ -25,6 +26,7 @@ class NodeType(Enum):
     INPUT = "INPUT"
     DATA_INPUT = "DATA_INPUT"
     POLICY = "POLICY"
+    CONNECTION = "CONNECTION"
 
 
 class NodeDefinitionDict(BaseModel):
@@ -96,6 +98,8 @@ class NodeDefinition:
                 metadata = DataInputNodeMetadata.from_dict(metadata)
             elif node_type == NodeType.POLICY:
                 metadata = PolicyNodeMetadata.from_dict(metadata)
+            elif node_type == NodeType.CONNECTION:
+                metadata = ConnectionNodeMetadata.from_dict(metadata)
             else:
                 raise ValueError(f"Unknown node type: {node_type}")
 
