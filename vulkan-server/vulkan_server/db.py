@@ -205,7 +205,6 @@ class DataSource(TimedUpdateMixin, Base):
     config_metadata = Column(JSON, nullable=True)
     runtime_params = Column(ARRAY(String), nullable=True)
     variables = Column(ARRAY(String), nullable=True)
-    fixed_values = Column(ARRAY(String), nullable=True)
     archived = Column(Boolean, default=False)
 
     __table_args__ = (
@@ -222,7 +221,6 @@ class DataSource(TimedUpdateMixin, Base):
     def from_spec(cls, spec: DataSourceSpec):
         variables = spec.extract_env_vars()
         runtime_params = spec.extract_runtime_params()
-        fixed_values = spec.extract_fixed_values()
 
         return cls(
             name=spec.name,
@@ -233,7 +231,6 @@ class DataSource(TimedUpdateMixin, Base):
             config_metadata=spec.metadata,
             runtime_params=runtime_params,
             variables=variables,
-            fixed_values=fixed_values,
         )
 
     def to_spec(self) -> DataSourceSpec:

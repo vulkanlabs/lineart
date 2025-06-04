@@ -8,11 +8,18 @@ import requests
 from dagster import In, OpDefinition, OpExecutionContext, Out, Output
 from requests.exceptions import HTTPError
 
+from vulkan.connections import (
+    HTTPConfig,
+    RetryPolicy,
+    format_response_data,
+    make_request,
+)
 from vulkan.constants import POLICY_CONFIG_KEY
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.exceptions import UserCodeException
+from vulkan.node_config import resolve_template
 from vulkan.runners.dagster.io_manager import (
     METADATA_OUTPUT_KEY,
     PUBLISH_IO_MANAGER_KEY,
@@ -25,11 +32,13 @@ from vulkan.runners.dagster.resources import (
 )
 from vulkan.runners.dagster.run_config import (
     RUN_CONFIG_KEY,
+    VulkanPolicyConfig,
     VulkanRunConfig,
 )
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import (
     BranchNode,
+    ConnectionNode,
     DataInputNode,
     InputNode,
     Node,
@@ -57,7 +66,7 @@ class DagsterDataInput(DataInputNode, DagsterNode):
         name: str,
         data_source: str,
         description: str | None = None,
-        parameters: dict | None = None,
+        parameters: dict[str, str] | None = None,
         dependencies: dict | None = None,
     ):
         super().__init__(
@@ -84,25 +93,24 @@ class DagsterDataInput(DataInputNode, DagsterNode):
         start_time = time.time()
         client: VulkanDataClient = getattr(context.resources, DATA_CLIENT_KEY)
         run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
+        extra = dict(data_source=self.data_source)
+        error = None
 
         try:
-            node_variables = {}
-            for k, v in self.parameters.items():
-                if isinstance(v, str):
-                    node_variables[k] = inputs[v]
-                else:
-                    node_variables[k] = inputs[v["variable"]][v["key"]]
+            configured_params = self._get_configured_params(inputs)
+            context.log.info(
+                f"Fetching data from data source {self.data_source} with "
+                f"parameters: {configured_params}"
+            )
 
             response = client.get_data(
                 data_source=self.data_source,
-                node_variables=node_variables,
+                configured_params=configured_params,
                 run_id=run_config.run_id,
             )
-
-            error = None
-            extra = dict(data_source=self.data_source, status_code=response.status_code)
-
+            extra.update({"status_code": response.status_code})
             response.raise_for_status()
+
             if response.status_code == 200:
                 data = response.json()
                 response_metadata = {
@@ -114,9 +122,13 @@ class DagsterDataInput(DataInputNode, DagsterNode):
                 yield Output(data["value"])
         except (requests.exceptions.RequestException, HTTPError) as e:
             context.log.error(
-                f"Failed op {self.name} with status {response.status_code}: "
+                f"Failed request with status {response.status_code}: "
                 f"{response.json().get('detail', '')}"
             )
+            error = ("\n").join(format_exception_only(type(e), e))
+            raise e
+        except ValueError as e:
+            context.log.error(f"Parameter resolution error: {str(e)}")
             error = ("\n").join(format_exception_only(type(e), e))
             raise e
         finally:
@@ -129,6 +141,15 @@ class DagsterDataInput(DataInputNode, DagsterNode):
                 extra=extra,
             )
             yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+
+    def _get_configured_params(self, inputs):
+        configured_params = {}
+        try:
+            for k, v in self.parameters.items():
+                configured_params[k] = resolve_template(v, inputs, env_variables={})
+        except Exception:
+            raise ValueError(f"Invalid parameter configuration: {v}")
+        return configured_params
 
     @classmethod
     def from_spec(cls, node: DataInputNode):
@@ -468,6 +489,114 @@ class DagsterInput(InputNode, DagsterNode):
         )
 
 
+class DagsterConnection(ConnectionNode, DagsterNode):
+    def __init__(
+        self,
+        name: str,
+        url: str,
+        method: str = "GET",
+        description: str | None = None,
+        headers: dict | None = None,
+        params: dict | None = None,
+        body: dict | None = None,
+        timeout: int | None = None,
+        retry_max_retries: int = 1,
+        response_type: str = "JSON",
+        dependencies: dict | None = None,
+    ):
+        super().__init__(
+            name=name,
+            url=url,
+            method=method,
+            description=description,
+            headers=headers,
+            params=params,
+            body=body,
+            timeout=timeout,
+            retry_max_retries=retry_max_retries,
+            response_type=response_type,
+            dependencies=dependencies,
+        )
+
+    def op(self) -> OpDefinition:
+        return OpDefinition(
+            compute_fn=self.run,
+            name=self.name,
+            ins={k: In() for k in self.dependencies.keys()},
+            outs={
+                "result": Out(),
+                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
+            },
+            required_resource_keys={RUN_CONFIG_KEY, POLICY_CONFIG_KEY},
+        )
+
+    def run(self, context, inputs):
+        start_time = time.time()
+        env: VulkanPolicyConfig = getattr(context.resources, POLICY_CONFIG_KEY)
+        error = None
+        extra = {}
+
+        try:
+            config = HTTPConfig(
+                url=self.url,
+                method=self.method,
+                headers=self.headers,
+                params=self.params,
+                body=self.body,
+                retry=RetryPolicy(max_retries=self.retry_max_retries),
+                response_type=self.response_type,
+            )
+
+            req = make_request(config, inputs, env.variables)
+            response = requests.Session().send(req, timeout=self.timeout)
+
+            extra = {
+                "url": self.url,
+                "method": self.method,
+                "status_code": response.status_code,
+                "response_headers": dict(response.headers),
+            }
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                result = format_response_data(response.content, self.response_type)
+                yield Output(result)
+        except (requests.exceptions.RequestException, HTTPError) as e:
+            context.log.error(f"Failed HTTP request: {str(e)}")
+            error = ("\n").join(format_exception_only(type(e), e))
+            raise e
+        except Exception as e:
+            context.log.error(str(e))
+            error = ("\n").join(format_exception_only(type(e), e))
+            raise e
+        finally:
+            end_time = time.time()
+            metadata = StepMetadata(
+                node_type=self.type.value,
+                start_time=start_time,
+                end_time=end_time,
+                error=error,
+                extra=extra,
+            )
+            yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+
+    @classmethod
+    def from_spec(cls, node: ConnectionNode):
+        return cls(
+            name=node.name,
+            url=node.url,
+            method=node.method,
+            description=node.description,
+            headers=node.headers,
+            params=node.params,
+            body=node.body,
+            timeout=node.timeout,
+            retry_max_retries=node.retry_max_retries,
+            response_type=node.response_type,
+            dependencies=node.dependencies,
+        )
+
+
 _NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
     TransformNode: DagsterTransform,
     TerminateNode: DagsterTerminate,
@@ -475,6 +604,7 @@ _NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
     DataInputNode: DagsterDataInput,
     InputNode: DagsterInput,
     PolicyDefinitionNode: DagsterPolicy,
+    ConnectionNode: DagsterConnection,
 }
 
 

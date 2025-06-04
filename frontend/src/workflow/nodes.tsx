@@ -75,6 +75,19 @@ function initMetadata(type: VulkanNodeType) {
         return {
             schema: {},
         };
+    } else if (type === "CONNECTION") {
+        return {
+            url: "",
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            params: {},
+            body: {},
+            timeout: 30,
+            retry_max_retries: 1,
+            response_type: "JSON",
+        };
     }
 
     return {};

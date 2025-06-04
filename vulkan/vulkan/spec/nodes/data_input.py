@@ -16,7 +16,7 @@ class DataInputNode(Node):
         name: str,
         data_source: str,
         description: str | None = None,
-        parameters: dict | None = None,
+        parameters: dict[str, str] | None = None,
         dependencies: dict | None = None,
         hierarchy: list[str] | None = None,
     ):

@@ -14,13 +14,13 @@ class VulkanDataClient(ConfigurableResource):
     run_config: ResourceDependency[VulkanRunConfig]
 
     def get_data(
-        self, data_source: str, node_variables: dict, run_id: str
+        self, data_source: str, configured_params: dict, run_id: str
     ) -> requests.Response:
         response = requests.post(
             f"{self.run_config.server_url}/data-broker",
             json={
                 "data_source_name": data_source,
-                "node_variables": node_variables,
+                "configured_params": configured_params,
                 "run_id": run_id,
             },
         )

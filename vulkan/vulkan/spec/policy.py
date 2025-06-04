@@ -7,6 +7,7 @@ from vulkan.spec.dependency import INPUT_NODE, Dependency
 from vulkan.spec.graph import GraphDefinition
 from vulkan.spec.nodes import (
     BranchNode,
+    ConnectionNode,
     DataInputNode,
     InputNode,
     TerminateNode,
@@ -173,6 +174,7 @@ NODE_IMPLEMENTS = {
     NodeType.DATA_INPUT: DataInputNode,
     NodeType.BRANCH: BranchNode,
     NodeType.POLICY: PolicyDefinitionNode,
+    NodeType.CONNECTION: ConnectionNode,
 }
 
 

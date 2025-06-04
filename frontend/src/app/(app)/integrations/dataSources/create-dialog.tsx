@@ -41,9 +41,12 @@ import {
     keyValuePairsToMap,
 } from "@/components/ui/key-value-table";
 import { createDataSourceAction } from "./actions";
-import { ExpandableList, listToJsonString } from "@/components/ui/expandable-list";
+import {
+    ExpandableList,
+    listToJsonString,
+    jsonStringToExpandableList,
+} from "@/components/ui/expandable-list";
 import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
-import { DataSource } from "@vulkan-server/DataSource";
 
 const formSchema = z.object({
     name: z
@@ -159,7 +162,8 @@ export function CreateDataSourceDialog() {
                     "source.method",
                     "source.response_type",
                     "source.headers",
-                    "source.params",
+                    "source.path_params",
+                    "source.query_params",
                     "source.body",
                     "source.timeout",
                     "source.retry.max_retries",
@@ -187,6 +191,27 @@ export function CreateDataSourceDialog() {
 
         console.log("Submitting Data Source:", data);
 
+        const pathParams = data.source.path_params
+            ? jsonStringToExpandableList(data.source.path_params)
+            : [];
+        // Add pathParams to url, when provided. Transform ["variable", "ENVIRONMENT"]
+        // into {{env.variable}}, ["variable", "RUNTIME"] into {{param.variable}}
+        // and ["value", "FIXED"] into just "value".
+        if (pathParams.length > 0) {
+            const path = pathParams
+                .map(([name, type]) => {
+                    if (type === "ENVIRONMENT") {
+                        return `{{env.${name}}}`;
+                    } else if (type === "RUNTIME") {
+                        return `{{param.${name}}}`;
+                    }
+                    // Default case for "FIXED"
+                    return name; // Default case
+                })
+                .join("/");
+            data.source.url += `/${path}`;
+        }
+
         const dataSourceSpec: DataSourceSpec = {
             name: data.name,
             source: {
@@ -194,8 +219,7 @@ export function CreateDataSourceDialog() {
                 method: data.source.method,
                 response_type: data.source.response_type,
                 headers: data.source.headers,
-                path_params: data.source.path_params,
-                query_params: data.source.query_params,
+                params: data.source.query_params,
                 body: data.source.body,
                 timeout: data.source.timeout,
                 retry: data.source.retry,

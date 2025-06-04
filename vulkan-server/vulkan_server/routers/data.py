@@ -504,7 +504,7 @@ def request_data_from_broker(
         )
 
     try:
-        data = broker.get_data(request.node_variables, env_variables)
+        data = broker.get_data(request.configured_params, env_variables)
         request_obj = RunDataRequest(
             run_id=request.run_id,
             data_object_id=data.data_object_id,

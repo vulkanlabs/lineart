@@ -6,7 +6,6 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from vulkan.core.run import JobStatus, PolicyVersionStatus, RunStatus
-from vulkan.data_source import BaseType
 from vulkan.schemas import DataSourceSpec, PolicyAllocationStrategy
 from vulkan.spec.policy import PolicyDefinitionDict
 
@@ -265,7 +264,6 @@ class DataSource(DataSourceSpec):
     last_updated_at: datetime
     variables: list[str] | None = None
     runtime_params: list[str] | None = None
-    fixed_values: list[str] | None = None
 
     @classmethod
     def from_orm(cls, data) -> "DataSource":
@@ -277,7 +275,6 @@ class DataSource(DataSourceSpec):
             last_updated_at=data.last_updated_at,
             variables=data.variables,
             runtime_params=data.runtime_params,
-            fixed_values=data.fixed_values,
             **spec.model_dump(),
         )
 
@@ -323,7 +320,7 @@ class DataObjectOrigin(Enum):
 
 class DataBrokerRequest(BaseModel):
     data_source_name: str
-    node_variables: dict[str, Any]
+    configured_params: dict[str, Any]
     run_id: str
 
 

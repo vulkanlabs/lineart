@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from vulkan.spec.dependency import Dependency, DependencyDict
 from vulkan.spec.nodes.metadata import (
     BranchNodeMetadata,
+    ConnectionNodeMetadata,
     DataInputNodeMetadata,
     InputNodeMetadata,
     NodeMetadata,
@@ -25,6 +26,7 @@ class NodeType(Enum):
     INPUT = "INPUT"
     DATA_INPUT = "DATA_INPUT"
     POLICY = "POLICY"
+    CONNECTION = "CONNECTION"
 
 
 class NodeDefinitionDict(BaseModel):
@@ -36,6 +38,17 @@ class NodeDefinitionDict(BaseModel):
     metadata: dict | None = None
     description: str | None = None
     hierarchy: list[str] | None = None
+
+
+NODE_METADATA_TYPE_MAP = {
+    NodeType.TRANSFORM: TransformNodeMetadata,
+    NodeType.TERMINATE: TerminateNodeMetadata,
+    NodeType.BRANCH: BranchNodeMetadata,
+    NodeType.INPUT: InputNodeMetadata,
+    NodeType.DATA_INPUT: DataInputNodeMetadata,
+    NodeType.POLICY: PolicyNodeMetadata,
+    NodeType.CONNECTION: ConnectionNodeMetadata,
+}
 
 
 @dataclass()
@@ -84,20 +97,7 @@ class NodeDefinition:
         metadata = data.get("metadata", None)
         if metadata is not None:
             node_type = NodeType(data["node_type"])
-            if node_type == NodeType.TRANSFORM:
-                metadata = TransformNodeMetadata.from_dict(metadata)
-            elif node_type == NodeType.TERMINATE:
-                metadata = TerminateNodeMetadata.from_dict(metadata)
-            elif node_type == NodeType.BRANCH:
-                metadata = BranchNodeMetadata.from_dict(metadata)
-            elif node_type == NodeType.INPUT:
-                metadata = InputNodeMetadata.from_dict(metadata)
-            elif node_type == NodeType.DATA_INPUT:
-                metadata = DataInputNodeMetadata.from_dict(metadata)
-            elif node_type == NodeType.POLICY:
-                metadata = PolicyNodeMetadata.from_dict(metadata)
-            else:
-                raise ValueError(f"Unknown node type: {node_type}")
+            metadata = NODE_METADATA_TYPE_MAP[node_type].from_dict(metadata)
 
         return cls(
             name=data["name"],
