@@ -8,6 +8,12 @@ import requests
 from dagster import In, OpDefinition, OpExecutionContext, Out, Output
 from requests.exceptions import HTTPError
 
+from vulkan.connections import (
+    HTTPConfig,
+    RetryPolicy,
+    format_response_data,
+    make_request,
+)
 from vulkan.constants import POLICY_CONFIG_KEY
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
@@ -491,8 +497,7 @@ class DagsterConnection(ConnectionNode, DagsterNode):
         method: str = "GET",
         description: str | None = None,
         headers: dict | None = None,
-        path_params: list | None = None,
-        query_params: dict | None = None,
+        params: dict | None = None,
         body: dict | None = None,
         timeout: int | None = None,
         retry_max_retries: int = 1,
@@ -505,8 +510,7 @@ class DagsterConnection(ConnectionNode, DagsterNode):
             method=method,
             description=description,
             headers=headers,
-            path_params=path_params,
-            query_params=query_params,
+            params=params,
             body=body,
             timeout=timeout,
             retry_max_retries=retry_max_retries,
@@ -533,25 +537,18 @@ class DagsterConnection(ConnectionNode, DagsterNode):
         extra = {}
 
         try:
-            # Resolve headers, query params, and body
-            headers = self._resolve_field(self.headers, inputs, env.variables)
-            params = self._resolve_field(self.query_params, inputs, env.variables)
-            data = (
-                self._resolve_field(self.body, inputs, env.variables)
-                if self.body
-                else None
-            )
-
-            # TODO: Resolve URL with path parameters
-
-            response = requests.request(
-                method=self.method,
+            config = HTTPConfig(
                 url=self.url,
-                headers=headers,
-                params=params,
-                json=data if data else None,
-                timeout=self.timeout,
+                method=self.method,
+                headers=self.headers,
+                params=self.params,
+                body=self.body,
+                retry=RetryPolicy(max_retries=self.retry_max_retries),
+                response_type=self.response_type,
             )
+
+            req = make_request(config, inputs, env.variables)
+            response = requests.Session().send(req, timeout=self.timeout)
 
             extra = {
                 "url": self.url,
@@ -559,29 +556,17 @@ class DagsterConnection(ConnectionNode, DagsterNode):
                 "status_code": response.status_code,
                 "response_headers": dict(response.headers),
             }
-
             response.raise_for_status()
 
-            # Parse response based on response_type
-            if self.response_type.lower() == "json":
-                result = response.json()
-            elif self.response_type.lower() == "xml":
-                result = response.text  # Could add XML parsing here
-            elif self.response_type.lower() == "csv":
-                result = response.text  # Could add CSV parsing here
-            else:  # plain text or default
-                result = response.text
-
-            yield Output(result, output_name="result")
-
+            if response.status_code == 200:
+                result = format_response_data(response.content, self.response_type)
+                yield Output(result)
         except (requests.exceptions.RequestException, HTTPError) as e:
-            context.log.error(f"Failed HTTP request in node {self.name}: {str(e)}")
+            context.log.error(f"Failed HTTP request: {str(e)}")
             error = ("\n").join(format_exception_only(type(e), e))
             raise e
-        except ValueError as e:
-            context.log.error(
-                f"Parameter resolution error in node {self.name}: {str(e)}"
-            )
+        except Exception as e:
+            context.log.error(str(e))
             error = ("\n").join(format_exception_only(type(e), e))
             raise e
         finally:
@@ -595,47 +580,6 @@ class DagsterConnection(ConnectionNode, DagsterNode):
             )
             yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 
-    def _resolve_parameter_value(self, param_config, inputs, env_variables):
-        """Resolve parameter value based on configuration type."""
-        if isinstance(param_config, dict):
-            if "variable" in param_config:
-                # Runtime parameter from inputs
-                var_name = param_config["variable"]
-                if var_name not in inputs:
-                    raise ValueError(
-                        f"Runtime parameter '{var_name}' not found in inputs"
-                    )
-
-                if "key" in param_config:
-                    # Access nested key from input
-                    return inputs[var_name][param_config["key"]]
-                else:
-                    # Direct input value
-                    return inputs[var_name]
-            elif "env" in param_config:
-                # Environment variable
-                env_key = param_config["env"]
-                if env_key not in env_variables:
-                    raise ValueError(f"Environment variable '{env_key}' not found")
-                return env_variables[env_key]
-            elif "value" in param_config:
-                # Fixed value (explicit)
-                return param_config["value"]
-            else:
-                raise ValueError(f"Invalid parameter configuration: {param_config}")
-        else:
-            # Simple fixed value
-            return param_config
-
-    def _resolve_field(self, param_dict, inputs, env_variables):
-        if not param_dict:
-            return {}
-
-        resolved = {}
-        for key, config in param_dict.items():
-            resolved[key] = self._resolve_parameter_value(config, inputs, env_variables)
-        return resolved
-
     @classmethod
     def from_spec(cls, node: ConnectionNode):
         return cls(
@@ -644,8 +588,7 @@ class DagsterConnection(ConnectionNode, DagsterNode):
             method=node.method,
             description=node.description,
             headers=node.headers,
-            path_params=node.path_params,
-            query_params=node.query_params,
+            params=node.params,
             body=node.body,
             timeout=node.timeout,
             retry_max_retries=node.retry_max_retries,

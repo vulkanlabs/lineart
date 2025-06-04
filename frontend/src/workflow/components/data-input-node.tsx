@@ -65,6 +65,19 @@ export function DataInputNode({ id, data, selected, height, width }: NodeProps<V
         fetchFn();
     }, []);
 
+    // Helper functions to convert between user format and API format
+    const toUserFormat = (value: string): string => {
+        if (!value) return "";
+        // Remove {{ }} wrapper if present
+        return value.replace(/^\{\{(.+)\}\}$/, "$1").trim();
+    };
+
+    const toApiFormat = (value: string): string => {
+        if (!value) return "";
+        // Add {{ }} wrapper if not already present
+        return value.startsWith("{{") && value.endsWith("}}") ? value : `{{${value}}}`;
+    };
+
     const handleDataSourceChange = useCallback(
         (value: string) => {
             setSelectedDataSource(value);
@@ -97,13 +110,11 @@ export function DataInputNode({ id, data, selected, height, width }: NodeProps<V
     );
 
     const handleUpdateParam = useCallback(
-        (key: string, field: "variable" | "key", value: string) => {
+        (paramName: string, userValue: string) => {
+            const apiValue = toApiFormat(userValue);
             const updatedParams = {
                 ...dataSourceParams,
-                [key]: {
-                    ...dataSourceParams[key],
-                    [field]: value,
-                },
+                [paramName]: apiValue,
             };
             setDataSourceParams(updatedParams);
             updateNodeData(id, {
@@ -136,45 +147,27 @@ export function DataInputNode({ id, data, selected, height, width }: NodeProps<V
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Parameter</TableHead>
-                                    <TableHead>Variable</TableHead>
-                                    <TableHead>Key</TableHead>
+                                    <TableHead>Value</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {Object.entries(dataSourceParams).map(
-                                    ([key, value]: [string, any]) => (
-                                        <TableRow key={key}>
+                                    ([paramName, value]: [string, any]) => (
+                                        <TableRow key={paramName}>
                                             <TableCell>
-                                                <span className="text-sm font-medium">{key}</span>
+                                                <span className="text-sm font-medium">{paramName}</span>
                                             </TableCell>
                                             <TableCell>
                                                 <Input
                                                     type="text"
-                                                    value={value.variable || ""}
+                                                    value={toUserFormat(value || "")}
                                                     onChange={(e) =>
                                                         handleUpdateParam(
-                                                            key,
-                                                            "variable",
+                                                            paramName,
                                                             e.target.value,
                                                         )
                                                     }
-                                                    placeholder="variable"
-                                                    className="h-8"
-                                                    onMouseDown={(e) => e.stopPropagation()}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input
-                                                    type="text"
-                                                    value={value.key || ""}
-                                                    onChange={(e) =>
-                                                        handleUpdateParam(
-                                                            key,
-                                                            "key",
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    placeholder="key"
+                                                    placeholder="e.g., variable.key"
                                                     className="h-8"
                                                     onMouseDown={(e) => e.stopPropagation()}
                                                 />

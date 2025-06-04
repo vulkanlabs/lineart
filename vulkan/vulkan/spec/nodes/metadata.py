@@ -47,8 +47,7 @@ class ConnectionNodeMetadata(BaseNodeMetadata):
     url: str
     method: str = "GET"
     headers: dict[str, Any] | None = None
-    path_params: list[Any] | None = None
-    query_params: dict[str, Any] | None = None
+    params: dict[str, Any] | None = None
     body: dict[str, Any] | None = None
     timeout: int | None = None
     retry_max_retries: int = 1

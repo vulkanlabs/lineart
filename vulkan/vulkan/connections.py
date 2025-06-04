@@ -36,7 +36,7 @@ class HTTPConfig(BaseModel):
     response_type: str | None = ResponseType.PLAIN_TEXT.value
 
     def __post_init__(self):
-        # Validate url
+        # TODO: Validate url
         pass
 
 
@@ -78,7 +78,7 @@ def make_request(
     return req
 
 
-def format_data(value: bytes, response_type: str = "PLAIN_TEXT") -> dict | str:
+def format_response_data(value: bytes, response_type: str = "PLAIN_TEXT") -> dict | str:
     """Format the response data based on the specified format."""
     data = value.decode("utf-8")
     if response_type == ResponseType.JSON.value:

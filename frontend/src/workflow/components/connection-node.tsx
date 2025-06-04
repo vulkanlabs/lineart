@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { NodeProps } from "@xyflow/react";
 
@@ -31,7 +31,7 @@ interface ConnectionMetadata {
     url?: string;
     method?: string;
     headers?: Record<string, string>;
-    query_params?: Record<string, string>;
+    params?: Record<string, string>;
     body?: Record<string, string>;
     timeout?: number;
     retry_max_retries?: number;
@@ -45,18 +45,18 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
         })),
     );
 
-    const metadata: ConnectionMetadata = data.metadata || {
-        url: "",
-        method: "GET",
-        headers: {},
-        query_params: {},
-        body: {},
-        timeout: 30,
-        retry_max_retries: 1,
-        response_type: "JSON",
-    };
+    const metadata: ConnectionMetadata = data.metadata || {};
 
     const [localMetadata, setLocalMetadata] = useState<ConnectionMetadata>(metadata);
+    const [bodyText, setBodyText] = useState<string>(
+        JSON.stringify(metadata.body || {}, null, 2)
+    );
+
+    // Sync localMetadata when data.metadata changes
+    useEffect(() => {
+        setLocalMetadata(metadata);
+        setBodyText(JSON.stringify(metadata.body || {}, null, 2));
+    }, [metadata]);
 
     const updateMetadata = useCallback(
         (updates: Partial<ConnectionMetadata>) => {
@@ -71,7 +71,7 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
     );
 
     const addKeyValuePair = useCallback(
-        (section: "headers" | "query_params" | "body") => {
+        (section: "headers" | "params" | "body") => {
             const newSection = { ...(localMetadata[section] || {}), "": "" };
             updateMetadata({ [section]: newSection });
         },
@@ -79,12 +79,7 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
     );
 
     const updateKeyValuePair = useCallback(
-        (
-            section: "headers" | "query_params" | "body",
-            oldKey: string,
-            newKey: string,
-            value: string,
-        ) => {
+        (section: "headers" | "params" | "body", oldKey: string, newKey: string, value: string) => {
             const currentSection = { ...(localMetadata[section] || {}) };
             if (oldKey !== newKey && oldKey in currentSection) {
                 delete currentSection[oldKey];
@@ -96,7 +91,7 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
     );
 
     const removeKeyValuePair = useCallback(
-        (section: "headers" | "query_params" | "body", key: string) => {
+        (section: "headers" | "params" | "body", key: string) => {
             const currentSection = { ...(localMetadata[section] || {}) };
             delete currentSection[key];
             updateMetadata({ [section]: currentSection });
@@ -106,72 +101,74 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
 
     const renderKeyValueSection = (
         title: string,
-        section: "headers" | "query_params" | "body",
+        section: "headers" | "params" | "body",
         data: Record<string, string>,
-    ) => (
-        <div className="space-y-2">
-            <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">{title}</Label>
-                <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => addKeyValuePair(section)}
-                    className="h-6 px-2"
-                >
-                    <Plus className="h-3 w-3" />
-                </Button>
-            </div>
-            {data && Object.keys(data).length > 0 && (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-1/3">Key</TableHead>
-                            <TableHead className="w-1/3">Value</TableHead>
-                            <TableHead className="w-12"></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {Object.entries(data).map(([key, value], index) => (
-                            <TableRow key={`${key}-${index}`}>
-                                <TableCell>
-                                    <Input
-                                        value={key}
-                                        onChange={(e) =>
-                                            updateKeyValuePair(section, key, e.target.value, value)
-                                        }
-                                        placeholder="key"
-                                        className="h-8"
-                                        onMouseDown={(e) => e.stopPropagation()}
-                                    />
-                                </TableCell>
-                                <TableCell>
-                                    <Input
-                                        value={value}
-                                        onChange={(e) =>
-                                            updateKeyValuePair(section, key, key, e.target.value)
-                                        }
-                                        placeholder="value"
-                                        className="h-8"
-                                        onMouseDown={(e) => e.stopPropagation()}
-                                    />
-                                </TableCell>
-                                <TableCell>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => removeKeyValuePair(section, key)}
-                                        className="h-6 w-6 p-0"
-                                    >
-                                        <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                </TableCell>
+    ) => {
+        return (
+            <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">{title}</Label>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => addKeyValuePair(section)}
+                        className="h-6 px-2"
+                    >
+                        <Plus className="h-3 w-3" />
+                    </Button>
+                </div>
+                {data && Object.keys(data).length > 0 && (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-1/3">Key</TableHead>
+                                <TableHead className="w-1/2">Value</TableHead>
+                                <TableHead className="w-1/6"/>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            )}
-        </div>
-    );
+                        </TableHeader>
+                        <TableBody>
+                            {Object.entries(data).map(([key, value], index) => (
+                                <TableRow key={index}>
+                                    <TableCell>
+                                        <Input
+                                            value={key}
+                                            onChange={(e) =>
+                                                updateKeyValuePair(section, key, e.target.value, value)
+                                            }
+                                            placeholder="key"
+                                            className="h-8"
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Input
+                                            value={value}
+                                            onChange={(e) =>
+                                                updateKeyValuePair(section, key, key, e.target.value)
+                                            }
+                                            placeholder="value"
+                                            className="h-8"
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => removeKeyValuePair(section, key)}
+                                            className="h-6 w-6 p-0"
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </div>
+        );
+    };
 
     return (
         <StandardWorkflowNode id={id} selected={selected} data={data} width={width}>
@@ -190,7 +187,7 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
                     <div className="space-y-2">
                         <Label className="text-sm font-medium">Method</Label>
                         <Select
-                            value={localMetadata.method || "GET"}
+                            value={localMetadata.method}
                             onValueChange={(value) => updateMetadata({ method: value })}
                         >
                             <SelectTrigger onMouseDown={(e) => e.stopPropagation()}>
@@ -211,7 +208,7 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
                     <div className="space-y-2">
                         <Label className="text-sm font-medium">Response Type</Label>
                         <Select
-                            value={localMetadata.response_type || "text/plain"}
+                            value={localMetadata.response_type}
                             onValueChange={(value) => updateMetadata({ response_type: value })}
                         >
                             <SelectTrigger onMouseDown={(e) => e.stopPropagation()}>
@@ -247,7 +244,7 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
                         <Label className="text-sm font-medium">Max Retries</Label>
                         <Input
                             type="number"
-                            value={localMetadata.retry_max_retries || 1}
+                            value={localMetadata.retry_max_retries}
                             onChange={(e) =>
                                 updateMetadata({
                                     retry_max_retries: parseInt(e.target.value) || 1,
@@ -260,33 +257,27 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
                 </div>
 
                 {renderKeyValueSection("Headers", "headers", localMetadata.headers || {})}
-                {renderKeyValueSection(
-                    "Query Parameters",
-                    "query_params",
-                    localMetadata.query_params || {},
-                )}
+                {renderKeyValueSection("Query Parameters", "params", localMetadata.params || {})}
 
-                {(localMetadata.method === "POST" ||
-                    localMetadata.method === "PUT" ||
-                    localMetadata.method === "PATCH") && (
-                    <div className="space-y-2">
-                        <Label className="text-sm font-medium">Request Body (JSON)</Label>
-                        <Textarea
-                            value={JSON.stringify(localMetadata.body || {}, null, 2)}
-                            onChange={(e) => {
-                                try {
-                                    const parsed = JSON.parse(e.target.value);
-                                    updateMetadata({ body: parsed });
-                                } catch {
-                                    // Invalid JSON, don't update
-                                }
-                            }}
-                            placeholder="{}"
-                            className="min-h-[100px] font-mono text-xs"
-                            onMouseDown={(e) => e.stopPropagation()}
-                        />
-                    </div>
-                )}
+                <div className="space-y-2">
+                    <Label className="text-sm font-medium">Request Body (JSON)</Label>
+                    <Textarea
+                        value={bodyText}
+                        onChange={(e) => {
+                            const newValue = e.target.value;
+                            setBodyText(newValue);
+                            try {
+                                const parsed = JSON.parse(newValue);
+                                updateMetadata({ body: parsed });
+                            } catch {
+                                // Invalid JSON, don't update metadata but keep the text
+                            }
+                        }}
+                        placeholder="{}"
+                        className="min-h-[100px] font-mono text-xs"
+                        onMouseDown={(e) => e.stopPropagation()}
+                    />
+                </div>
             </div>
         </StandardWorkflowNode>
     );

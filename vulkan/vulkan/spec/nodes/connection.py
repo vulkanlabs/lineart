@@ -18,8 +18,7 @@ class ConnectionNode(Node):
         method: str = "GET",
         description: str | None = None,
         headers: dict | None = None,
-        path_params: list | None = None,
-        query_params: dict | None = None,
+        params: dict | None = None,
         body: dict | None = None,
         timeout: int | None = None,
         retry_max_retries: int = 1,
@@ -41,9 +40,7 @@ class ConnectionNode(Node):
             A description of the node.
         headers : dict, optional
             HTTP headers to include in the request.
-        path_params : list, optional
-            Path parameters to substitute in the URL.
-        query_params : dict, optional
+        params : dict, optional
             Query parameters to include in the request.
         body : dict, optional
             Request body for POST/PUT requests.
@@ -68,8 +65,7 @@ class ConnectionNode(Node):
         self.url = url
         self.method = method
         self.headers = headers or {}
-        self.path_params = path_params or []
-        self.query_params = query_params or {}
+        self.params = params or {}
         self.body = body or {}
         self.timeout = timeout
         self.retry_max_retries = retry_max_retries
@@ -85,8 +81,7 @@ class ConnectionNode(Node):
                 url=self.url,
                 method=self.method,
                 headers=self.headers,
-                path_params=self.path_params,
-                query_params=self.query_params,
+                params=self.params,
                 body=self.body,
                 timeout=self.timeout,
                 retry_max_retries=self.retry_max_retries,
@@ -109,8 +104,7 @@ class ConnectionNode(Node):
             url=metadata.url,
             method=metadata.method,
             headers=metadata.headers,
-            path_params=metadata.path_params,
-            query_params=metadata.query_params,
+            params=metadata.params,
             body=metadata.body,
             timeout=metadata.timeout,
             retry_max_retries=metadata.retry_max_retries,

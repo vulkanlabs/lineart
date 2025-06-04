@@ -79,12 +79,14 @@ function initMetadata(type: VulkanNodeType) {
         return {
             url: "",
             method: "GET",
-            headers: {},
-            query_params: {},
-            body: "",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            params: {},
+            body: {},
             timeout: 30,
-            retry_max_retries: 3,
-            response_type: "json",
+            retry_max_retries: 1,
+            response_type: "JSON",
         };
     }
 
