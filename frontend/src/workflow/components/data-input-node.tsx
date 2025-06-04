@@ -155,17 +155,16 @@ export function DataInputNode({ id, data, selected, height, width }: NodeProps<V
                                     ([paramName, value]: [string, any]) => (
                                         <TableRow key={paramName}>
                                             <TableCell>
-                                                <span className="text-sm font-medium">{paramName}</span>
+                                                <span className="text-sm font-medium">
+                                                    {paramName}
+                                                </span>
                                             </TableCell>
                                             <TableCell>
                                                 <Input
                                                     type="text"
                                                     value={toUserFormat(value || "")}
                                                     onChange={(e) =>
-                                                        handleUpdateParam(
-                                                            paramName,
-                                                            e.target.value,
-                                                        )
+                                                        handleUpdateParam(paramName, e.target.value)
                                                     }
                                                     placeholder="e.g., variable.key"
                                                     className="h-8"

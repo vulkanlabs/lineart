@@ -48,9 +48,7 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
     const metadata: ConnectionMetadata = data.metadata || {};
 
     const [localMetadata, setLocalMetadata] = useState<ConnectionMetadata>(metadata);
-    const [bodyText, setBodyText] = useState<string>(
-        JSON.stringify(metadata.body || {}, null, 2)
-    );
+    const [bodyText, setBodyText] = useState<string>(JSON.stringify(metadata.body || {}, null, 2));
 
     // Sync localMetadata when data.metadata changes
     useEffect(() => {
@@ -123,7 +121,7 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
                             <TableRow>
                                 <TableHead className="w-1/3">Key</TableHead>
                                 <TableHead className="w-1/2">Value</TableHead>
-                                <TableHead className="w-1/6"/>
+                                <TableHead className="w-1/6" />
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -133,7 +131,12 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
                                         <Input
                                             value={key}
                                             onChange={(e) =>
-                                                updateKeyValuePair(section, key, e.target.value, value)
+                                                updateKeyValuePair(
+                                                    section,
+                                                    key,
+                                                    e.target.value,
+                                                    value,
+                                                )
                                             }
                                             placeholder="key"
                                             className="h-8"
@@ -144,7 +147,12 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
                                         <Input
                                             value={value}
                                             onChange={(e) =>
-                                                updateKeyValuePair(section, key, key, e.target.value)
+                                                updateKeyValuePair(
+                                                    section,
+                                                    key,
+                                                    key,
+                                                    e.target.value,
+                                                )
                                             }
                                             placeholder="value"
                                             className="h-8"

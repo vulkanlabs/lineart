@@ -80,7 +80,7 @@ function initMetadata(type: VulkanNodeType) {
             url: "",
             method: "GET",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
             params: {},
             body: {},

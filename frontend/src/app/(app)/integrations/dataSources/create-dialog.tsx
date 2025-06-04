@@ -41,7 +41,11 @@ import {
     keyValuePairsToMap,
 } from "@/components/ui/key-value-table";
 import { createDataSourceAction } from "./actions";
-import { ExpandableList, listToJsonString, jsonStringToExpandableList } from "@/components/ui/expandable-list";
+import {
+    ExpandableList,
+    listToJsonString,
+    jsonStringToExpandableList,
+} from "@/components/ui/expandable-list";
 import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
 
 const formSchema = z.object({
@@ -188,8 +192,8 @@ export function CreateDataSourceDialog() {
         console.log("Submitting Data Source:", data);
 
         const pathParams = data.source.path_params
-        ? jsonStringToExpandableList(data.source.path_params)
-        : [];
+            ? jsonStringToExpandableList(data.source.path_params)
+            : [];
         // Add pathParams to url, when provided. Transform ["variable", "ENVIRONMENT"]
         // into {{env.variable}}, ["variable", "RUNTIME"] into {{param.variable}}
         // and ["value", "FIXED"] into just "value".
