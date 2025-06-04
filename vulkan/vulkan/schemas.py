@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 
 from vulkan.data_source import (
-    BaseType,
     HTTPSource,
     LocalFileSource,
     RegisteredFileSource,
@@ -40,9 +39,6 @@ class DataSourceSpec(BaseModel):
 
     def extract_runtime_params(self) -> list[str]:
         return self.source.extract_runtime_params()
-
-    def extract_fixed_values(self) -> dict[str, BaseType]:
-        return self.source.extract_fixed_values()
 
 
 class BacktestOptions(BaseModel):

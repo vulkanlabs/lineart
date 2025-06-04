@@ -13,6 +13,7 @@ from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.exceptions import UserCodeException
+from vulkan.node_config import resolve_template
 from vulkan.runners.dagster.io_manager import (
     METADATA_OUTPUT_KEY,
     PUBLISH_IO_MANAGER_KEY,
@@ -59,7 +60,7 @@ class DagsterDataInput(DataInputNode, DagsterNode):
         name: str,
         data_source: str,
         description: str | None = None,
-        parameters: dict | None = None,
+        parameters: dict[str, str] | None = None,
         dependencies: dict | None = None,
     ):
         super().__init__(
@@ -86,25 +87,24 @@ class DagsterDataInput(DataInputNode, DagsterNode):
         start_time = time.time()
         client: VulkanDataClient = getattr(context.resources, DATA_CLIENT_KEY)
         run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
+        extra = dict(data_source=self.data_source)
+        error = None
 
         try:
-            node_variables = {}
-            for k, v in self.parameters.items():
-                if isinstance(v, str):
-                    node_variables[k] = inputs[v]
-                else:
-                    node_variables[k] = inputs[v["variable"]][v["key"]]
+            configured_params = self._get_configured_params(inputs)
+            context.log.info(
+                f"Fetching data from data source {self.data_source} with "
+                f"parameters: {configured_params}"
+            )
 
             response = client.get_data(
                 data_source=self.data_source,
-                node_variables=node_variables,
+                configured_params=configured_params,
                 run_id=run_config.run_id,
             )
-
-            error = None
-            extra = dict(data_source=self.data_source, status_code=response.status_code)
-
+            extra.update({"status_code": response.status_code})
             response.raise_for_status()
+
             if response.status_code == 200:
                 data = response.json()
                 response_metadata = {
@@ -116,9 +116,13 @@ class DagsterDataInput(DataInputNode, DagsterNode):
                 yield Output(data["value"])
         except (requests.exceptions.RequestException, HTTPError) as e:
             context.log.error(
-                f"Failed op {self.name} with status {response.status_code}: "
+                f"Failed request with status {response.status_code}: "
                 f"{response.json().get('detail', '')}"
             )
+            error = ("\n").join(format_exception_only(type(e), e))
+            raise e
+        except ValueError as e:
+            context.log.error(f"Parameter resolution error: {str(e)}")
             error = ("\n").join(format_exception_only(type(e), e))
             raise e
         finally:
@@ -131,6 +135,15 @@ class DagsterDataInput(DataInputNode, DagsterNode):
                 extra=extra,
             )
             yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+
+    def _get_configured_params(self, inputs):
+        configured_params = {}
+        try:
+            for k, v in self.parameters.items():
+                configured_params[k] = resolve_template(v, inputs, env_variables={})
+        except Exception:
+            raise ValueError(f"Invalid parameter configuration: {v}")
+        return configured_params
 
     @classmethod
     def from_spec(cls, node: DataInputNode):

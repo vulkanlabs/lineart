@@ -40,6 +40,17 @@ class NodeDefinitionDict(BaseModel):
     hierarchy: list[str] | None = None
 
 
+NODE_METADATA_TYPE_MAP = {
+    NodeType.TRANSFORM: TransformNodeMetadata,
+    NodeType.TERMINATE: TerminateNodeMetadata,
+    NodeType.BRANCH: BranchNodeMetadata,
+    NodeType.INPUT: InputNodeMetadata,
+    NodeType.DATA_INPUT: DataInputNodeMetadata,
+    NodeType.POLICY: PolicyNodeMetadata,
+    NodeType.CONNECTION: ConnectionNodeMetadata,
+}
+
+
 @dataclass()
 class NodeDefinition:
     "Internal representation of a node."
@@ -86,22 +97,7 @@ class NodeDefinition:
         metadata = data.get("metadata", None)
         if metadata is not None:
             node_type = NodeType(data["node_type"])
-            if node_type == NodeType.TRANSFORM:
-                metadata = TransformNodeMetadata.from_dict(metadata)
-            elif node_type == NodeType.TERMINATE:
-                metadata = TerminateNodeMetadata.from_dict(metadata)
-            elif node_type == NodeType.BRANCH:
-                metadata = BranchNodeMetadata.from_dict(metadata)
-            elif node_type == NodeType.INPUT:
-                metadata = InputNodeMetadata.from_dict(metadata)
-            elif node_type == NodeType.DATA_INPUT:
-                metadata = DataInputNodeMetadata.from_dict(metadata)
-            elif node_type == NodeType.POLICY:
-                metadata = PolicyNodeMetadata.from_dict(metadata)
-            elif node_type == NodeType.CONNECTION:
-                metadata = ConnectionNodeMetadata.from_dict(metadata)
-            else:
-                raise ValueError(f"Unknown node type: {node_type}")
+            metadata = NODE_METADATA_TYPE_MAP[node_type].from_dict(metadata)
 
         return cls(
             name=data["name"],

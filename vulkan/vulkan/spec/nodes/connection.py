@@ -23,7 +23,7 @@ class ConnectionNode(Node):
         body: dict | None = None,
         timeout: int | None = None,
         retry_max_retries: int = 1,
-        response_type: str = "text/plain",
+        response_type: str = "PLAIN_TEXT",
         dependencies: dict | None = None,
         hierarchy: list[str] | None = None,
     ):

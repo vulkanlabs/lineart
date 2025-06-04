@@ -9,8 +9,7 @@ from logging import Logger
 import requests
 from sqlalchemy.orm import Session
 
-from vulkan.connections import make_request
-from vulkan.data_source import ResponseType
+from vulkan.connections import ResponseType, make_request
 from vulkan_server import schemas
 from vulkan_server.db import DataObject, RunDataCache
 
@@ -22,10 +21,10 @@ class DataBroker:
         self.spec = spec
 
     def get_data(
-        self, node_variables: dict, env_variables: dict
+        self, configured_params: dict, env_variables: dict
     ) -> schemas.DataBrokerResponse:
         cache = CacheManager(self.db, self.logger, self.spec)
-        key = make_cache_key(self.spec, node_variables)
+        key = make_cache_key(self.spec, configured_params)
 
         if self.spec.caching.enabled:
             data = cache.get_data(key)
@@ -39,7 +38,7 @@ class DataBroker:
                 )
 
         # self.logger.info(f"Fetching data for key {key} from source {self.spec.source.url}")
-        req = make_request(self.spec.source, node_variables, env_variables)
+        req = make_request(self.spec.source, configured_params, env_variables)
         response = requests.Session().send(req, timeout=self.spec.source.timeout)
         response.raise_for_status()
 
