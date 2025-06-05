@@ -7,8 +7,8 @@ import {
 } from "@/lib/api";
 
 import Loader from "@/components/animations/loader";
-
-import { ConfigVariablesTable, DataSourcesTable, RequirementsEditor } from "./components";
+import { EnvironmentVariables } from "./components";
+import { DataSourcesTable, RequirementsEditor } from "./components";
 
 export default async function Page(props: { params: Promise<{ policy_version_id: string }> }) {
     const params = await props.params;
@@ -49,7 +49,7 @@ async function EnvironmentVariablesSection({ policy_version_id }: { policy_versi
         return [];
     });
 
-    return <ConfigVariablesTable policyVersion={policyVersion} variables={variables} />;
+    return <EnvironmentVariables policyVersion={policyVersion} variables={variables} />;
 }
 
 async function DataSourcesSection({ policy_version_id }: { policy_version_id: string }) {
