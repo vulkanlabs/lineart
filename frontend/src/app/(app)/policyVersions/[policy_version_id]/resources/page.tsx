@@ -16,9 +16,9 @@ export default async function Page(props: { params: Promise<{ policy_version_id:
     return (
         <div className="flex flex-col p-8 gap-8">
             <div>
-                <h1 className="mb-5 text-2xl font-bold tracking-tight">Configuration Variables</h1>
+                <h1 className="mb-5 text-2xl font-bold tracking-tight">Environment Variables</h1>
                 <Suspense fallback={<Loader />}>
-                    <ConfigVariablesSection policy_version_id={params.policy_version_id} />
+                    <EnvironmentVariablesSection policy_version_id={params.policy_version_id} />
                 </Suspense>
             </div>
 
@@ -39,13 +39,17 @@ export default async function Page(props: { params: Promise<{ policy_version_id:
     );
 }
 
-async function ConfigVariablesSection({ policy_version_id }: { policy_version_id: string }) {
+async function EnvironmentVariablesSection({ policy_version_id }: { policy_version_id: string }) {
+    const policyVersion = await fetchPolicyVersion(policy_version_id).catch((error) => {
+        console.error(error);
+        return null;
+    });
     const variables = await fetchPolicyVersionVariables(policy_version_id).catch((error) => {
         console.error(error);
         return [];
     });
 
-    return <ConfigVariablesTable variables={variables} />;
+    return <ConfigVariablesTable policyVersion={policyVersion} variables={variables} />;
 }
 
 async function DataSourcesSection({ policy_version_id }: { policy_version_id: string }) {

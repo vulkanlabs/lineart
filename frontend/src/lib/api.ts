@@ -12,6 +12,7 @@ import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
 import { DataSource } from "@vulkan-server/DataSource";
 import { DataSourceEnvVarBase } from "@vulkan-server/DataSourceEnvVarBase";
 import { PolicyAllocationStrategy } from "@vulkan-server/PolicyAllocationStrategy";
+import { ConfigurationVariablesBase } from "@vulkan-server/ConfigurationVariablesBase";
 
 interface HTTPQueryParams {
     [key: string]: any;
@@ -333,6 +334,42 @@ export async function fetchPolicyVersionDataSources(policyVersionId: string) {
     return fetchServerData({
         endpoint: `/policy-versions/${policyVersionId}/data-sources`,
         label: `data sources for policy version ${policyVersionId}`,
+    });
+}
+
+export async function setPolicyVersionVariables(
+    policyVersionId: string,
+    variables: ConfigurationVariablesBase[],
+) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    if (!serverUrl) {
+        throw new Error("Server URL is not defined");
+    }
+    if (!policyVersionId) {
+        throw new Error("Policy version ID is not defined");
+    }
+
+    return fetch(new URL(`/policy-versions/${policyVersionId}/variables`, serverUrl), {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(variables),
+    }).then(async (response) => {
+        const responseData = await response.json().catch(() => ({})); // Catch if body is empty or not json
+        if (!response.ok) {
+            console.error(`Failed to set variables for policy version ${policyVersionId}`, {
+                status: response.status,
+                response: responseData,
+            });
+            const detail =
+                responseData.detail ||
+                `Failed to set variables for policy version ${policyVersionId}`;
+            throw new Error(detail, {
+                cause: responseData,
+            });
+        }
+        return responseData;
     });
 }
 
