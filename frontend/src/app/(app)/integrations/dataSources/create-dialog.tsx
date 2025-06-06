@@ -67,7 +67,6 @@ const formSchema = z.object({
         method: z.string().optional(),
         response_type: z.string().optional(),
         headers: z.string().optional().transform(parseJSON),
-        path_params: z.string().optional().transform(parseJSON),
         query_params: z.string().optional().transform(parseJSON),
         body: z.string().optional().transform(parseJSON),
         timeout: z.number().optional(),
@@ -125,7 +124,6 @@ export function CreateDataSourceDialog() {
                 method: "GET",
                 response_type: "JSON",
                 headers: "",
-                path_params: "",
                 query_params: "",
                 body: "",
                 timeout: 5000,
@@ -162,7 +160,6 @@ export function CreateDataSourceDialog() {
                     "source.method",
                     "source.response_type",
                     "source.headers",
-                    "source.path_params",
                     "source.query_params",
                     "source.body",
                     "source.timeout",
@@ -187,27 +184,6 @@ export function CreateDataSourceDialog() {
         // Only process submission on the final step
         if (step !== 3) {
             return;
-        }
-
-        const pathParams = data.source.path_params
-            ? jsonStringToExpandableList(data.source.path_params)
-            : [];
-        // Add pathParams to url, when provided. Transform ["variable", "ENVIRONMENT"]
-        // into {{env.variable}}, ["variable", "RUNTIME"] into {{param.variable}}
-        // and ["value", "FIXED"] into just "value".
-        if (pathParams.length > 0) {
-            const path = pathParams
-                .map(([name, type]) => {
-                    if (type === "ENVIRONMENT") {
-                        return `{{env.${name}}}`;
-                    } else if (type === "RUNTIME") {
-                        return `{{param.${name}}}`;
-                    }
-                    // Default case for "FIXED"
-                    return name; // Default case
-                })
-                .join("/");
-            data.source.url += `/${path}`;
         }
 
         const dataSourceSpec: DataSourceSpec = {
@@ -499,31 +475,6 @@ function HTTPOptions({ form }) {
                     )}
                 />
             </div>
-
-            <FormField
-                control={form.control}
-                name="source.path_params"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Path</FormLabel>
-                        <FormDescription>
-                            {`Path parameters to append to the URL, eg. /resource/{resourceId}`}
-                        </FormDescription>
-                        <FormControl>
-                            <ExpandableList
-                                value={field.value || []}
-                                onChange={(fieldValue) => {
-                                    field.onChange(listToJsonString(fieldValue));
-                                }}
-                                placeholder="Parameter value or variable name"
-                                disabled={false}
-                                label="Path Parameters"
-                            />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
 
             <FormField
                 control={form.control}
