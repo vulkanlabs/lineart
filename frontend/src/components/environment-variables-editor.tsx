@@ -57,21 +57,18 @@ export function EnvironmentVariablesEditor({
     className = "",
 }: EnvironmentVariablesEditorProps) {
     const [saving, setSaving] = useState(false);
+    const initialValues =
+        initialVariables.map((v) => ({
+            name: v.name,
+            value: String(v.value || ""),
+        })) || [];
+
     const form = useForm<z.infer<typeof configVariablesSchema>>({
         resolver: zodResolver(configVariablesSchema),
-        defaultValues: {
-            variables: initialVariables.map((v) => {
-                const newVariable = {
-                    name: v.name,
-                    value: String(v.value || ""),
-                } as EnvironmentVariable;
-                console.log("Mapping initial variable:", v);
-                console.log("Outcome:", newVariable);
-                return newVariable;
-            }),
+        values: {
+            variables: initialValues,
         },
     });
-    console.log("Form Default Values:", form.getValues().variables);
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,
@@ -106,13 +103,7 @@ export function EnvironmentVariablesEditor({
         }
     };
     const onCancel = () => {
-        form.reset({
-            variables:
-                initialVariables.map((v) => ({
-                    ...v,
-                    value: String(v.value || ""),
-                })) || [],
-        });
+        form.reset({ variables: initialValues });
     };
     const currentVariableMap = new Map(form.getValues().variables.map((v) => [v.name, v.value]));
     const missingOrEmptyRequiredVariables = requiredVariableNames.filter(

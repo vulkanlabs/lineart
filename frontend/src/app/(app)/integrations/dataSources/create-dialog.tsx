@@ -189,8 +189,6 @@ export function CreateDataSourceDialog() {
             return;
         }
 
-        console.log("Submitting Data Source:", data);
-
         const pathParams = data.source.path_params
             ? jsonStringToExpandableList(data.source.path_params)
             : [];
@@ -235,7 +233,6 @@ export function CreateDataSourceDialog() {
             metadata: keyValuePairsToMap(keyValuePairsFromObject(data.metadata)),
         };
 
-        console.log("Data Source Spec:", JSON.stringify(dataSourceSpec, null, 2));
         await createDataSourceAction(dataSourceSpec)
             .then(() => {
                 setOpen(false);

@@ -389,7 +389,6 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
         try {
             const envVars = await fetchDataSourceEnvVars(dataSource.data_source_id);
             setVariables(envVars);
-            console.log("Fetched environment variables:", envVars);
         } catch (error) {
             console.error("Failed to fetch environment variables:", error);
             setVariables([]);
