@@ -98,8 +98,8 @@ function initMetadata(type: VulkanNodeType) {
     } else if (type === "DECISION") {
         return {
             conditions: [
-                { type: "if", condition: "", output: "output_1" },
-                { type: "else", output: "output_2" },
+                { type: "if", condition: "", output: "condition_1" },
+                { type: "else", output: "condition_2" },
             ],
         };
     }

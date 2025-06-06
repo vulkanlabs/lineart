@@ -40,7 +40,14 @@ import { iconMapping } from "./icons";
 import { nodeTypes } from "./components";
 import { WorkflowProvider, useWorkflowStore } from "./store";
 import { saveWorkflowSpec } from "./actions";
-import { BranchNodeMetadata, GraphDefinition, VulkanNode, WorkflowState } from "./types";
+import {
+    BranchNodeMetadata,
+    DecisionNodeMetadata,
+    GraphDefinition,
+    VulkanNode,
+    WorkflowState,
+} from "./types";
+import { findHandleIndexByName } from "./names";
 
 type OnNodeClick = (e: React.MouseEvent, node: any) => void;
 type OnPaneClick = (e: React.MouseEvent) => void;
@@ -509,17 +516,11 @@ function makeEdgesFromDependencies(nodes: NodeDefinitionDict[]): Edge[] {
                     return;
                 }
 
-                // Check if the source node has the specified output and get its index
-                const sourceMetadata = sourceNode.metadata as BranchNodeMetadata;
-                const outputIndex = sourceMetadata.choices.findIndex(
-                    (output) => output === dep.output,
-                );
-                if (outputIndex === -1) {
+                sourceHandle = findHandleIndexByName(sourceNode, dep.output);
+                if (sourceHandle === null) {
                     console.error(`Output ${dep.output} not found in node ${dep.node}`);
                     return;
                 }
-
-                sourceHandle = outputIndex;
             }
 
             // Skip if source is the same as target
@@ -532,8 +533,8 @@ function makeEdgesFromDependencies(nodes: NodeDefinitionDict[]): Edge[] {
                 id: `${source}-${target}`,
                 source: source,
                 target: target,
-                sourceHandle: sourceHandle ? `${sourceHandle}` : null,
-                targetHandle: targetHandle || null,
+                sourceHandle: sourceHandle,
+                targetHandle: targetHandle,
                 type: "default",
             };
 

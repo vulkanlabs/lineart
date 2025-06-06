@@ -7,7 +7,6 @@ import {
     applyEdgeChanges,
     Connection,
     getOutgoers,
-    getIncomers,
     applyNodeChanges,
     OnConnect,
     OnEdgesChange,
@@ -27,6 +26,7 @@ import {
     DecisionNodeMetadata,
 } from "./types";
 import { toast } from "sonner";
+import { findHandleIndexByName, findHandleNameByIndex } from "./names";
 
 type WorkflowActions = {
     getSpec: () => GraphDefinition;
@@ -91,6 +91,7 @@ const createWorkflowStore = (initProps: WorkflowState) => {
                 };
             });
 
+            console.debug("Workflow spec:", spec);
             return spec;
         },
 
@@ -109,19 +110,7 @@ const createWorkflowStore = (initProps: WorkflowState) => {
                 const edge = edges.find(
                     (edge) => edge.source === sourceNodeId && edge.target === node.id,
                 );
-                let output = null;
-
-                if (sourceNode) {
-                    if (sourceNode.type === "BRANCH") {
-                        const metadata = sourceNode.data.metadata as BranchNodeMetadata;
-                        output = metadata.choices[edge.sourceHandle];
-                    } else if (sourceNode.type === "DECISION") {
-                        const metadata = sourceNode.data.metadata as DecisionNodeMetadata;
-                        if (metadata.conditions && metadata.conditions[edge.sourceHandle]) {
-                            output = metadata.conditions[edge.sourceHandle].output;
-                        }
-                    }
-                }
+                const output = findHandleNameByIndex(sourceNode, edge.sourceHandle);
 
                 const depConfig = { ...node.data.incomingEdges[edge.id] };
                 depConfig.dependency = {
@@ -208,7 +197,6 @@ const createWorkflowStore = (initProps: WorkflowState) => {
             const nodes = get().nodes;
             const sourceNode = nodes.find((node) => node.id === connection.source);
             const targetNode = nodes.find((node) => node.id === connection.target);
-            let output = null;
 
             if (!isValidConnection(connection, nodes, get().edges)) {
                 console.warn("Invalid connection");
@@ -220,17 +208,7 @@ const createWorkflowStore = (initProps: WorkflowState) => {
                 return;
             }
 
-            if (sourceNode) {
-                if (sourceNode.type === "BRANCH") {
-                    const metadata = sourceNode.data.metadata as BranchNodeMetadata;
-                    output = metadata.choices[connection.sourceHandle];
-                } else if (sourceNode.type === "DECISION") {
-                    const metadata = sourceNode.data.metadata as DecisionNodeMetadata;
-                    if (metadata.conditions && metadata.conditions[connection.sourceHandle]) {
-                        output = metadata.conditions[connection.sourceHandle].output;
-                    }
-                }
-            }
+            const output = findHandleNameByIndex(sourceNode, connection.sourceHandle);
 
             const dependency = {
                 node: sourceNode.data.name,
@@ -430,11 +408,9 @@ function isValidConnection(connection: Connection, nodes: VulkanNode[], edges: E
             const incomers = node.data.incomingEdges;
 
             for (const incomer of Object.values(incomers)) {
-                if (!deps.has(incomer.key)) {
-                    deps.set(incomer.key, new Set());
-                }
-
-                deps.get(incomer.key).add(incomer.dependency.output);
+                const nodeDeps = deps.get(incomer.key) || new Set();
+                nodeDeps.add(incomer.dependency.output);
+                deps.set(incomer.key, nodeDeps);
                 const incomerNode = nodes.find((n) => n.id === incomer.dependency.node);
                 cumulativeDependencies(incomerNode, deps);
             }
@@ -442,15 +418,25 @@ function isValidConnection(connection: Connection, nodes: VulkanNode[], edges: E
         };
 
         const deps = cumulativeDependencies(node, new Map());
-        for (const [key, values] of deps) {
-            if (values.size > 1) {
-                console.warn(
-                    `Node ${node.id} has multiple dependencies on node ${key}: ${Array.from(
-                        values,
-                    ).join(", ")}`,
-                );
-                return false;
-            }
+        const sourceNode = nodes.find((n) => n.id === connection.source);
+        if (sourceNode.type !== "BRANCH" && sourceNode.type !== "DECISION") {
+            // For other node types, there is only one output, hence it's always valid.
+            return true;
+        }
+
+        const sourceHandleName = findHandleNameByIndex(sourceNode, connection.sourceHandle);
+        if (sourceHandleName === undefined) {
+            return false;
+        }
+
+        const withNewDep = (deps.get(connection.source) || new Set()).add(sourceHandleName);
+        if (withNewDep.size > 1) {
+            console.warn(
+                `Node ${node.id} already has dependencies on node ${connection.source}: ${Array.from(
+                    withNewDep,
+                ).join(", ")}`,
+            );
+            return false;
         }
         return true;
     };
