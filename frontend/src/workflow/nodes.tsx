@@ -55,6 +55,13 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
         height: 200,
         icon: "POLICY",
     },
+    DECISION: {
+        id: "DECISION",
+        name: "Decision Node",
+        width: 400,
+        height: 350,
+        icon: "BRANCH",
+    },
 };
 
 function initMetadata(type: VulkanNodeType) {
@@ -88,6 +95,13 @@ function initMetadata(type: VulkanNodeType) {
             retry_max_retries: 1,
             response_type: "JSON",
         };
+    } else if (type === "DECISION") {
+        return {
+            conditions: [
+                { type: "if", condition: "", output: "output_1" },
+                { type: "else", output: "output_2" },
+            ],
+        };
     }
 
     return {};
@@ -107,7 +121,7 @@ export function createNodeByType({
     const height = node.height ?? NODE_SIZE.height;
     const metadata = initMetadata(type);
 
-    // For INPUT node, use a fixed ID
+    // For INPUT node, use a fixed ID and return directly
     if (type === "INPUT") {
         return {
             id: "input_node",
@@ -130,7 +144,7 @@ export function createNodeByType({
         };
     }
 
-    // Find all existing nodes of this type and create the new name
+    // For all other node types (including DECISION), generate a unique name and create the node
     const sameTypeNodes = existingNodes.filter((n) => n.type === type);
     const nextNumber = sameTypeNodes.length + 1;
     const uniqueName = standardizeNodeName(`${node.name} ${nextNumber}`);

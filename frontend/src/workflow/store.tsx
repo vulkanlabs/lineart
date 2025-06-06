@@ -24,6 +24,7 @@ import {
     BranchNodeMetadata,
     WorkflowState,
     InputNodeMetadata,
+    DecisionNodeMetadata,
 } from "./types";
 import { toast } from "sonner";
 
@@ -110,10 +111,18 @@ const createWorkflowStore = (initProps: WorkflowState) => {
                 );
                 let output = null;
 
-                if (sourceNode && sourceNode.type === "BRANCH") {
-                    const metadata = sourceNode.data.metadata as BranchNodeMetadata;
-                    output = metadata.choices[edge.sourceHandle];
+                if (sourceNode) {
+                    if (sourceNode.type === "BRANCH") {
+                        const metadata = sourceNode.data.metadata as BranchNodeMetadata;
+                        output = metadata.choices[edge.sourceHandle];
+                    } else if (sourceNode.type === "DECISION") {
+                        const metadata = sourceNode.data.metadata as DecisionNodeMetadata;
+                        if (metadata.conditions && metadata.conditions[edge.sourceHandle]) {
+                            output = metadata.conditions[edge.sourceHandle].output;
+                        }
+                    }
                 }
+
                 const depConfig = { ...node.data.incomingEdges[edge.id] };
                 depConfig.dependency = {
                     node: sourceNode.data.name,
@@ -211,9 +220,16 @@ const createWorkflowStore = (initProps: WorkflowState) => {
                 return;
             }
 
-            if (sourceNode.type === "BRANCH") {
-                const metadata = sourceNode.data.metadata as BranchNodeMetadata;
-                output = metadata.choices[connection.sourceHandle];
+            if (sourceNode) {
+                if (sourceNode.type === "BRANCH") {
+                    const metadata = sourceNode.data.metadata as BranchNodeMetadata;
+                    output = metadata.choices[connection.sourceHandle];
+                } else if (sourceNode.type === "DECISION") {
+                    const metadata = sourceNode.data.metadata as DecisionNodeMetadata;
+                    if (metadata.conditions && metadata.conditions[connection.sourceHandle]) {
+                        output = metadata.conditions[connection.sourceHandle].output;
+                    }
+                }
             }
 
             const dependency = {

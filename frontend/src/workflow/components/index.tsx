@@ -5,6 +5,7 @@ import { InputNode } from "./input-node";
 import { DataInputNode } from "./data-input-node";
 import { PolicyNode } from "./policy-node";
 import { ConnectionNode } from "./connection-node";
+import { DecisionNode } from "./decision-node";
 
 export const nodeTypes = {
     INPUT: InputNode,
@@ -14,4 +15,5 @@ export const nodeTypes = {
     TERMINATE: TerminateNode,
     POLICY: PolicyNode,
     CONNECTION: ConnectionNode,
+    DECISION: DecisionNode,
 };
