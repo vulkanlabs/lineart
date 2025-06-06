@@ -33,7 +33,7 @@ export function EnvironmentVariables({ policyVersion, variables }: EnvironmentVa
     return (
         <EnvironmentVariablesEditor
             variables={variables}
-            requiredVariableNames={policyVersion?.variables || []}
+            requiredVariableNames={policyVersion.variables || []}
             onSave={async (updatedVariables) => {
                 await setPolicyVersionVariablesAction(
                     policyVersion.policy_version_id,

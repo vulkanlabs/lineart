@@ -553,7 +553,7 @@ export async function fetchDataSourceEnvVars(dataSourceId: string) {
 export async function setDataSourceEnvVars(
     dataSourceId: string,
     variables: DataSourceEnvVarBase[],
-) {
+): Promise<{ data_source_id: string; variables: DataSourceEnvVarBase[] }> {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
 
     return fetch(new URL(`/data-sources/${dataSourceId}/variables`, serverUrl), {

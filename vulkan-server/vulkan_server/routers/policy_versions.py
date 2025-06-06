@@ -402,8 +402,7 @@ def set_config_variables(
     )
 
     for v in existing_variables:
-        # Delete variables that are not in the list.
-        if v.name not in [var.name for var in desired_variables]:
+        if v.name not in set([var.name for var in desired_variables]):
             db.delete(v)
 
     existing_variables_map = {v.name: v for v in existing_variables}

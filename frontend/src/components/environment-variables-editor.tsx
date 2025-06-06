@@ -34,7 +34,7 @@ export interface EnvironmentVariable {
 }
 
 export interface EnvironmentVariablesEditorProps {
-    variables: EnvironmentVariable[];
+    variables: ConfigurationVariablesBase[];
     requiredVariableNames?: string[];
     onSave: (variables: ConfigurationVariablesBase[]) => Promise<void>;
     isLoading?: boolean;
@@ -60,15 +60,18 @@ export function EnvironmentVariablesEditor({
     const form = useForm<z.infer<typeof configVariablesSchema>>({
         resolver: zodResolver(configVariablesSchema),
         defaultValues: {
-            variables:
-                initialVariables.map((v) => ({
-                    ...v,
+            variables: initialVariables.map((v) => {
+                const newVariable = {
+                    name: v.name,
                     value: String(v.value || ""),
-                    isNew: v.isNew ?? false,
-                    isNameEditable: v.isNameEditable ?? false,
-                })) || [],
+                } as EnvironmentVariable;
+                console.log("Mapping initial variable:", v);
+                console.log("Outcome:", newVariable);
+                return newVariable;
+            }),
         },
     });
+    console.log("Form Default Values:", form.getValues().variables);
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,
@@ -95,7 +98,8 @@ export function EnvironmentVariablesEditor({
         } catch (error) {
             console.error(error);
             toast("Error saving environment variables", {
-                description: "There was a problem updating your environment variables.",
+                description:
+                    error.message || "There was a problem updating your environment variables.",
             });
         } finally {
             setSaving(false);
@@ -107,8 +111,6 @@ export function EnvironmentVariablesEditor({
                 initialVariables.map((v) => ({
                     ...v,
                     value: String(v.value || ""),
-                    isNew: v.isNew ?? false,
-                    isNameEditable: v.isNameEditable ?? false,
                 })) || [],
         });
     };
