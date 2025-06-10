@@ -59,7 +59,7 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
         id: "DECISION",
         name: "Decision Node",
         width: 400,
-        height: 350,
+        height: 308,
         icon: "BRANCH",
     },
 };
@@ -98,8 +98,8 @@ function initMetadata(type: VulkanNodeType) {
     } else if (type === "DECISION") {
         return {
             conditions: [
-                { type: "if", condition: "", output: "condition_1" },
-                { type: "else", output: "condition_2" },
+                { decision_type: "if", condition: "", output: "condition_1" },
+                { decision_type: "else", output: "condition_2" },
             ],
         };
     }

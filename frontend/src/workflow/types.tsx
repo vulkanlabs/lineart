@@ -76,7 +76,7 @@ export type PolicyDefinitionNodeMetadata = {
 };
 
 export type DecisionCondition = {
-    type: "if" | "else-if" | "else";
+    decision_type: "if" | "else-if" | "else";
     condition?: string; // Jinja2 template string for 'if' and 'else-if'
     output: string;
 };

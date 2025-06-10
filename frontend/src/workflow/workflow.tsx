@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { SaveIcon, ChevronDownIcon, ChevronUpIcon, LayoutIcon, CopyIcon } from "lucide-react";
+import { SaveIcon, ChevronDownIcon, ChevronUpIcon, LayoutIcon, CopyIcon, Router } from "lucide-react";
 import { toast } from "sonner";
 import ELK from "elkjs/lib/elk.bundled.js";
 import {
@@ -11,13 +11,10 @@ import {
     Controls,
     Background,
     BackgroundVariant,
-    getOutgoers,
     useReactFlow,
     ControlButton,
     XYPosition,
     type Edge,
-    Connection,
-    getIncomers,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -41,13 +38,12 @@ import { nodeTypes } from "./components";
 import { WorkflowProvider, useWorkflowStore } from "./store";
 import { saveWorkflowSpec } from "./actions";
 import {
-    BranchNodeMetadata,
-    DecisionNodeMetadata,
     GraphDefinition,
     VulkanNode,
     WorkflowState,
 } from "./types";
 import { findHandleIndexByName } from "./names";
+import { useRouter } from "next/navigation";
 
 type OnNodeClick = (e: React.MouseEvent, node: any) => void;
 type OnPaneClick = (e: React.MouseEvent) => void;
@@ -87,6 +83,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
         })),
     );
 
+    const router = useRouter();
     const { screenToFlowPosition, fitView } = useReactFlow();
 
     const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
@@ -241,11 +238,25 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
                 <MiniMap nodeStrokeWidth={3} zoomable pannable />
                 <Controls showZoom={false} showInteractive={false} orientation="horizontal">
                     <ControlButton
-                        onClick={() => {
+                        onClick={async () => {
                             const spec = getSpec();
                             const nodes = getNodes();
                             const inputSchema = getInputSchema();
-                            saveWorkflowState(policyVersion, nodes, spec, inputSchema);
+                            const result = await saveWorkflowState(policyVersion, nodes, spec, inputSchema);
+                            if (result.success) {
+                                toast("Workflow saved ", {
+                                    description: `Workflow saved successfully.`,
+                                    duration: 2000,
+                                    dismissible: true,
+                                });
+                                router.refresh();
+                            }
+                             else {
+                                toast("Failed to save workflow", {
+                                    description: result.error,
+                                    duration: 5000,
+                                });
+                             }
                         }}
                     >
                         <TooltipProvider>
@@ -319,21 +330,8 @@ async function saveWorkflowState(
             };
         });
 
-    const result = await saveWorkflowSpec(policyVersion, graphNodes, uiMetadata, inputSchema);
+    return await saveWorkflowSpec(policyVersion, graphNodes, uiMetadata, inputSchema);
 
-    if (result.success) {
-        toast("Workflow saved ", {
-            description: `Workflow saved successfully.`,
-            duration: 2000,
-            dismissible: true,
-        });
-    } else {
-        console.error("Error saving workflow:", result);
-        toast("Failed to save workflow", {
-            description: result.error,
-            duration: 5000,
-        });
-    }
 }
 
 function AppDropdownMenu({

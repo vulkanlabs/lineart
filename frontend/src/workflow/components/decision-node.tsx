@@ -13,9 +13,9 @@ import { useWorkflowStore } from "../store";
 import { StandardWorkflowNode, defaultHandleStyle } from "./base";
 
 interface DecisionCondition {
-    type: "if" | "else-if" | "else";
+    decision_type: "if" | "else-if" | "else";
     condition?: string; // Jinja2 template string for 'if' and 'else-if'
-    output: string; // Name of the output branch
+    output: string;
 }
 
 interface DecisionMetadata {
@@ -28,15 +28,14 @@ export function DecisionNode({ id, data, selected, height, width }: NodeProps<Vu
             updateNodeData: state.updateNodeData,
             updateTargetDeps: state.updateTargetDeps,
             onNodesChange: state.onNodesChange,
-            edges: state.edges, // Get edges from the store
-            removeEdge: state.removeEdge, // Get removeEdge from the store
+            edges: state.edges,
+            removeEdge: state.removeEdge,
         })),
     );
 
-    // Initialize conditions with default if and else if they don't exist
     const initialConditions: DecisionCondition[] = data.metadata?.conditions || [
-        { type: "if", condition: "", output: "condition_1" },
-        { type: "else", output: "condition_2" },
+        { decision_type: "if", condition: "", output: "condition_1" },
+        { decision_type: "else", output: "condition_2" },
     ];
 
     const [conditions, setConditions] = useState<DecisionCondition[]>(initialConditions);
@@ -46,8 +45,6 @@ export function DecisionNode({ id, data, selected, height, width }: NodeProps<Vu
             setConditions(newConditions);
             const metadata: DecisionMetadata = { conditions: newConditions };
             updateNodeData(id, { ...data, metadata });
-
-            // Update target deps and node dimensions based on the number of conditions
             updateTargetDeps(id);
 
             // More accurate height calculation:
@@ -73,10 +70,10 @@ export function DecisionNode({ id, data, selected, height, width }: NodeProps<Vu
     const addElseIf = useCallback(() => {
         const newConditions = [...conditions];
         // Insert new else-if before the final else condition
-        const elseIndex = newConditions.findIndex((c) => c.type === "else");
+        const elseIndex = newConditions.findIndex((c) => c.decision_type === "else");
         if (elseIndex !== -1) {
             newConditions.splice(elseIndex, 0, {
-                type: "else-if",
+                decision_type: "else-if",
                 condition: "",
                 output: `condition_${newConditions.length}`,
             });
@@ -87,7 +84,7 @@ export function DecisionNode({ id, data, selected, height, width }: NodeProps<Vu
     const removeCondition = useCallback(
         (index: number) => {
             // Prevent removing if or else conditions
-            if (conditions[index].type === "if" || conditions[index].type === "else") {
+            if (conditions[index].decision_type === "if" || conditions[index].decision_type === "else") {
                 return;
             }
             const newConditions = [...conditions];
@@ -143,13 +140,13 @@ export function DecisionNode({ id, data, selected, height, width }: NodeProps<Vu
                             )}
                             <div className="flex-grow flex flex-col gap-2 nodrag">
                                 <Label className="font-medium">
-                                    {condition.type === "if"
+                                    {condition.decision_type === "if"
                                         ? "if"
-                                        : condition.type === "else-if"
+                                        : condition.decision_type === "else-if"
                                           ? "else if"
                                           : "else"}
                                 </Label>
-                                {condition.type !== "else" && (
+                                {condition.decision_type !== "else" && (
                                     <Input
                                         type="text"
                                         value={condition.condition || ""}
@@ -158,12 +155,12 @@ export function DecisionNode({ id, data, selected, height, width }: NodeProps<Vu
                                                 condition: e.target.value,
                                             })
                                         }
-                                        placeholder="{{ input_node.score >= 750 }}"
+                                        placeholder="input_node.score >= 750"
                                         onMouseDown={(e) => e.stopPropagation()}
                                     />
                                 )}
                             </div>
-                            {condition.type === "else-if" && (
+                            {condition.decision_type === "else-if" && (
                                 <Button
                                     variant="ghost"
                                     className="size-6 p-1"

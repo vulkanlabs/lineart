@@ -40,11 +40,14 @@ from vulkan.spec.nodes import (
     BranchNode,
     ConnectionNode,
     DataInputNode,
+    DecisionNode,
     InputNode,
     Node,
     TerminateNode,
     TransformNode,
 )
+from vulkan.spec.nodes.metadata import DecisionCondition
+from vulkan.spec.nodes.user_code import get_conditions_udf_instance
 from vulkan.spec.policy import PolicyDefinitionNode
 
 
@@ -597,6 +600,81 @@ class DagsterConnection(ConnectionNode, DagsterNode):
         )
 
 
+class DagsterDecision(DecisionNode, DagsterNode):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        conditions: list[DecisionCondition],
+        dependencies: dict[str, Any],
+    ):
+        super().__init__(
+            name=name,
+            description=description,
+            conditions=conditions,
+            dependencies=dependencies,
+        )
+
+    def op(self) -> OpDefinition:
+        def fn(context, inputs):
+            start_time = time.time()
+            error = None
+            try:
+                func = get_conditions_udf_instance(
+                    self.name,
+                    self.conditions,
+                    context=inputs,
+                )
+                output = func(**inputs)
+            except Exception as e:
+                error = format_exception_only(type(e), e)
+                raise UserCodeException(self.name) from e
+            else:
+                yield Output(None, output)
+            finally:
+                end_time = time.time()
+                metadata = StepMetadata(
+                    self.type.value,
+                    start_time,
+                    end_time,
+                    error,
+                )
+                yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+
+        branch_paths = {
+            condition.output: Out(is_required=False) for condition in self.conditions
+        }
+        node_op = OpDefinition(
+            compute_fn=fn,
+            name=self.name,
+            ins={k: In() for k in self.dependencies.keys()},
+            outs={
+                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
+                **branch_paths,
+            },
+            required_resource_keys={POLICY_CONFIG_KEY},
+        )
+        return node_op
+
+    @classmethod
+    def from_spec(cls, node: DecisionNode):
+        return cls(
+            name=node.name,
+            description=node.description,
+            conditions=node.conditions,
+            dependencies=node.dependencies,
+        )
+
+    def _get_configured_params(self, inputs):
+        configured_params = {}
+        try:
+            for k, v in self.parameters.items():
+                configured_params[k] = resolve_template(v, inputs, env_variables={})
+        except Exception:
+            raise ValueError(f"Invalid parameter configuration: {v}")
+        return configured_params
+
+
 _NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
     TransformNode: DagsterTransform,
     TerminateNode: DagsterTerminate,
@@ -605,6 +683,7 @@ _NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
     InputNode: DagsterInput,
     PolicyDefinitionNode: DagsterPolicy,
     ConnectionNode: DagsterConnection,
+    DecisionNode: DagsterDecision,
 }
 
 
