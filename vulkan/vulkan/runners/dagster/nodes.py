@@ -19,7 +19,7 @@ from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.exceptions import UserCodeException
-from vulkan.node_config import resolve_template
+from vulkan.node_config import normalize_to_template, resolve_template
 from vulkan.runners.dagster.io_manager import (
     METADATA_OUTPUT_KEY,
     PUBLISH_IO_MANAGER_KEY,
@@ -40,11 +40,13 @@ from vulkan.spec.nodes import (
     BranchNode,
     ConnectionNode,
     DataInputNode,
+    DecisionNode,
     InputNode,
     Node,
     TerminateNode,
     TransformNode,
 )
+from vulkan.spec.nodes.metadata import DecisionCondition, DecisionType
 from vulkan.spec.policy import PolicyDefinitionNode
 
 
@@ -597,6 +599,89 @@ class DagsterConnection(ConnectionNode, DagsterNode):
         )
 
 
+class DagsterDecision(DecisionNode, DagsterNode):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        conditions: list[DecisionCondition],
+        dependencies: dict[str, Any],
+    ):
+        super().__init__(
+            name=name,
+            description=description,
+            conditions=conditions,
+            dependencies=dependencies,
+        )
+
+    def _func(self, context, inputs):
+        if_cond = next(c for c in self.conditions if c.decision_type == DecisionType.IF)
+        else_cond = next(
+            c for c in self.conditions if c.decision_type == DecisionType.ELSE
+        )
+        elif_conds = [
+            c for c in self.conditions if c.decision_type == DecisionType.ELSE_IF
+        ]
+        if _evaluate_condition(if_cond.condition, inputs):
+            return if_cond.output
+        for elif_cond in elif_conds:
+            if _evaluate_condition(elif_cond.condition, inputs):
+                return elif_cond.output
+        return else_cond.output
+
+    def op(self) -> OpDefinition:
+        def fn(context, inputs):
+            start_time = time.time()
+            error = None
+            try:
+                output = self._func(context, inputs)
+            except Exception as e:
+                error = format_exception_only(type(e), e)
+                raise UserCodeException(self.name) from e
+            else:
+                yield Output(None, output)
+            finally:
+                end_time = time.time()
+                metadata = StepMetadata(
+                    self.type.value,
+                    start_time,
+                    end_time,
+                    error,
+                )
+                yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+
+        branch_paths = {
+            condition.output: Out(is_required=False) for condition in self.conditions
+        }
+        node_op = OpDefinition(
+            compute_fn=fn,
+            name=self.name,
+            ins={k: In() for k in self.dependencies.keys()},
+            outs={
+                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
+                **branch_paths,
+            },
+            required_resource_keys={POLICY_CONFIG_KEY},
+        )
+        return node_op
+
+    @classmethod
+    def from_spec(cls, node: DecisionNode):
+        return cls(
+            name=node.name,
+            description=node.description,
+            conditions=node.conditions,
+            dependencies=node.dependencies,
+        )
+
+
+def _evaluate_condition(condition: str, inputs: dict[str, Any]) -> bool:
+    norm_cond = normalize_to_template(condition)
+    result = resolve_template(norm_cond, inputs, env_variables={})
+    # Jinja2 evaluates to a string, so we need to compare to "True"
+    return result == "True"
+
+
 _NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
     TransformNode: DagsterTransform,
     TerminateNode: DagsterTerminate,
@@ -605,6 +690,7 @@ _NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
     InputNode: DagsterInput,
     PolicyDefinitionNode: DagsterPolicy,
     ConnectionNode: DagsterConnection,
+    DecisionNode: DagsterDecision,
 }
 
 

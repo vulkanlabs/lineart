@@ -11,6 +11,7 @@ from vulkan.spec.nodes.metadata import (
     BranchNodeMetadata,
     ConnectionNodeMetadata,
     DataInputNodeMetadata,
+    DecisionNodeMetadata,
     InputNodeMetadata,
     NodeMetadata,
     PolicyNodeMetadata,
@@ -27,6 +28,7 @@ class NodeType(Enum):
     DATA_INPUT = "DATA_INPUT"
     POLICY = "POLICY"
     CONNECTION = "CONNECTION"
+    DECISION = "DECISION"
 
 
 class NodeDefinitionDict(BaseModel):
@@ -48,6 +50,7 @@ NODE_METADATA_TYPE_MAP = {
     NodeType.DATA_INPUT: DataInputNodeMetadata,
     NodeType.POLICY: PolicyNodeMetadata,
     NodeType.CONNECTION: ConnectionNodeMetadata,
+    NodeType.DECISION: DecisionNodeMetadata,
 }
 
 

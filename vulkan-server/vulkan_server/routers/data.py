@@ -94,7 +94,7 @@ def create_data_source(
 @sources.put("/{data_source_id}/variables")
 def set_data_source_env_variables(
     data_source_id: str,
-    variables: Annotated[list[schemas.DataSourceEnvVarBase], Body()],
+    desired_variables: Annotated[list[schemas.DataSourceEnvVarBase], Body()],
     db: Session = Depends(get_db),
 ):
     data_source = (
@@ -108,35 +108,24 @@ def set_data_source_env_variables(
     if data_source is None:
         raise HTTPException(status_code=404, detail="Data source not found")
 
-    if data_source.variables is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Data source does not support environment variables",
-        )
-
-    if len(variables) == 0:
-        raise HTTPException(status_code=400, detail="No variables provided")
-
-    if not all(isinstance(v, schemas.DataSourceEnvVarBase) for v in variables):
-        raise HTTPException(
-            status_code=400,
-            detail="All variables must be of type DataSourceEnvVarBase",
-        )
-
-    extra_vars = set(v.name for v in variables) - set(data_source.variables)
+    desired_variable_names = set(v.name for v in desired_variables)
+    extra_vars = desired_variable_names - set(data_source.variables)
     if extra_vars:
         raise HTTPException(
             status_code=400,
             detail=f"Variables {extra_vars} are not supported by the data source",
         )
 
-    for v in variables:
-        env_var = (
-            db.query(DataSourceEnvVar)
-            .filter_by(data_source_id=data_source_id, name=v.name)
-            .first()
-        )
+    existing_variables = (
+        db.query(DataSourceEnvVar).filter_by(data_source_id=data_source_id).all()
+    )
+    for v in existing_variables:
+        if v.name not in desired_variable_names:
+            db.delete(v)
 
+    existing_variables_map = {v.name: v for v in existing_variables}
+    for v in desired_variables:
+        env_var = existing_variables_map.get(v.name, None)
         if env_var is None:
             env_var = DataSourceEnvVar(
                 data_source_id=data_source_id,
@@ -148,7 +137,7 @@ def set_data_source_env_variables(
             env_var.value = v.value
 
     db.commit()
-    return {"data_source_id": data_source_id, "variables": variables}
+    return {"data_source_id": data_source_id, "variables": desired_variables}
 
 
 @sources.get(

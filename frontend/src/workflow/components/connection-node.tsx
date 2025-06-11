@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { NodeProps } from "@xyflow/react";
 
@@ -21,7 +21,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronRight, Check, X } from "lucide-react"; // Added Chevron icons
 
 import { useWorkflowStore } from "../store";
 import { StandardWorkflowNode } from "./base";
@@ -45,15 +45,24 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
         })),
     );
 
-    const metadata: ConnectionMetadata = data.metadata || {};
+    const metadata: ConnectionMetadata = useMemo(() => data.metadata || {}, [data.metadata]);
 
     const [localMetadata, setLocalMetadata] = useState<ConnectionMetadata>(metadata);
     const [bodyText, setBodyText] = useState<string>(JSON.stringify(metadata.body || {}, null, 2));
+    const [isBodyCollapsed, setIsBodyCollapsed] = useState<boolean>(true); // New state for collapsible section
+    const [isBodyValid, setIsBodyValid] = useState<boolean>(true); // New state for body validation
 
     // Sync localMetadata when data.metadata changes
     useEffect(() => {
         setLocalMetadata(metadata);
-        setBodyText(JSON.stringify(metadata.body || {}, null, 2));
+        const newBodyText = JSON.stringify(metadata.body || {}, null, 2);
+        setBodyText(newBodyText);
+        try {
+            JSON.parse(newBodyText);
+            setIsBodyValid(true);
+        } catch {
+            setIsBodyValid(false);
+        }
     }, [metadata]);
 
     const updateMetadata = useCallback(
@@ -121,7 +130,6 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
                             <TableRow>
                                 <TableHead className="w-1/3">Key</TableHead>
                                 <TableHead className="w-1/2">Value</TableHead>
-                                <TableHead className="w-1/6" />
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -268,23 +276,46 @@ export function ConnectionNode({ id, data, selected, height, width }: NodeProps<
                 {renderKeyValueSection("Query Parameters", "params", localMetadata.params || {})}
 
                 <div className="space-y-2">
-                    <Label className="text-sm font-medium">Request Body (JSON)</Label>
-                    <Textarea
-                        value={bodyText}
-                        onChange={(e) => {
-                            const newValue = e.target.value;
-                            setBodyText(newValue);
-                            try {
-                                const parsed = JSON.parse(newValue);
-                                updateMetadata({ body: parsed });
-                            } catch {
-                                // Invalid JSON, don't update metadata but keep the text
-                            }
-                        }}
-                        placeholder="{}"
-                        className="min-h-[100px] font-mono text-xs"
-                        onMouseDown={(e) => e.stopPropagation()}
-                    />
+                    <div className="flex items-center space-x-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsBodyCollapsed(!isBodyCollapsed)}
+                            className="p-1 h-auto"
+                        >
+                            {isBodyCollapsed ? (
+                                <ChevronRight className="h-4 w-4" />
+                            ) : (
+                                <ChevronDown className="h-4 w-4" />
+                            )}
+                        </Button>
+                        <Label className="text-sm font-medium">Request Body (JSON)</Label>
+                        <span
+                            className={`text-xs ${isBodyValid ? "text-green-500" : "text-red-500"}`}
+                        >
+                            {isBodyValid ? <Check color="green" /> : <X color="red" />}
+                        </span>
+                    </div>
+                    {!isBodyCollapsed && (
+                        <Textarea
+                            value={bodyText}
+                            onChange={(e) => {
+                                const newValue = e.target.value;
+                                setBodyText(newValue);
+                                try {
+                                    const parsed = JSON.parse(newValue);
+                                    updateMetadata({ body: parsed });
+                                    setIsBodyValid(true);
+                                } catch {
+                                    // Invalid JSON, don't update metadata but keep the text
+                                    setIsBodyValid(false);
+                                }
+                            }}
+                            placeholder="{}"
+                            className="min-h-[100px] font-mono text-xs"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        />
+                    )}
                 </div>
             </div>
         </StandardWorkflowNode>

@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Any, TypeAlias
 
 from pydantic import BaseModel
@@ -54,6 +55,22 @@ class ConnectionNodeMetadata(BaseNodeMetadata):
     response_type: str = "JSON"
 
 
+class DecisionType(Enum):
+    IF = "if"
+    ELSE_IF = "else-if"
+    ELSE = "else"
+
+
+class DecisionCondition(BaseModel):
+    decision_type: DecisionType
+    condition: str | None = None
+    output: str
+
+
+class DecisionNodeMetadata(BaseNodeMetadata):
+    conditions: list[DecisionCondition]
+
+
 NodeMetadata: TypeAlias = (
     InputNodeMetadata
     | BranchNodeMetadata
@@ -62,4 +79,5 @@ NodeMetadata: TypeAlias = (
     | DataInputNodeMetadata
     | PolicyNodeMetadata
     | ConnectionNodeMetadata
+    | DecisionNodeMetadata
 )

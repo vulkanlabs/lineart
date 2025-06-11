@@ -9,6 +9,10 @@ test-integration:
 	uv run pytest -sv --tb=short --disable-warnings -m "integration"
 
 # Development & Deployment
+.PHONY: lint
+lint:
+	cd frontend && npm run format
+
 .PHONY: down
 down:
 	rm -r ./dist/ || true

@@ -216,18 +216,19 @@ def normalize_to_template(value: ParameterType) -> str:
     - {"param": "variable"} -> "{{variable}}"
     - {"env": "variable"} -> "{{env.variable}}"
     - "{{variable}}" -> "{{variable}}" (unchanged)
+    - "variable" -> "{{variable}}"
     """
     if isinstance(value, RunTimeParam):
         return f"{{{{{value.param}}}}}"
     elif isinstance(value, EnvVarConfig):
         return f"{{{{env.{value.env}}}}}"
-    elif isinstance(value, (str, int, float, bool)):
-        return str(value)
     elif isinstance(value, list):
         # For lists, normalize each element
         return [normalize_to_template(item) for item in value]
+    elif isinstance(value, str) and value.startswith("{{") and value.endswith("}}"):
+        return value
     else:
-        return str(value)
+        return f"{{{{{value}}}}}"
 
 
 def normalize_mapping(spec: ConfigurableDict) -> dict[str, str]:

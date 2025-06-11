@@ -10,47 +10,38 @@ import { DataTable } from "@/components/data-table";
 import { ShortenedID } from "@/components/shortened-id";
 import { parseDate } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
-import { ConfigurationVariables } from "@vulkan-server/ConfigurationVariables";
 import { DataSource } from "@vulkan-server/DataSource";
+import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { updatePolicyVersion } from "@/lib/api";
 import { toast } from "sonner";
-import { PolicyVersion } from "@vulkan-server/PolicyVersion";
+import {
+    EnvironmentVariablesEditor,
+    EnvironmentVariablesEditorProps,
+} from "@/components/environment-variables-editor";
+import { setPolicyVersionVariablesAction } from "./actions";
 
-function parseNullableDate(rawDate: string | null): string {
-    if (rawDate === null) {
-        return "N/A";
-    }
-
-    return parseDate(rawDate);
+interface EnvironmentVariablesProps {
+    policyVersion: PolicyVersion;
+    variables: EnvironmentVariablesEditorProps["variables"];
 }
 
-const ConfigVariablesTableColumns: ColumnDef<ConfigurationVariables>[] = [
-    {
-        accessorKey: "name",
-        header: "Name",
-    },
-    {
-        accessorKey: "value",
-        header: "Value",
-    },
-    {
-        accessorKey: "created_at",
-        header: "Created At",
-        cell: ({ row }) => parseNullableDate(row.getValue("created_at")),
-    },
-    {
-        accessorKey: "last_updated_at",
-        header: "Last Updated At",
-        cell: ({ row }) => parseNullableDate(row.getValue("last_updated_at")),
-    },
-];
-
-export function ConfigVariablesTable({ variables }) {
-    return <DataTable columns={ConfigVariablesTableColumns} data={variables} />;
+export function EnvironmentVariables({ policyVersion, variables }: EnvironmentVariablesProps) {
+    return (
+        <EnvironmentVariablesEditor
+            variables={variables}
+            requiredVariableNames={policyVersion.variables || []}
+            onSave={async (updatedVariables) => {
+                await setPolicyVersionVariablesAction(
+                    policyVersion.policy_version_id,
+                    updatedVariables,
+                );
+            }}
+        />
+    );
 }
 
 const DataSourceTableColumns: ColumnDef<DataSource>[] = [
@@ -167,8 +158,10 @@ const requirementsSchema = z.object({
             const lines = value.split("\n");
             for (const line of lines) {
                 const trimmedLine = line.trim();
-                if (trimmedLine === "" || trimmedLine.startsWith("#")) continue;
-                if (/[^a-zA-Z\d\-_.=<>!~\^]/.test(trimmedLine)) {
+                if (trimmedLine === "" || trimmedLine.startsWith("#")) {
+                    continue;
+                }
+                if (/[^a-zA-Z\d\-_=.<>!~\^]/.test(trimmedLine)) {
                     return false;
                 }
             }

@@ -344,10 +344,7 @@ def list_config_variables(
         msg = f"Policy version {policy_version_id} not found"
         raise HTTPException(status_code=404, detail=msg)
 
-    required_variables = version.variables
-    if required_variables is None:
-        return Response(status_code=204)
-
+    required_variables = version.variables or []
     variables = (
         db.query(ConfigurationValue)
         .filter_by(policy_version_id=policy_version_id)
@@ -356,13 +353,25 @@ def list_config_variables(
     variable_map = {v.name: v for v in variables}
 
     result = []
-    for variable_name in required_variables:
-        entry = {"name": variable_name}
-        if variable_name in variable_map:
-            entry["value"] = variable_map[variable_name].value
-            entry["created_at"] = variable_map[variable_name].created_at
-            entry["last_updated_at"] = variable_map[variable_name].last_updated_at
+    for variable in variables:
+        entry = {
+            "name": variable.name,
+            "value": variable.value,
+            "created_at": variable.created_at,
+            "last_updated_at": variable.last_updated_at,
+        }
         result.append(entry)
+
+    # If the variable is not in the database, even if they're null.
+    for variable in required_variables:
+        if variable not in variable_map:
+            entry = {
+                "name": variable,
+                "value": None,
+                "created_at": None,
+                "last_updated_at": None,
+            }
+            result.append(entry)
 
     return result
 
@@ -370,8 +379,9 @@ def list_config_variables(
 @router.put("/{policy_version_id}/variables")
 def set_config_variables(
     policy_version_id: str,
-    variables: Annotated[list[schemas.ConfigurationVariablesBase], Body()],
+    desired_variables: Annotated[list[schemas.ConfigurationVariablesBase], Body()],
     db: Session = Depends(get_db),
+    logger: VulkanLogger = Depends(get_logger),
 ):
     version = (
         db.query(PolicyVersion)
@@ -385,13 +395,19 @@ def set_config_variables(
         msg = f"Policy version {policy_version_id} not found"
         raise HTTPException(status_code=404, detail=msg)
 
-    for v in variables:
-        config_value = (
-            db.query(ConfigurationValue)
-            .filter_by(policy_version_id=policy_version_id, name=v.name)
-            .first()
-        )
+    existing_variables = (
+        db.query(ConfigurationValue)
+        .filter_by(policy_version_id=policy_version_id)
+        .all()
+    )
 
+    for v in existing_variables:
+        if v.name not in set([var.name for var in desired_variables]):
+            db.delete(v)
+
+    existing_variables_map = {v.name: v for v in existing_variables}
+    for v in desired_variables:
+        config_value = existing_variables_map.get(v.name, None)
         if config_value is None:
             config_value = ConfigurationValue(
                 policy_version_id=policy_version_id,
@@ -403,7 +419,12 @@ def set_config_variables(
             config_value.value = v.value
 
     db.commit()
-    return {"policy_version_id": policy_version_id, "variables": variables}
+    logger.event(
+        VulkanEvent.POLICY_VERSION_VARIABLES_UPDATED,
+        policy_version_id=policy_version_id,
+        variables=[v.model_dump_json() for v in desired_variables],
+    )
+    return {"policy_version_id": policy_version_id, "variables": desired_variables}
 
 
 @router.get("/{policy_version_id}/runs", response_model=list[schemas.Run])

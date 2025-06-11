@@ -29,7 +29,8 @@ export type VulkanNode =
     | Node<VulkanNodeData, "TRANSFORM">
     | Node<VulkanNodeData, "BRANCH">
     | Node<VulkanNodeData, "TERMINATE">
-    | Node<VulkanNodeData, "POLICY">;
+    | Node<VulkanNodeData, "POLICY">
+    | Node<VulkanNodeData, "DECISION">;
 
 export type VulkanNodeType = NonNullable<VulkanNode["type"]>;
 
@@ -74,12 +75,23 @@ export type PolicyDefinitionNodeMetadata = {
     policy_id: string;
 };
 
+export type DecisionCondition = {
+    decision_type: "if" | "else-if" | "else";
+    condition?: string; // Jinja2 template string for 'if' and 'else-if'
+    output: string;
+};
+
+export type DecisionNodeMetadata = {
+    conditions: DecisionCondition[];
+};
+
 export type NodeMetadata =
     | BranchNodeMetadata
     | DataInputNodeMetadata
     | TerminateNodeMetadata
     | TransformNodeMetadata
-    | PolicyDefinitionNodeMetadata;
+    | PolicyDefinitionNodeMetadata
+    | DecisionNodeMetadata;
 
 export type NodeDefinition = GenericNodeDefinition<NodeMetadata>;
 

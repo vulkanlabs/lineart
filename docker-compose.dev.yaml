@@ -92,10 +92,6 @@ services:
     env_file:
       - config/active/upload-svc.env
   # Mock services
-  echo:
-    image: kennethreitz/httpbin
-    env_file:
-      - config/active/echo.env
   testdata:
     build:
       context: .

@@ -2,19 +2,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { useState, Suspense, useEffect, useCallback } from "react";
-import {
-    CopyIcon,
-    CalendarIcon,
-    CheckIcon,
-    FileIcon,
-    LinkIcon,
-    Settings2Icon,
-    EditIcon,
-    SaveIcon,
-    XIcon,
-    EyeIcon,
-    EyeOffIcon,
-} from "lucide-react";
+import { CopyIcon, CalendarIcon, CheckIcon, FileIcon, LinkIcon, Settings2Icon } from "lucide-react";
 
 import { DataSource } from "@vulkan-server/DataSource";
 import { DataSourceEnvVarBase } from "@vulkan-server/DataSourceEnvVarBase";
@@ -27,16 +15,14 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import Loader from "@/components/animations/loader";
+import { EnvironmentVariablesEditor } from "@/components/environment-variables-editor";
+import { fetchDataSourceEnvVars } from "@/lib/api";
 import DataSourceUsageAnalytics from "./usage-analytics";
-import { setDataSourceEnvVars, fetchDataSourceEnvVars } from "@/lib/api";
+import { setDataSourceVariablesAction } from "./actions";
 
 export default function DataSourcePage({ dataSource }: { dataSource: DataSource }) {
     const [copiedField, setCopiedField] = useState<string | null>(null);
-
-    console.log("Retrieved Data Source Spec: ", dataSource);
 
     const copyToClipboard = (text: string, field: string) => {
         navigator.clipboard.writeText(text);
@@ -44,7 +30,6 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
         setTimeout(() => setCopiedField(null), 2000);
     };
 
-    // Get full data source as formatted JSON
     const getFullDataSourceJson = () => {
         return JSON.stringify(dataSource, null, 2);
     };
@@ -396,86 +381,23 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
 }
 
 function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editingVariables, setEditingVariables] = useState<DataSourceEnvVarBase[]>([]);
-    const [envVars, setEnvVars] = useState<DataSourceEnvVarBase[]>([]);
-    const [isSaving, setIsSaving] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [visibleVariables, setVisibleVariables] = useState<Set<number>>(new Set());
+    const runtimeParams = dataSource.runtime_params || [];
 
-    // Load environment variables from API
-    const loadEnvVars = useCallback(async () => {
+    const [variables, setVariables] = useState<DataSourceEnvVarBase[]>([]);
+
+    const fetchVariables = useCallback(async () => {
         try {
-            setIsLoading(true);
-            const variables = await fetchDataSourceEnvVars(dataSource.data_source_id);
-            setEnvVars(variables || []);
+            const envVars = await fetchDataSourceEnvVars(dataSource.data_source_id);
+            setVariables(envVars);
         } catch (error) {
-            console.error("Error loading environment variables:", error);
-            setEnvVars([]);
-        } finally {
-            setIsLoading(false);
+            console.error("Failed to fetch environment variables:", error);
+            setVariables([]);
         }
     }, [dataSource.data_source_id]);
 
-    // Load env vars on component mount
     useEffect(() => {
-        loadEnvVars();
-    }, [loadEnvVars]);
-
-    // Initialize editing variables from predefined variables
-    const initializeEditingVariables = () => {
-        const predefinedVariables = dataSource.variables || [];
-        setEditingVariables(
-            predefinedVariables.map((varName) => ({
-                name: varName,
-                value: "", // Values are not returned from API for security
-            })),
-        );
-    };
-
-    const handleEdit = () => {
-        initializeEditingVariables();
-        setIsEditing(true);
-    };
-
-    const handleCancel = () => {
-        setIsEditing(false);
-        setEditingVariables([]);
-    };
-
-    const handleSave = async () => {
-        try {
-            setIsSaving(true);
-            await setDataSourceEnvVars(dataSource.data_source_id, editingVariables);
-            setIsEditing(false);
-            // Reload environment variables to reflect changes
-            await loadEnvVars();
-        } catch (error) {
-            console.error("Error saving environment variables:", error);
-            // Optionally show an error message to the user
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const handleVariableChange = (index: number, value: string) => {
-        const updatedVariables = [...editingVariables];
-        updatedVariables[index] = { ...updatedVariables[index], value };
-        setEditingVariables(updatedVariables);
-    };
-
-    const toggleVariableVisibility = (index: number) => {
-        const newVisible = new Set(visibleVariables);
-        if (newVisible.has(index)) {
-            newVisible.delete(index);
-        } else {
-            newVisible.add(index);
-        }
-        setVisibleVariables(newVisible);
-    };
-
-    const runtimeParams = dataSource.runtime_params || [];
-    const predefinedVariables = dataSource.variables || [];
+        fetchVariables();
+    }, [fetchVariables]);
 
     return (
         <Card>
@@ -485,23 +407,6 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
                         <FileIcon className="h-5 w-5" />
                         Variables
                     </CardTitle>
-                    {predefinedVariables.length > 0 && !isEditing ? (
-                        <Button variant="outline" size="sm" onClick={handleEdit}>
-                            <EditIcon className="h-4 w-4 mr-2" />
-                            Edit Environment Variables
-                        </Button>
-                    ) : isEditing ? (
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={handleCancel}>
-                                <XIcon className="h-4 w-4 mr-2" />
-                                Cancel
-                            </Button>
-                            <Button size="sm" onClick={handleSave} disabled={isSaving}>
-                                <SaveIcon className="h-4 w-4 mr-2" />
-                                {isSaving ? "Saving..." : "Save"}
-                            </Button>
-                        </div>
-                    ) : null}
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -532,84 +437,16 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
 
                 <Separator />
 
-                {/* Environment Variables Section */}
-                <div>
-                    <h4 className="text-sm font-medium mb-3">Environment Variables</h4>
-                    <p className="text-xs text-muted-foreground mb-3">
-                        These variables are configured at the data source level and available during
-                        execution.
-                    </p>
-
-                    {predefinedVariables.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            No environment variables defined for this data source.
-                        </p>
-                    ) : isLoading ? (
-                        <div className="flex justify-center p-4">
-                            <Loader />
-                        </div>
-                    ) : !isEditing ? (
-                        <div className="space-y-2">
-                            {predefinedVariables.map((variableName, index) => {
-                                const envVar = envVars.find((env) => env.name === variableName);
-                                const isConfigured =
-                                    envVar &&
-                                    envVar.value &&
-                                    typeof envVar.value === "string" &&
-                                    envVar.value.trim() !== "";
-                                return (
-                                    <div
-                                        key={index}
-                                        className="flex items-center justify-between p-2 bg-muted/30 rounded 
-                                            border-l-2 border-green-500"
-                                    >
-                                        <span className="text-sm font-medium">{variableName}</span>
-                                        <Badge variant={isConfigured ? "outline" : "destructive"}>
-                                            {isConfigured ? "Configured" : "Not Set"}
-                                        </Badge>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {editingVariables.map((variable, index) => (
-                                <div key={index} className="flex items-center gap-4">
-                                    <div className="flex-1">
-                                        <Label className="text-sm font-medium">
-                                            {variable.name}
-                                        </Label>
-                                    </div>
-                                    <div className="flex-1 relative">
-                                        <Input
-                                            id={`var-value-${index}`}
-                                            type={visibleVariables.has(index) ? "text" : "password"}
-                                            placeholder="Enter variable value"
-                                            value={variable.value ? String(variable.value) : ""}
-                                            onChange={(e) =>
-                                                handleVariableChange(index, e.target.value)
-                                            }
-                                            className="pr-10"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                            onClick={() => toggleVariableVisibility(index)}
-                                        >
-                                            {visibleVariables.has(index) ? (
-                                                <EyeOffIcon className="h-4 w-4" />
-                                            ) : (
-                                                <EyeIcon className="h-4 w-4" />
-                                            )}
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                <EnvironmentVariablesEditor
+                    variables={variables}
+                    requiredVariableNames={dataSource.variables || []}
+                    onSave={async (updatedVariables) => {
+                        await setDataSourceVariablesAction(
+                            dataSource.data_source_id,
+                            updatedVariables,
+                        );
+                    }}
+                />
             </CardContent>
         </Card>
     );

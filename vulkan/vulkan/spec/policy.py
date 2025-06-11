@@ -9,6 +9,7 @@ from vulkan.spec.nodes import (
     BranchNode,
     ConnectionNode,
     DataInputNode,
+    DecisionNode,
     InputNode,
     TerminateNode,
     TransformNode,
@@ -175,6 +176,7 @@ NODE_IMPLEMENTS = {
     NodeType.BRANCH: BranchNode,
     NodeType.POLICY: PolicyDefinitionNode,
     NodeType.CONNECTION: ConnectionNode,
+    NodeType.DECISION: DecisionNode,
 }
 
 

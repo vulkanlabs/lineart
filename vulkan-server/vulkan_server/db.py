@@ -186,7 +186,7 @@ class StepMetadata(Base):
     node_type = Column(Enum(NodeType))
     start_time = Column(Float)
     end_time = Column(Float)
-    error = Column(String, nullable=True)
+    error = Column(JSON, nullable=True)
     extra = Column(JSON, nullable=True)
 
 
