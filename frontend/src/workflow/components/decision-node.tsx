@@ -104,12 +104,14 @@ export function DecisionNode({ id, data, selected, height, width }: NodeProps<Vu
     const updateCondition = useCallback(
         (index: number, updates: Partial<DecisionCondition>) => {
             const newConditions = [...conditions];
-            newConditions[index] = { ...newConditions[index], ...updates };
+            newConditions[index] = {
+                ...newConditions[index],
+                ...updates,
+            };
             updateConditions(newConditions);
         },
         [conditions, updateConditions],
     );
-
     const isExpanded = data.detailsExpanded ?? true;
 
     return (
@@ -143,19 +145,17 @@ export function DecisionNode({ id, data, selected, height, width }: NodeProps<Vu
                                     {condition.decision_type === "if"
                                         ? "if"
                                         : condition.decision_type === "else-if"
-                                          ? "else if"
-                                          : "else"}
+                                            ? "else if"
+                                            : "else"}
                                 </Label>
                                 {condition.decision_type !== "else" && (
                                     <Input
                                         type="text"
                                         value={condition.condition || ""}
                                         onChange={(e) =>
-                                            updateCondition(index, {
-                                                condition: e.target.value,
-                                            })
+                                            updateCondition(index, { condition: e.target.value })
                                         }
-                                        placeholder="input_node.score >= 750"
+                                        placeholder="{{input_node.score >= 750}}"
                                         onMouseDown={(e) => e.stopPropagation()}
                                     />
                                 )}

@@ -1,12 +1,11 @@
 import ast
 from inspect import getsource
 from textwrap import dedent
-from typing import Any, Callable
+from typing import Callable
 
 from jinja2 import Template
 
 from vulkan.spec.dependency import DependencyDict
-from vulkan.spec.nodes.metadata import DecisionCondition
 
 
 def get_source_code(func: Callable) -> str:
@@ -142,45 +141,3 @@ def _udf_{{node_name}}(*args, **kwargs):
 """
 
 _USER_FN_TEMPLATE = Template(_USER_FN_STRING)
-
-
-def get_conditions_udf_instance(
-    name: str,
-    conditions: list[DecisionCondition],
-    context: dict[str, Any] | None = None,
-) -> str:
-    if context is None:
-        context = {}
-    udf_code = _USER_FN_FROM_CONDITIONS_TEMPLATE.render(
-        node_name=name,
-        conditions=conditions,
-        context=context,
-    )
-    print(udf_code)
-    exec(udf_code)
-    udf_instance = locals()[f"_udf_conditions_{name}"]
-    return udf_instance
-
-
-_USER_FN_FROM_CONDITIONS_STRING = """
-def _udf_conditions_{{node_name}}(*args, **kwargs):
-    {% for arg, value in context.items() -%}
-    {{arg}} = kwargs.get("{{arg}}")
-    {% endfor -%}
-
-
-    {%- for condition in conditions %}
-    {%- if condition.decision_type.value == "if" -%}
-    if {{ condition.condition }}:
-        return "{{ condition.output }}"
-    {% elif condition.decision_type.value == "else-if" -%}
-    if {{ condition.condition }}:
-        return "{{ condition.output }}"
-    {% endif -%}
-    {% endfor -%}
-
-    {% set else_condition = conditions | selectattr("decision_type.value", "equalto", "else") | first %}
-    return "{{ else_condition.output }}"
-"""
-
-_USER_FN_FROM_CONDITIONS_TEMPLATE = Template(_USER_FN_FROM_CONDITIONS_STRING)

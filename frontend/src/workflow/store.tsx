@@ -91,7 +91,6 @@ const createWorkflowStore = (initProps: WorkflowState) => {
                 };
             });
 
-            console.debug("Workflow spec:", spec);
             return spec;
         },
 

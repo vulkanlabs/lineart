@@ -19,7 +19,7 @@ from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.exceptions import UserCodeException
-from vulkan.node_config import resolve_template
+from vulkan.node_config import normalize_to_template, resolve_template
 from vulkan.runners.dagster.io_manager import (
     METADATA_OUTPUT_KEY,
     PUBLISH_IO_MANAGER_KEY,
@@ -46,8 +46,7 @@ from vulkan.spec.nodes import (
     TerminateNode,
     TransformNode,
 )
-from vulkan.spec.nodes.metadata import DecisionCondition
-from vulkan.spec.nodes.user_code import get_conditions_udf_instance
+from vulkan.spec.nodes.metadata import DecisionCondition, DecisionType
 from vulkan.spec.policy import PolicyDefinitionNode
 
 
@@ -615,17 +614,27 @@ class DagsterDecision(DecisionNode, DagsterNode):
             dependencies=dependencies,
         )
 
+    def _func(self, context, inputs):
+        if_cond = next(c for c in self.conditions if c.decision_type == DecisionType.IF)
+        else_cond = next(
+            c for c in self.conditions if c.decision_type == DecisionType.ELSE
+        )
+        elif_conds = [
+            c for c in self.conditions if c.decision_type == DecisionType.ELSE_IF
+        ]
+        if _evaluate_condition(if_cond.condition, inputs):
+            return if_cond.output
+        for elif_cond in elif_conds:
+            if _evaluate_condition(elif_cond.condition, inputs):
+                return elif_cond.output
+        return else_cond.output
+
     def op(self) -> OpDefinition:
         def fn(context, inputs):
             start_time = time.time()
             error = None
             try:
-                func = get_conditions_udf_instance(
-                    self.name,
-                    self.conditions,
-                    context=inputs,
-                )
-                output = func(**inputs)
+                output = self._func(context, inputs)
             except Exception as e:
                 error = format_exception_only(type(e), e)
                 raise UserCodeException(self.name) from e
@@ -665,14 +674,12 @@ class DagsterDecision(DecisionNode, DagsterNode):
             dependencies=node.dependencies,
         )
 
-    def _get_configured_params(self, inputs):
-        configured_params = {}
-        try:
-            for k, v in self.parameters.items():
-                configured_params[k] = resolve_template(v, inputs, env_variables={})
-        except Exception:
-            raise ValueError(f"Invalid parameter configuration: {v}")
-        return configured_params
+
+def _evaluate_condition(condition: str, inputs: dict[str, Any]) -> bool:
+    norm_cond = normalize_to_template(condition)
+    result = resolve_template(norm_cond, inputs, env_variables={})
+    # Jinja2 evaluates to a string, so we need to compare to "True"
+    return result == "True"
 
 
 _NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
