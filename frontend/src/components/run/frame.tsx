@@ -130,6 +130,7 @@ const NodeTypeToRunStepMapping = {
     CONNECTION: "common",
     DATA_INPUT: "common",
     BRANCH: "common",
+    DECISION: "common",
     TERMINATE: "terminate",
     INPUT: "entry",
 };

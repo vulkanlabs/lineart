@@ -1,7 +1,14 @@
 "use client";
 import React, { useState, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { SaveIcon, ChevronDownIcon, ChevronUpIcon, LayoutIcon, CopyIcon, Router } from "lucide-react";
+import {
+    SaveIcon,
+    ChevronDownIcon,
+    ChevronUpIcon,
+    LayoutIcon,
+    CopyIcon,
+    Router,
+} from "lucide-react";
 import { toast } from "sonner";
 import ELK from "elkjs/lib/elk.bundled.js";
 import {
@@ -37,11 +44,7 @@ import { iconMapping } from "./icons";
 import { nodeTypes } from "./components";
 import { WorkflowProvider, useWorkflowStore } from "./store";
 import { saveWorkflowSpec } from "./actions";
-import {
-    GraphDefinition,
-    VulkanNode,
-    WorkflowState,
-} from "./types";
+import { GraphDefinition, VulkanNode, WorkflowState } from "./types";
 import { findHandleIndexByName } from "./names";
 import { useRouter } from "next/navigation";
 
@@ -242,7 +245,12 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
                             const spec = getSpec();
                             const nodes = getNodes();
                             const inputSchema = getInputSchema();
-                            const result = await saveWorkflowState(policyVersion, nodes, spec, inputSchema);
+                            const result = await saveWorkflowState(
+                                policyVersion,
+                                nodes,
+                                spec,
+                                inputSchema,
+                            );
                             if (result.success) {
                                 toast("Workflow saved ", {
                                     description: `Workflow saved successfully.`,
@@ -250,13 +258,12 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
                                     dismissible: true,
                                 });
                                 router.refresh();
-                            }
-                             else {
+                            } else {
                                 toast("Failed to save workflow", {
                                     description: result.error,
                                     duration: 5000,
                                 });
-                             }
+                            }
                         }}
                     >
                         <TooltipProvider>
@@ -331,7 +338,6 @@ async function saveWorkflowState(
         });
 
     return await saveWorkflowSpec(policyVersion, graphNodes, uiMetadata, inputSchema);
-
 }
 
 function AppDropdownMenu({

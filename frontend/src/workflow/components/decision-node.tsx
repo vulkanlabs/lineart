@@ -84,7 +84,10 @@ export function DecisionNode({ id, data, selected, height, width }: NodeProps<Vu
     const removeCondition = useCallback(
         (index: number) => {
             // Prevent removing if or else conditions
-            if (conditions[index].decision_type === "if" || conditions[index].decision_type === "else") {
+            if (
+                conditions[index].decision_type === "if" ||
+                conditions[index].decision_type === "else"
+            ) {
                 return;
             }
             const newConditions = [...conditions];
@@ -145,8 +148,8 @@ export function DecisionNode({ id, data, selected, height, width }: NodeProps<Vu
                                     {condition.decision_type === "if"
                                         ? "if"
                                         : condition.decision_type === "else-if"
-                                            ? "else if"
-                                            : "else"}
+                                          ? "else if"
+                                          : "else"}
                                 </Label>
                                 {condition.decision_type !== "else" && (
                                     <Input
@@ -155,7 +158,7 @@ export function DecisionNode({ id, data, selected, height, width }: NodeProps<Vu
                                         onChange={(e) =>
                                             updateCondition(index, { condition: e.target.value })
                                         }
-                                        placeholder="{{input_node.score >= 750}}"
+                                        placeholder="input_node.score >= 750"
                                         onMouseDown={(e) => e.stopPropagation()}
                                     />
                                 )}
