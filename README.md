@@ -10,13 +10,7 @@ A complete workflow design and orchestration framework.
 ### Pre-requisites
 
 - make
-- uv: [Installation Guide](https://github.com/astral-sh/uv?tab=readme-ov-file#installation)
 - Docker: [Installation Guide](https://docs.docker.com/get-started/get-docker/)
-- git: [Installation Guide](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-- Node: [Installation Guide](https://nodejs.org/en/download)
-  - Select the option that matches your operating system
-  - Use any selection in the middle option (we reccomend nvm for developers)
-  - Choose "with npm" at the last option (default)
 
 ### Setting Up
 

@@ -1,14 +1,7 @@
 "use client";
 import React, { useState, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import {
-    SaveIcon,
-    ChevronDownIcon,
-    ChevronUpIcon,
-    LayoutIcon,
-    CopyIcon,
-    Router,
-} from "lucide-react";
+import { SaveIcon, ChevronDownIcon, ChevronUpIcon, LayoutIcon, CopyIcon } from "lucide-react";
 import { toast } from "sonner";
 import ELK from "elkjs/lib/elk.bundled.js";
 import {
@@ -44,9 +37,10 @@ import { iconMapping } from "./icons";
 import { nodeTypes } from "./components";
 import { WorkflowProvider, useWorkflowStore } from "./store";
 import { saveWorkflowSpec } from "./actions";
-import { GraphDefinition, VulkanNode, WorkflowState } from "./types";
+import { VulkanNode, WorkflowState } from "./types";
 import { findHandleIndexByName } from "./names";
 import { useRouter } from "next/navigation";
+import { PolicyDefinitionDictInput } from "@vulkan-server/PolicyDefinitionDictInput";
 
 type OnNodeClick = (e: React.MouseEvent, node: any) => void;
 type OnPaneClick = (e: React.MouseEvent) => void;
@@ -62,7 +56,6 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
         nodes,
         edges,
         getSpec,
-        getInputSchema,
         addNodeByType,
         getNodes,
         setNodes,
@@ -75,7 +68,6 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
             nodes: state.nodes,
             edges: state.edges,
             getSpec: state.getSpec,
-            getInputSchema: state.getInputSchema,
             addNodeByType: state.addNodeByType,
             getNodes: state.getNodes,
             setNodes: state.setNodes,
@@ -244,13 +236,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
                         onClick={async () => {
                             const spec = getSpec();
                             const nodes = getNodes();
-                            const inputSchema = getInputSchema();
-                            const result = await saveWorkflowState(
-                                policyVersion,
-                                nodes,
-                                spec,
-                                inputSchema,
-                            );
+                            const result = await saveWorkflowState(policyVersion, nodes, spec);
                             if (result.success) {
                                 toast("Workflow saved ", {
                                     description: `Workflow saved successfully.`,
@@ -316,8 +302,7 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
 async function saveWorkflowState(
     policyVersion: PolicyVersion,
     nodes: VulkanNode[],
-    graph: GraphDefinition,
-    inputSchema: { [key: string]: string },
+    spec: PolicyDefinitionDictInput,
 ) {
     // Save workflow UI state
     const uiMetadata = Object.fromEntries(
@@ -327,17 +312,7 @@ async function saveWorkflowState(
         ]),
     );
 
-    // Filter out INPUT nodes and include positions in metadata
-    const graphNodes = Object.entries(graph)
-        .filter(([_, node]) => node.node_type !== "INPUT")
-        .map(([_, node]) => {
-            return {
-                ...node,
-                metadata: node.metadata,
-            };
-        });
-
-    return await saveWorkflowSpec(policyVersion, graphNodes, uiMetadata, inputSchema);
+    return await saveWorkflowSpec(policyVersion, spec, uiMetadata);
 }
 
 function AppDropdownMenu({

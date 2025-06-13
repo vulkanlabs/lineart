@@ -1,6 +1,17 @@
 
 # Contributing
 
+## Pre-Requisites
+
+- make
+- Docker: [Installation Guide](https://docs.docker.com/get-started/get-docker/)
+- uv: [Installation Guide](https://github.com/astral-sh/uv?tab=readme-ov-file#installation)
+- git: [Installation Guide](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+- Node: [Installation Guide](https://nodejs.org/en/download)
+  - Select the option that matches your operating system
+  - Use any selection in the middle option (we reccomend nvm for developers)
+  - Choose "with npm" at the last option (default)
+
 ## Building the images
 
 We have two separate `docker-compose` files.

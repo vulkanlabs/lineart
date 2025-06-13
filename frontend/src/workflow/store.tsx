@@ -16,20 +16,14 @@ import {
 } from "@xyflow/react";
 
 import { createNodeByType } from "./nodes";
-import {
-    VulkanNode,
-    VulkanNodeType,
-    GraphDefinition,
-    BranchNodeMetadata,
-    WorkflowState,
-    InputNodeMetadata,
-    DecisionNodeMetadata,
-} from "./types";
+import { VulkanNode, VulkanNodeType, WorkflowState, InputNodeMetadata } from "./types";
 import { toast } from "sonner";
-import { findHandleIndexByName, findHandleNameByIndex } from "./names";
+import { findHandleNameByIndex } from "./names";
+import { PolicyDefinitionDictInput } from "@vulkan-server/PolicyDefinitionDictInput";
+import { NodeDefinition, AsNodeDefinitionDict } from "./types";
 
 type WorkflowActions = {
-    getSpec: () => GraphDefinition;
+    getSpec: () => PolicyDefinitionDictInput;
     getInputSchema: () => { [key: string]: string };
     updateTargetDeps: (sourceNodeId: string) => void;
     onNodesChange: OnNodesChange<VulkanNode>;
@@ -74,22 +68,10 @@ const createWorkflowStore = (initProps: WorkflowState) => {
 
         getSpec: () => {
             const nodes = get().nodes || [];
-            const spec: GraphDefinition = {};
-
-            nodes.forEach((node) => {
-                spec[node.id] = {
-                    name: node.data.name,
-                    node_type: node.type,
-                    metadata: node.data.metadata,
-                    dependencies: Object.values(node.data.incomingEdges).reduce(
-                        (acc, depConfig) => {
-                            acc[depConfig.key] = depConfig.dependency;
-                            return acc;
-                        },
-                        {},
-                    ),
-                };
-            });
+            const spec: PolicyDefinitionDictInput = {
+                nodes: nodes.filter((n) => n.type !== "INPUT").map(AsNodeDefinitionDict),
+                input_schema: get().getInputSchema(),
+            };
 
             return spec;
         },
