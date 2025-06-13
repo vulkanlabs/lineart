@@ -1,0 +1,22 @@
+[project]
+name = "vulkan-agent"
+version = "0.1.0"
+description = "AI Agent service for Vulkan platform - provides conversational assistance for users"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi[standard]>=0.112.1",
+    "pydantic>=2.8.2",
+    "requests>=2.32.3",
+    "python-dotenv>=1.0.1",
+    "pytest>=8.3.2",
+    "openai>=1.52.0",
+    "anthropic>=0.40.0",
+]
+
+[tool.uv]
+dev-dependencies = ["pytest>=8.3.2"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -57,6 +57,22 @@ services:
     image: ghcr.io/vulkanlabs/vulkan-web-app:latest
     ports:
       - "3003:3000"
+  vulkan-agent:
+    image: ghcr.io/vulkanlabs/vulkan-agent:latest
+    init: true
+    env_file:
+      - config/active/vulkan-agent.env
+      - config/active/.env
+    ports:
+      - "8001:8001"
+    depends_on:
+      - app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 volumes:
   postgres_data_app_db:

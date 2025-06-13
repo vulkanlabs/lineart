@@ -91,6 +91,26 @@ services:
         PYTHON_VERSION: "3.12"
     env_file:
       - config/active/upload-svc.env
+  vulkan-agent:
+    build:
+      context: .
+      dockerfile: images/vulkan-agent.Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
+    init: true
+    env_file:
+      - config/active/vulkan-agent.env
+      - config/active/.env
+    ports:
+      - "8001:8001"
+    depends_on:
+      - app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
   # Mock services
   testdata:
     build:
