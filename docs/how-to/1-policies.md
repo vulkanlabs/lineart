@@ -12,7 +12,7 @@ A policy consists of
 
 Let's start by implementing a very simple policy: it receives a number, checks if that number is even, and returns the result.
 
-If you want to learn how to do this using our Python framework, take a look at [this notebook!](./1-policies/../../vulkan/docs/notebooks/2-remote-policy.ipynb)
+If you want to learn how to do this using our Python framework, take a look at [this notebook!](../../vulkan/docs/notebooks/2-remote-policy.ipynb)
 
 ### Create a Policy and a Version
 

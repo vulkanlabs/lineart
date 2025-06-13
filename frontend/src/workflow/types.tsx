@@ -1,5 +1,7 @@
 import { type Node, type Edge } from "@xyflow/react";
 import { iconMapping } from "./icons";
+import { NodeDefinitionDict } from "@vulkan-server/NodeDefinitionDict";
+import { DependencyDict } from "@vulkan-server/DependencyDict";
 
 export type NodeConfig = {
     id: string;
@@ -104,3 +106,36 @@ export type WorkflowState = {
     edges: Edge[];
     collapsedNodeHeights?: { [key: string]: number };
 };
+
+export function AsNodeDefinitionDict(n: VulkanNode): NodeDefinitionDict {
+    const nodeDef = n.data as NodeDefinition;
+
+    return {
+        name: nodeDef.name,
+        node_type: n.type,
+        dependencies: AsDependencies(n.data.incomingEdges),
+        metadata: nodeDef.metadata,
+        description: nodeDef.description || null,
+        hierarchy: nodeDef.hierarchy || null,
+    };
+}
+
+function AsDependencies(incomingEdges: IncomingEdges): { [key: string]: DependencyDict } {
+    const deps = Object.values(incomingEdges).reduce(
+        (acc, depConfig) => {
+            acc[depConfig.key] = AsDependencyDict(depConfig.dependency);
+            return acc;
+        },
+        {} as { [key: string]: DependencyDict },
+    );
+    return deps;
+}
+
+function AsDependencyDict(dependency: NodeDependency): DependencyDict {
+    return {
+        node: dependency.node,
+        output: dependency.output || null,
+        key: dependency.key || null,
+        hierarchy: null,
+    };
+}
