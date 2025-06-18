@@ -82,9 +82,12 @@ def set_variables(
     variables: dict[str, str],
 ):
     ctx.logger.info(f"Setting variables: {variables}")
+    config_variables = [
+        {"name": name, "value": value} for name, value in variables.items()
+    ]
     response = ctx.session.put(
         f"{ctx.server_url}/policy-versions/{policy_version_id}/variables",
-        json=variables,
+        json=config_variables,
     )
     if response.status_code != 200:
         raise ValueError("Failed to set variables")
