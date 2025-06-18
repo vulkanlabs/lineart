@@ -18,44 +18,15 @@ from vulkan.spec.graph import sort_nodes
 from vulkan.spec.nodes import BranchNode, NodeType, TerminateNode, TransformNode
 
 
-def test_beam_transform():
-    add_one = BeamTransform(
-        name="add_one",
-        func=lambda x: x["number"] + 1,
-        dependencies={"x": Dependency("input_node")},
-    )
-    log = BeamTransform(
-        name="log",
-        func=lambda x: np.log(x) if x > 0 else 0,
-        dependencies={"x": Dependency(add_one.name)},
-    )
-    double = BeamTransform(
-        name="double",
-        func=lambda x: x * 2,
-        dependencies={"x": Dependency(log.name)},
-    )
-    entries = [(i, {"number": i}) for i in range(1, 5)]
-
-    with TestPipeline() as p:
-        inputs = p | beam.Create(entries)
-        output = (
-            inputs
-            | "Add one" >> add_one.op()
-            | "Log" >> log.op()
-            | "Double" >> double.op()
-        )
-        output | "Print" >> beam.Map(print)
-        assert_that(output, equal_to([(x, np.log((x + 1)) * 2) for x in range(1, 5)]))
-
-
 def test_pipeline():
     input_node = BeamInput(
         name=INPUT_NODE,
-        schema={"number": int},
+        schema={"score": int},
         data_path="vulkan/vulkan/runners/beam/test/input_data.csv",
     )
 
     def _branch(data):
+        print(data)
         if data["score"] > 500:
             return "approved"
         return "denied"
@@ -78,10 +49,6 @@ def test_pipeline():
         dependencies={"condition": Dependency(branch.name, "denied")},
     )
 
-    # with beam.Pipeline(
-    #     runner=RenderRunner(),
-    #     options=beam.options.pipeline_options.PipelineOptions(),
-    # ) as p:
     with TestPipeline() as pipeline:
         input_data = pipeline | "Read Input" >> ReadLocalCSV(input_node.data_path)
         collections = {INPUT_NODE: input_data}

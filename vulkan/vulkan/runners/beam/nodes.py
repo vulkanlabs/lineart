@@ -230,20 +230,16 @@ class BeamTransformFn(beam.DoFn):
         yield (key, self.func(**inputs))
 
     def __make_inputs(self, value):
-        if len(self.dependencies) > 1:
-            deps = {}
-            for name, dependency in self.dependencies.items():
-                dep = value[str(dependency)]
-                if len(dep) == 0:
-                    # Skip empty dependencies: those are usually control signals
-                    # emitted by Branch nodes.
-                    deps[name] = None
-                else:
-                    deps[name] = dep[0]
-            return deps
-
-        name = list(self.dependencies.keys())[0]
-        return {name: value}
+        deps = {}
+        for name, dependency in self.dependencies.items():
+            dep = value[str(dependency)]
+            if len(dep) == 0:
+                # Skip empty dependencies: those are usually control signals
+                # emitted by Branch nodes.
+                deps[name] = None
+            else:
+                deps[name] = dep[0]
+        return deps
 
 
 class BeamLogicNode(BeamNode):
@@ -318,11 +314,18 @@ class BeamBranch(BranchNode, BeamLogicNode):
 
 
 class BeamTerminateFn(beam.DoFn):
-    def __init__(self, return_status: str):
+    def __init__(self, return_status: str, return_metadata: dict[str, Dependency]):
         self.return_status = return_status
+        self.return_metadata = return_metadata
 
     def process(self, element, **kwargs):
-        yield (element[0], {"status": self.return_status})
+        metadata = None
+        if self.return_metadata is not None:
+            metadata = {}
+            for name, dep in self.return_metadata.items():
+                metadata[name] = element[1][str(dep)]
+
+        yield (element[0], {"status": self.return_status, "metadata": metadata})
 
 
 class BeamTerminate(TerminateNode, BeamNode):
@@ -331,6 +334,7 @@ class BeamTerminate(TerminateNode, BeamNode):
         name: str,
         return_status: str,
         dependencies: dict[str, Dependency],
+        return_metadata: dict[str, Dependency] | None = None,
         description: str | None = None,
         hierarchy: list[str] | None = None,
     ):
@@ -339,6 +343,7 @@ class BeamTerminate(TerminateNode, BeamNode):
             description=description,
             return_status=return_status,
             dependencies=dependencies,
+            return_metadata=return_metadata,
             callback=None,
             hierarchy=hierarchy,
         )
@@ -350,11 +355,12 @@ class BeamTerminate(TerminateNode, BeamNode):
             description=node.description,
             return_status=node.return_status,
             dependencies=node.dependencies,
+            return_metadata=node.return_metadata,
             hierarchy=node._hierarchy,
         )
 
     def op(self):
-        return beam.ParDo(BeamTerminateFn(self.return_status))
+        return beam.ParDo(BeamTerminateFn(self.return_status, self.return_metadata))
 
 
 _NODE_TYPE_MAP: dict[type[Node], type[BeamNode]] = {
