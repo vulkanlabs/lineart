@@ -218,10 +218,19 @@ class __PipelineBuilder:
             return self.pipeline
 
         dependency_definitions = list(node.dependencies.values())
-        if len(dependency_definitions) == 1:
-            return self.collections[str(dependency_definitions[0])]
 
-        deps = {str(d): self.collections[str(d)] for d in dependency_definitions}
+        deps = {}
+        for d in dependency_definitions:
+            if d.key is None:
+                deps[str(d)] = self.collections[d.node]
+            else:
+                coll = self.collections[
+                    d.node
+                ] | f"Column [{d.key}] from [{d.node}]" >> beam.Map(
+                    lambda x: (x[0], x[1][d.key])
+                )
+                deps[str(d)] = coll
+
         return deps | f"Join Deps: {node.id}" >> beam.CoGroupByKey()
 
     def __build_step(self, pcoll: PCollection, node: BeamNode) -> None:
