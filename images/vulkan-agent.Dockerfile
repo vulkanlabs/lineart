@@ -11,6 +11,9 @@ RUN pip install uv
 # Copy the vulkan-agent source code
 COPY vulkan-agent vulkan-agent/
 
+# Copy documentation for knowledge base
+COPY docs docs/
+
 # Install the vulkan-agent package and its dependencies
 RUN uv pip install --system --no-cache vulkan-agent/
 
@@ -22,6 +25,7 @@ USER vulkan
 # Set environment variables
 ENV HOST=0.0.0.0
 ENV PORT=8001
+ENV VULKAN_DOCS_PATH=/app/docs
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

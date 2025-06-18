@@ -5,61 +5,73 @@ This document describes the chat interface implementation for the Vulkan platfor
 ## Components
 
 ### 1. ChatInterface
+
 The main chat interface component that displays messages and handles user input.
 
 **Location:** `src/components/chat/chat-interface.tsx`
 
 **Props:**
-- `onSendMessage?: (message: string) => Promise<string>` - Function to handle sending messages
-- `className?: string` - Additional CSS classes
+
+-   `onSendMessage?: (message: string) => Promise<string>` - Function to handle sending messages
+-   `className?: string` - Additional CSS classes
 
 **Features:**
-- Message history with timestamps
-- User and agent avatars
-- Loading indicators
-- Auto-scrolling to latest messages
-- Keyboard shortcuts (Enter to send)
+
+-   Message history with timestamps
+-   User and agent avatars
+-   Loading indicators
+-   Auto-scrolling to latest messages
+-   Keyboard shortcuts (Enter to send)
 
 ### 2. ChatButton
+
 A floating action button that opens/closes the chat interface.
 
 **Location:** `src/components/chat/chat-button.tsx`
 
 **Props:**
-- `onSendMessage?: (message: string) => Promise<string>` - Function to handle sending messages
-- `className?: string` - Additional CSS classes
+
+-   `onSendMessage?: (message: string) => Promise<string>` - Function to handle sending messages
+-   `className?: string` - Additional CSS classes
 
 **Features:**
-- Fixed positioning (bottom-right corner)
-- Expandable chat interface
-- Close button when opened
+
+-   Fixed positioning (bottom-right corner)
+-   Expandable chat interface
+-   Close button when opened
 
 ### 3. ChatProvider
+
 Context provider for managing chat API calls and state.
 
 **Location:** `src/components/chat/chat-provider.tsx`
 
 **Props:**
-- `children: ReactNode` - Child components
-- `apiEndpoint?: string` - Custom API endpoint (defaults to `/ai-agent/chat`)
+
+-   `children: ReactNode` - Child components
+-   `apiEndpoint?: string` - Custom API endpoint (defaults to `/ai-agent/chat`)
 
 **Features:**
-- Centralized API communication
-- Error handling
-- Environment variable support
+
+-   Centralized API communication
+-   Error handling
+-   Environment variable support
 
 ### 4. ChatLayout
+
 Layout wrapper that automatically includes the floating chat button.
 
 **Location:** `src/components/chat/chat-layout.tsx`
 
 **Props:**
-- `children: ReactNode` - Child components
-- `apiEndpoint?: string` - Custom API endpoint
+
+-   `children: ReactNode` - Child components
+-   `apiEndpoint?: string` - Custom API endpoint
 
 **Features:**
-- Automatic chat provider setup
-- Floating chat button integration
+
+-   Automatic chat provider setup
+-   Floating chat button integration
 
 ## Usage
 
@@ -111,9 +123,7 @@ export default function MyPage() {
 To use a different API endpoint:
 
 ```tsx
-<ChatLayout apiEndpoint="/custom/ai-endpoint">
-    {children}
-</ChatLayout>
+<ChatLayout apiEndpoint="/custom/ai-endpoint">{children}</ChatLayout>
 ```
 
 ## API Integration
@@ -134,7 +144,7 @@ export default async function handler(req, res) {
     }
 
     const { message } = req.body;
-    
+
     try {
         // Process message with AI service
         const response = await processWithAI(message);
@@ -156,18 +166,19 @@ NEXT_PUBLIC_VULKAN_SERVER_URL=http://localhost:3000
 ## Styling
 
 The chat interface uses:
-- Tailwind CSS for styling
-- shadcn/ui components for consistency
-- Radix UI primitives for accessibility
-- Lucide React for icons
+
+-   Tailwind CSS for styling
+-   shadcn/ui components for consistency
+-   Radix UI primitives for accessibility
+-   Lucide React for icons
 
 ## Dependencies
 
 The chat interface requires these dependencies:
 
-- `@radix-ui/react-avatar`
-- `lucide-react`
-- Standard shadcn/ui components (Button, Card, Input, etc.)
+-   `@radix-ui/react-avatar`
+-   `lucide-react`
+-   Standard shadcn/ui components (Button, Card, Input, etc.)
 
 ## File Structure
 
@@ -182,17 +193,17 @@ src/components/chat/
 
 ## Features
 
-- ✅ Real-time messaging interface
-- ✅ Floating chat button
-- ✅ Message history with timestamps
-- ✅ Loading states and error handling
-- ✅ Responsive design
-- ✅ Keyboard shortcuts
-- ✅ Auto-scrolling
-- ✅ Avatar support
-- ✅ Context-based API management
-- ✅ TypeScript support
-- ✅ Accessibility features
+-   ✅ Real-time messaging interface
+-   ✅ Floating chat button
+-   ✅ Message history with timestamps
+-   ✅ Loading states and error handling
+-   ✅ Responsive design
+-   ✅ Keyboard shortcuts
+-   ✅ Auto-scrolling
+-   ✅ Avatar support
+-   ✅ Context-based API management
+-   ✅ TypeScript support
+-   ✅ Accessibility features
 
 ## Next Steps
 

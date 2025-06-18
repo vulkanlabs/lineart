@@ -1,12 +1,20 @@
-"""LLM provider configuration and factory for vulkan-agent."""
+"""LangChain-based LLM provider configuration and agents for vulkan-agent."""
 
 import os
 from enum import Enum
-from typing import Optional, Union
+from functools import cached_property
+from typing import List, Optional
 
-import anthropic
-import openai
-from pydantic import BaseModel
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain_anthropic import ChatAnthropic
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.tools import BaseTool
+from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field
+
+from .models import MessageRole
 
 
 class LLMProvider(str, Enum):
@@ -17,11 +25,13 @@ class LLMProvider(str, Enum):
 
 
 class LLMConfig(BaseModel):
-    """Configuration for LLM providers."""
+    """Configuration for LLM providers using LangChain."""
 
     provider: LLMProvider
     api_key: str
     model: str
+    max_tokens: int = Field(default=500, ge=1, le=4000)
+    temperature: float = Field(default=0.7, ge=0.0, le=2.0)
 
     @classmethod
     def from_env(cls, provider: Optional[LLMProvider] = None) -> "LLMConfig":
@@ -39,65 +49,204 @@ class LLMConfig(BaseModel):
         else:
             raise ValueError(f"Unsupported provider: {provider}")
 
-        return cls(provider=provider, api_key=api_key, model=model)
+        return cls(
+            provider=provider,
+            api_key=api_key,
+            model=model,
+            max_tokens=int(os.getenv("MAX_TOKENS", "500")),
+            temperature=float(os.getenv("TEMPERATURE", "0.7")),
+        )
 
 
 class LLMClient:
-    """Factory for creating LLM clients."""
+    """Simple LangChain-based LLM client for provider management."""
 
     def __init__(self, config: LLMConfig):
         self.config = config
-        self._client: Optional[Union[openai.OpenAI, anthropic.Anthropic]] = None
+        self._llm: Optional[BaseChatModel] = None
 
     @property
-    def client(self) -> Union[openai.OpenAI, anthropic.Anthropic]:
-        """Get the LLM client instance."""
-        if self._client is None:
+    def llm(self) -> BaseChatModel:
+        """Get the LangChain LLM instance."""
+        if self._llm is None:
             if self.config.provider == LLMProvider.OPENAI:
-                self._client = openai.OpenAI(api_key=self.config.api_key)
+                self._llm = ChatOpenAI(
+                    api_key=self.config.api_key,
+                    model=self.config.model,
+                    max_tokens=self.config.max_tokens,
+                    temperature=self.config.temperature,
+                )
             elif self.config.provider == LLMProvider.ANTHROPIC:
-                self._client = anthropic.Anthropic(api_key=self.config.api_key)
+                self._llm = ChatAnthropic(
+                    api_key=self.config.api_key,
+                    model=self.config.model,
+                    max_tokens=self.config.max_tokens,
+                    temperature=self.config.temperature,
+                )
             else:
                 raise ValueError(f"Unsupported provider: {self.config.provider}")
-
-        return self._client
+        return self._llm
 
     def validate_connection(self) -> bool:
         """Validate that the API key and connection work."""
         try:
-            if self.config.provider == LLMProvider.OPENAI:
-                # Try to list models to validate the API key
-                self.client.models.list()
-            elif self.config.provider == LLMProvider.ANTHROPIC:
-                # For Anthropic, we'll just check if we can create the client
-                # since they don't have a simple validation endpoint
-                pass
+            # Test with a simple message
+            test_messages = [HumanMessage(content="Hello")]
+            self.llm.invoke(test_messages)
             return True
         except Exception:
             return False
 
-    async def generate_response(self, prompt: str) -> str:
-        """Generate a response using the configured LLM."""
-        try:
-            if self.config.provider == LLMProvider.OPENAI:
-                response = self.client.chat.completions.create(
-                    model=self.config.model,
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=500,
-                    temperature=0.7,
-                )
-                return response.choices[0].message.content or ""
 
-            elif self.config.provider == LLMProvider.ANTHROPIC:
-                response = self.client.messages.create(
-                    model=self.config.model,
-                    max_tokens=500,
-                    temperature=0.7,
-                    messages=[{"role": "user", "content": prompt}],
-                )
-                return response.content[0].text if response.content else ""
+class VulkanAgent:
+    """Complete Vulkan AI Agent with LLM, tools, and session-based conversation management."""
 
-        except Exception as e:
-            raise Exception(f"Failed to generate response: {str(e)}")
+    def __init__(self, llm_client: LLMClient, tools: Optional[List[BaseTool]] = None):
+        self.llm_client = llm_client
+        self.tools = tools or []
+        self._agent_executor: Optional[AgentExecutor] = None
+        self._current_session_id: Optional[str] = None
 
-        return ""
+        # Default system prompt for Vulkan agent
+        self.system_prompt = """You are a helpful AI assistant for the Vulkan platform. 
+        You help users manage policies, data sources, and other resources.
+        
+        Always be helpful, accurate, and ask clarifying questions when needed.
+        If you're unsure about something, ask for more information rather than guessing.
+        """
+
+    def set_session(self, session_id: str):
+        """Set the current session for conversation memory."""
+        self._current_session_id = session_id
+
+    @property
+    def agent_executor(self) -> AgentExecutor:
+        """Get the agent executor, creating it if needed."""
+        if self._agent_executor is None:
+            if not self.tools:
+                raise ValueError("Cannot create agent executor without tools")
+
+            prompt = ChatPromptTemplate.from_messages(
+                [
+                    ("system", self.system_prompt),
+                    MessagesPlaceholder("chat_history", optional=True),
+                    ("human", "{input}"),
+                    MessagesPlaceholder("agent_scratchpad"),
+                ]
+            )
+
+            # Create agent
+            agent = create_tool_calling_agent(self.llm_client.llm, self.tools, prompt)
+
+            # Create executor
+            self._agent_executor = AgentExecutor(
+                agent=agent,
+                tools=self.tools,
+                verbose=True,
+                handle_parsing_errors=True,
+                max_iterations=5,
+            )
+        return self._agent_executor
+
+    @cached_property
+    def session_manager(self):
+        """Get session manager instance (cached import)."""
+        from .session import get_session_manager
+
+        return get_session_manager()
+
+    def _get_session_history(self, session_id: Optional[str]) -> List:
+        """Get conversation history for a session."""
+        if not session_id:
+            return []
+        return self.session_manager.get_messages_as_langchain(session_id)
+
+    def _save_to_session(
+        self, session_id: Optional[str], user_message: str, ai_response: str
+    ):
+        """Save conversation to session."""
+        if session_id:
+            self.session_manager.add_message(session_id, MessageRole.USER, user_message)
+            self.session_manager.add_message(
+                session_id, MessageRole.ASSISTANT, ai_response
+            )
+
+    async def chat(self, user_input: str, session_id: Optional[str] = None) -> str:
+        """Main chat interface for the agent.
+
+        Args:
+            user_input: The user's message
+            session_id: Optional session ID for conversation memory
+        """
+        # Use provided session_id or current session
+        active_session = session_id or self._current_session_id
+
+        if self.tools:
+            # Use agent with tools
+            chat_history = self._get_session_history(active_session)
+            result = await self.agent_executor.ainvoke(
+                {"input": user_input, "chat_history": chat_history}
+            )
+            response = result["output"]
+        else:
+            # Use simple LLM conversation
+            response = await self._generate_simple_response(user_input, active_session)
+
+        # Save conversation to session
+        self._save_to_session(active_session, user_input, response)
+        return response
+
+    async def _generate_simple_response(
+        self, user_input: str, session_id: Optional[str]
+    ) -> str:
+        """Generate a response using simple LLM conversation with session memory."""
+        # Build message history
+        messages = [SystemMessage(content=self.system_prompt)]
+
+        # Add conversation history from session
+        if session_id:
+            session_messages = self._get_session_history(session_id)
+            messages.extend(session_messages)
+
+        # Add current user input
+        messages.append(HumanMessage(content=user_input))
+
+        # Generate response
+        response = await self.llm_client.llm.ainvoke(messages)
+        return response.content
+
+    def add_tool(self, tool: BaseTool) -> None:
+        """Add a tool to the agent."""
+        self.tools.append(tool)
+        # Reset agent executor to pick up new tool
+        self._agent_executor = None
+
+    def set_system_prompt(self, prompt: str) -> None:
+        """Update the system prompt."""
+        self.system_prompt = prompt
+        # Reset agent executor to pick up new prompt
+        self._agent_executor = None
+
+    def clear_memory(self, session_id: Optional[str] = None) -> None:
+        """Clear conversation memory for a session."""
+        if session_id:
+            self.session_manager.clear_session_messages(session_id)
+
+    def get_status(self) -> dict:
+        """Get agent status information."""
+        return {
+            "provider": self.llm_client.config.provider.value,
+            "model": self.llm_client.config.model,
+            "tools_count": len(self.tools),
+            "available_tools": [tool.name for tool in self.tools],
+            "current_session": self._current_session_id,
+        }
+
+
+# Factory function for easy agent creation
+def create_vulkan_agent(
+    config: LLMConfig, tools: Optional[List[BaseTool]] = None
+) -> VulkanAgent:
+    """Create a configured Vulkan agent."""
+    llm_client = LLMClient(config)
+    return VulkanAgent(llm_client, tools)

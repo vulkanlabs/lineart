@@ -22,7 +22,11 @@ def test_root_endpoint():
     assert data["service"] == "vulkan-agent"
     assert data["version"] == "0.1.0"
     assert "description" in data
-    assert data["health_endpoint"] == "/health"
+    assert "status" in data
+    assert "configured" in data
+    assert data["health_check"] == "/health"
+    assert "documentation" in data
+    assert data["documentation"]["interactive"] == "/docs"
 
 
 def test_cors_headers():
