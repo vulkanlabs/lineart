@@ -95,6 +95,7 @@ class DagsterDataInput(DataInputNode, DagsterNode):
         start_time = time.time()
         client: VulkanDataClient = getattr(context.resources, DATA_CLIENT_KEY)
         run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
+        inputs = _resolved_inputs(inputs, self.dependencies)
         extra = dict(data_source=self.data_source)
         error = None
 
@@ -192,6 +193,7 @@ class DagsterPolicy(PolicyDefinitionNode, DagsterNode):
     def run(self, context, inputs):
         start_time = time.time()
         client: VulkanRunClient = getattr(context.resources, RUN_CLIENT_KEY)
+        inputs = _resolved_inputs(inputs, self.dependencies)
 
         body = inputs.get("body", None)
 
@@ -238,6 +240,7 @@ class DagsterPolicy(PolicyDefinitionNode, DagsterNode):
 class DagsterTransformNodeMixin(DagsterNode):
     def op(self) -> OpDefinition:
         def fn(context, inputs):
+            inputs = _resolved_inputs(inputs, self.dependencies)
             start_time = time.time()
             error = None
             try:
@@ -283,6 +286,19 @@ def _with_vulkan_context(func: callable) -> callable:
         return func(**kwargs)
 
     return fn
+
+
+def _resolved_inputs(
+    inputs: dict[str, Any], dependencies: dict[str, Any]
+) -> dict[str, Any]:
+    resolved_inputs = {}
+    for k, v in inputs.items():
+        dep = dependencies.get(k)
+        if dep is not None and dep.key is not None:
+            resolved_inputs[k] = v[dep.key]
+        else:
+            resolved_inputs[k] = v
+    return resolved_inputs
 
 
 class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
@@ -421,6 +437,7 @@ class DagsterBranch(BranchNode, DagsterNode):
     def op(self) -> OpDefinition:
         def fn(context, inputs):
             start_time = time.time()
+            inputs = _resolved_inputs(inputs, self.dependencies)
             error = None
             try:
                 output = self._func(context, **inputs)
@@ -535,6 +552,7 @@ class DagsterConnection(ConnectionNode, DagsterNode):
     def run(self, context, inputs):
         start_time = time.time()
         env: VulkanPolicyConfig = getattr(context.resources, POLICY_CONFIG_KEY)
+        inputs = _resolved_inputs(inputs, self.dependencies)
         error = None
         extra = {}
 
@@ -614,7 +632,7 @@ class DagsterDecision(DecisionNode, DagsterNode):
             dependencies=dependencies,
         )
 
-    def _func(self, context, inputs):
+    def _decision_fn(self, context, inputs):
         if_cond = next(c for c in self.conditions if c.decision_type == DecisionType.IF)
         else_cond = next(
             c for c in self.conditions if c.decision_type == DecisionType.ELSE
@@ -632,9 +650,10 @@ class DagsterDecision(DecisionNode, DagsterNode):
     def op(self) -> OpDefinition:
         def fn(context, inputs):
             start_time = time.time()
+            inputs = _resolved_inputs(inputs, self.dependencies)
             error = None
             try:
-                output = self._func(context, inputs)
+                output = self._decision_fn(context, inputs)
             except Exception as e:
                 error = format_exception_only(type(e), e)
                 raise UserCodeException(self.name) from e
