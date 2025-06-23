@@ -50,6 +50,10 @@ clean-db:
 	@echo "Cleaning up database files..."
 	find . -name "*.db" -type f -delete
 	find . -name "*.db-*" -type f -delete
+	@if [ -d "data" ] && [ ! "$(ls -A data 2>/dev/null)" ]; then \
+		echo "Removing empty data directory..."; \
+		rmdir data; \
+	fi
 	@echo "Database files cleaned up."
 
 # Clean up everything (cache + database files)

@@ -28,7 +28,7 @@ async def get_config():
     return config
 
 
-@router.post("/", response_model=AgentConfigResponse)
+@router.put("/", response_model=AgentConfigResponse)
 async def update_config(config_request: AgentConfigRequest):
     """Update agent configuration."""
     try:

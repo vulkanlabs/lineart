@@ -1,6 +1,5 @@
 """LangChain-based LLM provider configuration and agents for vulkan-agent."""
 
-import os
 from enum import Enum
 from functools import cached_property
 from typing import List, Optional
@@ -11,6 +10,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import BaseTool
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
@@ -22,6 +22,7 @@ class LLMProvider(str, Enum):
 
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
+    GOOGLE = "google"
 
 
 class LLMConfig(BaseModel):
@@ -32,30 +33,6 @@ class LLMConfig(BaseModel):
     model: str
     max_tokens: int = Field(default=500, ge=1, le=4000)
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
-
-    @classmethod
-    def from_env(cls, provider: Optional[LLMProvider] = None) -> "LLMConfig":
-        """Create LLM config from environment variables."""
-        if provider is None:
-            provider_str = os.getenv("DEFAULT_LLM_PROVIDER", "openai")
-            provider = LLMProvider(provider_str)
-
-        if provider == LLMProvider.OPENAI:
-            api_key = os.getenv("OPENAI_API_KEY", "")
-            model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-        elif provider == LLMProvider.ANTHROPIC:
-            api_key = os.getenv("ANTHROPIC_API_KEY", "")
-            model = os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")
-        else:
-            raise ValueError(f"Unsupported provider: {provider}")
-
-        return cls(
-            provider=provider,
-            api_key=api_key,
-            model=model,
-            max_tokens=int(os.getenv("MAX_TOKENS", "500")),
-            temperature=float(os.getenv("TEMPERATURE", "0.7")),
-        )
 
 
 class LLMClient:
@@ -78,6 +55,13 @@ class LLMClient:
                 )
             elif self.config.provider == LLMProvider.ANTHROPIC:
                 self._llm = ChatAnthropic(
+                    api_key=self.config.api_key,
+                    model=self.config.model,
+                    max_tokens=self.config.max_tokens,
+                    temperature=self.config.temperature,
+                )
+            elif self.config.provider == LLMProvider.GOOGLE:
+                self._llm = ChatGoogleGenerativeAI(
                     api_key=self.config.api_key,
                     model=self.config.model,
                     max_tokens=self.config.max_tokens,

@@ -1,6 +1,5 @@
 """Tests for LangChain-based LLM provider configuration and agents."""
 
-import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -17,56 +16,7 @@ def test_llm_provider_enum():
     """Test LLM provider enum values."""
     assert LLMProvider.OPENAI == "openai"
     assert LLMProvider.ANTHROPIC == "anthropic"
-
-
-@patch.dict(
-    os.environ,
-    {
-        "DEFAULT_LLM_PROVIDER": "openai",
-        "OPENAI_API_KEY": "test-openai-key",
-        "OPENAI_MODEL": "gpt-4",
-    },
-)
-def test_llm_config_from_env_openai():
-    """Test creating OpenAI config from environment variables."""
-    config = LLMConfig.from_env()
-
-    assert config.provider == LLMProvider.OPENAI
-    assert config.api_key == "test-openai-key"
-    assert config.model == "gpt-4"
-
-
-@patch.dict(
-    os.environ,
-    {
-        "DEFAULT_LLM_PROVIDER": "anthropic",
-        "ANTHROPIC_API_KEY": "test-anthropic-key",
-        "ANTHROPIC_MODEL": "claude-3-sonnet",
-    },
-)
-def test_llm_config_from_env_anthropic():
-    """Test creating Anthropic config from environment variables."""
-    config = LLMConfig.from_env()
-
-    assert config.provider == LLMProvider.ANTHROPIC
-    assert config.api_key == "test-anthropic-key"
-    assert config.model == "claude-3-sonnet"
-
-
-@patch.dict(
-    os.environ,
-    {
-        "OPENAI_API_KEY": "test-key",
-        "OPENAI_MODEL": "gpt-3.5-turbo",
-    },
-)
-def test_llm_config_explicit_provider():
-    """Test creating config with explicit provider."""
-    config = LLMConfig.from_env(LLMProvider.OPENAI)
-
-    assert config.provider == LLMProvider.OPENAI
-    assert config.api_key == "test-key"
-    assert config.model == "gpt-3.5-turbo"
+    assert LLMProvider.GOOGLE == "google"
 
 
 @patch("vulkan_agent.llm.ChatOpenAI")
@@ -100,6 +50,25 @@ def test_llm_client_anthropic_creation(mock_chat_anthropic):
     mock_chat_anthropic.assert_called_once_with(
         api_key="test-key",
         model="claude-3-haiku",
+        max_tokens=500,
+        temperature=0.7,
+    )
+
+
+@patch("vulkan_agent.llm.ChatGoogleGenerativeAI")
+def test_llm_client_google_creation(mock_chat_google):
+    """Test creating Google LLM client."""
+    config = LLMConfig(
+        provider=LLMProvider.GOOGLE, api_key="test-key", model="gemini-1.5-pro"
+    )
+
+    client = LLMClient(config)
+    # Access the llm property to trigger creation
+    _ = client.llm
+
+    mock_chat_google.assert_called_once_with(
+        api_key="test-key",
+        model="gemini-1.5-pro",
         max_tokens=500,
         temperature=0.7,
     )
@@ -267,32 +236,11 @@ def test_llm_config_validation():
     assert config.temperature == 0.5
 
 
-@patch.dict(
-    os.environ,
-    {
-        "DEFAULT_LLM_PROVIDER": "openai",
-        "OPENAI_API_KEY": "test-key",
-        "OPENAI_MODEL": "gpt-4",
-        "MAX_TOKENS": "1500",
-        "TEMPERATURE": "0.9",
-    },
-)
-def test_llm_config_from_env_with_optional_params():
-    """Test creating config from environment with optional parameters."""
-    config = LLMConfig.from_env()
-
-    assert config.provider == LLMProvider.OPENAI
-    assert config.api_key == "test-key"
-    assert config.model == "gpt-4"
-    assert config.max_tokens == 1500
-    assert config.temperature == 0.9
-
-
 def test_llm_config_unsupported_provider():
-    """Test handling of unsupported provider."""
-    with patch.dict(os.environ, {"DEFAULT_LLM_PROVIDER": "unsupported"}):
-        with pytest.raises(ValueError, match="not a valid LLMProvider"):
-            LLMConfig.from_env()
+    """Test handling of unsupported provider via direct config creation."""
+    # Test that LLMProvider enum rejects invalid values during construction
+    with pytest.raises(ValueError, match="not a valid LLMProvider"):
+        LLMProvider("unsupported")
 
 
 def test_llm_client_unsupported_provider():

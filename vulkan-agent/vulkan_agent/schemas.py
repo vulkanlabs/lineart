@@ -22,37 +22,12 @@ class AgentConfigRequest(BaseModel):
 
     @field_validator("api_key")
     @classmethod
-    def validate_api_key(cls, v, info):
-        """Basic API key format validation."""
-        if "provider" in info.data:
-            provider = info.data["provider"]
-            if provider == LLMProvider.OPENAI and not v.startswith("sk-"):
-                raise ValueError('OpenAI API keys must start with "sk-"')
-            elif provider == LLMProvider.ANTHROPIC and not v.startswith("sk-ant-"):
-                raise ValueError('Anthropic API keys must start with "sk-ant-"')
-        return v
-
-    @field_validator("model")
-    @classmethod
-    def validate_model(cls, v, info):
-        """Basic model name validation."""
-        if "provider" in info.data:
-            provider = info.data["provider"]
-            if provider == LLMProvider.OPENAI:
-                valid_models = ["gpt-4o-mini", "gpt-4o", "gpt-4", "gpt-3.5-turbo"]
-                if v not in valid_models:
-                    raise ValueError(f"Invalid OpenAI model. Supported: {valid_models}")
-            elif provider == LLMProvider.ANTHROPIC:
-                valid_models = [
-                    "claude-3-5-haiku-20241022",
-                    "claude-3-5-sonnet-20241022",
-                    "claude-3-opus-20240229",
-                ]
-                if v not in valid_models:
-                    raise ValueError(
-                        f"Invalid Anthropic model. Supported: {valid_models}"
-                    )
-        return v
+    def validate_api_key(cls, v):
+        """Basic API key validation - ensure it's meaningful."""
+        stripped = v.strip()
+        if len(stripped) < 5:
+            raise ValueError("API key must be at least 5 characters long")
+        return stripped
 
 
 class AgentConfigResponse(BaseModel):

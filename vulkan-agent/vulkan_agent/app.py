@@ -1,21 +1,21 @@
-import os
 from contextlib import asynccontextmanager
 
-from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import config_manager
 from .routers import chat, config, sessions
 
-# Load environment variables
-load_dotenv()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan management."""
-    # Startup
+    """Application lifespan management.
+
+    Handles startup and shutdown tasks:
+    - Startup: Initialize components and check configuration
+    - Shutdown: Clean up resources (if needed in future)
+    """
+    # Startup tasks
     if config_manager.is_configured():
         print("✓ Agent configuration loaded successfully")
     else:
@@ -23,7 +23,8 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown (if needed)
+    # Shutdown tasks (placeholder for future cleanup)
+    # Could include: database connections, background tasks, etc.
     pass
 
 
@@ -76,17 +77,3 @@ async def root():
         },
         "health_check": "/health",
     }
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    port = int(os.getenv("PORT", 8001))
-    host = os.getenv("HOST", "0.0.0.0")
-
-    uvicorn.run(
-        "vulkan_agent.app:app",
-        host=host,
-        port=port,
-        reload=True,
-    )

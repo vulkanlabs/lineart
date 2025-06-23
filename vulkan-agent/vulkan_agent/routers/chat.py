@@ -10,6 +10,7 @@ from ..agent import (
     refresh_global_agent,
 )
 from ..config import config_manager
+from ..knowledge_base import get_documentation_loader, refresh_documentation_loader
 from ..schemas import AgentConfigResponse, ChatRequest, ChatResponse
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -132,8 +133,6 @@ async def clear_conversation(
 async def list_documentation_files():
     """List all documentation files."""
     try:
-        from ..knowledge_base import get_documentation_loader
-
         loader = get_documentation_loader()
         files = loader.list_documentation_files()
 
@@ -149,8 +148,6 @@ async def list_documentation_files():
 async def get_documentation_file(file_path: str):
     """Get content of a specific documentation file."""
     try:
-        from ..knowledge_base import get_documentation_loader
-
         loader = get_documentation_loader()
         full_path = loader.docs_path / file_path
 
@@ -174,8 +171,6 @@ async def get_documentation_file(file_path: str):
 async def update_documentation_file(doc_file: DocumentationFile):
     """Update or create a documentation file."""
     try:
-        from ..knowledge_base import get_documentation_loader
-
         loader = get_documentation_loader()
         loader.update_documentation_file(doc_file.relative_path, doc_file.content)
 
@@ -198,8 +193,6 @@ async def update_documentation_file(doc_file: DocumentationFile):
 async def delete_documentation_file(file_path: str):
     """Delete a documentation file."""
     try:
-        from ..knowledge_base import get_documentation_loader
-
         loader = get_documentation_loader()
         loader.delete_documentation_file(file_path)
 
@@ -220,8 +213,6 @@ async def delete_documentation_file(file_path: str):
 async def reload_documentation():
     """Reload all documentation from disk."""
     try:
-        from ..knowledge_base import refresh_documentation_loader
-
         refresh_documentation_loader()
 
         # Refresh the global agent to pick up the reloaded documentation

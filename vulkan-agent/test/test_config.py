@@ -185,7 +185,7 @@ class TestConfigEndpoints:
                 "model": "gpt-4o-mini",
             }
 
-            response = client.post("/api/config/", json=config_data)
+            response = client.put("/api/config/", json=config_data)
 
             assert response.status_code == 200
             data = response.json()
@@ -195,15 +195,15 @@ class TestConfigEndpoints:
         """Test updating configuration with invalid data."""
         config_data = {
             "provider": "openai",
-            "api_key": "invalid-key",  # Invalid format for OpenAI
+            "api_key": "invalid-key",  # Invalid API key that will fail connection test
             "model": "gpt-4o-mini",
         }
 
-        response = client.post("/api/config/", json=config_data)
+        response = client.put("/api/config/", json=config_data)
 
-        # Should be 422 due to Pydantic validation failing first
+        # Should be 422 due to API validation failing
         assert response.status_code == 422
-        assert "OpenAI API keys must start with" in str(response.json())
+        assert "API key validation failed" in str(response.json())
 
     def test_validate_config_endpoint(self):
         """Test configuration validation endpoint."""
@@ -252,27 +252,47 @@ class TestConfigSchemas:
         assert config.max_tokens == 500  # default
         assert config.temperature == 0.7  # default
 
-    def test_agent_config_request_invalid_openai_key(self):
-        """Test invalid OpenAI API key format."""
-        with pytest.raises(ValueError, match='OpenAI API keys must start with "sk-"'):
-            AgentConfigRequest(
-                provider=LLMProvider.OPENAI, api_key="invalid-key", model="gpt-4o-mini"
-            )
-
-    def test_agent_config_request_invalid_anthropic_key(self):
-        """Test invalid Anthropic API key format."""
+    def test_agent_config_request_invalid_api_key(self):
+        """Test invalid API key (too short)."""
         with pytest.raises(
-            ValueError, match='Anthropic API keys must start with "sk-ant-"'
+            ValueError, match="API key must be at least 5 characters long"
         ):
             AgentConfigRequest(
-                provider=LLMProvider.ANTHROPIC,
-                api_key="sk-invalid",
-                model="claude-3-5-haiku-20241022",
+                provider=LLMProvider.OPENAI, api_key="ab", model="gpt-4o-mini"
             )
 
-    def test_agent_config_request_invalid_model(self):
-        """Test invalid model for provider."""
-        with pytest.raises(ValueError, match="Invalid OpenAI model"):
+    def test_agent_config_request_invalid_empty_model(self):
+        """Test invalid empty model name (handled by Pydantic)."""
+        with pytest.raises(ValueError, match="String should have at least 1 character"):
             AgentConfigRequest(
-                provider=LLMProvider.OPENAI, api_key="sk-test123", model="invalid-model"
+                provider=LLMProvider.OPENAI, api_key="valid-key-123", model=""
             )
+
+    def test_agent_config_request_valid_google(self):
+        """Test valid Google AgentConfigRequest."""
+        config = AgentConfigRequest(
+            provider=LLMProvider.GOOGLE,
+            api_key="google-api-key-123",
+            model="gemini-1.5-pro",
+        )
+
+        assert config.provider == LLMProvider.GOOGLE
+        assert config.api_key == "google-api-key-123"
+        assert config.model == "gemini-1.5-pro"
+
+    def test_agent_config_request_valid_with_any_model(self):
+        """Test that any reasonable model name is accepted now."""
+        # This should work with any provider and any model name
+        config = AgentConfigRequest(
+            provider=LLMProvider.GOOGLE,
+            api_key="valid-key-123",
+            model="any-model-name-that-provider-supports",
+        )
+        assert config.model == "any-model-name-that-provider-supports"
+
+        config2 = AgentConfigRequest(
+            provider=LLMProvider.OPENAI,
+            api_key="valid-key-123",
+            model="gpt-5-hypothetical",
+        )
+        assert config2.model == "gpt-5-hypothetical"

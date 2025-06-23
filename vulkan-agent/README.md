@@ -4,7 +4,7 @@ AI agent service for the Vulkan platform with LangChain-based LLM abstraction an
 
 ## Features
 
-- **Multi-provider LLM support**: OpenAI, Anthropic (Claude), and other LangChain-compatible providers
+- **Multi-provider LLM support**: OpenAI, Anthropic (Claude), Google (Gemini), and other LangChain-compatible providers
 - **Documentation-in-Context**: Full documentation loaded directly into LLM context for comprehensive assistance
 - **Runtime Documentation Management**: Update documentation via API without service restarts
 - **Database-backed Configuration**: Persistent agent configuration with validation
@@ -104,6 +104,8 @@ VULKAN_DOCS_PATH=/app/docs # Path to documentation directory (default: /docs)
 
 **Important**: LLM configuration (API keys, models, parameters) is **not** managed via environment variables. All LLM settings are stored in the database and configured through API endpoints for security and runtime flexibility.
 
+**Validation Approach**: The system uses actual API connection testing rather than hard-coded format validation. This ensures compatibility with new models and changing API key formats without requiring code updates.
+
 #### LLM Configuration via API
 
 LLM configuration is handled through API endpoints for security and flexibility:
@@ -128,6 +130,16 @@ PUT /api/config
   "provider": "anthropic",
   "api_key": "sk-ant-your-key-here", 
   "model": "claude-3-5-haiku-20241022",
+  "max_tokens": 800,
+  "temperature": 0.3
+}
+
+# Alternative: Google configuration  
+PUT /api/config
+{
+  "provider": "google",
+  "api_key": "your-google-api-key-here", 
+  "model": "gemini-1.5-pro",
   "max_tokens": 800,
   "temperature": 0.3
 }

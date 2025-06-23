@@ -97,6 +97,9 @@ services:
       dockerfile: images/vulkan-agent.Dockerfile
       args:
         PYTHON_VERSION: "3.12"
+        APP_PORT: 8001
+        DOCS_PATH: /app/docs
+        DATA_PATH: /app/data
     init: true
     env_file:
       - config/active/vulkan-agent.env
