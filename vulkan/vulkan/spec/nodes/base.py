@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -111,7 +111,9 @@ class NodeDefinition:
             hierarchy=data.get("hierarchy"),
         )
 
-    def to_dict(self) -> NodeDefinitionDict:
+    def to_dict(
+        self, mode: str | Literal["json", "python"] = "python"
+    ) -> NodeDefinitionDict:
         data: dict[str, Any] = {
             "name": self.name,
             "node_type": self.node_type,
@@ -123,7 +125,7 @@ class NodeDefinition:
                 key: d.to_dict() for key, d in self.dependencies.items()
             }
         if self.metadata is not None:
-            data["metadata"] = self.metadata.to_dict()
+            data["metadata"] = self.metadata.to_dict(mode=mode)
         if self.hierarchy is not None:
             data["hierarchy"] = self.hierarchy
         return data
@@ -213,8 +215,10 @@ class Node(ABC):
     def node_dependencies(self) -> list[Dependency]:
         return list(self.dependencies.values())
 
-    def to_dict(self) -> NodeDefinitionDict:
-        return self.node_definition().to_dict()
+    def to_dict(
+        self, mode: str | Literal["json", "python"] = "python"
+    ) -> NodeDefinitionDict:
+        return self.node_definition().to_dict(mode)
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Node):
