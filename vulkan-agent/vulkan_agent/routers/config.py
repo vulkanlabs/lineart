@@ -1,5 +1,7 @@
 """Configuration router for agent settings management."""
 
+import logging
+
 from fastapi import APIRouter, HTTPException, status
 
 from ..agent import refresh_global_agent
@@ -12,6 +14,7 @@ from ..schemas import (
 )
 
 router = APIRouter(prefix="/api/config", tags=["configuration"])
+logger = logging.getLogger("vulkan_agent.config")
 
 
 @router.get("/", response_model=AgentConfigResponse)
@@ -43,13 +46,16 @@ async def update_config(config_request: AgentConfigRequest):
         # Refresh the global agent to use the new configuration
         refresh_global_agent()
 
+        logger.info("Agent configuration updated successfully")
         return updated_config
 
     except ValueError as e:
+        logger.warning(f"Configuration validation failed: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
         )
     except Exception as e:
+        logger.error(f"Failed to update configuration: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update configuration: {str(e)}",
@@ -73,12 +79,14 @@ async def validate_config(validation_request: AgentConfigValidationRequest):
         )
 
     except ValueError as e:
+        logger.warning(f"Configuration validation failed: {str(e)}")
         return AgentConfigValidationResponse(
             valid=False,
             message=str(e),
             provider=validation_request.provider,
         )
     except Exception as e:
+        logger.error(f"Configuration validation error: {str(e)}", exc_info=True)
         return AgentConfigValidationResponse(
             valid=False,
             message=f"Validation error: {str(e)}",

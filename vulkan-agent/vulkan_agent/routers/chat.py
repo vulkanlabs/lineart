@@ -1,5 +1,7 @@
 """Chat router for the Vulkan AI Agent with documentation management."""
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -14,6 +16,7 @@ from ..knowledge_base import get_documentation_loader, refresh_documentation_loa
 from ..schemas import AgentConfigResponse, ChatRequest, ChatResponse
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
+logger = logging.getLogger("vulkan_agent.chat")
 
 
 class AgentStatus(BaseModel):
@@ -66,6 +69,7 @@ def get_agent_dependency(
     try:
         return get_global_agent()
     except Exception as e:
+        logger.error(f"Error initializing agent: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error initializing agent: {str(e)}"
         )
@@ -78,6 +82,7 @@ async def get_agent_status_endpoint():
         status = get_agent_status()
         return AgentStatus(**status)
     except Exception as e:
+        logger.error(f"Error checking agent status: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error checking agent status: {str(e)}"
         )
@@ -100,29 +105,12 @@ async def send_message(
         )
 
     except Exception as e:
+        logger.error(
+            f"Error processing message for session {request.session_id}: {str(e)}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=500, detail=f"Error processing message: {str(e)}"
-        )
-
-
-@router.post("/clear")
-async def clear_conversation(
-    session_id: str = None, agent: VulkanAgent = Depends(get_agent_dependency)
-):
-    """Clear conversation memory for a specific session."""
-    try:
-        if session_id:
-            agent.clear_memory(session_id)
-            return {
-                "status": "success",
-                "message": f"Session {session_id} memory cleared",
-            }
-        else:
-            return {"status": "error", "message": "session_id parameter is required"}
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error clearing conversation: {str(e)}"
         )
 
 
@@ -139,6 +127,7 @@ async def list_documentation_files():
         return DocumentationFileList(files=files)
 
     except Exception as e:
+        logger.error(f"Error listing documentation files: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error listing documentation files: {str(e)}"
         )
@@ -162,6 +151,9 @@ async def get_documentation_file(file_path: str):
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Documentation file not found")
     except Exception as e:
+        logger.error(
+            f"Error reading documentation file {file_path}: {str(e)}", exc_info=True
+        )
         raise HTTPException(
             status_code=500, detail=f"Error reading documentation file: {str(e)}"
         )
@@ -184,6 +176,10 @@ async def update_documentation_file(doc_file: DocumentationFile):
         )
 
     except Exception as e:
+        logger.error(
+            f"Error updating documentation file {doc_file.relative_path}: {str(e)}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=500, detail=f"Error updating documentation file: {str(e)}"
         )
@@ -204,6 +200,9 @@ async def delete_documentation_file(file_path: str):
         )
 
     except Exception as e:
+        logger.error(
+            f"Error deleting documentation file {file_path}: {str(e)}", exc_info=True
+        )
         raise HTTPException(
             status_code=500, detail=f"Error deleting documentation file: {str(e)}"
         )
@@ -223,6 +222,7 @@ async def reload_documentation():
         )
 
     except Exception as e:
+        logger.error(f"Error reloading documentation: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error reloading documentation: {str(e)}"
         )

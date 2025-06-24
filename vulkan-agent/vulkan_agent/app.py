@@ -1,3 +1,5 @@
+import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -5,6 +7,38 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import config_manager
 from .routers import chat, config, sessions
+
+
+def setup_logging():
+    """Configure logging for the application."""
+    # Get log level from environment variable, default to INFO for development
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+
+    # Configure root logger
+    logging.basicConfig(
+        level=getattr(logging, log_level, logging.INFO),
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    # Set specific logger levels for FastAPI and uvicorn
+    logging.getLogger("fastapi").setLevel(
+        logging.DEBUG if log_level == "DEBUG" else logging.INFO
+    )
+    logging.getLogger("uvicorn").setLevel(
+        logging.DEBUG if log_level == "DEBUG" else logging.INFO
+    )
+    logging.getLogger("uvicorn.access").setLevel(logging.INFO)
+
+    # Create logger for our application
+    logger = logging.getLogger("vulkan_agent")
+    logger.info(f"Logging configured with level: {log_level}")
+
+    return logger
+
+
+# Initialize logging
+logger = setup_logging()
 
 
 @asynccontextmanager
@@ -16,15 +50,18 @@ async def lifespan(app: FastAPI):
     - Shutdown: Clean up resources (if needed in future)
     """
     # Startup tasks
+    logger.info("Starting Vulkan Agent service...")
+
     if config_manager.is_configured():
-        print("✓ Agent configuration loaded successfully")
+        logger.info("✓ Agent configuration loaded successfully")
     else:
-        print("⚠ Agent configuration not found - please configure via API")
+        logger.warning("⚠ Agent configuration not found - please configure via API")
 
     yield
 
     # Shutdown tasks (placeholder for future cleanup)
     # Could include: database connections, background tasks, etc.
+    logger.info("Shutting down Vulkan Agent service...")
     pass
 
 
