@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, TypeAlias
+from typing import Any, Literal, TypeAlias
 
 from pydantic import BaseModel
 
@@ -7,9 +7,11 @@ from vulkan.spec.dependency import Dependency
 
 
 class BaseNodeMetadata(BaseModel):
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(
+        self, mode: str | Literal["json", "python"] = "python"
+    ) -> dict[str, Any]:
         """Convert the metadata to a dictionary."""
-        return self.model_dump()
+        return self.model_dump(mode=mode)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Any:

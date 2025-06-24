@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 
 from pydantic import BaseModel
 
@@ -89,9 +89,11 @@ class PolicyDefinition(GraphDefinition):
             if node.name == INPUT_NODE:
                 raise ValueError(f"Node name`{INPUT_NODE}` is reserved")
 
-    def to_dict(self) -> PolicyDefinitionDict:
+    def to_dict(
+        self, mode: str | Literal["json", "python"] = "python"
+    ) -> PolicyDefinitionDict:
         return {
-            "nodes": [node.to_dict() for node in self.nodes],
+            "nodes": [node.to_dict(mode) for node in self.nodes],
             "input_schema": self.input_schema,
             "output_callback": self.output_callback,
             "config_variables": self.config_variables,
