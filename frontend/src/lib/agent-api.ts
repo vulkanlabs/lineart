@@ -2,24 +2,50 @@ import { MessageContent } from "@/components/chat/message-formatter";
 
 export interface ChatRequest {
     message: string;
-    context?: {
-        userId?: string;
-        sessionId?: string;
-        previousMessages?: number;
-    };
+    session_id?: string;
 }
 
 export interface ChatResponse {
-    response: string | MessageContent;
-    sessionId?: string;
-    suggestions?: string[];
-    metadata?: {
-        processingTime?: number;
-        model?: string;
-        tokens?: number;
-    };
+    response: string;
+    session_id?: string;
+    tools_used?: boolean;
 }
 
+// Configuration interfaces for vulkan-agent
+export interface AgentConfigRequest {
+    provider: "openai" | "anthropic" | "google";
+    api_key: string;
+    model: string;
+    max_tokens?: number;
+    temperature?: number;
+}
+
+export interface AgentConfigResponse {
+    provider: "openai" | "anthropic" | "google";
+    model: string;
+    max_tokens: number;
+    temperature: number;
+    api_key_configured: boolean;
+}
+
+export interface AgentConfigValidationRequest {
+    provider: "openai" | "anthropic" | "google";
+    api_key: string;
+    model?: string;
+}
+
+export interface AgentConfigValidationResponse {
+    valid: boolean;
+    message: string;
+    provider: "openai" | "anthropic" | "google";
+}
+
+export interface AgentConfigStatus {
+    configured: boolean;
+    message: string;
+}
+
+// Legacy interfaces - keeping for backward compatibility
 export interface AgentSettings {
     id?: string;
     userId: string;
@@ -63,7 +89,8 @@ class AgentApiClient {
     private baseUrl: string;
 
     constructor(baseUrl?: string) {
-        this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_VULKAN_SERVER_URL || "";
+        this.baseUrl =
+            baseUrl || process.env.NEXT_PUBLIC_VULKAN_AGENT_URL || "http://localhost:8001";
     }
 
     private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -120,7 +147,7 @@ class AgentApiClient {
      * Send a chat message to the AI agent
      */
     async sendMessage(request: ChatRequest): Promise<ChatResponse> {
-        return this.request<ChatResponse>("/ai-agent/chat", {
+        return this.request<ChatResponse>("/api/chat/message", {
             method: "POST",
             body: JSON.stringify(request),
         });
@@ -182,8 +209,8 @@ class AgentApiClient {
      * Clear chat history for the current session
      */
     async clearChatHistory(sessionId?: string): Promise<{ success: boolean }> {
-        return this.request<{ success: boolean }>("/ai-agent/history", {
-            method: "DELETE",
+        return this.request<{ success: boolean }>("/api/chat/clear", {
+            method: "POST",
             body: JSON.stringify({ sessionId }),
         });
     }
@@ -193,8 +220,45 @@ class AgentApiClient {
      */
     async getHealth(): Promise<{ status: string; timestamp: string; version?: string }> {
         return this.request<{ status: string; timestamp: string; version?: string }>(
-            "/ai-agent/health",
+            "/api/chat/status",
         );
+    }
+
+    // Configuration API methods
+    /**
+     * Get current agent configuration
+     */
+    async getConfig(): Promise<AgentConfigResponse> {
+        return this.request<AgentConfigResponse>("/api/config");
+    }
+
+    /**
+     * Update agent configuration
+     */
+    async updateConfig(config: AgentConfigRequest): Promise<AgentConfigResponse> {
+        return this.request<AgentConfigResponse>("/api/config", {
+            method: "PUT",
+            body: JSON.stringify(config),
+        });
+    }
+
+    /**
+     * Validate API key and configuration without saving
+     */
+    async validateConfig(
+        validation: AgentConfigValidationRequest,
+    ): Promise<AgentConfigValidationResponse> {
+        return this.request<AgentConfigValidationResponse>("/api/config/validate", {
+            method: "POST",
+            body: JSON.stringify(validation),
+        });
+    }
+
+    /**
+     * Get agent configuration status
+     */
+    async getConfigStatus(): Promise<AgentConfigStatus> {
+        return this.request<AgentConfigStatus>("/api/config/status");
     }
 }
 
@@ -205,12 +269,9 @@ export const agentApi = new AgentApiClient();
 export { AgentApiClient };
 
 // Helper functions for common operations
-export const createChatRequest = (
-    message: string,
-    context?: ChatRequest["context"],
-): ChatRequest => ({
+export const createChatRequest = (message: string, session_id?: string): ChatRequest => ({
     message,
-    context,
+    session_id,
 });
 
 export const isMessageContent = (content: unknown): content is MessageContent => {

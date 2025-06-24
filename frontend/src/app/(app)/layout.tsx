@@ -9,6 +9,7 @@ import { SidebarSectionProps } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ChatLayout } from "@/components/chat";
+import { AgentConfigDialog } from "@/components/agent-config-dialog";
 import { cn } from "@/lib/utils";
 import "@/app/globals.css";
 
@@ -110,6 +111,9 @@ export default function RootLayout({ children }) {
                             ))}
                         </div>
                     </nav>
+                    <div className="ml-auto">
+                        <AgentConfigDialog />
+                    </div>
                 </header>
                 <div className="w-full h-full overflow-scroll">{children}</div>
             </div>

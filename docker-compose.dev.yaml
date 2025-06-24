@@ -81,6 +81,7 @@ services:
       args:
         PYTHON_VERSION: "3.12"
         NEXT_PUBLIC_VULKAN_SERVER_URL: "http://app:6001"
+        NEXT_PUBLIC_VULKAN_AGENT_URL: "http://vulkan-agent:8001"
     ports:
       - "3003:3000"
   upload-svc:

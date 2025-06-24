@@ -36,7 +36,9 @@ COPY ./frontend/ .
 COPY --from=openapi /app/frontend ./generated
 
 ARG NEXT_PUBLIC_VULKAN_SERVER_URL
+ARG NEXT_PUBLIC_VULKAN_AGENT_URL
 ENV NEXT_PUBLIC_VULKAN_SERVER_URL=${NEXT_PUBLIC_VULKAN_SERVER_URL}
+ENV NEXT_PUBLIC_VULKAN_AGENT_URL=${NEXT_PUBLIC_VULKAN_AGENT_URL}
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
@@ -50,7 +52,9 @@ FROM base AS runner
 WORKDIR /app
 
 ARG NEXT_PUBLIC_VULKAN_SERVER_URL
+ARG NEXT_PUBLIC_VULKAN_AGENT_URL
 ENV NEXT_PUBLIC_VULKAN_SERVER_URL=${NEXT_PUBLIC_VULKAN_SERVER_URL}
+ENV NEXT_PUBLIC_VULKAN_AGENT_URL=${NEXT_PUBLIC_VULKAN_AGENT_URL}
 
 ENV NODE_ENV=production
 # Uncomment the following line in case you want to disable telemetry during runtime.
