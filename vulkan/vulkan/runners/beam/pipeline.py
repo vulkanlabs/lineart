@@ -17,7 +17,7 @@ from vulkan.runners.beam.nodes import (
     to_beam_node,
 )
 from vulkan.schemas import DataSourceSpec
-from vulkan.spec.dependency import INPUT_NODE
+from vulkan.spec.dependency import INPUT_NODE, Dependency
 from vulkan.spec.graph import GraphEdges, GraphNodes, sort_nodes
 from vulkan.spec.nodes.base import NodeType
 
@@ -217,12 +217,22 @@ class __PipelineBuilder:
         if not node.dependencies:
             return self.pipeline
 
-        dependency_definitions = list(node.dependencies.values())
-        if len(dependency_definitions) == 1:
-            return self.collections[str(dependency_definitions[0])]
+        deps = {
+            str(dep): self._make_dependency_collection(dep)
+            for dep in node.dependencies.values()
+        }
 
-        deps = {str(d): self.collections[str(d)] for d in dependency_definitions}
         return deps | f"Join Deps: {node.id}" >> beam.CoGroupByKey()
+
+    def _make_dependency_collection(self, dep: Dependency) -> PCollection:
+        if dep.key is None:
+            return self.collections[str(dep)]
+        coll = self.collections[
+            dep.node
+        ] | f"Column [{dep.key}] from [{dep.node}]" >> beam.Map(
+            lambda x: (x[0], x[1][dep.key])
+        )
+        return coll
 
     def __build_step(self, pcoll: PCollection, node: BeamNode) -> None:
         if node.type == NodeType.TRANSFORM:

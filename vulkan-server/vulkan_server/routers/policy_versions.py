@@ -126,7 +126,6 @@ def update_policy_version(
         msg = f"Policy version {policy_version_id} not found"
         raise HTTPException(status_code=404, detail=msg)
 
-    # TODO: any simpler way to do this?
     # Update the policy version with the new spec and requirements
     spec = convert_pydantic_to_dict(config.spec)
     version.alias = config.alias
@@ -169,6 +168,10 @@ def update_policy_version(
                         f"from {node.name}"
                     )
                     raise HTTPException(status_code=400, detail={"msg": msg})
+
+    config_variables = config.spec.config_variables or None
+    if config_variables is not None:
+        version.variables = config_variables
 
     # Ensure the workspace is created or updated with the new spec and requirements
     try:

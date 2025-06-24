@@ -37,6 +37,8 @@ services:
         condition: service_healthy
     volumes:
       - dagster_vulkan_home:/opt/vulkan
+    ports:
+      - "3000:3000"
   dagster-db:
     image: ghcr.io/vulkanlabs/dagster-db:latest
     restart: always
