@@ -33,6 +33,22 @@ class CreateSessionResponse(BaseModel):
     message: str
 
 
+class MessageResponse(BaseModel):
+    """Message response model."""
+
+    id: int
+    role: str
+    content: str
+    created_at: str
+
+
+class SessionMessagesResponse(BaseModel):
+    """Response for session messages."""
+
+    session_id: str
+    messages: List[MessageResponse]
+
+
 @router.post("/", response_model=CreateSessionResponse)
 async def create_session(request: CreateSessionRequest):
     """Create a new conversation session."""
@@ -83,6 +99,31 @@ async def get_session(session_id: str):
         )
 
 
+@router.get("/{session_id}/messages", response_model=SessionMessagesResponse)
+async def get_session_messages(session_id: str, limit: Optional[int] = None):
+    """Get messages for a specific session."""
+    try:
+        session_manager = get_session_manager()
+
+        # Check if session exists
+        session_info = session_manager.get_session(session_id)
+        if not session_info:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Get messages for the session
+        messages = session_manager.get_session_messages(session_id, limit)
+
+        return SessionMessagesResponse(
+            session_id=session_id, messages=[MessageResponse(**msg) for msg in messages]
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error retrieving session messages: {str(e)}"
+        )
+
+
 @router.delete("/{session_id}")
 async def delete_session(session_id: str):
     """Delete a conversation session and all its messages."""
@@ -98,22 +139,3 @@ async def delete_session(session_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting session: {str(e)}")
-
-
-@router.post("/{session_id}/clear")
-async def clear_session_messages(session_id: str):
-    """Clear all messages from a session."""
-    try:
-        session_manager = get_session_manager()
-        success = session_manager.clear_session_messages(session_id)
-
-        if not success:
-            raise HTTPException(status_code=404, detail="Session not found")
-
-        return {"message": "Session messages cleared successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error clearing session messages: {str(e)}"
-        )

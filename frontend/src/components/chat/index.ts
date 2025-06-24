@@ -1,6 +1,6 @@
 export { ChatInterface } from "./chat-interface";
 export { ChatButton } from "./chat-button";
-export { ChatProvider, useChat } from "./chat-provider";
+export { ChatProvider, useChat, type ChatMessage } from "./chat-provider";
 export { ChatLayout } from "./chat-layout";
 export {
     MessageFormatter,

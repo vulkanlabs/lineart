@@ -1,39 +1,40 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, User, Loader2 } from "lucide-react";
+import { Send, Sparkles, User, Loader2, Plus, Trash2, Menu, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { MessageFormatter, MessageContent } from "./message-formatter";
+import { useChat, ChatMessage } from "./chat-provider";
 import { cn } from "@/lib/utils";
 
-interface Message {
-    id: string;
-    content: MessageContent | string;
-    sender: "user" | "agent";
-    timestamp: Date;
-}
-
 interface ChatInterfaceProps {
-    onSendMessage?: (message: string) => Promise<string | MessageContent>;
     className?: string;
+    showSessionControls?: boolean;
 }
 
-export function ChatInterface({ onSendMessage, className }: ChatInterfaceProps) {
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            id: "welcome",
-            content:
-                "Hello! I'm your Vulkan AI assistant. I can help you with policies, backtests, and " +
-                "workflow management. How can I assist you today?",
-            sender: "agent",
-            timestamp: new Date(),
-        },
-    ]);
+export function ChatInterface({ className, showSessionControls = true }: ChatInterfaceProps) {
+    const {
+        sendMessage,
+        messages,
+        isLoading,
+        currentSessionId,
+        sessions,
+        createNewSession,
+        switchToSession,
+        deleteSession,
+    } = useChat();
+
     const [inputValue, setInputValue] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -43,41 +44,14 @@ export function ChatInterface({ onSendMessage, className }: ChatInterfaceProps) 
     const handleSendMessage = async () => {
         if (!inputValue.trim() || isLoading) return;
 
-        const userMessage: Message = {
-            id: Date.now().toString(),
-            content: inputValue,
-            sender: "user",
-            timestamp: new Date(),
-        };
-
-        setMessages((prev) => [...prev, userMessage]);
+        const messageText = inputValue;
         setInputValue("");
-        setIsLoading(true);
 
         try {
-            const response = onSendMessage
-                ? await onSendMessage(inputValue)
-                : "I'm processing your request...";
-
-            const agentMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                content: response,
-                sender: "agent",
-                timestamp: new Date(),
-            };
-
-            setMessages((prev) => [...prev, agentMessage]);
+            await sendMessage(messageText);
         } catch (error) {
-            const errorMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                content:
-                    "I apologize, but I encountered an error processing your request. Please try again.",
-                sender: "agent",
-                timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, errorMessage]);
-        } finally {
-            setIsLoading(false);
+            console.error("Error sending message:", error);
+            // Error handling is already done in the provider
         }
     };
 
@@ -88,12 +62,118 @@ export function ChatInterface({ onSendMessage, className }: ChatInterfaceProps) 
         }
     };
 
+    const handleNewSession = async () => {
+        try {
+            await createNewSession();
+        } catch (error) {
+            console.error("Error creating new session:", error);
+        }
+    };
+
+    const handleDeleteSession = async (sessionId: string) => {
+        if (window.confirm("Are you sure you want to delete this session?")) {
+            try {
+                await deleteSession(sessionId);
+            } catch (error) {
+                console.error("Error deleting session:", error);
+            }
+        }
+    };
+
     return (
         <Card className={cn("flex flex-col h-[600px]", className)}>
             <CardHeader className="pb-4 flex-shrink-0">
-                <CardTitle className="flex items-center gap-3">
-                    <Sparkles className="h-5 w-5" />
-                    Vulkan AI Assistant
+                <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Sparkles className="h-5 w-5" />
+                        <div className="flex flex-col gap-1">
+                            <span>Vulkan AI Assistant</span>
+                            {currentSessionId && (
+                                <span className="text-xs text-muted-foreground font-normal">
+                                    {sessions.find((s) => s.id === currentSessionId)?.name ||
+                                        "Current Session"}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    {showSessionControls && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline">
+                                    <Menu className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuItem onClick={handleNewSession}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    New Session
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {sessions.length > 0 && (
+                                    <>
+                                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                                            Switch Session
+                                        </div>
+                                        <div className="max-h-48 overflow-y-auto">
+                                            {sessions.map((session) => (
+                                                <div key={session.id} className="relative">
+                                                    <DropdownMenuItem
+                                                        onClick={() => switchToSession(session.id)}
+                                                        className={cn(
+                                                            "flex items-center justify-between pr-8",
+                                                            session.id === currentSessionId &&
+                                                                "bg-accent",
+                                                        )}
+                                                    >
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="text-sm font-medium truncate">
+                                                                {session.name}
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {session.message_count} messages
+                                                            </div>
+                                                        </div>
+                                                    </DropdownMenuItem>
+                                                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="h-6 w-6 p-0"
+                                                                    onClick={(e) =>
+                                                                        e.stopPropagation()
+                                                                    }
+                                                                >
+                                                                    <MoreHorizontal className="h-3 w-3" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleDeleteSession(
+                                                                            session.id,
+                                                                        );
+                                                                    }}
+                                                                    className="text-destructive"
+                                                                >
+                                                                    <Trash2 className="h-3 w-3 mr-2" />
+                                                                    Delete Session
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <DropdownMenuSeparator />
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
                 </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">

@@ -85,6 +85,36 @@ export interface ChatHistoryResponse {
     }>;
 }
 
+// Session management interfaces
+export interface CreateSessionRequest {
+    name?: string;
+}
+
+export interface SessionResponse {
+    id: string;
+    name: string;
+    created_at: string;
+    message_count: number;
+}
+
+export interface CreateSessionResponse {
+    id: string;
+    name: string;
+    message: string;
+}
+
+export interface MessageResponse {
+    id: number;
+    role: string;
+    content: string;
+    created_at: string;
+}
+
+export interface SessionMessagesResponse {
+    session_id: string;
+    messages: MessageResponse[];
+}
+
 class AgentApiClient {
     private baseUrl: string;
 
@@ -206,16 +236,6 @@ class AgentApiClient {
     }
 
     /**
-     * Clear chat history for the current session
-     */
-    async clearChatHistory(sessionId?: string): Promise<{ success: boolean }> {
-        return this.request<{ success: boolean }>("/api/chat/clear", {
-            method: "POST",
-            body: JSON.stringify({ sessionId }),
-        });
-    }
-
-    /**
      * Get agent health status
      */
     async getHealth(): Promise<{ status: string; timestamp: string; version?: string }> {
@@ -259,6 +279,53 @@ class AgentApiClient {
      */
     async getConfigStatus(): Promise<AgentConfigStatus> {
         return this.request<AgentConfigStatus>("/api/config/status");
+    }
+
+    // Session management methods
+    /**
+     * Create a new conversation session
+     */
+    async createSession(request: CreateSessionRequest = {}): Promise<CreateSessionResponse> {
+        return this.request<CreateSessionResponse>("/api/sessions", {
+            method: "POST",
+            body: JSON.stringify(request),
+        });
+    }
+
+    /**
+     * List all conversation sessions
+     */
+    async listSessions(): Promise<SessionResponse[]> {
+        return this.request<SessionResponse[]>("/api/sessions");
+    }
+
+    /**
+     * Get information about a specific session
+     */
+    async getSession(sessionId: string): Promise<SessionResponse> {
+        return this.request<SessionResponse>(`/api/sessions/${sessionId}`);
+    }
+
+    /**
+     * Get messages for a specific session
+     */
+    async getSessionMessages(sessionId: string, limit?: number): Promise<SessionMessagesResponse> {
+        const params = new URLSearchParams();
+        if (limit) params.append("limit", limit.toString());
+
+        const queryString = params.toString();
+        const endpoint = `/api/sessions/${sessionId}/messages${queryString ? `?${queryString}` : ""}`;
+
+        return this.request<SessionMessagesResponse>(endpoint);
+    }
+
+    /**
+     * Delete a conversation session and all its messages
+     */
+    async deleteSession(sessionId: string): Promise<{ message: string }> {
+        return this.request<{ message: string }>(`/api/sessions/${sessionId}`, {
+            method: "DELETE",
+        });
     }
 }
 

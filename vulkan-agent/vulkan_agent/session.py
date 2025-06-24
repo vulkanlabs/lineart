@@ -35,6 +35,15 @@ class SessionManager:
             )
             db_session.add(session)
 
+            # Add automatic greeting message
+            greeting_message = Message(
+                session_id=session_id,
+                role=MessageRole.ASSISTANT.value,
+                content="Hello! I'm your Vulkan AI assistant. I can help you with policies, "
+                "backtests, and workflow management. How can I assist you today?",
+            )
+            db_session.add(greeting_message)
+
         return session_id
 
     def get_session(self, session_id: str) -> Optional[dict]:
@@ -158,30 +167,39 @@ class SessionManager:
 
             return langchain_messages
 
-    def clear_session_messages(self, session_id: str) -> bool:
-        """Clear all messages from a session.
+    def get_session_messages(
+        self, session_id: str, limit: Optional[int] = None
+    ) -> List[dict]:
+        """Get messages for a session.
 
         Args:
             session_id: The session ID
+            limit: Optional limit on number of messages to return
 
         Returns:
-            True if messages were cleared, False if session not found
+            List of message dicts
         """
         with self.db_manager.get_session() as db_session:
-            # Check if session exists
-            session = (
-                db_session.query(SessionModel)
-                .filter(SessionModel.id == session_id)
-                .first()
+            query = (
+                db_session.query(Message)
+                .filter(Message.session_id == session_id)
+                .order_by(Message.created_at)
             )
 
-            if not session:
-                return False
+            if limit:
+                query = query.limit(limit)
 
-            # Delete all messages for this session
-            db_session.query(Message).filter(Message.session_id == session_id).delete()
+            messages = query.all()
 
-            return True
+            return [
+                {
+                    "id": msg.id,
+                    "role": msg.role,
+                    "content": msg.content,
+                    "created_at": msg.created_at.isoformat(),
+                }
+                for msg in messages
+            ]
 
 
 # Global session manager instance

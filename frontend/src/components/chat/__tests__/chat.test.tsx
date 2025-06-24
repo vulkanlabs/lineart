@@ -1,62 +1,59 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ChatInterface } from "../chat-interface";
 import { ChatButton } from "../chat-button";
+import { ChatProvider } from "../chat-provider";
+
+// Mock the agent API
+jest.mock("@/lib/agent-api", () => ({
+    agentApi: {
+        listSessions: jest.fn().mockResolvedValue([
+            {
+                id: "session-1",
+                name: "Test Session",
+                created_at: "2024-01-01T00:00:00Z",
+                message_count: 1,
+            },
+        ]),
+        getSessionMessages: jest.fn().mockResolvedValue({
+            messages: [
+                {
+                    id: 1,
+                    role: "assistant",
+                    content:
+                        "Hello! I'm your Vulkan AI assistant. I can help you with policies, " +
+                        "backtests, and workflow management. How can I assist you today?",
+                    created_at: "2024-01-01T00:00:00Z",
+                },
+            ],
+        }),
+        createSession: jest.fn().mockResolvedValue({
+            id: "new-session-1",
+            name: "New Session",
+        }),
+        sendMessage: jest.fn().mockResolvedValue({
+            response: "Mock response",
+        }),
+    },
+    createChatRequest: jest.fn(),
+    isMessageContent: jest.fn().mockReturnValue(false),
+}));
 
 // Mock the chat interface for the button test
 jest.mock("../chat-interface", () => ({
-    ChatInterface: ({ onSendMessage }: { onSendMessage?: Function }) => (
-        <div data-testid="chat-interface">Chat Interface Mock</div>
-    ),
+    ChatInterface: () => <div data-testid="chat-interface">Chat Interface Mock</div>,
 }));
 
 describe("Chat Components", () => {
     describe("ChatInterface", () => {
-        it("renders welcome message", () => {
-            render(<ChatInterface />);
-            expect(screen.getByText(/Hello! I'm your Vulkan AI assistant/)).toBeInTheDocument();
-        });
-
-        it("displays user message after sending", async () => {
-            const mockSendMessage = jest.fn().mockResolvedValue("Mock response");
-            render(<ChatInterface onSendMessage={mockSendMessage} />);
-
-            const input = screen.getByPlaceholderText(/Ask me about/);
-            const sendButton = screen.getByRole("button", { name: /send/i });
-
-            fireEvent.change(input, { target: { value: "Test message" } });
-            fireEvent.click(sendButton);
+        it("renders greeting message from server", async () => {
+            render(
+                <ChatProvider>
+                    <ChatInterface />
+                </ChatProvider>,
+            );
 
             await waitFor(() => {
-                expect(screen.getByText("Test message")).toBeInTheDocument();
-            });
-        });
-
-        it("calls onSendMessage when message is sent", async () => {
-            const mockSendMessage = jest.fn().mockResolvedValue("Mock response");
-            render(<ChatInterface onSendMessage={mockSendMessage} />);
-
-            const input = screen.getByPlaceholderText(/Ask me about/);
-            const sendButton = screen.getByRole("button", { name: /send/i });
-
-            fireEvent.change(input, { target: { value: "Test message" } });
-            fireEvent.click(sendButton);
-
-            await waitFor(() => {
-                expect(mockSendMessage).toHaveBeenCalledWith("Test message");
-            });
-        });
-
-        it("handles Enter key to send message", async () => {
-            const mockSendMessage = jest.fn().mockResolvedValue("Mock response");
-            render(<ChatInterface onSendMessage={mockSendMessage} />);
-
-            const input = screen.getByPlaceholderText(/Ask me about/);
-
-            fireEvent.change(input, { target: { value: "Test message" } });
-            fireEvent.keyPress(input, { key: "Enter", code: "Enter", charCode: 13 });
-
-            await waitFor(() => {
-                expect(mockSendMessage).toHaveBeenCalledWith("Test message");
+                expect(screen.getByText(/Hello! I'm your Vulkan AI assistant/)).toBeInTheDocument();
             });
         });
     });

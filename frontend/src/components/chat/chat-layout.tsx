@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import { ChatButton } from "./chat-button";
-import { ChatProvider, useChat } from "./chat-provider";
+import { ChatProvider } from "./chat-provider";
 
 interface ChatLayoutProps {
     children: ReactNode;
@@ -10,12 +10,10 @@ interface ChatLayoutProps {
 }
 
 function ChatLayoutInner({ children }: { children: ReactNode }) {
-    const { sendMessage } = useChat();
-
     return (
         <>
             {children}
-            <ChatButton onSendMessage={sendMessage} />
+            <ChatButton />
         </>
     );
 }
