@@ -1,6 +1,70 @@
 # Frontend Chat Interface
 
-This document describes the chat interface implementation for the Vulkan platform's AI assistant with session management.
+This document describes the chat interface implementation for the Vulkan platform's AI assistant wit### Session Management Features
+
+The chat interface supports persistent conversation sessions:
+
+- **Automatic Session Creation**: A new session is created when the user first sends a message
+- **Session Persistence**: All messages are stored on the server and restored when switching sessions
+- **Session List**: View all conversation sessions with names and message counts in a compact dropdown
+- **Session Switching**: Click on any session to continue that conversation
+- **Session Management**: Delete sessions you no longer need via the dropdown menu
+- **Fresh Start**: Create a new session or delete the current one to start a fresh conversation
+
+### Markdown Rendering Support
+
+The chat interface now includes comprehensive markdown rendering capabilities:
+
+- **GitHub Flavored Markdown (GFM)**: Full support for tables, strikethrough, task lists, and more
+- **Syntax Highlighting**: Code blocks with automatic language detection and syntax highlighting
+- **Rich Formatting**: Headers, bold, italic, lists, blockquotes, and links
+- **Custom Styling**: Tailored styling that matches the app's design system
+- **Smart Defaults**: String messages from AI are automatically rendered as markdown
+- **Code Blocks**: Multi-language syntax highlighting with copy functionality
+- **Tables**: Responsive table rendering with proper borders and styling
+- **Links**: Safe external link handling with proper security attributes
+
+**Supported Markdown Features:**
+- Headers (H1-H6)
+- **Bold** and *italic* text
+- `Inline code` and code blocks
+- Lists (ordered and unordered)
+- Tables
+- Blockquotes
+- Links (with security attributes)
+- Strikethrough
+- Task lists
+- Horizontal rules
+- **JSON Auto-Detection**: JSON objects and arrays are automatically detected and formatted with syntax highlighting
+- **Language Aliases**: Common aliases (js→javascript, py→python, etc.) are supported
+
+**JSON Rendering:**
+- Raw JSON strings are automatically detected and formatted
+- Proper syntax highlighting with line numbers for longer snippets
+- Pretty-printing with proper indentation
+- Support for both objects `{}` and arrays `[]`
+
+**Example Usage:**
+```markdown
+# AI Response Example
+
+The AI can respond with **rich formatting**:
+
+- Lists and sublists
+- `code snippets`
+- [External links](https://example.com)
+
+## Code Examples
+```python
+def example_function():
+    return "Hello, World!"
+```
+
+| Feature | Status |
+|---------|--------|
+| Markdown | ✅ Supported |
+| Syntax Highlighting | ✅ Supported |
+```management and markdown rendering support.
 
 ## Components
 
@@ -17,6 +81,7 @@ The main chat interface component that displays messages and handles user input 
 
 **Features:**
 
+-   **Rich Message Rendering**: Full markdown support with syntax highlighting
 -   Message history with timestamps
 -   User and agent avatars  
 -   Loading indicators
@@ -262,6 +327,50 @@ The chat components now integrate with the vulkan-agent service which supports:
 }
 ```
 
+**Message Content Types:**
+
+The frontend supports several message content types for rich rendering:
+
+```typescript
+interface MessageContent {
+    type: "text" | "markdown" | "list" | "preview" | "error" | "success" | "info" | "code";
+    content: string | string[] | PreviewContent | CodeContent;
+}
+```
+
+**Default Behavior:**
+- String messages are automatically rendered as **markdown** for rich formatting
+- Use `createMarkdownMessage()` helper for explicit markdown content
+- Use `createTextMessage()` for plain text (no markdown processing)
+- Use `createCodeMessage()` for syntax-highlighted code blocks
+
+**Helper Functions:**
+```typescript
+// Automatic markdown rendering (recommended for AI responses)
+const message = "**Bold text** and `inline code`";
+
+// Explicit message types
+createMarkdownMessage("# Header\n\nMarkdown content");
+createTextMessage("Plain text content");
+createCodeMessage("console.log('Hello')", "javascript", "Example");
+createJsonMessage({name: "John", age: 30}, "User Data"); // Auto-formatted JSON
+createListMessage(["Item 1", "Item 2", "Item 3"]);
+createSuccessMessage("Operation completed successfully");
+createErrorMessage("An error occurred");
+createInfoMessage("Additional information");
+```
+
+**JSON Message Examples:**
+```typescript
+// Automatically formatted JSON with syntax highlighting
+const userData = {name: "Alice", roles: ["admin", "user"]};
+createJsonMessage(userData, "User Profile");
+
+// Raw JSON strings are auto-detected and formatted
+const jsonString = '{"status": "success", "data": [1, 2, 3]}';
+// This will be automatically converted to pretty-printed JSON with highlighting
+```
+
 **Chat Message Response:**
 ```json
 {
@@ -325,11 +434,68 @@ The chat interface requires these dependencies:
 
 ```
 src/components/chat/
-├── index.ts              # Exports all components
-├── chat-interface.tsx    # Main chat component
-├── chat-button.tsx       # Floating action button
-├── chat-provider.tsx     # Context provider
-└── chat-layout.tsx       # Layout wrapper
+├── index.ts                  # Exports all components
+├── chat-interface.tsx        # Main chat component
+├── chat-button.tsx           # Floating action button
+├── chat-provider.tsx         # Context provider
+├── chat-layout.tsx           # Layout wrapper
+├── message-formatter.tsx     # Message rendering component
+├── message-types.ts          # Type definitions for messages
+├── message-utils.ts          # Utilities and helper factories
+└── message-renderers.tsx     # All message type renderers
+```
+
+## Message Rendering Architecture
+
+The chat interface uses a modular message rendering system that supports rich content types:
+
+### MessageFormatter Component
+
+**Location:** `src/components/chat/message-formatter.tsx`
+
+The main component for rendering all message types with automatic markdown processing:
+
+```tsx
+// String content (auto-markdown rendering)
+<MessageFormatter content="Hello **world**!" />
+
+// Typed content for specific rendering
+<MessageFormatter content={{
+  type: "success", 
+  content: "Operation completed"
+}} />
+```
+
+**Architecture Benefits:**
+- **Modular Design**: 4 focused files with logical grouping
+- **Type Safety**: Comprehensive TypeScript definitions
+- **Auto-Detection**: JSON content is automatically formatted
+- **Extensible**: Easy to add new message types
+
+### Message Types & Renderers
+
+**Consolidated in:** `src/components/chat/message-renderers.tsx`
+
+- **MarkdownRenderer**: Full markdown with syntax highlighting
+- **ListRenderer**: Bulleted lists with custom styling
+- **PreviewRenderer**: Card-style previews with actions
+- **CodeRenderer**: Code blocks with titles and language tags
+- **StatusRenderer**: Success/error/info status messages
+
+### Utilities & Helpers
+
+**Location:** `src/components/chat/message-utils.ts`
+
+Provides utility functions and factory helpers:
+
+```tsx
+import { createJsonMessage, createCodeMessage } from "./message-formatter";
+
+// Auto-formatted JSON with syntax highlighting
+const jsonMsg = createJsonMessage({name: "John", age: 30});
+
+// Code block with language detection
+const codeMsg = createCodeMessage("console.log('Hello')", "javascript");
 ```
 
 ## Features

@@ -17,7 +17,7 @@ export function ChatButton({ className }: ChatButtonProps) {
         <div className={cn("fixed bottom-4 right-4 z-50", className)}>
             {isOpen ? (
                 <div className="relative">
-                    <ChatInterface className="w-96" showSessionControls={true} />
+                    <ChatInterface className="w-[26rem]" showSessionControls={true} />
                     <Button
                         onClick={() => setIsOpen(false)}
                         size="icon"

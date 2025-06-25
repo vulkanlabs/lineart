@@ -77,6 +77,8 @@ export function ChatProvider({ children, apiEndpoint }: ChatProviderProps) {
                 timestamp: new Date(msg.created_at),
             }));
             setMessages(chatMessages);
+            console.log("Loaded messages for session:", sessionId);
+            console.log("Messages:", chatMessages);
         } catch (error) {
             console.error("Error loading session messages:", error);
             setMessages([]);
