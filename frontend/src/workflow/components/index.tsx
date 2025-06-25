@@ -9,11 +9,11 @@ import { DecisionNode } from "./decision-node";
 
 export const nodeTypes = {
     INPUT: InputNode,
+    CONNECTION: ConnectionNode,
     DATA_INPUT: DataInputNode,
     TRANSFORM: TransformNode,
+    DECISION: DecisionNode,
     BRANCH: BranchNode,
     TERMINATE: TerminateNode,
     POLICY: PolicyNode,
-    CONNECTION: ConnectionNode,
-    DECISION: DecisionNode,
 };

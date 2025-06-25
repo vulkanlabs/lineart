@@ -195,7 +195,9 @@ class DagsterPolicy(PolicyDefinitionNode, DagsterNode):
         client: VulkanRunClient = getattr(context.resources, RUN_CLIENT_KEY)
         inputs = _resolved_inputs(inputs, self.dependencies)
 
-        body = inputs.get("body", None)
+        # TODO: handle schema same way as data input nodes
+        input_data = inputs.get("body", None)
+        body = {"input_data": input_data}
 
         error = None
         extra = dict()
@@ -203,16 +205,14 @@ class DagsterPolicy(PolicyDefinitionNode, DagsterNode):
             result = client.run_version_sync(
                 policy_version_id=self.policy_id,
                 data=body,
-                time_step_ms=inputs.get("time_step_ms", 1000),
-                timeout_ms=inputs.get("timeout_ms", 10000),
             )
             response_metadata = {
                 "policy_version_id": self.policy_id,
                 "run_id": result.get("run_id"),
-                "success": result.get("success"),
+                "success": result.get("status") == "SUCCESS",
             }
             extra.update({"response_metadata": response_metadata})
-            yield Output(result["data"])
+            yield Output(result)
         except ValueError as e:
             context.log.error(f"Failed op {self.name}: {e}")
             error = ("\n").join(format_exception_only(type(e), e))

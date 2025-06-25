@@ -229,8 +229,14 @@ function VulkanWorkflow({ onNodeClick, onPaneClick, policyVersion }: VulkanWorkf
                 // fitView
                 proOptions={{ hideAttribution: true }}
             >
-                <Background color="#ccc" variant={BackgroundVariant.Dots} />
-                <MiniMap nodeStrokeWidth={3} zoomable pannable />
+                <Background
+                    color="#c8c8c8"
+                    bgColor="#fafafa"
+                    size={3}
+                    gap={30}
+                    variant={BackgroundVariant.Dots}
+                />
+                {/* <MiniMap nodeStrokeWidth={3} zoomable pannable /> */}
                 <Controls showZoom={false} showInteractive={false} orientation="horizontal">
                     <ControlButton
                         onClick={async () => {
