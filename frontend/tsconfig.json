@@ -3,7 +3,8 @@
         "paths": {
             "@public/*": ["./public/*"],
             "@/*": ["./src/*"],
-            "@vulkan-server/*": ["./generated/models/*"]
+            "@vulkan-server/*": ["./generated/server/src/models/*"],
+            "@vulkan-agent/*": ["./generated/agent/src/*"]
         },
         "lib": ["esnext", "dom", "dom.iterable"],
         "allowJs": true,
