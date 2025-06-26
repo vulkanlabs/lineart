@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import { ChatButton } from "./chat-button";
 import { ChatProvider } from "./chat-provider";
+import { PageContextProvider } from "@/lib/context";
 
 interface ChatLayoutProps {
     children: ReactNode;
@@ -20,8 +21,10 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
 
 export function ChatLayout({ children, apiEndpoint }: ChatLayoutProps) {
     return (
-        <ChatProvider apiEndpoint={apiEndpoint}>
-            <ChatLayoutInner>{children}</ChatLayoutInner>
-        </ChatProvider>
+        <PageContextProvider>
+            <ChatProvider apiEndpoint={apiEndpoint}>
+                <ChatLayoutInner>{children}</ChatLayoutInner>
+            </ChatProvider>
+        </PageContextProvider>
     );
 }

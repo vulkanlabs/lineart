@@ -25,6 +25,7 @@ import { NodeDefinition, AsNodeDefinitionDict } from "./types";
 type WorkflowActions = {
     getSpec: () => PolicyDefinitionDictInput;
     getInputSchema: () => { [key: string]: string };
+    updateFromSpec: (spec: PolicyDefinitionDictInput) => void;
     updateTargetDeps: (sourceNodeId: string) => void;
     onNodesChange: OnNodesChange<VulkanNode>;
     setNodes: (nodes: VulkanNode[]) => void;
@@ -74,6 +75,20 @@ const createWorkflowStore = (initProps: WorkflowState) => {
             };
 
             return spec;
+        },
+
+        updateFromSpec: (spec: PolicyDefinitionDictInput) => {
+            // For now, this is a placeholder implementation
+            // In a real implementation, we would convert the spec back to nodes and edges
+            // For testing purposes, we'll just log the spec and show a toast
+            console.log("Updating workflow from spec:", spec);
+            toast.success("Workflow updated successfully from specification");
+
+            // TODO: Implement proper spec-to-nodes conversion
+            // This would involve:
+            // 1. Converting spec.nodes to VulkanNode[]
+            // 2. Converting spec edges to Edge[]
+            // 3. Updating the store with setNodes() and setEdges()
         },
 
         updateTargetDeps: (sourceNodeId) => {

@@ -1,12 +1,14 @@
 import { MessageContent } from "@/components/chat/message-formatter";
+import { PageContext } from "@/lib/context";
 
 export interface ChatRequest {
     message: string;
     session_id?: string;
+    context?: PageContext;
 }
 
 export interface ChatResponse {
-    response: string;
+    response: string | MessageContent;
     session_id?: string;
     tools_used?: boolean;
 }
@@ -336,9 +338,14 @@ export const agentApi = new AgentApiClient();
 export { AgentApiClient };
 
 // Helper functions for common operations
-export const createChatRequest = (message: string, session_id?: string): ChatRequest => ({
+export const createChatRequest = (
+    message: string,
+    session_id?: string,
+    context?: PageContext,
+): ChatRequest => ({
     message,
     session_id,
+    context,
 });
 
 export const isMessageContent = (content: unknown): content is MessageContent => {

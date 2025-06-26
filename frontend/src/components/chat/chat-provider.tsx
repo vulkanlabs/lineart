@@ -8,7 +8,11 @@ import {
     SessionResponse,
     MessageResponse,
 } from "@/lib/agent-api";
+import { getCurrentContext } from "@/lib/context";
 import { MessageContent } from "./message-formatter";
+
+// Import actions to ensure registration happens
+import "@/lib/actions";
 
 export interface ChatMessage {
     id: string;
@@ -149,8 +153,9 @@ export function ChatProvider({ children, apiEndpoint }: ChatProviderProps) {
                 await loadSessions();
             }
 
-            // Send message with session ID
-            const request = createChatRequest(message, sessionId);
+            // Send message with session ID and current context
+            const currentContext = getCurrentContext();
+            const request = createChatRequest(message, sessionId, currentContext);
             const response = await agentApi.sendMessage(request);
 
             // Add user message to local state immediately for responsiveness

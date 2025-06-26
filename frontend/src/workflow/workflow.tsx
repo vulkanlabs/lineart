@@ -39,6 +39,7 @@ import { WorkflowProvider, useWorkflowStore } from "./store";
 import { saveWorkflowSpec } from "./actions";
 import { VulkanNode, WorkflowState } from "./types";
 import { findHandleIndexByName } from "./names";
+import { WorkflowContextManager } from "./context-manager";
 import { useRouter } from "next/navigation";
 import { PolicyDefinitionDictInput } from "@vulkan-server/PolicyDefinitionDictInput";
 
@@ -411,6 +412,7 @@ export default function WorkflowFrame({ policyVersion }: { policyVersion: Policy
     return (
         <ReactFlowProvider>
             <WorkflowProvider initialState={initialState}>
+                <WorkflowContextManager policyVersion={policyVersion} />
                 <VulkanWorkflow
                     onNodeClick={(_: any, node: any) => null}
                     onPaneClick={() => null}

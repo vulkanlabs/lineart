@@ -224,7 +224,7 @@ export function AgentConfigDialog() {
             };
 
             await agentApi.updateConfig(config);
-            
+
             // If we saved a new API key, mark this provider as configured
             if (formData.api_key.trim()) {
                 setIsApiKeyConfigured((prev) => ({
@@ -232,7 +232,7 @@ export function AgentConfigDialog() {
                     [formData.provider]: true,
                 }));
             }
-            
+
             setIsConfigured(true);
             setIsOpen(false);
             toast.success("Agent configuration saved successfully!");
@@ -461,7 +461,7 @@ export function AgentConfigDialog() {
                                         id="max_tokens"
                                         type="number"
                                         min="1"
-                                        max="4000"
+                                        max="100000"
                                         value={formData.max_tokens}
                                         onChange={(e) =>
                                             setFormData((prev) => ({
