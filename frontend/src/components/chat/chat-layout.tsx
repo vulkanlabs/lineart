@@ -7,7 +7,6 @@ import { PageContextProvider } from "@/lib/context";
 
 interface ChatLayoutProps {
     children: ReactNode;
-    apiEndpoint?: string;
 }
 
 function ChatLayoutInner({ children }: { children: ReactNode }) {
@@ -19,10 +18,10 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
     );
 }
 
-export function ChatLayout({ children, apiEndpoint }: ChatLayoutProps) {
+export function ChatLayout({ children }: ChatLayoutProps) {
     return (
         <PageContextProvider>
-            <ChatProvider apiEndpoint={apiEndpoint}>
+            <ChatProvider>
                 <ChatLayoutInner>{children}</ChatLayoutInner>
             </ChatProvider>
         </PageContextProvider>

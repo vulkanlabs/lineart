@@ -40,10 +40,9 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 interface ChatProviderProps {
     children: ReactNode;
-    apiEndpoint?: string;
 }
 
-export function ChatProvider({ children, apiEndpoint }: ChatProviderProps) {
+export function ChatProvider({ children }: ChatProviderProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -81,8 +80,6 @@ export function ChatProvider({ children, apiEndpoint }: ChatProviderProps) {
                 timestamp: new Date(msg.created_at),
             }));
             setMessages(chatMessages);
-            console.log("Loaded messages for session:", sessionId);
-            console.log("Messages:", chatMessages);
         } catch (error) {
             console.error("Error loading session messages:", error);
             setMessages([]);
@@ -176,6 +173,24 @@ export function ChatProvider({ children, apiEndpoint }: ChatProviderProps) {
             };
 
             setMessages((prev) => [...prev, agentMessage]);
+
+            // Handle actions if present
+            if (response.actions && response.actions.length > 0) {
+                console.log(`Received ${response.actions.length} actions from agent`);
+                // TODO: Process actions - for now just log them
+                response.actions.forEach((action, index) => {
+                    console.log(`Action ${index + 1}:`, {
+                        type: action.type,
+                        description: action.description,
+                        requiresConfirmation: action.requiresConfirmation,
+                    });
+                });
+            }
+
+            // Log context usage
+            if (response.context_used) {
+                console.log("Agent used page context in generating response");
+            }
 
             // Refresh sessions to update message count
             await loadSessions();

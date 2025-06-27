@@ -1,16 +1,20 @@
 import { MessageContent } from "@/components/chat/message-formatter";
 import { PageContext } from "@/lib/context";
+import { FrontendAction } from "@/lib/actions/types";
 
 export interface ChatRequest {
     message: string;
     session_id?: string;
     context?: PageContext;
+    actions_enabled?: boolean;
 }
 
 export interface ChatResponse {
     response: string | MessageContent;
     session_id?: string;
     tools_used?: boolean;
+    actions?: FrontendAction[];
+    context_used?: boolean;
 }
 
 // Configuration interfaces for vulkan-agent
@@ -346,6 +350,7 @@ export const createChatRequest = (
     message,
     session_id,
     context,
+    actions_enabled: !!context, // Enable actions when context is available
 });
 
 export const isMessageContent = (content: unknown): content is MessageContent => {
