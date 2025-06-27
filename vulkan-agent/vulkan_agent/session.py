@@ -201,6 +201,31 @@ class SessionManager:
                 for msg in messages
             ]
 
+    def clear_session_messages(self, session_id: str) -> bool:
+        """Clear all messages from a session.
+
+        Args:
+            session_id: The session ID
+
+        Returns:
+            True if messages were cleared, False if session not found
+        """
+        with self.db_manager.get_session() as db_session:
+            # Check if session exists
+            session = (
+                db_session.query(SessionModel)
+                .filter(SessionModel.id == session_id)
+                .first()
+            )
+
+            if not session:
+                return False
+
+            # Delete all messages for this session
+            db_session.query(Message).filter(Message.session_id == session_id).delete()
+
+            return True
+
 
 # Global session manager instance
 _session_manager = None

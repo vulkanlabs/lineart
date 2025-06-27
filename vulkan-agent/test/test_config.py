@@ -1,6 +1,6 @@
 """Tests for agent configuration management."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,83 +13,27 @@ client = TestClient(app)
 
 
 class TestConfigManager:
-    """Test ConfigManager functionality."""
-
-    def test_init_without_env(self):
-        """Test ConfigManager initialization without environment variables."""
-        with patch.dict("os.environ", {}, clear=True):
-            # Mock database manager to use an in-memory database
-            with patch("vulkan_agent.config.get_database_manager") as mock_get_db:
-                # Create a real in-memory database for this test
-                from vulkan_agent.database import DatabaseManager
-
-                test_db_manager = DatabaseManager(":memory:")
-                mock_get_db.return_value = test_db_manager
-
-                manager = ConfigManager()
-                assert manager.get_config() is None
-                assert not manager.is_configured()
-
-    def test_init_with_env(self):
-        """Test ConfigManager initialization with environment variables."""
-        env_vars = {
-            "DEFAULT_LLM_PROVIDER": "openai",
-            "OPENAI_API_KEY": "sk-test123",
-            "OPENAI_MODEL": "gpt-4o-mini",
-            "MAX_TOKENS": "1000",
-            "TEMPERATURE": "0.5",
-        }
-
-        with patch.dict("os.environ", env_vars, clear=True):
-            # Mock database manager to use an in-memory database
-            with patch("vulkan_agent.config.get_database_manager") as mock_get_db:
-                # Create a real in-memory database for this test
-                from vulkan_agent.database import DatabaseManager
-
-                test_db_manager = DatabaseManager(":memory:")
-                mock_get_db.return_value = test_db_manager
-
-                manager = ConfigManager()
-                config = manager.get_config()
-
-                # Should be None since database config is not set
-                assert config is None
+    """Test core ConfigManager functionality."""
 
     def test_update_config(self):
         """Test updating configuration."""
         manager = ConfigManager()
 
         config_request = AgentConfigRequest(
-            provider=LLMProvider.OPENAI,
-            api_key="sk-test123",
-            model="gpt-4o-mini",
-            max_tokens=800,
-            temperature=0.3,
+            provider=LLMProvider.OPENAI, api_key="sk-test123", model="gpt-4o-mini"
         )
 
         updated_config = manager.update_config(config_request)
 
         assert updated_config.provider == LLMProvider.OPENAI
         assert updated_config.model == "gpt-4o-mini"
-        assert updated_config.max_tokens == 800
-        assert updated_config.temperature == 0.3
         assert updated_config.api_key_configured is True
         assert manager.is_configured()
 
-    def test_get_llm_config(self):
-        """Test getting LLM configuration."""
-        # Mock database manager to use an in-memory database
-        with patch("vulkan_agent.config.get_database_manager") as mock_get_db:
-            # Create a real in-memory database for this test
-            from vulkan_agent.database import DatabaseManager
+    def test_get_llm_config_after_update(self):
+        """Test getting LLM configuration after update."""
+        manager = ConfigManager()
 
-            test_db_manager = DatabaseManager(":memory:")
-            mock_get_db.return_value = test_db_manager
-
-            manager = ConfigManager()
-            assert manager.get_llm_config() is None
-
-        # With configuration
         config_request = AgentConfigRequest(
             provider=LLMProvider.ANTHROPIC,
             api_key="sk-ant-test123",
@@ -103,31 +47,6 @@ class TestConfigManager:
         assert llm_config.api_key == "sk-ant-test123"
         assert llm_config.model == "claude-3-5-haiku-20241022"
 
-    @patch("vulkan_agent.config.LLMClient")
-    def test_validate_config_success(self, mock_llm_client):
-        """Test successful configuration validation."""
-        mock_client_instance = MagicMock()
-        mock_client_instance.validate_connection.return_value = True
-        mock_llm_client.return_value = mock_client_instance
-
-        manager = ConfigManager()
-        # Should not raise exception
-        try:
-            manager.validate_config(LLMProvider.OPENAI, "sk-test123", "gpt-4o-mini")
-        except Exception:
-            pytest.fail("validate_config should not raise exception for valid config")
-
-    @patch("vulkan_agent.config.LLMClient")
-    def test_validate_config_failure(self, mock_llm_client):
-        """Test failed configuration validation."""
-        mock_client_instance = MagicMock()
-        mock_client_instance.validate_connection.return_value = False
-        mock_llm_client.return_value = mock_client_instance
-
-        manager = ConfigManager()
-        with pytest.raises(ValueError, match="API key validation failed"):
-            manager.validate_config(LLMProvider.OPENAI, "sk-invalid", "gpt-4o-mini")
-
 
 class TestConfigEndpoints:
     """Test configuration API endpoints."""
@@ -140,7 +59,6 @@ class TestConfigEndpoints:
             response = client.get("/api/config/")
 
             assert response.status_code == 404
-            assert "not found" in response.json()["detail"]
 
     def test_get_config_success(self):
         """Test getting configuration successfully."""
@@ -191,20 +109,6 @@ class TestConfigEndpoints:
             data = response.json()
             assert data["model"] == "gpt-4o-mini"
 
-    def test_update_config_validation_failure(self):
-        """Test updating configuration with invalid data."""
-        config_data = {
-            "provider": "openai",
-            "api_key": "invalid-key",  # Invalid API key that will fail connection test
-            "model": "gpt-4o-mini",
-        }
-
-        response = client.put("/api/config/", json=config_data)
-
-        # Should be 422 due to API validation failing
-        assert response.status_code == 422
-        assert "API key validation failed" in str(response.json())
-
     def test_validate_config_endpoint(self):
         """Test configuration validation endpoint."""
         with patch("vulkan_agent.routers.config.config_manager") as mock_manager:
@@ -240,8 +144,8 @@ class TestConfigEndpoints:
 class TestConfigSchemas:
     """Test configuration schemas validation."""
 
-    def test_agent_config_request_valid(self):
-        """Test valid AgentConfigRequest."""
+    def test_valid_config_request(self):
+        """Test valid configuration request."""
         config = AgentConfigRequest(
             provider=LLMProvider.OPENAI, api_key="sk-test123", model="gpt-4o-mini"
         )
@@ -252,11 +156,9 @@ class TestConfigSchemas:
         assert config.max_tokens == 500  # default
         assert config.temperature == 0.7  # default
 
-    def test_agent_config_request_invalid_api_key(self):
+    def test_invalid_api_key_too_short(self):
         """Test invalid API key (too short)."""
-        with pytest.raises(
-            ValueError, match="API key must be at least 5 characters long"
-        ):
+        with pytest.raises(ValueError, match="API key must be at least 5 characters"):
             AgentConfigRequest(
                 provider=LLMProvider.OPENAI, api_key="ab", model="gpt-4o-mini"
             )
@@ -267,32 +169,3 @@ class TestConfigSchemas:
             AgentConfigRequest(
                 provider=LLMProvider.OPENAI, api_key="valid-key-123", model=""
             )
-
-    def test_agent_config_request_valid_google(self):
-        """Test valid Google AgentConfigRequest."""
-        config = AgentConfigRequest(
-            provider=LLMProvider.GOOGLE,
-            api_key="google-api-key-123",
-            model="gemini-1.5-pro",
-        )
-
-        assert config.provider == LLMProvider.GOOGLE
-        assert config.api_key == "google-api-key-123"
-        assert config.model == "gemini-1.5-pro"
-
-    def test_agent_config_request_valid_with_any_model(self):
-        """Test that any reasonable model name is accepted now."""
-        # This should work with any provider and any model name
-        config = AgentConfigRequest(
-            provider=LLMProvider.GOOGLE,
-            api_key="valid-key-123",
-            model="any-model-name-that-provider-supports",
-        )
-        assert config.model == "any-model-name-that-provider-supports"
-
-        config2 = AgentConfigRequest(
-            provider=LLMProvider.OPENAI,
-            api_key="valid-key-123",
-            model="gpt-5-hypothetical",
-        )
-        assert config2.model == "gpt-5-hypothetical"

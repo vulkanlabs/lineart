@@ -16,6 +16,9 @@ from langchain_core.tools import BaseTool
 from .config import config_manager
 from .knowledge_base import create_system_prompt_with_docs
 from .llm import VulkanAgent, create_vulkan_agent
+from .prompts import (
+    get_base_system_prompt,
+)
 
 
 class AgentToolsManager:
@@ -93,20 +96,14 @@ def create_configured_agent() -> VulkanAgent:
     tools_manager = AgentToolsManager()
     tools, capabilities = tools_manager.get_available_tools()
 
-    # Create agent with tools
-    agent = create_vulkan_agent(llm_config, tools)
-
-    # Set system prompt with embedded documentation
-    base_prompt = """You are a helpful AI assistant for the Vulkan platform. 
-    You help users manage policies, data sources, and other resources.
-    
-    Always be helpful, accurate, and ask clarifying questions when needed.
-    If you're unsure about something, refer to the documentation provided in your context.
-    """
+    # Load base prompt from file
+    base_prompt = get_base_system_prompt()
 
     # Enhanced prompt with documentation context
     enhanced_prompt = create_system_prompt_with_docs(base_prompt)
-    agent.set_system_prompt(enhanced_prompt)
+
+    # Create agent with tools and enhanced prompt
+    agent = create_vulkan_agent(llm_config, enhanced_prompt, tools)
 
     return agent
 

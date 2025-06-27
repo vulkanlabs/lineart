@@ -21,7 +21,7 @@ async def test_langchain_integration():
     )
 
     # Create agent
-    agent = create_vulkan_agent(config)
+    agent = create_vulkan_agent(config, "Test system prompt")
 
     print("✅ Agent created successfully")
     print(f"   Provider: {agent.llm_client.config.provider}")

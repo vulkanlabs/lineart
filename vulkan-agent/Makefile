@@ -16,18 +16,15 @@ help:
 
 # Fast unit tests for quick feedback during development
 test:
-	uv run pytest test/ --ignore=test/integration -v
-	@$(MAKE) clean-db
+	uv run pytest test/ --ignore=test/integration -v && $(MAKE) clean-all
 
 # Run only integration tests
 test-integration:
-	uv run pytest test/integration/ -v
-	@$(MAKE) clean-db
+	uv run pytest test/integration/ -v && $(MAKE) clean-all
 
 # Run all tests
 test-all:
-	uv run pytest test/ -v
-	@$(MAKE) clean-db
+	uv run pytest test/ -v && $(MAKE) clean-all
 
 # Linting and formatting
 lint:
@@ -66,5 +63,4 @@ install:
 
 # Run the integration test as a standalone script
 integration-demo:
-	uv run python test/integration/test_langchain_integration.py
-	@$(MAKE) clean-db
+	uv run python test/integration/test_langchain_integration.py && $(MAKE) clean-db

@@ -15,6 +15,7 @@ from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
 from .models import MessageRole
+from .session import get_session_manager
 
 
 class LLMProvider(str, Enum):
@@ -85,23 +86,36 @@ class LLMClient:
 class VulkanAgent:
     """Complete Vulkan AI Agent with LLM, tools, and session-based conversation management."""
 
-    def __init__(self, llm_client: LLMClient, tools: Optional[List[BaseTool]] = None):
+    def __init__(
+        self,
+        llm_client: LLMClient,
+        system_prompt: str,
+        tools: Optional[List[BaseTool]] = None,
+    ):
+        """Initialize the Vulkan Agent.
+
+        Args:
+            llm_client: The LLM client to use for responses
+            system_prompt: The system prompt for the agent
+            tools: Optional list of tools for the agent to use
+        """
         self.llm_client = llm_client
         self.tools = tools or []
         self._agent_executor: Optional[AgentExecutor] = None
         self._current_session_id: Optional[str] = None
 
-        # Default system prompt for Vulkan agent
-        self.system_prompt = """You are a helpful AI assistant for the Vulkan platform. 
-        You help users manage policies, data sources, and other resources.
-        
-        Always be helpful, accurate, and ask clarifying questions when needed.
-        If you're unsure about something, ask for more information rather than guessing.
-        """
+        # Store the system prompt
+        self._system_prompt = system_prompt
 
-    def set_session(self, session_id: str):
-        """Set the current session for conversation memory."""
-        self._current_session_id = session_id
+    @cached_property
+    def session_manager(self):
+        """Get session manager instance (cached import)."""
+        return get_session_manager()
+
+    @property
+    def system_prompt(self) -> str:
+        """Get the current system prompt."""
+        return self._system_prompt
 
     @property
     def agent_executor(self) -> AgentExecutor:
@@ -131,29 +145,6 @@ class VulkanAgent:
                 max_iterations=5,
             )
         return self._agent_executor
-
-    @cached_property
-    def session_manager(self):
-        """Get session manager instance (cached import)."""
-        from .session import get_session_manager
-
-        return get_session_manager()
-
-    def _get_session_history(self, session_id: Optional[str]) -> List:
-        """Get conversation history for a session."""
-        if not session_id:
-            return []
-        return self.session_manager.get_messages_as_langchain(session_id)
-
-    def _save_to_session(
-        self, session_id: Optional[str], user_message: str, ai_response: str
-    ):
-        """Save conversation to session."""
-        if session_id:
-            self.session_manager.add_message(session_id, MessageRole.USER, user_message)
-            self.session_manager.add_message(
-                session_id, MessageRole.ASSISTANT, ai_response
-            )
 
     async def chat(self, user_input: str, session_id: Optional[str] = None) -> str:
         """Main chat interface for the agent.
@@ -199,16 +190,24 @@ class VulkanAgent:
         response = await self.llm_client.llm.ainvoke(messages)
         return response.content
 
+    def set_session(self, session_id: str):
+        """Set the current session for conversation memory."""
+        self._current_session_id = session_id
+
+    def set_system_prompt(self, prompt: str) -> None:
+        """Update the system prompt.
+
+        Args:
+            prompt: New system prompt
+        """
+        self._system_prompt = prompt
+        # Reset agent executor to pick up new prompt
+        self._agent_executor = None
+
     def add_tool(self, tool: BaseTool) -> None:
         """Add a tool to the agent."""
         self.tools.append(tool)
         # Reset agent executor to pick up new tool
-        self._agent_executor = None
-
-    def set_system_prompt(self, prompt: str) -> None:
-        """Update the system prompt."""
-        self.system_prompt = prompt
-        # Reset agent executor to pick up new prompt
         self._agent_executor = None
 
     def clear_memory(self, session_id: Optional[str] = None) -> None:
@@ -226,11 +225,33 @@ class VulkanAgent:
             "current_session": self._current_session_id,
         }
 
+    def _get_session_history(self, session_id: Optional[str]) -> List:
+        """Get conversation history for a session."""
+        if not session_id:
+            return []
+        return self.session_manager.get_messages_as_langchain(session_id)
+
+    def _save_to_session(
+        self, session_id: Optional[str], user_message: str, ai_response: str
+    ):
+        """Save conversation to session."""
+        if session_id:
+            self.session_manager.add_message(session_id, MessageRole.USER, user_message)
+            self.session_manager.add_message(
+                session_id, MessageRole.ASSISTANT, ai_response
+            )
+
 
 # Factory function for easy agent creation
 def create_vulkan_agent(
-    config: LLMConfig, tools: Optional[List[BaseTool]] = None
+    config: LLMConfig, system_prompt: str, tools: Optional[List[BaseTool]] = None
 ) -> VulkanAgent:
-    """Create a configured Vulkan agent."""
+    """Create a configured Vulkan agent.
+
+    Args:
+        config: LLM configuration
+        system_prompt: System prompt for the agent
+        tools: Optional list of tools for the agent
+    """
     llm_client = LLMClient(config)
-    return VulkanAgent(llm_client, tools)
+    return VulkanAgent(llm_client, system_prompt, tools)

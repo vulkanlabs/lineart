@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 from typing import Optional
 
+from .prompts import load_jinja_template
+
 
 class DocumentationLoader:
     """Loads all Vulkan documentation into a single string for LLM context."""
@@ -50,7 +52,7 @@ class DocumentationLoader:
         return self._cached_docs
 
     def get_documentation_context(self) -> str:
-        """Get documentation formatted for LLM context.
+        """Get all documentation formatted for LLM context.
 
         Returns:
             Documentation formatted as context for the LLM.
@@ -59,15 +61,7 @@ class DocumentationLoader:
         if not docs:
             return ""
 
-        return f"""
-## Vulkan Platform Documentation
-
-The following documentation provides comprehensive information about the Vulkan platform, including how to manage policies, data sources, and other platform features:
-
-{docs}
-
-Use this documentation to answer questions about Vulkan platform capabilities, configuration, and best practices.
-"""
+        return load_jinja_template("documentation-context", docs_content=docs)
 
     def reload_documentation(self) -> str:
         """Force reload documentation from disk, clearing cache.
@@ -157,9 +151,9 @@ def create_system_prompt_with_docs(base_prompt: str) -> str:
     if not docs_context:
         return base_prompt
 
-    return f"""{base_prompt}
-
-{docs_context}"""
+    return load_jinja_template(
+        "system-prompt-with-docs", base_prompt=base_prompt, docs_context=docs_context
+    )
 
 
 def refresh_documentation_loader() -> None:

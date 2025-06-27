@@ -14,7 +14,7 @@ class AgentConfigRequest(BaseModel):
     api_key: str = Field(..., min_length=1, description="API key for the LLM provider")
     model: str = Field(..., min_length=1, description="Model name to use")
     max_tokens: Optional[int] = Field(
-        500, ge=1, le=4000, description="Maximum tokens per response"
+        500, ge=1, le=100000, description="Maximum tokens per response"
     )
     temperature: Optional[float] = Field(
         0.7, ge=0.0, le=2.0, description="Response creativity level"

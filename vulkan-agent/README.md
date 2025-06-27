@@ -100,6 +100,12 @@ PORT=8001                 # Server port (default: 8001)
 
 # Documentation Configuration
 VULKAN_DOCS_PATH=/app/docs # Path to documentation directory (default: /docs)
+
+# Prompts Configuration
+VULKAN_PROMPTS_PATH=/app/prompts # Path to prompts directory (default: /app/prompts)
+
+# Database Configuration
+VULKAN_DB_PATH=/app/data/vulkan_agent.db # Path to SQLite database file
 ```
 
 **Important**: LLM configuration (API keys, models, parameters) is **not** managed via environment variables. All LLM settings are stored in the database and configured through API endpoints for security and runtime flexibility.

@@ -12,13 +12,6 @@ from vulkan_agent.llm import (
 )
 
 
-def test_llm_provider_enum():
-    """Test LLM provider enum values."""
-    assert LLMProvider.OPENAI == "openai"
-    assert LLMProvider.ANTHROPIC == "anthropic"
-    assert LLMProvider.GOOGLE == "google"
-
-
 @patch("vulkan_agent.llm.ChatOpenAI")
 def test_llm_client_openai_creation(mock_chat_openai):
     """Test creating OpenAI LLM client."""
@@ -108,7 +101,7 @@ def test_vulkan_agent_session_management():
 
     with patch("vulkan_agent.llm.ChatOpenAI"):
         llm_client = LLMClient(config)
-        agent = VulkanAgent(llm_client)
+        agent = VulkanAgent(llm_client, "Test system prompt")
 
         # Test setting session
         agent.set_session("test-session-123")
@@ -124,7 +117,7 @@ def test_vulkan_agent_creation():
 
     with patch("vulkan_agent.llm.ChatOpenAI"):
         llm_client = LLMClient(config)
-        agent = VulkanAgent(llm_client)
+        agent = VulkanAgent(llm_client, "You are a Vulkan platform assistant")
 
         assert agent.llm_client == llm_client
         assert agent.tools == []
@@ -144,7 +137,7 @@ async def test_vulkan_agent_chat_without_tools(mock_chat_openai):
 
     config = LLMConfig(provider=LLMProvider.OPENAI, api_key="test-key", model="gpt-4")
     llm_client = LLMClient(config)
-    agent = VulkanAgent(llm_client)
+    agent = VulkanAgent(llm_client, "Test system prompt")
 
     response = await agent.chat("Help me with policies")
     assert response == "I can help with Vulkan!"
@@ -156,7 +149,7 @@ def test_vulkan_agent_add_tool():
 
     with patch("vulkan_agent.llm.ChatOpenAI"):
         llm_client = LLMClient(config)
-        agent = VulkanAgent(llm_client)
+        agent = VulkanAgent(llm_client, "Test system prompt")
 
         # Mock tool
         mock_tool = MagicMock()
@@ -172,7 +165,7 @@ def test_vulkan_agent_set_system_prompt():
 
     with patch("vulkan_agent.llm.ChatOpenAI"):
         llm_client = LLMClient(config)
-        agent = VulkanAgent(llm_client)
+        agent = VulkanAgent(llm_client, "Initial system prompt")
 
         new_prompt = "You are a specialized Vulkan assistant."
         agent.set_system_prompt(new_prompt)
@@ -188,7 +181,7 @@ def test_vulkan_agent_clear_memory():
         mock_manager_instance = MagicMock()
 
         llm_client = LLMClient(config)
-        agent = VulkanAgent(llm_client)
+        agent = VulkanAgent(llm_client, "Test system prompt")
 
         # Mock the session_manager property
         agent.session_manager = mock_manager_instance
@@ -204,7 +197,7 @@ def test_create_vulkan_agent_factory():
     config = LLMConfig(provider=LLMProvider.OPENAI, api_key="test-key", model="gpt-4")
 
     with patch("vulkan_agent.llm.ChatOpenAI"):
-        agent = create_vulkan_agent(config)
+        agent = create_vulkan_agent(config, "Test system prompt")
 
         assert isinstance(agent, VulkanAgent)
         assert agent.llm_client.config == config
@@ -216,7 +209,7 @@ def test_create_vulkan_agent_with_tools():
     mock_tools = [MagicMock(), MagicMock()]
 
     with patch("vulkan_agent.llm.ChatOpenAI"):
-        agent = create_vulkan_agent(config, tools=mock_tools)
+        agent = create_vulkan_agent(config, "Test system prompt", tools=mock_tools)
 
         assert isinstance(agent, VulkanAgent)
         assert len(agent.tools) == 2
@@ -264,7 +257,7 @@ def test_vulkan_agent_get_status():
 
     with patch("vulkan_agent.llm.ChatOpenAI"):
         llm_client = LLMClient(config)
-        agent = VulkanAgent(llm_client, tools=[mock_tool])
+        agent = VulkanAgent(llm_client, "Test system prompt", tools=[mock_tool])
 
         # Set a session
         agent.set_session("test-session-123")

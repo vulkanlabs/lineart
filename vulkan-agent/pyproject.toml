@@ -14,6 +14,7 @@ dependencies = [
     "langchain-anthropic>=0.2.0",
     "langchain-google-genai>=2.0.0",
     "sqlalchemy>=2.0.0",
+    "jinja2>=3.0.0",
 ]
 
 [tool.uv]

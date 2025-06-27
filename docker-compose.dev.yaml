@@ -101,6 +101,7 @@ services:
         APP_PORT: 8001
         DOCS_PATH: /app/docs
         DATA_PATH: /app/data
+        PROMPTS_PATH: /app/prompts
     init: true
     env_file:
       - config/active/vulkan-agent.env

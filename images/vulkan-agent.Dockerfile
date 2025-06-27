@@ -5,6 +5,7 @@ FROM python:${PYTHON_VERSION}
 ARG APP_PORT=8001
 ARG DOCS_PATH=/app/docs
 ARG DATA_PATH=/app/data
+ARG PROMPTS_PATH=/app/prompts
 
 EXPOSE ${APP_PORT}
 
@@ -15,6 +16,9 @@ RUN pip install uv
 
 # Copy the vulkan-agent source code
 COPY vulkan-agent vulkan-agent/
+
+# Copy prompts directory to the configured prompts path
+COPY vulkan-agent/prompts ${PROMPTS_PATH}
 
 # Copy documentation for knowledge base to the configured docs path
 COPY docs ${DOCS_PATH}
@@ -42,4 +46,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 # Start the FastAPI application
 # Host and port will be read from environment variables or use defaults
-CMD ["sh", "-c", "uvicorn vulkan_agent.app:app --host ${HOST:-0.0.0.0} --port ${PORT:-8001}"]
+# LOG_LEVEL environment variable controls logging verbosity (DEBUG, INFO, WARNING, ERROR)
+CMD ["sh", "-c", "uvicorn vulkan_agent.app:app --host ${HOST:-0.0.0.0} --port ${PORT:-8001} --log-level ${UVICORN_LOG_LEVEL:-info} --access-log"]
