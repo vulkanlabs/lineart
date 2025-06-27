@@ -17,6 +17,8 @@ from pydantic import BaseModel, Field
 from .models import MessageRole
 from .session import get_session_manager
 
+MAX_ALLOWED_TOKENS = 1000000  # Maximum allowed tokens for LLMs, adjust as needed
+
 
 class LLMProvider(str, Enum):
     """Supported LLM providers."""
@@ -32,7 +34,7 @@ class LLMConfig(BaseModel):
     provider: LLMProvider
     api_key: str
     model: str
-    max_tokens: int = Field(default=500, ge=1, le=4000)
+    max_tokens: int = Field(default=500, ge=1, le=MAX_ALLOWED_TOKENS)
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
 
 

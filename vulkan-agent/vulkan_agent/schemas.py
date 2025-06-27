@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from .llm import LLMProvider
+from .llm import MAX_ALLOWED_TOKENS, LLMProvider
 
 
 class AgentConfigRequest(BaseModel):
@@ -14,7 +14,7 @@ class AgentConfigRequest(BaseModel):
     api_key: str = Field(..., min_length=1, description="API key for the LLM provider")
     model: str = Field(..., min_length=1, description="Model name to use")
     max_tokens: Optional[int] = Field(
-        500, ge=1, le=100000, description="Maximum tokens per response"
+        500, ge=1, le=MAX_ALLOWED_TOKENS, description="Maximum tokens per response"
     )
     temperature: Optional[float] = Field(
         0.7, ge=0.0, le=2.0, description="Response creativity level"
