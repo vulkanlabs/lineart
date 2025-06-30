@@ -13,6 +13,27 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
         height: 225,
         icon: null,
     },
+    DECISION: {
+        id: "DECISION",
+        name: "Decision Node",
+        width: 400,
+        height: 308,
+        icon: "BRANCH",
+    },
+    BRANCH: {
+        id: "BRANCH",
+        name: "Branch Node",
+        width: 450,
+        height: 500,
+        icon: "BRANCH",
+    },
+    TERMINATE: {
+        id: "TERMINATE",
+        name: "Terminate Node",
+        width: 450,
+        height: 400,
+        icon: "TERMINATE",
+    },
     CONNECTION: {
         id: "CONNECTION",
         name: "Connection Node",
@@ -34,33 +55,12 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
         height: 300,
         icon: "TRANSFORM",
     },
-    BRANCH: {
-        id: "BRANCH",
-        name: "Branch Node",
-        width: 450,
-        height: 500,
-        icon: "BRANCH",
-    },
-    TERMINATE: {
-        id: "TERMINATE",
-        name: "Terminate Node",
-        width: 450,
-        height: 400,
-        icon: "TERMINATE",
-    },
     POLICY: {
         id: "POLICY",
         name: "Policy Node",
         width: 400,
         height: 200,
         icon: "POLICY",
-    },
-    DECISION: {
-        id: "DECISION",
-        name: "Decision Node",
-        width: 400,
-        height: 308,
-        icon: "BRANCH",
     },
 };
 

@@ -3,11 +3,11 @@ import { useShallow } from "zustand/react/shallow";
 
 import { AssetCombobox, AssetOption } from "@/components/combobox";
 
-import { useWorkflowStore } from "../store";
-import { StandardWorkflowNode } from "./base";
 import { NodeProps } from "@xyflow/react";
-import { VulkanNode } from "../types";
-import { fetchPolicyVersions } from "@/lib/api";
+import { VulkanNode } from "@/workflow/types";
+import { useWorkflowStore } from "@/workflow/store";
+import { fetchPolicyVersionsAction } from "@/workflow/actions";
+import { StandardWorkflowNode } from "@/workflow/components/base";
 import { PolicyVersion } from "@vulkan-server/PolicyVersion";
 
 export function PolicyNode({ id, data, selected, height, width }: NodeProps<VulkanNode>) {
@@ -33,14 +33,17 @@ export function PolicyNode({ id, data, selected, height, width }: NodeProps<Vulk
         async function fetchPolicies() {
             setIsLoading(true);
             try {
-                const versions = await fetchPolicyVersions().catch((error) => {
+                const versions = await fetchPolicyVersionsAction().catch((error) => {
                     return [];
                 });
+                const validVersions = versions.filter(
+                    (version: PolicyVersion) => version.status === "VALID",
+                );
 
                 setPolicyOptions(
-                    versions.map((version: PolicyVersion) => ({
+                    validVersions.map((version: PolicyVersion) => ({
                         value: version.policy_version_id,
-                        label: version.alias || version.policy_version_id,
+                        label: `${version.alias} (${version.policy_version_id.substring(0, 8)})`,
                     })),
                 );
             } catch (error) {

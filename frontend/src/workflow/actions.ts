@@ -37,9 +37,15 @@ export async function saveWorkflowSpec(
     })
         .then(async (response) => {
             if (!response.ok) {
-                console.error(`Server responded with status: ${response.status}:`, response);
-                console.error("Response body:", JSON.stringify(await response.json()));
-                throw new Error(`Server responded with status: ${response.status}: ${response}`);
+                const error = await response.json();
+                if (response.status !== 500) {
+                    throw new Error(
+                        `Server responded with status: ${response.status}: ${error.detail}`,
+                    );
+                } else {
+                    console.error(`Server responded with status ${response.status}:`, error);
+                    throw new Error(`Internal server error`);
+                }
             }
 
             const data = await response.json();
@@ -49,4 +55,40 @@ export async function saveWorkflowSpec(
             console.error("Error saving workflow:", error);
             return { success: false, error: error.message, data: null };
         });
+}
+
+export async function fetchPolicyVersionsAction(
+    policyId: string | null = null,
+    includeArchived: boolean = false,
+): Promise<PolicyVersion[]> {
+    try {
+        const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+        if (!serverUrl) {
+            throw new Error("Server URL is not defined");
+        }
+
+        const params = new URLSearchParams({
+            include_archived: includeArchived.toString(),
+        });
+
+        if (policyId) {
+            params.append("policy_id", policyId);
+        }
+
+        const url = `${serverUrl}/policy-versions?${params.toString()}`;
+
+        const response = await fetch(url, {
+            cache: "no-store",
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch policy versions: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error fetching policy versions:", error);
+        throw new Error("Failed to fetch policy versions");
+    }
 }

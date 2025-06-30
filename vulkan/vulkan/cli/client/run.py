@@ -1,4 +1,3 @@
-import json
 import time
 
 from vulkan.cli.context import Context
@@ -9,8 +8,8 @@ class RunLauncher:
         self,
         ctx: Context,
         input_data: dict,
-        config_variables: dict = None,
-        timeout: int = 15,
+        config_variables: dict | None = None,
+        timeout: int = 60,
         time_step: int = 5,
     ):
         self.ctx = ctx
@@ -52,7 +51,7 @@ class RunLauncher:
                     break
                 elif status == "FAILURE":
                     break
-            except (KeyError, json.decoder.JSONDecodeError):
+            except Exception:
                 continue
             time.sleep(self.time_step)
 
@@ -107,7 +106,7 @@ def trigger_run_by_policy_id(
     policy_id: str,
     input_data: dict,
     config_variables: dict = None,
-    timeout: int = 15,
+    timeout: int = 60,
     time_step: int = 5,
 ):
     laucher = RunLauncher(ctx, input_data, config_variables, timeout, time_step)
@@ -119,11 +118,23 @@ def trigger_run_by_policy_version_id(
     policy_version_id: str,
     input_data: dict,
     config_variables: dict = None,
-    timeout: int = 15,
+    timeout: int = 60,
     time_step: int = 5,
 ):
     laucher = RunLauncher(ctx, input_data, config_variables, timeout, time_step)
     return laucher.trigger_run_by_policy_version_id(policy_version_id)
+
+
+def get(ctx: Context, run_id: str):
+    response = ctx.session.get(f"{ctx.server_url}/runs/{run_id}")
+    if response.status_code == 404:
+        msg = f"No run with id {run_id} found.\nCheck the run id and try again."
+        raise ValueError(msg)
+    if response.status_code != 200:
+        msg = f"Error fetching run {run_id}. \n{response.text}"
+        raise ValueError(msg)
+
+    return response.json()
 
 
 def get_run_data(ctx: Context, run_id: str):
