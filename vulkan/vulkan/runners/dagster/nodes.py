@@ -101,7 +101,7 @@ class DagsterDataInput(DataInputNode, DagsterNode):
 
         try:
             configured_params = self._get_configured_params(inputs)
-            context.log.info(
+            context.log.debug(
                 f"Fetching data from data source {self.data_source} with "
                 f"parameters: {configured_params}"
             )
@@ -351,7 +351,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         status = self.return_status
         result = status.value if isinstance(status, Enum) else status
         vulkan_run_config = context.resources.vulkan_run_config
-        context.log.info(f"Terminating with status {status}")
+        context.log.debug(f"Terminating with status {status}")
 
         metadata = None
         if self.return_metadata is not None:
@@ -385,7 +385,9 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
 
         url = f"{server_url}/runs/{run_id}"
         dagster_run_id: str = context.run_id
-        context.log.info(f"Returning status {result} to {url} for run {dagster_run_id}")
+        context.log.debug(
+            f"Returning status {result} to {url} for run {dagster_run_id}"
+        )
         response = requests.put(
             url,
             json={
@@ -487,7 +489,6 @@ class DagsterInput(InputNode, DagsterNode):
 
     def run(self, context, *args, **kwargs):
         config = context.op_config
-        context.log.info(f"Got Config: {config}")
         yield Output(config)
 
     def op(self):

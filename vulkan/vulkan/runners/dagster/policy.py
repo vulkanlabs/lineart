@@ -55,7 +55,7 @@ def _notify_failure(context: HookContext) -> bool:
     server_url = vulkan_run_config.server_url
     run_id = vulkan_run_config.run_id
 
-    context.log.info(f"Notifying failure for run {run_id}")
+    context.log.debug(f"Notifying failure for run {run_id}")
     url = f"{server_url}/runs/{run_id}"
     dagster_run_id: str = context.run_id
     result = requests.put(

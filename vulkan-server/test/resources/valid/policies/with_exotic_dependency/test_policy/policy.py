@@ -1,7 +1,5 @@
 from enum import Enum
 
-import vapeplot
-
 from vulkan.spec.dependency import INPUT_NODE, Dependency
 from vulkan.spec.nodes import BranchNode, TerminateNode
 from vulkan.spec.policy import PolicyDefinition
@@ -15,7 +13,6 @@ class Status(Enum):
 
 # Branching node
 def branch_condition_1(context, scores, **kwargs):
-    context.log.info(f"BranchNode: {vapeplot.__dir__()}")
     if scores["scr_score"] > 800:
         return "approved"
     if scores["scr_score"] > 500:
