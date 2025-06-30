@@ -36,7 +36,9 @@ export function PolicyNode({ id, data, selected, height, width }: NodeProps<Vulk
                 const versions = await fetchPolicyVersionsAction().catch((error) => {
                     return [];
                 });
-                const validVersions = versions.filter((version: PolicyVersion) => version.status === "VALID");
+                const validVersions = versions.filter(
+                    (version: PolicyVersion) => version.status === "VALID",
+                );
 
                 setPolicyOptions(
                     validVersions.map((version: PolicyVersion) => ({
