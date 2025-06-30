@@ -20,7 +20,6 @@ down:
 
 .PHONY: build
 build:
-	uv build --wheel --all
 	docker-compose build
 
 .PHONY: up
