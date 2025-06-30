@@ -40,9 +40,11 @@ openapi:
 # Configuration
 .PHONY: config
 config:
-	cp -r ./config/local ./config/active
+	mkdir -p ./config/active
+	cp ./config/local/* ./config/active/
 	cp ./config/active/.env ./.env
 	cp ./config/active/.env ./frontend/.env
+
 
 # Maintenance
 .PHONY: clean-pycache

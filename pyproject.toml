@@ -8,6 +8,7 @@ dependencies = [
     "google-cloud-aiplatform>=1.85.0",
     "vulkan[all]",
     "vulkan-server",
+    "vulkan-agent",
     "ruff>=0.11",
 ]
 
@@ -26,6 +27,7 @@ members = ["vulkan-server", "vulkan-dagster", "upload-svc", "vulkan-agent"]
 [tool.uv.sources]
 vulkan-server = { workspace = true }
 vulkan-dagster = { workspace = true }
+vulkan-agent = { workspace = true }
 upload-svc = { workspace = true }
 vulkan = { path = "vulkan", editable = true }
 

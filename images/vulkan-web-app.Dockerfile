@@ -6,8 +6,9 @@ RUN pip install uv
 WORKDIR /app
 COPY vulkan vulkan
 COPY vulkan-server vulkan-server/
+COPY vulkan-agent vulkan-agent/
 COPY scripts scripts
-RUN uv pip install --system --no-cache vulkan-server/
+RUN uv pip install --system --no-cache vulkan-server/ vulkan-agent/
 RUN uv run python scripts/export-openapi.py --out generated/openapi.json
 
 # OpenAPI Generator CLI: Generate TypeScript client code from OpenAPI spec
