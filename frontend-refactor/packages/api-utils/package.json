@@ -1,0 +1,37 @@
+{
+  "name": "@vulkan/api-utils",
+  "version": "0.1.0",
+  "description": "Shared API configuration utilities for Vulkan clients",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "date-fns": "^3.0.0"
+  },
+  "peerDependencies": {
+    "@vulkan/client-open": "*"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "*",
+    "@vulkan/client-open": "*",
+    "tsup": "^8.0.0",
+    "typescript": "5.8.2"
+  },
+  "files": [
+    "dist"
+  ]
+}

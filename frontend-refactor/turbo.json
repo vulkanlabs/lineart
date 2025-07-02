@@ -19,6 +19,13 @@
     },
     "@vulkan/base#build": {
       "outputs": ["dist/**"]
+    },
+    "@vulkan/client-open#build": {
+      "outputs": ["dist/**"]
+    },
+    "@vulkan/api-utils#build": {
+      "dependsOn": ["@vulkan/client-open#build"],
+      "outputs": ["dist/**"]
     }
   }
 }
