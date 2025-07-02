@@ -5,7 +5,7 @@ import { Plus, X } from "lucide-react";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 
 export interface KeyValuePair {
     key?: string;
@@ -172,13 +172,13 @@ export function keyValuePairsFromObject(obj: Record<string, any>): KeyValuePair[
  */
 export function keyValuePairsToMap(pairs: KeyValuePair[]): Map<string, string> {
     if (pairs == null || pairs.length === 0) {
-        return null;
+        return new Map<string, string>();
     }
 
     const result = new Map<string, string>();
     pairs.forEach((pair) => {
         if (pair.key && pair.key.trim() !== "") {
-            result.set(pair.key.trim(), pair.value || null);
+            result.set(pair.key.trim(), pair.value || "");
         }
     });
     return result;

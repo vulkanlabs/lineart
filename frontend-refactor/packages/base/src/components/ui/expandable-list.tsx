@@ -5,14 +5,14 @@ import { Plus, X } from "lucide-react";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
+} from "./select";
 
 type NameTypeTuple = [name: string, type: "FIXED" | "ENVIRONMENT" | "RUNTIME"];
 

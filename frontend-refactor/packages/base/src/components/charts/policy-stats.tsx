@@ -10,7 +10,7 @@ import {
     ChartLegendContent,
 } from "@/components/ui/chart";
 
-import { roundUp } from "@/lib/chart";
+import { roundUp } from "../../lib/chart";
 import { DefaultGridProps, strokeWidth } from "./constants";
 
 export function RunsChart({ chartData }) {
@@ -42,10 +42,11 @@ export function RunsChart({ chartData }) {
     );
 }
 
-export function ErrorRateChart({ chartData }) {
+export function RunErrorRateChart({ chartData }) {
     const chartConfig = {
         error_rate: {
             label: "Error Rate",
+            color: "#EF5350",
         },
     } satisfies ChartConfig;
     const sortedData = chartData
@@ -66,9 +67,9 @@ export function ErrorRateChart({ chartData }) {
                     axisLine={false}
                     padding={{ right: 30 }}
                 />
-                <YAxis type="number" domain={[0, roundUp]} tickFormatter={(tick) => `${tick}%`} />
+                <YAxis type="number" domain={[0, roundUp]} />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Line dataKey={"error_rate"} stroke="#EF5350" strokeWidth={strokeWidth} />
+                <Line dataKey="error_rate" stroke="var(--color-error_rate)" strokeWidth={strokeWidth} />
             </LineChart>
         </ChartContainer>
     );

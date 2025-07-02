@@ -3,12 +3,12 @@
 import * as React from "react";
 import { MenuIcon } from "lucide-react";
 
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card } from "@/components/ui/card";
-import { PolicyVersion } from "@vulkan-server/PolicyVersion";
-import { ShortenedID } from "@/components/shortened-id";
+import { PolicyVersion } from "@vulkan/client-open/models/PolicyVersion";
+import { ShortenedID } from "../shortened-id";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export function VersionPicker({

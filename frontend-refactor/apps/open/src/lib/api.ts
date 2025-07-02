@@ -1,720 +1,429 @@
-import { formatISO } from "date-fns";
+import {
+  PoliciesApi,
+  PolicyVersionsApi,
+  RunsApi,
+  DataSourcesApi,
+  BacktestsApi,
+  FilesApi,
+  type Policy,
+  type PolicyVersion,
+  type PolicyBase,
+  type PolicyCreate,
+  type PolicyVersionCreate,
+  type PolicyVersionBase,
+  type Run,
+  type RunData,
+  type RunLogs,
+  type DataSource,
+  type DataSourceSpec,
+  type DataSourceEnvVarBase,
+  type PolicyAllocationStrategy,
+  type ConfigurationVariablesBase,
+} from '@vulkan/client-open'
+import { createApiConfig, withErrorHandling } from '@vulkan/api-utils'
+import { formatISO } from 'date-fns'
 
-import { Run } from "@vulkan-server/Run";
-import { RunData } from "@vulkan-server/RunData";
-import { RunLogs } from "@vulkan-server/RunLogs";
-import { Policy } from "@vulkan-server/Policy";
-import { PolicyVersion } from "@vulkan-server/PolicyVersion";
-import { PolicyBase } from "@vulkan-server/PolicyBase";
-import { PolicyVersionCreate } from "@vulkan-server/PolicyVersionCreate";
-import { DataSourceSpec } from "@vulkan-server/DataSourceSpec";
-import { PolicyVersionBase } from "@vulkan-server/PolicyVersionBase";
-import { DataSource } from "@vulkan-server/DataSource";
-import { DataSourceEnvVarBase } from "@vulkan-server/DataSourceEnvVarBase";
-import { PolicyAllocationStrategy } from "@vulkan-server/PolicyAllocationStrategy";
-import { ConfigurationVariablesBase } from "@vulkan-server/ConfigurationVariablesBase";
+// Configure API clients with shared configuration
+const apiConfig = createApiConfig({
+  baseUrl: process.env.NEXT_PUBLIC_VULKAN_SERVER_URL!,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
 
-interface HTTPQueryParams {
-    [key: string]: any;
+// Create API client instances
+const policiesApi = new PoliciesApi(apiConfig)
+const policyVersionsApi = new PolicyVersionsApi(apiConfig)
+const runsApi = new RunsApi(apiConfig)
+const dataSourcesApi = new DataSourcesApi(apiConfig)
+const backtestsApi = new BacktestsApi(apiConfig)
+const filesApi = new FilesApi(apiConfig)
+
+// Policy API methods with error handling
+export const fetchPolicies = async (includeArchived = false): Promise<Policy[]> => {
+  return withErrorHandling(
+    policiesApi.listPolicies({ includeArchived }),
+    'fetch policies'
+  )
 }
 
-export async function fetchServerData({
-    endpoint,
-    params,
-    label,
-}: {
-    endpoint: string;
-    params?: HTTPQueryParams;
-    label?: string;
-}): Promise<any> {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    let url = new URL(endpoint, serverUrl).toString();
-
-    if (params) {
-        const queryParams = new URLSearchParams(params);
-        url += `?${queryParams.toString()}`;
-    }
-
-    return fetch(url, { cache: "no-store" })
-        .then((response) => {
-            if (response.status === 204) {
-                return [];
-            }
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch data: ${response.statusText}`, {
-                    cause: response,
-                });
-            }
-            return response.json().catch((error) => {
-                throw new Error("Error parsing response", { cause: error });
-            });
-        })
-        .catch((error) => {
-            const baseMsg = "Error fetching data";
-            const errorMsg = label ? `${baseMsg}: ${label}` : baseMsg;
-            throw new Error(errorMsg, {
-                cause: error,
-            });
-        });
+export const fetchPolicy = async (policyId: string): Promise<Policy> => {
+  return withErrorHandling(
+    policiesApi.getPolicy({ policyId }),
+    `fetch policy ${policyId}`
+  )
 }
 
-export async function fetchPolicies(includeArchived: boolean = false): Promise<Policy[]> {
-    return fetchServerData({
-        endpoint: `/policies`,
-        params: { include_archived: includeArchived },
-        label: "list of policies",
-    });
+export const createPolicy = async (data: PolicyCreate): Promise<Policy> => {
+  return withErrorHandling(
+    policiesApi.createPolicy({ policyCreate: data }),
+    'create policy'
+  )
 }
 
-export async function fetchPolicy(policyId: string): Promise<Policy> {
-    return fetchServerData({
-        endpoint: `/policies/${policyId}`,
-        label: `policy ${policyId}`,
-    });
+export const deletePolicy = async (policyId: string): Promise<void> => {
+  return withErrorHandling(
+    policiesApi.deletePolicy({ policyId }),
+    `delete policy ${policyId}`
+  )
 }
 
-export async function createPolicy(data: PolicyBase): Promise<Policy> {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    return fetch(new URL(`/policies`, serverUrl), {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-    })
-        .then((response) => {
-            return response.json();
-        })
-        .catch((error) => {
-            throw new Error(`Error creating policy ${data}`, { cause: error });
-        });
+export const updatePolicyAllocationStrategy = async (
+  policyId: string,
+  data: PolicyAllocationStrategy
+): Promise<Policy> => {
+  const policyBase: PolicyBase = {
+    allocation_strategy: data,
+  }
+  return withErrorHandling(
+    policiesApi.updatePolicy({ policyId, policyBase }),
+    `update allocation strategy for policy ${policyId}`
+  )
 }
 
-export async function deletePolicy(policyId: string) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    return fetch(new URL(`/policies/${policyId}`, serverUrl), {
-        method: "DELETE",
-    })
-        .then((response) => {
-            if (!response.ok) {
-                return response.json().then((responseBody) => {
-                    throw new Error(responseBody.detail, {
-                        cause: response,
-                    });
-                });
-            }
-            return response.json();
-        })
-        .catch((error) => {
-            throw new Error(`Error deleting policy: ${error}`, { cause: error });
-        });
+// Policy Version API methods
+export const createPolicyVersion = async (data: PolicyVersionCreate): Promise<PolicyVersion> => {
+  return withErrorHandling(
+    policyVersionsApi.createPolicyVersion({ policyVersionCreate: data }),
+    'create policy version'
+  )
 }
 
-export async function createPolicyVersion(data: PolicyVersionCreate) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-
-    return fetch(new URL(`/policy-versions`, serverUrl), {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-    })
-        .then((response) => {
-            return response.json();
-        })
-        .catch((error) => {
-            throw new Error(`create policy version: ${data}`, { cause: error });
-        });
+export const updatePolicyVersion = async (
+  policyVersionId: string,
+  data: PolicyVersionBase
+): Promise<PolicyVersion> => {
+  return withErrorHandling(
+    policyVersionsApi.updatePolicyVersion({ policyVersionId, policyVersionBase: data }),
+    `update policy version ${policyVersionId}`
+  )
 }
 
-export async function createDataSource(data: DataSourceSpec) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-
-    return fetch(new URL(`/data-sources`, serverUrl), {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-    })
-        .then((response) => {
-            return response.json();
-        })
-        .catch((error) => {
-            throw new Error(`Error creating data source ${data}`, { cause: error });
-        });
+export const deletePolicyVersion = async (policyVersionId: string): Promise<void> => {
+  return withErrorHandling(
+    policyVersionsApi.deletePolicyVersion({ policyVersionId }),
+    `delete policy version ${policyVersionId}`
+  )
 }
 
-export async function updatePolicyAllocationStrategy(
-    policyId: string,
-    data: PolicyAllocationStrategy,
-) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    if (!serverUrl) {
-        throw new Error("Server URL is not defined");
-    }
-    const body: PolicyBase = {
-        allocation_strategy: data,
-    };
-
-    return fetch(new URL(`/policies/${policyId}`, serverUrl), {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-    })
-        .then(async (response) => {
-            if (!response.ok) {
-                const errorData = await response
-                    .json()
-                    .catch(() => ({ detail: "Unknown error updating allocation strategy." }));
-                console.error("Failed to update policy allocation strategy", {
-                    status: response.status,
-                    errorData,
-                });
-                throw new Error(
-                    errorData.detail ||
-                        `Failed to update allocation strategy for policy ${policyId}`,
-                );
-            }
-            return response.json();
-        })
-        .catch((error) => {
-            console.error(
-                `Error updating policy allocation strategy for policy ${policyId}:`,
-                error,
-            );
-            throw error;
-        });
+export const fetchPolicyVersions = async (
+  policyId: string | null = null,
+  includeArchived = false
+): Promise<PolicyVersion[]> => {
+  return withErrorHandling(
+    policyVersionsApi.listPolicyVersions({
+      policyId: policyId || undefined,
+      archived: includeArchived,
+    }),
+    'fetch policy versions'
+  )
 }
 
-export async function deleteDataSource(dataSourceId: string) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    return fetch(new URL(`/data-sources/${dataSourceId}`, serverUrl), {
-        method: "DELETE",
-    })
-        .then((response) => {
-            if (!response.ok) {
-                return response.json().then((responseBody) => {
-                    throw new Error(responseBody.detail, {
-                        cause: response,
-                    });
-                });
-            }
-            return response.json();
-        })
-        .catch((error) => {
-            throw new Error(`Error deleting data source: ${error}`, { cause: error });
-        });
+export const fetchPolicyVersion = async (policyVersionId: string): Promise<PolicyVersion> => {
+  return withErrorHandling(
+    policyVersionsApi.getPolicyVersion({ policyVersionId }),
+    `fetch policy version ${policyVersionId}`
+  )
 }
 
-export async function updatePolicyVersion(policyVersionId: string, data: PolicyVersionBase) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    if (!serverUrl) {
-        throw new Error("Server URL is not defined");
-    }
-    if (!policyVersionId) {
-        throw new Error("Policy version ID is not defined");
-    }
-
-    return fetch(new URL(`/policy-versions/${policyVersionId}`, serverUrl), {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-    }).then(async (response) => {
-        const responseData = await response.json();
-        if (!response.ok) {
-            console.error(`Failed to update policy version ${policyVersionId}`, {
-                status: response.status,
-                response: responseData,
-            });
-
-            throw new Error(`Failed to update policy version ${policyVersionId}`, {
-                cause: responseData,
-            });
-        }
-        return responseData;
-    });
+export const fetchPolicyVersionVariables = async (policyVersionId: string) => {
+  return withErrorHandling(
+    policyVersionsApi.listConfigVariables({ policyVersionId }),
+    `fetch variables for policy version ${policyVersionId}`
+  )
 }
 
-export async function deletePolicyVersion(policyVersionId: string) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    return fetch(new URL(`/policy-versions/${policyVersionId}`, serverUrl), {
-        method: "DELETE",
-    })
-        .then((response) => {
-            if (!response.ok) {
-                return response.json().then((responseBody) => {
-                    throw new Error(responseBody.detail, {
-                        cause: response,
-                    });
-                });
-            }
-            return response.json();
-        })
-        .catch((error) => {
-            throw new Error(`Error deleting policy version: ${error}`, { cause: error });
-        });
+export const fetchPolicyVersionDataSources = async (policyVersionId: string) => {
+  return withErrorHandling(
+    policyVersionsApi.listDataSourcesByPolicyVersion({ policyVersionId }),
+    `fetch data sources for policy version ${policyVersionId}`
+  )
 }
 
-export async function fetchPolicyRuns(
-    policyId: string,
-    startDate: Date,
-    endDate: Date,
-): Promise<Run[]> {
-    return fetchServerData({
-        endpoint: `/policies/${policyId}/runs`,
-        params: {
-            start_date: formatISODate(startDate),
-            end_date: formatISODate(endDate),
-        },
-        label: `runs for policy ${policyId}`,
-    });
+export const setPolicyVersionVariables = async (
+  policyVersionId: string,
+  variables: ConfigurationVariablesBase[]
+) => {
+  return withErrorHandling(
+    policyVersionsApi.setConfigVariables({
+      policyVersionId,
+      configurationVariablesBase: variables,
+    }),
+    `set variables for policy version ${policyVersionId}`
+  )
 }
 
-export async function fetchPolicyVersionRuns(
-    policyVersionId: string,
-    startDate: Date,
-    endDate: Date,
-): Promise<Run[]> {
-    return fetchServerData({
-        endpoint: `/policy-versions/${policyVersionId}/runs`,
-        params: {
-            start_date: formatISODate(startDate),
-            end_date: formatISODate(endDate),
-        },
-        label: `runs for policy version ${policyVersionId}`,
-    });
+// Run API methods
+export const fetchPolicyRuns = async (
+  policyId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<Run[]> => {
+  return withErrorHandling(
+    policiesApi.listRunsByPolicy({ policyId, startDate, endDate }),
+    `fetch runs for policy ${policyId}`
+  )
 }
 
-export async function fetchPolicyVersions(
-    policyId: string | null = null,
-    includeArchived: boolean = false,
-): Promise<PolicyVersion[]> {
-    const params: HTTPQueryParams = {
-        include_archived: includeArchived,
-    };
-    if (policyId) {
-        params.policy_id = policyId;
-    }
-    return fetchServerData({
-        endpoint: `/policy-versions`,
-        params: params,
-        label: `versions for policy ${policyId}`,
-    });
+export const fetchPolicyVersionRuns = async (
+  policyVersionId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<Run[]> => {
+  return withErrorHandling(
+    policyVersionsApi.listRunsByPolicyVersion({
+      policyVersionId,
+      startDate,
+      endDate,
+    }),
+    `fetch runs for policy version ${policyVersionId}`
+  )
 }
 
-export async function fetchPolicyVersion(policyVersionId: string): Promise<PolicyVersion> {
-    return fetchServerData({
-        endpoint: `/policy-versions/${policyVersionId}`,
-        label: `policy version ${policyVersionId}`,
-    });
+export const fetchRun = async (runId: string): Promise<Run> => {
+  return withErrorHandling(
+    runsApi.getRun({ runId }),
+    `fetch run ${runId}`
+  )
 }
 
-export async function fetchPolicyVersionVariables(policyVersionId: string) {
-    return fetchServerData({
-        endpoint: `/policy-versions/${policyVersionId}/variables`,
-        label: `variables for policy version ${policyVersionId}`,
-    });
+export const fetchRunData = async (runId: string): Promise<RunData> => {
+  return withErrorHandling(
+    runsApi.getRunData({ runId }),
+    `fetch data for run ${runId}`
+  )
 }
 
-export async function fetchPolicyVersionComponents(policyVersionId: string) {
-    return fetchServerData({
-        endpoint: `/policy-versions/${policyVersionId}/components`,
-        label: `component usage for policy version ${policyVersionId}`,
-    });
+export const fetchRunLogs = async (runId: string): Promise<RunLogs> => {
+  return withErrorHandling(
+    runsApi.getRunLogs({ runId }),
+    `fetch logs for run ${runId}`
+  )
 }
 
-export async function fetchPolicyVersionDataSources(policyVersionId: string) {
-    return fetchServerData({
-        endpoint: `/policy-versions/${policyVersionId}/data-sources`,
-        label: `data sources for policy version ${policyVersionId}`,
-    });
+// Data Source API methods
+export const fetchDataSources = async (): Promise<DataSource[]> => {
+  return withErrorHandling(
+    dataSourcesApi.listDataSources(),
+    'fetch data sources'
+  )
 }
 
-export async function setPolicyVersionVariables(
-    policyVersionId: string,
-    variables: ConfigurationVariablesBase[],
-) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    if (!serverUrl) {
-        throw new Error("Server URL is not defined");
-    }
-    if (!policyVersionId) {
-        throw new Error("Policy version ID is not defined");
-    }
-
-    return fetch(new URL(`/policy-versions/${policyVersionId}/variables`, serverUrl), {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(variables),
-    }).then(async (response) => {
-        const responseData = await response.json().catch(() => ({})); // Catch if body is empty or not json
-        if (!response.ok) {
-            console.error(`Failed to set variables for policy version ${policyVersionId}`, {
-                status: response.status,
-                response: responseData,
-            });
-            const detail =
-                responseData.detail ||
-                `Failed to set variables for policy version ${policyVersionId}`;
-            throw new Error(detail, {
-                cause: responseData,
-            });
-        }
-        return responseData;
-    });
+export const fetchDataSource = async (dataSourceId: string): Promise<DataSource> => {
+  return withErrorHandling(
+    dataSourcesApi.getDataSource({ dataSourceId }),
+    `fetch data source ${dataSourceId}`
+  )
 }
 
+export const createDataSource = async (data: DataSourceSpec) => {
+  return withErrorHandling(
+    dataSourcesApi.createDataSource({ dataSourceSpec: data }),
+    'create data source'
+  )
+}
+
+export const deleteDataSource = async (dataSourceId: string) => {
+  return withErrorHandling(
+    dataSourcesApi.deleteDataSource({ dataSourceId }),
+    `delete data source ${dataSourceId}`
+  )
+}
+
+export const fetchDataSourceEnvVars = async (dataSourceId: string) => {
+  return withErrorHandling(
+    dataSourcesApi.getDataSourceEnvVariables({ dataSourceId }),
+    `fetch environment variables for data source ${dataSourceId}`
+  )
+}
+
+export const setDataSourceEnvVars = async (
+  dataSourceId: string,
+  variables: DataSourceEnvVarBase[]
+) => {
+  return withErrorHandling(
+    dataSourcesApi.setDataSourceEnvVariables({
+      dataSourceId,
+      dataSourceEnvVarBase: variables,
+    }),
+    `set environment variables for data source ${dataSourceId}`
+  )
+}
+
+// File API methods
+export const listUploadedFiles = async () => {
+  return withErrorHandling(
+    filesApi.listUploadedFiles(),
+    'list uploaded files'
+  )
+}
+
+// Helper function for date formatting
+const formatISODate = (date: Date) => formatISO(date, { representation: "date" });
+
+// Component API mock functions (components API not available yet)
 export async function fetchComponents(includeArchived: boolean = false): Promise<any[]> {
-    return fetchServerData({
-        endpoint: `/components?include_archived=${includeArchived}`,
-        label: "list of components",
-    });
+    return [];
 }
 
 export async function fetchComponent(componentId: string) {
-    return fetchServerData({
-        endpoint: `/components/${componentId}`,
-        label: `component ${componentId}`,
-    });
+    return {
+        id: componentId,
+        name: `Mock Component ${componentId}`,
+        description: 'This is a mock component for the open-source version',
+        created_at: new Date().toISOString(),
+    };
 }
 
-export async function fetchComponentVersions(
-    componentId: string,
-    includeArchived: boolean = false,
-) {
-    return fetchServerData({
-        endpoint: `/components/${componentId}/versions?include_archived=${includeArchived}`,
-        label: `component versions for component ${componentId}`,
-    });
-}
-
-export async function fetchComponentVersion(componentVersionId: string) {
-    return fetchServerData({
-        endpoint: `/component-versions/${componentVersionId}`,
-        label: `component version ${componentVersionId}`,
-    });
+export async function fetchComponentVersions(componentId: string, includeArchived: boolean = false) {
+    return [];
 }
 
 export async function fetchComponentVersionUsage(componentId: string) {
-    return fetchServerData({
-        endpoint: `/components/${componentId}/usage`,
-        label: `component usage for component ${componentId}`,
-    });
+    return [];
 }
 
-export async function fetchRun(runId: string): Promise<Run> {
-    return fetchServerData({
-        endpoint: `/runs/${runId}`,
-        label: `run ${runId}`,
-    });
-}
-
-export async function fetchRunData(runId: string): Promise<RunData> {
-    return fetchServerData({
-        endpoint: `/runs/${runId}/data`,
-        label: `data for run ${runId}`,
-    });
-}
-
-export async function fetchRunLogs(runId: string): Promise<RunLogs> {
-    return fetchServerData({
-        endpoint: `/runs/${runId}/logs`,
-        label: `logs for run ${runId}`,
-    });
-}
-
-export async function fetchDataSources(): Promise<DataSource[]> {
-    return fetchServerData({
-        endpoint: `/data-sources`,
-        label: `data sources`,
-    });
-}
-
-export async function fetchDataSource(dataSourceId: string): Promise<DataSource> {
-    return fetchServerData({
-        endpoint: `/data-sources/${dataSourceId}`,
-        label: `data source ${dataSourceId}`,
-    });
-}
-
-export async function fetchDataSourceUsage(
+// Data Source Usage API method
+export const fetchDataSourceUsage = async (
     dataSourceId: string,
     startDate: Date,
     endDate: Date,
-): Promise<any> {
-    return fetchServerData({
-        endpoint: `/data-sources/${dataSourceId}/usage`,
-        params: {
-            start_date: formatISODate(startDate),
-            end_date: formatISODate(endDate),
-        },
-        label: `usage for data source ${dataSourceId}`,
-    });
+): Promise<any> => {
+    return withErrorHandling(
+        dataSourcesApi.getDataSourceUsage({
+            dataSourceId,
+            startDate,
+            endDate,
+        }),
+        `fetch usage for data source ${dataSourceId}`
+    )
 }
 
-export async function fetchDataSourceMetrics(
+// Data Source Metrics API method  
+export const fetchDataSourceMetrics = async (
     dataSourceId: string,
     startDate: Date,
     endDate: Date,
-): Promise<any> {
-    return fetchServerData({
-        endpoint: `/data-sources/${dataSourceId}/metrics`,
-        params: {
-            start_date: formatISODate(startDate),
-            end_date: formatISODate(endDate),
-        },
-        label: `metrics for data source ${dataSourceId}`,
-    });
+): Promise<any> => {
+    return withErrorHandling(
+        dataSourcesApi.getDataSourceMetrics({
+            dataSourceId,
+            startDate,
+            endDate,
+        }),
+        `fetch metrics for data source ${dataSourceId}`
+    )
 }
 
-export async function fetchDataSourceCacheStats(
+// Data Source Cache Stats API method
+export const fetchDataSourceCacheStats = async (
     dataSourceId: string,
     startDate: Date,
     endDate: Date,
-): Promise<any> {
-    return fetchServerData({
-        endpoint: `/data-sources/${dataSourceId}/cache-stats`,
-        params: {
-            start_date: formatISODate(startDate),
-            end_date: formatISODate(endDate),
-        },
-        label: `cache statistics for data source ${dataSourceId}`,
-    });
+): Promise<any> => {
+    return withErrorHandling(
+        dataSourcesApi.getCacheStatistics({
+            dataSourceId,
+            startDate,
+            endDate,
+        }),
+        `fetch cache statistics for data source ${dataSourceId}`
+    )
 }
 
-export async function fetchBacktestWorkspace(policyVersionId: string) {
-    return fetchServerData({
-        endpoint: `/policy-versions/${policyVersionId}/backtest-workspace`,
-        label: `policy version ${policyVersionId} backtest workspace`,
-    });
-}
-
-export async function fetchPolicyVersionBacktests(policyVersionId: string) {
-    return fetchServerData({
-        endpoint: `/backtests?policy_version_id=${policyVersionId}`,
-        label: `backtests for policy version ${policyVersionId}`,
-    });
-}
-
-export async function listUploadedFiles() {
-    return fetchServerData({
-        endpoint: `/files`,
-        label: `backtests files`,
-    });
-}
-
-export async function fetchBacktest(backtestId: string) {
-    return fetchServerData({
-        endpoint: `/backtests/${backtestId}/`,
-        label: `backtest ${backtestId}`,
-    });
-}
-
-export async function fetchBacktestStatus(backtestId: string) {
-    return fetchServerData({
-        endpoint: `/backtests/${backtestId}/status`,
-        label: `status for backtest ${backtestId}`,
-    });
-}
-
-export async function fetchBacktestMetrics(
-    backtestId: string,
-    target: boolean = false,
-    time: boolean = false,
-    column: string | null = null,
-) {
-    return fetchServerData({
-        endpoint: `/backtests/${backtestId}/metrics/data`,
-        params: {
-            target,
-            time,
-            column: column ? column : "",
-        },
-        label: `example metric for backtest ${backtestId}`,
-    });
-}
-
-export async function fetchDataSourceEnvVars(dataSourceId: string) {
-    return fetchServerData({
-        endpoint: `/data-sources/${dataSourceId}/variables`,
-        label: `environment variables for data source ${dataSourceId}`,
-    });
-}
-
-export async function setDataSourceEnvVars(
-    dataSourceId: string,
-    variables: DataSourceEnvVarBase[],
-): Promise<{ data_source_id: string; variables: DataSourceEnvVarBase[] }> {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-
-    return fetch(new URL(`/data-sources/${dataSourceId}/variables`, serverUrl), {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(variables),
-    })
-        .then(async (response) => {
-            if (!response.ok) {
-                const errorData = await response
-                    .json()
-                    .catch(() => ({ detail: "Unknown error setting environment variables." }));
-                console.error("Failed to set data source environment variables", {
-                    status: response.status,
-                    errorData,
-                });
-                throw new Error(
-                    errorData.detail ||
-                        `Failed to set environment variables for data source ${dataSourceId}`,
-                );
-            }
-            return response.json();
-        })
-        .catch((error) => {
-            console.error(
-                `Error setting environment variables for data source ${dataSourceId}:`,
-                error,
-            );
-            throw error;
-        });
-}
-
-const formatISODate = (date: Date) => formatISO(date, { representation: "date" });
-
-export async function fetchRunsCount(
+// Additional API methods for metrics and analytics using auto-generated clients
+export const fetchRunsCount = async (
     policyId: string,
     startDate: Date,
     endDate: Date,
-    versions: string[] = null,
-) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    const url =
-        new URL(`/policies/${policyId}/runs/count?`, serverUrl).toString() +
-        new URLSearchParams({
-            start_date: formatISODate(startDate),
-            end_date: formatISODate(endDate),
-        });
-    return fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ versions }),
-    })
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error(`Failed to fetch runs count for policy ${policyId}`, {
-                    cause: response,
-                });
-            }
-            return response.json();
-        })
-        .catch((error) => {
-            throw new Error(`Error fetching runs count for policy ${policyId}`, { cause: error });
-        });
+    versions: string[] = [],
+): Promise<any> => {
+    return withErrorHandling(
+        policiesApi.runsByPolicy({
+            policyId,
+            startDate,
+            endDate,
+            bodyRunsByPolicy: { versions },
+        }),
+        `fetch runs count for policy ${policyId}`
+    )
 }
 
-export async function fetchRunOutcomes(
+export const fetchRunOutcomes = async (
     policyId: string,
     startDate: Date,
     endDate: Date,
-    versions: string[] = null,
-) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    const url =
-        new URL(`/policies/${policyId}/runs/outcomes?`, serverUrl).toString() +
-        new URLSearchParams({
-            start_date: formatISODate(startDate),
-            end_date: formatISODate(endDate),
-        });
-    return fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ versions }),
-    })
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error(`Failed to fetch run outcomes for policy ${policyId}`, {
-                    cause: response,
-                });
-            }
-            return response.json();
-        })
-        .catch((error) => {
-            throw new Error(`Error fetching run outcomes for policy ${policyId}`, { cause: error });
-        });
+    versions: string[] = [],
+): Promise<any> => {
+    return withErrorHandling(
+        policiesApi.runsOutcomesByPolicy({
+            policyId,
+            startDate,
+            endDate,
+            bodyRunsOutcomesByPolicy: { versions },
+        }),
+        `fetch run outcomes for policy ${policyId}`
+    )
 }
 
-export async function fetchRunDurationStats(
+export const fetchRunDurationStats = async (
     policyId: string,
     startDate: Date,
     endDate: Date,
-    versions: string[] = null,
-) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    const url =
-        new URL(`/policies/${policyId}/runs/duration?`, serverUrl).toString() +
-        new URLSearchParams({
-            start_date: formatISODate(startDate),
-            end_date: formatISODate(endDate),
-        });
-    return fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ versions }),
-    })
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error(`Failed to fetch run duration stats for policy ${policyId}`, {
-                    cause: response,
-                });
-            }
-            return response.json();
-        })
-        .catch((error) => {
-            throw new Error(`Error fetching run duration stats for policy ${policyId}`, {
-                cause: error,
-            });
-        });
+    versions: string[] = [],
+): Promise<any> => {
+    return withErrorHandling(
+        policiesApi.runDurationStatsByPolicy({
+            policyId,
+            startDate,
+            endDate,
+            bodyRunDurationStatsByPolicy: { versions },
+        }),
+        `fetch run duration stats for policy ${policyId}`
+    )
 }
 
-export async function fetchRunDurationByStatus(
+export const fetchRunDurationByStatus = async (
     policyId: string,
     startDate: Date,
     endDate: Date,
-    versions: string[] = null,
-) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    const url =
-        new URL(`/policies/${policyId}/runs/duration/by_status?`, serverUrl).toString() +
-        new URLSearchParams({
-            start_date: formatISODate(startDate),
-            end_date: formatISODate(endDate),
-        });
-    return fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ versions }),
-    })
-        .then((response) => response.json())
-        .catch((error) => {
-            throw new Error(`Error fetching run duration stats for policy ${policyId}`, {
-                cause: error,
-            });
-        });
+    versions: string[] = [],
+): Promise<any> => {
+    return withErrorHandling(
+        policiesApi.runDurationStatsByPolicyStatus({
+            policyId,
+            startDate,
+            endDate,
+            bodyRunDurationStatsByPolicyStatus: { versions },
+        }),
+        `fetch run duration by status for policy ${policyId}`
+    )
 }
+
+// Export API client instances for direct use if needed
+export { 
+  policiesApi, 
+  policyVersionsApi, 
+  runsApi, 
+  dataSourcesApi, 
+  backtestsApi, 
+  filesApi 
+}
+
+// Re-export additional types for convenience
+export type {
+  Run,
+  RunData, 
+  RunLogs,
+  Policy,
+  PolicyVersion,
+  PolicyBase,
+  PolicyCreate,
+  PolicyVersionCreate,
+  PolicyVersionBase,
+  DataSource,
+  DataSourceSpec,
+  DataSourceEnvVarBase,
+  PolicyAllocationStrategy,
+  ConfigurationVariablesBase,
+} from '@vulkan/client-open'

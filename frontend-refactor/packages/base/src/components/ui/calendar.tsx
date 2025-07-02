@@ -1,7 +1,7 @@
 "use client";
 
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "../../lib/utils";
+import { Button, buttonVariants } from "./button";
+import { cn } from "@/lib/utils";
 import { differenceInCalendarDays } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import * as React from "react";

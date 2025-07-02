@@ -1,19 +1,25 @@
-import type { Metadata } from 'next'
-import '@vulkan/base/src/styles/globals.css'
+import { Inter } from "next/font/google";
+import "@/app/globals.css";
+import { Providers } from "@/components/providers";
 
-export const metadata: Metadata = {
-  title: 'Vulkan Engine',
-  description: 'An easy-to-use, fully featured console to manage your policies.',
-}
+const inter = Inter({ subsets: ["latin"] });
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  )
+export const metadata = {
+    title: "Vulkan Engine",
+    description: "Workspace for policies in Vulkan",
+    icons: {
+        icon: "/favicon.ico",
+    },
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <html lang="en">
+            <body className={inter.className}>
+                <Providers>
+                    {children}
+                </Providers>
+            </body>
+        </html>
+    );
 }

@@ -1,15 +1,17 @@
+"use client";
+
 import * as React from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "../../lib/utils";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Button } from "./ui/button";
 import {
     Command,
     CommandEmpty,
     CommandGroup,
     CommandInput,
     CommandItem,
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+} from "./ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 export interface AssetOption {
     value: string;

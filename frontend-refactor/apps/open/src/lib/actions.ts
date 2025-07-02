@@ -9,7 +9,7 @@ import {
     fetchRunOutcomes,
 } from "@/lib/api";
 
-import { Run } from "@vulkan-server/Run";
+import { Run } from "@vulkan/client-open/models/Run";
 
 export async function fetchMetricsData({ policyId, dateRange, versions }) {
     const runsCount = await fetchRunsCount(policyId, dateRange.from, dateRange.to, versions).catch(

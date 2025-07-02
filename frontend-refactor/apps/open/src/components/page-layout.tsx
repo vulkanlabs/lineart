@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import { cn } from "../../lib/utils";
+import { cn } from "@vulkan/base";
+import "@/app/globals.css";
 import { SquareChevronLeft, SquareChevronRight } from "lucide-react";
 
 export type SidebarTitleProps = {

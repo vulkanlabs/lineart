@@ -22,8 +22,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@vulkan/base": ["../../packages/base/src"],
-      "@vulkan/base/*": ["../../packages/base/src/*"]
+      "@vulkan-server/*": ["./generated/models/*"]
     }
   },
   "include": [
