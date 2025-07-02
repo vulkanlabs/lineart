@@ -6,14 +6,10 @@ RUN pip install uv
 WORKDIR /app
 COPY vulkan vulkan
 COPY vulkan-server vulkan-server/
+COPY vulkan-agent vulkan-agent/
 COPY scripts scripts
-RUN uv pip install --system --no-cache vulkan-server/
-RUN uv run python scripts/export-openapi.py --out generated/openapi.json
-
-# OpenAPI Generator CLI: Generate TypeScript client code from OpenAPI spec
-FROM openapitools/openapi-generator-cli:latest AS openapi
-COPY --from=python-package /app/generated/openapi.json /app/openapi.json
-RUN docker-entrypoint.sh generate -g typescript-fetch -i /app/openapi.json -o /app/frontend --additional-properties="modelPropertyNaming=original"
+RUN uv pip install --system --no-cache vulkan-server/ vulkan-agent/
+RUN uv run python scripts/export-openapi.py
 
 # Node.js image: Build the Next.js application
 FROM node:23-alpine AS base
@@ -33,10 +29,12 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY ./frontend/ .
-COPY --from=openapi /app/frontend ./generated
+COPY --from=python-package /app/frontend ./generated
 
 ARG NEXT_PUBLIC_VULKAN_SERVER_URL
+ARG NEXT_PUBLIC_VULKAN_AGENT_URL
 ENV NEXT_PUBLIC_VULKAN_SERVER_URL=${NEXT_PUBLIC_VULKAN_SERVER_URL}
+ENV NEXT_PUBLIC_VULKAN_AGENT_URL=${NEXT_PUBLIC_VULKAN_AGENT_URL}
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
@@ -50,7 +48,9 @@ FROM base AS runner
 WORKDIR /app
 
 ARG NEXT_PUBLIC_VULKAN_SERVER_URL
+ARG NEXT_PUBLIC_VULKAN_AGENT_URL
 ENV NEXT_PUBLIC_VULKAN_SERVER_URL=${NEXT_PUBLIC_VULKAN_SERVER_URL}
+ENV NEXT_PUBLIC_VULKAN_AGENT_URL=${NEXT_PUBLIC_VULKAN_AGENT_URL}
 
 ENV NODE_ENV=production
 # Uncomment the following line in case you want to disable telemetry during runtime.
