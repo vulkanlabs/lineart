@@ -1,14 +1,16 @@
 "use client";
+
 import { Workflow, Puzzle, ArrowDownUp, Logs, Menu } from "lucide-react";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
-import { VulkanLogo } from "@vulkan/base";
-import { SidebarSectionProps } from "@vulkan/base";
 import { Button } from "@vulkan/base/ui";
 import { Sheet, SheetContent, SheetTrigger } from "@vulkan/base/ui";
 import { cn } from "@vulkan/base";
+
+import { VulkanLogo } from "@/components/logo";
+import { SidebarSectionProps } from "@/components/page-layout";
 import "@/app/globals.css";
 
 export default function RootLayout({ children }) {
