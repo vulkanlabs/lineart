@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 
 export default defineConfig({
-    entry: ["src/index.ts", "src/ui/index.ts"],
+    entry: ["src/index.ts", "src/ui/index.ts", "src/workflow/index.ts"],
     format: ["cjs", "esm"],
     dts: true, // Re-enabled - we'll focus on core components first
     clean: true,

@@ -4,10 +4,7 @@ import RunPageContent from "@/components/run/run-page-content";
 import type { NodeLayoutConfig } from "@/lib/workflow/types";
 import { makeGraphElements } from "@/lib/workflow/graph";
 
-import { NodeDefinitionDict } from "@vulkan/client-open/models/NodeDefinitionDict";
-import { PolicyVersion } from "@vulkan/client-open/models/PolicyVersion";
-import { RunData } from "@vulkan/client-open/models/RunData";
-import { RunLogs } from "@vulkan/client-open/models/RunLogs";
+import type { NodeDefinitionDict, PolicyVersion, RunData, RunLogs } from "@vulkan/client-open";
 
 import type { RunNodeLayout } from "@/components/run/types";
 import { defaultElkOptions } from "@/components/run/options";

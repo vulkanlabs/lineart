@@ -1,0 +1,41 @@
+"use client";
+
+import React, { useMemo, type ReactNode } from "react";
+import { ReactFlowProvider } from "@xyflow/react";
+
+import type { PolicyVersion } from "@vulkan/client-open";
+import { WorkflowProvider as StoreProvider } from "@/workflow/store";
+import { useWorkflowApi } from "@/workflow/api";
+import { createWorkflowState } from "@/workflow/utils/workflow-state";
+import type { WorkflowState } from "@/workflow/types/workflow";
+
+/**
+ * Props for the workflow provider wrapper
+ */
+export type WorkflowProviderWrapperProps = {
+    children: ReactNode;
+    policyVersion: PolicyVersion;
+};
+
+/**
+ * Provider wrapper that combines ReactFlow provider with workflow store provider
+ * and initializes the workflow state from the policy version
+ */
+export function WorkflowProviderWrapper({ children, policyVersion }: WorkflowProviderWrapperProps) {
+    const apiClient = useWorkflowApi();
+
+    /**
+     * Create initial workflow state from policy version data
+     */
+    const initialState: WorkflowState = useMemo(() => {
+        return createWorkflowState(policyVersion);
+    }, [policyVersion]);
+
+    return (
+        <ReactFlowProvider>
+            <StoreProvider initialState={initialState} apiClient={apiClient}>
+                {children}
+            </StoreProvider>
+        </ReactFlowProvider>
+    );
+}

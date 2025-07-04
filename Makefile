@@ -52,6 +52,7 @@ config:
 	cp -r ./config/local ./config/active
 	cp ./config/active/.env ./.env
 	cp ./config/active/.env ./frontend/.env
+	cp ./config/active/.env ./frontend-refactor/apps/open/.env
 
 # Maintenance
 .PHONY: clean-pycache

@@ -1,262 +1,235 @@
 import {
-  PoliciesApi,
-  PolicyVersionsApi,
-  RunsApi,
-  DataSourcesApi,
-  BacktestsApi,
-  FilesApi,
-  type Policy,
-  type PolicyVersion,
-  type PolicyBase,
-  type PolicyCreate,
-  type PolicyVersionCreate,
-  type PolicyVersionBase,
-  type Run,
-  type RunData,
-  type RunLogs,
-  type DataSource,
-  type DataSourceSpec,
-  type DataSourceEnvVarBase,
-  type PolicyAllocationStrategy,
-  type ConfigurationVariablesBase,
-} from '@vulkan/client-open'
-import { createApiConfig, withErrorHandling } from '@vulkan/api-utils'
-import { formatISO } from 'date-fns'
+    PoliciesApi,
+    PolicyVersionsApi,
+    RunsApi,
+    DataSourcesApi,
+    BacktestsApi,
+    FilesApi,
+    type Policy,
+    type PolicyVersion,
+    type PolicyBase,
+    type PolicyCreate,
+    type PolicyVersionCreate,
+    type PolicyVersionBase,
+    type Run,
+    type RunData,
+    type RunLogs,
+    type DataSource,
+    type DataSourceSpec,
+    type DataSourceEnvVarBase,
+    type PolicyAllocationStrategy,
+    type ConfigurationVariablesBase,
+} from "@vulkan/client-open";
+import { createApiConfig, withErrorHandling } from "@vulkan/api-utils";
+import { formatISO } from "date-fns";
 
 // Configure API clients with shared configuration
 const apiConfig = createApiConfig({
-  baseUrl: process.env.NEXT_PUBLIC_VULKAN_SERVER_URL!,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
+    baseUrl: process.env.NEXT_PUBLIC_VULKAN_SERVER_URL!,
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
 
 // Create API client instances
-const policiesApi = new PoliciesApi(apiConfig)
-const policyVersionsApi = new PolicyVersionsApi(apiConfig)
-const runsApi = new RunsApi(apiConfig)
-const dataSourcesApi = new DataSourcesApi(apiConfig)
-const backtestsApi = new BacktestsApi(apiConfig)
-const filesApi = new FilesApi(apiConfig)
+const policiesApi = new PoliciesApi(apiConfig);
+const policyVersionsApi = new PolicyVersionsApi(apiConfig);
+const runsApi = new RunsApi(apiConfig);
+const dataSourcesApi = new DataSourcesApi(apiConfig);
+const backtestsApi = new BacktestsApi(apiConfig);
+const filesApi = new FilesApi(apiConfig);
 
 // Policy API methods with error handling
 export const fetchPolicies = async (includeArchived = false): Promise<Policy[]> => {
-  return withErrorHandling(
-    policiesApi.listPolicies({ includeArchived }),
-    'fetch policies'
-  )
-}
+    return withErrorHandling(policiesApi.listPolicies({ includeArchived }), "fetch policies");
+};
 
 export const fetchPolicy = async (policyId: string): Promise<Policy> => {
-  return withErrorHandling(
-    policiesApi.getPolicy({ policyId }),
-    `fetch policy ${policyId}`
-  )
-}
+    return withErrorHandling(policiesApi.getPolicy({ policyId }), `fetch policy ${policyId}`);
+};
 
 export const createPolicy = async (data: PolicyCreate): Promise<Policy> => {
-  return withErrorHandling(
-    policiesApi.createPolicy({ policyCreate: data }),
-    'create policy'
-  )
-}
+    return withErrorHandling(policiesApi.createPolicy({ policyCreate: data }), "create policy");
+};
 
 export const deletePolicy = async (policyId: string): Promise<void> => {
-  return withErrorHandling(
-    policiesApi.deletePolicy({ policyId }),
-    `delete policy ${policyId}`
-  )
-}
+    return withErrorHandling(policiesApi.deletePolicy({ policyId }), `delete policy ${policyId}`);
+};
 
 export const updatePolicyAllocationStrategy = async (
-  policyId: string,
-  data: PolicyAllocationStrategy
+    policyId: string,
+    data: PolicyAllocationStrategy,
 ): Promise<Policy> => {
-  const policyBase: PolicyBase = {
-    allocation_strategy: data,
-  }
-  return withErrorHandling(
-    policiesApi.updatePolicy({ policyId, policyBase }),
-    `update allocation strategy for policy ${policyId}`
-  )
-}
+    const policyBase: PolicyBase = {
+        allocation_strategy: data,
+    };
+    return withErrorHandling(
+        policiesApi.updatePolicy({ policyId, policyBase }),
+        `update allocation strategy for policy ${policyId}`,
+    );
+};
 
 // Policy Version API methods
 export const createPolicyVersion = async (data: PolicyVersionCreate): Promise<PolicyVersion> => {
-  return withErrorHandling(
-    policyVersionsApi.createPolicyVersion({ policyVersionCreate: data }),
-    'create policy version'
-  )
-}
+    return withErrorHandling(
+        policyVersionsApi.createPolicyVersion({ policyVersionCreate: data }),
+        "create policy version",
+    );
+};
 
 export const updatePolicyVersion = async (
-  policyVersionId: string,
-  data: PolicyVersionBase
+    policyVersionId: string,
+    data: PolicyVersionBase,
 ): Promise<PolicyVersion> => {
-  return withErrorHandling(
-    policyVersionsApi.updatePolicyVersion({ policyVersionId, policyVersionBase: data }),
-    `update policy version ${policyVersionId}`
-  )
-}
+    return withErrorHandling(
+        policyVersionsApi.updatePolicyVersion({ policyVersionId, policyVersionBase: data }),
+        `update policy version ${policyVersionId}`,
+    );
+};
 
 export const deletePolicyVersion = async (policyVersionId: string): Promise<void> => {
-  return withErrorHandling(
-    policyVersionsApi.deletePolicyVersion({ policyVersionId }),
-    `delete policy version ${policyVersionId}`
-  )
-}
+    return withErrorHandling(
+        policyVersionsApi.deletePolicyVersion({ policyVersionId }),
+        `delete policy version ${policyVersionId}`,
+    );
+};
 
 export const fetchPolicyVersions = async (
-  policyId: string | null = null,
-  includeArchived = false
+    policyId: string | null = null,
+    includeArchived = false,
 ): Promise<PolicyVersion[]> => {
-  return withErrorHandling(
-    policyVersionsApi.listPolicyVersions({
-      policyId: policyId || undefined,
-      archived: includeArchived,
-    }),
-    'fetch policy versions'
-  )
-}
+    return withErrorHandling(
+        policyVersionsApi.listPolicyVersions({
+            policyId: policyId || undefined,
+            archived: includeArchived,
+        }),
+        "fetch policy versions",
+    );
+};
 
 export const fetchPolicyVersion = async (policyVersionId: string): Promise<PolicyVersion> => {
-  return withErrorHandling(
-    policyVersionsApi.getPolicyVersion({ policyVersionId }),
-    `fetch policy version ${policyVersionId}`
-  )
-}
+    return withErrorHandling(
+        policyVersionsApi.getPolicyVersion({ policyVersionId }),
+        `fetch policy version ${policyVersionId}`,
+    );
+};
 
 export const fetchPolicyVersionVariables = async (policyVersionId: string) => {
-  return withErrorHandling(
-    policyVersionsApi.listConfigVariables({ policyVersionId }),
-    `fetch variables for policy version ${policyVersionId}`
-  )
-}
+    return withErrorHandling(
+        policyVersionsApi.listConfigVariables({ policyVersionId }),
+        `fetch variables for policy version ${policyVersionId}`,
+    );
+};
 
 export const fetchPolicyVersionDataSources = async (policyVersionId: string) => {
-  return withErrorHandling(
-    policyVersionsApi.listDataSourcesByPolicyVersion({ policyVersionId }),
-    `fetch data sources for policy version ${policyVersionId}`
-  )
-}
+    return withErrorHandling(
+        policyVersionsApi.listDataSourcesByPolicyVersion({ policyVersionId }),
+        `fetch data sources for policy version ${policyVersionId}`,
+    );
+};
 
 export const setPolicyVersionVariables = async (
-  policyVersionId: string,
-  variables: ConfigurationVariablesBase[]
+    policyVersionId: string,
+    variables: ConfigurationVariablesBase[],
 ) => {
-  return withErrorHandling(
-    policyVersionsApi.setConfigVariables({
-      policyVersionId,
-      configurationVariablesBase: variables,
-    }),
-    `set variables for policy version ${policyVersionId}`
-  )
-}
+    return withErrorHandling(
+        policyVersionsApi.setConfigVariables({
+            policyVersionId,
+            configurationVariablesBase: variables,
+        }),
+        `set variables for policy version ${policyVersionId}`,
+    );
+};
 
 // Run API methods
 export const fetchPolicyRuns = async (
-  policyId: string,
-  startDate: Date,
-  endDate: Date
+    policyId: string,
+    startDate: Date,
+    endDate: Date,
 ): Promise<Run[]> => {
-  return withErrorHandling(
-    policiesApi.listRunsByPolicy({ policyId, startDate, endDate }),
-    `fetch runs for policy ${policyId}`
-  )
-}
+    return withErrorHandling(
+        policiesApi.listRunsByPolicy({ policyId, startDate, endDate }),
+        `fetch runs for policy ${policyId}`,
+    );
+};
 
 export const fetchPolicyVersionRuns = async (
-  policyVersionId: string,
-  startDate: Date,
-  endDate: Date
+    policyVersionId: string,
+    startDate: Date,
+    endDate: Date,
 ): Promise<Run[]> => {
-  return withErrorHandling(
-    policyVersionsApi.listRunsByPolicyVersion({
-      policyVersionId,
-      startDate,
-      endDate,
-    }),
-    `fetch runs for policy version ${policyVersionId}`
-  )
-}
+    return withErrorHandling(
+        policyVersionsApi.listRunsByPolicyVersion({
+            policyVersionId,
+            startDate,
+            endDate,
+        }),
+        `fetch runs for policy version ${policyVersionId}`,
+    );
+};
 
 export const fetchRun = async (runId: string): Promise<Run> => {
-  return withErrorHandling(
-    runsApi.getRun({ runId }),
-    `fetch run ${runId}`
-  )
-}
+    return withErrorHandling(runsApi.getRun({ runId }), `fetch run ${runId}`);
+};
 
 export const fetchRunData = async (runId: string): Promise<RunData> => {
-  return withErrorHandling(
-    runsApi.getRunData({ runId }),
-    `fetch data for run ${runId}`
-  )
-}
+    return withErrorHandling(runsApi.getRunData({ runId }), `fetch data for run ${runId}`);
+};
 
 export const fetchRunLogs = async (runId: string): Promise<RunLogs> => {
-  return withErrorHandling(
-    runsApi.getRunLogs({ runId }),
-    `fetch logs for run ${runId}`
-  )
-}
+    return withErrorHandling(runsApi.getRunLogs({ runId }), `fetch logs for run ${runId}`);
+};
 
 // Data Source API methods
 export const fetchDataSources = async (): Promise<DataSource[]> => {
-  return withErrorHandling(
-    dataSourcesApi.listDataSources(),
-    'fetch data sources'
-  )
-}
+    return withErrorHandling(dataSourcesApi.listDataSources(), "fetch data sources");
+};
 
 export const fetchDataSource = async (dataSourceId: string): Promise<DataSource> => {
-  return withErrorHandling(
-    dataSourcesApi.getDataSource({ dataSourceId }),
-    `fetch data source ${dataSourceId}`
-  )
-}
+    return withErrorHandling(
+        dataSourcesApi.getDataSource({ dataSourceId }),
+        `fetch data source ${dataSourceId}`,
+    );
+};
 
 export const createDataSource = async (data: DataSourceSpec) => {
-  return withErrorHandling(
-    dataSourcesApi.createDataSource({ dataSourceSpec: data }),
-    'create data source'
-  )
-}
+    return withErrorHandling(
+        dataSourcesApi.createDataSource({ dataSourceSpec: data }),
+        "create data source",
+    );
+};
 
 export const deleteDataSource = async (dataSourceId: string) => {
-  return withErrorHandling(
-    dataSourcesApi.deleteDataSource({ dataSourceId }),
-    `delete data source ${dataSourceId}`
-  )
-}
+    return withErrorHandling(
+        dataSourcesApi.deleteDataSource({ dataSourceId }),
+        `delete data source ${dataSourceId}`,
+    );
+};
 
 export const fetchDataSourceEnvVars = async (dataSourceId: string) => {
-  return withErrorHandling(
-    dataSourcesApi.getDataSourceEnvVariables({ dataSourceId }),
-    `fetch environment variables for data source ${dataSourceId}`
-  )
-}
+    return withErrorHandling(
+        dataSourcesApi.getDataSourceEnvVariables({ dataSourceId }),
+        `fetch environment variables for data source ${dataSourceId}`,
+    );
+};
 
 export const setDataSourceEnvVars = async (
-  dataSourceId: string,
-  variables: DataSourceEnvVarBase[]
+    dataSourceId: string,
+    variables: DataSourceEnvVarBase[],
 ) => {
-  return withErrorHandling(
-    dataSourcesApi.setDataSourceEnvVariables({
-      dataSourceId,
-      dataSourceEnvVarBase: variables,
-    }),
-    `set environment variables for data source ${dataSourceId}`
-  )
-}
+    return withErrorHandling(
+        dataSourcesApi.setDataSourceEnvVariables({
+            dataSourceId,
+            dataSourceEnvVarBase: variables,
+        }),
+        `set environment variables for data source ${dataSourceId}`,
+    );
+};
 
 // File API methods
 export const listUploadedFiles = async () => {
-  return withErrorHandling(
-    filesApi.listUploadedFiles(),
-    'list uploaded files'
-  )
-}
+    return withErrorHandling(filesApi.listUploadedFiles(), "list uploaded files");
+};
 
 // Helper function for date formatting
 const formatISODate = (date: Date) => formatISO(date, { representation: "date" });
@@ -270,12 +243,15 @@ export async function fetchComponent(componentId: string) {
     return {
         id: componentId,
         name: `Mock Component ${componentId}`,
-        description: 'This is a mock component for the open-source version',
+        description: "This is a mock component for the open-source version",
         created_at: new Date().toISOString(),
     };
 }
 
-export async function fetchComponentVersions(componentId: string, includeArchived: boolean = false) {
+export async function fetchComponentVersions(
+    componentId: string,
+    includeArchived: boolean = false,
+) {
     return [];
 }
 
@@ -295,11 +271,11 @@ export const fetchDataSourceUsage = async (
             startDate,
             endDate,
         }),
-        `fetch usage for data source ${dataSourceId}`
-    )
-}
+        `fetch usage for data source ${dataSourceId}`,
+    );
+};
 
-// Data Source Metrics API method  
+// Data Source Metrics API method
 export const fetchDataSourceMetrics = async (
     dataSourceId: string,
     startDate: Date,
@@ -311,9 +287,9 @@ export const fetchDataSourceMetrics = async (
             startDate,
             endDate,
         }),
-        `fetch metrics for data source ${dataSourceId}`
-    )
-}
+        `fetch metrics for data source ${dataSourceId}`,
+    );
+};
 
 // Data Source Cache Stats API method
 export const fetchDataSourceCacheStats = async (
@@ -327,9 +303,9 @@ export const fetchDataSourceCacheStats = async (
             startDate,
             endDate,
         }),
-        `fetch cache statistics for data source ${dataSourceId}`
-    )
-}
+        `fetch cache statistics for data source ${dataSourceId}`,
+    );
+};
 
 // Additional API methods for metrics and analytics using auto-generated clients
 export const fetchRunsCount = async (
@@ -345,9 +321,9 @@ export const fetchRunsCount = async (
             endDate,
             bodyRunsByPolicy: { versions },
         }),
-        `fetch runs count for policy ${policyId}`
-    )
-}
+        `fetch runs count for policy ${policyId}`,
+    );
+};
 
 export const fetchRunOutcomes = async (
     policyId: string,
@@ -362,9 +338,9 @@ export const fetchRunOutcomes = async (
             endDate,
             bodyRunsOutcomesByPolicy: { versions },
         }),
-        `fetch run outcomes for policy ${policyId}`
-    )
-}
+        `fetch run outcomes for policy ${policyId}`,
+    );
+};
 
 export const fetchRunDurationStats = async (
     policyId: string,
@@ -379,9 +355,9 @@ export const fetchRunDurationStats = async (
             endDate,
             bodyRunDurationStatsByPolicy: { versions },
         }),
-        `fetch run duration stats for policy ${policyId}`
-    )
-}
+        `fetch run duration stats for policy ${policyId}`,
+    );
+};
 
 export const fetchRunDurationByStatus = async (
     policyId: string,
@@ -396,34 +372,27 @@ export const fetchRunDurationByStatus = async (
             endDate,
             bodyRunDurationStatsByPolicyStatus: { versions },
         }),
-        `fetch run duration by status for policy ${policyId}`
-    )
-}
+        `fetch run duration by status for policy ${policyId}`,
+    );
+};
 
 // Export API client instances for direct use if needed
-export { 
-  policiesApi, 
-  policyVersionsApi, 
-  runsApi, 
-  dataSourcesApi, 
-  backtestsApi, 
-  filesApi 
-}
+export { policiesApi, policyVersionsApi, runsApi, dataSourcesApi, backtestsApi, filesApi };
 
 // Re-export additional types for convenience
 export type {
-  Run,
-  RunData, 
-  RunLogs,
-  Policy,
-  PolicyVersion,
-  PolicyBase,
-  PolicyCreate,
-  PolicyVersionCreate,
-  PolicyVersionBase,
-  DataSource,
-  DataSourceSpec,
-  DataSourceEnvVarBase,
-  PolicyAllocationStrategy,
-  ConfigurationVariablesBase,
-} from '@vulkan/client-open'
+    Run,
+    RunData,
+    RunLogs,
+    Policy,
+    PolicyVersion,
+    PolicyBase,
+    PolicyCreate,
+    PolicyVersionCreate,
+    PolicyVersionBase,
+    DataSource,
+    DataSourceSpec,
+    DataSourceEnvVarBase,
+    PolicyAllocationStrategy,
+    ConfigurationVariablesBase,
+} from "@vulkan/client-open";

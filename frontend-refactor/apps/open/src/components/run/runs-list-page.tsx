@@ -15,7 +15,7 @@ import { DatePickerWithRange } from "@vulkan/base";
 import { ResourceTable } from "@vulkan/base";
 import { parseDate } from "@/lib/utils";
 
-import { Run } from "@vulkan/client-open/models/Run";
+import { Run } from "@vulkan/client-open";
 import { DateRange } from "react-day-picker";
 
 type RunsLoader = ({
@@ -125,11 +125,11 @@ const RunsTableColumns: ColumnDef<Run>[] = [
         cell: ({ row }) => {
             const lastUpdated = row.original.last_updated_at;
             const createdAt = row.original.created_at;
-            
+
             if (!lastUpdated || !createdAt) {
                 return "-";
             }
-            
+
             try {
                 return formatDistanceStrict(new Date(lastUpdated), new Date(createdAt));
             } catch (error) {
@@ -141,7 +141,11 @@ const RunsTableColumns: ColumnDef<Run>[] = [
 
 function RunStatus({ value }: { value: string }) {
     if (value == "SUCCESS") {
-        return <Badge className="bg-green-100 text-green-800 border-green-300">{value}</Badge>;
+        return (
+            <Badge variant="default" className="bg-green-100 text-green-800 border-green-300">
+                {value}
+            </Badge>
+        );
     }
 
     if (value == "FAILURE") {
@@ -152,5 +156,9 @@ function RunStatus({ value }: { value: string }) {
         );
     }
 
-    return <Badge variant="outline">{value}</Badge>;
+    return (
+        <Badge variant="outline" className="">
+            {value}
+        </Badge>
+    );
 }

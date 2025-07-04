@@ -39,6 +39,7 @@ npm run lint
 #### @vulkan/base
 
 The base package contains:
+
 - UI components and design system
 - Shared utilities and hooks
 - Styling and themes
@@ -47,6 +48,7 @@ The base package contains:
 #### @vulkan/app-open
 
 The open-source application that:
+
 - Consumes the @vulkan/base package
 - Provides the core functionality
 - Serves as the foundation for all variants
