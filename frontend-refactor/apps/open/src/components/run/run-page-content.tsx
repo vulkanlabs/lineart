@@ -5,9 +5,7 @@ import { WorkflowFrame } from "@/components/run/frame";
 import type { RunNodeLayout } from "@/components/run/types";
 import { EdgeLayoutConfig, NodeLayoutConfig } from "@/lib/workflow/types";
 
-import type { RunData } from "@vulkan/client-open/models/RunData";
-import type { RunLogs } from "@vulkan/client-open/models/RunLogs";
-import type { StepMetadataBase } from "@vulkan/client-open/models/StepMetadataBase";
+import type { RunData, RunLogs, StepMetadataBase } from "@vulkan/client-open";
 
 export default function RunPageContent({
     nodes,
@@ -83,15 +81,15 @@ function LogsTable({
                 <tbody className="bg-white divide-y divide-gray-200">
                     {filteredLogs.map((log, index) => (
                         <tr key={index}>
-                            <TableCell>{
-                                (() => {
+                            <TableCell>
+                                {(() => {
                                     try {
                                         return new Date(log.timestamp).toLocaleString();
                                     } catch (error) {
-                                        return log.timestamp?.toString() || 'N/A';
+                                        return log.timestamp?.toString() || "N/A";
                                     }
-                                })()
-                            }</TableCell>
+                                })()}
+                            </TableCell>
                             <TableCell>{log.step_key || "N/A"}</TableCell>
                             <TableCell>{log.source}</TableCell>
                             <TableCell>{log.event.log_type || "N/A"}</TableCell>
@@ -148,15 +146,17 @@ function RunInfo({ runData }: { runData: RunData }) {
             </div>
             <div>
                 <h1 className="mt-5 text-lg font-semibold">Last Updated:</h1>
-                <pre className="text-lg font-light">{
-                    (() => {
+                <pre className="text-lg font-light">
+                    {(() => {
                         try {
-                            return runData.last_updated_at ? new Date(runData.last_updated_at).toLocaleString() : 'N/A';
+                            return runData.last_updated_at
+                                ? new Date(runData.last_updated_at).toLocaleString()
+                                : "N/A";
                         } catch (error) {
-                            return runData.last_updated_at?.toString() || 'N/A';
+                            return runData.last_updated_at?.toString() || "N/A";
                         }
-                    })()
-                }</pre>
+                    })()}
+                </pre>
             </div>
         </div>
     );

@@ -285,7 +285,7 @@ export function DeletableResourceTable<TData, TValue>({
             router.refresh();
         } catch (error) {
             closeDeleteDialog();
-            toast.error(`${error.cause}`);
+            toast.error(`${(error as Error)?.message || "An error occurred"}`);
         }
     };
 
@@ -364,7 +364,7 @@ export function DeletableResourceTableActions({
                 <DropdownMenuItem
                     onClick={async () => {
                         await sleep(100);
-                        deleteContext.openDeleteDialog(resource);
+                        deleteContext?.openDeleteDialog(resource);
                     }}
                 >
                     <div className="flex items-center gap-2">

@@ -7,9 +7,11 @@ import { useForm, useFieldArray } from "react-hook-form";
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 
-import { PolicyVersion } from "@vulkan/client-open/models/PolicyVersion";
-import { PolicyAllocationStrategy } from "@vulkan/client-open/models/PolicyAllocationStrategy";
-import { PolicyRunPartition } from "@vulkan/client-open/models/PolicyRunPartition";
+import type {
+    PolicyAllocationStrategy,
+    PolicyVersion,
+    PolicyRunPartition,
+} from "@vulkan/client-open";
 import { updatePolicyAllocationStrategy } from "@/lib/api";
 
 import { Button } from "@vulkan/base/ui";
@@ -23,13 +25,7 @@ import {
     DialogDescription,
 } from "@vulkan/base/ui";
 import { Input } from "@vulkan/base/ui";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@vulkan/base/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@vulkan/base/ui";
 import {
     Form,
     FormField,

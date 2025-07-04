@@ -1,2 +1,2 @@
-export { default as Loader } from './loader'
-export * from './sending'
+export { default as Loader } from "./loader";
+export * from "./sending";

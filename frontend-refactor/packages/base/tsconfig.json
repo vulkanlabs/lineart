@@ -20,7 +20,10 @@
     "rootDir": "src",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@vulkan/base": ["./src/index.ts"],
+      "@vulkan/base/ui": ["./src/ui/index.ts"],
+      "@vulkan/base/workflow": ["./src/workflow/index.ts"]
     }
   },
   "include": [

@@ -16,6 +16,11 @@
       "import": "./dist/ui/index.mjs",
       "require": "./dist/ui/index.js"
     },
+    "./workflow": {
+      "types": "./dist/workflow/index.d.ts",
+      "import": "./dist/workflow/index.mjs",
+      "require": "./dist/workflow/index.js"
+    },
     "./src/*": "./src/*",
     "./styles/*": "./src/styles/*",
     "./tailwind.config.js": "./tailwind.config.js"

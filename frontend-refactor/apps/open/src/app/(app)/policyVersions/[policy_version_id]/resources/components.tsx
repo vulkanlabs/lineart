@@ -1,27 +1,33 @@
 "use client";
-import { LinkIcon } from "lucide-react";
-import Link from "next/link";
+
 import { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import Link from "next/link";
+import { LinkIcon } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ColumnDef } from "@tanstack/react-table";
+import { toast } from "sonner";
 import * as z from "zod";
 
-import { DataTable } from "@vulkan/base";
-import { ShortenedID } from "@vulkan/base";
-import { parseDate } from "@/lib/utils";
-import { ColumnDef } from "@tanstack/react-table";
-import { DataSource } from "@vulkan/client-open/models/DataSource";
-import { PolicyVersion } from "@vulkan/client-open/models/PolicyVersion";
-
-import { Button } from "@vulkan/base/ui";
-import { Textarea } from "@vulkan/base/ui";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@vulkan/base/ui";
-import { updatePolicyVersion } from "@/lib/api";
-import { toast } from "sonner";
 import {
+    Button,
+    Textarea,
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormMessage,
+} from "@vulkan/base/ui";
+import {
+    DataTable,
+    ShortenedID,
     EnvironmentVariablesEditor,
-    EnvironmentVariablesEditorProps,
+    type EnvironmentVariablesEditorProps,
 } from "@vulkan/base";
+import type { DataSource, PolicyVersion, ConfigurationVariablesBase } from "@vulkan/client-open";
+
+import { parseDate } from "@/lib/utils";
+import { updatePolicyVersion } from "@/lib/api";
 import { setPolicyVersionVariablesAction } from "./actions";
 
 interface EnvironmentVariablesProps {
@@ -34,7 +40,7 @@ export function EnvironmentVariables({ policyVersion, variables }: EnvironmentVa
         <EnvironmentVariablesEditor
             variables={variables}
             requiredVariableNames={policyVersion.variables || []}
-            onSave={async (updatedVariables) => {
+            onSave={async (updatedVariables: ConfigurationVariablesBase[]) => {
                 await setPolicyVersionVariablesAction(
                     policyVersion.policy_version_id,
                     updatedVariables,
@@ -70,14 +76,21 @@ const DataSourceTableColumns: ColumnDef<DataSource>[] = [
     },
 ];
 
-export function DataSourcesTable({ sources }) {
-    return <DataTable columns={DataSourceTableColumns} data={sources} />;
+export function DataSourcesTable({ sources }: { sources: DataSource[] }) {
+    return (
+        <DataTable
+            columns={DataSourceTableColumns}
+            data={sources}
+            emptyMessage="No data sources found"
+            className=""
+        />
+    );
 }
 
 export function RequirementsEditor({ policyVersion }: { policyVersion: PolicyVersion }) {
     const [isLoading, setIsLoading] = useState(false);
 
-    const initialRequirements = policyVersion.requirements.toString().replaceAll(",", "\n") || "";
+    const initialRequirements = policyVersion.requirements.toString().replace(/,/g, "\n") || "";
     const form = useForm<z.infer<typeof requirementsSchema>>({
         resolver: zodResolver(requirementsSchema),
         defaultValues: {
@@ -93,7 +106,7 @@ export function RequirementsEditor({ policyVersion }: { policyVersion: PolicyVer
         try {
             await updatePolicyVersion(policyVersion.policy_version_id, {
                 requirements: formattedRequirements,
-                alias: policyVersion.alias,
+                alias: policyVersion.alias || null,
                 input_schema: policyVersion.input_schema,
                 spec: policyVersion.spec,
                 ui_metadata: policyVersion.ui_metadata,
@@ -133,7 +146,7 @@ export function RequirementsEditor({ policyVersion }: { policyVersion: PolicyVer
                     <FormField
                         control={form.control}
                         name="requirements"
-                        render={({ field }) => (
+                        render={({ field }: { field: any }) => (
                             <FormItem>
                                 <FormControl>
                                     <Textarea

@@ -46,11 +46,11 @@ const componentVersionColumns: ColumnDef<any>[] = [
 
 export function ComponentVersionsTable({ versions }: { versions: any[] }) {
     return (
-        <DataTable 
-            columns={componentVersionColumns} 
-            data={versions} 
-            emptyMessage="No versions found" 
-            className="" 
+        <DataTable
+            columns={componentVersionColumns}
+            data={versions}
+            emptyMessage="No versions found"
+            className=""
         />
     );
 }

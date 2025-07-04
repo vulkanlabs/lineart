@@ -17,13 +17,7 @@ import {
     FormLabel,
     FormMessage,
 } from "@vulkan/base/ui";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@vulkan/base/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@vulkan/base/ui";
 import { Input } from "@vulkan/base/ui";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@vulkan/base/ui";
 import { Textarea } from "@vulkan/base/ui";

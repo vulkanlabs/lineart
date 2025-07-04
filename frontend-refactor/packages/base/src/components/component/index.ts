@@ -1,1 +1,1 @@
-export * from './dependencies-table'
+export * from "./dependencies-table";

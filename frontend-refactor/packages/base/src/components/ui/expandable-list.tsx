@@ -6,13 +6,7 @@ import { Button } from "./button";
 import { Input } from "./input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
 import { cn } from "@/lib/utils";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "./select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 
 type NameTypeTuple = [name: string, type: "FIXED" | "ENVIRONMENT" | "RUNTIME"];
 

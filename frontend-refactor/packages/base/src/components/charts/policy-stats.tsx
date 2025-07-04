@@ -69,7 +69,11 @@ export function RunErrorRateChart({ chartData }) {
                 />
                 <YAxis type="number" domain={[0, roundUp]} />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Line dataKey="error_rate" stroke="var(--color-error_rate)" strokeWidth={strokeWidth} />
+                <Line
+                    dataKey="error_rate"
+                    stroke="var(--color-error_rate)"
+                    strokeWidth={strokeWidth}
+                />
             </LineChart>
         </ChartContainer>
     );

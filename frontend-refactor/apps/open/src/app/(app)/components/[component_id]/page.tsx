@@ -2,15 +2,19 @@ import { ComponentVersionDependenciesTable } from "@vulkan/base";
 import { fetchComponentVersions, fetchComponentVersionUsage } from "@/lib/api";
 import { ComponentVersionsTable } from "./components";
 
-export default async function Page(props) {
+export default async function Page(props: { params: Promise<{ component_id: string }> }) {
     const params = await props.params;
-    const componentVersions = await fetchComponentVersions(params.component_id).catch((error) =>
-        console.error(error),
-    );
+    const componentVersions = await fetchComponentVersions(params.component_id).catch((error) => {
+        console.error(error);
+        return [];
+    });
 
     const componentVersionDependencies = await fetchComponentVersionUsage(
         params.component_id,
-    ).catch((error) => console.error(error));
+    ).catch((error) => {
+        console.error(error);
+        return [];
+    });
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">

@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -8,9 +9,9 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { Input } from "@/components/ui/input";
 import { TrashIcon } from "lucide-react";
 import { toast } from "sonner";
-import { ConfigurationVariablesBase } from "@vulkan-server/ConfigurationVariablesBase";
+import { ConfigurationVariablesBase } from "@vulkan/client-open";
 
-export const environmentVariableSchema = z.object({
+const environmentVariableSchema = z.object({
     name: z
         .string()
         .regex(/^[a-zA-Z0-9_]+$/, {
@@ -22,16 +23,9 @@ export const environmentVariableSchema = z.object({
     isNameEditable: z.boolean().optional(),
 });
 
-export const configVariablesSchema = z.object({
+const configVariablesSchema = z.object({
     variables: z.array(environmentVariableSchema),
 });
-
-export interface EnvironmentVariable {
-    name: string;
-    value: string;
-    isNew?: boolean;
-    isNameEditable?: boolean;
-}
 
 export interface EnvironmentVariablesEditorProps {
     variables: ConfigurationVariablesBase[];
@@ -96,7 +90,8 @@ export function EnvironmentVariablesEditor({
             console.error(error);
             toast("Error saving environment variables", {
                 description:
-                    error.message || "There was a problem updating your environment variables.",
+                    (error as Error)?.message ||
+                    "There was a problem updating your environment variables.",
             });
         } finally {
             setSaving(false);
