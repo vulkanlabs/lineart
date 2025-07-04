@@ -1,18 +1,28 @@
 "use client";
 
+// React and Next.js
 import { useState, useEffect } from "react";
+
+// External libraries
+import { DateRange } from "react-day-picker";
 import { subDays } from "date-fns";
 
-import { DatePickerWithRange } from "@vulkan/base";
-import { fetchDataSourceUsage, fetchDataSourceMetrics, fetchDataSourceCacheStats } from "@/lib/api";
+// Vulkan packages
 import {
+    CacheHitRatioChart,
+    DatePickerWithRange,
+    ErrorRateChart,
+    LoadingChartState,
     RequestVolumeChart,
     ResponseTimeChart,
-    ErrorRateChart,
-    CacheHitRatioChart,
-    LoadingChartState,
 } from "@vulkan/base";
-import { DateRange } from "react-day-picker";
+
+// Local imports
+import {
+    fetchDataSourceCacheStatsAction,
+    fetchDataSourceMetricsAction,
+    fetchDataSourceUsageAction,
+} from "./actions";
 
 export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceId: string }) {
     // Chart Data States
@@ -36,7 +46,7 @@ export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceI
         setIsLoading(true);
 
         // Fetch request volume data
-        fetchDataSourceUsage(dataSourceId, dateRange.from, dateRange.to)
+        fetchDataSourceUsageAction(dataSourceId, dateRange.from, dateRange.to)
             .then((data) => {
                 setRequestVolume(data.requests_by_date);
                 setIsLoading(false);
@@ -47,7 +57,7 @@ export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceI
             });
 
         // Fetch response time and error rate data
-        fetchDataSourceMetrics(dataSourceId, dateRange.from, dateRange.to)
+        fetchDataSourceMetricsAction(dataSourceId, dateRange.from, dateRange.to)
             .then((data) => {
                 setResponseTime(data.avg_response_time_by_date);
                 setErrorRate(data.error_rate_by_date);
@@ -57,7 +67,7 @@ export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceI
             });
 
         // Fetch cache hit ratio data
-        fetchDataSourceCacheStats(dataSourceId, dateRange.from, dateRange.to)
+        fetchDataSourceCacheStatsAction(dataSourceId, dateRange.from, dateRange.to)
             .then((data) => {
                 setCacheHitRatio(data.cache_hit_ratio_by_date);
             })

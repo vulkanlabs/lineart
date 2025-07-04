@@ -1,8 +1,11 @@
 "use client";
+
+// External libraries
 import { GitCompare, ChartColumnStacked, Settings2, Layers } from "lucide-react";
 
-import { SidebarSectionProps, PageLayout } from "@/components/page-layout";
-import { InnerNavbarSectionProps, InnerNavbar } from "@/components/inner-navbar";
+// Local imports
+import { InnerNavbar, InnerNavbarSectionProps } from "@/components/inner-navbar";
+import { PageLayout, SidebarSectionProps } from "@/components/page-layout";
 
 export function RouteLayout({ policy, children }) {
     const sections: SidebarSectionProps[] = [

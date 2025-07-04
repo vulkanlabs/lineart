@@ -1,10 +1,13 @@
 "use client";
+
+// External libraries
 import { Layers, Network, FolderCog, Play } from "lucide-react";
 
-import { SidebarSectionProps, PageLayout } from "@/components/page-layout";
-import { InnerNavbarSectionProps, InnerNavbar } from "@/components/inner-navbar";
-import { LauncherButton } from "./launcher/components";
+// Local imports
+import { InnerNavbar, InnerNavbarSectionProps } from "@/components/inner-navbar";
+import { PageLayout, SidebarSectionProps } from "@/components/page-layout";
 import { postLaunchFormAction } from "./launcher/actions";
+import { LauncherButton } from "./launcher/components";
 
 export function RouteLayout({ policy, policyVersion, children }) {
     const baseUrl = `/policyVersions/${policyVersion.policy_version_id}`;

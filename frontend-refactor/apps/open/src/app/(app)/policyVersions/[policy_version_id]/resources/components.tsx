@@ -1,33 +1,38 @@
 "use client";
 
+// React and Next.js
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 import Link from "next/link";
+
+// External libraries
+import { useForm } from "react-hook-form";
 import { LinkIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import * as z from "zod";
 
+// Vulkan packages
 import {
     Button,
-    Textarea,
     Form,
     FormControl,
     FormField,
     FormItem,
     FormMessage,
+    Textarea,
 } from "@vulkan/base/ui";
 import {
     DataTable,
-    ShortenedID,
     EnvironmentVariablesEditor,
+    ShortenedID,
     type EnvironmentVariablesEditorProps,
 } from "@vulkan/base";
-import type { DataSource, PolicyVersion, ConfigurationVariablesBase } from "@vulkan/client-open";
+import type { ConfigurationVariablesBase, DataSource, PolicyVersion } from "@vulkan/client-open";
 
-import { parseDate } from "@/lib/utils";
+// Local imports
 import { updatePolicyVersion } from "@/lib/api";
+import { parseDate } from "@/lib/utils";
 import { setPolicyVersionVariablesAction } from "./actions";
 
 interface EnvironmentVariablesProps {

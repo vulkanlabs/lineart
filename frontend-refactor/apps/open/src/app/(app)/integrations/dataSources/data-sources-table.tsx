@@ -1,22 +1,24 @@
 "use client";
 
+// External libraries
 import { ArrowUpDown } from "lucide-react";
-
-import { DetailsButton } from "@vulkan/base";
-import { ShortenedID } from "@vulkan/base";
-import { Button } from "@vulkan/base/ui";
-import { parseDate } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
-import { DataSource } from "@vulkan/client-open/models/DataSource";
+
+// Vulkan packages
+import { Button } from "@vulkan/base/ui";
 import {
+    DetailsButton,
+    ShortenedID,
     DeletableResourceTable,
     DeletableResourceTableActions,
     SearchFilterOptions,
     DeleteResourceOptions,
 } from "@vulkan/base";
+import { DataSource } from "@vulkan/client-open";
 
+// Local imports
+import { parseDate } from "@/lib/utils";
 import { deleteDataSource } from "@/lib/api";
-
 import { CreateDataSourceDialog } from "./create-dialog";
 
 export default function DataSourcesTable({ dataSources }: { dataSources: DataSource[] }) {

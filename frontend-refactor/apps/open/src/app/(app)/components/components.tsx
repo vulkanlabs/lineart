@@ -1,12 +1,10 @@
 "use client";
 
-import { DetailsButton } from "@vulkan/base";
 import { useRouter } from "next/navigation";
-
-import { DataTable } from "@vulkan/base";
-import { ShortenedID } from "@vulkan/base";
-import { Button } from "@vulkan/base/ui";
 import { ColumnDef } from "@tanstack/react-table";
+
+import { DetailsButton, DataTable, ShortenedID } from "@vulkan/base";
+import { Button } from "@vulkan/base/ui";
 
 export default function ComponentPageContent({ components }) {
     const router = useRouter();

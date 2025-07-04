@@ -8,12 +8,16 @@ import {
     ChartTooltipContent,
     ChartLegend,
     ChartLegendContent,
-} from "@/components/ui/chart";
+} from "../ui/chart";
 
 import { roundUp } from "../../lib/chart";
 import { DefaultGridProps, strokeWidth } from "./constants";
 
-export function RunsChart({ chartData }) {
+type ChartDataProps = {
+    chartData: any[];
+};
+
+export function RunsChart({ chartData }: ChartDataProps) {
     const chartConfig = {
         count: {
             label: "Runs",
@@ -21,7 +25,7 @@ export function RunsChart({ chartData }) {
         },
     } satisfies ChartConfig;
 
-    const sorted = chartData.sort((a, b) => dateDiff(a, b));
+    const sorted = [...chartData].sort((a: any, b: any) => dateDiff(a, b));
     return (
         <ChartContainer config={chartConfig} className="h-full w-full">
             <LineChart accessibilityLayer data={sorted}>
@@ -42,16 +46,16 @@ export function RunsChart({ chartData }) {
     );
 }
 
-export function RunErrorRateChart({ chartData }) {
+export function RunErrorRateChart({ chartData }: ChartDataProps) {
     const chartConfig = {
         error_rate: {
             label: "Error Rate",
             color: "#EF5350",
         },
     } satisfies ChartConfig;
-    const sortedData = chartData
-        .sort((a, b) => dateDiff(a, b))
-        .map((data) => ({
+    const sortedData = [...chartData]
+        .sort((a: any, b: any) => dateDiff(a, b))
+        .map((data: any) => ({
             ...data,
             error_rate: Math.round(data.error_rate * 100) / 100,
         }));
@@ -79,8 +83,8 @@ export function RunErrorRateChart({ chartData }) {
     );
 }
 
-export function RunDurationStatsChart({ chartData }) {
-    const sortedData = chartData.sort((a, b) => dateDiff(a, b));
+export function RunDurationStatsChart({ chartData }: ChartDataProps) {
+    const sortedData = [...chartData].sort((a: any, b: any) => dateDiff(a, b));
     const chartConfig = {
         min_duration: {
             label: "Min",
@@ -131,7 +135,7 @@ export function RunDurationStatsChart({ chartData }) {
     );
 }
 
-export function AvgDurationByStatusChart({ chartData }) {
+export function AvgDurationByStatusChart({ chartData }: ChartDataProps) {
     const runStatusChartConfig = {
         FAILURE: {
             label: "Failure",
@@ -151,7 +155,7 @@ export function AvgDurationByStatusChart({ chartData }) {
         },
     } satisfies ChartConfig;
 
-    const sortedData = chartData.sort((a, b) => dateDiff(a, b));
+    const sortedData = [...chartData].sort((a: any, b: any) => dateDiff(a, b));
     return (
         <ChartContainer config={runStatusChartConfig} className="h-full w-full">
             <LineChart accessibilityLayer data={sortedData}>
@@ -175,7 +179,7 @@ export function AvgDurationByStatusChart({ chartData }) {
 }
 
 // Outcome occurrences
-export function RunOutcomesChart({ chartData }) {
+export function RunOutcomesChart({ chartData }: ChartDataProps) {
     const possibleOutcomes = parseOutcomes(chartData);
     const chartConfig = outcomeChartConfig(possibleOutcomes);
     const sortedData = formatOutcomesData(chartData, possibleOutcomes, "count");
@@ -209,7 +213,7 @@ export function RunOutcomesChart({ chartData }) {
 }
 
 // Outcome Distribution
-export function RunOutcomeDistributionChart({ chartData }) {
+export function RunOutcomeDistributionChart({ chartData }: ChartDataProps) {
     const possibleOutcomes = parseOutcomes(chartData);
     const chartConfig = outcomeChartConfig(possibleOutcomes);
     const sortedData = formatOutcomesData(chartData, possibleOutcomes, "percentage");
@@ -245,13 +249,16 @@ export function RunOutcomeDistributionChart({ chartData }) {
 // Create a chart config object with a key for each possible outcome
 function outcomeChartConfig(outcomes: string[]) {
     return {
-        ...outcomes.reduce((acc, outcome) => {
-            acc[outcome] = {
-                label: outcome,
-                color: `hsl(var(--chart-${(outcomes.indexOf(outcome) % 5) + 1}))`,
-            };
-            return acc;
-        }, {}),
+        ...outcomes.reduce(
+            (acc: any, outcome) => {
+                acc[outcome] = {
+                    label: outcome,
+                    color: `hsl(var(--chart-${(outcomes.indexOf(outcome) % 5) + 1}))`,
+                };
+                return acc;
+            },
+            {} as Record<string, any>,
+        ),
     } as ChartConfig;
 }
 
@@ -259,15 +266,18 @@ function outcomeChartConfig(outcomes: string[]) {
 // weird names due to the multiindex involved.
 type OutcomeSeriesType = "count" | "percentage";
 function formatOutcomesData(data: any[], outcomes: string[], series: OutcomeSeriesType) {
-    return data
+    return [...data]
         .sort((a, b) => dateDiff(a, b))
         .map((data) => {
             return {
                 date: data["date,"],
-                ...outcomes.reduce((acc, outcome) => {
-                    acc[outcome] = data[`${series},${outcome}`];
-                    return acc;
-                }, {}),
+                ...outcomes.reduce(
+                    (acc: any, outcome) => {
+                        acc[outcome] = data[`${series},${outcome}`];
+                        return acc;
+                    },
+                    {} as Record<string, any>,
+                ),
             };
         });
 }
@@ -283,6 +293,6 @@ function parseOutcomes(data: any[]) {
     return keys;
 }
 
-function dateDiff(a, b) {
+function dateDiff(a: any, b: any) {
     return new Date(a.date).valueOf() - new Date(b.date).valueOf();
 }

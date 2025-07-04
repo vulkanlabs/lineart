@@ -1,14 +1,18 @@
 "use client";
 
-import { Workflow, Puzzle, ArrowDownUp, Logs, Menu } from "lucide-react";
+// React and Next.js
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
-import { Button } from "@vulkan/base/ui";
-import { Sheet, SheetContent, SheetTrigger } from "@vulkan/base/ui";
+// External libraries
+import { Workflow, Puzzle, ArrowDownUp, Logs, Menu } from "lucide-react";
+
+// Vulkan packages
+import { Button, Sheet, SheetContent, SheetTrigger } from "@vulkan/base/ui";
 import { cn } from "@vulkan/base";
 
+// Local imports
 import { VulkanLogo } from "@/components/logo";
 import { SidebarSectionProps } from "@/components/page-layout";
 import "@/app/globals.css";

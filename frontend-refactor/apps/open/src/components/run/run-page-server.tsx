@@ -1,11 +1,10 @@
+import type { NodeDefinitionDict, PolicyVersion, RunData, RunLogs } from "@vulkan/client-open";
 import { fetchPolicyVersion, fetchRunData, fetchRunLogs } from "@/lib/api";
 
-import RunPageContent from "@/components/run/run-page-content";
 import type { NodeLayoutConfig } from "@/lib/workflow/types";
 import { makeGraphElements } from "@/lib/workflow/graph";
 
-import type { NodeDefinitionDict, PolicyVersion, RunData, RunLogs } from "@vulkan/client-open";
-
+import RunPageContent from "@/components/run/run-page-content";
 import type { RunNodeLayout } from "@/components/run/types";
 import { defaultElkOptions } from "@/components/run/options";
 

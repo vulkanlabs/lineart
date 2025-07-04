@@ -1,16 +1,16 @@
 "use client";
 
+// External libraries
 import { ColumnDef } from "@tanstack/react-table";
-import { PolicyVersion } from "@vulkan/client-open/models/PolicyVersion";
-import { Policy } from "@vulkan/client-open/models/Policy";
-import { PolicyAllocationStrategy } from "@vulkan/client-open/models/PolicyAllocationStrategy";
 
-import { DetailsButton } from "@vulkan/base";
-import { UpdateAllocationsDialog } from "./dialog";
-import { DataTable } from "@vulkan/base";
-import { ShortenedID } from "@vulkan/base";
+// Vulkan packages
+import { DetailsButton, DataTable, ShortenedID } from "@vulkan/base";
+import type { Policy, PolicyVersion, PolicyAllocationStrategy } from "@vulkan/client-open";
+
+// Local imports
 import { RefreshButton } from "@/components/refresh-button";
 import { parseDate } from "@/lib/utils";
+import { UpdateAllocationsDialog } from "./dialog";
 
 export function AllocatedVersionsTable({
     policy,

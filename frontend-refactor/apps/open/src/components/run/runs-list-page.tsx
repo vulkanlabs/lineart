@@ -1,22 +1,22 @@
 "use client";
 
+// React and Next.js
 import React, { useState, useEffect } from "react";
-import { subDays, formatDistanceStrict } from "date-fns";
 import { useRouter } from "next/navigation";
+
+// External libraries
+import { subDays, formatDistanceStrict } from "date-fns";
 import { ArrowUpDown, RefreshCcw } from "lucide-react";
-import { Badge } from "@vulkan/base/ui";
-
 import { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@vulkan/base/ui";
-
-import { ShortenedID } from "@vulkan/base";
-import { DetailsButton } from "@vulkan/base";
-import { DatePickerWithRange } from "@vulkan/base";
-import { ResourceTable } from "@vulkan/base";
-import { parseDate } from "@/lib/utils";
-
-import { Run } from "@vulkan/client-open";
 import { DateRange } from "react-day-picker";
+
+// Vulkan packages
+import { Badge, Button } from "@vulkan/base/ui";
+import { ShortenedID, DetailsButton, DatePickerWithRange, ResourceTable } from "@vulkan/base";
+import type { Run } from "@vulkan/client-open";
+
+// Local imports
+import { parseDate } from "@/lib/utils";
 
 type RunsLoader = ({
     resourceId,

@@ -1,14 +1,18 @@
-import { DataSource } from "@vulkan/client-open/models/DataSource";
-import { fetchDataSource } from "@/lib/api";
+// Vulkan packages
+import type { DataSource } from "@vulkan/client-open";
 
+// Local imports
+import { fetchDataSource } from "@/lib/api";
 import DataSourcePage from "./components";
 
-export default async function Page(props) {
+export default async function Page(props: { params: Promise<{ data_source_id: string }> }) {
     const params = await props.params;
-    const dataSource: DataSource = await fetchDataSource(params.data_source_id).catch((error) => {
-        console.error(error);
-        return null;
-    });
+    const dataSource: DataSource | null = await fetchDataSource(params.data_source_id).catch(
+        (error) => {
+            console.error(error);
+            return null;
+        },
+    );
 
     if (!dataSource) {
         return (

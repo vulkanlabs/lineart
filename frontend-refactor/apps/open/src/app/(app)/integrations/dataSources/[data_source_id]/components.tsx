@@ -1,28 +1,45 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
+// React and Next.js
 import { useState, Suspense, useEffect, useCallback } from "react";
-import { CopyIcon, CalendarIcon, CheckIcon, FileIcon, LinkIcon, Settings2Icon } from "lucide-react";
 
-import { DataSource } from "@vulkan/client-open/models/DataSource";
-import { DataSourceEnvVarBase } from "@vulkan/client-open/models/DataSourceEnvVarBase";
-import { ConfigurationVariablesBase } from "@vulkan/client-open/models/ConfigurationVariablesBase";
-import { DataTable } from "@vulkan/base";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@vulkan/base/ui";
-import { Card, CardContent, CardHeader, CardTitle } from "@vulkan/base/ui";
-import { Badge } from "@vulkan/base/ui";
-import { Button } from "@vulkan/base/ui";
-import { Separator } from "@vulkan/base/ui";
-import { ScrollArea } from "@vulkan/base/ui";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@vulkan/base/ui";
-import { Loader } from "@vulkan/base";
-import { EnvironmentVariablesEditor } from "@vulkan/base";
-import { fetchDataSourceEnvVars } from "@/lib/api";
+// External libraries
+import { CopyIcon, CalendarIcon, CheckIcon, FileIcon, LinkIcon, Settings2Icon } from "lucide-react";
+import { ColumnDef } from "@tanstack/react-table";
+
+// Vulkan packages
+import {
+    Badge,
+    Button,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    ScrollArea,
+    Separator,
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@vulkan/base/ui";
+import { DataTable, EnvironmentVariablesEditor, Loader } from "@vulkan/base";
+import type {
+    ConfigurationVariablesBase,
+    DataSource,
+    DataSourceEnvVarBase,
+} from "@vulkan/client-open";
+
+// Local imports
+import { setDataSourceVariablesAction, fetchDataSourceEnvVarsAction } from "./actions";
 import DataSourceUsageAnalytics from "./usage-analytics";
-import { setDataSourceVariablesAction } from "./actions";
 
 export default function DataSourcePage({ dataSource }: { dataSource: DataSource }) {
     const [copiedField, setCopiedField] = useState<string | null>(null);
+    console.log("DataSourcePage rendered with dataSource:", dataSource);
 
     const copyToClipboard = (text: string, field: string) => {
         navigator.clipboard.writeText(text);
@@ -387,7 +404,7 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
 
     const fetchVariables = useCallback(async () => {
         try {
-            const envVars = await fetchDataSourceEnvVars(dataSource.data_source_id);
+            const envVars = await fetchDataSourceEnvVarsAction(dataSource.data_source_id);
             setVariables(envVars);
         } catch (error) {
             console.error("Failed to fetch environment variables:", error);

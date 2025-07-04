@@ -1,6 +1,6 @@
+import { PolicyDefinitionDictOutput } from "@vulkan/client-open";
 import { NodeLayoutConfig, NodeDefinition, EdgeLayoutConfig, Dict } from "@/lib/workflow/types";
 import { NodeTypeMapping, layoutGraph, makeGraphElements } from "@/lib/workflow/graph";
-import { PolicyDefinitionDictOutput } from "@vulkan/client-open/models/PolicyDefinitionDictOutput";
 
 /**
  * @param graphData - Raw data with the node definitions.

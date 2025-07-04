@@ -1,17 +1,25 @@
 "use client";
 
+// React and Next.js
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+
+// External libraries
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
-import { Button } from "@vulkan/base/ui";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@vulkan/base/ui";
-import { Input } from "@vulkan/base/ui";
+// Vulkan packages
 import {
+    Button,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    Input,
     Form,
     FormField,
     FormControl,
@@ -19,13 +27,21 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+    Textarea,
+    Switch,
+    KeyValueTable,
+    keyValuePairsFromObject,
+    keyValuePairsToMap,
 } from "@vulkan/base/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@vulkan/base/ui";
-import { Textarea } from "@vulkan/base/ui";
-import { Switch } from "@vulkan/base/ui";
-import { KeyValueTable, keyValuePairsFromObject, keyValuePairsToMap } from "@vulkan/base/ui";
-import { createDataSourceAction } from "./actions";
 import type { DataSourceSpec } from "@vulkan/client-open";
+
+// Local imports
+import { createDataSourceAction } from "./actions";
 
 const formSchema = z.object({
     name: z

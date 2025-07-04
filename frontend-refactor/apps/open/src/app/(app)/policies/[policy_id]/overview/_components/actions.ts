@@ -1,7 +1,7 @@
 "use server";
 
 import { createPolicyVersion } from "@/lib/api";
-import { PolicyVersionCreate } from "@vulkan/client-open/models/PolicyVersionCreate";
+import { PolicyVersionCreate } from "@vulkan/client-open";
 
 export async function createPolicyVersionAction(data: PolicyVersionCreate) {
     try {

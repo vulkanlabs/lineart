@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { ChartSpline, Users2, Code2, ListTree, Section } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { ChartSpline, Users2, Code2 } from "lucide-react";
 
 import { fetchComponents, fetchPolicy, fetchPolicyVersionComponents } from "@/lib/api";
 

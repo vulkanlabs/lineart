@@ -1,13 +1,23 @@
 "use client";
 
+// React and Next.js
 import * as React from "react";
 import { useRouter } from "next/navigation";
+
+// External libraries
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal, Trash } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@vulkan/base/ui";
+// Vulkan packages
 import {
+    Button,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
@@ -15,21 +25,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@vulkan/base/ui";
-import { DetailsButton } from "@vulkan/base";
-import { ShortenedID } from "@vulkan/base";
-import { ResourceTable } from "@vulkan/base";
-import { parseDate } from "@/lib/utils";
-import { deletePolicy } from "@/lib/api";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@vulkan/base/ui";
+import { DetailsButton, ResourceTable, ShortenedID } from "@vulkan/base";
+import { Policy } from "@vulkan/client-open";
 
-import { Policy } from "@vulkan/client-open/models/Policy";
+// Local imports
+import { deletePolicy } from "@/lib/api";
+import { parseDate } from "@/lib/utils";
 import { CreatePolicyDialog } from "./create-dialog";
 
 // Create a context for policy deletion

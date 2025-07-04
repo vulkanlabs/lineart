@@ -1,8 +1,7 @@
 "use server";
 
 import { createPolicy } from "@/lib/api";
-import { Policy } from "@vulkan/client-open/models/Policy";
-import { PolicyBase } from "@vulkan/client-open/models/PolicyBase";
+import { Policy, PolicyBase } from "@vulkan/client-open";
 
 export async function createPolicyAction(data: PolicyBase): Promise<Policy> {
     try {

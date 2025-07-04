@@ -11,7 +11,7 @@ import {
     LineChart,
     Line,
 } from "recharts";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "../ui/skeleton";
 import { DefaultGridProps, strokeWidth } from "./constants";
 
 const colors = {

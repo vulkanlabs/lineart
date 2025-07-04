@@ -40,3 +40,6 @@ yarn-error.log*
 # OpenAPI Generator metadata
 .openapi-generator/
 .openapi-generator-ignore
+
+# TypeScript
+*.tsbuildinfo

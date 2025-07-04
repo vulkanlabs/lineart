@@ -1,8 +1,13 @@
 "use client";
-import { Suspense } from "react";
-import { Loader } from "@vulkan/base";
-import { fetchMetricsData, fetchPolicyOutcomeStats } from "@/lib/actions";
 
+// React and Next.js
+import { Suspense } from "react";
+
+// Vulkan packages
+import { Loader } from "@vulkan/base";
+
+// Local imports
+import { fetchMetricsData, fetchPolicyOutcomeStats } from "@/lib/actions";
 import PolicyMetrics from "./policy-metrics";
 import { PolicyVersionsTable } from "./policy-versions-table";
 

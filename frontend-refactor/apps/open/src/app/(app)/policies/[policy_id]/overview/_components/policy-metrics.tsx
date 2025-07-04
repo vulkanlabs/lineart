@@ -1,20 +1,24 @@
 "use client";
 
+// React and Next.js
 import React, { useState, useEffect } from "react";
+
+// External libraries
+import { DateRange } from "react-day-picker";
 import { subDays } from "date-fns";
 
-import { DatePickerWithRange } from "@vulkan/base";
-import { VersionPicker } from "@vulkan/base";
+// Vulkan packages
 import {
-    RunsChart,
-    RunErrorRateChart,
-    RunDurationStatsChart,
     AvgDurationByStatusChart,
-    RunOutcomesChart,
+    DatePickerWithRange,
+    RunDurationStatsChart,
+    RunErrorRateChart,
     RunOutcomeDistributionChart,
+    RunOutcomesChart,
+    RunsChart,
+    VersionPicker,
 } from "@vulkan/base";
-import { PolicyVersion } from "@vulkan/client-open/models/PolicyVersion";
-import { DateRange } from "react-day-picker";
+import { PolicyVersion } from "@vulkan/client-open";
 
 export default function PolicyMetrics({
     policyId,

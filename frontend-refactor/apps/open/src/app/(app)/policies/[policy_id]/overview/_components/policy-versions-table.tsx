@@ -1,24 +1,25 @@
 "use client";
 
+// External libraries
+import { useMemo } from "react";
 import { ArrowUpDown } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 
-import { Button } from "@vulkan/base/ui";
-import { Badge } from "@vulkan/base/ui";
-import { DetailsButton } from "@vulkan/base";
-import { ShortenedID } from "@vulkan/base";
+// Vulkan packages
+import { Button, Badge } from "@vulkan/base/ui";
 import {
+    DetailsButton,
+    ShortenedID,
     DeletableResourceTable,
     DeletableResourceTableActions,
     SearchFilterOptions,
     DeleteResourceOptions,
 } from "@vulkan/base";
-
-import { parseDate } from "@/lib/utils";
-import { deletePolicyVersion } from "@/lib/api";
-
 import { Policy, PolicyVersion, PolicyVersionStatus } from "@vulkan/client-open";
 
+// Local imports
+import { parseDate } from "@/lib/utils";
+import { deletePolicyVersion } from "@/lib/api";
 import { CreatePolicyVersionDialog } from "./create-version";
 
 export function PolicyVersionsTable({
@@ -28,23 +29,28 @@ export function PolicyVersionsTable({
     policy: Policy;
     policyVersions: PolicyVersion[];
 }) {
-    const activeVersions = getActiveVersions(policy);
-    const formattedVersions = policyVersions.map((policyVersion: PolicyVersion) => {
-        let activeStatus = "inactive";
-        if (activeVersions.includes(policyVersion.policy_version_id)) {
-            activeStatus = "active";
-        }
+    const activeVersions = useMemo(() => getActiveVersions(policy), [policy]);
 
-        // Use the actual status from the backend if available, or fallback to INVALID
-        // In the future, this will always come from the backend
-        const validationStatus = policyVersion.status || PolicyVersionStatus.Invalid.valueOf();
+    const formattedVersions = useMemo(
+        () =>
+            policyVersions.map((policyVersion: PolicyVersion) => {
+                const activeStatus = activeVersions.includes(policyVersion.policy_version_id)
+                    ? "active"
+                    : "inactive";
 
-        return {
-            ...policyVersion,
-            validationStatus: validationStatus,
-            activeStatus: activeStatus,
-        };
-    }) as ExtendedPolicyVersion[];
+                // Use the actual status from the backend if available, or fallback to INVALID
+                // In the future, this will always come from the backend
+                const validationStatus: PolicyVersionStatus =
+                    policyVersion.status || PolicyVersionStatus.Invalid;
+
+                return {
+                    ...policyVersion,
+                    validationStatus,
+                    activeStatus,
+                };
+            }),
+        [policyVersions, activeVersions],
+    );
 
     const searchOptions: SearchFilterOptions = {
         column: "alias",
@@ -112,14 +118,10 @@ const policyVersionsTableColumns: ColumnDef<ExtendedPolicyVersion>[] = [
         header: "Valid",
         accessorKey: "validationStatus",
         cell: ({ row }) => {
-            const status = row.getValue("validationStatus") as keyof typeof PolicyVersionStatus;
+            const status = row.getValue("validationStatus") as PolicyVersionStatus;
 
             return (
-                <Badge
-                    variant={
-                        status === PolicyVersionStatus.Valid.valueOf() ? "default" : "destructive"
-                    }
-                >
+                <Badge variant={status === PolicyVersionStatus.Valid ? "default" : "destructive"}>
                     {status}
                 </Badge>
             );
@@ -174,19 +176,20 @@ const policyVersionsTableColumns: ColumnDef<ExtendedPolicyVersion>[] = [
     },
 ];
 
-function getActiveVersions(policyData) {
+function getActiveVersions(policyData: Policy): string[] {
     if (policyData.allocation_strategy == null) {
         return [];
     }
     const choiceVersions = policyData.allocation_strategy.choice.map((opt) => {
         return opt.policy_version_id;
     });
-    return choiceVersions + policyData.allocation_strategy.shadow;
+    const shadowVersions = policyData.allocation_strategy.shadow || [];
+    return [...choiceVersions, ...shadowVersions];
 }
 
 // Define interfaces for the policy version with status fields
-interface ExtendedPolicyVersion extends GeneratedPolicyVersion {
-    validationStatus: keyof typeof PolicyVersionStatus;
+interface ExtendedPolicyVersion extends PolicyVersion {
+    validationStatus: PolicyVersionStatus;
     activeStatus: string;
 }
 

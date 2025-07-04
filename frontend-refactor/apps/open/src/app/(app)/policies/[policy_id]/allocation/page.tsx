@@ -2,10 +2,9 @@ import { Suspense } from "react";
 
 import { Loader } from "@vulkan/base";
 import { fetchPolicy, fetchPolicyVersions } from "@/lib/api";
-import { PolicyAllocationStrategy } from "@vulkan/client-open/models/PolicyAllocationStrategy";
+import { PolicyAllocationStrategy, PolicyVersion } from "@vulkan/client-open";
 
 import { AllocatedVersionsTable } from "./_components/table";
-import { PolicyVersion } from "@vulkan/client-open/models/PolicyVersion";
 
 export default async function Page(props: any) {
     const policyId = await props.params.policy_id;

@@ -1,5 +1,5 @@
 import { setPolicyVersionVariables } from "@/lib/api";
-import { ConfigurationVariablesBase } from "@vulkan/client-open/models/ConfigurationVariablesBase";
+import { ConfigurationVariablesBase } from "@vulkan/client-open";
 
 export async function setPolicyVersionVariablesAction(
     policyVersionId: string,

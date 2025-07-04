@@ -1,21 +1,19 @@
 "use client";
 
+// React and Next.js
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+
+// External libraries
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
-import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 
-import type {
-    PolicyAllocationStrategy,
-    PolicyVersion,
-    PolicyRunPartition,
-} from "@vulkan/client-open";
-import { updatePolicyAllocationStrategy } from "@/lib/api";
-
-import { Button } from "@vulkan/base/ui";
+// Vulkan packages
 import {
+    Button,
     Dialog,
     DialogContent,
     DialogHeader,
@@ -23,10 +21,12 @@ import {
     DialogTrigger,
     DialogFooter,
     DialogDescription,
-} from "@vulkan/base/ui";
-import { Input } from "@vulkan/base/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@vulkan/base/ui";
-import {
+    Input,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
     Form,
     FormField,
     FormControl,
@@ -34,10 +34,18 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
+    RadioGroup,
+    RadioGroupItem,
+    Checkbox,
 } from "@vulkan/base/ui";
-import { RadioGroup, RadioGroupItem } from "@vulkan/base/ui";
-import { Checkbox } from "@vulkan/base/ui";
-import { Trash2 } from "lucide-react";
+import type {
+    PolicyAllocationStrategy,
+    PolicyVersion,
+    PolicyRunPartition,
+} from "@vulkan/client-open";
+
+// Local imports
+import { updatePolicyAllocationStrategy } from "@/lib/api";
 
 const allocationFormSchema = z
     .object({

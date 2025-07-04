@@ -8,9 +8,8 @@ export { VulkanLogo } from "./components/logo";
 // Re-export animations
 export * from "./components/animations";
 
-// Re-export charts (need to verify these are framework-agnostic)
-// export * from "./components/charts"; // Temporarily disabled due to TypeScript errors
-export { DatePickerWithRange } from "./components/charts/date-picker";
+// Re-export charts
+export * from "./components/charts";
 
 // Re-export reusable components
 export * from "./components/combobox";
