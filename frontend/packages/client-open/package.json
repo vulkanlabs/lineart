@@ -32,6 +32,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/vulkanlabs/vulkan.git",
-    "directory": "frontend-refactor/packages/types"
+    "directory": "frontend/packages/client-open"
   }
 }

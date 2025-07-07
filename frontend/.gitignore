@@ -37,9 +37,8 @@ yarn-error.log*
 .DS_Store
 *.pem
 
-# OpenAPI Generator metadata
-.openapi-generator/
-.openapi-generator-ignore
+# OpenAPI auto-generated code
+packages/client-open/src
 
 # TypeScript
 *.tsbuildinfo
