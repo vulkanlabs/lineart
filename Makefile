@@ -35,24 +35,16 @@ run: config
 .PHONY: openapi
 openapi:
 	uv run python scripts/export-openapi.py --out generated/openapi.json
-	rm -r frontend/generated || true
-	openapi-generator-cli generate -g typescript-fetch -i generated/openapi.json -o frontend/generated --additional-properties="modelPropertyNaming=original"
-
-# Code generation for refactored frontend types package
-.PHONY: openapi-refactor
-openapi-refactor:
-	uv run python scripts/export-openapi.py --out generated/openapi.json
-	rm -r frontend-refactor/packages/client-open/src || true
-	mkdir -p frontend-refactor/packages/client-open/src
-	openapi-generator-cli generate -g typescript-fetch -i generated/openapi.json -o frontend-refactor/packages/client-open/src --additional-properties="modelPropertyNaming=original"
+	rm -r frontend/packages/client-open/src || true
+	mkdir -p frontend/packages/client-open/src
+	openapi-generator-cli generate -g typescript-fetch -i generated/openapi.json -o frontend/packages/client-open/src --additional-properties="modelPropertyNaming=original"
 
 # Configuration
 .PHONY: config
 config:
 	cp -r ./config/local ./config/active
 	cp ./config/active/.env ./.env
-	cp ./config/active/.env ./frontend/.env
-	cp ./config/active/.env ./frontend-refactor/apps/open/.env
+	cp ./config/active/.env ./frontend/apps/open/.env
 
 # Maintenance
 .PHONY: clean-pycache
