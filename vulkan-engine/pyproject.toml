@@ -1,0 +1,23 @@
+[project]
+name = "vulkan_engine"
+version = "0.1.0"
+description = "Vulkan core engine"
+dependencies = [
+    "sqlalchemy>=2.0.32",
+    "pydantic>=2.8.2",
+    "dagster-graphql>=1.8.2",
+    "pandas>=2.2.3",
+    "vulkan[dagster]",
+    "requests>=2.32.3",
+]
+requires-python = ">=3.10"
+
+[tool.uv]
+dev-dependencies = ["pytest>=8.3.2"]
+
+[tool.uv.sources]
+vulkan = { path = "../vulkan" }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -4,11 +4,11 @@ from typing import Any
 from fastapi import Depends, Response
 from requests import Request, Session
 
-from vulkan_server import definitions
-from vulkan_server.dagster.client import get_dagster_client
-from vulkan_server.dagster.trigger_run import update_repository
-from vulkan_server.exceptions import raise_interservice_error
-from vulkan_server.logger import init_logger
+from vulkan_engine import definitions
+from vulkan_engine.dagster.client import get_dagster_client
+from vulkan_engine.dagster.trigger_run import update_repository
+from vulkan_engine.exceptions import raise_interservice_error
+from vulkan_engine.logger import init_logger
 
 
 @dataclass

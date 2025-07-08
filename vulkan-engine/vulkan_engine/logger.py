@@ -5,14 +5,12 @@ import sys
 from dataclasses import dataclass
 from uuid import UUID
 
-import google.cloud.logging
 from fastapi import Depends
-from google.cloud.logging.handlers import CloudLoggingHandler
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from vulkan_server.db import LogRecord, get_db
-from vulkan_server.events import VulkanEvent
+from vulkan_engine.db import LogRecord, get_db
+from vulkan_engine.events import VulkanEvent
 
 SYS_LOGGER_NAME = "vulkan"
 USER_LOGGER_NAME = f"{SYS_LOGGER_NAME}.user"
@@ -82,11 +80,11 @@ def init_system_logger() -> logging.Logger:
     logger.setLevel(logging.DEBUG)
     stream_handler = get_stream_handler()
     logger.addHandler(stream_handler)
-    
+
     cloud_handler = get_cloud_logging_handler()
     if cloud_handler:
         logger.addHandler(cloud_handler)
-    
+
     return logger
 
 
@@ -94,7 +92,10 @@ def get_cloud_logging_handler():
     gcp_project = os.getenv("GCP_PROJECT_ID", None)
     if gcp_project is None:
         return None
-    
+
+    import google.cloud.logging
+    from google.cloud.logging.handlers import CloudLoggingHandler
+
     client = google.cloud.logging.Client(project=gcp_project)
     cloud_handler = CloudLoggingHandler(client, name=GCP_LOGGER_NAME, stream=sys.stdout)
     cloud_handler.setFormatter(CloudLoggingFormatter())

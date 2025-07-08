@@ -25,7 +25,7 @@ from sqlalchemy.sql import func
 from vulkan.core.run import JobStatus, PolicyVersionStatus, RunStatus
 from vulkan.schemas import CachingOptions, DataSourceSpec
 from vulkan.spec.nodes.base import NodeType
-from vulkan_server.schemas import DataObjectOrigin
+from vulkan_engine.schemas import DataObjectOrigin
 
 Base = declarative_base()
 

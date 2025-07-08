@@ -5,8 +5,8 @@ from dagster._core.events.log import EventLogEntry
 from dagster_graphql import DagsterGraphQLClient
 from sqlalchemy import Engine, create_engine
 
-from vulkan_server.dagster.trigger_run import create_dagster_client
-from vulkan_server.schemas import LogEntry
+from vulkan_engine.dagster.trigger_run import create_dagster_client
+from vulkan_engine.schemas import LogEntry
 
 
 def get_dagster_client() -> DagsterGraphQLClient:

@@ -301,7 +301,6 @@ class DataSourceReference(BaseModel):
 class DataObjectMetadata(BaseModel):
     data_object_id: UUID
     data_source_id: UUID
-    project_id: UUID
     key: str
     created_at: datetime
 
