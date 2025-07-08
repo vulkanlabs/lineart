@@ -8,7 +8,13 @@ WORKDIR /app
 RUN pip install uv
 RUN uv pip install --system --no-cache sqlalchemy psycopg2
 
-COPY vulkan vulkan
+# Copy and install packages in dependency order
+COPY vulkan vulkan/
+RUN uv pip install --system --no-cache vulkan/
+
+COPY vulkan-engine vulkan-engine/
+RUN uv pip install --system --no-cache vulkan-engine/
+
 COPY vulkan-server vulkan-server/
 RUN uv pip install --system --no-cache vulkan-server/
 
