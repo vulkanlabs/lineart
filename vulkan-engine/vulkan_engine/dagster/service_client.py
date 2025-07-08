@@ -1,11 +1,8 @@
 from dataclasses import dataclass
 from typing import Any
 
-from fastapi import Depends, Response
-from requests import Request, Session
+from requests import Request, Response, Session
 
-from vulkan_engine import definitions
-from vulkan_engine.dagster.client import get_dagster_client
 from vulkan_engine.dagster.trigger_run import update_repository
 from vulkan_engine.exceptions import raise_interservice_error
 from vulkan_engine.logger import init_logger
@@ -102,15 +99,3 @@ class VulkanDagsterServiceClient:
                 f"Repository load status: {loaded_repos}"
             )
             raise ValueError(msg)
-
-
-def get_dagster_service_client(
-    server_config: definitions.VulkanServerConfig = Depends(
-        definitions.get_vulkan_server_config
-    ),
-    dagster_client=Depends(get_dagster_client),
-) -> VulkanDagsterServiceClient:
-    return VulkanDagsterServiceClient(
-        server_url=server_config.vulkan_dagster_server_url,
-        dagster_client=dagster_client,
-    )

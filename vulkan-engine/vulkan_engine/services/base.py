@@ -8,7 +8,8 @@ from abc import ABC
 
 from sqlalchemy.orm import Session
 
-from vulkan_engine.logger import VulkanLogger
+from vulkan_engine.config import LoggingConfig
+from vulkan_engine.logger import VulkanLogger, create_logger
 
 
 class BaseService(ABC):
@@ -17,7 +18,7 @@ class BaseService(ABC):
 
     Provides:
     - Database session access
-    - Optional logger instance
+    - Logger instance (always available)
     - Common patterns for service operations
     """
 
@@ -30,9 +31,14 @@ class BaseService(ABC):
             logger: Optional VulkanLogger instance for logging events
         """
         self.db = db
-        self.logger = logger
+        self.logger = logger or _create_default_logger(db)
 
     def _log_event(self, event, **kwargs):
-        """Helper method to log events if logger is available."""
-        if self.logger:
-            self.logger.event(event, **kwargs)
+        """Helper method to log events."""
+        self.logger.event(event, **kwargs)
+
+
+def _create_default_logger(db: Session) -> VulkanLogger:
+    """Create a default logger instance."""
+    default_config = LoggingConfig(gcp_project_id=None)
+    return create_logger(db, default_config)

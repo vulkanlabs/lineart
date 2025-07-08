@@ -24,7 +24,6 @@ from vulkan_engine.db import (
     PolicyVersionStatus,
     Run,
 )
-from vulkan_engine.definitions import version_name
 from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
@@ -246,7 +245,7 @@ class PolicyVersionService(BaseService):
 
         # Remove from Dagster
         if self.dagster_service_client:
-            name = version_name(policy_version_id)
+            name = str(policy_version_id)
             try:
                 self.dagster_service_client.delete_workspace(name)
                 self.dagster_service_client.ensure_workspace_removed(name)

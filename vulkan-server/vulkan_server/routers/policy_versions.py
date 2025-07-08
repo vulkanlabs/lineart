@@ -14,12 +14,8 @@ from vulkan_engine.dagster.launch_run import (
     MAX_POLLING_TIMEOUT_MS,
     MIN_POLLING_INTERVAL_MS,
     DagsterRunLauncher,
-    get_dagster_launcher,
 )
-from vulkan_engine.dagster.service_client import (
-    VulkanDagsterServiceClient,
-    get_dagster_service_client,
-)
+from vulkan_engine.dagster.service_client import VulkanDagsterServiceClient
 from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
     InvalidDataSourceException,
@@ -28,7 +24,12 @@ from vulkan_engine.exceptions import (
     PolicyVersionNotFoundException,
 )
 from vulkan_engine.services import PolicyVersionService
-from vulkan_engine.services.dependencies import get_service_dependencies
+
+from vulkan_server.dependencies import (
+    get_dagster_launcher,
+    get_dagster_service_client,
+    get_service_dependencies,
+)
 
 router = APIRouter(
     prefix="/policy-versions",

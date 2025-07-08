@@ -1,15 +1,13 @@
 import json
 import logging
-import os
 import sys
 from dataclasses import dataclass
 from uuid import UUID
 
-from fastapi import Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from vulkan_engine.db import LogRecord, get_db
+from vulkan_engine.db import LogRecord
 from vulkan_engine.events import VulkanEvent
 
 SYS_LOGGER_NAME = "vulkan"
@@ -23,8 +21,8 @@ class EventMessage(BaseModel):
 
 
 class VulkanLogger:
-    def __init__(self, db: Session):
-        self.system = get_system_logger()
+    def __init__(self, db: Session, logging_config=None):
+        self.system = get_system_logger(logging_config)
         self.user = get_user_logger(db)
 
     def event(self, event_name: VulkanEvent, **kwargs):
@@ -34,17 +32,16 @@ class VulkanLogger:
         )
 
 
-def get_logger(
-    db: Session = Depends(get_db),
-) -> VulkanLogger:
-    return VulkanLogger(db)
+def create_logger(db: Session, logging_config=None) -> VulkanLogger:
+    """Create VulkanLogger with configuration."""
+    return VulkanLogger(db, logging_config)
 
 
-def get_system_logger() -> logging.Logger:
+def get_system_logger(logging_config=None) -> logging.Logger:
     loggers = logging.Logger.manager.loggerDict
     if SYS_LOGGER_NAME in loggers:
         return loggers[SYS_LOGGER_NAME]
-    return init_system_logger()
+    return init_system_logger(logging_config)
 
 
 def get_user_logger(db: Session) -> logging.Logger:
@@ -75,31 +72,22 @@ def init_user_logger(db: Session) -> logging.Logger:
     return logger
 
 
-def init_system_logger() -> logging.Logger:
+def init_system_logger(logging_config=None) -> logging.Logger:
     logger = logging.getLogger(SYS_LOGGER_NAME)
     logger.setLevel(logging.DEBUG)
     stream_handler = get_stream_handler()
     logger.addHandler(stream_handler)
 
-    cloud_handler = get_cloud_logging_handler()
+    cloud_handler = get_cloud_logging_handler(logging_config)
     if cloud_handler:
         logger.addHandler(cloud_handler)
 
     return logger
 
 
-def get_cloud_logging_handler():
-    gcp_project = os.getenv("GCP_PROJECT_ID", None)
-    if gcp_project is None:
-        return None
-
-    import google.cloud.logging
-    from google.cloud.logging.handlers import CloudLoggingHandler
-
-    client = google.cloud.logging.Client(project=gcp_project)
-    cloud_handler = CloudLoggingHandler(client, name=GCP_LOGGER_NAME, stream=sys.stdout)
-    cloud_handler.setFormatter(CloudLoggingFormatter())
-    return cloud_handler
+def get_cloud_logging_handler(logging_config=None):
+    # Skip this for now
+    return None
 
 
 def get_stream_handler():

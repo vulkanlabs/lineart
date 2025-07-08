@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from dagster_graphql import DagsterGraphQLClient
-from fastapi import Depends
 from numpy.random import choice
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -12,11 +11,9 @@ from vulkan.constants import POLICY_CONFIG_KEY
 from vulkan.core.run import RunStatus
 from vulkan.runners.dagster.policy import DEFAULT_POLICY_NAME
 from vulkan.runners.dagster.run_config import RUN_CONFIG_KEY
-from vulkan_engine import definitions
 from vulkan_engine.config_variables import resolve_config_variables_from_id
 from vulkan_engine.dagster import trigger_run
-from vulkan_engine.dagster.client import get_dagster_client
-from vulkan_engine.db import PolicyVersion, Run, get_db
+from vulkan_engine.db import PolicyVersion, Run
 from vulkan_engine.exceptions import (
     NotFoundException,
     RunPollingTimeoutException,
@@ -117,7 +114,7 @@ class DagsterRunLauncher:
             raise VariablesNotSetException(f"Mandatory variables not set: {missing}")
 
         return LaunchConfig(
-            name=definitions.version_name(policy_version_id),
+            name=str(policy_version_id),
             variables=config_variables,
         )
 
@@ -178,20 +175,6 @@ def trigger_dagster_job(
         execution_config,
     )
     return dagster_run_id
-
-
-def get_dagster_launcher(
-    db: Session = Depends(get_db),
-    dagster_client=Depends(get_dagster_client),
-    server_config: definitions.VulkanServerConfig = Depends(
-        definitions.get_vulkan_server_config
-    ),
-) -> DagsterRunLauncher:
-    return DagsterRunLauncher(
-        db=db,
-        dagster_client=dagster_client,
-        server_url=server_config.server_url,
-    )
 
 
 def allocate_runs(

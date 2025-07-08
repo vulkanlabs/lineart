@@ -9,10 +9,14 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from vulkan_engine import schemas
-from vulkan_engine.dagster.launch_run import DagsterRunLauncher, get_dagster_launcher
 from vulkan_engine.exceptions import RunNotFoundException
-from vulkan_engine.services import RunService
-from vulkan_engine.services.dependencies import get_service_dependencies
+from vulkan_engine.services.run_orchestration import RunOrchestrationService
+from vulkan_engine.services.run_query import RunQueryService
+
+from vulkan_server.dependencies import (
+    get_run_orchestration_service,
+    get_run_query_service,
+)
 
 router = APIRouter(
     prefix="/runs",
@@ -21,19 +25,10 @@ router = APIRouter(
 )
 
 
-def get_run_service(
-    launcher: DagsterRunLauncher = Depends(get_dagster_launcher),
-    deps=Depends(get_service_dependencies),
-) -> RunService:
-    """Get RunService instance with dependencies."""
-    db, logger = deps
-    return RunService(db=db, launcher=launcher, logger=logger)
-
-
 @router.get("/{run_id}/data", response_model=schemas.RunData)
 def get_run_data(
     run_id: str,
-    service: RunService = Depends(get_run_service),
+    service: RunQueryService = Depends(get_run_query_service),
 ):
     """Get run data including step outputs and metadata."""
     try:
@@ -48,7 +43,7 @@ def get_run_data(
 @router.get("/{run_id}/logs", response_model=schemas.RunLogs)
 def get_run_logs(
     run_id: str,
-    service: RunService = Depends(get_run_service),
+    service: RunQueryService = Depends(get_run_query_service),
 ):
     """Get logs for a run."""
     try:
@@ -60,7 +55,7 @@ def get_run_logs(
 @router.get("/{run_id}", response_model=schemas.Run)
 def get_run(
     run_id: str,
-    service: RunService = Depends(get_run_service),
+    service: RunQueryService = Depends(get_run_query_service),
 ):
     """Get run details."""
     try:
@@ -73,7 +68,7 @@ def get_run(
 def publish_metadata(
     run_id: str,
     config: schemas.StepMetadataBase,
-    service: RunService = Depends(get_run_service),
+    service: RunOrchestrationService = Depends(get_run_orchestration_service),
 ):
     """Publish metadata for a run step."""
     try:
@@ -92,7 +87,7 @@ def update_run(
     status: Annotated[str, Body()],
     result: Annotated[str, Body()],
     metadata: Annotated[dict[str, Any] | None, Body()] = None,
-    service: RunService = Depends(get_run_service),
+    service: RunOrchestrationService = Depends(get_run_orchestration_service),
 ):
     """Update run status and optionally trigger shadow runs."""
     try:

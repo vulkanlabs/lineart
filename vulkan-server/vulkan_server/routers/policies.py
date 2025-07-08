@@ -10,7 +10,6 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 from vulkan_engine import schemas
-from vulkan_engine.dagster.launch_run import DagsterRunLauncher, get_dagster_launcher
 from vulkan_engine.exceptions import (
     InvalidAllocationStrategyException,
     InvalidPolicyVersionException,
@@ -19,28 +18,14 @@ from vulkan_engine.exceptions import (
     PolicyVersionNotFoundException,
 )
 from vulkan_engine.services import AllocationService, PolicyService
-from vulkan_engine.services.dependencies import get_service_dependencies
+
+from vulkan_server.dependencies import get_allocation_service, get_policy_service
 
 router = APIRouter(
     prefix="/policies",
     tags=["policies"],
     responses={404: {"description": "Not found"}},
 )
-
-
-def get_policy_service(deps=Depends(get_service_dependencies)) -> PolicyService:
-    """Get PolicyService instance with dependencies."""
-    db, logger = deps
-    return PolicyService(db=db, logger=logger)
-
-
-def get_allocation_service(
-    launcher: DagsterRunLauncher = Depends(get_dagster_launcher),
-    deps=Depends(get_service_dependencies),
-) -> AllocationService:
-    """Get AllocationService instance with dependencies."""
-    db, logger = deps
-    return AllocationService(db=db, launcher=launcher, logger=logger)
 
 
 @router.get("/", response_model=list[schemas.Policy])

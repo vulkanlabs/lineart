@@ -18,23 +18,15 @@ from vulkan_engine.exceptions import (
     InvalidDataSourceException,
 )
 from vulkan_engine.services import DataSourceService
-from vulkan_engine.services.dependencies import get_service_dependencies
 
 from vulkan.schemas import DataSourceSpec
+from vulkan_server.dependencies import get_data_source_service
 
 sources = APIRouter(
     prefix="/data-sources",
     tags=["data-sources"],
     responses={404: {"description": "Not found"}},
 )
-
-
-def get_data_source_service(
-    deps=Depends(get_service_dependencies),
-) -> DataSourceService:
-    """Get DataSourceService instance with dependencies."""
-    db, logger = deps
-    return DataSourceService(db=db, logger=logger)
 
 
 @sources.get("/", response_model=list[schemas.DataSource])
