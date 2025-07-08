@@ -12,6 +12,9 @@ dependencies = [
 ]
 requires-python = ">=3.10"
 
+[project.optional-dependencies]
+gcp = ["google-cloud-logging>=3.11.4"]
+
 [tool.uv]
 dev-dependencies = ["pytest>=8.3.2"]
 

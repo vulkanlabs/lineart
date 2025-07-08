@@ -7,8 +7,10 @@ from uuid import UUID
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from vulkan_engine.config import LoggingConfig
 from vulkan_engine.db import LogRecord
 from vulkan_engine.events import VulkanEvent
+from vulkan_engine.gcp_logging import create_gcp_handler
 
 SYS_LOGGER_NAME = "vulkan"
 USER_LOGGER_NAME = f"{SYS_LOGGER_NAME}.user"
@@ -21,7 +23,7 @@ class EventMessage(BaseModel):
 
 
 class VulkanLogger:
-    def __init__(self, db: Session, logging_config=None):
+    def __init__(self, db: Session, logging_config: LoggingConfig | None = None):
         self.system = get_system_logger(logging_config)
         self.user = get_user_logger(db)
 
@@ -32,12 +34,15 @@ class VulkanLogger:
         )
 
 
-def create_logger(db: Session, logging_config=None) -> VulkanLogger:
+def create_logger(
+    db: Session, logging_config: LoggingConfig | None = None
+) -> VulkanLogger:
     """Create VulkanLogger with configuration."""
     return VulkanLogger(db, logging_config)
 
 
-def get_system_logger(logging_config=None) -> logging.Logger:
+def get_system_logger(logging_config: LoggingConfig | None = None) -> logging.Logger:
+    """Get or initialize the system logger."""
     loggers = logging.Logger.manager.loggerDict
     if SYS_LOGGER_NAME in loggers:
         return loggers[SYS_LOGGER_NAME]
@@ -64,6 +69,7 @@ def init_logger(application_name: str) -> logging.Logger:
 
 
 def init_user_logger(db: Session) -> logging.Logger:
+    """Initialize user logger with SQLAlchemy handler."""
     logger = logging.getLogger(USER_LOGGER_NAME)
     logger.setLevel(logging.DEBUG)
     handler = SQLAlchemyHandler(db)
@@ -72,7 +78,8 @@ def init_user_logger(db: Session) -> logging.Logger:
     return logger
 
 
-def init_system_logger(logging_config=None) -> logging.Logger:
+def init_system_logger(logging_config: LoggingConfig | None = None) -> logging.Logger:
+    """Initialize system logger with cloud logging support."""
     logger = logging.getLogger(SYS_LOGGER_NAME)
     logger.setLevel(logging.DEBUG)
     stream_handler = get_stream_handler()
@@ -85,8 +92,15 @@ def init_system_logger(logging_config=None) -> logging.Logger:
     return logger
 
 
-def get_cloud_logging_handler(logging_config=None):
-    # Skip this for now
+def get_cloud_logging_handler(
+    logging_config: LoggingConfig | None = None,
+) -> logging.Handler | None:
+    if (
+        logging_config
+        and hasattr(logging_config, "gcp_project_id")
+        and logging_config.gcp_project_id
+    ):
+        return create_gcp_handler(logging_config.gcp_project_id, GCP_LOGGER_NAME)
     return None
 
 
