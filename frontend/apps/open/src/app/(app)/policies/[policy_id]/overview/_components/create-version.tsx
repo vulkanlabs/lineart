@@ -75,7 +75,7 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
 
     const formFields: Array<React.ReactElement> = [];
     for (const fieldName in formSchema.shape) {
-        const formField = formSchema.shape[fieldName];
+        const formField = formSchema.shape[fieldName as keyof typeof formSchema.shape];
         formFields.push(
             <FormField
                 key={fieldName}
@@ -85,10 +85,18 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
                     <FormItem>
                         <FormLabel htmlFor={fieldName}>{titleCase(fieldName)}</FormLabel>
                         <FormControl>
-                            <Input placeholder={formField?.default} type="text" {...field} />
+                            <Input
+                                placeholder={formField?.default?.toString()}
+                                type="text"
+                                {...field}
+                            />
                         </FormControl>
                         <FormDescription>{formField?.description}</FormDescription>
-                        <FormMessage>{form.formState.errors[fieldName]?.message}</FormMessage>
+                        <FormMessage>
+                            {form.formState.errors[
+                                fieldName as keyof typeof form.formState.errors
+                            ]?.message?.toString()}
+                        </FormMessage>
                     </FormItem>
                 )}
             />,

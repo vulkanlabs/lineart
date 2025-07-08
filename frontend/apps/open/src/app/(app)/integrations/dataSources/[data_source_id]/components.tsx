@@ -86,14 +86,14 @@ export default function DataSourcePage({ dataSource }: { dataSource: DataSource 
 
     const sourceQueryParams = dataSource.source.params
         ? Object.entries(dataSource.source.params).map(([key, value]) => ({
-              key,
+              name: key,
               value: typeof value === "object" ? JSON.stringify(value, null, 2) : String(value),
           }))
         : [];
 
     const sourceHeaders = dataSource.source.headers
         ? Object.entries(dataSource.source.headers).map(([key, value]) => ({
-              key,
+              name: key,
               value: typeof value === "object" ? JSON.stringify(value, null, 2) : String(value),
           }))
         : [];
@@ -471,9 +471,9 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
 
 const paramsTableColumns: ColumnDef<ConfigurationVariablesBase>[] = [
     {
-        accessorKey: "key",
-        header: "Key",
-        cell: ({ row }) => <p>{row.getValue("key") || "-"}</p>,
+        accessorKey: "name",
+        header: "Name",
+        cell: ({ row }) => <p>{row.getValue("name") || "-"}</p>,
     },
     {
         accessorKey: "value",
@@ -482,6 +482,6 @@ const paramsTableColumns: ColumnDef<ConfigurationVariablesBase>[] = [
     },
 ];
 
-function ParamsTable({ params }) {
+function ParamsTable({ params }: { params: ConfigurationVariablesBase[] }) {
     return <DataTable columns={paramsTableColumns} data={params} />;
 }

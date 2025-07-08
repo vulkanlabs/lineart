@@ -55,21 +55,21 @@ export default function PolicyMetrics({
             return;
         }
         metricsLoader({ policyId, dateRange, versions: selectedVersions })
-            .then((data) => {
+            .then((data: any) => {
                 setRunsCount(data.runsCount);
                 setErrorRate(data.errorRate);
                 setRunDurationStats(data.runDurationStats);
                 setRunDurationByStatus(data.runDurationByStatus);
             })
-            .catch((error) => {
+            .catch((error: any) => {
                 console.error(error);
             });
 
         outcomesLoader({ policyId, dateRange, versions: selectedVersions })
-            .then((data) => {
+            .then((data: any) => {
                 setOutcomeDistribution(data.runOutcomes);
             })
-            .catch((error) => {
+            .catch((error: any) => {
                 console.error(error);
             });
     }, [dateRange, selectedVersions]);

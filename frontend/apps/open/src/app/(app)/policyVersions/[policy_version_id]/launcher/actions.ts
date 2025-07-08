@@ -37,9 +37,9 @@ export async function postLaunchFormAction({
             const data: Run = await response.json();
             return data;
         })
-        .catch((error) => {
-            const baseMsg = error.message;
+        .catch((error: any) => {
+            const baseMsg = error.message || "An unknown error occurred";
             const errorMsg = label ? `${baseMsg}: ${label}` : baseMsg;
-            throw new Error(errorMsg, { cause: error });
+            throw new Error(errorMsg);
         });
 }

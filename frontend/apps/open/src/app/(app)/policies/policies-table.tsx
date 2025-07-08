@@ -65,9 +65,9 @@ export function PoliciesTable({ policies }: { policies: Policy[] }) {
             });
             closeDeleteDialog();
             router.refresh();
-        } catch (error) {
+        } catch (error: any) {
             closeDeleteDialog();
-            toast.error(`${error.cause}`);
+            toast.error(`${error.cause || error.message || "An unknown error occurred"}`);
         }
     };
 

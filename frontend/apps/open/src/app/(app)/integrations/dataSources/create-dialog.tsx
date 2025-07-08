@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 // External libraries
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
@@ -90,10 +90,10 @@ const formSchema = z.object({
             }),
         )
         .optional()
-        .default(undefined),
+        .default([]),
 });
 
-function parseJSON(val: string) {
+function parseJSON(val: string | undefined) {
     {
         if (!val) return undefined;
         try {
@@ -350,7 +350,7 @@ export function CreateDataSourceDialog() {
     );
 }
 
-function HTTPOptions({ form }) {
+function HTTPOptions({ form }: { form: UseFormReturn<z.infer<typeof formSchema>> }) {
     const [showRetryPolicy, setShowRetryPolicy] = useState(false);
     const headersParamsPlaceholderText = JSON.stringify(
         {
@@ -630,7 +630,7 @@ function HTTPOptions({ form }) {
     );
 }
 
-function CachingOptions({ form }) {
+function CachingOptions({ form }: { form: UseFormReturn<z.infer<typeof formSchema>> }) {
     const [days, setDays] = useState(0);
     const [hours, setHours] = useState(0);
     const [minutes, setMinutes] = useState(0);
@@ -639,7 +639,8 @@ function CachingOptions({ form }) {
 
     // Initialize time fields from seconds when the component loads or ttl value changes
     useEffect(() => {
-        const totalSeconds = form.watch("caching.ttl") ? parseInt(form.watch("caching.ttl")) : 0;
+        const ttl = form.watch("caching.ttl");
+        const totalSeconds = ttl !== undefined ? parseInt(ttl.toString()) : 0;
         if (totalSeconds > 0) {
             const d = Math.floor(totalSeconds / 86400);
             const h = Math.floor((totalSeconds % 86400) / 3600);
@@ -666,7 +667,7 @@ function CachingOptions({ form }) {
     // Update form value when any time unit changes
     useEffect(() => {
         const totalSeconds = calculateTotalSeconds();
-        form.setValue("caching.ttl", totalSeconds.toString());
+        form.setValue("caching.ttl", totalSeconds);
     }, [days, hours, minutes, seconds, calculateTotalSeconds, form]);
 
     return (

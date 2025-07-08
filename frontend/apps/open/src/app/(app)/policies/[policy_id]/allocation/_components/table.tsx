@@ -133,7 +133,7 @@ function parseFrequency(frequency: number) {
     return frequency / 10 + "%";
 }
 
-function VersionStatus({ value }) {
+function VersionStatus({ value }: { value: string }) {
     const getColor = (mode: string) => {
         switch (mode) {
             case "choice":

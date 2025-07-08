@@ -1,9 +1,9 @@
 "use server";
 
 import { createPolicy } from "@/lib/api";
-import { Policy, PolicyBase } from "@vulkan/client-open";
+import { Policy, PolicyCreate } from "@vulkan/client-open";
 
-export async function createPolicyAction(data: PolicyBase): Promise<Policy> {
+export async function createPolicyAction(data: PolicyCreate): Promise<Policy> {
     try {
         const response = await createPolicy(data);
         return response;

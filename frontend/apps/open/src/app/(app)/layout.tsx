@@ -17,7 +17,7 @@ import { VulkanLogo } from "@/components/logo";
 import { SidebarSectionProps } from "@/components/page-layout";
 import "@/app/globals.css";
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
     const [open, setOpen] = useState(false);
     const pathname = usePathname();
 

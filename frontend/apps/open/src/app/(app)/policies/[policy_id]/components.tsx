@@ -1,13 +1,14 @@
 "use client";
 
 // External libraries
-import { GitCompare, ChartColumnStacked, Settings2, Layers } from "lucide-react";
+import { ChartColumnStacked, Settings2, Layers } from "lucide-react";
 
 // Local imports
 import { InnerNavbar, InnerNavbarSectionProps } from "@/components/inner-navbar";
 import { PageLayout, SidebarSectionProps } from "@/components/page-layout";
+import { Policy } from "@vulkan/client-open";
 
-export function RouteLayout({ policy, children }) {
+export function RouteLayout({ policy, children }: { policy: Policy; children: React.ReactNode }) {
     const sections: SidebarSectionProps[] = [
         {
             name: "Overview",
@@ -25,7 +26,9 @@ export function RouteLayout({ policy, children }) {
             path: `/policies/${policy.policy_id}/runs`,
         },
     ];
-    const innerNavbarSections: InnerNavbarSectionProps[] = [{ key: "Policy:", value: policy.name }];
+    const innerNavbarSections: InnerNavbarSectionProps[] = [
+        { key: "Policy:", value: policy.name || "" },
+    ];
     return (
         <div className="flex flex-col w-full h-full">
             <InnerNavbar backRoute="/policies" sections={innerNavbarSections} />

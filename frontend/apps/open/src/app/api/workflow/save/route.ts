@@ -42,7 +42,7 @@ export async function PUT(request: Request) {
 
         // Prepare the request body matching the original server action
         const requestBody: PolicyVersionBase = {
-            alias: policyVersion.alias,
+            alias: policyVersion.alias || null,
             spec: spec,
             requirements: [],
             input_schema: spec.input_schema,

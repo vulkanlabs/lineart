@@ -8,8 +8,9 @@ import { InnerNavbar, InnerNavbarSectionProps } from "@/components/inner-navbar"
 import { PageLayout, SidebarSectionProps } from "@/components/page-layout";
 import { postLaunchFormAction } from "./launcher/actions";
 import { LauncherButton } from "./launcher/components";
+import { Policy, PolicyVersion } from "@vulkan/client-open";
 
-export function RouteLayout({ policy, policyVersion, children }) {
+export function RouteLayout({ policy, policyVersion, children }: { policy: Policy; policyVersion: PolicyVersion; children: React.ReactNode }) {
     const baseUrl = `/policyVersions/${policyVersion.policy_version_id}`;
     const sections: SidebarSectionProps[] = [
         {
@@ -35,16 +36,16 @@ export function RouteLayout({ policy, policyVersion, children }) {
     ];
 
     const innerNavbarSections: InnerNavbarSectionProps[] = [
-        { key: "Policy:", value: policy.name },
-        { key: "Version:", value: policyVersion.alias },
-        { key: "Status:", value: policyVersion.status },
+        { key: "Policy:", value: policy.name || "" },
+        { key: "Version:", value: policyVersion.alias || "" },
+        { key: "Status:", value: policyVersion.status || "" },
     ];
     const rightSections: InnerNavbarSectionProps[] = [
         {
             element: (
                 <LauncherButton
                     policyVersionId={policyVersion.policy_version_id}
-                    inputSchema={null}
+                    inputSchema={new Map()}
                     launchFn={postLaunchFormAction}
                 />
             ),

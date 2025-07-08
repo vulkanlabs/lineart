@@ -4,19 +4,18 @@ import { fetchPolicyVersion } from "@/lib/api";
 import { LauncherPage } from "./components";
 import { postLaunchFormAction } from "./actions";
 
-export default async function Page(props) {
-    const params = await props.params;
+export default async function Page(props: { params: { policy_version_id: string } }) {
+    const policyVersion = await fetchPolicyVersion(props.params.policy_version_id);
 
-    const policyVersion = await fetchPolicyVersion(params.policy_version_id);
 
     // TODO: we should redo this to use the new policy version definitions
-    const inputSchema = null;
+    const inputSchema: Map<string, string> = new Map();
 
     return (
         <LauncherPage
-            policyVersionId={params.policy_version_id}
+            policyVersionId={props.params.policy_version_id}
             inputSchema={inputSchema}
-            configVariables={policyVersion.variables}
+            configVariables={policyVersion.variables || []}
             launchFn={postLaunchFormAction}
         />
     );

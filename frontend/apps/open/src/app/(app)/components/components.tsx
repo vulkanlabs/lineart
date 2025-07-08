@@ -6,7 +6,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { DetailsButton, DataTable, ShortenedID } from "@vulkan/base";
 import { Button } from "@vulkan/base/ui";
 
-export default function ComponentPageContent({ components }) {
+export default function ComponentPageContent({ components }: { components: any[] }) {
     const router = useRouter();
 
     return (

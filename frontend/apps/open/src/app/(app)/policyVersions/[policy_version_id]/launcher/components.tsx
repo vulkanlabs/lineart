@@ -7,7 +7,7 @@ import Link from "next/link";
 // External libraries
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { Play } from "lucide-react";
 
 // Vulkan packages
@@ -51,7 +51,7 @@ export function LauncherPage({
     launchFn,
 }: LauncherPageProps) {
     const [createdRun, setCreatedRun] = useState(null);
-    const [error, setError] = useState<Error>(null);
+    const [error, setError] = useState<Error | null>(null);
 
     return (
         <div className="flex flex-col p-8 gap-8">
@@ -62,7 +62,7 @@ export function LauncherPage({
                     setCreatedRun={setCreatedRun}
                     setError={setError}
                     defaultInputData={asInputData(inputSchema)}
-                    defaultConfigVariables={asConfigMap(configVariables)}
+                    defaultConfigVariables={asConfigMap(configVariables || [])}
                     launchFn={launchFn}
                 />
             </div>
@@ -81,7 +81,7 @@ export function LauncherButton({
     launchFn,
 }: LauncherPageProps) {
     const [createdRun, setCreatedRun] = useState(null);
-    const [error, setError] = useState<Error>(null);
+    const [error, setError] = useState<Error | null>(null);
     const [open, setOpen] = useState(false);
 
     const handleOpenChange = (open: boolean) => {
@@ -108,7 +108,7 @@ export function LauncherButton({
                     <LaunchRunForm
                         policyVersionId={policyVersionId}
                         launchFn={launchFn}
-                        defaultConfigVariables={asConfigMap(configVariables)}
+                        defaultConfigVariables={asConfigMap(configVariables || [])}
                         defaultInputData={asInputData(inputSchema)}
                         setCreatedRun={setCreatedRun}
                         setError={setError}
@@ -142,7 +142,7 @@ type LaunchRunFormProps = {
     defaultConfigVariables: Object;
     setCreatedRun: (run: any) => void;
     setError: (error: any) => void;
-    launchFn: (LauncherFnParams) => Promise<Run>;
+    launchFn: (params: LauncherFnParams) => Promise<Run>;
 };
 
 function LaunchRunForm({
@@ -156,7 +156,7 @@ function LaunchRunForm({
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const launchUrl = `${serverUrl}/policy-versions/${policyVersionId}/runs`;
 
-    const form = useForm({
+    const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             input_data: JSON.stringify(defaultInputData, null, 4),
@@ -174,13 +174,13 @@ function LaunchRunForm({
     async function onSubmit(values: z.infer<typeof formSchema>) {
         const body = {
             input_data: JSON.parse(values.input_data),
-            config_variables: JSON.parse(values.config_variables),
+            config_variables: JSON.parse(values.config_variables || "{}"),
         };
 
         setSubmitting(true);
         setError(null);
         setCreatedRun(null);
-        launchFn({ launchUrl, body })
+        launchFn({ launchUrl, body, headers: {} })
             .then((data) => {
                 setError(null);
                 setCreatedRun(data);
@@ -206,7 +206,17 @@ function LaunchRunForm({
     );
 }
 
-function LaunchRunFormCard({ form, onSubmit, submitting, setDefaults }) {
+function LaunchRunFormCard({
+    form,
+    onSubmit,
+    submitting,
+    setDefaults,
+}: {
+    form: UseFormReturn<z.infer<typeof formSchema>>;
+    onSubmit: (values: z.infer<typeof formSchema>) => void;
+    submitting: boolean;
+    setDefaults: () => void;
+}) {
     const placeholderText = JSON.stringify({ string_field: "value1", numeric_field: 1 }, null, 2);
     return (
         <Card>
@@ -250,7 +260,7 @@ function LaunchRunFormCard({ form, onSubmit, submitting, setDefaults }) {
                                         <Textarea
                                             className="min-h-40"
                                             placeholder={placeholderText}
-                                            {...field}
+                                            value={field.value || ""}
                                         />
                                     </FormControl>
                                     <FormDescription>
@@ -286,7 +296,11 @@ function LaunchRunFormCard({ form, onSubmit, submitting, setDefaults }) {
     );
 }
 
-function ensureJSON(data: string) {
+function ensureJSON(data: string | null) {
+    if (!data) {
+        return false;
+    }
+
     try {
         JSON.parse(data);
         return true;
@@ -323,7 +337,7 @@ function asConfigMap(configVariables: string[]) {
     return Object.fromEntries(configVariables.map((key) => [key, ""]));
 }
 
-function RunCreatedCard({ createdRun, closeDialog }) {
+function RunCreatedCard({ createdRun, closeDialog }: { createdRun: Run; closeDialog: () => void }) {
     return (
         <Card className="flex flex-col w-fit border-green-600 border-2">
             <CardHeader>
@@ -342,7 +356,7 @@ function RunCreatedCard({ createdRun, closeDialog }) {
     );
 }
 
-function RunCreationErrorCard({ error }) {
+function RunCreationErrorCard({ error }: { error: Error }) {
     return (
         <Card className="flex flex-col w-fit border-red-600 border-2">
             <CardHeader>

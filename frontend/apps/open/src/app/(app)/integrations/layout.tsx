@@ -3,7 +3,7 @@ import { Cable, Webhook } from "lucide-react";
 
 import { SidebarSectionProps, PageLayout } from "@/components/page-layout";
 
-export default function Layout({ children }) {
+export default function Layout({ children }: { children: React.ReactNode }) {
     const sections: SidebarSectionProps[] = [
         {
             name: "Data Sources",

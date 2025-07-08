@@ -109,7 +109,8 @@ const policyVersionsTableColumns: ColumnDef<ExtendedPolicyVersion>[] = [
         accessorKey: "activeStatus",
         cell: ({ row }) => {
             const status = row.getValue("activeStatus") as string;
-            const variant = ACTIVE_STATUS_VARIANT[status] || "outline";
+            const variant =
+                ACTIVE_STATUS_VARIANT[status as keyof typeof ACTIVE_STATUS_VARIANT] || "outline";
 
             return <Badge variant={variant as any}>{status}</Badge>;
         },

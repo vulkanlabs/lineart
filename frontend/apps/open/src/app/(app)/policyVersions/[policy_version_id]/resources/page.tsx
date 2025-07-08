@@ -44,6 +44,11 @@ async function EnvironmentVariablesSection({ policy_version_id }: { policy_versi
         console.error(error);
         return null;
     });
+
+    if (!policyVersion) {
+        return <div>Policy version not found</div>;
+    }
+
     const variables = await fetchPolicyVersionVariables(policy_version_id).catch((error) => {
         console.error(error);
         return [];
@@ -66,6 +71,10 @@ async function RequirementsSection({ policy_version_id }: { policy_version_id: s
         console.error(error);
         return null;
     });
+
+    if (!policyVersion) {
+        return <div>Policy version not found</div>;
+    }
 
     return <RequirementsEditor policyVersion={policyVersion} />;
 }

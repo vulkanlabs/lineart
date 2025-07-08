@@ -28,7 +28,7 @@ import {
     ShortenedID,
     type EnvironmentVariablesEditorProps,
 } from "@vulkan/base";
-import type { ConfigurationVariablesBase, DataSource, PolicyVersion } from "@vulkan/client-open";
+import type { ConfigurationVariablesBase, DataSource, DataSourceReference, PolicyVersion } from "@vulkan/client-open";
 
 // Local imports
 import { updatePolicyVersion } from "@/lib/api";
@@ -55,7 +55,7 @@ export function EnvironmentVariables({ policyVersion, variables }: EnvironmentVa
     );
 }
 
-const DataSourceTableColumns: ColumnDef<DataSource>[] = [
+const DataSourceTableColumns: ColumnDef<DataSourceReference>[] = [
     {
         accessorKey: "link",
         header: "",
@@ -81,7 +81,7 @@ const DataSourceTableColumns: ColumnDef<DataSource>[] = [
     },
 ];
 
-export function DataSourcesTable({ sources }: { sources: DataSource[] }) {
+export function DataSourcesTable({ sources }: { sources: DataSourceReference[] }) {
     return (
         <DataTable
             columns={DataSourceTableColumns}

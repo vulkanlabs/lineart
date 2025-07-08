@@ -15,7 +15,9 @@ export default async function Page(props: any) {
         return [];
     });
 
-    const activeAndShadowVersionIds = getActiveAndShadowVersionIds(policyData?.allocation_strategy);
+    const activeAndShadowVersionIds = getActiveAndShadowVersionIds(
+        policyData?.allocation_strategy || null,
+    );
 
     const allocatedAndShadowVersionsToDisplay = allPolicyVersionsForPolicy.filter(
         (pv: PolicyVersion) => activeAndShadowVersionIds.includes(pv.policy_version_id),
