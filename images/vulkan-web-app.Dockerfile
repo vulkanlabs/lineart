@@ -13,7 +13,7 @@ RUN uv run python scripts/export-openapi.py --out generated/openapi.json
 # OpenAPI Generator CLI: Generate TypeScript client code from OpenAPI spec
 FROM openapitools/openapi-generator-cli:latest AS openapi
 COPY --from=python-package /app/generated/openapi.json /app/openapi.json
-RUN docker-entrypoint.sh generate -g typescript-fetch -i /app/openapi.json -o /app/frontend --additional-properties="modelPropertyNaming=original"
+RUN docker-entrypoint.sh generate -g typescript-fetch -i /app/openapi.json -o /app/frontend/packages/client-open/src --additional-properties="modelPropertyNaming=original"
 
 # Node.js image: Build the Next.js application
 FROM node:23-alpine AS base
@@ -33,7 +33,7 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY ./frontend/ .
-COPY --from=openapi /app/frontend ./generated
+COPY --from=openapi /app/frontend/packages/client-open/src ./packages/client-open/src
 
 ARG NEXT_PUBLIC_VULKAN_SERVER_URL
 ENV NEXT_PUBLIC_VULKAN_SERVER_URL=${NEXT_PUBLIC_VULKAN_SERVER_URL}
@@ -59,7 +59,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
+COPY --from=builder /app/apps/open/public ./public
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
@@ -67,8 +67,8 @@ RUN chown nextjs:nodejs .next
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/open/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/open/.next/static ./.next/static
 
 USER nextjs
 

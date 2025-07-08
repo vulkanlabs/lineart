@@ -2,6 +2,11 @@
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
   "tasks": {
+    "start": {
+      "cache": false,
+      "dependsOn": ["^start"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"]
+    },
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],

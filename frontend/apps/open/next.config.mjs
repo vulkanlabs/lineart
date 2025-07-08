@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    output: 'standalone',
     transpilePackages: ['@vulkan/base'],
     experimental: {
         optimizePackageImports: ['@vulkan/base']
