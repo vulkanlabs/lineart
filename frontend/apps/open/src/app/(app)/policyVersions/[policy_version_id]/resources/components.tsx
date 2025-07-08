@@ -28,7 +28,12 @@ import {
     ShortenedID,
     type EnvironmentVariablesEditorProps,
 } from "@vulkan/base";
-import type { ConfigurationVariablesBase, DataSource, DataSourceReference, PolicyVersion } from "@vulkan/client-open";
+import type {
+    ConfigurationVariablesBase,
+    DataSource,
+    DataSourceReference,
+    PolicyVersion,
+} from "@vulkan/client-open";
 
 // Local imports
 import { updatePolicyVersion } from "@/lib/api";

@@ -10,7 +10,15 @@ import { postLaunchFormAction } from "./launcher/actions";
 import { LauncherButton } from "./launcher/components";
 import { Policy, PolicyVersion } from "@vulkan/client-open";
 
-export function RouteLayout({ policy, policyVersion, children }: { policy: Policy; policyVersion: PolicyVersion; children: React.ReactNode }) {
+export function RouteLayout({
+    policy,
+    policyVersion,
+    children,
+}: {
+    policy: Policy;
+    policyVersion: PolicyVersion;
+    children: React.ReactNode;
+}) {
     const baseUrl = `/policyVersions/${policyVersion.policy_version_id}`;
     const sections: SidebarSectionProps[] = [
         {

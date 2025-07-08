@@ -1,7 +1,10 @@
 import { fetchPolicy, fetchPolicyVersion } from "@/lib/api";
 import { RouteLayout } from "./components";
 
-export default async function Layout(props: { params: { policy_version_id: string }; children: React.ReactNode }) {
+export default async function Layout(props: {
+    params: { policy_version_id: string };
+    children: React.ReactNode;
+}) {
     const { children } = props;
 
     const policyVersion = await fetchPolicyVersion(props.params.policy_version_id);
