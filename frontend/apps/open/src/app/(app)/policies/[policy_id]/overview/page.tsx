@@ -2,8 +2,9 @@ import { fetchPolicy, fetchPolicyVersions } from "@/lib/api";
 
 import { PolicyOverviewPage } from "./_components/overview";
 
-export default async function Page(props: { params: { policy_id: string } }) {
-    const policyId = props.params.policy_id;
+export default async function Page(props: Promise<{ params: { policy_id: string } }>) {
+    const { params } = await props;
+    const policyId = params.policy_id;
 
     const policyData = await fetchPolicy(policyId);
     const policyVersionsData = await fetchPolicyVersions(policyId).catch((error) => {

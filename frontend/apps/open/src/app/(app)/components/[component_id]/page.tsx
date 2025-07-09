@@ -3,14 +3,14 @@ import { fetchComponentVersions, fetchComponentVersionUsage } from "@/lib/api";
 import { ComponentVersionsTable } from "./components";
 
 export default async function Page(props: { params: Promise<{ component_id: string }> }) {
-    const params = await props.params;
-    const componentVersions = await fetchComponentVersions(params.component_id).catch((error) => {
+    const { component_id } = await props.params;
+    const componentVersions = await fetchComponentVersions(component_id).catch((error) => {
         console.error(error);
         return [];
     });
 
     const componentVersionDependencies = await fetchComponentVersionUsage(
-        params.component_id,
+        component_id,
     ).catch((error) => {
         console.error(error);
         return [];

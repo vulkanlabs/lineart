@@ -1,6 +1,8 @@
 import { fetchComponents } from "@/lib/api";
 import ComponentPageContent from "./components";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
     const components = await fetchComponents().catch((error) => {
         console.error(error);

@@ -34,14 +34,10 @@ RUN npm install
 
 COPY --from=turbo /app/out/full/ .
 COPY --from=openapi /app/frontend/packages/client-open/src ./packages/client-open/src
-RUN npx turbo build
-
-
-ARG NEXT_PUBLIC_VULKAN_SERVER_URL
-ENV NEXT_PUBLIC_VULKAN_SERVER_URL=${NEXT_PUBLIC_VULKAN_SERVER_URL}
-
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
 
+# Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
 
@@ -66,7 +62,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/open/public ./apps/open/publ
 USER nextjs
 
 EXPOSE 3000
-
 ENV PORT=3000
 
 # server.js is created by next build from the standalone output

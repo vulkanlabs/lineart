@@ -2,6 +2,8 @@
 import { fetchPolicies } from "@/lib/api";
 import { PoliciesTable } from "./policies-table";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
     const policies = await fetchPolicies().catch((error) => {
         console.error(error);

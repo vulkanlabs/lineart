@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    output: 'standalone',
-    transpilePackages: ['@vulkan/base'],
+    output: "standalone",
+    transpilePackages: ["@vulkan/base"],
     experimental: {
-        optimizePackageImports: ['@vulkan/base']
+        optimizePackageImports: ["@vulkan/base"],
     },
     typescript: {
         // !! WARN !!
@@ -14,7 +14,7 @@ const nextConfig = {
     },
     eslint: {
         ignoreDuringBuilds: true,
-    }
+    },
 };
 
 export default nextConfig;

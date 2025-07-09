@@ -3,6 +3,8 @@ import { Separator } from "@vulkan/base/ui";
 
 import DataSourcesTable from "./data-sources-table";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
     const dataSources = await fetchDataSources().catch((error) => {
         console.error(error);
