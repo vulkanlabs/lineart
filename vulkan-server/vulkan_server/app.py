@@ -3,12 +3,22 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.routing import APIRoute
 from pydantic import BaseModel
 
 from vulkan_server import exceptions, routers
 from vulkan_server.logger import init_logger
 
-app = FastAPI()
+
+def custom_generate_unique_id(route: APIRoute) -> str:
+    """
+    Generate clean operation IDs using just the function name.
+    This results in cleaner method names in generated API clients.
+    """
+    return route.name
+
+
+app = FastAPI(generate_unique_id_function=custom_generate_unique_id)
 
 origins = [
     "http://127.0.0.1",

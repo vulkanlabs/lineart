@@ -203,7 +203,7 @@ def delete_policy(
     "/{policy_id}/versions",
     response_model=list[schemas.PolicyVersion],
 )
-def list_policy_versions(
+def list_versions_for_policy(
     policy_id: str,
     include_archived: bool = False,
     db: Session = Depends(get_db),
