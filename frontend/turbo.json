@@ -4,33 +4,62 @@
   "tasks": {
     "start": {
       "cache": false,
-      "dependsOn": ["^start"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"]
+      "dependsOn": [
+        "^start"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*"
+      ]
     },
     "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**"
+      ]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": [
+        "^lint"
+      ]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": [
+        "^check-types"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "@vulkan/base#build": {
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "@vulkan/client-open#build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "@vulkan/client-open#build": {
-      "outputs": ["dist/**"]
+      "outputs": [
+        "dist/**"
+      ]
     },
     "@vulkan/api-utils#build": {
-      "dependsOn": ["@vulkan/client-open#build"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "@vulkan/client-open#build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     }
   }
 }
