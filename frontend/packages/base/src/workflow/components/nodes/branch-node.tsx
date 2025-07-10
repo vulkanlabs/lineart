@@ -50,7 +50,7 @@ export function BranchNode({ id, data, selected, height, width }: VulkanNodeProp
         const newHeight = (height || 200) + heightStepSize;
         const nodeData = data as VulkanNode["data"];
         const choices = (nodeData.metadata?.choices as string[]) || [];
-        const newChoices = [...choices, ""];
+        const newChoices = [...choices, ""]; // TODO: do we need a default choice?
         const metadata = { ...nodeData.metadata, choices: newChoices };
 
         updateNodeData(id, { ...nodeData, metadata, minHeight: newHeight });

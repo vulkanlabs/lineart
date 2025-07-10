@@ -215,16 +215,6 @@ class DataSourceService(BaseService):
         if not data_source:
             raise DataSourceNotFoundException("Data source not found")
 
-        # Validate variables are supported
-        desired_names = {v.name for v in desired_variables}
-        supported_vars = set(data_source.variables or [])
-        extra_vars = desired_names - supported_vars
-
-        if extra_vars:
-            raise InvalidDataSourceException(
-                f"Variables {extra_vars} are not supported by the data source"
-            )
-
         # Get existing variables
         existing_variables = (
             self.db.query(DataSourceEnvVar)
@@ -234,7 +224,7 @@ class DataSourceService(BaseService):
 
         # Remove variables not in desired list
         for var in existing_variables:
-            if var.name not in desired_names:
+            if var.name not in {v.name for v in desired_variables}:
                 self.db.delete(var)
 
         # Update or create variables
