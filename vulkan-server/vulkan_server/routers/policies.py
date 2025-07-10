@@ -98,7 +98,7 @@ def delete_policy(
 
 
 @router.get("/{policy_id}/versions", response_model=list[schemas.PolicyVersion])
-def list_policy_versions(
+def list_policy_versions_by_policy(
     policy_id: str,
     include_archived: bool = False,
     service: PolicyService = Depends(get_policy_service),

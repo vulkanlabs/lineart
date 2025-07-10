@@ -5,9 +5,10 @@ FROM python:${PYTHON_VERSION} AS python-package
 RUN pip install uv
 WORKDIR /app
 COPY vulkan vulkan
+COPY vulkan-engine vulkan-engine/
 COPY vulkan-server vulkan-server/
 COPY scripts scripts
-RUN uv pip install --system --no-cache vulkan-server/
+RUN uv pip install --system --no-cache vulkan/ vulkan-engine/ vulkan-server/
 RUN uv run python scripts/export-openapi.py --out generated/openapi.json
 
 # OpenAPI Generator CLI: Generate TypeScript client code from OpenAPI spec
