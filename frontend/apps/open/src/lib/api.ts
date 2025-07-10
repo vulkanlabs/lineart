@@ -3,8 +3,6 @@ import {
     PolicyVersionsApi,
     RunsApi,
     DataSourcesApi,
-    BacktestsApi,
-    FilesApi,
     type Policy,
     type PolicyVersion,
     type PolicyBase,
@@ -21,7 +19,6 @@ import {
     type ConfigurationVariablesBase,
 } from "@vulkan/client-open";
 import { createApiConfig, withErrorHandling } from "@vulkan/api-utils";
-import { formatISO } from "date-fns";
 
 // Configure API clients with shared configuration
 const apiConfig = createApiConfig({
@@ -36,8 +33,6 @@ const policiesApi = new PoliciesApi(apiConfig);
 const policyVersionsApi = new PolicyVersionsApi(apiConfig);
 const runsApi = new RunsApi(apiConfig);
 const dataSourcesApi = new DataSourcesApi(apiConfig);
-const backtestsApi = new BacktestsApi(apiConfig);
-const filesApi = new FilesApi(apiConfig);
 
 // Policy API methods with error handling
 export const fetchPolicies = async (includeArchived = false): Promise<Policy[]> => {
@@ -226,14 +221,6 @@ export const setDataSourceEnvVars = async (
     );
 };
 
-// File API methods
-export const listUploadedFiles = async () => {
-    return withErrorHandling(filesApi.listUploadedFiles(), "list uploaded files");
-};
-
-// Helper function for date formatting
-const formatISODate = (date: Date) => formatISO(date, { representation: "date" });
-
 // Component API mock functions (components API not available yet)
 export async function fetchComponents(includeArchived: boolean = false): Promise<any[]> {
     return [];
@@ -377,7 +364,7 @@ export const fetchRunDurationByStatus = async (
 };
 
 // Export API client instances for direct use if needed
-export { policiesApi, policyVersionsApi, runsApi, dataSourcesApi, backtestsApi, filesApi };
+export { policiesApi, policyVersionsApi, runsApi, dataSourcesApi };
 
 // Re-export additional types for convenience
 export type {
