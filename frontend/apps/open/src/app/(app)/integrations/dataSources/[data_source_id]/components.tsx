@@ -39,7 +39,6 @@ import DataSourceUsageAnalytics from "./usage-analytics";
 
 export default function DataSourcePage({ dataSource }: { dataSource: DataSource }) {
     const [copiedField, setCopiedField] = useState<string | null>(null);
-    console.log("DataSourcePage rendered with dataSource:", dataSource);
 
     const copyToClipboard = (text: string, field: string) => {
         navigator.clipboard.writeText(text);

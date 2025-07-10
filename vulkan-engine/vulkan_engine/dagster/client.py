@@ -1,33 +1,28 @@
-import os
-
 import sqlalchemy
 from dagster._core.events.log import EventLogEntry
 from dagster_graphql import DagsterGraphQLClient
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import create_engine
 
-from vulkan_server.dagster.trigger_run import create_dagster_client
-from vulkan_server.schemas import LogEntry
+from vulkan_engine.config import DagsterDatabaseConfig, DagsterServiceConfig
+from vulkan_engine.dagster.trigger_run import create_dagster_client
+from vulkan_engine.schemas import LogEntry
 
 
-def get_dagster_client() -> DagsterGraphQLClient:
-    DAGSTER_HOST = os.getenv("DAGSTER_HOST")
-    DAGSTER_PORT = os.getenv("DAGSTER_PORT")
-    if DAGSTER_HOST is None or DAGSTER_PORT is None:
-        raise ValueError(
-            "Please set the following environment variables: DAGSTER_HOST, DAGSTER_PORT"
-        )
+def create_dagster_client_from_config(
+    config: DagsterServiceConfig,
+) -> DagsterGraphQLClient:
+    """Create Dagster client from configuration."""
     try:
-        DAGSTER_PORT = int(DAGSTER_PORT)
+        port = int(config.port)
     except ValueError:
-        raise ValueError("DAGSTER_PORT must be an integer")
+        raise ValueError("Dagster port must be an integer")
 
-    dagster_client = create_dagster_client(DAGSTER_HOST, DAGSTER_PORT)
-    return dagster_client
+    return create_dagster_client(config.host, port)
 
 
 class DagsterDataClient:
-    def __init__(self):
-        self.engine = _get_dagster_db()
+    def __init__(self, config: DagsterDatabaseConfig):
+        self.engine = create_engine(config.connection_string, echo=True)
 
     def get_run_data(self, run_id: str) -> list[tuple[str, str, str]]:
         with self.engine.connect() as conn:
@@ -115,25 +110,6 @@ _PYTHON_LOG_LEVELS = {
 }
 
 
-def _get_dagster_db() -> Engine:
-    DAGSTER_DB_USER = os.getenv("DAGSTER_DB_USER")
-    DAGSTER_DB_PASSWORD = os.getenv("DAGSTER_DB_PASSWORD")
-    DAGSTER_DB_HOST = os.getenv("DAGSTER_DB_HOST")
-    DAGSTER_DB_PORT = os.getenv("DAGSTER_DB_PORT")
-    DAGSTER_DB_DATABASE = os.getenv("DAGSTER_DB_DATABASE")
-    if (
-        DAGSTER_DB_USER is None
-        or DAGSTER_DB_PASSWORD is None
-        or DAGSTER_DB_HOST is None
-        or DAGSTER_DB_PORT is None
-        or DAGSTER_DB_DATABASE is None
-    ):
-        raise ValueError(
-            "Please set the following environment variables: "
-            "DAGSTER_DB_USER, DAGSTER_DB_PASSWORD, DAGSTER_DB_HOST, DAGSTER_DB_PORT, DAGSTER_DB_DATABASE"
-        )
-
-    connection_str = f"postgresql+psycopg2://{DAGSTER_DB_USER}:{DAGSTER_DB_PASSWORD}@{DAGSTER_DB_HOST}:{DAGSTER_DB_PORT}/{DAGSTER_DB_DATABASE}"
-    engine = create_engine(connection_str, echo=True)
-
-    return engine
+def create_dagster_data_client(config: DagsterDatabaseConfig) -> DagsterDataClient:
+    """Create DagsterDataClient from configuration."""
+    return DagsterDataClient(config)

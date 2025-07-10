@@ -86,3 +86,63 @@ class UnhandledException(VulkanServerException):
 class RunPollingTimeoutException(VulkanServerException):
     def __init__(self, msg: str):
         super().__init__(msg, 504, "RUN_POLLING_TIMEOUT")
+
+
+# Business Logic Exceptions
+class PolicyNotFoundException(NotFoundException):
+    def __init__(self, msg: str):
+        super().__init__(msg)
+        self.error_code = "POLICY_NOT_FOUND"
+
+
+class PolicyVersionNotFoundException(NotFoundException):
+    def __init__(self, msg: str):
+        super().__init__(msg)
+        self.error_code = "POLICY_VERSION_NOT_FOUND"
+
+
+class PolicyHasVersionsException(VulkanServerException):
+    def __init__(self, msg: str):
+        super().__init__(msg, 400, "POLICY_HAS_VERSIONS")
+
+
+class InvalidPolicyVersionException(VulkanServerException):
+    def __init__(self, msg: str):
+        super().__init__(msg, 400, "INVALID_POLICY_VERSION")
+
+
+class PolicyVersionInUseException(VulkanServerException):
+    def __init__(self, msg: str):
+        super().__init__(msg, 400, "POLICY_VERSION_IN_USE")
+
+
+class InvalidAllocationStrategyException(VulkanServerException):
+    def __init__(self, msg: str):
+        super().__init__(msg, 400, "INVALID_ALLOCATION_STRATEGY")
+
+
+class RunNotFoundException(NotFoundException):
+    def __init__(self, msg: str):
+        super().__init__(msg)
+        self.error_code = "RUN_NOT_FOUND"
+
+
+class DataSourceAlreadyExistsException(VulkanServerException):
+    def __init__(self, msg: str):
+        super().__init__(msg, 409, "DATA_SOURCE_ALREADY_EXISTS")
+
+
+class InvalidDataSourceException(VulkanServerException):
+    def __init__(self, msg: str):
+        super().__init__(msg, 400, "INVALID_DATA_SOURCE")
+
+
+# Data Broker Exceptions
+class DataBrokerRequestException(VulkanServerException):
+    def __init__(self, msg: str):
+        super().__init__(msg, 502, "DATA_BROKER_REQUEST_ERROR")
+
+
+class DataBrokerException(VulkanServerException):
+    def __init__(self, msg: str):
+        super().__init__(msg, 500, "DATA_BROKER_ERROR")

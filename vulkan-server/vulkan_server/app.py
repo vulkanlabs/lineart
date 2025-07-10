@@ -5,9 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 from pydantic import BaseModel
+from vulkan_engine import exceptions
+from vulkan_engine.logger import init_logger
 
-from vulkan_server import exceptions, routers
-from vulkan_server.logger import init_logger
+from vulkan_server import routers
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -36,15 +37,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(routers.backfills.router)
-app.include_router(routers.backtests.router)
 app.include_router(routers.data.sources)
 app.include_router(routers.data.broker)
-app.include_router(routers.files.router)
 app.include_router(routers.policies.router)
 app.include_router(routers.policy_versions.router)
 app.include_router(routers.runs.router)
-app.include_router(routers.users.router)
 
 
 logger = init_logger("vulkan_server")

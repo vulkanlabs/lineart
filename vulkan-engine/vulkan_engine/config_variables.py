@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from vulkan_server.db import ConfigurationValue
+from vulkan_engine.db import ConfigurationValue
 
 
 def resolve_config_variables_from_id(

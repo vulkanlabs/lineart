@@ -1,6 +1,5 @@
 import enum
-import os
-from functools import lru_cache
+from typing import Iterator
 
 from sqlalchemy import (
     ARRAY,
@@ -19,42 +18,27 @@ from sqlalchemy import (
     Uuid,
     create_engine,
 )
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from sqlalchemy.sql import func
 
 from vulkan.core.run import JobStatus, PolicyVersionStatus, RunStatus
 from vulkan.schemas import CachingOptions, DataSourceSpec
 from vulkan.spec.nodes.base import NodeType
-from vulkan_server.schemas import DataObjectOrigin
+from vulkan_engine.config import DatabaseConfig
+from vulkan_engine.schemas import DataObjectOrigin
 
 Base = declarative_base()
 
 
-@lru_cache
-def _make_engine():
-    DB_USER = os.getenv("DB_USER")
-    DB_PASSWORD = os.getenv("DB_PASSWORD")
-    DB_HOST = os.getenv("DB_HOST")
-    DB_PORT = os.getenv("DB_PORT")
-    DB_DATABASE = os.getenv("DB_DATABASE")
-    if (
-        DB_USER is None
-        or DB_PASSWORD is None
-        or DB_HOST is None
-        or DB_PORT is None
-        or DB_DATABASE is None
-    ):
-        raise ValueError(
-            "Please set the following environment variables: DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_DATABASE"
-        )
-
-    connection_str = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_DATABASE}"
-    engine = create_engine(connection_str, echo=True)
-    return engine
+def create_engine_from_config(database_config: DatabaseConfig) -> Engine:
+    """Create database engine from configuration."""
+    return create_engine(database_config.connection_string, echo=True)
 
 
-def get_db():
-    engine = _make_engine()
+def get_db_session(database_config: DatabaseConfig) -> Iterator[Session]:
+    """Get database session from configuration."""
+    engine = create_engine_from_config(database_config)
     DBSession = sessionmaker(bind=engine)
     db = DBSession()
     try:
@@ -398,6 +382,4 @@ class BeamWorkspace(TimedUpdateMixin, Base):
     image = Column(String, nullable=True)
 
 
-if __name__ == "__main__":
-    engine = _make_engine()
-    Base.metadata.create_all(engine)
+# To create tables, use create_engine_from_config with appropriate DatabaseConfig
