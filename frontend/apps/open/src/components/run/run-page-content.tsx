@@ -5,7 +5,7 @@ import { WorkflowFrame } from "@/components/run/frame";
 import type { RunNodeLayout } from "@/components/run/types";
 import { EdgeLayoutConfig, NodeLayoutConfig } from "@/lib/workflow/types";
 
-import type { RunData, RunLogs, StepMetadataBase } from "@vulkan/client-open";
+import type { RunData, RunLogs, StepMetadataBase } from "@vulkanlabs/client-open";
 
 export default function RunPageContent({
     nodes,

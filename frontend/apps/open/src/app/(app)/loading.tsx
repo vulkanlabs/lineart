@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader } from "@vulkan/base";
+import { Loader } from "@vulkanlabs/base";
 
 export default function Loading() {
     return <Loader />;

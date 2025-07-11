@@ -6,8 +6,8 @@ import { useShallow } from "zustand/react/shallow";
 import { Position, type NodeChange } from "@xyflow/react";
 import Editor from "@monaco-editor/react";
 
-import { Input, Button } from "@vulkan/base/ui";
-import { BaseHandle } from "@vulkan/base/ui";
+import { Input, Button } from "@vulkanlabs/base/ui";
+import { BaseHandle } from "@vulkanlabs/base/ui";
 
 import { useWorkflowStore } from "@/workflow/store";
 import { StandardWorkflowNode, defaultHandleStyle } from "./base";

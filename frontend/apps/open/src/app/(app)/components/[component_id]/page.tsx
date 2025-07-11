@@ -1,4 +1,4 @@
-import { ComponentVersionDependenciesTable } from "@vulkan/base";
+import { ComponentVersionDependenciesTable } from "@vulkanlabs/base";
 import { fetchComponentVersions, fetchComponentVersionUsage } from "@/lib/api";
 import { ComponentVersionsTable } from "./components";
 

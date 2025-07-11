@@ -25,13 +25,13 @@ import {
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
-} from "@vulkan/base/ui";
-import { DataTable, EnvironmentVariablesEditor, Loader } from "@vulkan/base";
+} from "@vulkanlabs/base/ui";
+import { DataTable, EnvironmentVariablesEditor, Loader } from "@vulkanlabs/base";
 import type {
     ConfigurationVariablesBase,
     DataSource,
     DataSourceEnvVarBase,
-} from "@vulkan/client-open";
+} from "@vulkanlabs/client-open";
 
 // Local imports
 import { setDataSourceVariablesAction, fetchDataSourceEnvVarsAction } from "./actions";

@@ -6,7 +6,7 @@ import {
     fetchPolicyVersion,
 } from "@/lib/api";
 
-import { Loader } from "@vulkan/base";
+import { Loader } from "@vulkanlabs/base";
 import { EnvironmentVariables } from "./components";
 import { DataSourcesTable, RequirementsEditor } from "./components";
 

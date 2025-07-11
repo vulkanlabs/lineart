@@ -1,4 +1,4 @@
-import type { NodeDefinitionDict } from "@vulkan/client-open";
+import type { NodeDefinitionDict } from "@vulkanlabs/client-open";
 import type { VulkanNode } from "../types/workflow";
 import type { BranchNodeMetadata, DecisionNodeMetadata } from "../types/nodes";
 

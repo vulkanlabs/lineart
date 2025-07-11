@@ -35,7 +35,7 @@ npm run lint
 
 ### Package Structure
 
-#### @vulkan/base
+#### @vulkanlabs/base
 
 The base package contains:
 

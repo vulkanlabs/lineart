@@ -1,4 +1,4 @@
-import type { PolicyVersion, PolicyDefinitionDictInput, UIMetadata } from "@vulkan/client-open";
+import type { PolicyVersion, PolicyDefinitionDictInput, UIMetadata } from "@vulkanlabs/client-open";
 
 /**
  * Result type for save operations
@@ -11,7 +11,7 @@ export interface SaveWorkflowResult {
 
 /**
  * Data source type for workflow components
- * TODO: Import from @vulkan/client-open when available
+ * TODO: Import from @vulkanlabs/client-open when available
  */
 export interface DataSource {
     data_source_id: string;

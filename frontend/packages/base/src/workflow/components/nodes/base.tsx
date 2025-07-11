@@ -14,8 +14,8 @@ import {
     NodeHeaderAction,
     NodeHeaderDeleteAction,
     NodeHeaderIcon,
-} from "@vulkan/base/ui";
-import { Button, Input } from "@vulkan/base/ui";
+} from "@vulkanlabs/base/ui";
+import { Button, Input } from "@vulkanlabs/base/ui";
 
 import { useWorkflowStore } from "@/workflow/store";
 import { iconMapping } from "@/workflow/icons";

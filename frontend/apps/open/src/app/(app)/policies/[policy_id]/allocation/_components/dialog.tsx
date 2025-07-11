@@ -37,12 +37,12 @@ import {
     RadioGroup,
     RadioGroupItem,
     Checkbox,
-} from "@vulkan/base/ui";
+} from "@vulkanlabs/base/ui";
 import type {
     PolicyAllocationStrategy,
     PolicyVersion,
     PolicyRunPartition,
-} from "@vulkan/client-open";
+} from "@vulkanlabs/client-open";
 
 // Local imports
 import { updatePolicyAllocationStrategy } from "@/lib/api";

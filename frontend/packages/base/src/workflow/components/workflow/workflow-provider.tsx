@@ -3,7 +3,7 @@
 import React, { useMemo, type ReactNode } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 
-import type { PolicyVersion } from "@vulkan/client-open";
+import type { PolicyVersion } from "@vulkanlabs/client-open";
 import { WorkflowProvider as StoreProvider } from "@/workflow/store";
 import { useWorkflowApi } from "@/workflow/api";
 import { createWorkflowState } from "@/workflow/utils/workflow-state";

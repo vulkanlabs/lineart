@@ -1,6 +1,6 @@
 "use server";
 
-import { Run } from "@vulkan/client-open";
+import { Run } from "@vulkanlabs/client-open";
 import {
     fetchPolicyRuns,
     fetchPolicyVersionRuns,

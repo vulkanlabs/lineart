@@ -8,7 +8,7 @@ import { InnerNavbar, InnerNavbarSectionProps } from "@/components/inner-navbar"
 import { PageLayout, SidebarSectionProps } from "@/components/page-layout";
 import { postLaunchFormAction } from "./launcher/actions";
 import { LauncherButton } from "./launcher/components";
-import { Policy, PolicyVersion } from "@vulkan/client-open";
+import { Policy, PolicyVersion } from "@vulkanlabs/client-open";
 
 export function RouteLayout({
     policy,

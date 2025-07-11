@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card } from "@/components/ui/card";
-import { PolicyVersion } from "@vulkan/client-open";
+import { PolicyVersion } from "@vulkanlabs/client-open";
 import { ShortenedID } from "../shortened-id";
 import { Checkbox } from "@/components/ui/checkbox";
 

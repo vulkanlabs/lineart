@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { Input } from "@/components/ui/input";
 import { TrashIcon } from "lucide-react";
 import { toast } from "sonner";
-import { ConfigurationVariablesBase } from "@vulkan/client-open";
+import { ConfigurationVariablesBase } from "@vulkanlabs/client-open";
 
 const environmentVariableSchema = z.object({
     name: z

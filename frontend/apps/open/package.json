@@ -1,5 +1,5 @@
 {
-  "name": "@vulkan/app-open",
+  "name": "@vulkanlabs/app-open",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,9 +9,9 @@
     "start": "next start -p 8080"
   },
   "dependencies": {
-    "@vulkan/api-utils": "*",
-    "@vulkan/base": "*",
-    "@vulkan/client-open": "*",
+    "@vulkanlabs/api-utils": "*",
+    "@vulkanlabs/base": "*",
+    "@vulkanlabs/client-open": "*",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "next": "^15.3.2",

@@ -1,5 +1,5 @@
 import ELK from "elkjs/lib/elk.bundled.js";
-import { NodeDefinitionDict } from "@vulkan/client-open";
+import { NodeDefinitionDict } from "@vulkanlabs/client-open";
 import { NodeLayoutConfig, NodeDefinition, EdgeLayoutConfig, Dict } from "@/lib/workflow/types";
 
 export const NodeTypeMapping = {

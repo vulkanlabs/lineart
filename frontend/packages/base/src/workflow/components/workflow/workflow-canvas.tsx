@@ -13,7 +13,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import type { PolicyVersion } from "@vulkan/client-open";
+import type { PolicyVersion } from "@vulkanlabs/client-open";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -24,7 +24,7 @@ import {
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
-} from "@vulkan/base/ui";
+} from "@vulkanlabs/base/ui";
 
 import { useDropdown } from "@/workflow/hooks/use-dropdown";
 import { nodesConfig } from "@/workflow/utils/nodes";

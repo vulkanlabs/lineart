@@ -11,9 +11,9 @@ import { ColumnDef } from "@tanstack/react-table";
 import { DateRange } from "react-day-picker";
 
 // Vulkan packages
-import { Badge, Button } from "@vulkan/base/ui";
-import { ShortenedID, DetailsButton, DatePickerWithRange, ResourceTable } from "@vulkan/base";
-import type { Run } from "@vulkan/client-open";
+import { Badge, Button } from "@vulkanlabs/base/ui";
+import { ShortenedID, DetailsButton, DatePickerWithRange, ResourceTable } from "@vulkanlabs/base";
+import type { Run } from "@vulkanlabs/client-open";
 
 // Local imports
 import { parseDate } from "@/lib/utils";

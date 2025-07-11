@@ -10,7 +10,7 @@ import React, {
 } from "react";
 import { useWorkflowApi } from "../api/context";
 import type { DataSource } from "../api/types";
-import type { PolicyVersion } from "@vulkan/client-open";
+import type { PolicyVersion } from "@vulkanlabs/client-open";
 
 /**
  * Shape of data provided by WorkflowDataProvider

@@ -1,5 +1,5 @@
 // Vulkan packages
-import type { DataSource } from "@vulkan/client-open";
+import type { DataSource } from "@vulkanlabs/client-open";
 
 // Local imports
 import { fetchDataSource } from "@/lib/api";

@@ -1,6 +1,6 @@
 import { Handle, NodeTypes, Position } from "@xyflow/react";
 
-import { cn } from "@vulkan/base";
+import { cn } from "@vulkanlabs/base";
 
 function NodeBase({
     data,

@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { ColumnDef } from "@tanstack/react-table";
 
-import { DetailsButton, DataTable, ShortenedID } from "@vulkan/base";
-import { Button } from "@vulkan/base/ui";
+import { DetailsButton, DataTable, ShortenedID } from "@vulkanlabs/base";
+import { Button } from "@vulkanlabs/base/ui";
 
 export default function ComponentPageContent({ components }: { components: any[] }) {
     const router = useRouter();

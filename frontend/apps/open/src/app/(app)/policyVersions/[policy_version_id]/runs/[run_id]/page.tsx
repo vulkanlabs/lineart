@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 
-import { Loader } from "@vulkan/base";
+import { Loader } from "@vulkanlabs/base";
 import { RunPage } from "@/components/run/run-page-server";
 
 export default async function Page(props: { params: Promise<{ run_id: string }> }) {

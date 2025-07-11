@@ -21,9 +21,9 @@
         "baseUrl": ".",
         "paths": {
             "@/*": ["./src/*"],
-            "@vulkan/base": ["./src/index.ts"],
-            "@vulkan/base/ui": ["./src/ui/index.ts"],
-            "@vulkan/base/workflow": ["./src/workflow/index.ts"]
+            "@vulkanlabs/base": ["./src/index.ts"],
+            "@vulkanlabs/base/ui": ["./src/ui/index.ts"],
+            "@vulkanlabs/base/workflow": ["./src/workflow/index.ts"]
         }
     },
     "include": ["src/**/*"],

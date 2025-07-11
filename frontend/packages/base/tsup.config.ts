@@ -16,9 +16,9 @@ export default defineConfig({
     esbuildOptions(options) {
         options.alias = {
             "@": path.resolve(process.cwd(), "src"),
-            "@vulkan/base/ui": path.resolve(process.cwd(), "src/ui/index.ts"),
-            "@vulkan/base/workflow": path.resolve(process.cwd(), "src/workflow/index.ts"),
-            "@vulkan/base": path.resolve(process.cwd(), "src/index.ts"),
+            "@vulkanlabs/base/ui": path.resolve(process.cwd(), "src/ui/index.ts"),
+            "@vulkanlabs/base/workflow": path.resolve(process.cwd(), "src/workflow/index.ts"),
+            "@vulkanlabs/base": path.resolve(process.cwd(), "src/index.ts"),
         };
         options.jsx = "transform";
         options.jsxFactory = "React.createElement";

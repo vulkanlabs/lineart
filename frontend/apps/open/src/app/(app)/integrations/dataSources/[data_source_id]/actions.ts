@@ -1,7 +1,7 @@
 "use server";
 
 // Vulkan packages
-import { ConfigurationVariablesBase } from "@vulkan/client-open";
+import { ConfigurationVariablesBase } from "@vulkanlabs/client-open";
 
 // Local imports
 import {

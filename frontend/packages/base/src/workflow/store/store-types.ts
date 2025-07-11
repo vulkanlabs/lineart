@@ -1,5 +1,5 @@
 import type { OnConnect, OnEdgesChange, OnNodesChange, XYPosition, Edge } from "@xyflow/react";
-import type { PolicyDefinitionDictInput } from "@vulkan/client-open";
+import type { PolicyDefinitionDictInput } from "@vulkanlabs/client-open";
 import type { VulkanNode, VulkanNodeType, WorkflowState } from "../types/workflow";
 import type { WorkflowApiClient } from "../api/types";
 

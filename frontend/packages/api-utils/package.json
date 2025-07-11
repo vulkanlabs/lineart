@@ -1,5 +1,5 @@
 {
-  "name": "@vulkan/api-utils",
+  "name": "@vulkanlabs/api-utils",
   "version": "0.1.0",
   "description": "Shared API configuration utilities for Vulkan clients",
   "main": "dist/index.js",
@@ -23,11 +23,11 @@
     "date-fns": "^3.0.0"
   },
   "peerDependencies": {
-    "@vulkan/client-open": "*"
+    "@vulkanlabs/client-open": "*"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
-    "@vulkan/client-open": "*",
+    "@vulkanlabs/client-open": "*",
     "tsup": "^8.0.0",
     "typescript": "5.8.2"
   },

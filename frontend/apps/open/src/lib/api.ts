@@ -17,8 +17,8 @@ import {
     type DataSourceEnvVarBase,
     type PolicyAllocationStrategy,
     type ConfigurationVariablesBase,
-} from "@vulkan/client-open";
-import { createApiConfig, withErrorHandling } from "@vulkan/api-utils";
+} from "@vulkanlabs/client-open";
+import { createApiConfig, withErrorHandling } from "@vulkanlabs/api-utils";
 
 // Configure API clients with shared configuration
 const apiConfig = createApiConfig({
@@ -382,4 +382,4 @@ export type {
     DataSourceEnvVarBase,
     PolicyAllocationStrategy,
     ConfigurationVariablesBase,
-} from "@vulkan/client-open";
+} from "@vulkanlabs/client-open";
