@@ -33,5 +33,14 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vulkanlabs/lineart.git",
+    "directory": "frontend/packages/api-utils"
+  }
 }
