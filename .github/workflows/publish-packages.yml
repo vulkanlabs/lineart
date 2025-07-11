@@ -32,6 +32,38 @@ jobs:
           cd frontend
           npm ci
           
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          
+      - name: Install dependencies with uv
+        run: |
+          set -x 
+          pip install uv
+          uv sync
+
+      - name: Render OpenAPI Specification
+        run: |
+          uv run python scripts/export-openapi.py --out ./generated/openapi.json
+
+      - name: Generate new client
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/local" \
+            openapitools/openapi-generator-cli generate \
+            -i /local/generated/openapi.json \
+            -g typescript-fetch \
+            --additional-properties=modelPropertyNaming=original \
+            -o /local/generated/ts
+
+      - name: Copy generated files
+        run: |
+          set -x
+          mkdir -p ${{ github.workspace }}/frontend/packages/client-open/src/
+          cp -r ${{ github.workspace }}/generated/ts/* ${{ github.workspace }}/frontend/packages/client-open/src/
+          ls -la ${{ github.workspace }}/frontend/packages/client-open/src/
+
       - name: Build all packages
         run: |
           cd frontend
