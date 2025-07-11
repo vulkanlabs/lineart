@@ -15,7 +15,7 @@ import {
     LoadingChartState,
     RequestVolumeChart,
     ResponseTimeChart,
-} from "@vulkan/base";
+} from "@vulkanlabs/base";
 
 // Local imports
 import {

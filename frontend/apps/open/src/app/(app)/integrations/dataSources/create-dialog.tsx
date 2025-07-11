@@ -37,8 +37,8 @@ import {
     KeyValueTable,
     keyValuePairsFromObject,
     keyValuePairsToMap,
-} from "@vulkan/base/ui";
-import type { DataSourceSpec } from "@vulkan/client-open";
+} from "@vulkanlabs/base/ui";
+import type { DataSourceSpec } from "@vulkanlabs/client-open";
 
 // Local imports
 import { createDataSourceAction } from "./actions";

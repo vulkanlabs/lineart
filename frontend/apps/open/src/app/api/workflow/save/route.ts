@@ -3,7 +3,7 @@ import {
     PolicyVersion,
     PolicyDefinitionDictInput,
     UIMetadata,
-} from "@vulkan/client-open";
+} from "@vulkanlabs/client-open";
 
 export async function PUT(request: Request) {
     try {

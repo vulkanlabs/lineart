@@ -3,14 +3,14 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { PolicyVersion } from "@vulkan/client-open";
+import type { PolicyVersion } from "@vulkanlabs/client-open";
 
 import {
     WorkflowFrame,
     WorkflowApiProvider,
     WorkflowDataProvider,
     createWorkflowApiClient,
-} from "@vulkan/base/workflow";
+} from "@vulkanlabs/base/workflow";
 
 /**
  * Props for the application workflow frame

@@ -1,5 +1,5 @@
 {
-  "name": "@vulkan/client-open",
+  "name": "@vulkanlabs/client-open",
   "version": "0.1.0",
   "description": "Auto-generated API types and clients for Vulkan open-source backend",
   "type": "module",

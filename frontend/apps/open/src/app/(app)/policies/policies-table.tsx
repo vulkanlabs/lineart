@@ -24,9 +24,9 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from "@vulkan/base/ui";
-import { DetailsButton, ResourceTable, ShortenedID } from "@vulkan/base";
-import { Policy } from "@vulkan/client-open";
+} from "@vulkanlabs/base/ui";
+import { DetailsButton, ResourceTable, ShortenedID } from "@vulkanlabs/base";
+import { Policy } from "@vulkanlabs/client-open";
 
 // Local imports
 import { deletePolicy } from "@/lib/api";

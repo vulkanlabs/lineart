@@ -11,7 +11,7 @@ import {
     type Edge,
 } from "@xyflow/react";
 
-import type { PolicyDefinitionDictInput } from "@vulkan/client-open";
+import type { PolicyDefinitionDictInput } from "@vulkanlabs/client-open";
 import type { WorkflowApiClient } from "../api/types";
 import { AsNodeDefinitionDict, type VulkanNode, type WorkflowState } from "../types/workflow";
 import type { InputNodeMetadata } from "../types/nodes";

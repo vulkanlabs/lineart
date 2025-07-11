@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 
-import { Loader } from "@vulkan/base";
+import { Loader } from "@vulkanlabs/base";
 import { fetchPolicy, fetchPolicyVersions } from "@/lib/api";
-import { PolicyAllocationStrategy, PolicyVersion } from "@vulkan/client-open";
+import { PolicyAllocationStrategy, PolicyVersion } from "@vulkanlabs/client-open";
 
 import { AllocatedVersionsTable } from "./_components/table";
 

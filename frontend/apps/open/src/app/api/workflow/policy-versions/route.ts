@@ -1,4 +1,4 @@
-import { PolicyVersion } from "@vulkan/client-open";
+import { PolicyVersion } from "@vulkanlabs/client-open";
 
 export async function GET(request: Request) {
     try {

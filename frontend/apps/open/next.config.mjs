@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     output: "standalone",
-    transpilePackages: ["@vulkan/base"],
+    transpilePackages: ["@vulkanlabs/base"],
     experimental: {
-        optimizePackageImports: ["@vulkan/base"],
+        optimizePackageImports: ["@vulkanlabs/base"],
     },
     typescript: {
         // !! WARN !!

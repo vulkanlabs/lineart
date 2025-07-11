@@ -19,7 +19,7 @@ import {
     TableHeader,
     TableRow,
     Button,
-} from "@vulkan/base/ui";
+} from "@vulkanlabs/base/ui";
 import { Plus, Trash2, ChevronDown, ChevronRight, Check, X } from "lucide-react";
 
 import { useWorkflowStore } from "@/workflow/store";

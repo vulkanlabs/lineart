@@ -27,9 +27,9 @@ import {
     FormLabel,
     FormMessage,
     Input,
-} from "@vulkan/base/ui";
-import { Sending } from "@vulkan/base";
-import { PolicyVersionCreate } from "@vulkan/client-open";
+} from "@vulkanlabs/base/ui";
+import { Sending } from "@vulkanlabs/base";
+import { PolicyVersionCreate } from "@vulkanlabs/client-open";
 
 // Local imports
 import { createPolicyVersionAction } from "./actions";

@@ -28,8 +28,8 @@ import {
     FormMessage,
     Input,
     Textarea,
-} from "@vulkan/base/ui";
-import { Sending } from "@vulkan/base";
+} from "@vulkanlabs/base/ui";
+import { Sending } from "@vulkanlabs/base";
 
 // Local imports
 import { createPolicyAction } from "./actions";

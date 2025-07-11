@@ -17,8 +17,8 @@ import {
     RunOutcomesChart,
     RunsChart,
     VersionPicker,
-} from "@vulkan/base";
-import { PolicyVersion } from "@vulkan/client-open";
+} from "@vulkanlabs/base";
+import { PolicyVersion } from "@vulkanlabs/client-open";
 
 export default function PolicyMetrics({
     policyId,

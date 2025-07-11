@@ -4,7 +4,7 @@
 import { Suspense } from "react";
 
 // Vulkan packages
-import { Loader } from "@vulkan/base";
+import { Loader } from "@vulkanlabs/base";
 
 // Local imports
 import { fetchMetricsData, fetchPolicyOutcomeStats } from "@/lib/actions";

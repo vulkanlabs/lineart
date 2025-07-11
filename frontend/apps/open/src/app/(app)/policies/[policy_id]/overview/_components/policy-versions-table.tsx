@@ -6,7 +6,7 @@ import { ArrowUpDown } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 
 // Vulkan packages
-import { Button, Badge } from "@vulkan/base/ui";
+import { Button, Badge } from "@vulkanlabs/base/ui";
 import {
     DetailsButton,
     ShortenedID,
@@ -14,8 +14,8 @@ import {
     DeletableResourceTableActions,
     SearchFilterOptions,
     DeleteResourceOptions,
-} from "@vulkan/base";
-import { Policy, PolicyVersion, PolicyVersionStatus } from "@vulkan/client-open";
+} from "@vulkanlabs/base";
+import { Policy, PolicyVersion, PolicyVersionStatus } from "@vulkanlabs/client-open";
 
 // Local imports
 import { parseDate } from "@/lib/utils";

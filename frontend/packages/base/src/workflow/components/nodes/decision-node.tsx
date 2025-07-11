@@ -5,8 +5,8 @@ import { SquareX } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { Position, type NodeChange } from "@xyflow/react";
 
-import { Input, Button, Label } from "@vulkan/base/ui";
-import { BaseHandle } from "@vulkan/base/ui";
+import { Input, Button, Label } from "@vulkanlabs/base/ui";
+import { BaseHandle } from "@vulkanlabs/base/ui";
 
 import { useWorkflowStore } from "@/workflow/store";
 import { StandardWorkflowNode, defaultHandleStyle } from "./base";

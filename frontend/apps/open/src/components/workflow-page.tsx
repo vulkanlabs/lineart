@@ -1,6 +1,6 @@
 "use client";
 
-import type { PolicyVersion } from "@vulkan/client-open";
+import type { PolicyVersion } from "@vulkanlabs/client-open";
 import { AppWorkflowFrame } from "./workflow-frame";
 
 /**

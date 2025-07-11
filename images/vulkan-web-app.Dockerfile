@@ -23,7 +23,7 @@ FROM base AS turbo
 WORKDIR /app
 RUN npm install turbo --global
 COPY ./frontend/ .
-RUN turbo prune --docker "@vulkan/app-open"
+RUN turbo prune --docker "@vulkanlabs/app-open"
 
 # Install dependencies
 FROM base AS builder

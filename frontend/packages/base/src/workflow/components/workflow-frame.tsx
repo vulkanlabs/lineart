@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { PolicyVersion } from "@vulkan/client-open";
+import type { PolicyVersion } from "@vulkanlabs/client-open";
 
 import { WorkflowProviderWrapper } from "./workflow/workflow-provider";
 import { WorkflowCanvas } from "./workflow/workflow-canvas";

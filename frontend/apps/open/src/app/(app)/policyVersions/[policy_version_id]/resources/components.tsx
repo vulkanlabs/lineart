@@ -21,19 +21,19 @@ import {
     FormItem,
     FormMessage,
     Textarea,
-} from "@vulkan/base/ui";
+} from "@vulkanlabs/base/ui";
 import {
     DataTable,
     EnvironmentVariablesEditor,
     ShortenedID,
     type EnvironmentVariablesEditorProps,
-} from "@vulkan/base";
+} from "@vulkanlabs/base";
 import type {
     ConfigurationVariablesBase,
     DataSource,
     DataSourceReference,
     PolicyVersion,
-} from "@vulkan/client-open";
+} from "@vulkanlabs/client-open";
 
 // Local imports
 import { updatePolicyVersion } from "@/lib/api";

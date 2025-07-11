@@ -6,7 +6,7 @@ import { ChartColumnStacked, Settings2, Layers } from "lucide-react";
 // Local imports
 import { InnerNavbar, InnerNavbarSectionProps } from "@/components/inner-navbar";
 import { PageLayout, SidebarSectionProps } from "@/components/page-layout";
-import { Policy } from "@vulkan/client-open";
+import { Policy } from "@vulkanlabs/client-open";
 
 export function RouteLayout({ policy, children }: { policy: Policy; children: React.ReactNode }) {
     const sections: SidebarSectionProps[] = [

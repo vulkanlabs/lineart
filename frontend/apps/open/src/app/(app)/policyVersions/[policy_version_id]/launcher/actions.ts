@@ -1,5 +1,5 @@
 "use server";
-import { Run } from "@vulkan/client-open";
+import { Run } from "@vulkanlabs/client-open";
 import { LauncherFnParams } from "./types";
 
 export async function postLaunchFormAction({

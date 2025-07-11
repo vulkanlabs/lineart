@@ -5,8 +5,8 @@ import { useShallow } from "zustand/react/shallow";
 import { type NodeChange } from "@xyflow/react";
 
 import { AssetCombobox, AssetOption } from "@/components/combobox";
-import { Input } from "@vulkan/base/ui";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@vulkan/base/ui";
+import { Input } from "@vulkanlabs/base/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@vulkanlabs/base/ui";
 
 import { useWorkflowStore } from "@/workflow/store";
 import { useWorkflowData } from "@/workflow/context";

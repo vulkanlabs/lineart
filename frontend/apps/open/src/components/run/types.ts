@@ -1,5 +1,5 @@
 import { NodeLayoutConfig, NodeDependency } from "@/lib/workflow/types";
-import { StepDetails } from "@vulkan/client-open";
+import { StepDetails } from "@vulkanlabs/client-open";
 
 export type RunNodeLayout = NodeLayoutConfig & {
     draggable?: boolean;

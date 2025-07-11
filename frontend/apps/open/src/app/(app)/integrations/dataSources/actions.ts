@@ -1,7 +1,7 @@
 "use server";
 
 import { createDataSource } from "@/lib/api";
-import { DataSourceSpec } from "@vulkan/client-open";
+import { DataSourceSpec } from "@vulkanlabs/client-open";
 
 export async function createDataSourceAction(data: DataSourceSpec) {
     try {

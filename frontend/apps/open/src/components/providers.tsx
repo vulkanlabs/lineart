@@ -1,6 +1,6 @@
 "use client";
 
-import { Toaster } from "@vulkan/base/ui";
+import { Toaster } from "@vulkanlabs/base/ui";
 
 export function Providers({ children }: { children: React.ReactNode }) {
     return (

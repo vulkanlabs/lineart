@@ -9,8 +9,8 @@ import Link from "next/link";
 import { Workflow, Puzzle, ArrowDownUp, Logs, Menu } from "lucide-react";
 
 // Vulkan packages
-import { Button, Sheet, SheetContent, SheetTrigger } from "@vulkan/base/ui";
-import { cn } from "@vulkan/base";
+import { Button, Sheet, SheetContent, SheetTrigger } from "@vulkanlabs/base/ui";
+import { cn } from "@vulkanlabs/base";
 
 // Local imports
 import { VulkanLogo } from "@/components/logo";

@@ -1,5 +1,5 @@
 import type { XYPosition, Edge } from "@xyflow/react";
-import type { PolicyVersion, NodeDefinitionDict, UIMetadata } from "@vulkan/client-open";
+import type { PolicyVersion, NodeDefinitionDict, UIMetadata } from "@vulkanlabs/client-open";
 
 import { createNodeByType, nodesConfig } from "./nodes";
 import { findHandleIndexByName } from "./names";

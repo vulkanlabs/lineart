@@ -30,9 +30,9 @@ import {
     FormLabel,
     FormMessage,
     Textarea,
-} from "@vulkan/base/ui";
-import { Sending } from "@vulkan/base";
-import { Run } from "@vulkan/client-open";
+} from "@vulkanlabs/base/ui";
+import { Sending } from "@vulkanlabs/base";
+import { Run } from "@vulkanlabs/client-open";
 
 // Local imports
 import { LauncherFnParams } from "./types";

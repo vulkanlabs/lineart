@@ -1,5 +1,5 @@
 import { fetchDataSources } from "@/lib/api";
-import { Separator } from "@vulkan/base/ui";
+import { Separator } from "@vulkanlabs/base/ui";
 
 import DataSourcesTable from "./data-sources-table";
 

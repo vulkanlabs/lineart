@@ -1,5 +1,5 @@
 import { type Node, type Edge, type NodeProps } from "@xyflow/react";
-import type { NodeDefinitionDict, DependencyDict } from "@vulkan/client-open";
+import type { NodeDefinitionDict, DependencyDict } from "@vulkanlabs/client-open";
 
 // Re-export commonly used ReactFlow types
 export type { Edge, Node, NodeProps } from "@xyflow/react";

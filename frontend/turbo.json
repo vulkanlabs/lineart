@@ -40,22 +40,22 @@
       "cache": false,
       "persistent": true
     },
-    "@vulkan/base#build": {
+    "@vulkanlabs/base#build": {
       "dependsOn": [
-        "@vulkan/client-open#build"
+        "@vulkanlabs/client-open#build"
       ],
       "outputs": [
         "dist/**"
       ]
     },
-    "@vulkan/client-open#build": {
+    "@vulkanlabs/client-open#build": {
       "outputs": [
         "dist/**"
       ]
     },
-    "@vulkan/api-utils#build": {
+    "@vulkanlabs/api-utils#build": {
       "dependsOn": [
-        "@vulkan/client-open#build"
+        "@vulkanlabs/client-open#build"
       ],
       "outputs": [
         "dist/**"

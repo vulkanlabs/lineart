@@ -1,4 +1,4 @@
-import type { NodeDefinitionDict, PolicyVersion, RunData, RunLogs } from "@vulkan/client-open";
+import type { NodeDefinitionDict, PolicyVersion, RunData, RunLogs } from "@vulkanlabs/client-open";
 import { fetchPolicyVersion, fetchRunData, fetchRunLogs } from "@/lib/api";
 
 import type { NodeLayoutConfig } from "@/lib/workflow/types";

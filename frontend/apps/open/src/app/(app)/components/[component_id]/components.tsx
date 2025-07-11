@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { DataTable, DetailsButton, ShortenedID } from "@vulkan/base";
+import { DataTable, DetailsButton, ShortenedID } from "@vulkanlabs/base";
 import { parseDate } from "@/lib/utils";
 
 const componentVersionColumns: ColumnDef<any>[] = [

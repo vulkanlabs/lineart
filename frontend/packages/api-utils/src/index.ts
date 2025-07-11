@@ -1,5 +1,5 @@
 import { formatISO, parseISO } from "date-fns";
-import { Configuration } from "@vulkan/client-open";
+import { Configuration } from "@vulkanlabs/client-open";
 
 /**
  * Configuration options for creating API clients
@@ -23,8 +23,8 @@ export interface ApiClientConfig {
  *
  * @example
  * ```typescript
- * import { PoliciesApi } from '@vulkan/client-open'
- * import { createApiConfig } from '@vulkan/api-utils'
+ * import { PoliciesApi } from '@vulkanlabs/client-open'
+ * import { createApiConfig } from '@vulkanlabs/api-utils'
  *
  * const config = createApiConfig({
  *   baseUrl: 'https://api.vulkan.com',
@@ -184,4 +184,4 @@ export const createApiHook = <TParams, TResult>(
 };
 
 // Re-export Configuration type for convenience
-export type { Configuration } from "@vulkan/client-open";
+export type { Configuration } from "@vulkanlabs/client-open";

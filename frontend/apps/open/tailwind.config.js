@@ -1,4 +1,4 @@
-const baseConfig = require('@vulkan/base/tailwind.config.js');
+const baseConfig = require('@vulkanlabs/base/tailwind.config.js');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {

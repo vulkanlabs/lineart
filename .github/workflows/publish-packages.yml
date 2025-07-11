@@ -79,7 +79,7 @@ jobs:
           # Function to publish a package
           publish_package() {
             local package=$1
-            echo "Publishing @vulkan/$package..."
+            echo "Publishing @vulkanlabs/$package..."
             cd $package
             
             # Check if package version already exists

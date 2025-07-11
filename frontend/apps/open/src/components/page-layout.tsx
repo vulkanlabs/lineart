@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import { cn } from "@vulkan/base";
+import { cn } from "@vulkanlabs/base";
 import "@/app/globals.css";
 import { SquareChevronLeft, SquareChevronRight } from "lucide-react";
 

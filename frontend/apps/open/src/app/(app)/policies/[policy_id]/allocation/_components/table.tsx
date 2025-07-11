@@ -4,8 +4,8 @@
 import { ColumnDef } from "@tanstack/react-table";
 
 // Vulkan packages
-import { DetailsButton, DataTable, ShortenedID } from "@vulkan/base";
-import type { Policy, PolicyVersion, PolicyAllocationStrategy } from "@vulkan/client-open";
+import { DetailsButton, DataTable, ShortenedID } from "@vulkanlabs/base";
+import type { Policy, PolicyVersion, PolicyAllocationStrategy } from "@vulkanlabs/client-open";
 
 // Local imports
 import { RefreshButton } from "@/components/refresh-button";
