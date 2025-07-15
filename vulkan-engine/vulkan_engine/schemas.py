@@ -79,20 +79,6 @@ class ComponentBase(BaseModel):
     icon: str | None = None  # Base64 encoded image
 
 
-class Component(ComponentBase):
-    component_id: UUID
-    archived: bool
-    created_at: datetime
-    last_updated_at: datetime
-    requirements: list[str] | None = None
-    workflow_definition: dict | None = None
-    variables: list[str] | None = None
-    ui_metadata: dict | None = None
-
-    class Config:
-        from_attributes = True
-
-
 class ComponentVersionCreate(BaseModel):
     version_name: str
     repository: str
@@ -134,6 +120,21 @@ class UIMetadata(BaseModel):
     position: UINodePosition
     width: float
     height: float
+
+
+class Component(ComponentBase):
+    component_id: UUID
+    archived: bool
+    created_at: datetime
+    last_updated_at: datetime
+    requirements: list[str]
+    spec: PolicyDefinitionDict
+    input_schema: dict[str, str]
+    variables: list[str] | None = None
+    ui_metadata: dict[str, UIMetadata] | None = None
+
+    class Config:
+        from_attributes = True
 
 
 class PolicyVersionBase(BaseModel):

@@ -3,36 +3,21 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { PolicyVersion, Component } from "@vulkanlabs/client-open";
+import "@xyflow/react/dist/style.css";
 
 import {
-    WorkflowFrame,
+    WorkflowFrame as BaseWorkflowFrame,
     WorkflowApiProvider,
     WorkflowDataProvider,
     createWorkflowApiClient,
 } from "@vulkanlabs/base/workflow";
+import type { Workflow } from "@vulkanlabs/base/workflow";
 
 /**
- * Props for the application workflow frame
+ * Props for the workflow frame
  */
-export type AppWorkflowFrameProps = {
-    policyVersion: PolicyVersion;
-    onNodeClick?: (e: React.MouseEvent, node: any) => void;
-    onPaneClick?: (e: React.MouseEvent) => void;
-};
-
-/**
- * Props for the unified workflow frame
- */
-export type UnifiedWorkflowFrameProps = {
-    workflowData: PolicyVersion | Component;
-    onNodeClick?: (e: React.MouseEvent, node: any) => void;
-    onPaneClick?: (e: React.MouseEvent) => void;
-};
-
-// Add missing type for backward compatibility
-export type ComponentWorkflowFrameProps = {
-    component: Component;
+export type WorkflowFrameProps = {
+    workflowData: Workflow;
     onNodeClick?: (e: React.MouseEvent, node: any) => void;
     onPaneClick?: (e: React.MouseEvent) => void;
 };
@@ -41,11 +26,11 @@ export type ComponentWorkflowFrameProps = {
  * Application-specific workflow frame that wraps the base WorkflowFrame
  * with app-specific API client and routing
  */
-export function UnifiedWorkflowFrame({
+export function WorkflowFrame({
     workflowData,
     onNodeClick = () => {},
     onPaneClick = () => {},
-}: UnifiedWorkflowFrameProps) {
+}: WorkflowFrameProps) {
     const router = useRouter();
     const apiClient = createWorkflowApiClient();
     const handleRefresh = () => router.refresh();
@@ -54,8 +39,8 @@ export function UnifiedWorkflowFrame({
     return (
         <WorkflowApiProvider client={apiClient} config={{}}>
             <WorkflowDataProvider autoFetch={true} includeArchived={false}>
-                <WorkflowFrame
-                    policyVersion={workflowData}
+                <BaseWorkflowFrame
+                    workflow={workflowData}
                     onNodeClick={onNodeClick}
                     onPaneClick={onPaneClick}
                     toast={handleToast}

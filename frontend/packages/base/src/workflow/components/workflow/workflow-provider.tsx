@@ -3,9 +3,8 @@
 import React, { useMemo, type ReactNode } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 
-import type { PolicyVersion } from "@vulkanlabs/client-open";
 import { WorkflowProvider as StoreProvider } from "@/workflow/store";
-import { useWorkflowApi } from "@/workflow/api";
+import { useWorkflowApi, Workflow } from "@/workflow/api";
 import { createWorkflowState } from "@/workflow/utils/workflow-state";
 import type { WorkflowState } from "@/workflow/types/workflow";
 
@@ -14,22 +13,22 @@ import type { WorkflowState } from "@/workflow/types/workflow";
  */
 export type WorkflowProviderWrapperProps = {
     children: ReactNode;
-    policyVersion: PolicyVersion;
+    workflow: Workflow;
 };
 
 /**
  * Provider wrapper that combines ReactFlow provider with workflow store provider
  * and initializes the workflow state from the policy version
  */
-export function WorkflowProviderWrapper({ children, policyVersion }: WorkflowProviderWrapperProps) {
+export function WorkflowProviderWrapper({ children, workflow }: WorkflowProviderWrapperProps) {
     const apiClient = useWorkflowApi();
 
     /**
-     * Create initial workflow state from policy version data
+     * Create initial workflow state from workflow data
      */
     const initialState: WorkflowState = useMemo(() => {
-        return createWorkflowState(policyVersion);
-    }, [policyVersion]);
+        return createWorkflowState(workflow);
+    }, [workflow]);
 
     return (
         <ReactFlowProvider>

@@ -1,4 +1,9 @@
-import type { PolicyVersion, PolicyDefinitionDictInput, UIMetadata } from "@vulkanlabs/client-open";
+import type {
+    PolicyVersion,
+    PolicyDefinitionDictInput,
+    UIMetadata,
+    Component,
+} from "@vulkanlabs/client-open";
 
 /**
  * Result type for save operations
@@ -8,6 +13,8 @@ export interface SaveWorkflowResult {
     error: string | null;
     data: any;
 }
+
+export type Workflow = PolicyVersion | Component;
 
 /**
  * Data source type for workflow components
@@ -28,7 +35,7 @@ export interface WorkflowApiClient {
      * Save a workflow specification to the server
      */
     saveWorkflowSpec(
-        policyVersion: PolicyVersion,
+        workflow: Workflow,
         spec: PolicyDefinitionDictInput,
         uiMetadata: { [key: string]: UIMetadata },
     ): Promise<SaveWorkflowResult>;
