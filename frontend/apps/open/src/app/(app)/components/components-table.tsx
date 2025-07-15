@@ -123,6 +123,24 @@ export const componentsTableColumns: ColumnDef<Component>[] = [
         cell: ({ row }) => <ShortenedID id={row.getValue("component_id")} />,
     },
     {
+        header: "Icon",
+        accessorKey: "icon",
+        cell: ({ row }) => {
+            const icon = row.getValue("icon") as string;
+            return icon ? (
+                <div className="flex items-center gap-2">
+                    <img
+                        src={icon}
+                        alt="Component icon"
+                        className="h-8 w-8 object-contain rounded"
+                    />
+                </div>
+            ) : (
+                "-"
+            );
+        },
+    },
+    {
         accessorKey: "name",
         header: ({ column }) => {
             return (
@@ -146,24 +164,6 @@ export const componentsTableColumns: ColumnDef<Component>[] = [
                 <div className="min-w-52 max-w-52 overflow-hidden whitespace-nowrap text-ellipsis">
                     {row.getValue("description") || "-"}
                 </div>
-            );
-        },
-    },
-    {
-        header: "Icon",
-        accessorKey: "icon",
-        cell: ({ row }) => {
-            const icon = row.getValue("icon") as string;
-            return icon ? (
-                <div className="flex items-center gap-2">
-                    <img
-                        src={icon}
-                        alt="Component icon"
-                        className="h-8 w-8 object-contain rounded"
-                    />
-                </div>
-            ) : (
-                "-"
             );
         },
     },

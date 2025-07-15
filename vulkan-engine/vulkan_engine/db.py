@@ -378,6 +378,10 @@ class Component(TimedUpdateMixin, ArchivableMixin, Base):
     description = Column(String, nullable=True)
     icon = Column(String, nullable=True)  # Store base64 encoded image
     archived = Column(Boolean, default=False)
+    requirements = Column(ARRAY(String), nullable=True)
+    workflow_definition = Column(JSON, nullable=True)
+    ui_metadata = Column(JSON, nullable=True)
+    variables = Column(ARRAY(String), nullable=True)
 
     __table_args__ = (
         Index(

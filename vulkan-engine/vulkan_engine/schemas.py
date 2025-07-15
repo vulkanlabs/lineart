@@ -84,6 +84,10 @@ class Component(ComponentBase):
     archived: bool
     created_at: datetime
     last_updated_at: datetime
+    requirements: list[str] | None = None
+    workflow_definition: dict | None = None
+    variables: list[str] | None = None
+    ui_metadata: dict | None = None
 
     class Config:
         from_attributes = True

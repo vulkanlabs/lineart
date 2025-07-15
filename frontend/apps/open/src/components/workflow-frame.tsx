@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { PolicyVersion } from "@vulkanlabs/client-open";
+import type { PolicyVersion, Component } from "@vulkanlabs/client-open";
 
 import {
     WorkflowFrame,
@@ -22,34 +22,40 @@ export type AppWorkflowFrameProps = {
 };
 
 /**
+ * Props for the unified workflow frame
+ */
+export type UnifiedWorkflowFrameProps = {
+    workflowData: PolicyVersion | Component;
+    onNodeClick?: (e: React.MouseEvent, node: any) => void;
+    onPaneClick?: (e: React.MouseEvent) => void;
+};
+
+// Add missing type for backward compatibility
+export type ComponentWorkflowFrameProps = {
+    component: Component;
+    onNodeClick?: (e: React.MouseEvent, node: any) => void;
+    onPaneClick?: (e: React.MouseEvent) => void;
+};
+
+/**
  * Application-specific workflow frame that wraps the base WorkflowFrame
  * with app-specific API client and routing
  */
-export function AppWorkflowFrame({
-    policyVersion,
+export function UnifiedWorkflowFrame({
+    workflowData,
     onNodeClick = () => {},
     onPaneClick = () => {},
-}: AppWorkflowFrameProps) {
+}: UnifiedWorkflowFrameProps) {
     const router = useRouter();
-
-    // Create API client that uses our app's API routes
     const apiClient = createWorkflowApiClient();
-
-    // Handle refresh by refreshing the router
-    const handleRefresh = () => {
-        router.refresh();
-    };
-
-    // App-specific toast function
-    const handleToast = (message: string, options?: any) => {
-        toast(message, options);
-    };
-
+    const handleRefresh = () => router.refresh();
+    const handleToast = (message: string, options?: any) => toast(message, options);
+    // Add empty config if required by WorkflowApiProvider
     return (
-        <WorkflowApiProvider client={apiClient}>
+        <WorkflowApiProvider client={apiClient} config={{}}>
             <WorkflowDataProvider autoFetch={true} includeArchived={false}>
                 <WorkflowFrame
-                    policyVersion={policyVersion}
+                    policyVersion={workflowData}
                     onNodeClick={onNodeClick}
                     onPaneClick={onPaneClick}
                     toast={handleToast}

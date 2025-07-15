@@ -1,54 +1,30 @@
 "use client";
+import { EnvironmentVariablesEditor } from "@vulkanlabs/base";
+import { Card, CardTitle, CardHeader, CardContent } from "@vulkanlabs/base/ui";
+import { Component, ConfigurationVariablesBase } from "@vulkanlabs/client-open";
+import { useEffect, useState } from "react";
 
-import { ColumnDef } from "@tanstack/react-table";
-import { DataTable, DetailsButton, ShortenedID } from "@vulkanlabs/base";
-import { parseDate } from "@/lib/utils";
+export function EnvTab({ component }: { component: Component }) {
+    // Prepare environment variables for the editor
+    const [variables, setVariables] = useState<ConfigurationVariablesBase[]>([]);
 
-const componentVersionColumns: ColumnDef<any>[] = [
-    {
-        header: "",
-        accessorKey: "link",
-        cell: ({ row }) => {
-            const component_id = row.original["component_id"];
-            const component_version_id = row.getValue("component_version_id");
-            return (
-                <DetailsButton
-                    href={`/components/${component_id}/versions/${component_version_id}/workflow`}
-                />
-            );
-        },
-    },
-    {
-        header: "ID",
-        accessorKey: "component_version_id",
-        cell: ({ row }) => <ShortenedID id={row.getValue("component_version_id")} />,
-    },
-    {
-        header: "Tag",
-        accessorKey: "alias",
-    },
-    {
-        header: "Input Schema",
-        accessorKey: "input_schema",
-    },
-    {
-        header: "Instance Params Schema",
-        accessorKey: "instance_params_schema",
-    },
-    {
-        header: "Created At",
-        accessorKey: "created_at",
-        cell: ({ row }) => parseDate(row.getValue("created_at")),
-    },
-];
+    async function handleSave(updatedVariables: ConfigurationVariablesBase[]) {
+        // TODO: Implement save logic (API call to update component variables)
+        // await updateComponentEnvVars(component_id, updatedVariables);
+    }
 
-export function ComponentVersionsTable({ versions }: { versions: any[] }) {
+    useEffect(() => {
+        setVariables(component.variables?.map((name) => ({ name, value: "" })) || []);
+    }, [component]);
+
     return (
-        <DataTable
-            columns={componentVersionColumns}
-            data={versions}
-            emptyMessage="No versions found"
-            className=""
-        />
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">Environment Variables</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <EnvironmentVariablesEditor variables={variables} onSave={handleSave} />
+            </CardContent>
+        </Card>
     );
 }
