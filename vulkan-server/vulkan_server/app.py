@@ -37,6 +37,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(routers.components.router)
 app.include_router(routers.data.sources)
 app.include_router(routers.data.broker)
 app.include_router(routers.policies.router)

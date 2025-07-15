@@ -75,13 +75,15 @@ class Policy(PolicyBase):
 
 class ComponentBase(BaseModel):
     name: str
+    description: str | None = None
+    icon: str | None = None  # Base64 encoded image
 
 
 class Component(ComponentBase):
     component_id: UUID
-    project_id: UUID
     archived: bool
     created_at: datetime
+    last_updated_at: datetime
 
     class Config:
         from_attributes = True

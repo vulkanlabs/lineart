@@ -24,7 +24,12 @@ from vulkan_engine.dagster.launch_run import DagsterRunLauncher
 from vulkan_engine.dagster.service_client import VulkanDagsterServiceClient
 from vulkan_engine.db import get_db_session
 from vulkan_engine.logger import VulkanLogger, create_logger
-from vulkan_engine.services import AllocationService, DataSourceService, PolicyService
+from vulkan_engine.services import (
+    AllocationService,
+    ComponentService,
+    DataSourceService,
+    PolicyService,
+)
 from vulkan_engine.services.run_orchestration import RunOrchestrationService
 from vulkan_engine.services.run_query import RunQueryService
 
@@ -269,3 +274,20 @@ def get_data_source_service(
         Configured DataSourceService instance
     """
     return DataSourceService(db=db, logger=logger)
+
+
+def get_component_service(
+    db: Annotated[Session, Depends(get_database_session)],
+    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
+) -> ComponentService:
+    """
+    Get ComponentService for component management.
+
+    Args:
+        db: Database session
+        logger: Configured logger
+
+    Returns:
+        Configured ComponentService instance
+    """
+    return ComponentService(db=db)

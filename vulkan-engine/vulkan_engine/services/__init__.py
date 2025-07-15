@@ -7,6 +7,7 @@ core operations for policies, runs, data sources, etc.
 
 from vulkan_engine.services.allocation import AllocationService
 from vulkan_engine.services.base import BaseService
+from vulkan_engine.services.component import ComponentService
 from vulkan_engine.services.data_source import DataSourceService
 from vulkan_engine.services.policy import PolicyService
 from vulkan_engine.services.policy_version import PolicyVersionService
@@ -21,4 +22,5 @@ __all__ = [
     "RunQueryService",
     "PolicyVersionService",
     "DataSourceService",
+    "ComponentService",
 ]

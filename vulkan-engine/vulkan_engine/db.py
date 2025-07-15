@@ -370,6 +370,26 @@ class WorkspaceStatus(enum.Enum):
     CREATION_FAILED = "CREATION_FAILED"
 
 
+class Component(TimedUpdateMixin, ArchivableMixin, Base):
+    __tablename__ = "component"
+
+    component_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    icon = Column(String, nullable=True)  # Store base64 encoded image
+    archived = Column(Boolean, default=False)
+
+    __table_args__ = (
+        Index(
+            "unique_component_name",
+            "name",
+            "archived",
+            unique=True,
+            postgresql_where=(archived == False),  # noqa: E712
+        ),
+    )
+
+
 class BeamWorkspace(TimedUpdateMixin, Base):
     __tablename__ = "beam_workspace"
 

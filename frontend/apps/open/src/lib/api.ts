@@ -1,4 +1,5 @@
 import {
+    ComponentsApi,
     PoliciesApi,
     PolicyVersionsApi,
     RunsApi,
@@ -17,6 +18,8 @@ import {
     type DataSourceEnvVarBase,
     type PolicyAllocationStrategy,
     type ConfigurationVariablesBase,
+    type ComponentBase,
+    type Component,
 } from "@vulkanlabs/client-open";
 import { createApiConfig, withErrorHandling } from "@vulkanlabs/api-utils";
 
@@ -33,6 +36,7 @@ const policiesApi = new PoliciesApi(apiConfig);
 const policyVersionsApi = new PolicyVersionsApi(apiConfig);
 const runsApi = new RunsApi(apiConfig);
 const dataSourcesApi = new DataSourcesApi(apiConfig);
+const componentsApi = new ComponentsApi(apiConfig);
 
 // Policy API methods with error handling
 export const fetchPolicies = async (includeArchived = false): Promise<Policy[]> => {
@@ -221,30 +225,55 @@ export const setDataSourceEnvVars = async (
     );
 };
 
-// Component API mock functions (components API not available yet)
-export async function fetchComponents(includeArchived: boolean = false): Promise<any[]> {
-    return [];
+// Component API functions
+export async function fetchComponents(includeArchived: boolean = false): Promise<Component[]> {
+    return withErrorHandling(
+        componentsApi.listComponents({ includeArchived: includeArchived }),
+        `fetch components`,
+    );
 }
 
-export async function fetchComponent(componentId: string) {
-    return {
-        id: componentId,
-        name: `Mock Component ${componentId}`,
-        description: "This is a mock component for the open-source version",
-        created_at: new Date().toISOString(),
-    };
+export async function fetchComponent(componentId: string): Promise<Component> {
+    return withErrorHandling(
+        componentsApi.getComponent({ componentId }),
+        `fetch component ${componentId}`,
+    );
 }
 
-export async function fetchComponentVersions(
+export async function createComponent(data: ComponentBase): Promise<Component> {
+    return withErrorHandling(
+        componentsApi.createComponent({ componentBase: data }),
+        `create component`,
+    );
+}
+
+export async function updateComponent(
     componentId: string,
-    includeArchived: boolean = false,
-) {
-    return [];
+    data: ComponentBase,
+): Promise<Component> {
+    return withErrorHandling(
+        componentsApi.updateComponent({ componentId, componentBase: data }),
+        `update component ${componentId}`,
+    );
 }
 
-export async function fetchComponentVersionUsage(componentId: string) {
-    return [];
+export async function deleteComponent(componentId: string): Promise<void> {
+    return withErrorHandling(
+        componentsApi.deleteComponent({ componentId }),
+        `delete component ${componentId}`,
+    );
 }
+
+// export async function fetchComponentVersions(
+//     componentId: string,
+//     includeArchived: boolean = false,
+// ) {
+//     return [];
+// }
+
+// export async function fetchComponentVersionUsage(componentId: string) {
+//     return [];
+// }
 
 // Data Source Usage API method
 export const fetchDataSourceUsage = async (
