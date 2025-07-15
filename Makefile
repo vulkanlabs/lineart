@@ -12,6 +12,8 @@ test-integration:
 .PHONY: lint
 lint:
 	cd frontend && npm run format
+	ruff check --force-exclude --select I --fix --extend-exclude=vulkan/vulkan/templates/policy/
+	ruff format --force-exclude --exclude=vulkan/vulkan/templates/policy/
 
 .PHONY: down
 down:
@@ -38,6 +40,7 @@ openapi:
 	rm -r frontend/packages/client-open/src || true
 	mkdir -p frontend/packages/client-open/src
 	openapi-generator-cli generate -g typescript-fetch -i generated/openapi.json -o frontend/packages/client-open/src --additional-properties="modelPropertyNaming=original"
+	cd frontend/packages/client-open && npm run build
 
 # Configuration
 .PHONY: config
