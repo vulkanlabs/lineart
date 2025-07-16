@@ -5,51 +5,9 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from vulkan.core.run import JobStatus, PolicyVersionStatus, RunStatus
+from vulkan.core.run import PolicyVersionStatus
 from vulkan.schemas import DataSourceSpec, PolicyAllocationStrategy
 from vulkan.spec.policy import PolicyDefinitionDict
-
-
-class Project(BaseModel):
-    project_id: UUID
-    name: str
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class UserBase(BaseModel):
-    user_auth_id: UUID
-    email: str
-    name: str
-
-
-class User(UserBase):
-    user_id: UUID
-    created_at: datetime
-    last_updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class ProjectUserCreate(BaseModel):
-    user_id: UUID
-    role: str
-
-
-class ProjectUserBase(ProjectUserCreate):
-    project_id: UUID
-
-
-class ProjectUser(ProjectUserBase):
-    project_user_id: UUID
-    created_at: datetime
-    last_updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class PolicyCreate(BaseModel):
@@ -133,7 +91,6 @@ class UIMetadata(BaseModel):
 class PolicyVersionBase(BaseModel):
     alias: str | None
     spec: PolicyDefinitionDict
-    input_schema: dict[str, str] | None = None
     requirements: list[str] | None = None
     ui_metadata: dict[str, UIMetadata] | None = None
 
@@ -148,7 +105,6 @@ class PolicyVersion(BaseModel):
     policy_id: UUID
     alias: str | None = None
     status: PolicyVersionStatus
-    input_schema: dict[str, str]
     spec: PolicyDefinitionDict
     requirements: list[str]
     archived: bool
@@ -330,46 +286,6 @@ class DataBrokerResponse(BaseModel):
     value: Any
 
 
-class Backfill(BaseModel):
-    backfill_id: UUID
-    backtest_id: UUID
-    status: RunStatus
-    config_variables: dict | None
-
-    created_at: datetime
-    last_updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class BackfillStatus(BaseModel):
-    backfill_id: UUID
-    status: RunStatus
-    config_variables: dict | None
-
-
-class Backtest(BaseModel):
-    backtest_id: UUID
-    policy_version_id: UUID
-    input_file_id: UUID
-    environments: list[dict]
-    status: JobStatus
-    calculate_metrics: bool
-    target_column: str | None
-    time_column: str | None
-    group_by_columns: list[str] | None
-
-    created_at: datetime
-    last_updated_at: datetime
-
-
-class BacktestStatus(BaseModel):
-    backtest_id: UUID
-    status: JobStatus
-    backfills: list[BackfillStatus]
-
-
 class UploadedFile(BaseModel):
     uploaded_file_id: UUID
     file_name: str | None = None
@@ -378,24 +294,3 @@ class UploadedFile(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-class BeamWorkspace(BaseModel):
-    policy_version_id: UUID
-    status: str
-
-    class Config:
-        from_attributes = True
-
-
-class BacktestMetrics(BaseModel):
-    backtest_id: UUID
-    status: RunStatus
-    metrics: list[dict] | None = None
-
-
-class BacktestMetricsConfig(BaseModel):
-    target_column: str
-    time_column: str | None = None
-    group_by_columns: list[str] | None = None
-    group_by_columns: list[str] | None = None

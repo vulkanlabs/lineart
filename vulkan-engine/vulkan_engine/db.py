@@ -1,4 +1,3 @@
-import enum
 from typing import Iterator
 
 from sqlalchemy import (
@@ -22,7 +21,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from sqlalchemy.sql import func
 
-from vulkan.core.run import JobStatus, PolicyVersionStatus, RunStatus
+from vulkan.core.run import PolicyVersionStatus, RunStatus
 from vulkan.schemas import CachingOptions, DataSourceSpec
 from vulkan.spec.nodes.base import NodeType
 from vulkan_engine.config import DatabaseConfig
@@ -58,15 +57,6 @@ class ArchivableMixin:
     archived = Column(Boolean, default=False)
 
 
-class User(TimedUpdateMixin, Base):
-    __tablename__ = "users"
-
-    user_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    user_auth_id = Column(String, unique=True)
-    email = Column(String, unique=True)
-    name = Column(String)
-
-
 class LogRecord(Base):
     __tablename__ = "log_record"
 
@@ -87,6 +77,11 @@ class Policy(TimedUpdateMixin, ArchivableMixin, Base):
     description = Column(String)
     allocation_strategy = Column(JSON, nullable=True)
 
+    # Project association for multi-tenant deployments
+    project_id = Column(Uuid, nullable=True)
+
+    __table_args__ = (Index("idx_policy_project_id", "project_id"),)
+
 
 class PolicyVersion(TimedUpdateMixin, ArchivableMixin, Base):
     __tablename__ = "policy_version"
@@ -99,15 +94,13 @@ class PolicyVersion(TimedUpdateMixin, ArchivableMixin, Base):
     status = Column(Enum(PolicyVersionStatus), nullable=False)
     spec = Column(JSON, nullable=False)
     requirements = Column(ARRAY(String), nullable=False)
-    # The fields below require the policy version to be resolved
-    # first, hence the "nullable=True". With regards to the application,
-    # `input_schema` and `graph_definition` are actually non-nullable.
-    input_schema = Column(JSON, nullable=True)
     variables = Column(ARRAY(String), nullable=True)
     ui_metadata = Column(JSON, nullable=True)
 
-    # Base worker image
-    base_worker_image = Column(String, nullable=True)
+    # Project association for multi-tenant deployments (denormalized for performance)
+    project_id = Column(Uuid, nullable=True)
+
+    __table_args__ = (Index("idx_policy_version_project_id", "project_id"),)
 
 
 class ConfigurationValue(TimedUpdateMixin, Base):
@@ -157,6 +150,11 @@ class Run(TimedUpdateMixin, Base):
     dagster_run_id = Column(String, nullable=True)
     started_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Project association for multi-tenant deployments (denormalized for performance)
+    project_id = Column(Uuid, nullable=True)
+
+    __table_args__ = (Index("idx_run_project_id", "project_id"),)
+
 
 class StepMetadata(Base):
     __tablename__ = "step_metadata"
@@ -191,6 +189,9 @@ class DataSource(TimedUpdateMixin, Base):
     variables = Column(ARRAY(String), nullable=True)
     archived = Column(Boolean, default=False)
 
+    # Project association for multi-tenant deployments
+    project_id = Column(Uuid, nullable=True)
+
     __table_args__ = (
         Index(
             "unique_data_source_name",
@@ -199,6 +200,7 @@ class DataSource(TimedUpdateMixin, Base):
             unique=True,
             postgresql_where=(archived == False),  # noqa: E712
         ),
+        Index("idx_data_source_project_id", "project_id"),
     )
 
     @classmethod
@@ -309,77 +311,6 @@ class UploadedFile(Base):
     file_path = Column(String, nullable=False)
     file_schema = Column(JSON, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-
-class Backfill(TimedUpdateMixin, Base):
-    __tablename__ = "backfill"
-
-    backfill_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    backtest_id = Column(Uuid, ForeignKey("backtest.backtest_id"))
-    input_data_path = Column(String)
-    status = Column(Enum(RunStatus))
-    config_variables = Column(JSON, nullable=True)
-
-    # Known after launch
-    output_path = Column(String, nullable=True)
-    gcp_project_id = Column(String, nullable=True)
-    gcp_job_id = Column(String, nullable=True)
-
-
-class Backtest(TimedUpdateMixin, Base):
-    __tablename__ = "backtest"
-
-    backtest_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    policy_version_id = Column(
-        Uuid, ForeignKey("policy_version.policy_version_id"), nullable=False
-    )
-    input_file_id = Column(
-        Uuid, ForeignKey("uploaded_file.uploaded_file_id"), nullable=False
-    )
-    environments = Column(JSON, nullable=True)
-    status = Column(Enum(JobStatus), nullable=False)
-
-    # Optional, metrics-related fields
-    calculate_metrics = Column(Boolean, nullable=False, default=False)
-    target_column = Column(String, nullable=True)
-    time_column = Column(String, nullable=True)
-    group_by_columns = Column(ARRAY(String), nullable=True)
-
-
-class BacktestMetrics(TimedUpdateMixin, Base):
-    __tablename__ = "backtest_metrics"
-
-    backtest_metrics_id = Column(
-        Uuid, primary_key=True, server_default=func.gen_random_uuid()
-    )
-    backtest_id = Column(Uuid, ForeignKey("backtest.backtest_id"), nullable=False)
-    status = Column(Enum(RunStatus), nullable=False)
-
-    # Known after launch
-    output_path = Column(String, nullable=True)
-    gcp_project_id = Column(String, nullable=True)
-    gcp_job_id = Column(String, nullable=True)
-
-    # Known after execution
-    metrics = Column(JSON, nullable=True)
-
-
-class WorkspaceStatus(enum.Enum):
-    OK = "OK"
-    CREATION_PENDING = "CREATION_PENDING"
-    CREATION_FAILED = "CREATION_FAILED"
-
-
-class BeamWorkspace(TimedUpdateMixin, Base):
-    __tablename__ = "beam_workspace"
-
-    policy_version_id = Column(
-        Uuid,
-        ForeignKey("policy_version.policy_version_id"),
-        primary_key=True,
-    )
-    status = Column(Enum(WorkspaceStatus))
-    image = Column(String, nullable=True)
 
 
 # To create tables, use create_engine_from_config with appropriate DatabaseConfig

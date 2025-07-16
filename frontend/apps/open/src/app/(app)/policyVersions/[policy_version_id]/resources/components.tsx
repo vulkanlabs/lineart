@@ -117,7 +117,7 @@ export function RequirementsEditor({ policyVersion }: { policyVersion: PolicyVer
             await updatePolicyVersion(policyVersion.policy_version_id, {
                 requirements: formattedRequirements,
                 alias: policyVersion.alias || null,
-                input_schema: policyVersion.input_schema,
+                input_schema: policyVersion.spec.input_schema,
                 spec: policyVersion.spec,
                 ui_metadata: policyVersion.ui_metadata,
             });

@@ -49,6 +49,7 @@ class DagsterRunLauncher:
         policy_version_id: str,
         run_group_id: UUID | None = None,
         run_config_variables: dict[str, str] | None = None,
+        project_id: str = None,
     ) -> Run:
         """Create and launch a run."""
         config = self._get_launch_config(
@@ -60,6 +61,7 @@ class DagsterRunLauncher:
             policy_version_id=policy_version_id,
             status=RunStatus.PENDING,
             run_group_id=run_group_id,
+            project_id=project_id,
         )
         self.db.add(run)
         self.db.commit()
@@ -183,6 +185,7 @@ def allocate_runs(
     input_data: dict,
     run_group_id: UUID,
     allocation_strategy: PolicyAllocationStrategy,
+    project_id: str = None,
 ):
     shadow = []
 
@@ -192,6 +195,7 @@ def allocate_runs(
                 policy_version_id=policy_version_id,
                 status=RunStatus.PENDING,
                 run_group_id=run_group_id,
+                project_id=project_id,
             )
             db.add(run)
             db.commit()
@@ -205,6 +209,7 @@ def allocate_runs(
         input_data=input_data,
         run_group_id=run_group_id,
         policy_version_id=policy_version_id,
+        project_id=project_id,
     )
     return {"main": main.run_id, "shadow": shadow}
 
