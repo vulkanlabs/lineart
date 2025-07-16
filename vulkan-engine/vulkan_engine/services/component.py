@@ -48,6 +48,11 @@ class ComponentService:
             name=config.name,
             description=config.description,
             icon=config.icon,
+            requirements=config.requirements,
+            spec=config.spec,
+            input_schema=config.input_schema,
+            variables=config.variables,
+            ui_metadata=config.ui_metadata,
         )
         self.db.add(component)
         self.db.commit()

@@ -2,7 +2,7 @@
 import { EnvironmentVariablesEditor } from "@vulkanlabs/base";
 import { Card, CardTitle, CardHeader, CardContent } from "@vulkanlabs/base/ui";
 import { Component, ConfigurationVariablesBase } from "@vulkanlabs/client-open";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export function EnvTab({ component }: { component: Component }) {
     // Prepare environment variables for the editor
@@ -12,10 +12,6 @@ export function EnvTab({ component }: { component: Component }) {
         // TODO: Implement save logic (API call to update component variables)
         // await updateComponentEnvVars(component_id, updatedVariables);
     }
-
-    useEffect(() => {
-        setVariables(component.variables?.map((name) => ({ name, value: "" })) || []);
-    }, [component]);
 
     return (
         <Card>

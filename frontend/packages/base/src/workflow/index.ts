@@ -24,7 +24,11 @@ export type {
 } from "./components/nodes";
 
 // === State Management ===
-export { WorkflowProvider, useWorkflowStore, createWorkflowStore } from "./store";
+export {
+    WorkflowStoreProvider as WorkflowProvider,
+    useWorkflowStore,
+    createWorkflowStore,
+} from "./store";
 export type { WorkflowStore, WorkflowStoreConfig } from "./store";
 
 // === API Integration ===

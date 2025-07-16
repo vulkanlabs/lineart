@@ -39,9 +39,9 @@ import {
  * Props for the workflow canvas component
  */
 export type WorkflowCanvasProps = {
+    workflow: Workflow;
     onNodeClick?: (e: React.MouseEvent, node: any) => void;
     onPaneClick?: (e: React.MouseEvent) => void;
-    workflow: Workflow;
     nodeTypes: Record<string, React.ComponentType<any>>;
     toast?: (message: string, options?: any) => void;
     onRefresh?: () => void;
@@ -51,9 +51,9 @@ export type WorkflowCanvasProps = {
  * Main workflow canvas component with ReactFlow integration
  */
 export function WorkflowCanvas({
+    workflow,
     onNodeClick = () => {},
     onPaneClick = () => {},
-    workflow,
     nodeTypes,
     toast = console.log,
     onRefresh = () => {},

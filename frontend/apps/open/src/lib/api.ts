@@ -264,17 +264,6 @@ export async function deleteComponent(componentId: string): Promise<void> {
     );
 }
 
-// export async function fetchComponentVersions(
-//     componentId: string,
-//     includeArchived: boolean = false,
-// ) {
-//     return [];
-// }
-
-// export async function fetchComponentVersionUsage(componentId: string) {
-//     return [];
-// }
-
 // Data Source Usage API method
 export const fetchDataSourceUsage = async (
     dataSourceId: string,

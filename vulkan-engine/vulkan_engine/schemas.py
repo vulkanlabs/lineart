@@ -73,44 +73,6 @@ class Policy(PolicyBase):
         from_attributes = True
 
 
-class ComponentBase(BaseModel):
-    name: str
-    description: str | None = None
-    icon: str | None = None  # Base64 encoded image
-
-
-class ComponentVersionCreate(BaseModel):
-    version_name: str
-    repository: str
-
-
-class ComponentVersion(BaseModel):
-    component_id: UUID
-    component_version_id: UUID
-    alias: str
-    input_schema: str
-    instance_params_schema: str
-    node_definitions: str
-    created_at: datetime
-    output_schema: str | None = None
-    project_id: UUID
-    archived: bool
-
-    class Config:
-        from_attributes = True
-
-
-class ComponentVersionDependencyExpanded(BaseModel):
-    component_id: UUID
-    component_name: str
-    component_version_id: UUID
-    component_version_alias: str
-    policy_id: UUID
-    policy_version_id: UUID
-    policy_name: str
-    policy_version_alias: str
-
-
 class UINodePosition(BaseModel):
     x: float
     y: float
@@ -120,6 +82,17 @@ class UIMetadata(BaseModel):
     position: UINodePosition
     width: float
     height: float
+
+
+class ComponentBase(BaseModel):
+    name: str
+    description: str | None = None
+    icon: str | None = None  # Base64 encoded image
+    requirements: list[str] | None = None
+    spec: PolicyDefinitionDict | None = None
+    input_schema: dict[str, str] | None = None
+    variables: list[str] | None = None
+    ui_metadata: dict[str, UIMetadata] | None = None
 
 
 class Component(ComponentBase):

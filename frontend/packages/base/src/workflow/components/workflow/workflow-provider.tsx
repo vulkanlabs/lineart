@@ -3,7 +3,7 @@
 import React, { useMemo, type ReactNode } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 
-import { WorkflowProvider as StoreProvider } from "@/workflow/store";
+import { WorkflowStoreProvider as StoreProvider } from "@/workflow/store";
 import { useWorkflowApi, Workflow } from "@/workflow/api";
 import { createWorkflowState } from "@/workflow/utils/workflow-state";
 import type { WorkflowState } from "@/workflow/types/workflow";

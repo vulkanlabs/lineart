@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import "@xyflow/react/dist/style.css";
 
 import {
-    WorkflowFrame as BaseWorkflowFrame,
+    WorkflowFrame,
     WorkflowApiProvider,
     WorkflowDataProvider,
     createWorkflowApiClient,
@@ -16,7 +16,7 @@ import type { Workflow } from "@vulkanlabs/base/workflow";
 /**
  * Props for the workflow frame
  */
-export type WorkflowFrameProps = {
+export type AppWorkflowFrameProps = {
     workflowData: Workflow;
     onNodeClick?: (e: React.MouseEvent, node: any) => void;
     onPaneClick?: (e: React.MouseEvent) => void;
@@ -26,11 +26,11 @@ export type WorkflowFrameProps = {
  * Application-specific workflow frame that wraps the base WorkflowFrame
  * with app-specific API client and routing
  */
-export function WorkflowFrame({
+export function AppWorkflowFrame({
     workflowData,
     onNodeClick = () => {},
     onPaneClick = () => {},
-}: WorkflowFrameProps) {
+}: AppWorkflowFrameProps) {
     const router = useRouter();
     const apiClient = createWorkflowApiClient();
     const handleRefresh = () => router.refresh();
@@ -39,7 +39,7 @@ export function WorkflowFrame({
     return (
         <WorkflowApiProvider client={apiClient} config={{}}>
             <WorkflowDataProvider autoFetch={true} includeArchived={false}>
-                <BaseWorkflowFrame
+                <WorkflowFrame
                     workflow={workflowData}
                     onNodeClick={onNodeClick}
                     onPaneClick={onPaneClick}

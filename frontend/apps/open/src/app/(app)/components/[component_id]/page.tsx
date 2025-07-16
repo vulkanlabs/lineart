@@ -1,11 +1,12 @@
 import { fetchComponent } from "@/lib/api";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@vulkanlabs/base/ui";
 import { EnvTab } from "./components";
-import { WorkflowFrame } from "@/components/workflow-frame";
+import { AppWorkflowFrame } from "@/components/workflow-frame";
 
 export default async function Page(props: { params: Promise<{ component_id: string }> }) {
     const { component_id } = await props.params;
     const component = await fetchComponent(component_id);
+
     if (!component) {
         return <div>Component not found</div>;
     }
@@ -19,7 +20,7 @@ export default async function Page(props: { params: Promise<{ component_id: stri
                 </TabsList>
                 <TabsContent value="workflow" className="h-full flex-1">
                     <div className="w-full h-full">
-                        <WorkflowFrame workflowData={component} />
+                        <AppWorkflowFrame workflowData={component} />
                     </div>
                 </TabsContent>
                 <TabsContent value="env">

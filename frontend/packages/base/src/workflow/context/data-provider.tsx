@@ -148,7 +148,7 @@ export function WorkflowDataProvider({
         if (autoFetch) {
             refreshAll();
         }
-    }, [autoFetch, policyId, includeArchived]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [autoFetch, policyId, includeArchived]);
 
     // Memoize the context value to prevent unnecessary re-renders
     const value = useMemo<WorkflowData>(
