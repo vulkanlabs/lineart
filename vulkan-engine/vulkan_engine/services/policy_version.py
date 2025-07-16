@@ -78,6 +78,7 @@ class PolicyVersionService(BaseService):
 
         Args:
             config: Policy version creation data
+            project_id: Optional project UUID to associate with
 
         Returns:
             Created PolicyVersion object
@@ -177,7 +178,6 @@ class PolicyVersionService(BaseService):
         # Update basic fields
         spec = convert_pydantic_to_dict(config.spec)
         version.alias = config.alias
-        version.input_schema = config.input_schema
         version.spec = spec
         version.requirements = config.requirements
         version.status = PolicyVersionStatus.INVALID
@@ -265,7 +265,11 @@ class PolicyVersionService(BaseService):
         )
 
     def create_run(
-        self, policy_version_id: str, input_data: dict, config_variables: dict
+        self,
+        policy_version_id: str,
+        input_data: dict,
+        config_variables: dict,
+        project_id: str = None,
     ) -> dict[str, str]:
         """
         Create a run for a policy version.
@@ -274,6 +278,7 @@ class PolicyVersionService(BaseService):
             policy_version_id: Policy version UUID
             input_data: Input data for the run
             config_variables: Configuration variables
+            project_id: Optional project UUID to associate with
 
         Returns:
             Dictionary with policy_version_id and run_id
@@ -285,6 +290,7 @@ class PolicyVersionService(BaseService):
             input_data=input_data,
             policy_version_id=policy_version_id,
             run_config_variables=config_variables,
+            project_id=project_id,
         )
         return {"policy_version_id": policy_version_id, "run_id": run.run_id}
 
@@ -295,6 +301,7 @@ class PolicyVersionService(BaseService):
         config_variables: dict,
         polling_interval_ms: int,
         polling_timeout_ms: int,
+        project_id: str = None,
     ) -> RunResult:
         """
         Execute a workflow and wait for results.
@@ -305,6 +312,7 @@ class PolicyVersionService(BaseService):
             config_variables: Configuration variables
             polling_interval_ms: Polling interval
             polling_timeout_ms: Polling timeout
+            project_id: Optional project UUID to associate with
 
         Returns:
             RunResult object
@@ -316,6 +324,7 @@ class PolicyVersionService(BaseService):
             input_data=input_data,
             policy_version_id=policy_version_id,
             run_config_variables=config_variables,
+            project_id=project_id,
         )
         result = await get_run_result(
             self.db, run.run_id, polling_interval_ms, polling_timeout_ms
