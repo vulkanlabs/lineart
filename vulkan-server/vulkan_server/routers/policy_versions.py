@@ -13,9 +13,7 @@ from vulkan_engine import schemas
 from vulkan_engine.dagster.launch_run import (
     MAX_POLLING_TIMEOUT_MS,
     MIN_POLLING_INTERVAL_MS,
-    DagsterRunLauncher,
 )
-from vulkan_engine.dagster.service_client import VulkanDagsterServiceClient
 from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
     InvalidDataSourceException,
@@ -26,9 +24,7 @@ from vulkan_engine.exceptions import (
 from vulkan_engine.services import PolicyVersionService
 
 from vulkan_server.dependencies import (
-    get_dagster_launcher,
-    get_dagster_service_client,
-    get_service_dependencies,
+    get_policy_version_service,
 )
 
 router = APIRouter(
@@ -38,24 +34,7 @@ router = APIRouter(
 )
 
 
-def get_policy_version_service(
-    dagster_service_client: VulkanDagsterServiceClient = Depends(
-        get_dagster_service_client
-    ),
-    launcher: DagsterRunLauncher = Depends(get_dagster_launcher),
-    deps=Depends(get_service_dependencies),
-) -> PolicyVersionService:
-    """Get PolicyVersionService instance with dependencies."""
-    db, logger = deps
-    return PolicyVersionService(
-        db=db,
-        dagster_service_client=dagster_service_client,
-        launcher=launcher,
-        logger=logger,
-    )
-
-
-@router.post("", response_model=schemas.PolicyVersion)
+@router.post("/", response_model=schemas.PolicyVersion)
 def create_policy_version(
     config: schemas.PolicyVersionCreate,
     service: PolicyVersionService = Depends(get_policy_version_service),
@@ -79,14 +58,14 @@ def get_policy_version(
     return version
 
 
-@router.get("", response_model=list[schemas.PolicyVersion])
+@router.get("/", response_model=list[schemas.PolicyVersion])
 def list_policy_versions(
     policy_id: str | None = None,
-    archived: bool = False,
+    include_archived: bool = False,
     service: PolicyVersionService = Depends(get_policy_version_service),
 ):
     """List policy versions with optional filtering."""
-    versions = service.list_policy_versions(policy_id, archived)
+    versions = service.list_policy_versions(policy_id, include_archived)
     if not versions:
         return Response(status_code=204)
     return versions

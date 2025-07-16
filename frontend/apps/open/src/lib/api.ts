@@ -96,7 +96,7 @@ export const fetchPolicyVersions = async (
     return withErrorHandling(
         policyVersionsApi.listPolicyVersions({
             policyId: policyId || undefined,
-            archived: includeArchived,
+            includeArchived: includeArchived,
         }),
         "fetch policy versions",
     );

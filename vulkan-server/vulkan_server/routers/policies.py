@@ -17,9 +17,17 @@ from vulkan_engine.exceptions import (
     PolicyNotFoundException,
     PolicyVersionNotFoundException,
 )
-from vulkan_engine.services import AllocationService, PolicyService
+from vulkan_engine.services import (
+    AllocationService,
+    PolicyAnalyticsService,
+    PolicyService,
+)
 
-from vulkan_server.dependencies import get_allocation_service, get_policy_service
+from vulkan_server.dependencies import (
+    get_allocation_service,
+    get_policy_analytics_service,
+    get_policy_service,
+)
 
 router = APIRouter(
     prefix="/policies",
@@ -155,7 +163,7 @@ def run_duration_stats_by_policy(
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
     versions: Annotated[list[str] | None, Body(embed=True)] = None,
-    service: PolicyService = Depends(get_policy_service),
+    service: PolicyAnalyticsService = Depends(get_policy_analytics_service),
 ):
     """Get run duration statistics for a policy."""
     return service.get_run_duration_stats(policy_id, start_date, end_date, versions)
@@ -167,7 +175,7 @@ def run_duration_stats_by_policy_status(
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
     versions: Annotated[list[str] | None, Body(embed=True)] = None,
-    service: PolicyService = Depends(get_policy_service),
+    service: PolicyAnalyticsService = Depends(get_policy_analytics_service),
 ):
     """Get run duration statistics grouped by status."""
     return service.get_run_duration_by_status(policy_id, start_date, end_date, versions)
@@ -179,7 +187,7 @@ def runs_by_policy(
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
     versions: Annotated[list[str] | None, Body(embed=True)] = None,
-    service: PolicyService = Depends(get_policy_service),
+    service: PolicyAnalyticsService = Depends(get_policy_analytics_service),
 ):
     """Get run counts and error rates for a policy."""
     return service.get_run_counts(policy_id, start_date, end_date, versions)
@@ -191,7 +199,7 @@ def runs_outcomes_by_policy(
     start_date: Annotated[datetime.date | None, Query()] = None,
     end_date: Annotated[datetime.date | None, Query()] = None,
     versions: Annotated[list[str] | None, Body(embed=True)] = None,
-    service: PolicyService = Depends(get_policy_service),
+    service: PolicyAnalyticsService = Depends(get_policy_analytics_service),
 ):
     """Get run outcome distribution for a policy."""
     return service.get_run_outcomes(policy_id, start_date, end_date, versions)
