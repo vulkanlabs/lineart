@@ -2,12 +2,13 @@ import { fetchPolicy, fetchPolicyVersion } from "@/lib/api";
 import { RouteLayout } from "./components";
 
 export default async function Layout(props: {
-    params: { policy_version_id: string };
+    params: Promise<{ policy_version_id: string }>;
     children: React.ReactNode;
 }) {
+    const { policy_version_id } = await props.params;
     const { children } = props;
 
-    const policyVersion = await fetchPolicyVersion(props.params.policy_version_id);
+    const policyVersion = await fetchPolicyVersion(policy_version_id);
     if (!policyVersion) {
         return <div>Policy version not found</div>;
     }

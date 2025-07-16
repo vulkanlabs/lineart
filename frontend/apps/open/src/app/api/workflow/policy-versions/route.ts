@@ -6,7 +6,7 @@ export async function GET(request: Request) {
         const policyId = searchParams.get("policy_id") || null;
         const includeArchived = searchParams.get("include_archived") === "true";
 
-        const serverUrl = process.env.VULKAN_SERVER_URL;
+        const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
         if (!serverUrl) {
             return Response.json({ error: "Server URL is not configured" }, { status: 500 });
         }

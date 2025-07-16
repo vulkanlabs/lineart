@@ -21,10 +21,6 @@ export async function PUT(request: Request) {
             uiMetadata: { [key: string]: UIMetadata };
         } = await request.json();
 
-        console.log("workflow", workflow);
-        console.log("spec", spec);
-        console.log("uiMetadata", uiMetadata);
-
         // Here we handle what type of workflow we are saving.
         // In the future, it'd be nicer to have a single type of workflow that
         // is then managed in many different ways by the backend.
@@ -66,7 +62,7 @@ async function saveComponent(
         );
     }
 
-    const serverUrl = process.env.VULKAN_SERVER_URL;
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     if (!serverUrl) {
         return Response.json(
             { success: false, error: "Server URL is not configured", data: null },
@@ -102,7 +98,7 @@ async function savePolicyVersion(
         );
     }
 
-    const serverUrl = process.env.VULKAN_SERVER_URL;
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     if (!serverUrl) {
         return Response.json(
             { success: false, error: "Server URL is not configured", data: null },
