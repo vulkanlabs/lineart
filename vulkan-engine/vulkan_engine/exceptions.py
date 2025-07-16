@@ -137,6 +137,12 @@ class InvalidDataSourceException(VulkanServerException):
         super().__init__(msg, 400, "INVALID_DATA_SOURCE")
 
 
+class WorkflowNotFoundException(NotFoundException):
+    def __init__(self, msg: str):
+        super().__init__(msg)
+        self.error_code = "WORKFLOW_NOT_FOUND"
+
+
 # Data Broker Exceptions
 class DataBrokerRequestException(VulkanServerException):
     def __init__(self, msg: str):

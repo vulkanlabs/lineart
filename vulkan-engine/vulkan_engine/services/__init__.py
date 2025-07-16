@@ -13,6 +13,7 @@ from vulkan_engine.services.policy import PolicyService
 from vulkan_engine.services.policy_version import PolicyVersionService
 from vulkan_engine.services.run_orchestration import RunOrchestrationService
 from vulkan_engine.services.run_query import RunQueryService
+from vulkan_engine.services.workflow import WorkflowService
 
 __all__ = [
     "BaseService",
@@ -23,4 +24,5 @@ __all__ = [
     "PolicyVersionService",
     "DataSourceService",
     "ComponentService",
+    "WorkflowService",
 ]

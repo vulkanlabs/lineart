@@ -14,15 +14,13 @@ from sqlalchemy.orm import Session
 
 from vulkan.spec.nodes.base import NodeType
 from vulkan_engine.dagster.launch_run import DagsterRunLauncher, get_run_result
-from vulkan_engine.dagster.service_client import VulkanDagsterServiceClient
 from vulkan_engine.db import (
     ConfigurationValue,
     DataSource,
     Policy,
-    PolicyDataDependency,
     PolicyVersion,
-    PolicyVersionStatus,
     Run,
+    WorkflowDataDependency,
 )
 from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import (
@@ -42,6 +40,7 @@ from vulkan_engine.schemas import (
     RunResult,
 )
 from vulkan_engine.services.base import BaseService
+from vulkan_engine.services.workflow import WorkflowService
 from vulkan_engine.utils import validate_date_range
 
 
@@ -51,7 +50,6 @@ class PolicyVersionService(BaseService):
     def __init__(
         self,
         db: Session,
-        dagster_service_client: VulkanDagsterServiceClient | None = None,
         launcher: DagsterRunLauncher | None = None,
         logger=None,
     ):
@@ -65,8 +63,8 @@ class PolicyVersionService(BaseService):
             logger: Optional logger
         """
         super().__init__(db, logger)
-        self.dagster_service_client = dagster_service_client
         self.launcher = launcher
+        self.workflow_service = WorkflowService(db, logger)
 
     def create_policy_version(self, config: PolicyVersionCreate) -> PolicyVersion:
         """
@@ -88,14 +86,20 @@ class PolicyVersionService(BaseService):
                 f"Tried to create a version for non-existent policy {config.policy_id}"
             )
 
-        # Create version with initial INVALID status
-        version = PolicyVersion(
-            policy_id=config.policy_id,
-            alias=config.alias,
-            status=PolicyVersionStatus.INVALID,
+        # Create workflow for the policy version
+        workflow = self.workflow_service.create_workflow(
             spec={"nodes": [], "input_schema": {}},
             input_schema={},
             requirements=[],
+            variables=[],
+            ui_metadata={},
+        )
+
+        # Create version with initial INVALID status and link to workflow
+        version = PolicyVersion(
+            policy_id=config.policy_id,
+            alias=config.alias,
+            workflow_id=workflow.workflow_id,
         )
         self.db.add(version)
         self.db.commit()
@@ -173,14 +177,16 @@ class PolicyVersionService(BaseService):
             )
 
         # Update basic fields
-        spec = self._convert_pydantic_to_dict(config.spec)
         version.alias = config.alias
-        version.input_schema = config.input_schema
-        version.spec = spec
-        version.requirements = config.requirements
-        version.status = PolicyVersionStatus.INVALID
-        version.ui_metadata = self._convert_pydantic_to_dict(config.ui_metadata)
-        self.db.commit()
+
+        self.workflow_service.update_workflow(
+            workflow_id=version.workflow_id,
+            spec=config.spec,
+            input_schema=config.input_schema,
+            requirements=config.requirements,
+            variables=config.spec.config_variables or [],
+            ui_metadata=config.ui_metadata,
+        )
 
         # Handle data source dependencies
         data_input_nodes = [
@@ -198,15 +204,6 @@ class PolicyVersionService(BaseService):
             # For each data source, check if its required runtime params are
             # configured in the corresponding data-input-node "parameters" field.
             self._validate_data_source_runtime_params(data_input_nodes, data_sources)
-
-        # Handle config variables
-        config_variables = config.spec.config_variables or []
-        if config_variables:
-            version.variables = config_variables
-
-        # Ensure the workspace is created or updated with the new spec and requirements
-        if self.dagster_service_client:
-            self._update_dagster_workspace(version, spec, config.requirements)
 
         self.db.commit()
         self._log_event(
@@ -243,16 +240,8 @@ class PolicyVersionService(BaseService):
         # Check if version is in use by allocation strategy
         self._check_version_not_in_use(version)
 
-        # Remove from Dagster
-        if self.dagster_service_client:
-            name = str(policy_version_id)
-            try:
-                self.dagster_service_client.delete_workspace(name)
-                self.dagster_service_client.ensure_workspace_removed(name)
-            except Exception as e:
-                raise Exception(
-                    f"Error deleting policy version {policy_version_id}: {str(e)}"
-                )
+        # Delete the underlying workflow
+        self.workflow_service.delete_workflow(version.workflow_id)
 
         version.archived = True
         self.db.commit()
@@ -344,7 +333,10 @@ class PolicyVersionService(BaseService):
                 f"Policy version {policy_version_id} not found"
             )
 
-        required_variables = version.variables or []
+        # Get variables from the workflow
+        workflow = self.workflow_service.get_workflow(version.workflow_id)
+        required_variables = workflow.variables or []
+
         variables = (
             self.db.query(ConfigurationValue)
             .filter_by(policy_version_id=policy_version_id)
@@ -497,8 +489,8 @@ class PolicyVersionService(BaseService):
             raise PolicyVersionNotFoundException("Policy version not found")
 
         dependencies = (
-            self.db.query(PolicyDataDependency)
-            .filter_by(policy_version_id=policy_version_id)
+            self.db.query(WorkflowDataDependency)
+            .filter_by(workflow_id=version.workflow_id)
             .all()
         )
 
@@ -537,9 +529,9 @@ class PolicyVersionService(BaseService):
             )
 
         for ds in matched:
-            dependency = PolicyDataDependency(
+            dependency = WorkflowDataDependency(
                 data_source_id=ds.data_source_id,
-                policy_version_id=version.policy_version_id,
+                workflow_id=version.workflow_id,
             )
             self.db.add(dependency)
 
@@ -561,39 +553,6 @@ class PolicyVersionService(BaseService):
                         f"from {node.name}"
                     )
 
-    def _update_dagster_workspace(
-        self, version: PolicyVersion, spec: dict, requirements: list[str]
-    ) -> None:
-        """Update Dagster workspace for the policy version."""
-        try:
-            self.dagster_service_client.update_workspace(
-                workspace_id=version.policy_version_id,
-                spec=spec,
-                requirements=requirements,
-            )
-        except ValueError as e:
-            if self.logger:
-                self.logger.system.error(
-                    f"Failed to update workspace ({version.policy_version_id}): {e}",
-                    exc_info=True,
-                )
-            raise Exception(
-                f"Failed to update policy version workspace. "
-                f"Policy Version ID: {version.policy_version_id}"
-            )
-
-        try:
-            self.dagster_service_client.ensure_workspace_added(
-                str(version.policy_version_id)
-            )
-            version.status = PolicyVersionStatus.VALID
-        except ValueError as e:
-            if self.logger:
-                self.logger.system.error(
-                    f"Failed to update workspace ({version.policy_version_id}), version is invalid:\n{e}",
-                    exc_info=False,
-                )
-
     def _check_version_not_in_use(self, version: PolicyVersion) -> None:
         """Check if policy version is in use by allocation strategy."""
         policy = self.db.query(Policy).filter_by(policy_id=version.policy_id).first()
@@ -610,14 +569,3 @@ class PolicyVersionService(BaseService):
                     f"Policy version {version.policy_version_id} is currently in use by the policy "
                     f"allocation strategy for policy {policy.policy_id}"
                 )
-
-    def _convert_pydantic_to_dict(self, obj) -> Any:
-        """Recursively convert Pydantic models to dictionaries."""
-        if hasattr(obj, "model_dump"):
-            return obj.model_dump()
-        elif isinstance(obj, dict):
-            return {k: self._convert_pydantic_to_dict(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [self._convert_pydantic_to_dict(i) for i in obj]
-        else:
-            return obj

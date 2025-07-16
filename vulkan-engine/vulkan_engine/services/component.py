@@ -9,13 +9,13 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from vulkan.core.run import PolicyVersionStatus
 from vulkan_engine import schemas
 from vulkan_engine.db import Component
 from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import ComponentNotFoundException
 from vulkan_engine.logger import VulkanLogger
 from vulkan_engine.services.base import BaseService
+from vulkan_engine.services.workflow import WorkflowService
 
 
 class ComponentService(BaseService):
@@ -23,6 +23,7 @@ class ComponentService(BaseService):
 
     def __init__(self, db: Session, logger: VulkanLogger | None = None):
         super().__init__(db, logger)
+        self.workflow_service = WorkflowService(db, logger)
 
     def list_components(
         self, include_archived: bool = False
@@ -54,24 +55,29 @@ class ComponentService(BaseService):
         spec = config.spec or {"nodes": [], "input_schema": {}}
         input_schema = config.input_schema or {}
 
+        # Create workflow for the component
+        workflow = self.workflow_service.create_workflow(
+            spec=spec,
+            input_schema=input_schema,
+            requirements=requirements,
+            variables=variables,
+            ui_metadata=config.ui_metadata or {},
+        )
+
         component = Component(
             name=config.name,
             description=config.description,
             icon=config.icon,
-            requirements=requirements,
-            spec=spec,
-            input_schema=input_schema,
-            variables=variables,
-            ui_metadata=config.ui_metadata,
-            status=PolicyVersionStatus.INVALID,
+            workflow_id=workflow.workflow_id,
         )
+
         self.db.add(component)
         self.db.commit()
         self.db.refresh(component)
         self._log_event(
             VulkanEvent.COMPONENT_CREATED, component_id=component.component_id
         )
-        return component
+        return schemas.Component.from_orm(component, workflow)
 
     def update_component(
         self, component_id: UUID, config: schemas.ComponentBase
@@ -85,21 +91,49 @@ class ComponentService(BaseService):
         if not component:
             raise ComponentNotFoundException(f"Component {component_id} not found")
 
-        # Check all fileds in ComponentBase and update them if they are not None
-        for field, value in config.model_dump().items():
-            if value is not None:
-                setattr(component, field, value)
+        # Update component fields
+        if config.name is not None:
+            component.name = config.name
+        if config.description is not None:
+            component.description = config.description
+        if config.icon is not None:
+            component.icon = config.icon
 
-        component.status = PolicyVersionStatus.INVALID
+        # Update the underlying workflow
+        if any(
+            [
+                config.spec is not None,
+                config.input_schema is not None,
+                config.requirements is not None,
+                config.variables is not None,
+                config.ui_metadata is not None,
+            ]
+        ):
+            self.workflow_service.update_workflow(
+                workflow_id=component.workflow_id,
+                spec=config.spec,
+                input_schema=config.input_schema,
+                requirements=config.requirements,
+                variables=config.variables,
+                ui_metadata=config.ui_metadata,
+            )
+
         self.db.commit()
         self.db.refresh(component)
 
-        # TODO: Update the underlying workflow environment etc
+        workflow = self.workflow_service.update_workflow(
+            workflow_id=component.workflow_id,
+            spec=config.spec,
+            input_schema=config.input_schema,
+            requirements=config.requirements,
+            variables=config.variables,
+            ui_metadata=config.ui_metadata,
+        )
 
         self._log_event(
             VulkanEvent.COMPONENT_UPDATED, component_id=component.component_id
         )
-        return component
+        return schemas.Component.from_orm(component, workflow)
 
     def delete_component(self, component_id: UUID) -> None:
         """Delete (archive) a component."""
@@ -110,6 +144,10 @@ class ComponentService(BaseService):
         )
         if not component:
             raise ComponentNotFoundException(f"Component {component_id} not found")
+
+        # Delete the underlying workflow
+        if component.workflow_id:
+            self.workflow_service.delete_workflow(component.workflow_id)
 
         component.archived = True
         self.db.commit()

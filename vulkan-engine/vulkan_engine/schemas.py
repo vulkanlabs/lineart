@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from vulkan.core.run import JobStatus, PolicyVersionStatus, RunStatus
+from vulkan.core.run import WorkflowStatus
 from vulkan.schemas import DataSourceSpec, PolicyAllocationStrategy
 from vulkan.spec.policy import PolicyDefinitionDict
 
@@ -95,20 +95,35 @@ class ComponentBase(BaseModel):
     ui_metadata: dict[str, UIMetadata] | None = None
 
 
-class Component(ComponentBase):
-    component_id: UUID
-    archived: bool
-    created_at: datetime
-    last_updated_at: datetime
+class Workflow(BaseModel):
+    workflow_id: UUID
     requirements: list[str]
     spec: PolicyDefinitionDict
     input_schema: dict[str, str]
     variables: list[str] | None = None
     ui_metadata: dict[str, UIMetadata] | None = None
-    status: PolicyVersionStatus
+    status: WorkflowStatus
+
+
+class Component(BaseModel):
+    name: str
+    description: str | None = None
+    icon: str | None = None  # Base64 encoded image
+    component_id: UUID
+    archived: bool
+    created_at: datetime
+    last_updated_at: datetime
+    workflow: Workflow
 
     class Config:
         from_attributes = True
+
+    @classmethod
+    def from_orm(cls, component, workflow: Workflow) -> "Component":
+        return cls(
+            **component.model_dump(),
+            workflow=workflow,
+        )
 
 
 class PolicyVersionBase(BaseModel):
@@ -128,18 +143,25 @@ class PolicyVersion(BaseModel):
     policy_version_id: UUID
     policy_id: UUID
     alias: str | None = None
-    status: PolicyVersionStatus
-    input_schema: dict[str, str]
-    spec: PolicyDefinitionDict
-    requirements: list[str]
     archived: bool
-    variables: list[str] | None = None
     created_at: datetime
     last_updated_at: datetime
-    ui_metadata: dict[str, UIMetadata] | None = None
+    workflow: Workflow
 
     class Config:
         from_attributes = True
+
+    @classmethod
+    def from_orm(cls, policy_version, workflow: Workflow) -> "PolicyVersion":
+        return cls(
+            policy_version_id=policy_version.policy_version_id,
+            policy_id=policy_version.policy_id,
+            alias=policy_version.alias,
+            archived=policy_version.archived,
+            created_at=policy_version.created_at,
+            last_updated_at=policy_version.last_updated_at,
+            workflow=workflow,
+        )
 
 
 class ConfigurationVariablesBase(BaseModel):
@@ -309,74 +331,3 @@ class DataBrokerResponse(BaseModel):
     origin: DataObjectOrigin
     key: str
     value: Any
-
-
-class Backfill(BaseModel):
-    backfill_id: UUID
-    backtest_id: UUID
-    status: RunStatus
-    config_variables: dict | None
-
-    created_at: datetime
-    last_updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class BackfillStatus(BaseModel):
-    backfill_id: UUID
-    status: RunStatus
-    config_variables: dict | None
-
-
-class Backtest(BaseModel):
-    backtest_id: UUID
-    policy_version_id: UUID
-    input_file_id: UUID
-    environments: list[dict]
-    status: JobStatus
-    calculate_metrics: bool
-    target_column: str | None
-    time_column: str | None
-    group_by_columns: list[str] | None
-
-    created_at: datetime
-    last_updated_at: datetime
-
-
-class BacktestStatus(BaseModel):
-    backtest_id: UUID
-    status: JobStatus
-    backfills: list[BackfillStatus]
-
-
-class UploadedFile(BaseModel):
-    uploaded_file_id: UUID
-    file_name: str | None = None
-    file_schema: dict[str, str]
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class BeamWorkspace(BaseModel):
-    policy_version_id: UUID
-    status: str
-
-    class Config:
-        from_attributes = True
-
-
-class BacktestMetrics(BaseModel):
-    backtest_id: UUID
-    status: RunStatus
-    metrics: list[dict] | None = None
-
-
-class BacktestMetricsConfig(BaseModel):
-    target_column: str
-    time_column: str | None = None
-    group_by_columns: list[str] | None = None
-    group_by_columns: list[str] | None = None

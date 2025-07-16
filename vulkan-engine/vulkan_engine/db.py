@@ -1,4 +1,3 @@
-import enum
 from typing import Iterator
 
 from sqlalchemy import (
@@ -19,10 +18,11 @@ from sqlalchemy import (
     create_engine,
 )
 from sqlalchemy.engine import Engine
+from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from sqlalchemy.sql import func
 
-from vulkan.core.run import JobStatus, PolicyVersionStatus, RunStatus
+from vulkan.core.run import RunStatus, WorkflowStatus
 from vulkan.schemas import CachingOptions, DataSourceSpec
 from vulkan.spec.nodes.base import NodeType
 from vulkan_engine.config import DatabaseConfig
@@ -96,18 +96,21 @@ class PolicyVersion(TimedUpdateMixin, ArchivableMixin, Base):
     )
     policy_id = Column(Uuid, ForeignKey("policy.policy_id"))
     alias = Column(String, nullable=True)
-    status = Column(Enum(PolicyVersionStatus), nullable=False)
-    spec = Column(JSON, nullable=False)
-    requirements = Column(ARRAY(String), nullable=False)
-    # The fields below require the policy version to be resolved
-    # first, hence the "nullable=True". With regards to the application,
-    # `input_schema` and `graph_definition` are actually non-nullable.
-    input_schema = Column(JSON, nullable=True)
-    variables = Column(ARRAY(String), nullable=True)
-    ui_metadata = Column(JSON, nullable=True)
+    workflow_id = Column(Uuid, ForeignKey("workflow.workflow_id"))
 
-    # Base worker image
-    base_worker_image = Column(String, nullable=True)
+
+class Workflow(TimedUpdateMixin, Base):
+    __tablename__ = "workflow"
+
+    workflow_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    spec = Column(JSON, nullable=False)
+    input_schema = Column(JSON, nullable=False)
+    requirements = Column(ARRAY(String), nullable=False)
+    variables = Column(ARRAY(String), nullable=False)
+
+    # Metadata related to workflow backend and UI states.
+    status = Column(Enum(WorkflowStatus), nullable=False)
+    ui_metadata = Column(JSON, nullable=False)
 
 
 class ConfigurationValue(TimedUpdateMixin, Base):
@@ -256,12 +259,12 @@ class DataSourceEnvVar(TimedUpdateMixin, Base):
     )
 
 
-class PolicyDataDependency(Base):
-    __tablename__ = "policy_data_dependency"
+class WorkflowDataDependency(Base):
+    __tablename__ = "workflow_data_dependency"
 
     id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
-    policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
+    workflow_id = Column(Uuid, ForeignKey("workflow.workflow_id"))
 
 
 class DataObject(Base):
@@ -299,77 +302,6 @@ class RunDataRequest(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-class UploadedFile(Base):
-    __tablename__ = "uploaded_file"
-
-    uploaded_file_id = Column(
-        Uuid, primary_key=True, server_default=func.gen_random_uuid()
-    )
-    file_name = Column(String, nullable=True)
-    file_path = Column(String, nullable=False)
-    file_schema = Column(JSON, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-
-class Backfill(TimedUpdateMixin, Base):
-    __tablename__ = "backfill"
-
-    backfill_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    backtest_id = Column(Uuid, ForeignKey("backtest.backtest_id"))
-    input_data_path = Column(String)
-    status = Column(Enum(RunStatus))
-    config_variables = Column(JSON, nullable=True)
-
-    # Known after launch
-    output_path = Column(String, nullable=True)
-    gcp_project_id = Column(String, nullable=True)
-    gcp_job_id = Column(String, nullable=True)
-
-
-class Backtest(TimedUpdateMixin, Base):
-    __tablename__ = "backtest"
-
-    backtest_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
-    policy_version_id = Column(
-        Uuid, ForeignKey("policy_version.policy_version_id"), nullable=False
-    )
-    input_file_id = Column(
-        Uuid, ForeignKey("uploaded_file.uploaded_file_id"), nullable=False
-    )
-    environments = Column(JSON, nullable=True)
-    status = Column(Enum(JobStatus), nullable=False)
-
-    # Optional, metrics-related fields
-    calculate_metrics = Column(Boolean, nullable=False, default=False)
-    target_column = Column(String, nullable=True)
-    time_column = Column(String, nullable=True)
-    group_by_columns = Column(ARRAY(String), nullable=True)
-
-
-class BacktestMetrics(TimedUpdateMixin, Base):
-    __tablename__ = "backtest_metrics"
-
-    backtest_metrics_id = Column(
-        Uuid, primary_key=True, server_default=func.gen_random_uuid()
-    )
-    backtest_id = Column(Uuid, ForeignKey("backtest.backtest_id"), nullable=False)
-    status = Column(Enum(RunStatus), nullable=False)
-
-    # Known after launch
-    output_path = Column(String, nullable=True)
-    gcp_project_id = Column(String, nullable=True)
-    gcp_job_id = Column(String, nullable=True)
-
-    # Known after execution
-    metrics = Column(JSON, nullable=True)
-
-
-class WorkspaceStatus(enum.Enum):
-    OK = "OK"
-    CREATION_PENDING = "CREATION_PENDING"
-    CREATION_FAILED = "CREATION_FAILED"
-
-
 class Component(TimedUpdateMixin, ArchivableMixin, Base):
     __tablename__ = "component"
 
@@ -377,35 +309,16 @@ class Component(TimedUpdateMixin, ArchivableMixin, Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     icon = Column(String, nullable=True)  # Store base64 encoded image
-    archived = Column(Boolean, default=False)
-    requirements = Column(ARRAY(String), nullable=True)
-    spec = Column(JSON, nullable=True)
-    input_schema = Column(JSON, nullable=True)
-    ui_metadata = Column(JSON, nullable=True)
-    variables = Column(ARRAY(String), nullable=True)
-    status = Column(Enum(PolicyVersionStatus), nullable=False)
+    workflow_id = Column(Uuid, ForeignKey("workflow.workflow_id"))
 
-    __table_args__ = (
-        Index(
-            "unique_component_name",
-            "name",
-            "archived",
-            unique=True,
-            postgresql_where=(archived == False),  # noqa: E712
-        ),
-    )
-
-
-class BeamWorkspace(TimedUpdateMixin, Base):
-    __tablename__ = "beam_workspace"
-
-    policy_version_id = Column(
-        Uuid,
-        ForeignKey("policy_version.policy_version_id"),
-        primary_key=True,
-    )
-    status = Column(Enum(WorkspaceStatus))
-    image = Column(String, nullable=True)
-
-
-# To create tables, use create_engine_from_config with appropriate DatabaseConfig
+    @declared_attr
+    def __table_args__(cls):
+        return (
+            Index(
+                "unique_component_name",
+                "name",
+                "archived",
+                unique=True,
+                postgresql_where=(cls.archived == False),  # noqa: E712
+            ),
+        )
