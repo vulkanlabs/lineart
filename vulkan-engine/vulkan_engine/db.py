@@ -87,6 +87,11 @@ class Policy(TimedUpdateMixin, ArchivableMixin, Base):
     description = Column(String)
     allocation_strategy = Column(JSON, nullable=True)
 
+    # Project association for multi-tenant deployments
+    project_id = Column(Uuid, nullable=True)
+
+    __table_args__ = (Index("idx_policy_project_id", "project_id"),)
+
 
 class PolicyVersion(TimedUpdateMixin, ArchivableMixin, Base):
     __tablename__ = "policy_version"
@@ -108,6 +113,11 @@ class PolicyVersion(TimedUpdateMixin, ArchivableMixin, Base):
 
     # Base worker image
     base_worker_image = Column(String, nullable=True)
+
+    # Project association for multi-tenant deployments (denormalized for performance)
+    project_id = Column(Uuid, nullable=True)
+
+    __table_args__ = (Index("idx_policy_version_project_id", "project_id"),)
 
 
 class ConfigurationValue(TimedUpdateMixin, Base):
@@ -157,6 +167,11 @@ class Run(TimedUpdateMixin, Base):
     dagster_run_id = Column(String, nullable=True)
     started_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Project association for multi-tenant deployments (denormalized for performance)
+    project_id = Column(Uuid, nullable=True)
+
+    __table_args__ = (Index("idx_run_project_id", "project_id"),)
+
 
 class StepMetadata(Base):
     __tablename__ = "step_metadata"
@@ -191,6 +206,9 @@ class DataSource(TimedUpdateMixin, Base):
     variables = Column(ARRAY(String), nullable=True)
     archived = Column(Boolean, default=False)
 
+    # Project association for multi-tenant deployments
+    project_id = Column(Uuid, nullable=True)
+
     __table_args__ = (
         Index(
             "unique_data_source_name",
@@ -199,6 +217,7 @@ class DataSource(TimedUpdateMixin, Base):
             unique=True,
             postgresql_where=(archived == False),  # noqa: E712
         ),
+        Index("idx_data_source_project_id", "project_id"),
     )
 
     @classmethod

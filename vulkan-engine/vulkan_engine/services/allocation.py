@@ -6,14 +6,12 @@ Handles run group creation and allocation based on policy strategies.
 
 from typing import Dict
 
-import sqlalchemy.exc
-
 from vulkan_engine.dagster.launch_run import DagsterRunLauncher, allocate_runs
-from vulkan_engine.db import Policy, RunGroup
+from vulkan_engine.db import RunGroup
 from vulkan_engine.exceptions import (
     InvalidAllocationStrategyException,
-    PolicyNotFoundException,
 )
+from vulkan_engine.loaders import PolicyLoader
 from vulkan_engine.schemas import PolicyAllocationStrategy
 from vulkan_engine.services.base import BaseService
 
@@ -32,9 +30,14 @@ class AllocationService(BaseService):
         """
         super().__init__(db, logger)
         self.launcher = launcher
+        self.policy_loader = PolicyLoader(db)
 
     def create_run_group(
-        self, policy_id: str, input_data: Dict, config_variables: Dict
+        self,
+        policy_id: str,
+        input_data: Dict,
+        config_variables: Dict,
+        project_id: str = None,
     ) -> Dict:
         """
         Create a run group and allocate runs based on policy strategy.
@@ -43,21 +46,16 @@ class AllocationService(BaseService):
             policy_id: Policy UUID
             input_data: Input data for runs
             config_variables: Configuration variables
+            project_id: Optional project UUID to filter by
 
         Returns:
             Dictionary with policy_id, run_group_id, and allocated runs
 
         Raises:
-            PolicyNotFoundException: If policy doesn't exist
+            PolicyNotFoundException: If policy doesn't exist or doesn't belong to specified project
             InvalidAllocationStrategyException: If policy has no allocation strategy
         """
-        try:
-            policy = self.db.query(Policy).filter_by(policy_id=policy_id).first()
-        except sqlalchemy.exc.DataError:
-            raise PolicyNotFoundException(f"Invalid policy_id: {policy_id}")
-
-        if not policy:
-            raise PolicyNotFoundException(f"Policy {policy_id} not found")
+        policy = self.policy_loader.get_policy(policy_id, project_id=project_id)
 
         if not policy.allocation_strategy:
             raise InvalidAllocationStrategyException(
@@ -88,6 +86,7 @@ class AllocationService(BaseService):
             input_data=input_data,
             run_group_id=run_group.run_group_id,
             allocation_strategy=strategy,
+            project_id=policy.project_id,
         )
 
         return {
