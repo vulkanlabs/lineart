@@ -10,7 +10,7 @@ import type { VulkanNode, WorkflowState } from "../types/workflow";
  */
 export function createWorkflowState(policyVersion: PolicyVersion): WorkflowState {
     const uiMetadata = policyVersion.ui_metadata || {};
-    const inputNode = makeInputNode(policyVersion.input_schema, uiMetadata["input_node"]);
+    const inputNode = makeInputNode(policyVersion.spec.input_schema, uiMetadata["input_node"]);
 
     // If no spec is defined, return an empty state: new version
     if (!policyVersion.spec || !policyVersion.spec.nodes || policyVersion.spec.nodes.length === 0) {
