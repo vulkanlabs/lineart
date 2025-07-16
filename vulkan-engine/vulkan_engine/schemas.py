@@ -105,6 +105,7 @@ class Component(ComponentBase):
     input_schema: dict[str, str]
     variables: list[str] | None = None
     ui_metadata: dict[str, UIMetadata] | None = None
+    status: PolicyVersionStatus
 
     class Config:
         from_attributes = True

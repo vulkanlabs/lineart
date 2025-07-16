@@ -383,6 +383,7 @@ class Component(TimedUpdateMixin, ArchivableMixin, Base):
     input_schema = Column(JSON, nullable=True)
     ui_metadata = Column(JSON, nullable=True)
     variables = Column(ARRAY(String), nullable=True)
+    status = Column(Enum(PolicyVersionStatus), nullable=False)
 
     __table_args__ = (
         Index(

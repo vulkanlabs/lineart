@@ -9,17 +9,20 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from vulkan.core.run import PolicyVersionStatus
 from vulkan_engine import schemas
 from vulkan_engine.db import Component
 from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import ComponentNotFoundException
+from vulkan_engine.logger import VulkanLogger
+from vulkan_engine.services.base import BaseService
 
 
-class ComponentService:
+class ComponentService(BaseService):
     """Service for component operations."""
 
-    def __init__(self, db: Session):
-        self.db = db
+    def __init__(self, db: Session, logger: VulkanLogger | None = None):
+        super().__init__(db, logger)
 
     def list_components(
         self, include_archived: bool = False
@@ -44,15 +47,23 @@ class ComponentService:
 
     def create_component(self, config: schemas.ComponentBase) -> schemas.Component:
         """Create a new component."""
+
+        # Fill in defaults for non-nullable fields
+        requirements = config.requirements or []
+        variables = config.variables or []
+        spec = config.spec or {"nodes": [], "input_schema": {}}
+        input_schema = config.input_schema or {}
+
         component = Component(
             name=config.name,
             description=config.description,
             icon=config.icon,
-            requirements=config.requirements,
-            spec=config.spec,
-            input_schema=config.input_schema,
-            variables=config.variables,
+            requirements=requirements,
+            spec=spec,
+            input_schema=input_schema,
+            variables=variables,
             ui_metadata=config.ui_metadata,
+            status=PolicyVersionStatus.INVALID,
         )
         self.db.add(component)
         self.db.commit()
@@ -60,7 +71,7 @@ class ComponentService:
         self._log_event(
             VulkanEvent.COMPONENT_CREATED, component_id=component.component_id
         )
-        return schemas.Component.model_validate(component)
+        return component
 
     def update_component(
         self, component_id: UUID, config: schemas.ComponentBase
@@ -74,19 +85,21 @@ class ComponentService:
         if not component:
             raise ComponentNotFoundException(f"Component {component_id} not found")
 
-        if config.name is not None:
-            component.name = config.name
-        if config.description is not None:
-            component.description = config.description
-        if config.icon is not None:
-            component.icon = config.icon
+        # Check all fileds in ComponentBase and update them if they are not None
+        for field, value in config.model_dump().items():
+            if value is not None:
+                setattr(component, field, value)
 
+        component.status = PolicyVersionStatus.INVALID
         self.db.commit()
         self.db.refresh(component)
+
+        # TODO: Update the underlying workflow environment etc
+
         self._log_event(
             VulkanEvent.COMPONENT_UPDATED, component_id=component.component_id
         )
-        return schemas.Component.model_validate(component)
+        return component
 
     def delete_component(self, component_id: UUID) -> None:
         """Delete (archive) a component."""

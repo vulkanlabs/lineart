@@ -10,6 +10,7 @@ export default async function Layout(props: {
     const component = await fetchComponent(params.component_id);
     const innerNavbarSections: InnerNavbarSectionProps[] = [
         { key: "Component:", value: component.name },
+        { key: "Status:", value: component.status },
     ];
 
     return (
