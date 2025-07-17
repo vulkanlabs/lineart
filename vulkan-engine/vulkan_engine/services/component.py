@@ -49,7 +49,8 @@ class ComponentService(BaseService):
         )
         if not component:
             raise ComponentNotFoundException(f"Component {component_id} not found")
-        return schemas.Component.model_validate(component)
+        workflow = self.workflow_service.get_workflow(component.workflow_id)
+        return schemas.Component.from_orm(component, workflow)
 
     def create_component(self, config: schemas.ComponentBase) -> schemas.Component:
         """Create a new component."""

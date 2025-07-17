@@ -72,13 +72,13 @@ async function saveComponent(
 
     // Prepare the request body matching the original server action
     const requestBody: ComponentBase = {
-        requirements: component.requirements,
+        requirements: component.workflow?.requirements || [],
         name: component.name,
         description: component.description || null,
         icon: component.icon || null,
         spec,
-        input_schema: component.input_schema,
-        variables: component.variables || [],
+        input_schema: component.workflow?.input_schema || {},
+        variables: component.workflow?.variables || [],
         ui_metadata: uiMetadata,
     };
 
@@ -111,7 +111,7 @@ async function savePolicyVersion(
         alias: policyVersion.alias || null,
         spec,
         requirements: [],
-        input_schema: policyVersion.input_schema,
+        input_schema: policyVersion.workflow?.input_schema || {},
         ui_metadata: uiMetadata,
     };
 

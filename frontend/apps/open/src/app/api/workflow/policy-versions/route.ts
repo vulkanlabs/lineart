@@ -33,6 +33,10 @@ export async function GET(request: Request) {
             );
         }
 
+        if (response.status === 204) {
+            return Response.json([]);
+        }
+
         const data: PolicyVersion[] = await response.json();
         return Response.json(data);
     } catch (error) {

@@ -1,3 +1,5 @@
+# FIXME: the `from_orm` methods in this file would cause circular imports
+# if properly typed with db classes.
 from datetime import datetime
 from enum import Enum
 from typing import Any

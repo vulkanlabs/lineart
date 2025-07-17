@@ -6,6 +6,7 @@ import { AppWorkflowFrame } from "@/components/workflow-frame";
 export default async function Page(props: { params: Promise<{ component_id: string }> }) {
     const { component_id } = await props.params;
     const component = await fetchComponent(component_id);
+    console.log(component);
 
     if (!component) {
         return <div>Component not found</div>;
