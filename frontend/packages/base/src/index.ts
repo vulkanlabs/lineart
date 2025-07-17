@@ -13,7 +13,6 @@ export * from "./components/charts";
 
 // Re-export reusable components
 export * from "./components/combobox";
-export * from "./components/component";
 export * from "./components/data-table";
 export * from "./components/details-button";
 export {

@@ -1,3 +1,5 @@
+# FIXME: the `from_orm` methods in this file would cause circular imports
+# if properly typed with db classes.
 from datetime import datetime
 from enum import Enum
 from typing import Any
@@ -5,7 +7,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from vulkan.core.run import PolicyVersionStatus
+from vulkan.core.run import WorkflowStatus
 from vulkan.schemas import DataSourceSpec, PolicyAllocationStrategy
 from vulkan.spec.policy import PolicyDefinitionDict
 
@@ -31,52 +33,6 @@ class Policy(PolicyBase):
         from_attributes = True
 
 
-class ComponentBase(BaseModel):
-    name: str
-
-
-class Component(ComponentBase):
-    component_id: UUID
-    project_id: UUID
-    archived: bool
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class ComponentVersionCreate(BaseModel):
-    version_name: str
-    repository: str
-
-
-class ComponentVersion(BaseModel):
-    component_id: UUID
-    component_version_id: UUID
-    alias: str
-    input_schema: str
-    instance_params_schema: str
-    node_definitions: str
-    created_at: datetime
-    output_schema: str | None = None
-    project_id: UUID
-    archived: bool
-
-    class Config:
-        from_attributes = True
-
-
-class ComponentVersionDependencyExpanded(BaseModel):
-    component_id: UUID
-    component_name: str
-    component_version_id: UUID
-    component_version_alias: str
-    policy_id: UUID
-    policy_version_id: UUID
-    policy_name: str
-    policy_version_alias: str
-
-
 class UINodePosition(BaseModel):
     x: float
     y: float
@@ -86,6 +42,66 @@ class UIMetadata(BaseModel):
     position: UINodePosition
     width: float
     height: float
+
+
+class ComponentBase(BaseModel):
+    name: str
+    description: str | None = None
+    icon: str | None = None  # Base64 encoded image
+    requirements: list[str] | None = None
+    spec: PolicyDefinitionDict | None = None
+    variables: list[str] | None = None
+    ui_metadata: dict[str, UIMetadata] | None = None
+
+
+class Workflow(BaseModel):
+    workflow_id: UUID
+    requirements: list[str]
+    spec: PolicyDefinitionDict
+    variables: list[str] | None = None
+    ui_metadata: dict[str, UIMetadata] | None = None
+    status: WorkflowStatus
+
+    @classmethod
+    def from_orm(cls, workflow) -> "Workflow":
+        if workflow is None:
+            return None
+
+        return cls(
+            workflow_id=workflow.workflow_id,
+            requirements=workflow.requirements,
+            spec=workflow.spec,
+            variables=workflow.variables,
+            ui_metadata=workflow.ui_metadata,
+            status=workflow.status,
+        )
+
+
+class Component(BaseModel):
+    name: str
+    description: str | None = None
+    icon: str | None = None  # Base64 encoded image
+    component_id: UUID
+    archived: bool
+    created_at: datetime
+    last_updated_at: datetime
+    workflow: Workflow | None = None
+
+    class Config:
+        from_attributes = True
+
+    @classmethod
+    def from_orm(cls, component, workflow) -> "Component":
+        return cls(
+            name=component.name,
+            description=component.description,
+            icon=component.icon,
+            component_id=component.component_id,
+            archived=component.archived,
+            created_at=component.created_at,
+            last_updated_at=component.last_updated_at,
+            workflow=Workflow.from_orm(workflow),
+        )
 
 
 class PolicyVersionBase(BaseModel):
@@ -104,17 +120,25 @@ class PolicyVersion(BaseModel):
     policy_version_id: UUID
     policy_id: UUID
     alias: str | None = None
-    status: PolicyVersionStatus
-    spec: PolicyDefinitionDict
-    requirements: list[str]
     archived: bool
-    variables: list[str] | None = None
     created_at: datetime
     last_updated_at: datetime
-    ui_metadata: dict[str, UIMetadata] | None = None
+    workflow: Workflow | None = None
 
     class Config:
         from_attributes = True
+
+    @classmethod
+    def from_orm(cls, policy_version, workflow) -> "PolicyVersion":
+        return cls(
+            policy_version_id=policy_version.policy_version_id,
+            policy_id=policy_version.policy_id,
+            alias=policy_version.alias,
+            archived=policy_version.archived,
+            created_at=policy_version.created_at,
+            last_updated_at=policy_version.last_updated_at,
+            workflow=Workflow.from_orm(workflow),
+        )
 
 
 class ConfigurationVariablesBase(BaseModel):
@@ -284,13 +308,3 @@ class DataBrokerResponse(BaseModel):
     origin: DataObjectOrigin
     key: str
     value: Any
-
-
-class UploadedFile(BaseModel):
-    uploaded_file_id: UUID
-    file_name: str | None = None
-    file_schema: dict[str, str]
-    created_at: datetime
-
-    class Config:
-        from_attributes = True

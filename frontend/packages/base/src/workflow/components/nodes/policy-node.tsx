@@ -8,7 +8,8 @@ import { AssetCombobox, AssetOption } from "@/components/combobox";
 import { useWorkflowStore } from "@/workflow/store";
 import { useWorkflowData } from "@/workflow/context";
 import { StandardWorkflowNode } from "./base";
-import type { VulkanNodeProps, VulkanNode } from "@/workflow/types/workflow";
+import type { VulkanNodeProps } from "@/workflow/types/workflow";
+import { WorkflowStatus } from "@vulkanlabs/client-open";
 
 /**
  * Policy node component - executes sub-policies within workflow
@@ -35,7 +36,7 @@ export function PolicyNode({ id, data, selected, height, width }: VulkanNodeProp
     // Transform policy versions into AssetOption format
     const policyOptions = useMemo<AssetOption[]>(() => {
         return policyVersions
-            .filter((version) => version.status === "VALID")
+            .filter((version) => version.workflow?.status === WorkflowStatus.Valid)
             .map((version) => ({
                 value: version.policy_version_id,
                 label: `${version.alias} (${version.policy_version_id.substring(0, 8)})`,

@@ -6,18 +6,19 @@ export default async function Layout(props: {
     children: React.ReactNode;
 }) {
     const params = await props.params;
-
     const { children } = props;
-
     const component = await fetchComponent(params.component_id);
     const innerNavbarSections: InnerNavbarSectionProps[] = [
         { key: "Component:", value: component.name },
+        { key: "Status:", value: component.workflow?.status },
     ];
 
     return (
-        <div className="flex flex-col w-full h-full">
-            <InnerNavbar sections={innerNavbarSections} />
-            {children}
+        <div className="flex flex-row w-full h-full">
+            <div className="flex flex-col flex-1 h-full">
+                <InnerNavbar sections={innerNavbarSections} />
+                <div className="flex-1 h-full">{children}</div>
+            </div>
         </div>
     );
 }

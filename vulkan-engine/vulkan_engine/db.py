@@ -18,10 +18,11 @@ from sqlalchemy import (
     create_engine,
 )
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 from sqlalchemy.sql import func
 
-from vulkan.core.run import PolicyVersionStatus, RunStatus
+from vulkan.core.run import RunStatus, WorkflowStatus
 from vulkan.schemas import CachingOptions, DataSourceSpec
 from vulkan.spec.nodes.base import NodeType
 from vulkan_engine.config import DatabaseConfig
@@ -90,17 +91,29 @@ class PolicyVersion(TimedUpdateMixin, ArchivableMixin, Base):
         Uuid, primary_key=True, server_default=func.gen_random_uuid()
     )
     policy_id = Column(Uuid, ForeignKey("policy.policy_id"))
+    workflow_id = Column(Uuid, ForeignKey("workflow.workflow_id"))
     alias = Column(String, nullable=True)
-    status = Column(Enum(PolicyVersionStatus), nullable=False)
-    spec = Column(JSON, nullable=False)
-    requirements = Column(ARRAY(String), nullable=False)
-    variables = Column(ARRAY(String), nullable=True)
-    ui_metadata = Column(JSON, nullable=True)
-
-    # Project association for multi-tenant deployments (denormalized for performance)
     project_id = Column(Uuid, nullable=True)
+    workflow = relationship("Workflow", backref="policy_versions")
 
     __table_args__ = (Index("idx_policy_version_project_id", "project_id"),)
+
+
+class Workflow(TimedUpdateMixin, Base):
+    __tablename__ = "workflow"
+
+    workflow_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    spec = Column(JSON, nullable=False)
+    requirements = Column(ARRAY(String), nullable=False)
+    variables = Column(ARRAY(String), nullable=False)
+
+    # Metadata related to workflow backend and UI states.
+    status = Column(Enum(WorkflowStatus), nullable=False)
+    ui_metadata = Column(JSON, nullable=False)
+
+    project_id = Column(Uuid, nullable=True)
+
+    __table_args__ = (Index("idx_workflow_project_id", "project_id"),)
 
 
 class ConfigurationValue(TimedUpdateMixin, Base):
@@ -258,12 +271,12 @@ class DataSourceEnvVar(TimedUpdateMixin, Base):
     )
 
 
-class PolicyDataDependency(Base):
-    __tablename__ = "policy_data_dependency"
+class WorkflowDataDependency(Base):
+    __tablename__ = "workflow_data_dependency"
 
     id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
     data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
-    policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
+    workflow_id = Column(Uuid, ForeignKey("workflow.workflow_id"))
 
 
 class DataObject(Base):
@@ -301,16 +314,27 @@ class RunDataRequest(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-class UploadedFile(Base):
-    __tablename__ = "uploaded_file"
+class Component(TimedUpdateMixin, ArchivableMixin, Base):
+    __tablename__ = "component"
 
-    uploaded_file_id = Column(
-        Uuid, primary_key=True, server_default=func.gen_random_uuid()
-    )
-    file_name = Column(String, nullable=True)
-    file_path = Column(String, nullable=False)
-    file_schema = Column(JSON, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    component_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    icon = Column(String, nullable=True)  # Store base64 encoded image
+    workflow_id = Column(Uuid, ForeignKey("workflow.workflow_id"))
+    project_id = Column(Uuid, nullable=True)
 
+    workflow = relationship("Workflow", backref="components")
 
-# To create tables, use create_engine_from_config with appropriate DatabaseConfig
+    @declared_attr
+    def __table_args__(cls):
+        return (
+            Index(
+                "unique_component_name",
+                "name",
+                "archived",
+                unique=True,
+                postgresql_where=(cls.archived == False),  # noqa: E712
+            ),
+            Index("idx_component_project_id", "project_id"),
+        )

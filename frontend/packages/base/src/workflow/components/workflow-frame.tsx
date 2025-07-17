@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { PolicyVersion } from "@vulkanlabs/client-open";
+import type { Workflow } from "../api/types";
 
 import { WorkflowProviderWrapper } from "./workflow/workflow-provider";
 import { WorkflowCanvas } from "./workflow/workflow-canvas";
@@ -11,7 +11,7 @@ import { nodeTypes } from "./nodes";
  * Props for the workflow frame component
  */
 export type WorkflowFrameProps = {
-    policyVersion: PolicyVersion;
+    workflow: Workflow;
     onNodeClick?: (e: React.MouseEvent, node: any) => void;
     onPaneClick?: (e: React.MouseEvent) => void;
     toast?: (message: string, options?: any) => void;
@@ -23,16 +23,16 @@ export type WorkflowFrameProps = {
  * This is the main entry point for embedding workflow functionality
  */
 export function WorkflowFrame({
-    policyVersion,
+    workflow,
     onNodeClick = (e: React.MouseEvent, node: any) => {},
     onPaneClick = (e: React.MouseEvent) => {},
     toast,
     onRefresh,
 }: WorkflowFrameProps) {
     return (
-        <WorkflowProviderWrapper policyVersion={policyVersion}>
+        <WorkflowProviderWrapper workflow={workflow}>
             <WorkflowCanvas
-                policyVersion={policyVersion}
+                workflow={workflow}
                 nodeTypes={nodeTypes}
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}

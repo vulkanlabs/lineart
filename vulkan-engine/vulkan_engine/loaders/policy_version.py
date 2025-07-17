@@ -2,8 +2,6 @@
 PolicyVersion loader for data access layer.
 """
 
-from typing import List
-
 from vulkan_engine.db import PolicyVersion
 from vulkan_engine.exceptions import PolicyVersionNotFoundException
 from vulkan_engine.loaders.base import BaseLoader
@@ -37,7 +35,6 @@ class PolicyVersionLoader(BaseLoader):
             PolicyVersion.project_id == project_id,
         )
 
-        # Apply archived filter if needed
         query = self._apply_archived_filter(query, include_archived)
 
         version = query.first()
@@ -53,7 +50,7 @@ class PolicyVersionLoader(BaseLoader):
         policy_id: str = None,
         project_id: str = None,
         include_archived: bool = False,
-    ) -> List[PolicyVersion]:
+    ) -> list[PolicyVersion]:
         """
         List policy versions with optional filtering.
 

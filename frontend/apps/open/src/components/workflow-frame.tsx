@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { PolicyVersion } from "@vulkanlabs/client-open";
+import "@xyflow/react/dist/style.css";
 
 import {
     WorkflowFrame,
@@ -11,12 +11,13 @@ import {
     WorkflowDataProvider,
     createWorkflowApiClient,
 } from "@vulkanlabs/base/workflow";
+import type { Workflow } from "@vulkanlabs/base/workflow";
 
 /**
- * Props for the application workflow frame
+ * Props for the workflow frame
  */
 export type AppWorkflowFrameProps = {
-    policyVersion: PolicyVersion;
+    workflowData: Workflow;
     onNodeClick?: (e: React.MouseEvent, node: any) => void;
     onPaneClick?: (e: React.MouseEvent) => void;
 };
@@ -26,30 +27,20 @@ export type AppWorkflowFrameProps = {
  * with app-specific API client and routing
  */
 export function AppWorkflowFrame({
-    policyVersion,
+    workflowData,
     onNodeClick = () => {},
     onPaneClick = () => {},
 }: AppWorkflowFrameProps) {
     const router = useRouter();
-
-    // Create API client that uses our app's API routes
     const apiClient = createWorkflowApiClient();
-
-    // Handle refresh by refreshing the router
-    const handleRefresh = () => {
-        router.refresh();
-    };
-
-    // App-specific toast function
-    const handleToast = (message: string, options?: any) => {
-        toast(message, options);
-    };
-
+    const handleRefresh = () => router.refresh();
+    const handleToast = (message: string, options?: any) => toast(message, options);
+    // Add empty config if required by WorkflowApiProvider
     return (
-        <WorkflowApiProvider client={apiClient}>
+        <WorkflowApiProvider client={apiClient} config={{}}>
             <WorkflowDataProvider autoFetch={true} includeArchived={false}>
                 <WorkflowFrame
-                    policyVersion={policyVersion}
+                    workflow={workflowData}
                     onNodeClick={onNodeClick}
                     onPaneClick={onPaneClick}
                     toast={handleToast}

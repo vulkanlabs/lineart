@@ -13,16 +13,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from vulkan.spec.nodes.base import NodeType
+from vulkan_engine import schemas
 from vulkan_engine.dagster.launch_run import DagsterRunLauncher, get_run_result
-from vulkan_engine.dagster.service_client import VulkanDagsterServiceClient
 from vulkan_engine.db import (
     ConfigurationValue,
     DataSource,
     Policy,
-    PolicyDataDependency,
     PolicyVersion,
-    PolicyVersionStatus,
     Run,
+    WorkflowDataDependency,
 )
 from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import (
@@ -32,17 +31,9 @@ from vulkan_engine.exceptions import (
     PolicyVersionNotFoundException,
 )
 from vulkan_engine.loaders import PolicyLoader, PolicyVersionLoader
-from vulkan_engine.schemas import (
-    ConfigurationVariables,
-    ConfigurationVariablesBase,
-    DataSourceReference,
-    PolicyAllocationStrategy,
-    PolicyVersionBase,
-    PolicyVersionCreate,
-    RunResult,
-)
 from vulkan_engine.services.base import BaseService
-from vulkan_engine.utils import convert_pydantic_to_dict, validate_date_range
+from vulkan_engine.services.workflow import WorkflowService
+from vulkan_engine.utils import validate_date_range
 
 
 class PolicyVersionService(BaseService):
@@ -51,7 +42,7 @@ class PolicyVersionService(BaseService):
     def __init__(
         self,
         db: Session,
-        dagster_service_client: VulkanDagsterServiceClient | None = None,
+        workflow_service: WorkflowService,
         launcher: DagsterRunLauncher | None = None,
         logger=None,
     ):
@@ -65,14 +56,14 @@ class PolicyVersionService(BaseService):
             logger: Optional logger
         """
         super().__init__(db, logger)
-        self.dagster_service_client = dagster_service_client
         self.launcher = launcher
+        self.workflow_service = workflow_service
         self.policy_loader = PolicyLoader(db)
         self.policy_version_loader = PolicyVersionLoader(db)
 
     def create_policy_version(
-        self, config: PolicyVersionCreate, project_id: str = None
-    ) -> PolicyVersion:
+        self, config: schemas.PolicyVersionCreate, project_id: str = None
+    ) -> schemas.PolicyVersion:
         """
         Create a new policy version.
 
@@ -86,17 +77,22 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyNotFoundException: If policy doesn't exist
         """
-        # Verify policy exists
         policy = self.policy_loader.get_policy(config.policy_id, project_id=project_id)
 
-        # Create version with initial INVALID status, inheriting project_id from policy
+        # Create workflow for the policy version
+        workflow = self.workflow_service.create_workflow(
+            spec={"nodes": [], "input_schema": {}},
+            requirements=[],
+            variables=[],
+            ui_metadata={},
+            project_id=policy.project_id,
+        )
+
+        # Create version with initial INVALID status and link to workflow
         version = PolicyVersion(
             policy_id=config.policy_id,
             alias=config.alias,
-            status=PolicyVersionStatus.INVALID,
-            spec={"nodes": [], "input_schema": {}},
-            input_schema={},
-            requirements=[],
+            workflow_id=workflow.workflow_id,
             project_id=policy.project_id,
         )
         self.db.add(version)
@@ -109,7 +105,7 @@ class PolicyVersionService(BaseService):
             policy_version_alias=config.alias,
         )
 
-        return version
+        return schemas.PolicyVersion.from_orm(version, workflow)
 
     def get_policy_version(
         self, policy_version_id: str, project_id: str = None
@@ -153,7 +149,10 @@ class PolicyVersionService(BaseService):
         )
 
     def update_policy_version(
-        self, policy_version_id: str, config: PolicyVersionBase, project_id: str = None
+        self,
+        policy_version_id: str,
+        config: schemas.PolicyVersionBase,
+        project_id: str = None,
     ) -> PolicyVersion:
         """
         Update a policy version with new spec and configuration.
@@ -175,14 +174,19 @@ class PolicyVersionService(BaseService):
             policy_version_id, project_id=project_id, include_archived=False
         )
 
+        self.logger.system.error(f"Got version {version}")
         # Update basic fields
-        spec = convert_pydantic_to_dict(config.spec)
         version.alias = config.alias
-        version.spec = spec
-        version.requirements = config.requirements
-        version.status = PolicyVersionStatus.INVALID
-        version.ui_metadata = convert_pydantic_to_dict(config.ui_metadata)
-        self.db.commit()
+
+        workflow = self.workflow_service.update_workflow(
+            workflow_id=version.workflow_id,
+            spec=config.spec,
+            requirements=config.requirements,
+            variables=config.spec.config_variables or [],
+            ui_metadata=config.ui_metadata,
+            project_id=project_id,
+        )
+        self.logger.system.error(f"Updated workflow {version.workflow_id}")
 
         # Handle data source dependencies
         data_input_nodes = [
@@ -201,15 +205,6 @@ class PolicyVersionService(BaseService):
             # configured in the corresponding data-input-node "parameters" field.
             self._validate_data_source_runtime_params(data_input_nodes, data_sources)
 
-        # Handle config variables
-        config_variables = config.spec.config_variables or []
-        if config_variables:
-            version.variables = config_variables
-
-        # Ensure the workspace is created or updated with the new spec and requirements
-        if self.dagster_service_client:
-            self._update_dagster_workspace(version, spec, config.requirements)
-
         self.db.commit()
         self._log_event(
             VulkanEvent.POLICY_VERSION_UPDATED,
@@ -218,7 +213,7 @@ class PolicyVersionService(BaseService):
             policy_version_alias=version.alias,
         )
 
-        return version
+        return schemas.PolicyVersion.from_orm(version, workflow)
 
     def delete_policy_version(
         self, policy_version_id: str, project_id: str = None
@@ -246,16 +241,8 @@ class PolicyVersionService(BaseService):
         # Check if version is in use by allocation strategy
         self._check_version_not_in_use(version)
 
-        # Remove from Dagster
-        if self.dagster_service_client:
-            name = str(policy_version_id)
-            try:
-                self.dagster_service_client.delete_workspace(name)
-                self.dagster_service_client.ensure_workspace_removed(name)
-            except Exception as e:
-                raise Exception(
-                    f"Error deleting policy version {policy_version_id}: {str(e)}"
-                )
+        # Delete the underlying workflow
+        self.workflow_service.delete_workflow(version.workflow_id)
 
         version.archived = True
         self.db.commit()
@@ -302,7 +289,7 @@ class PolicyVersionService(BaseService):
         polling_interval_ms: int,
         polling_timeout_ms: int,
         project_id: str = None,
-    ) -> RunResult:
+    ) -> schemas.RunResult:
         """
         Execute a workflow and wait for results.
 
@@ -333,7 +320,7 @@ class PolicyVersionService(BaseService):
 
     def list_configuration_variables(
         self, policy_version_id: str, project_id: str = None
-    ) -> list[ConfigurationVariables]:
+    ) -> list[schemas.ConfigurationVariables]:
         """
         List configuration variables for a policy version.
 
@@ -351,7 +338,9 @@ class PolicyVersionService(BaseService):
             policy_version_id, project_id=project_id, include_archived=False
         )
 
-        required_variables = version.variables or []
+        # Get variables from the workflow
+        required_variables = version.workflow.variables or []
+
         variables = (
             self.db.query(ConfigurationValue)
             .filter_by(policy_version_id=policy_version_id)
@@ -364,7 +353,7 @@ class PolicyVersionService(BaseService):
         # Add existing variables
         for variable in variables:
             result.append(
-                ConfigurationVariables(
+                schemas.ConfigurationVariables(
                     name=variable.name,
                     value=variable.value,
                     created_at=variable.created_at,
@@ -376,7 +365,7 @@ class PolicyVersionService(BaseService):
         for variable in required_variables:
             if variable not in variable_map:
                 result.append(
-                    ConfigurationVariables(
+                    schemas.ConfigurationVariables(
                         name=variable,
                         value=None,
                         created_at=None,
@@ -389,7 +378,7 @@ class PolicyVersionService(BaseService):
     def set_configuration_variables(
         self,
         policy_version_id: str,
-        desired_variables: list[ConfigurationVariablesBase],
+        desired_variables: list[schemas.ConfigurationVariablesBase],
         project_id: str = None,
     ) -> dict[str, Any]:
         """
@@ -482,7 +471,7 @@ class PolicyVersionService(BaseService):
 
     def list_data_sources_by_policy_version(
         self, policy_version_id: str, project_id: str = None
-    ) -> list[DataSourceReference]:
+    ) -> list[schemas.DataSourceReference]:
         """
         List data sources used by a policy version.
 
@@ -497,13 +486,13 @@ class PolicyVersionService(BaseService):
             PolicyVersionNotFoundException: If version doesn't exist
         """
         # Validate policy version exists
-        self.policy_version_loader.get_policy_version(
+        version = self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id
         )
 
         dependencies = (
-            self.db.query(PolicyDataDependency)
-            .filter_by(policy_version_id=policy_version_id)
+            self.db.query(WorkflowDataDependency)
+            .filter_by(workflow_id=version.workflow_id)
             .all()
         )
 
@@ -516,7 +505,7 @@ class PolicyVersionService(BaseService):
             )
             if ds:
                 result.append(
-                    DataSourceReference(
+                    schemas.DataSourceReference(
                         data_source_id=ds.data_source_id,
                         name=ds.name,
                         created_at=ds.created_at,
@@ -542,9 +531,9 @@ class PolicyVersionService(BaseService):
             )
 
         for ds in matched:
-            dependency = PolicyDataDependency(
+            dependency = WorkflowDataDependency(
                 data_source_id=ds.data_source_id,
-                policy_version_id=version.policy_version_id,
+                workflow_id=version.workflow_id,
             )
             self.db.add(dependency)
 
@@ -566,44 +555,11 @@ class PolicyVersionService(BaseService):
                         f"from {node.name}"
                     )
 
-    def _update_dagster_workspace(
-        self, version: PolicyVersion, spec: dict, requirements: list[str]
-    ) -> None:
-        """Update Dagster workspace for the policy version."""
-        try:
-            self.dagster_service_client.update_workspace(
-                workspace_id=version.policy_version_id,
-                spec=spec,
-                requirements=requirements,
-            )
-        except ValueError as e:
-            if self.logger:
-                self.logger.system.error(
-                    f"Failed to update workspace ({version.policy_version_id}): {e}",
-                    exc_info=True,
-                )
-            raise Exception(
-                f"Failed to update policy version workspace. "
-                f"Policy Version ID: {version.policy_version_id}"
-            )
-
-        try:
-            self.dagster_service_client.ensure_workspace_added(
-                str(version.policy_version_id)
-            )
-            version.status = PolicyVersionStatus.VALID
-        except ValueError as e:
-            if self.logger:
-                self.logger.system.error(
-                    f"Failed to update workspace ({version.policy_version_id}), version is invalid:\n{e}",
-                    exc_info=False,
-                )
-
     def _check_version_not_in_use(self, version: PolicyVersion) -> None:
         """Check if policy version is in use by allocation strategy."""
         policy = self.db.query(Policy).filter_by(policy_id=version.policy_id).first()
         if policy and policy.allocation_strategy:
-            strategy = PolicyAllocationStrategy.model_validate(
+            strategy = schemas.PolicyAllocationStrategy.model_validate(
                 policy.allocation_strategy
             )
             active_versions = [opt.policy_version_id for opt in strategy.choice]

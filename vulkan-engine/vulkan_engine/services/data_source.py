@@ -13,13 +13,14 @@ from vulkan.data_source import DataSourceType
 from vulkan.schemas import DataSourceSpec
 from vulkan_engine.data.broker import DataBroker
 from vulkan_engine.db import (
+    Component,
     DataObject,
     DataSource,
     DataSourceEnvVar,
-    PolicyDataDependency,
     PolicyVersion,
     RunDataRequest,
-    UploadedFile,
+    Workflow,
+    WorkflowDataDependency,
 )
 from vulkan_engine.exceptions import (
     DataBrokerException,
@@ -104,10 +105,6 @@ class DataSourceService(BaseService):
                 "Local file data sources are not supported for remote execution"
             )
 
-        # Handle registered file data source
-        if spec.source.source_type == DataSourceType.REGISTERED_FILE:
-            self._handle_registered_file(spec)
-
         # Create data source
         data_source = DataSource.from_spec(spec)
         data_source.project_id = project_id
@@ -168,10 +165,11 @@ class DataSourceService(BaseService):
 
         # Check if data source is in use by policy versions
         policy_uses = (
-            self.db.query(PolicyDataDependency, PolicyVersion)
+            self.db.query(WorkflowDataDependency, PolicyVersion)
+            .join(Workflow)
             .join(PolicyVersion)
             .filter(
-                PolicyDataDependency.data_source_id == data_source_id,
+                WorkflowDataDependency.data_source_id == data_source_id,
                 PolicyVersion.archived == False,  # noqa: E712
             )
             .all()
@@ -180,6 +178,23 @@ class DataSourceService(BaseService):
         if policy_uses:
             raise InvalidDataSourceException(
                 f"Data source {data_source_id} is used by one or more policy versions"
+            )
+
+        # Check if data source is in use by components
+        component_uses = (
+            self.db.query(WorkflowDataDependency, Component)
+            .join(Workflow)
+            .join(Component)
+            .filter(
+                WorkflowDataDependency.data_source_id == data_source_id,
+                Component.archived == False,  # noqa: E712
+            )
+            .all()
+        )
+
+        if component_uses:
+            raise InvalidDataSourceException(
+                f"Data source {data_source_id} is used by one or more components"
             )
 
         # Check if data source has associated data objects
@@ -417,18 +432,3 @@ class DataSourceService(BaseService):
             if self.logger:
                 self.logger.system.error(str(e))
             raise DataBrokerException(str(e))
-
-    def _handle_registered_file(self, spec: DataSourceSpec) -> None:
-        """Handle registered file data source configuration."""
-        uploaded_file = (
-            self.db.query(UploadedFile)
-            .filter_by(uploaded_file_id=spec.source.file_id)
-            .first()
-        )
-
-        if not uploaded_file:
-            raise InvalidDataSourceException(
-                f"Uploaded file {spec.source.file_id} not found"
-            )
-
-        spec.source.path = uploaded_file.file_path

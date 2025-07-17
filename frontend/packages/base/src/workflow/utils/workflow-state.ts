@@ -1,23 +1,31 @@
 import type { XYPosition, Edge } from "@xyflow/react";
-import type { PolicyVersion, NodeDefinitionDict, UIMetadata } from "@vulkanlabs/client-open";
+import type { NodeDefinitionDict, UIMetadata } from "@vulkanlabs/client-open";
 
 import { createNodeByType, nodesConfig } from "./nodes";
 import { findHandleIndexByName } from "./names";
 import type { VulkanNode, WorkflowState } from "../types/workflow";
+import { Workflow } from "../api/types";
 
 /**
  * Create initial workflow state from a policy version
  */
-export function createWorkflowState(policyVersion: PolicyVersion): WorkflowState {
-    const uiMetadata = policyVersion.ui_metadata || {};
-    const inputNode = makeInputNode(policyVersion.spec.input_schema, uiMetadata["input_node"]);
+export function createWorkflowState(workflow: Workflow): WorkflowState {
+    const uiMetadata = workflow.workflow?.ui_metadata || {};
+    const inputNode = makeInputNode(
+        workflow.workflow?.spec.input_schema || {},
+        uiMetadata["input_node"],
+    );
 
     // If no spec is defined, return an empty state: new version
-    if (!policyVersion.spec || !policyVersion.spec.nodes || policyVersion.spec.nodes.length === 0) {
+    if (
+        !workflow.workflow?.spec ||
+        !workflow.workflow?.spec.nodes ||
+        workflow.workflow?.spec.nodes.length === 0
+    ) {
         return defaultWorkflowState(inputNode);
     }
 
-    const nodes = policyVersion.spec.nodes || [];
+    const nodes = workflow.workflow?.spec.nodes || [];
     const edges = makeEdgesFromDependencies(nodes);
 
     // Map server nodes to ReactFlow node format

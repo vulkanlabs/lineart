@@ -5,6 +5,7 @@ Provides common functionality like database session and logging.
 """
 
 from abc import ABC
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -36,6 +37,17 @@ class BaseService(ABC):
     def _log_event(self, event, **kwargs):
         """Helper method to log events."""
         self.logger.event(event, **kwargs)
+
+    def _convert_pydantic_to_dict(self, obj) -> Any:
+        """Recursively convert Pydantic models to dictionaries."""
+        if hasattr(obj, "model_dump"):
+            return obj.model_dump()
+        elif isinstance(obj, dict):
+            return {k: self._convert_pydantic_to_dict(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._convert_pydantic_to_dict(i) for i in obj]
+        else:
+            return obj
 
 
 def _create_default_logger(db: Session) -> VulkanLogger:

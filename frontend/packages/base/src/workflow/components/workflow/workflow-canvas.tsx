@@ -11,9 +11,7 @@ import {
     useReactFlow,
     ControlButton,
 } from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
 
-import type { PolicyVersion } from "@vulkanlabs/client-open";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -30,7 +28,7 @@ import { useDropdown } from "@/workflow/hooks/use-dropdown";
 import { nodesConfig } from "@/workflow/utils/nodes";
 import { iconMapping } from "@/workflow/icons";
 import { useWorkflowStore } from "@/workflow/store";
-import { useWorkflowApi } from "@/workflow/api";
+import { useWorkflowApi, Workflow } from "@/workflow/api";
 import {
     getLayoutedNodes,
     defaultElkOptions,
@@ -41,9 +39,9 @@ import {
  * Props for the workflow canvas component
  */
 export type WorkflowCanvasProps = {
+    workflow: Workflow;
     onNodeClick?: (e: React.MouseEvent, node: any) => void;
     onPaneClick?: (e: React.MouseEvent) => void;
-    policyVersion: PolicyVersion;
     nodeTypes: Record<string, React.ComponentType<any>>;
     toast?: (message: string, options?: any) => void;
     onRefresh?: () => void;
@@ -53,9 +51,9 @@ export type WorkflowCanvasProps = {
  * Main workflow canvas component with ReactFlow integration
  */
 export function WorkflowCanvas({
+    workflow,
     onNodeClick = () => {},
     onPaneClick = () => {},
-    policyVersion,
     nodeTypes,
     toast = console.log,
     onRefresh = () => {},
@@ -100,7 +98,7 @@ export function WorkflowCanvas({
      * Initialize the workflow layout when component mounts
      */
     const onInit = useCallback(() => {
-        if (!policyVersion.ui_metadata) {
+        if (!workflow.workflow?.ui_metadata) {
             const unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => ({
                 ...node,
                 layoutOptions: defaultElkOptions,
@@ -120,7 +118,7 @@ export function WorkflowCanvas({
             // Also fit view when ui_metadata exists
             setTimeout(() => fitView(), 0);
         }
-    }, [policyVersion, nodes, edges, setNodes, fitView]);
+    }, [workflow, nodes, edges, setNodes, fitView]);
 
     /**
      * Handle connection end events for node creation dropdown
@@ -231,7 +229,7 @@ export function WorkflowCanvas({
                 ]),
             );
 
-            const result = await api.saveWorkflowSpec(policyVersion, spec, uiMetadata);
+            const result = await api.saveWorkflowSpec(workflow, spec, uiMetadata);
 
             if (result.success) {
                 toast("Workflow saved", {
@@ -253,7 +251,7 @@ export function WorkflowCanvas({
                 duration: 5000,
             });
         }
-    }, [api, policyVersion, getSpec, getNodes, toast, onRefresh]);
+    }, [api, workflow, getSpec, getNodes, toast, onRefresh]);
 
     return (
         <div className="w-full h-full">

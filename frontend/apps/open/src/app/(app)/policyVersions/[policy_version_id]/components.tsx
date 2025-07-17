@@ -46,7 +46,7 @@ export function RouteLayout({
     const innerNavbarSections: InnerNavbarSectionProps[] = [
         { key: "Policy:", value: policy.name || "" },
         { key: "Version:", value: policyVersion.alias || "" },
-        { key: "Status:", value: policyVersion.status || "" },
+        { key: "Status:", value: policyVersion.workflow?.status || "" },
     ];
     const rightSections: InnerNavbarSectionProps[] = [
         {

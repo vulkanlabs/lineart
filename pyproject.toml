@@ -9,7 +9,7 @@ dependencies = [
     "vulkan[all]",
     "vulkan-engine",
     "vulkan-server",
-    "ruff>=0.11",
+    "ruff>=0.11.0",
 ]
 
 [tool.uv]

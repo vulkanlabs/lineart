@@ -1,5 +1,4 @@
 import builtins
-import enum
 from typing import Callable
 
 from vulkan.spec.dependency import INPUT_NODE
@@ -183,26 +182,15 @@ def _make_input_node(input_schema) -> InputNode:
 #     )
 
 
-def _or_op_leaves(**kwargs):
-    non_null_count = 0
-    retval = None
-    for value in kwargs.values():
-        if value is not None:
-            non_null_count += 1
-            retval = value
+# def _or_op_leaves(**kwargs):
+#     non_null_count = 0
+#     retval = None
+#     for value in kwargs.values():
+#         if value is not None:
+#             non_null_count += 1
+#             retval = value
 
-    if non_null_count != 1:
-        msg = f"Exactly one leaf should execute, got {non_null_count=}"
-        raise ValueError(msg)
-    return retval
-
-
-class PolicyVersionStatus(enum.Enum):
-    VALID = "VALID"
-    INVALID = "INVALID"
-
-
-class WorkspaceStatus(enum.Enum):
-    OK = "OK"
-    CREATION_PENDING = "CREATION_PENDING"
-    CREATION_FAILED = "CREATION_FAILED"
+#     if non_null_count != 1:
+#         msg = f"Exactly one leaf should execute, got {non_null_count=}"
+#         raise ValueError(msg)
+#     return retval

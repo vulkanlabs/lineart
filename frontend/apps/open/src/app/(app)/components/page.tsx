@@ -1,5 +1,6 @@
+// Local imports
 import { fetchComponents } from "@/lib/api";
-import ComponentPageContent from "./components";
+import { ComponentsTable } from "./components-table";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +11,14 @@ export default async function Page() {
     });
 
     return (
-        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-            <div className="flex items-center">
+        <div className="flex flex-1 flex-col gap-6 p-4 lg:gap-6 lg:p-6">
+            <div className="flex flex-col gap-4">
                 <h1 className="text-lg font-semibold md:text-2xl">Components</h1>
+                <div className="h-[1px] w-full bg-border" />
             </div>
-            <ComponentPageContent components={components} />
+            <div>
+                <ComponentsTable components={components} />
+            </div>
         </div>
     );
 }

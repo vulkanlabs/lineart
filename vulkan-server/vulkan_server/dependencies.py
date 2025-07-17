@@ -26,6 +26,7 @@ from vulkan_engine.db import get_db_session
 from vulkan_engine.logger import VulkanLogger, create_logger
 from vulkan_engine.services import (
     AllocationService,
+    ComponentService,
     DataSourceAnalyticsService,
     DataSourceService,
     PolicyAnalyticsService,
@@ -34,10 +35,9 @@ from vulkan_engine.services import (
 )
 from vulkan_engine.services.run_orchestration import RunOrchestrationService
 from vulkan_engine.services.run_query import RunQueryService
+from vulkan_engine.services.workflow import WorkflowService
 
 from vulkan_server.config import load_vulkan_engine_config
-
-# Configuration Dependencies
 
 
 @lru_cache
@@ -242,6 +242,34 @@ def get_policy_service(
     return PolicyService(db=db, logger=logger)
 
 
+def get_workflow_service(
+    dagster_service_client: Annotated[
+        VulkanDagsterServiceClient, Depends(get_dagster_service_client)
+    ],
+    db: Annotated[Session, Depends(get_database_session)],
+    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
+) -> WorkflowService:
+    """Get WorkflowService instance with dependencies."""
+    return WorkflowService(
+        db=db, dagster_service_client=dagster_service_client, logger=logger
+    )
+
+
+def get_policy_version_service(
+    workflow_service: Annotated[WorkflowService, Depends(get_workflow_service)],
+    launcher: DagsterRunLauncher = Depends(get_dagster_launcher),
+    deps=Depends(get_service_dependencies),
+) -> PolicyVersionService:
+    """Get PolicyVersionService instance with dependencies."""
+    db, logger = deps
+    return PolicyVersionService(
+        db=db,
+        workflow_service=workflow_service,
+        launcher=launcher,
+        logger=logger,
+    )
+
+
 def get_allocation_service(
     db: Annotated[Session, Depends(get_database_session)],
     launcher: Annotated[DagsterRunLauncher, Depends(get_dagster_launcher)],
@@ -278,6 +306,24 @@ def get_data_source_service(
     return DataSourceService(db=db, logger=logger)
 
 
+def get_component_service(
+    db: Annotated[Session, Depends(get_database_session)],
+    workflow_service: Annotated[WorkflowService, Depends(get_workflow_service)],
+    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
+) -> ComponentService:
+    """
+    Get ComponentService for component management.
+
+    Args:
+        db: Database session
+        logger: Configured logger
+
+    Returns:
+        Configured ComponentService instance
+    """
+    return ComponentService(db=db, workflow_service=workflow_service, logger=logger)
+
+
 def get_data_source_analytics_service(
     db: Annotated[Session, Depends(get_database_session)],
     logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
@@ -310,31 +356,3 @@ def get_policy_analytics_service(
         Configured PolicyAnalyticsService instance
     """
     return PolicyAnalyticsService(db=db, logger=logger)
-
-
-def get_policy_version_service(
-    db: Annotated[Session, Depends(get_database_session)],
-    dagster_service_client: Annotated[
-        VulkanDagsterServiceClient, Depends(get_dagster_service_client)
-    ],
-    launcher: Annotated[DagsterRunLauncher, Depends(get_dagster_launcher)],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
-) -> PolicyVersionService:
-    """
-    Get PolicyVersionService for policy version management.
-
-    Args:
-        db: Database session
-        dagster_service_client: Dagster service client
-        launcher: Dagster run launcher
-        logger: Configured logger
-
-    Returns:
-        Configured PolicyVersionService instance
-    """
-    return PolicyVersionService(
-        db=db,
-        dagster_service_client=dagster_service_client,
-        launcher=launcher,
-        logger=logger,
-    )

@@ -13,13 +13,14 @@ from vulkan.runners.dagster.policy import DEFAULT_POLICY_NAME
 from vulkan.runners.dagster.run_config import RUN_CONFIG_KEY
 from vulkan_engine.config_variables import resolve_config_variables_from_id
 from vulkan_engine.dagster import trigger_run
-from vulkan_engine.db import PolicyVersion, Run
+from vulkan_engine.db import Run, Workflow
 from vulkan_engine.exceptions import (
     NotFoundException,
     RunPollingTimeoutException,
     UnhandledException,
     VariablesNotSetException,
 )
+from vulkan_engine.loaders.policy_version import PolicyVersionLoader
 from vulkan_engine.logger import init_logger
 from vulkan_engine.schemas import PolicyAllocationStrategy, RunResult
 
@@ -42,6 +43,7 @@ class DagsterRunLauncher:
         self.db = db
         self.server_url = server_url
         self.dagster_client = dagster_client
+        self.policy_version_loader = PolicyVersionLoader(db)
 
     def create_run(
         self,
@@ -54,6 +56,7 @@ class DagsterRunLauncher:
         """Create and launch a run."""
         config = self._get_launch_config(
             policy_version_id=policy_version_id,
+            project_id=project_id,
             run_config_variables=run_config_variables,
         )
 
@@ -92,15 +95,12 @@ class DagsterRunLauncher:
     def _get_launch_config(
         self,
         policy_version_id: str,
+        project_id: str,
         run_config_variables: dict[str, str] | None = None,
     ) -> LaunchConfig:
-        version = (
-            self.db.query(PolicyVersion)
-            .filter_by(
-                policy_version_id=policy_version_id,
-                archived=False,
-            )
-            .first()
+        version = self.policy_version_loader.get_policy_version(
+            policy_version_id,
+            project_id=project_id,
         )
         if version is None:
             msg = f"Policy version {policy_version_id} not found"
@@ -109,14 +109,14 @@ class DagsterRunLauncher:
         config_variables, missing = resolve_config_variables_from_id(
             db=self.db,
             policy_version_id=policy_version_id,
-            required_variables=version.variables,
+            required_variables=version.workflow.variables,
             run_config_variables=run_config_variables,
         )
         if len(missing) > 0:
             raise VariablesNotSetException(f"Mandatory variables not set: {missing}")
 
         return LaunchConfig(
-            name=str(policy_version_id),
+            name=str(version.workflow_id),
             variables=config_variables,
         )
 

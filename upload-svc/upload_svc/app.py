@@ -5,13 +5,13 @@ from io import BytesIO
 
 import pandas as pd
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
-from vulkan.core.backtest.definitions import SupportedFileFormat
 
 from upload_svc import schemas
 from upload_svc.logger import init_logger
 from upload_svc.manager.base import FileManager
 from upload_svc.manager.gcs import GCSFileManager
 from upload_svc.manager.local import LocalFileManager
+from vulkan.core.backtest.definitions import SupportedFileFormat
 
 logger = init_logger("upload-svc")
 

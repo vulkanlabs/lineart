@@ -3,6 +3,7 @@
 // === Core Components ===
 // Main workflow frame for embedding complete workflow functionality
 export { WorkflowFrame } from "./components/workflow-frame";
+export type { Workflow } from "./api/types";
 export type { WorkflowFrameProps } from "./components/workflow-frame";
 
 // Individual workflow components
@@ -23,7 +24,11 @@ export type {
 } from "./components/nodes";
 
 // === State Management ===
-export { WorkflowProvider, useWorkflowStore, createWorkflowStore } from "./store";
+export {
+    WorkflowStoreProvider as WorkflowProvider,
+    useWorkflowStore,
+    createWorkflowStore,
+} from "./store";
 export type { WorkflowStore, WorkflowStoreConfig } from "./store";
 
 // === API Integration ===

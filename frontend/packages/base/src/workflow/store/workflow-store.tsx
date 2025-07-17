@@ -27,7 +27,7 @@ declare function toast(message: string, options?: any): void;
  * Create a Zustand store for workflow management with API client dependency injection
  */
 export function createWorkflowStore(config: WorkflowStoreConfig) {
-    const { initialState, apiClient: _apiClient } = config;
+    const { initialState } = config;
 
     return createStore<WorkflowStore>()((set, get) => ({
         ...initialState,
@@ -342,7 +342,7 @@ export const WorkflowContext = createContext<WorkflowStoreApi | null>(null);
 /**
  * Props for the WorkflowProvider component
  */
-export type WorkflowProviderProps = {
+export type WorkflowStoreProviderProps = {
     children: ReactNode;
     initialState: WorkflowState;
     apiClient: WorkflowApiClient;
@@ -351,7 +351,11 @@ export type WorkflowProviderProps = {
 /**
  * Provider component that creates and provides a workflow store
  */
-export function WorkflowProvider({ children, initialState, apiClient }: WorkflowProviderProps) {
+export function WorkflowStoreProvider({
+    children,
+    initialState,
+    apiClient,
+}: WorkflowStoreProviderProps) {
     const storeRef = useRef<WorkflowStoreApi>(null);
 
     if (!storeRef.current) {

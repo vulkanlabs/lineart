@@ -5,6 +5,7 @@ import type {
     SaveWorkflowResult,
     WorkflowApiClientConfig,
     DataSource,
+    Workflow,
 } from "./types";
 
 /**
@@ -26,7 +27,7 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
      * Save a workflow specification using the API route
      */
     async saveWorkflowSpec(
-        policyVersion: PolicyVersion,
+        workflow: Workflow,
         spec: PolicyDefinitionDictInput,
         uiMetadata: { [key: string]: UIMetadata },
     ): Promise<SaveWorkflowResult> {
@@ -37,7 +38,7 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
                     "Content-Type": "application/json",
                     ...this.config.headers,
                 },
-                body: JSON.stringify({ policyVersion, spec, uiMetadata }),
+                body: JSON.stringify({ workflow, spec, uiMetadata }),
                 signal: this.createTimeoutSignal(),
             });
 

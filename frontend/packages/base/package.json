@@ -6,23 +6,11 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    },
-    "./ui": {
-      "types": "./dist/ui/index.d.ts",
-      "import": "./dist/ui/index.mjs",
-      "require": "./dist/ui/index.js"
-    },
-    "./workflow": {
-      "types": "./dist/workflow/index.d.ts",
-      "import": "./dist/workflow/index.mjs",
-      "require": "./dist/workflow/index.js"
-    },
-    "./src/*": "./src/*",
-    "./styles/*": "./src/styles/*",
+    ".": "./dist/index.js",
+    "./ui": "./dist/ui/index.js",
+    "./workflow": "./dist/workflow/index.js",
+    "./src/*": "./dist/*",
+    "./styles/*": "./dist/styles/*",
     "./tailwind.config.js": "./tailwind.config.js"
   },
   "scripts": {

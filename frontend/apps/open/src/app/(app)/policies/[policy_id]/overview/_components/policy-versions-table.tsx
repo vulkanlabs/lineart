@@ -15,7 +15,7 @@ import {
     SearchFilterOptions,
     DeleteResourceOptions,
 } from "@vulkanlabs/base";
-import { Policy, PolicyVersion, PolicyVersionStatus } from "@vulkanlabs/client-open";
+import { Policy, PolicyVersion, WorkflowStatus } from "@vulkanlabs/client-open";
 
 // Local imports
 import { parseDate } from "@/lib/utils";
@@ -40,8 +40,8 @@ export function PolicyVersionsTable({
 
                 // Use the actual status from the backend if available, or fallback to INVALID
                 // In the future, this will always come from the backend
-                const validationStatus: PolicyVersionStatus =
-                    policyVersion.status || PolicyVersionStatus.Invalid;
+                const validationStatus: WorkflowStatus =
+                    policyVersion.workflow?.status || WorkflowStatus.Invalid;
 
                 return {
                     ...policyVersion,
@@ -119,10 +119,10 @@ const policyVersionsTableColumns: ColumnDef<ExtendedPolicyVersion>[] = [
         header: "Valid",
         accessorKey: "validationStatus",
         cell: ({ row }) => {
-            const status = row.getValue("validationStatus") as PolicyVersionStatus;
+            const status = row.getValue("validationStatus") as WorkflowStatus;
 
             return (
-                <Badge variant={status === PolicyVersionStatus.Valid ? "default" : "destructive"}>
+                <Badge variant={status === WorkflowStatus.Valid ? "default" : "destructive"}>
                     {status}
                 </Badge>
             );
@@ -190,7 +190,7 @@ function getActiveVersions(policyData: Policy): string[] {
 
 // Define interfaces for the policy version with status fields
 interface ExtendedPolicyVersion extends PolicyVersion {
-    validationStatus: PolicyVersionStatus;
+    validationStatus: WorkflowStatus;
     activeStatus: string;
 }
 

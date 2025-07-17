@@ -2,7 +2,7 @@ import { DataSource } from "@vulkanlabs/base/workflow";
 
 export async function GET(request: Request) {
     try {
-        const serverUrl = process.env.VULKAN_SERVER_URL;
+        const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
         if (!serverUrl) {
             return Response.json({ error: "Server URL is not configured" }, { status: 500 });
         }
@@ -18,6 +18,10 @@ export async function GET(request: Request) {
                 { error: `Failed to fetch data sources: ${response.statusText}` },
                 { status: response.status },
             );
+        }
+
+        if (response.status === 204) {
+            return Response.json([]);
         }
 
         const data: DataSource[] = await response.json();

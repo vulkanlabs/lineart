@@ -76,30 +76,36 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
                 policy_version_id: "mock-version-1",
                 policy_id: policyId || "mock-policy-1",
                 alias: "Mock Version 1",
-                spec: {
-                    nodes: [],
-                    input_schema: {},
+                workflow: {
+                    workflow_id: "mock-workflow-1",
+                    spec: {
+                        nodes: [],
+                        input_schema: {},
+                    },
+                    requirements: [],
+                    ui_metadata: {},
+                    status: "VALID" as any,
                 },
-                requirements: [],
-                ui_metadata: {},
                 created_at: new Date(),
                 last_updated_at: new Date(),
-                status: "VALID" as any,
                 archived: false,
             },
             {
                 policy_version_id: "mock-version-2",
                 policy_id: policyId || "mock-policy-1",
                 alias: "Mock Version 2",
-                spec: {
-                    nodes: [],
-                    input_schema: {},
+                workflow: {
+                    workflow_id: "mock-workflow-2",
+                    spec: {
+                        nodes: [],
+                        input_schema: {},
+                    },
+                    requirements: [],
+                    ui_metadata: {},
+                    status: "VALID" as any,
                 },
-                requirements: [],
-                ui_metadata: {},
                 created_at: new Date(),
                 last_updated_at: new Date(),
-                status: "VALID" as any,
                 archived: includeArchived,
             },
         ];

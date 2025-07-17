@@ -14,6 +14,6 @@ class JobStatus(Enum):
     DONE = "DONE"
 
 
-class PolicyVersionStatus(Enum):
+class WorkflowStatus(Enum):
     VALID = "VALID"
     INVALID = "INVALID"

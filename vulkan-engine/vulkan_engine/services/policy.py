@@ -10,7 +10,7 @@ from datetime import date
 from sqlalchemy import func as F
 from sqlalchemy import select
 
-from vulkan_engine.db import Policy, PolicyVersion, PolicyVersionStatus, Run
+from vulkan_engine.db import Policy, PolicyVersion, Run, WorkflowStatus
 from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import (
     InvalidAllocationStrategyException,
@@ -301,7 +301,7 @@ class PolicyService(BaseService):
                 f"Policy version {policy_version_id} not found"
             )
 
-        if version.status != PolicyVersionStatus.VALID:
+        if version.status != WorkflowStatus.VALID:
             raise InvalidPolicyVersionException(
                 f"Policy version {policy_version_id} is not valid"
             )
