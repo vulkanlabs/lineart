@@ -184,6 +184,7 @@ class PolicyVersionService(BaseService):
             requirements=config.requirements,
             variables=config.spec.config_variables or [],
             ui_metadata=config.ui_metadata,
+            project_id=project_id,
         )
         self.logger.system.error(f"Updated workflow {version.workflow_id}")
 
@@ -338,7 +339,7 @@ class PolicyVersionService(BaseService):
         )
 
         # Get variables from the workflow
-        workflow = self.workflow_service.get_workflow(version.workflow_id)
+        workflow = self.workflow_service.get_workflow(version.workflow_id, project_id)
         required_variables = workflow.variables or []
 
         variables = (

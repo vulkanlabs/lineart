@@ -23,9 +23,12 @@ router = APIRouter(
 def list_components(
     include_archived: bool = False,
     service: ComponentService = Depends(get_component_service),
+    project_id: str | None = None,
 ):
     """List all components."""
-    components = service.list_components(include_archived=include_archived)
+    components = service.list_components(
+        include_archived=include_archived, project_id=project_id
+    )
     if not components:
         return Response(status_code=204)
     return components
@@ -35,19 +38,21 @@ def list_components(
 def create_component(
     config: schemas.ComponentBase,
     service: ComponentService = Depends(get_component_service),
+    project_id: str | None = None,
 ):
     """Create a new component."""
-    return service.create_component(config)
+    return service.create_component(config, project_id=project_id)
 
 
 @router.get("/{component_id}", response_model=schemas.Component)
 def get_component(
     component_id: str,
     service: ComponentService = Depends(get_component_service),
+    project_id: str | None = None,
 ):
     """Get a component by ID."""
     try:
-        return service.get_component(component_id)
+        return service.get_component(component_id, project_id)
     except ComponentNotFoundException:
         return Response(status_code=404)
 
@@ -57,10 +62,11 @@ def update_component(
     component_id: str,
     config: schemas.ComponentBase,
     service: ComponentService = Depends(get_component_service),
+    project_id: str | None = None,
 ):
     """Update a component."""
     try:
-        return service.update_component(component_id, config)
+        return service.update_component(component_id, config, project_id=project_id)
     except ComponentNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -69,10 +75,11 @@ def update_component(
 def delete_component(
     component_id: str,
     service: ComponentService = Depends(get_component_service),
+    project_id: str | None = None,
 ):
     """Delete (archive) a component."""
     try:
-        service.delete_component(component_id)
+        service.delete_component(component_id, project_id=project_id)
         return {"component_id": component_id}
     except ComponentNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))

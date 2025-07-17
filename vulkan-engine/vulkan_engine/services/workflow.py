@@ -68,7 +68,7 @@ class WorkflowService(BaseService):
         self._log_event(VulkanEvent.WORKFLOW_CREATED, workflow_id=workflow.workflow_id)
         return workflow
 
-    def get_workflow(self, workflow_id: str) -> Workflow:
+    def get_workflow(self, workflow_id: str, project_id: str | None = None) -> Workflow:
         """
         Get a workflow by ID.
 
@@ -82,7 +82,11 @@ class WorkflowService(BaseService):
             WorkflowNotFoundException: If workflow doesn't exist
         """
         workflow = (
-            self.db.query(Workflow).filter(Workflow.workflow_id == workflow_id).first()
+            self.db.query(Workflow)
+            .filter(
+                Workflow.workflow_id == workflow_id, Workflow.project_id == project_id
+            )
+            .first()
         )
         if not workflow:
             raise WorkflowNotFoundException(f"Workflow {workflow_id} not found")
@@ -95,6 +99,7 @@ class WorkflowService(BaseService):
         requirements: list[str] | None = None,
         variables: list[str] | None = None,
         ui_metadata: dict[str, UIMetadata] | None = None,
+        project_id: str | None = None,
     ) -> Workflow:
         """
         Update a workflow.
@@ -113,7 +118,7 @@ class WorkflowService(BaseService):
         Raises:
             WorkflowNotFoundException: If workflow doesn't exist
         """
-        workflow = self.get_workflow(workflow_id)
+        workflow = self.get_workflow(workflow_id, project_id)
 
         # Update the underlying workflow
         spec = self._convert_pydantic_to_dict(spec)
@@ -139,7 +144,7 @@ class WorkflowService(BaseService):
         self._log_event(VulkanEvent.WORKFLOW_UPDATED, workflow_id=workflow.workflow_id)
         return workflow
 
-    def delete_workflow(self, workflow_id: str) -> None:
+    def delete_workflow(self, workflow_id: str, project_id: str | None = None) -> None:
         """
         Delete a workflow.
 
@@ -149,7 +154,7 @@ class WorkflowService(BaseService):
         Raises:
             WorkflowNotFoundException: If workflow doesn't exist
         """
-        workflow = self.get_workflow(workflow_id)
+        workflow = self.get_workflow(workflow_id, project_id)
         self.db.delete(workflow)
         self.db.commit()
 

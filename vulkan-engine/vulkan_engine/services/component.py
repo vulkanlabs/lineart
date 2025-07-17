@@ -31,28 +31,37 @@ class ComponentService(BaseService):
         self.workflow_service = workflow_service
 
     def list_components(
-        self, include_archived: bool = False
+        self,
+        include_archived: bool = False,
+        project_id: str | None = None,
     ) -> List[schemas.Component]:
         """List all components."""
-        query = self.db.query(Component)
+        query = self.db.query(Component).filter(Component.project_id == project_id)
         if not include_archived:
             query = query.filter(Component.archived == False)  # noqa: E712
         components = query.all()
         return [schemas.Component.model_validate(component) for component in components]
 
-    def get_component(self, component_id: UUID) -> schemas.Component:
+    def get_component(self, component_id: str, project_id: str) -> schemas.Component:
         """Get a component by ID."""
         component = (
             self.db.query(Component)
-            .filter(Component.component_id == component_id)
+            .filter(
+                Component.component_id == component_id,
+                Component.project_id == project_id,
+            )
             .first()
         )
         if not component:
             raise ComponentNotFoundException(f"Component {component_id} not found")
-        workflow = self.workflow_service.get_workflow(component.workflow_id)
+        workflow = self.workflow_service.get_workflow(component.workflow_id, project_id)
         return schemas.Component.from_orm(component, workflow)
 
-    def create_component(self, config: schemas.ComponentBase) -> schemas.Component:
+    def create_component(
+        self,
+        config: schemas.ComponentBase,
+        project_id: str | None = None,
+    ) -> schemas.Component:
         """Create a new component."""
 
         # Fill in defaults for non-nullable fields
@@ -73,6 +82,7 @@ class ComponentService(BaseService):
             description=config.description,
             icon=config.icon,
             workflow_id=workflow.workflow_id,
+            project_id=project_id,
         )
 
         self.db.add(component)
@@ -84,12 +94,18 @@ class ComponentService(BaseService):
         return schemas.Component.from_orm(component, workflow)
 
     def update_component(
-        self, component_id: UUID, config: schemas.ComponentBase
+        self,
+        component_id: UUID,
+        config: schemas.ComponentBase,
+        project_id: str | None = None,
     ) -> schemas.Component:
         """Update a component."""
         component = (
             self.db.query(Component)
-            .filter(Component.component_id == component_id)
+            .filter(
+                Component.component_id == component_id,
+                Component.project_id == project_id,
+            )
             .first()
         )
         if not component:
@@ -112,6 +128,7 @@ class ComponentService(BaseService):
             requirements=config.requirements,
             variables=config.variables,
             ui_metadata=config.ui_metadata,
+            project_id=project_id,
         )
 
         self._log_event(
@@ -119,11 +136,18 @@ class ComponentService(BaseService):
         )
         return schemas.Component.from_orm(component, workflow)
 
-    def delete_component(self, component_id: UUID) -> None:
+    def delete_component(
+        self,
+        component_id: UUID,
+        project_id: str | None = None,
+    ) -> None:
         """Delete (archive) a component."""
         component = (
             self.db.query(Component)
-            .filter(Component.component_id == component_id)
+            .filter(
+                Component.component_id == component_id,
+                Component.project_id == project_id,
+            )
             .first()
         )
         if not component:
@@ -131,7 +155,7 @@ class ComponentService(BaseService):
 
         # Delete the underlying workflow
         if component.workflow_id:
-            self.workflow_service.delete_workflow(component.workflow_id)
+            self.workflow_service.delete_workflow(component.workflow_id, project_id)
 
         component.archived = True
         self.db.commit()
