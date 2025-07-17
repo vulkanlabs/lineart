@@ -45,13 +45,13 @@ class Dependency:
     hierarchy: list[str] | None = None
 
     def __post_init__(self):
-        assert (
-            isinstance(self.node, str) and len(self.node) > 0
-        ), "Node name must be a non-empty string"
+        assert isinstance(self.node, str) and len(self.node) > 0, (
+            "Node name must be a non-empty string"
+        )
 
-        assert (
-            self.output is None or self.key is None
-        ), "Cannot specify both output and key at the moment"
+        assert self.output is None or self.key is None, (
+            "Cannot specify both output and key at the moment"
+        )
 
     @property
     def id(self) -> str:

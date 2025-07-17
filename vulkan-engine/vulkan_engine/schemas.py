@@ -104,6 +104,18 @@ class Workflow(BaseModel):
     ui_metadata: dict[str, UIMetadata] | None = None
     status: WorkflowStatus
 
+    @classmethod
+    def from_orm(cls, workflow) -> "Workflow":
+        return cls(
+            workflow_id=workflow.workflow_id,
+            requirements=workflow.requirements,
+            spec=workflow.spec,
+            input_schema=workflow.input_schema,
+            variables=workflow.variables,
+            ui_metadata=workflow.ui_metadata,
+            status=workflow.status,
+        )
+
 
 class Component(BaseModel):
     name: str
@@ -113,16 +125,22 @@ class Component(BaseModel):
     archived: bool
     created_at: datetime
     last_updated_at: datetime
-    workflow: Workflow
+    workflow: Workflow | None = None
 
     class Config:
         from_attributes = True
 
     @classmethod
-    def from_orm(cls, component, workflow: Workflow) -> "Component":
+    def from_orm(cls, component, workflow) -> "Component":
         return cls(
-            **component.model_dump(),
-            workflow=workflow,
+            name=component.name,
+            description=component.description,
+            icon=component.icon,
+            component_id=component.component_id,
+            archived=component.archived,
+            created_at=component.created_at,
+            last_updated_at=component.last_updated_at,
+            workflow=Workflow.from_orm(workflow),
         )
 
 
@@ -146,13 +164,13 @@ class PolicyVersion(BaseModel):
     archived: bool
     created_at: datetime
     last_updated_at: datetime
-    workflow: Workflow
+    workflow: Workflow | None = None
 
     class Config:
         from_attributes = True
 
     @classmethod
-    def from_orm(cls, policy_version, workflow: Workflow) -> "PolicyVersion":
+    def from_orm(cls, policy_version, workflow) -> "PolicyVersion":
         return cls(
             policy_version_id=policy_version.policy_version_id,
             policy_id=policy_version.policy_id,
@@ -160,7 +178,7 @@ class PolicyVersion(BaseModel):
             archived=policy_version.archived,
             created_at=policy_version.created_at,
             last_updated_at=policy_version.last_updated_at,
-            workflow=workflow,
+            workflow=Workflow.from_orm(workflow),
         )
 
 

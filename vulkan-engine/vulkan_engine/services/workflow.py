@@ -117,8 +117,9 @@ class WorkflowService(BaseService):
         workflow = self.get_workflow(workflow_id)
 
         # Update the underlying workflow
+        spec = self._convert_pydantic_to_dict(spec)
         if spec is not None:
-            workflow.spec = self._convert_pydantic_to_dict(spec)
+            workflow.spec = spec
         if input_schema is not None:
             workflow.input_schema = input_schema
         if requirements is not None:
@@ -133,7 +134,7 @@ class WorkflowService(BaseService):
         self.db.refresh(workflow)
 
         # Ensure the workspace is created or updated with the new spec and requirements
-        self._update_dagster_workspace(workflow, spec, requirements)
+        self._update_dagster_workspace(workflow)
         workflow.status = WorkflowStatus.VALID
         self.db.commit()
         self.db.refresh(workflow)
@@ -168,15 +169,13 @@ class WorkflowService(BaseService):
     def _update_dagster_workspace(
         self,
         workflow: Workflow,
-        spec: dict,
-        requirements: list[str],
     ) -> None:
         """Update Dagster workspace for the policy version."""
         try:
             self.dagster_service_client.update_workspace(
                 workspace_id=workflow.workflow_id,
-                spec=spec,
-                requirements=requirements,
+                spec=workflow.spec,
+                requirements=workflow.requirements,
             )
         except ValueError as e:
             if self.logger:

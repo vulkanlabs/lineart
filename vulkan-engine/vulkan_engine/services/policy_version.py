@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from vulkan.spec.nodes.base import NodeType
+from vulkan_engine import schemas
 from vulkan_engine.dagster.launch_run import DagsterRunLauncher, get_run_result
 from vulkan_engine.db import (
     ConfigurationValue,
@@ -30,15 +31,6 @@ from vulkan_engine.exceptions import (
     PolicyVersionInUseException,
     PolicyVersionNotFoundException,
 )
-from vulkan_engine.schemas import (
-    ConfigurationVariables,
-    ConfigurationVariablesBase,
-    DataSourceReference,
-    PolicyAllocationStrategy,
-    PolicyVersionBase,
-    PolicyVersionCreate,
-    RunResult,
-)
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.services.workflow import WorkflowService
 from vulkan_engine.utils import validate_date_range
@@ -50,6 +42,7 @@ class PolicyVersionService(BaseService):
     def __init__(
         self,
         db: Session,
+        workflow_service: WorkflowService,
         launcher: DagsterRunLauncher | None = None,
         logger=None,
     ):
@@ -64,9 +57,11 @@ class PolicyVersionService(BaseService):
         """
         super().__init__(db, logger)
         self.launcher = launcher
-        self.workflow_service = WorkflowService(db, logger)
+        self.workflow_service = workflow_service
 
-    def create_policy_version(self, config: PolicyVersionCreate) -> PolicyVersion:
+    def create_policy_version(
+        self, config: schemas.PolicyVersionCreate
+    ) -> schemas.PolicyVersion:
         """
         Create a new policy version.
 
@@ -111,9 +106,9 @@ class PolicyVersionService(BaseService):
             policy_version_alias=config.alias,
         )
 
-        return version
+        return schemas.PolicyVersion.from_orm(version, workflow)
 
-    def get_policy_version(self, policy_version_id: str) -> PolicyVersion | None:
+    def get_policy_version(self, policy_version_id: str) -> schemas.PolicyVersion:
         """
         Get a policy version by ID.
 
@@ -123,15 +118,21 @@ class PolicyVersionService(BaseService):
         Returns:
             PolicyVersion object or None if not found
         """
-        return (
+        version = (
             self.db.query(PolicyVersion)
             .filter_by(policy_version_id=policy_version_id)
             .first()
         )
+        if not version:
+            raise PolicyVersionNotFoundException(
+                f"Policy version {policy_version_id} not found"
+            )
+        workflow = self.workflow_service.get_workflow(version.workflow_id)
+        return schemas.PolicyVersion.from_orm(version, workflow)
 
     def list_policy_versions(
         self, policy_id: str | None = None, archived: bool = False
-    ) -> list[PolicyVersion]:
+    ) -> list[schemas.PolicyVersionBase]:
         """
         List policy versions with optional filtering.
 
@@ -149,8 +150,10 @@ class PolicyVersionService(BaseService):
         return self.db.execute(stmt).scalars().all()
 
     def update_policy_version(
-        self, policy_version_id: str, config: PolicyVersionBase
-    ) -> PolicyVersion:
+        self,
+        policy_version_id: str,
+        config: schemas.PolicyVersionBase,
+    ) -> schemas.PolicyVersion:
         """
         Update a policy version with new spec and configuration.
 
@@ -179,7 +182,7 @@ class PolicyVersionService(BaseService):
         # Update basic fields
         version.alias = config.alias
 
-        self.workflow_service.update_workflow(
+        workflow = self.workflow_service.update_workflow(
             workflow_id=version.workflow_id,
             spec=config.spec,
             input_schema=config.input_schema,
@@ -213,7 +216,7 @@ class PolicyVersionService(BaseService):
             policy_version_alias=version.alias,
         )
 
-        return version
+        return schemas.PolicyVersion.from_orm(version, workflow)
 
     def delete_policy_version(self, policy_version_id: str) -> None:
         """
@@ -281,7 +284,7 @@ class PolicyVersionService(BaseService):
         config_variables: dict,
         polling_interval_ms: int,
         polling_timeout_ms: int,
-    ) -> RunResult:
+    ) -> schemas.RunResult:
         """
         Execute a workflow and wait for results.
 
@@ -310,7 +313,7 @@ class PolicyVersionService(BaseService):
 
     def list_configuration_variables(
         self, policy_version_id: str
-    ) -> list[ConfigurationVariables]:
+    ) -> list[schemas.ConfigurationVariables]:
         """
         List configuration variables for a policy version.
 
@@ -349,7 +352,7 @@ class PolicyVersionService(BaseService):
         # Add existing variables
         for variable in variables:
             result.append(
-                ConfigurationVariables(
+                schemas.ConfigurationVariables(
                     name=variable.name,
                     value=variable.value,
                     created_at=variable.created_at,
@@ -361,7 +364,7 @@ class PolicyVersionService(BaseService):
         for variable in required_variables:
             if variable not in variable_map:
                 result.append(
-                    ConfigurationVariables(
+                    schemas.ConfigurationVariables(
                         name=variable,
                         value=None,
                         created_at=None,
@@ -374,7 +377,7 @@ class PolicyVersionService(BaseService):
     def set_configuration_variables(
         self,
         policy_version_id: str,
-        desired_variables: list[ConfigurationVariablesBase],
+        desired_variables: list[schemas.ConfigurationVariablesBase],
     ) -> dict[str, Any]:
         """
         Set configuration variables for a policy version.
@@ -467,7 +470,7 @@ class PolicyVersionService(BaseService):
 
     def list_data_sources_by_policy_version(
         self, policy_version_id: str
-    ) -> list[DataSourceReference]:
+    ) -> list[schemas.DataSourceReference]:
         """
         List data sources used by a policy version.
 
@@ -503,7 +506,7 @@ class PolicyVersionService(BaseService):
             )
             if ds:
                 result.append(
-                    DataSourceReference(
+                    schemas.DataSourceReference(
                         data_source_id=ds.data_source_id,
                         name=ds.name,
                         created_at=ds.created_at,
@@ -557,7 +560,7 @@ class PolicyVersionService(BaseService):
         """Check if policy version is in use by allocation strategy."""
         policy = self.db.query(Policy).filter_by(policy_id=version.policy_id).first()
         if policy and policy.allocation_strategy:
-            strategy = PolicyAllocationStrategy.model_validate(
+            strategy = schemas.PolicyAllocationStrategy.model_validate(
                 policy.allocation_strategy
             )
             active_versions = [opt.policy_version_id for opt in strategy.choice]

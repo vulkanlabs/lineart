@@ -98,7 +98,7 @@ export function WorkflowCanvas({
      * Initialize the workflow layout when component mounts
      */
     const onInit = useCallback(() => {
-        if (!workflow.ui_metadata) {
+        if (!workflow.workflow?.ui_metadata) {
             const unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => ({
                 ...node,
                 layoutOptions: defaultElkOptions,

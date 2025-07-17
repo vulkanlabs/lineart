@@ -34,8 +34,8 @@ class VulkanDagsterServiceClient:
     def update_workspace(
         self,
         workspace_id: str,
-        spec: dict,
-        requirements: list[str],
+        spec: dict = None,
+        requirements: list[str] = None,
     ) -> Response:
         response = self._make_request(
             method="POST",

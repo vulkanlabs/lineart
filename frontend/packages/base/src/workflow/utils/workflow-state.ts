@@ -10,15 +10,22 @@ import { Workflow } from "../api/types";
  * Create initial workflow state from a policy version
  */
 export function createWorkflowState(workflow: Workflow): WorkflowState {
-    const uiMetadata = workflow.ui_metadata || {};
-    const inputNode = makeInputNode(workflow.input_schema, uiMetadata["input_node"]);
+    const uiMetadata = workflow.workflow?.ui_metadata || {};
+    const inputNode = makeInputNode(
+        workflow.workflow?.input_schema || {},
+        uiMetadata["input_node"],
+    );
 
     // If no spec is defined, return an empty state: new version
-    if (!workflow.spec || !workflow.spec.nodes || workflow.spec.nodes.length === 0) {
+    if (
+        !workflow.workflow?.spec ||
+        !workflow.workflow?.spec.nodes ||
+        workflow.workflow?.spec.nodes.length === 0
+    ) {
         return defaultWorkflowState(inputNode);
     }
 
-    const nodes = workflow.spec.nodes || [];
+    const nodes = workflow.workflow?.spec.nodes || [];
     const edges = makeEdgesFromDependencies(nodes);
 
     // Map server nodes to ReactFlow node format

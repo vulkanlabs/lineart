@@ -21,9 +21,14 @@ from vulkan_engine.services.workflow import WorkflowService
 class ComponentService(BaseService):
     """Service for component operations."""
 
-    def __init__(self, db: Session, logger: VulkanLogger | None = None):
+    def __init__(
+        self,
+        db: Session,
+        workflow_service: WorkflowService,
+        logger: VulkanLogger | None = None,
+    ):
         super().__init__(db, logger)
-        self.workflow_service = WorkflowService(db, logger)
+        self.workflow_service = workflow_service
 
     def list_components(
         self, include_archived: bool = False
@@ -98,25 +103,6 @@ class ComponentService(BaseService):
             component.description = config.description
         if config.icon is not None:
             component.icon = config.icon
-
-        # Update the underlying workflow
-        if any(
-            [
-                config.spec is not None,
-                config.input_schema is not None,
-                config.requirements is not None,
-                config.variables is not None,
-                config.ui_metadata is not None,
-            ]
-        ):
-            self.workflow_service.update_workflow(
-                workflow_id=component.workflow_id,
-                spec=config.spec,
-                input_schema=config.input_schema,
-                requirements=config.requirements,
-                variables=config.variables,
-                ui_metadata=config.ui_metadata,
-            )
 
         self.db.commit()
         self.db.refresh(component)
