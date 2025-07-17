@@ -77,7 +77,6 @@ async function saveComponent(
         description: component.description || null,
         icon: component.icon || null,
         spec,
-        input_schema: component.workflow?.input_schema || {},
         variables: component.workflow?.variables || [],
         ui_metadata: uiMetadata,
     };
@@ -111,7 +110,6 @@ async function savePolicyVersion(
         alias: policyVersion.alias || null,
         spec,
         requirements: [],
-        input_schema: policyVersion.workflow?.input_schema || {},
         ui_metadata: uiMetadata,
     };
 
