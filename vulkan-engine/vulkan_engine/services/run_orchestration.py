@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
 from vulkan_engine.dagster.launch_run import DagsterRunLauncher
 from vulkan_engine.db import Run, RunGroup, StepMetadata
-from vulkan_engine.exceptions import RunNotFoundException
+from vulkan_engine.loaders import RunLoader
 from vulkan_engine.schemas import StepMetadataBase
 from vulkan_engine.services.base import BaseService
 
@@ -37,27 +37,10 @@ class RunOrchestrationService(BaseService):
         """
         super().__init__(db, logger)
         self.launcher = launcher
-
-    def get_run(self, run_id: str) -> Run:
-        """
-        Get a run by ID.
-
-        Args:
-            run_id: Run UUID
-
-        Returns:
-            Run object
-
-        Raises:
-            RunNotFoundException: If run doesn't exist
-        """
-        run = self.db.query(Run).filter_by(run_id=run_id).first()
-        if not run:
-            raise RunNotFoundException(f"Run {run_id} not found")
-        return run
+        self.run_loader = RunLoader(db)
 
     def publish_step_metadata(
-        self, run_id: str, metadata: StepMetadataBase
+        self, run_id: str, metadata: StepMetadataBase, project_id: str = None
     ) -> dict[str, str]:
         """
         Publish metadata for a run step.
@@ -65,15 +48,16 @@ class RunOrchestrationService(BaseService):
         Args:
             run_id: Run UUID
             metadata: Step metadata to publish
+            project_id: Optional project UUID to filter by
 
         Returns:
             Success status dict
 
         Raises:
-            RunNotFoundException: If run doesn't exist
+            RunNotFoundException: If run doesn't exist or doesn't belong to specified project
         """
         # Verify run exists
-        self.get_run(run_id)
+        self.run_loader.get_run(run_id, project_id=project_id)
 
         # Create metadata record
         args = {"run_id": run_id, **metadata.model_dump()}
@@ -89,6 +73,7 @@ class RunOrchestrationService(BaseService):
         status: str,
         result: str,
         metadata: dict[str, Any] | None = None,
+        project_id: str = None,
     ) -> Run:
         """
         Update run status and optionally trigger shadow runs.
@@ -98,15 +83,16 @@ class RunOrchestrationService(BaseService):
             status: New status string
             result: Run result
             metadata: Optional run metadata
+            project_id: Optional project UUID to filter by
 
         Returns:
             Updated Run object
 
         Raises:
-            RunNotFoundException: If run doesn't exist
+            RunNotFoundException: If run doesn't exist or doesn't belong to specified project
             ValueError: If status is invalid
         """
-        run = self.get_run(run_id)
+        run = self.run_loader.get_run(run_id, project_id=project_id)
 
         # Validate status
         try:

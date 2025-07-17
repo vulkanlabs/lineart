@@ -9,16 +9,22 @@ from vulkan_engine.services.allocation import AllocationService
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.services.component import ComponentService
 from vulkan_engine.services.data_source import DataSourceService
+from vulkan_engine.services.data_source_analytics import DataSourceAnalyticsService
 from vulkan_engine.services.policy import PolicyService
+from vulkan_engine.services.policy_analytics import PolicyAnalyticsService
 from vulkan_engine.services.policy_version import PolicyVersionService
 from vulkan_engine.services.run_orchestration import RunOrchestrationService
 from vulkan_engine.services.run_query import RunQueryService
 from vulkan_engine.services.workflow import WorkflowService
 
 __all__ = [
-    "BaseService",
-    "PolicyService",
     "AllocationService",
+    "BaseService",
+    "DataSourceAnalyticsService",
+    "DataSourceService",
+    "PolicyAnalyticsService",
+    "PolicyService",
+    "PolicyVersionService",
     "RunOrchestrationService",
     "RunQueryService",
     "PolicyVersionService",

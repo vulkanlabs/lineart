@@ -27,7 +27,9 @@ from vulkan_engine.logger import VulkanLogger, create_logger
 from vulkan_engine.services import (
     AllocationService,
     ComponentService,
+    DataSourceAnalyticsService,
     DataSourceService,
+    PolicyAnalyticsService,
     PolicyService,
     PolicyVersionService,
 )
@@ -320,3 +322,37 @@ def get_component_service(
         Configured ComponentService instance
     """
     return ComponentService(db=db, workflow_service=workflow_service, logger=logger)
+
+
+def get_data_source_analytics_service(
+    db: Annotated[Session, Depends(get_database_session)],
+    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
+) -> DataSourceAnalyticsService:
+    """
+    Get DataSourceAnalyticsService for data source analytics.
+
+    Args:
+        db: Database session
+        logger: Configured logger
+
+    Returns:
+        Configured DataSourceAnalyticsService instance
+    """
+    return DataSourceAnalyticsService(db=db, logger=logger)
+
+
+def get_policy_analytics_service(
+    db: Annotated[Session, Depends(get_database_session)],
+    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
+) -> PolicyAnalyticsService:
+    """
+    Get PolicyAnalyticsService for policy analytics.
+
+    Args:
+        db: Database session
+        logger: Configured logger
+
+    Returns:
+        Configured PolicyAnalyticsService instance
+    """
+    return PolicyAnalyticsService(db=db, logger=logger)

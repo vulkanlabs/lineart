@@ -38,7 +38,6 @@ def create(
         version_name,
         spec,
         requirements,
-        input_schema or {},
     )
 
 
@@ -46,7 +45,6 @@ def update(
     ctx: Context,
     policy_version_id: str,
     version_name: str,
-    input_schema: dict,
     spec: dict,
     requirements: list[str],
 ):
@@ -56,7 +54,6 @@ def update(
         version_name,
         spec,
         requirements,
-        input_schema,
     )
 
 
@@ -114,7 +111,6 @@ def _update_policy_version(
     version_name: str,
     spec: dict,
     requirements: list[str],
-    input_schema: dict[str, str | None],
 ):
     response = ctx.session.put(
         url=f"{ctx.server_url}/policy-versions/{policy_version_id}",
@@ -122,7 +118,6 @@ def _update_policy_version(
             "alias": version_name,
             "spec": spec,
             "requirements": requirements,
-            "input_schema": input_schema or {},
         },
     )
 

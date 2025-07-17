@@ -17,10 +17,13 @@ from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
     InvalidDataSourceException,
 )
-from vulkan_engine.services import DataSourceService
+from vulkan_engine.services import DataSourceAnalyticsService, DataSourceService
 
 from vulkan.schemas import DataSourceSpec
-from vulkan_server.dependencies import get_data_source_service
+from vulkan_server.dependencies import (
+    get_data_source_analytics_service,
+    get_data_source_service,
+)
 
 sources = APIRouter(
     prefix="/data-sources",
@@ -143,7 +146,7 @@ def get_data_source_usage(
     data_source_id: str,
     start_date: Annotated[datetime.date | None, Query()] = None,
     end_date: Annotated[datetime.date | None, Query()] = None,
-    service: DataSourceService = Depends(get_data_source_service),
+    service: DataSourceAnalyticsService = Depends(get_data_source_analytics_service),
 ):
     """Get usage statistics for a data source."""
     return service.get_usage_statistics(data_source_id, start_date, end_date)
@@ -154,7 +157,7 @@ def get_data_source_metrics(
     data_source_id: str,
     start_date: Annotated[datetime.date | None, Query()] = None,
     end_date: Annotated[datetime.date | None, Query()] = None,
-    service: DataSourceService = Depends(get_data_source_service),
+    service: DataSourceAnalyticsService = Depends(get_data_source_analytics_service),
 ):
     """Get performance metrics for a data source."""
     return service.get_performance_metrics(data_source_id, start_date, end_date)
@@ -165,7 +168,7 @@ def get_cache_statistics(
     data_source_id: str,
     start_date: Annotated[datetime.date | None, Query()] = None,
     end_date: Annotated[datetime.date | None, Query()] = None,
-    service: DataSourceService = Depends(get_data_source_service),
+    service: DataSourceAnalyticsService = Depends(get_data_source_analytics_service),
 ):
     """Get cache statistics for a data source."""
     return service.get_cache_statistics(data_source_id, start_date, end_date)

@@ -35,10 +35,10 @@ class WorkflowService(BaseService):
     def create_workflow(
         self,
         spec: PolicyDefinitionDict | None = None,
-        input_schema: dict[str, Any] | None = None,
         requirements: list[str] | None = None,
         variables: list[str] | None = None,
         ui_metadata: dict[str, UIMetadata] | None = None,
+        project_id: str | None = None,
     ) -> Workflow:
         """
         Create a new workflow.
@@ -55,11 +55,11 @@ class WorkflowService(BaseService):
         """
         workflow = Workflow(
             spec=spec,
-            input_schema=input_schema,
             requirements=requirements,
             variables=variables,
             status=WorkflowStatus.INVALID,
             ui_metadata=ui_metadata,
+            project_id=project_id,
         )
         self.db.add(workflow)
         self.db.commit()
@@ -92,7 +92,6 @@ class WorkflowService(BaseService):
         self,
         workflow_id: str,
         spec: PolicyDefinitionDict | None = None,
-        input_schema: dict[str, Any] | None = None,
         requirements: list[str] | None = None,
         variables: list[str] | None = None,
         ui_metadata: dict[str, UIMetadata] | None = None,
@@ -120,8 +119,6 @@ class WorkflowService(BaseService):
         spec = self._convert_pydantic_to_dict(spec)
         if spec is not None:
             workflow.spec = spec
-        if input_schema is not None:
-            workflow.input_schema = input_schema
         if requirements is not None:
             workflow.requirements = requirements
         if variables is not None:
@@ -184,8 +181,7 @@ class WorkflowService(BaseService):
                     exc_info=True,
                 )
             raise Exception(
-                f"Failed to update policy version workspace. "
-                f"Policy Version ID: {workflow.workflow_id}"
+                f"Failed to update workspace. Workflow ID: {workflow.workflow_id}"
             )
 
         try:

@@ -59,12 +59,10 @@ class ComponentService(BaseService):
         requirements = config.requirements or []
         variables = config.variables or []
         spec = config.spec or {"nodes": [], "input_schema": {}}
-        input_schema = config.input_schema or {}
 
         # Create workflow for the component
         workflow = self.workflow_service.create_workflow(
             spec=spec,
-            input_schema=input_schema,
             requirements=requirements,
             variables=variables,
             ui_metadata=config.ui_metadata or {},
@@ -111,7 +109,6 @@ class ComponentService(BaseService):
         workflow = self.workflow_service.update_workflow(
             workflow_id=component.workflow_id,
             spec=config.spec,
-            input_schema=config.input_schema,
             requirements=config.requirements,
             variables=config.variables,
             ui_metadata=config.ui_metadata,

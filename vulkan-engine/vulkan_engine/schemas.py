@@ -12,48 +12,6 @@ from vulkan.schemas import DataSourceSpec, PolicyAllocationStrategy
 from vulkan.spec.policy import PolicyDefinitionDict
 
 
-class Project(BaseModel):
-    project_id: UUID
-    name: str
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class UserBase(BaseModel):
-    user_auth_id: UUID
-    email: str
-    name: str
-
-
-class User(UserBase):
-    user_id: UUID
-    created_at: datetime
-    last_updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class ProjectUserCreate(BaseModel):
-    user_id: UUID
-    role: str
-
-
-class ProjectUserBase(ProjectUserCreate):
-    project_id: UUID
-
-
-class ProjectUser(ProjectUserBase):
-    project_user_id: UUID
-    created_at: datetime
-    last_updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
 class PolicyCreate(BaseModel):
     name: str
     description: str
@@ -92,7 +50,6 @@ class ComponentBase(BaseModel):
     icon: str | None = None  # Base64 encoded image
     requirements: list[str] | None = None
     spec: PolicyDefinitionDict | None = None
-    input_schema: dict[str, str] | None = None
     variables: list[str] | None = None
     ui_metadata: dict[str, UIMetadata] | None = None
 
@@ -101,18 +58,19 @@ class Workflow(BaseModel):
     workflow_id: UUID
     requirements: list[str]
     spec: PolicyDefinitionDict
-    input_schema: dict[str, str]
     variables: list[str] | None = None
     ui_metadata: dict[str, UIMetadata] | None = None
     status: WorkflowStatus
 
     @classmethod
     def from_orm(cls, workflow) -> "Workflow":
+        if workflow is None:
+            return None
+
         return cls(
             workflow_id=workflow.workflow_id,
             requirements=workflow.requirements,
             spec=workflow.spec,
-            input_schema=workflow.input_schema,
             variables=workflow.variables,
             ui_metadata=workflow.ui_metadata,
             status=workflow.status,
@@ -149,7 +107,6 @@ class Component(BaseModel):
 class PolicyVersionBase(BaseModel):
     alias: str | None
     spec: PolicyDefinitionDict
-    input_schema: dict[str, str] | None = None
     requirements: list[str] | None = None
     ui_metadata: dict[str, UIMetadata] | None = None
 

@@ -34,7 +34,7 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=schemas.PolicyVersion)
+@router.post("/", response_model=schemas.PolicyVersion)
 def create_policy_version(
     config: schemas.PolicyVersionCreate,
     service: PolicyVersionService = Depends(get_policy_version_service),
@@ -58,14 +58,14 @@ def get_policy_version(
     return version
 
 
-@router.get("", response_model=list[schemas.PolicyVersion])
+@router.get("/", response_model=list[schemas.PolicyVersion])
 def list_policy_versions(
     policy_id: str | None = None,
-    archived: bool = False,
+    include_archived: bool = False,
     service: PolicyVersionService = Depends(get_policy_version_service),
 ):
     """List policy versions with optional filtering."""
-    versions = service.list_policy_versions(policy_id, archived)
+    versions = service.list_policy_versions(policy_id, include_archived)
     if not versions:
         return Response(status_code=204)
     return versions

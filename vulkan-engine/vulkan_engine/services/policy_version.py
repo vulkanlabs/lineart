@@ -27,10 +27,10 @@ from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
     InvalidDataSourceException,
-    PolicyNotFoundException,
     PolicyVersionInUseException,
     PolicyVersionNotFoundException,
 )
+from vulkan_engine.loaders import PolicyLoader, PolicyVersionLoader
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.services.workflow import WorkflowService
 from vulkan_engine.utils import validate_date_range
@@ -58,15 +58,18 @@ class PolicyVersionService(BaseService):
         super().__init__(db, logger)
         self.launcher = launcher
         self.workflow_service = workflow_service
+        self.policy_loader = PolicyLoader(db)
+        self.policy_version_loader = PolicyVersionLoader(db)
 
     def create_policy_version(
-        self, config: schemas.PolicyVersionCreate
+        self, config: schemas.PolicyVersionCreate, project_id: str = None
     ) -> schemas.PolicyVersion:
         """
         Create a new policy version.
 
         Args:
             config: Policy version creation data
+            project_id: Optional project UUID to associate with
 
         Returns:
             Created PolicyVersion object
@@ -74,20 +77,15 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyNotFoundException: If policy doesn't exist
         """
-        # Verify policy exists
-        policy = self.db.query(Policy).filter_by(policy_id=config.policy_id).first()
-        if not policy:
-            raise PolicyNotFoundException(
-                f"Tried to create a version for non-existent policy {config.policy_id}"
-            )
+        policy = self.policy_loader.get_policy(config.policy_id, project_id=project_id)
 
         # Create workflow for the policy version
         workflow = self.workflow_service.create_workflow(
             spec={"nodes": [], "input_schema": {}},
-            input_schema={},
             requirements=[],
             variables=[],
             ui_metadata={},
+            project_id=policy.project_id,
         )
 
         # Create version with initial INVALID status and link to workflow
@@ -95,6 +93,7 @@ class PolicyVersionService(BaseService):
             policy_id=config.policy_id,
             alias=config.alias,
             workflow_id=workflow.workflow_id,
+            project_id=policy.project_id,
         )
         self.db.add(version)
         self.db.commit()
@@ -108,58 +107,60 @@ class PolicyVersionService(BaseService):
 
         return schemas.PolicyVersion.from_orm(version, workflow)
 
-    def get_policy_version(self, policy_version_id: str) -> schemas.PolicyVersion:
+    def get_policy_version(
+        self, policy_version_id: str, project_id: str = None
+    ) -> PolicyVersion | None:
         """
-        Get a policy version by ID.
+        Get a policy version by ID, optionally filtered by project.
 
         Args:
             policy_version_id: Policy version UUID
+            project_id: Optional project UUID to filter by
 
         Returns:
             PolicyVersion object or None if not found
         """
-        version = (
-            self.db.query(PolicyVersion)
-            .filter_by(policy_version_id=policy_version_id)
-            .first()
-        )
-        if not version:
-            raise PolicyVersionNotFoundException(
-                f"Policy version {policy_version_id} not found"
+        try:
+            return self.policy_version_loader.get_policy_version(
+                policy_version_id, project_id=project_id
             )
-        workflow = self.workflow_service.get_workflow(version.workflow_id)
-        return schemas.PolicyVersion.from_orm(version, workflow)
+        except PolicyVersionNotFoundException:
+            return None
 
     def list_policy_versions(
-        self, policy_id: str | None = None, archived: bool = False
-    ) -> list[schemas.PolicyVersionBase]:
+        self,
+        policy_id: str | None = None,
+        archived: bool = False,
+        project_id: str = None,
+    ) -> list[PolicyVersion]:
         """
         List policy versions with optional filtering.
 
         Args:
             policy_id: Optional policy ID to filter by
             archived: Whether to include archived versions
+            project_id: Optional project UUID to filter by
 
         Returns:
             List of PolicyVersion objects
         """
-        stmt = select(PolicyVersion).where(PolicyVersion.archived == archived)
-        if policy_id:
-            stmt = stmt.where(PolicyVersion.policy_id == policy_id)
-
-        return self.db.execute(stmt).scalars().all()
+        return self.policy_version_loader.list_policy_versions(
+            policy_id=policy_id, project_id=project_id, include_archived=archived
+        )
 
     def update_policy_version(
         self,
         policy_version_id: str,
         config: schemas.PolicyVersionBase,
-    ) -> schemas.PolicyVersion:
+        project_id: str = None,
+    ) -> PolicyVersion:
         """
         Update a policy version with new spec and configuration.
 
         Args:
             policy_version_id: Policy version UUID
             config: Update configuration
+            project_id: Optional project UUID to filter by
 
         Returns:
             Updated PolicyVersion object
@@ -169,27 +170,22 @@ class PolicyVersionService(BaseService):
             DSNotFound: If referenced data sources don't exist
             InvalidDataSourceException: If data source configuration is invalid
         """
-        version = (
-            self.db.query(PolicyVersion)
-            .filter_by(policy_version_id=policy_version_id, archived=False)
-            .first()
+        version = self.policy_version_loader.get_policy_version(
+            policy_version_id, project_id=project_id, include_archived=False
         )
-        if not version:
-            raise PolicyVersionNotFoundException(
-                f"Policy version {policy_version_id} not found"
-            )
 
+        self.logger.system.error(f"Got version {version}")
         # Update basic fields
         version.alias = config.alias
 
         workflow = self.workflow_service.update_workflow(
             workflow_id=version.workflow_id,
             spec=config.spec,
-            input_schema=config.input_schema,
             requirements=config.requirements,
             variables=config.spec.config_variables or [],
             ui_metadata=config.ui_metadata,
         )
+        self.logger.system.error(f"Updated workflow {version.workflow_id}")
 
         # Handle data source dependencies
         data_input_nodes = [
@@ -218,24 +214,25 @@ class PolicyVersionService(BaseService):
 
         return schemas.PolicyVersion.from_orm(version, workflow)
 
-    def delete_policy_version(self, policy_version_id: str) -> None:
+    def delete_policy_version(
+        self, policy_version_id: str, project_id: str = None
+    ) -> None:
         """
         Delete (archive) a policy version.
 
         Args:
             policy_version_id: Policy version UUID
+            project_id: Optional project UUID to filter by
 
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
             PolicyVersionInUseException: If version is in use by allocation strategy
         """
-        version = (
-            self.db.query(PolicyVersion)
-            .filter_by(policy_version_id=policy_version_id)
-            .first()
-        )
-
-        if not version or version.archived:
+        try:
+            version = self.policy_version_loader.get_policy_version(
+                policy_version_id, project_id=project_id, include_archived=False
+            )
+        except PolicyVersionNotFoundException:
             raise PolicyVersionNotFoundException(
                 f"Tried to delete non-existent policy version {policy_version_id}"
             )
@@ -254,7 +251,11 @@ class PolicyVersionService(BaseService):
         )
 
     def create_run(
-        self, policy_version_id: str, input_data: dict, config_variables: dict
+        self,
+        policy_version_id: str,
+        input_data: dict,
+        config_variables: dict,
+        project_id: str = None,
     ) -> dict[str, str]:
         """
         Create a run for a policy version.
@@ -263,6 +264,7 @@ class PolicyVersionService(BaseService):
             policy_version_id: Policy version UUID
             input_data: Input data for the run
             config_variables: Configuration variables
+            project_id: Optional project UUID to associate with
 
         Returns:
             Dictionary with policy_version_id and run_id
@@ -274,6 +276,7 @@ class PolicyVersionService(BaseService):
             input_data=input_data,
             policy_version_id=policy_version_id,
             run_config_variables=config_variables,
+            project_id=project_id,
         )
         return {"policy_version_id": policy_version_id, "run_id": run.run_id}
 
@@ -284,6 +287,7 @@ class PolicyVersionService(BaseService):
         config_variables: dict,
         polling_interval_ms: int,
         polling_timeout_ms: int,
+        project_id: str = None,
     ) -> schemas.RunResult:
         """
         Execute a workflow and wait for results.
@@ -294,6 +298,7 @@ class PolicyVersionService(BaseService):
             config_variables: Configuration variables
             polling_interval_ms: Polling interval
             polling_timeout_ms: Polling timeout
+            project_id: Optional project UUID to associate with
 
         Returns:
             RunResult object
@@ -305,6 +310,7 @@ class PolicyVersionService(BaseService):
             input_data=input_data,
             policy_version_id=policy_version_id,
             run_config_variables=config_variables,
+            project_id=project_id,
         )
         result = await get_run_result(
             self.db, run.run_id, polling_interval_ms, polling_timeout_ms
@@ -312,13 +318,14 @@ class PolicyVersionService(BaseService):
         return result
 
     def list_configuration_variables(
-        self, policy_version_id: str
+        self, policy_version_id: str, project_id: str = None
     ) -> list[schemas.ConfigurationVariables]:
         """
         List configuration variables for a policy version.
 
         Args:
             policy_version_id: Policy version UUID
+            project_id: Optional project UUID to filter by
 
         Returns:
             List of ConfigurationVariables
@@ -326,15 +333,9 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
         """
-        version = (
-            self.db.query(PolicyVersion)
-            .filter_by(policy_version_id=policy_version_id, archived=False)
-            .first()
+        version = self.policy_version_loader.get_policy_version(
+            policy_version_id, project_id=project_id, include_archived=False
         )
-        if not version:
-            raise PolicyVersionNotFoundException(
-                f"Policy version {policy_version_id} not found"
-            )
 
         # Get variables from the workflow
         workflow = self.workflow_service.get_workflow(version.workflow_id)
@@ -378,6 +379,7 @@ class PolicyVersionService(BaseService):
         self,
         policy_version_id: str,
         desired_variables: list[schemas.ConfigurationVariablesBase],
+        project_id: str = None,
     ) -> dict[str, Any]:
         """
         Set configuration variables for a policy version.
@@ -385,6 +387,7 @@ class PolicyVersionService(BaseService):
         Args:
             policy_version_id: Policy version UUID
             desired_variables: List of variables to set
+            project_id: Optional project UUID to filter by
 
         Returns:
             Dictionary with policy_version_id and variables
@@ -392,15 +395,10 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
         """
-        version = (
-            self.db.query(PolicyVersion)
-            .filter_by(policy_version_id=policy_version_id, archived=False)
-            .first()
+        # Validate policy version exists
+        self.policy_version_loader.get_policy_version(
+            policy_version_id, project_id=project_id, include_archived=False
         )
-        if not version:
-            raise PolicyVersionNotFoundException(
-                f"Policy version {policy_version_id} not found"
-            )
 
         existing_variables = (
             self.db.query(ConfigurationValue)
@@ -442,6 +440,7 @@ class PolicyVersionService(BaseService):
         policy_version_id: str,
         start_date: date | None = None,
         end_date: date | None = None,
+        project_id: str = None,
     ) -> list[Run]:
         """
         List runs for a policy version.
@@ -450,32 +449,35 @@ class PolicyVersionService(BaseService):
             policy_version_id: Policy version UUID
             start_date: Start date filter
             end_date: End date filter
+            project_id: Optional project UUID to filter by
 
         Returns:
             List of Run objects
         """
         start_date, end_date = validate_date_range(start_date, end_date)
 
-        query = (
-            select(Run)
-            .filter(
-                (Run.policy_version_id == policy_version_id)
-                & (Run.created_at >= start_date)
-                & (F.DATE(Run.created_at) <= end_date)
-            )
-            .order_by(Run.created_at.desc())
+        query = select(Run).filter(
+            (Run.policy_version_id == policy_version_id)
+            & (Run.created_at >= start_date)
+            & (F.DATE(Run.created_at) <= end_date)
         )
+
+        if project_id is not None:
+            query = query.filter(Run.project_id == project_id)
+
+        query = query.order_by(Run.created_at.desc())
 
         return self.db.execute(query).scalars().all()
 
     def list_data_sources_by_policy_version(
-        self, policy_version_id: str
+        self, policy_version_id: str, project_id: str = None
     ) -> list[schemas.DataSourceReference]:
         """
         List data sources used by a policy version.
 
         Args:
             policy_version_id: Policy version UUID
+            project_id: Optional project UUID to filter by
 
         Returns:
             List of DataSourceReference objects
@@ -483,13 +485,10 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
         """
-        version = (
-            self.db.query(PolicyVersion)
-            .filter_by(policy_version_id=policy_version_id)
-            .first()
+        # Validate policy version exists
+        version = self.policy_version_loader.get_policy_version(
+            policy_version_id, project_id=project_id
         )
-        if not version:
-            raise PolicyVersionNotFoundException("Policy version not found")
 
         dependencies = (
             self.db.query(WorkflowDataDependency)

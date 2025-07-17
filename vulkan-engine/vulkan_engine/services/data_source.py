@@ -2,32 +2,23 @@
 Data source and data broker management service.
 
 Handles all business logic related to data sources including CRUD operations,
-environment variables, data objects, usage statistics, and data broker operations.
+environment variables, data objects, and data broker operations.
 """
 
-import time
-from datetime import date
 from typing import Any
 
-import pandas as pd
 import requests
-from sqlalchemy import case, select
-from sqlalchemy import func as F
 
 from vulkan.data_source import DataSourceType
 from vulkan.schemas import DataSourceSpec
-from vulkan.spec.nodes import NodeType
 from vulkan_engine.data.broker import DataBroker
 from vulkan_engine.db import (
     Component,
     DataObject,
-    DataObjectOrigin,
     DataSource,
     DataSourceEnvVar,
     PolicyVersion,
-    Run,
     RunDataRequest,
-    StepMetadata,
     Workflow,
     WorkflowDataDependency,
 )
@@ -38,6 +29,7 @@ from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
     InvalidDataSourceException,
 )
+from vulkan_engine.loaders import DataSourceLoader
 from vulkan_engine.schemas import (
     DataBrokerRequest,
     DataBrokerResponse,
@@ -49,35 +41,48 @@ from vulkan_engine.schemas import (
     DataSourceEnvVar as DataSourceEnvVarSchema,
 )
 from vulkan_engine.services.base import BaseService
-from vulkan_engine.utils import validate_date_range
 
 
 class DataSourceService(BaseService):
     """Service for managing data sources and data operations."""
 
-    def list_data_sources(self, include_archived: bool = False) -> list[DataSource]:
+    def __init__(self, db, logger=None):
         """
-        List all data sources.
+        Initialize data source service.
+
+        Args:
+            db: Database session
+            logger: Optional logger
+        """
+        super().__init__(db, logger)
+        self.data_source_loader = DataSourceLoader(db)
+
+    def list_data_sources(
+        self, include_archived: bool = False, project_id: str = None
+    ) -> list[DataSource]:
+        """
+        List data sources, optionally filtered by project.
 
         Args:
             include_archived: Whether to include archived data sources
+            project_id: Optional project UUID to filter by
 
         Returns:
             List of DataSource objects
         """
-        filters = {}
-        if not include_archived:
-            filters["archived"] = False
+        return self.data_source_loader.list_data_sources(
+            project_id=project_id, include_archived=include_archived
+        )
 
-        stmt = select(DataSource).filter_by(**filters)
-        return self.db.execute(stmt).scalars().all()
-
-    def create_data_source(self, spec: DataSourceSpec) -> dict[str, str]:
+    def create_data_source(
+        self, spec: DataSourceSpec, project_id: str = None
+    ) -> dict[str, str]:
         """
         Create a new data source.
 
         Args:
             spec: Data source specification
+            project_id: Optional project UUID to associate with
 
         Returns:
             Dictionary with data_source_id
@@ -87,8 +92,9 @@ class DataSourceService(BaseService):
             InvalidDataSourceException: If data source configuration is invalid
         """
         # Check if data source already exists
-        existing = self.db.query(DataSource).filter_by(name=spec.name).first()
-        if existing:
+        if self.data_source_loader.data_source_exists(
+            name=spec.name, project_id=project_id
+        ):
             raise DataSourceAlreadyExistsException(
                 f"A Data Source with this name already exists: {spec.name}"
             )
@@ -101,17 +107,22 @@ class DataSourceService(BaseService):
 
         # Create data source
         data_source = DataSource.from_spec(spec)
+        data_source.project_id = project_id
+
         self.db.add(data_source)
         self.db.commit()
 
         return {"data_source_id": data_source.data_source_id}
 
-    def get_data_source(self, data_source_id: str) -> DataSource:
+    def get_data_source(
+        self, data_source_id: str, project_id: str = None
+    ) -> DataSource:
         """
         Get a data source by ID.
 
         Args:
             data_source_id: Data source UUID
+            project_id: Optional project UUID to filter by
 
         Returns:
             DataSource object
@@ -119,21 +130,19 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
-        data_source = (
-            self.db.query(DataSource).filter_by(data_source_id=data_source_id).first()
+        return self.data_source_loader.get_data_source(
+            data_source_id=data_source_id, project_id=project_id, include_archived=True
         )
 
-        if not data_source:
-            raise DataSourceNotFoundException("Data source not found")
-
-        return data_source
-
-    def delete_data_source(self, data_source_id: str) -> dict[str, str]:
+    def delete_data_source(
+        self, data_source_id: str, project_id: str = None
+    ) -> dict[str, str]:
         """
         Delete (archive) a data source.
 
         Args:
             data_source_id: Data source UUID
+            project_id: Optional project UUID to filter by
 
         Returns:
             Dictionary with data_source_id
@@ -142,13 +151,14 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If data source is in use
         """
-        data_source = (
-            self.db.query(DataSource)
-            .filter_by(data_source_id=data_source_id, archived=False)
-            .first()
-        )
-
-        if not data_source:
+        # Get non-archived data source
+        try:
+            data_source = self.data_source_loader.get_data_source(
+                data_source_id=data_source_id,
+                project_id=project_id,
+                include_archived=False,
+            )
+        except DataSourceNotFoundException:
             raise DataSourceNotFoundException(
                 f"Tried to delete non-existent data source {data_source_id}"
             )
@@ -205,7 +215,10 @@ class DataSourceService(BaseService):
         return {"data_source_id": data_source_id}
 
     def set_environment_variables(
-        self, data_source_id: str, desired_variables: list[DataSourceEnvVarBase]
+        self,
+        data_source_id: str,
+        desired_variables: list[DataSourceEnvVarBase],
+        project_id: str = None,
     ) -> dict[str, Any]:
         """
         Set environment variables for a data source.
@@ -213,6 +226,7 @@ class DataSourceService(BaseService):
         Args:
             data_source_id: Data source UUID
             desired_variables: List of environment variables to set
+            project_id: Optional project UUID to filter by
 
         Returns:
             Dictionary with data_source_id and variables
@@ -221,14 +235,10 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If variables are not supported
         """
-        data_source = (
-            self.db.query(DataSource)
-            .filter_by(data_source_id=data_source_id, archived=False)
-            .first()
+        # Validate data source exists and is not archived
+        self.data_source_loader.get_data_source(
+            data_source_id=data_source_id, project_id=project_id, include_archived=False
         )
-
-        if not data_source:
-            raise DataSourceNotFoundException("Data source not found")
 
         # Get existing variables
         existing_variables = (
@@ -260,13 +270,14 @@ class DataSourceService(BaseService):
         return {"data_source_id": data_source_id, "variables": desired_variables}
 
     def get_environment_variables(
-        self, data_source_id: str
+        self, data_source_id: str, project_id: str = None
     ) -> list[DataSourceEnvVarSchema]:
         """
         Get environment variables for a data source.
 
         Args:
             data_source_id: Data source UUID
+            project_id: Optional project UUID to filter by
 
         Returns:
             List of DataSourceEnvVar objects
@@ -274,14 +285,10 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
-        data_source = (
-            self.db.query(DataSource)
-            .filter_by(data_source_id=data_source_id, archived=False)
-            .first()
+        # Validate data source exists and is not archived
+        self.data_source_loader.get_data_source(
+            data_source_id=data_source_id, project_id=project_id, include_archived=False
         )
-
-        if not data_source:
-            raise DataSourceNotFoundException("Data source not found")
 
         return (
             self.db.query(DataSourceEnvVar)
@@ -289,12 +296,15 @@ class DataSourceService(BaseService):
             .all()
         )
 
-    def list_data_objects(self, data_source_id: str) -> list[DataObjectMetadata]:
+    def list_data_objects(
+        self, data_source_id: str, project_id: str = None
+    ) -> list[DataObjectMetadata]:
         """
         List data objects for a data source.
 
         Args:
             data_source_id: Data source UUID
+            project_id: Optional project UUID to filter by
 
         Returns:
             List of DataObjectMetadata objects
@@ -302,12 +312,10 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
-        data_source = (
-            self.db.query(DataSource).filter_by(data_source_id=data_source_id).first()
+        # Validate data source exists (include archived for data objects listing)
+        self.data_source_loader.get_data_source(
+            data_source_id=data_source_id, project_id=project_id, include_archived=True
         )
-
-        if not data_source:
-            raise DataSourceNotFoundException("Data source not found")
 
         data_objects = (
             self.db.query(DataObject).filter_by(data_source_id=data_source_id).all()
@@ -323,20 +331,29 @@ class DataSourceService(BaseService):
             for obj in data_objects
         ]
 
-    def get_data_object(self, data_source_id: str, data_object_id: str) -> DataObject:
+    def get_data_object(
+        self, data_source_id: str, data_object_id: str, project_id: str = None
+    ) -> DataObject:
         """
         Get a specific data object.
 
         Args:
             data_source_id: Data source UUID
             data_object_id: Data object UUID
+            project_id: Optional project UUID to filter by
 
         Returns:
             DataObject object
 
         Raises:
-            DataSourceNotFoundException: If data object doesn't exist
+            DataSourceNotFoundException: If data source or data object doesn't exist
         """
+        # Validate data source exists first
+        self.data_source_loader.get_data_source(
+            data_source_id=data_source_id, project_id=project_id, include_archived=True
+        )
+
+        # Get the data object
         data_object = (
             self.db.query(DataObject)
             .filter_by(data_source_id=data_source_id, data_object_id=data_object_id)
@@ -348,225 +365,15 @@ class DataSourceService(BaseService):
 
         return data_object
 
-    def get_usage_statistics(
-        self,
-        data_source_id: str,
-        start_date: date | None = None,
-        end_date: date | None = None,
-    ) -> dict[str, Any]:
-        """
-        Get usage statistics for a data source.
-
-        Args:
-            data_source_id: Data source UUID
-            start_date: Start date filter
-            end_date: End date filter
-
-        Returns:
-            Dictionary with usage statistics
-        """
-        start_date, end_date = validate_date_range(start_date, end_date)
-        date_clause = F.DATE(RunDataRequest.created_at).label("date")
-
-        query = (
-            select(
-                date_clause,
-                F.count(RunDataRequest.run_data_request_id).label("count"),
-            )
-            .where(
-                (RunDataRequest.data_source_id == data_source_id)
-                & (RunDataRequest.created_at >= start_date)
-                & (F.DATE(RunDataRequest.created_at) <= end_date)
-            )
-            .group_by(date_clause)
-        )
-
-        df = pd.read_sql(query, self.db.bind).fillna(0).sort_values("date")
-        df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
-        df["value"] = df["count"].astype(int)
-
-        return {"requests_by_date": df.to_dict(orient="records")}
-
-    def get_performance_metrics(
-        self,
-        data_source_id: str,
-        start_date: date | None = None,
-        end_date: date | None = None,
-    ) -> dict[str, Any]:
-        """
-        Get performance metrics for a data source.
-
-        Args:
-            data_source_id: Data source UUID
-            start_date: Start date filter
-            end_date: End date filter
-
-        Returns:
-            Dictionary with performance metrics
-        """
-        start_date, end_date = validate_date_range(start_date, end_date)
-
-        # Get data for response time and error metrics from StepMetadata
-        # TODO: this query is not optimal, and it should be a point of attention.
-        # Key things of note:
-        # 1. There aren't any indices on the created_at column of StepMetadata
-        # 2. The run_id columns are also not indexed in all tables
-        # 3. It might be worth considering using a materialized view for this query
-        metrics_query = (
-            select(
-                F.DATE(StepMetadata.created_at).label("date"),
-                F.avg((StepMetadata.end_time - StepMetadata.start_time)).label(
-                    "avg_duration_ms"
-                ),
-                F.avg(
-                    case(
-                        {True: 0.0, False: 1.0},
-                        value=StepMetadata.error.is_(None),
-                        else_=0.0,
-                    )
-                ).label("error_rate"),
-            )
-            .where(
-                (StepMetadata.created_at >= start_date)
-                & (F.DATE(StepMetadata.created_at) <= end_date)
-                & (StepMetadata.node_type == NodeType.DATA_INPUT.value)
-                & (RunDataRequest.data_source_id == data_source_id)
-            )
-            .join(Run, Run.run_id == StepMetadata.run_id)
-            .join(RunDataRequest, RunDataRequest.run_id == Run.run_id)
-            .group_by(F.DATE(StepMetadata.created_at))
-            .order_by(F.DATE(StepMetadata.created_at))
-        )
-
-        sql_start = time.time()
-        metrics_df = pd.read_sql(metrics_query, self.db.bind)
-        sql_time = time.time() - sql_start
-
-        if self.logger:
-            self.logger.system.debug(
-                f"data-source/metrics: Query completed in {sql_time:.3f}s, "
-                f"retrieved {len(metrics_df)} rows"
-            )
-
-        # Process and format the results
-        processing_start = time.time()
-        if not metrics_df.empty:
-            # Format date for consistency and round values
-            metrics_df["date"] = pd.to_datetime(metrics_df["date"]).dt.strftime(
-                "%Y-%m-%d"
-            )
-            metrics_df["avg_duration_ms"] = metrics_df["avg_duration_ms"].round(2)
-            metrics_df["error_rate"] = (metrics_df["error_rate"] * 100).round(2)
-
-            # Split into separate dataframes for the API response
-            avg_response_time = metrics_df[["date", "avg_duration_ms"]].rename(
-                columns={"avg_duration_ms": "value"}
-            )
-            error_rate = metrics_df[["date", "error_rate"]].rename(
-                columns={"error_rate": "value"}
-            )
-        else:
-            avg_response_time = pd.DataFrame(columns=["date", "value"])
-            error_rate = pd.DataFrame(columns=["date", "value"])
-
-        processing_time = time.time() - processing_start
-        if self.logger:
-            self.logger.system.debug(
-                f"data-source/metrics: DataFrame processing completed in {processing_time:.3f}s"
-            )
-
-        return {
-            "avg_response_time_by_date": avg_response_time.to_dict(orient="records"),
-            "error_rate_by_date": error_rate.to_dict(orient="records"),
-        }
-
-    def get_cache_statistics(
-        self,
-        data_source_id: str,
-        start_date: date | None = None,
-        end_date: date | None = None,
-    ) -> dict[str, Any]:
-        """
-        Get cache statistics for a data source.
-
-        Args:
-            data_source_id: Data source UUID
-            start_date: Start date filter
-            end_date: End date filter
-
-        Returns:
-            Dictionary with cache statistics
-        """
-        start_date, end_date = validate_date_range(start_date, end_date)
-        date_clause = F.DATE(RunDataRequest.created_at).label("date")
-
-        cache_query = (
-            select(
-                date_clause,
-                RunDataRequest.data_origin,
-                F.count(RunDataRequest.run_data_request_id).label("count"),
-            )
-            .where(
-                (RunDataRequest.data_source_id == data_source_id)
-                & (RunDataRequest.created_at >= start_date)
-                & (F.DATE(RunDataRequest.created_at) <= end_date)
-            )
-            .group_by(date_clause, RunDataRequest.data_origin)
-        )
-
-        cache_df = pd.read_sql(cache_query, self.db.bind)
-        cache_df["data_origin"] = cache_df["data_origin"].map(
-            {
-                DataObjectOrigin.CACHE: DataObjectOrigin.CACHE.value,
-                DataObjectOrigin.REQUEST: DataObjectOrigin.REQUEST.value,
-            }
-        )
-
-        # Calculate cache hit ratio by date
-        if not cache_df.empty:
-            # Pivot the data to get CACHE and SOURCE as separate columns
-            cache_pivot = (
-                cache_df.pivot(index="date", columns="data_origin", values="count")
-                .fillna(0)
-                .reset_index()
-            )
-
-            # Make sure we have both CACHE and REQUEST columns
-            if DataObjectOrigin.CACHE.value not in cache_pivot.columns:
-                cache_pivot[DataObjectOrigin.CACHE.value] = 0
-            if DataObjectOrigin.REQUEST.value not in cache_pivot.columns:
-                cache_pivot[DataObjectOrigin.REQUEST.value] = 0
-
-            # Calculate hit ratio
-            cache_pivot["total"] = (
-                cache_pivot[DataObjectOrigin.CACHE.value]
-                + cache_pivot[DataObjectOrigin.REQUEST.value]
-            )
-            cache_pivot["hit_ratio"] = (
-                (cache_pivot[DataObjectOrigin.CACHE.value] / cache_pivot["total"]) * 100
-            ).round(2)
-
-            # Handle division by zero
-            cache_pivot["hit_ratio"] = cache_pivot["hit_ratio"].fillna(0)
-
-            # Format the result
-            result = cache_pivot[["date", "hit_ratio"]].rename(
-                columns={"hit_ratio": "value"}
-            )
-            result["date"] = pd.to_datetime(result["date"]).dt.strftime("%Y-%m-%d")
-        else:
-            result = pd.DataFrame(columns=["date", "value"])
-
-        return {"cache_hit_ratio_by_date": result.to_dict(orient="records")}
-
     def request_data_from_broker(
-        self, request: DataBrokerRequest
+        self, request: DataBrokerRequest, project_id: str = None
     ) -> DataBrokerResponse:
         """
         Request data through the data broker.
 
         Args:
             request: Data broker request
+            project_id: Optional project UUID to filter by
 
         Returns:
             DataBrokerResponse object
@@ -575,18 +382,16 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If environment variables missing
         """
-        # Find data source
-        data_source = (
-            self.db.query(DataSource).filter_by(name=request.data_source_name).first()
+        # Find data source by name (include archived for broker requests)
+        data_source = self.data_source_loader.get_data_source_by_name(
+            name=request.data_source_name, project_id=project_id, include_archived=True
         )
-        if not data_source:
-            raise DataSourceNotFoundException("Data source not found")
 
-        # Create data source spec
         spec = DataSourceSchema.from_orm(data_source)
 
         # Initialize broker
-        broker = DataBroker(self.db, self.logger.system if self.logger else None, spec)
+        logger = self.logger.system if self.logger else None
+        broker = DataBroker(db=self.db, logger=logger, spec=spec)
 
         # Get environment variables
         env_vars = (
