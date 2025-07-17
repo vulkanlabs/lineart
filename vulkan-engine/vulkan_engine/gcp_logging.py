@@ -31,6 +31,9 @@ def create_gcp_handler(
         from google.cloud.logging.handlers import CloudLoggingHandler
     except ImportError:
         # Graceful degradation when GCP dependencies aren't installed
+        logging.getLogger(logger_name).warning(
+            "Cloud Logging is not available: install 'google-cloud-logging' to enable cloud logging."
+        )
         return None
 
     try:
@@ -38,8 +41,11 @@ def create_gcp_handler(
         handler = CloudLoggingHandler(client, name=logger_name, stream=sys.stdout)
         handler.setFormatter(GCPFormatter())
         return handler
-    except Exception:
+    except Exception as e:
         # Graceful degradation if GCP setup fails (auth, network, etc.)
+        logging.getLogger(logger_name).warning(
+            f"Failed to initialize Cloud Logging: {e}"
+        )
         return None
 
 
