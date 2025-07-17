@@ -12,7 +12,7 @@ import { Workflow } from "../api/types";
 export function createWorkflowState(workflow: Workflow): WorkflowState {
     const uiMetadata = workflow.workflow?.ui_metadata || {};
     const inputNode = makeInputNode(
-        workflow.workflow?.input_schema || {},
+        workflow.workflow?.spec.input_schema || {},
         uiMetadata["input_node"],
     );
 
