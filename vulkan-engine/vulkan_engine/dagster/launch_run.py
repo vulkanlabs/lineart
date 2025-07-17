@@ -106,23 +106,17 @@ class DagsterRunLauncher:
             msg = f"Policy version {policy_version_id} not found"
             raise NotFoundException(msg)
 
-        workflow = (
-            self.db.query(Workflow)
-            .filter(Workflow.workflow_id == version.workflow_id)
-            .first()
-        )
-
         config_variables, missing = resolve_config_variables_from_id(
             db=self.db,
             policy_version_id=policy_version_id,
-            required_variables=workflow.variables,
+            required_variables=version.workflow.variables,
             run_config_variables=run_config_variables,
         )
         if len(missing) > 0:
             raise VariablesNotSetException(f"Mandatory variables not set: {missing}")
 
         return LaunchConfig(
-            name=str(workflow.workflow_id),
+            name=str(version.workflow_id),
             variables=config_variables,
         )
 

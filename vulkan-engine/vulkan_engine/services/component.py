@@ -40,7 +40,7 @@ class ComponentService(BaseService):
         if not include_archived:
             query = query.filter(Component.archived == False)  # noqa: E712
         components = query.all()
-        return [schemas.Component.model_validate(component) for component in components]
+        return components
 
     def get_component(self, component_id: str, project_id: str) -> schemas.Component:
         """Get a component by ID."""
@@ -54,8 +54,7 @@ class ComponentService(BaseService):
         )
         if not component:
             raise ComponentNotFoundException(f"Component {component_id} not found")
-        workflow = self.workflow_service.get_workflow(component.workflow_id, project_id)
-        return schemas.Component.from_orm(component, workflow)
+        return component
 
     def create_component(
         self,

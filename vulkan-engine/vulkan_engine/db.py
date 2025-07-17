@@ -19,7 +19,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine import Engine
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 from sqlalchemy.sql import func
 
 from vulkan.core.run import RunStatus, WorkflowStatus
@@ -93,8 +93,9 @@ class PolicyVersion(TimedUpdateMixin, ArchivableMixin, Base):
     policy_id = Column(Uuid, ForeignKey("policy.policy_id"))
     workflow_id = Column(Uuid, ForeignKey("workflow.workflow_id"))
     alias = Column(String, nullable=True)
-
     project_id = Column(Uuid, nullable=True)
+    workflow = relationship("Workflow", backref="policy_versions")
+
     __table_args__ = (Index("idx_policy_version_project_id", "project_id"),)
 
 
@@ -321,6 +322,9 @@ class Component(TimedUpdateMixin, ArchivableMixin, Base):
     description = Column(String, nullable=True)
     icon = Column(String, nullable=True)  # Store base64 encoded image
     workflow_id = Column(Uuid, ForeignKey("workflow.workflow_id"))
+    project_id = Column(Uuid, nullable=True)
+
+    workflow = relationship("Workflow", backref="components")
 
     @declared_attr
     def __table_args__(cls):
@@ -332,4 +336,5 @@ class Component(TimedUpdateMixin, ArchivableMixin, Base):
                 unique=True,
                 postgresql_where=(cls.archived == False),  # noqa: E712
             ),
+            Index("idx_component_project_id", "project_id"),
         )

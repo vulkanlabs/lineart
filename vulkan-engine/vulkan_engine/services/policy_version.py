@@ -339,8 +339,7 @@ class PolicyVersionService(BaseService):
         )
 
         # Get variables from the workflow
-        workflow = self.workflow_service.get_workflow(version.workflow_id, project_id)
-        required_variables = workflow.variables or []
+        required_variables = version.workflow.variables or []
 
         variables = (
             self.db.query(ConfigurationValue)
