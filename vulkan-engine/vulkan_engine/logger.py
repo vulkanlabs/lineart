@@ -72,9 +72,10 @@ def init_user_logger(db: Session) -> logging.Logger:
     """Initialize user logger with SQLAlchemy handler."""
     logger = logging.getLogger(USER_LOGGER_NAME)
     logger.setLevel(logging.DEBUG)
-    handler = SQLAlchemyHandler(db)
-    handler.setFormatter(StructuredFormatter())
-    logger.addHandler(handler)
+    if not any(isinstance(h, SQLAlchemyHandler) for h in logger.handlers):
+        handler = SQLAlchemyHandler(db)
+        handler.setFormatter(StructuredFormatter())
+        logger.addHandler(handler)
     return logger
 
 
@@ -82,13 +83,13 @@ def init_system_logger(logging_config: LoggingConfig | None = None) -> logging.L
     """Initialize system logger with cloud logging support."""
     logger = logging.getLogger(SYS_LOGGER_NAME)
     logger.setLevel(logging.DEBUG)
-    stream_handler = get_stream_handler()
-    logger.addHandler(stream_handler)
-
+    if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
+        stream_handler = get_stream_handler()
+        logger.addHandler(stream_handler)
+        
     cloud_handler = get_cloud_logging_handler(logging_config)
-    if cloud_handler:
+    if cloud_handler and not any(type(h) == type(cloud_handler) for h in logger.handlers):
         logger.addHandler(cloud_handler)
-
     return logger
 
 
