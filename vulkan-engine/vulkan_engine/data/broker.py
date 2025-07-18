@@ -43,17 +43,17 @@ class DataBroker:
         response.raise_for_status()
 
         if response.status_code == 200:
-            with self.db.begin():
-                data = DataObject(
-                    key=key,
-                    value=response.content,
-                    data_source_id=self.spec.data_source_id,
-                )
-                self.db.add(data)
-                # self.logger.info(f"Stored object with id {data.data_object_id}")
+            data = DataObject(
+                key=key,
+                value=response.content,
+                data_source_id=self.spec.data_source_id,
+            )
+            self.db.add(data)
+            self.db.commit()
+            # self.logger.info(f"Stored object with id {data.data_object_id}")
 
-                if self.spec.caching.enabled:
-                    cache.set_cache(key, data.data_object_id)
+            if self.spec.caching.enabled:
+                cache.set_cache(key, data.data_object_id)
 
             return schemas.DataBrokerResponse(
                 data_object_id=data.data_object_id,
@@ -106,21 +106,21 @@ class CacheManager:
 
         if ttl is not None and elapsed > ttl:
             # self.logger.info(f"Deleting cache with key {key}: TTL expired")
-            with self.db.begin():
-                self.db.delete(cache)
+            self.db.delete(cache)
+            self.db.commit()
             return None
 
         return data
 
     def set_cache(self, key: str, data_object_id: str) -> None:
         # self.logger.info(f"Setting cache with key {key}")
-        with self.db.begin():
-            cache = RunDataCache(
-                key=key,
-                data_object_id=data_object_id,
-                created_at=datetime.now(timezone.utc),
-            )
-            self.db.add(cache)
+        cache = RunDataCache(
+            key=key,
+            data_object_id=data_object_id,
+            created_at=datetime.now(timezone.utc),
+        )
+        self.db.add(cache)
+        self.db.commit()
 
 
 def make_cache_key(spec: schemas.DataSource, variables: dict) -> str:

@@ -23,8 +23,6 @@ from vulkan_engine.loaders import PolicyLoader, PolicyVersionLoader
 from vulkan_engine.schemas import PolicyAllocationStrategy, PolicyBase, PolicyCreate
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.utils import validate_date_range
-from vulkan_engine.validators import validate_uuid, validate_optional_uuid
-
 
 class PolicyService(BaseService):
     """Service for managing policies and their operations."""
@@ -75,9 +73,8 @@ class PolicyService(BaseService):
         policy_dict["project_id"] = project_id
 
         policy = Policy(**policy_dict)
-        with self.db.begin():
-            self.db.add(policy)
-
+        self.db.add(policy)
+        self.db.commit()
         self._log_event(
             VulkanEvent.POLICY_CREATED,
             policy_id=policy.policy_id,
@@ -100,8 +97,6 @@ class PolicyService(BaseService):
         Raises:
             PolicyNotFoundException: If policy doesn't exist or doesn't belong to specified project
         """
-        # Validate policy ID
-        validate_uuid(policy_id, "policy")
 
         return self.policy_loader.get_policy(policy_id, project_id=project_id)
 
@@ -123,8 +118,6 @@ class PolicyService(BaseService):
             PolicyNotFoundException: If policy doesn't exist or doesn't belong to specified project
             InvalidAllocationStrategyException: If allocation strategy is invalid
         """
-        # Validate policy ID
-        validate_uuid(policy_id, "policy")
 
         policy = self.policy_loader.get_policy(policy_id, project_id=project_id)
 
@@ -165,8 +158,6 @@ class PolicyService(BaseService):
             PolicyNotFoundException: If policy doesn't exist, already archived, or doesn't belong to specified project
             PolicyHasVersionsException: If policy has active versions
         """
-        # Validate policy ID
-        validate_uuid(policy_id, "policy")
 
         policy = self.policy_loader.get_policy(policy_id, project_id=project_id)
 

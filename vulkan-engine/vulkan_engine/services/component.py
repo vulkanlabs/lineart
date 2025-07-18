@@ -16,8 +16,6 @@ from vulkan_engine.exceptions import ComponentNotFoundException
 from vulkan_engine.logger import VulkanLogger
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.services.workflow import WorkflowService
-from vulkan_engine.validators import validate_uuid, validate_optional_uuid
-
 
 class ComponentService(BaseService):
     """Service for component operations."""
@@ -45,8 +43,6 @@ class ComponentService(BaseService):
 
     def get_component(self, component_id: str, project_id: str) -> schemas.Component:
         """Get a component by ID."""
-        # Validate component ID
-        validate_uuid(component_id, "component")
 
         component = (
             self.db.query(Component)
@@ -103,8 +99,6 @@ class ComponentService(BaseService):
         project_id: str | None = None,
     ) -> schemas.Component:
         """Update a component."""
-        # Validate component ID
-        validate_uuid(str(component_id), "component")
 
         component = (
             self.db.query(Component)
@@ -148,8 +142,6 @@ class ComponentService(BaseService):
         project_id: str | None = None,
     ) -> None:
         """Delete (archive) a component."""
-        # Validate component ID
-        validate_uuid(str(component_id), "component")
 
         component = (
             self.db.query(Component)

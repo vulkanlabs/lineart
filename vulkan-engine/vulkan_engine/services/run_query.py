@@ -14,8 +14,6 @@ from vulkan_engine.db import Run, StepMetadata
 from vulkan_engine.loaders import RunLoader
 from vulkan_engine.schemas import RunData, RunLogs
 from vulkan_engine.services.base import BaseService
-from vulkan_engine.validators import validate_uuid, validate_optional_uuid
-
 
 class RunQueryService(BaseService):
     """Service for querying run data and metadata."""
@@ -52,8 +50,6 @@ class RunQueryService(BaseService):
         Raises:
             RunNotFoundException: If run doesn't exist or doesn't belong to specified project
         """
-        # Validate run ID
-        validate_uuid(run_id, "run")
         
         return self.run_loader.get_run(run_id, project_id=project_id)
 

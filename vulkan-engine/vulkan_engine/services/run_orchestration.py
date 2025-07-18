@@ -16,9 +16,6 @@ from vulkan_engine.db import Run, RunGroup, StepMetadata
 from vulkan_engine.loaders import RunLoader
 from vulkan_engine.schemas import StepMetadataBase
 from vulkan_engine.services.base import BaseService
-from vulkan_engine.validators import validate_uuid, validate_optional_uuid
-from vulkan_engine.exceptions import RunNotFoundException
-
 
 class RunOrchestrationService(BaseService):
     """Service for orchestrating run execution and management."""
@@ -41,27 +38,6 @@ class RunOrchestrationService(BaseService):
         self.launcher = launcher
         self.run_loader = RunLoader(db)
 
-    def get_run(self, run_id: str) -> Run:
-        """
-        Get a run by ID.
-
-        Args:
-            run_id: Run UUID
-
-        Returns:
-            Run object
-
-        Raises:
-            RunNotFoundException: If run doesn't exist
-        """
-        # Validate run ID
-        validate_uuid(run_id, "run")
-
-        run = self.db.query(Run).filter_by(run_id=run_id).first()
-        if not run:
-            raise RunNotFoundException(f"Run {run_id} not found")
-        return run
-
     def publish_step_metadata(
         self, run_id: str, metadata: StepMetadataBase, project_id: str = None
     ) -> dict[str, str]:
@@ -79,11 +55,8 @@ class RunOrchestrationService(BaseService):
         Raises:
             RunNotFoundException: If run doesn't exist or doesn't belong to specified project
         """
-        # Validate run ID
-        validate_uuid(run_id, "run")
-
         # Verify run exists
-        self.get_run(run_id)
+        self.run_loader.get_run(run_id, project_id=project_id)
 
         # Create metadata record
         args = {"run_id": run_id, **metadata.model_dump()}
@@ -118,10 +91,7 @@ class RunOrchestrationService(BaseService):
             RunNotFoundException: If run doesn't exist or doesn't belong to specified project
             ValueError: If status is invalid
         """
-        # Validate run ID
-        validate_uuid(run_id, "run")
-
-        run = self.get_run(run_id)
+        run = self.run_loader.get_run(run_id, project_id=project_id)
 
         # Validate status
         try:

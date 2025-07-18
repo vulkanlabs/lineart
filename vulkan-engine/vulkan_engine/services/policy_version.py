@@ -34,8 +34,6 @@ from vulkan_engine.loaders import PolicyLoader, PolicyVersionLoader
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.services.workflow import WorkflowService
 from vulkan_engine.utils import validate_date_range
-from vulkan_engine.validators import validate_uuid, validate_optional_uuid
-
 
 class PolicyVersionService(BaseService):
     """Service for managing policy versions and their operations."""
@@ -96,8 +94,8 @@ class PolicyVersionService(BaseService):
             workflow_id=workflow.workflow_id,
             project_id=policy.project_id,
         )
-        with self.db.begin():
-            self.db.add(version)
+        self.db.add(version)
+        self.db.commit()
 
         self._log_event(
             VulkanEvent.POLICY_VERSION_CREATED,
@@ -121,8 +119,6 @@ class PolicyVersionService(BaseService):
         Returns:
             PolicyVersion object or None if not found
         """
-        # Validate policy version ID
-        validate_uuid(policy_version_id, "policy version")
 
         try:
             return self.policy_version_loader.get_policy_version(
@@ -174,8 +170,6 @@ class PolicyVersionService(BaseService):
             DSNotFound: If referenced data sources don't exist
             InvalidDataSourceException: If data source configuration is invalid
         """
-        # Validate policy version ID
-        validate_uuid(policy_version_id, "policy version")
 
         version = self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id, include_archived=False
@@ -236,8 +230,6 @@ class PolicyVersionService(BaseService):
             PolicyVersionNotFoundException: If version doesn't exist
             PolicyVersionInUseException: If version is in use by allocation strategy
         """
-        # Validate policy version ID
-        validate_uuid(policy_version_id, "policy version")
 
         try:
             version = self.policy_version_loader.get_policy_version(
@@ -280,8 +272,6 @@ class PolicyVersionService(BaseService):
         Returns:
             Dictionary with policy_version_id and run_id
         """
-        # Validate policy version ID
-        validate_uuid(policy_version_id, "policy version")
 
         if not self.launcher:
             raise Exception("No launcher available")
@@ -317,8 +307,6 @@ class PolicyVersionService(BaseService):
         Returns:
             RunResult object
         """
-        # Validate policy version ID
-        validate_uuid(policy_version_id, "policy version")
 
         if not self.launcher:
             raise Exception("No launcher available")
@@ -350,8 +338,6 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
         """
-        # Validate policy version ID
-        validate_uuid(policy_version_id, "policy version")
 
         # Validate policy version exists
         version = self.policy_version_loader.get_policy_version(
@@ -415,8 +401,6 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
         """
-        # Validate policy version ID
-        validate_uuid(policy_version_id, "policy version")
 
         # Validate policy version exists
         self.policy_version_loader.get_policy_version(
@@ -429,26 +413,27 @@ class PolicyVersionService(BaseService):
             .all()
         )
 
-        with self.db.begin():
-            # Remove variables not in desired list
-            desired_names = {var.name for var in desired_variables}
-            for v in existing_variables:
-                if v.name not in desired_names:
-                    self.db.delete(v)
+        # Remove variables not in desired list
+        desired_names = {var.name for var in desired_variables}
+        for v in existing_variables:
+            if v.name not in desired_names:
+                self.db.delete(v)
 
-            # Update or create variables
-            existing_map = {v.name: v for v in existing_variables}
-            for v in desired_variables:
-                config_value = existing_map.get(v.name)
-                if not config_value:
-                    config_value = ConfigurationValue(
-                        policy_version_id=policy_version_id,
-                        name=v.name,
-                        value=v.value,
-                    )
-                    self.db.add(config_value)
-                else:
-                    config_value.value = v.value
+        # Update or create variables
+        existing_map = {v.name: v for v in existing_variables}
+        for v in desired_variables:
+            config_value = existing_map.get(v.name)
+            if not config_value:
+                config_value = ConfigurationValue(
+                    policy_version_id=policy_version_id,
+                    name=v.name,
+                    value=v.value,
+                )
+                self.db.add(config_value)
+            else:
+                config_value.value = v.value
+
+        self.db.commit()
 
         self._log_event(
             VulkanEvent.POLICY_VERSION_VARIABLES_UPDATED,
@@ -477,8 +462,6 @@ class PolicyVersionService(BaseService):
         Returns:
             List of Run objects
         """
-        # Validate policy version ID
-        validate_uuid(policy_version_id, "policy version")
 
         start_date, end_date = validate_date_range(start_date, end_date)
 
@@ -511,8 +494,6 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
         """
-        # Validate policy version ID
-        validate_uuid(policy_version_id, "policy version")
 
         # Validate policy version exists
         version = self.policy_version_loader.get_policy_version(
@@ -591,9 +572,8 @@ class PolicyVersionService(BaseService):
             strategy = schemas.PolicyAllocationStrategy.model_validate(
                 policy.allocation_strategy
             )
-            active_versions = [opt.policy_version_id for opt in strategy.choice]
-            if strategy.shadow:
-                active_versions.extend(strategy.shadow)
+            active_versions: list[str] = [opt.policy_version_id for opt in strategy.choice]
+            active_versions.extend(strategy.shadow or [])
 
             if str(version.policy_version_id) in active_versions:
                 raise PolicyVersionInUseException(

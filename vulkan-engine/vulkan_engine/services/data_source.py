@@ -44,8 +44,6 @@ from vulkan_engine.schemas import (
     DataSourceEnvVar as DataSourceEnvVarSchema,
 )
 from vulkan_engine.services.base import BaseService
-from vulkan_engine.validators import validate_uuid, validate_optional_uuid
-
 
 class DataSourceService(BaseService):
     """Service for managing data sources and data operations."""
@@ -78,7 +76,9 @@ class DataSourceService(BaseService):
             project_id=project_id, include_archived=include_archived
         )
 
-    def create_data_source(self, spec: DataSourceSpec) -> dict[str, str]:
+    def create_data_source(
+        self, spec: DataSourceSpec, project_id: str = None
+    ) -> dict[str, str]:
         """
         Create a new data source.
 
@@ -93,8 +93,9 @@ class DataSourceService(BaseService):
             InvalidDataSourceException: If data source configuration is invalid
         """
         # Check if data source already exists
-        existing = self.db.query(DataSource).filter_by(name=spec.name).first()
-        if existing:
+        if self.data_source_loader.data_source_exists(
+            name=spec.name, project_id=project_id
+        ):
             raise DataSourceAlreadyExistsException(
                 f"A Data Source with this name already exists: {spec.name}"
             )
@@ -105,15 +106,12 @@ class DataSourceService(BaseService):
                 "Local file data sources are not supported for remote execution"
             )
 
-        # Handle registered file data source
-        if spec.source.source_type == DataSourceType.REGISTERED_FILE:
-            self._handle_registered_file(spec)
-
         # Create data source
         data_source = DataSource.from_spec(spec)
+        data_source.project_id = project_id
 
-        with self.db.begin():
-            self.db.add(data_source)
+        self.db.add(data_source)
+        self.db.commit()
 
         return {"data_source_id": data_source.data_source_id}
 
@@ -133,8 +131,6 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
-        # Validate data source ID
-        validate_uuid(data_source_id, "data source")
 
         return self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
@@ -157,8 +153,6 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If data source is in use
         """
-        # Validate data source ID
-        validate_uuid(data_source_id, "data source")
 
         # Get non-archived data source
         try:
@@ -244,8 +238,6 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If variables are not supported
         """
-        # Validate data source ID
-        validate_uuid(data_source_id, "data source")
 
         # Validate data source exists and is not archived
         self.data_source_loader.get_data_source(
@@ -259,25 +251,26 @@ class DataSourceService(BaseService):
             .all()
         )
 
-        with self.db.begin():
-            # Remove variables not in desired list
-            for var in existing_variables:
-                if var.name not in {v.name for v in desired_variables}:
-                    self.db.delete(var)
+        # Remove variables not in desired list
+        for var in existing_variables:
+            if var.name not in {v.name for v in desired_variables}:
+                self.db.delete(var)
 
-            # Update or create variables
-            existing_map = {v.name: v for v in existing_variables}
-            for v in desired_variables:
-                env_var = existing_map.get(v.name)
-                if not env_var:
-                    env_var = DataSourceEnvVar(
-                        data_source_id=data_source_id,
-                        name=v.name,
-                        value=v.value,
-                    )
-                    self.db.add(env_var)
-                else:
-                    env_var.value = v.value
+        # Update or create variables
+        existing_map = {v.name: v for v in existing_variables}
+        for v in desired_variables:
+            env_var = existing_map.get(v.name)
+            if not env_var:
+                env_var = DataSourceEnvVar(
+                    data_source_id=data_source_id,
+                    name=v.name,
+                    value=v.value,
+                )
+                self.db.add(env_var)
+            else:
+                env_var.value = v.value
+
+        self.db.commit()
 
         return {"data_source_id": data_source_id, "variables": desired_variables}
 
@@ -297,8 +290,6 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
-        # Validate data source ID
-        validate_uuid(data_source_id, "data source")
 
         # Validate data source exists and is not archived
         self.data_source_loader.get_data_source(
@@ -327,8 +318,6 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
-        # Validate data source ID
-        validate_uuid(data_source_id, "data source")
 
         # Validate data source exists (include archived for data objects listing)
         self.data_source_loader.get_data_source(
@@ -366,9 +355,6 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source or data object doesn't exist
         """
-        # Validate IDs
-        validate_uuid(data_source_id, "data source")
-        validate_uuid(data_object_id, "data object")
 
         # Validate data source exists first
         self.data_source_loader.get_data_source(
@@ -404,8 +390,6 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If environment variables missing
         """
-        # Validate run ID
-        validate_uuid(request.run_id, "run")
 
         # Find data source by name (include archived for broker requests)
         data_source = self.data_source_loader.get_data_source_by_name(
