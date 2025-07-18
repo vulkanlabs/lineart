@@ -67,8 +67,8 @@ class AllocationService(BaseService):
             policy_id=policy_id,
             input_data=input_data,
         )
-        self.db.add(run_group)
-        self.db.commit()
+        with self.db.begin():
+            self.db.add(run_group)
 
         # Parse allocation strategy
         strategy = PolicyAllocationStrategy.model_validate(policy.allocation_strategy)

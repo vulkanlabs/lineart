@@ -8,6 +8,9 @@ environment variables, data objects, and data broker operations.
 from typing import Any
 
 import requests
+from sqlalchemy import case, select
+from sqlalchemy import func as F
+from sqlalchemy.exc import IntegrityError
 
 from vulkan.data_source import DataSourceType
 from vulkan.schemas import DataSourceSpec
@@ -74,15 +77,12 @@ class DataSourceService(BaseService):
             project_id=project_id, include_archived=include_archived
         )
 
-    def create_data_source(
-        self, spec: DataSourceSpec, project_id: str = None
-    ) -> dict[str, str]:
+    def create_data_source(self, spec: DataSourceSpec) -> dict[str, str]:
         """
         Create a new data source.
 
         Args:
             spec: Data source specification
-            project_id: Optional project UUID to associate with
 
         Returns:
             Dictionary with data_source_id
@@ -92,9 +92,8 @@ class DataSourceService(BaseService):
             InvalidDataSourceException: If data source configuration is invalid
         """
         # Check if data source already exists
-        if self.data_source_loader.data_source_exists(
-            name=spec.name, project_id=project_id
-        ):
+        existing = self.db.query(DataSource).filter_by(name=spec.name).first()
+        if existing:
             raise DataSourceAlreadyExistsException(
                 f"A Data Source with this name already exists: {spec.name}"
             )
@@ -105,12 +104,15 @@ class DataSourceService(BaseService):
                 "Local file data sources are not supported for remote execution"
             )
 
+        # Handle registered file data source
+        if spec.source.source_type == DataSourceType.REGISTERED_FILE:
+            self._handle_registered_file(spec)
+
         # Create data source
         data_source = DataSource.from_spec(spec)
-        data_source.project_id = project_id
 
-        self.db.add(data_source)
-        self.db.commit()
+        with self.db.begin():
+            self.db.add(data_source)
 
         return {"data_source_id": data_source.data_source_id}
 
@@ -247,26 +249,26 @@ class DataSourceService(BaseService):
             .all()
         )
 
-        # Remove variables not in desired list
-        for var in existing_variables:
-            if var.name not in {v.name for v in desired_variables}:
-                self.db.delete(var)
+        with self.db.begin():
+            # Remove variables not in desired list
+            for var in existing_variables:
+                if var.name not in {v.name for v in desired_variables}:
+                    self.db.delete(var)
 
-        # Update or create variables
-        existing_map = {v.name: v for v in existing_variables}
-        for v in desired_variables:
-            env_var = existing_map.get(v.name)
-            if not env_var:
-                env_var = DataSourceEnvVar(
-                    data_source_id=data_source_id,
-                    name=v.name,
-                    value=v.value,
-                )
-                self.db.add(env_var)
-            else:
-                env_var.value = v.value
+            # Update or create variables
+            existing_map = {v.name: v for v in existing_variables}
+            for v in desired_variables:
+                env_var = existing_map.get(v.name)
+                if not env_var:
+                    env_var = DataSourceEnvVar(
+                        data_source_id=data_source_id,
+                        name=v.name,
+                        value=v.value,
+                    )
+                    self.db.add(env_var)
+                else:
+                    env_var.value = v.value
 
-        self.db.commit()
         return {"data_source_id": data_source_id, "variables": desired_variables}
 
     def get_environment_variables(

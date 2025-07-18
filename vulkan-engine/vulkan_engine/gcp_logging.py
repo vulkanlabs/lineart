@@ -30,7 +30,12 @@ def create_gcp_handler(
         import google.cloud.logging
         from google.cloud.logging.handlers import CloudLoggingHandler
     except ImportError:
+        # WARNING: This exception is only logged and not propagated.
+        # Consider re-raising or handling more robustly to avoid masking critical errors.
         # Graceful degradation when GCP dependencies aren't installed
+        logging.getLogger(logger_name).warning(
+            "Cloud Logging não está disponível: instale 'google-cloud-logging' para ativar o log na nuvem."
+        )
         return None
 
     try:
@@ -38,8 +43,13 @@ def create_gcp_handler(
         handler = CloudLoggingHandler(client, name=logger_name, stream=sys.stdout)
         handler.setFormatter(GCPFormatter())
         return handler
-    except Exception:
+    except Exception as e:
+        # WARNING: This exception is only logged and not propagated.
+        # Consider re-raising or handling more robustly to avoid masking critical errors.
         # Graceful degradation if GCP setup fails (auth, network, etc.)
+        logging.getLogger(logger_name).warning(
+            f"Falha ao inicializar Cloud Logging: {e}"
+        )
         return None
 
 

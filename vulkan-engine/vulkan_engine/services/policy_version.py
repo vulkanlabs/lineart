@@ -95,8 +95,8 @@ class PolicyVersionService(BaseService):
             workflow_id=workflow.workflow_id,
             project_id=policy.project_id,
         )
-        self.db.add(version)
-        self.db.commit()
+        with self.db.begin():
+            self.db.add(version)
 
         self._log_event(
             VulkanEvent.POLICY_VERSION_CREATED,
@@ -406,27 +406,27 @@ class PolicyVersionService(BaseService):
             .all()
         )
 
-        # Remove variables not in desired list
-        desired_names = {var.name for var in desired_variables}
-        for v in existing_variables:
-            if v.name not in desired_names:
-                self.db.delete(v)
+        with self.db.begin():
+            # Remove variables not in desired list
+            desired_names = {var.name for var in desired_variables}
+            for v in existing_variables:
+                if v.name not in desired_names:
+                    self.db.delete(v)
 
-        # Update or create variables
-        existing_map = {v.name: v for v in existing_variables}
-        for v in desired_variables:
-            config_value = existing_map.get(v.name)
-            if not config_value:
-                config_value = ConfigurationValue(
-                    policy_version_id=policy_version_id,
-                    name=v.name,
-                    value=v.value,
-                )
-                self.db.add(config_value)
-            else:
-                config_value.value = v.value
+            # Update or create variables
+            existing_map = {v.name: v for v in existing_variables}
+            for v in desired_variables:
+                config_value = existing_map.get(v.name)
+                if not config_value:
+                    config_value = ConfigurationValue(
+                        policy_version_id=policy_version_id,
+                        name=v.name,
+                        value=v.value,
+                    )
+                    self.db.add(config_value)
+                else:
+                    config_value.value = v.value
 
-        self.db.commit()
         self._log_event(
             VulkanEvent.POLICY_VERSION_VARIABLES_UPDATED,
             policy_version_id=policy_version_id,
@@ -564,7 +564,7 @@ class PolicyVersionService(BaseService):
             )
             active_versions = [opt.policy_version_id for opt in strategy.choice]
             if strategy.shadow:
-                active_versions.append(strategy.shadow.policy_version_id)
+                active_versions.extend(strategy.shadow)
 
             if str(version.policy_version_id) in active_versions:
                 raise PolicyVersionInUseException(
