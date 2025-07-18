@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies with uv
         run: |
           set -x 
-          pip install uv
+          pip install 'uv<0.8'
           uv sync
 
       - name: Render OpenAPI Specification

@@ -19,7 +19,6 @@ gcp = ["google-cloud-logging>=3.11.4"]
 dev-dependencies = ["pytest>=8.3.2"]
 
 [tool.uv.sources]
-vulkan = { path = "../vulkan" }
 
 [build-system]
 requires = ["hatchling"]

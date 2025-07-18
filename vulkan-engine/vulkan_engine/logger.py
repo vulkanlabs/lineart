@@ -141,7 +141,8 @@ class SQLAlchemyHandler(logging.Handler):
             self.db.commit()
 
         except Exception:
-            # If something goes wrong, print to stderr (avoid infinite recursion)
+            # WARNING: This exception is only logged and not propagated.
+            # Consider re-raising or handling more robustly to avoid masking critical errors.
             self.handleError(record)
 
 
