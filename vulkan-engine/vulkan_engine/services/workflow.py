@@ -19,6 +19,7 @@ from vulkan_engine.logger import VulkanLogger
 from vulkan_engine.schemas import UIMetadata
 from vulkan_engine.services.base import BaseService
 
+
 class WorkflowService(BaseService):
     """Service for internal workflow operations."""
 
@@ -80,7 +81,6 @@ class WorkflowService(BaseService):
         Raises:
             WorkflowNotFoundException: If workflow doesn't exist
         """
-
         workflow = (
             self.db.query(Workflow)
             .filter(
@@ -118,7 +118,6 @@ class WorkflowService(BaseService):
         Raises:
             WorkflowNotFoundException: If workflow doesn't exist
         """
-
         workflow = self.get_workflow(workflow_id, project_id)
 
         # Update the underlying workflow
@@ -155,7 +154,6 @@ class WorkflowService(BaseService):
         Raises:
             WorkflowNotFoundException: If workflow doesn't exist
         """
-
         workflow = self.get_workflow(workflow_id, project_id)
         self.db.delete(workflow)
         self.db.commit()

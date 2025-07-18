@@ -35,6 +35,7 @@ from vulkan_engine.services.base import BaseService
 from vulkan_engine.services.workflow import WorkflowService
 from vulkan_engine.utils import validate_date_range
 
+
 class PolicyVersionService(BaseService):
     """Service for managing policy versions and their operations."""
 
@@ -119,7 +120,6 @@ class PolicyVersionService(BaseService):
         Returns:
             PolicyVersion object or None if not found
         """
-
         try:
             return self.policy_version_loader.get_policy_version(
                 policy_version_id, project_id=project_id
@@ -170,7 +170,6 @@ class PolicyVersionService(BaseService):
             DSNotFound: If referenced data sources don't exist
             InvalidDataSourceException: If data source configuration is invalid
         """
-
         version = self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id, include_archived=False
         )
@@ -230,7 +229,6 @@ class PolicyVersionService(BaseService):
             PolicyVersionNotFoundException: If version doesn't exist
             PolicyVersionInUseException: If version is in use by allocation strategy
         """
-
         try:
             version = self.policy_version_loader.get_policy_version(
                 policy_version_id, project_id=project_id, include_archived=False
@@ -272,7 +270,6 @@ class PolicyVersionService(BaseService):
         Returns:
             Dictionary with policy_version_id and run_id
         """
-
         if not self.launcher:
             raise Exception("No launcher available")
 
@@ -307,7 +304,6 @@ class PolicyVersionService(BaseService):
         Returns:
             RunResult object
         """
-
         if not self.launcher:
             raise Exception("No launcher available")
 
@@ -338,8 +334,6 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
         """
-
-        # Validate policy version exists
         version = self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id, include_archived=False
         )
@@ -401,7 +395,6 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
         """
-
         # Validate policy version exists
         self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id, include_archived=False
@@ -434,7 +427,6 @@ class PolicyVersionService(BaseService):
                 config_value.value = v.value
 
         self.db.commit()
-
         self._log_event(
             VulkanEvent.POLICY_VERSION_VARIABLES_UPDATED,
             policy_version_id=policy_version_id,
@@ -462,7 +454,6 @@ class PolicyVersionService(BaseService):
         Returns:
             List of Run objects
         """
-
         start_date, end_date = validate_date_range(start_date, end_date)
 
         query = select(Run).filter(
@@ -494,7 +485,6 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
         """
-
         # Validate policy version exists
         version = self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id

@@ -24,6 +24,7 @@ from vulkan_engine.schemas import PolicyAllocationStrategy, PolicyBase, PolicyCr
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.utils import validate_date_range
 
+
 class PolicyService(BaseService):
     """Service for managing policies and their operations."""
 
@@ -97,7 +98,6 @@ class PolicyService(BaseService):
         Raises:
             PolicyNotFoundException: If policy doesn't exist or doesn't belong to specified project
         """
-
         return self.policy_loader.get_policy(policy_id, project_id=project_id)
 
     def update_policy(
@@ -118,7 +118,6 @@ class PolicyService(BaseService):
             PolicyNotFoundException: If policy doesn't exist or doesn't belong to specified project
             InvalidAllocationStrategyException: If allocation strategy is invalid
         """
-
         policy = self.policy_loader.get_policy(policy_id, project_id=project_id)
 
         # Validate allocation strategy if provided
@@ -158,7 +157,6 @@ class PolicyService(BaseService):
             PolicyNotFoundException: If policy doesn't exist, already archived, or doesn't belong to specified project
             PolicyHasVersionsException: If policy has active versions
         """
-
         policy = self.policy_loader.get_policy(policy_id, project_id=project_id)
 
         if policy.archived:

@@ -8,9 +8,6 @@ environment variables, data objects, and data broker operations.
 from typing import Any
 
 import requests
-from sqlalchemy import case, select
-from sqlalchemy import func as F
-from sqlalchemy.exc import IntegrityError
 
 from vulkan.data_source import DataSourceType
 from vulkan.schemas import DataSourceSpec
@@ -44,6 +41,7 @@ from vulkan_engine.schemas import (
     DataSourceEnvVar as DataSourceEnvVarSchema,
 )
 from vulkan_engine.services.base import BaseService
+
 
 class DataSourceService(BaseService):
     """Service for managing data sources and data operations."""
@@ -84,6 +82,7 @@ class DataSourceService(BaseService):
 
         Args:
             spec: Data source specification
+            project_id: Optional project UUID to associate with
 
         Returns:
             Dictionary with data_source_id
@@ -131,7 +130,6 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
-
         return self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
         )
@@ -153,7 +151,6 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If data source is in use
         """
-
         # Get non-archived data source
         try:
             data_source = self.data_source_loader.get_data_source(
@@ -238,7 +235,6 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If variables are not supported
         """
-
         # Validate data source exists and is not archived
         self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=False
@@ -271,7 +267,6 @@ class DataSourceService(BaseService):
                 env_var.value = v.value
 
         self.db.commit()
-
         return {"data_source_id": data_source_id, "variables": desired_variables}
 
     def get_environment_variables(
@@ -290,7 +285,6 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
-
         # Validate data source exists and is not archived
         self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=False
@@ -318,7 +312,6 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
-
         # Validate data source exists (include archived for data objects listing)
         self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
@@ -355,7 +348,6 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source or data object doesn't exist
         """
-
         # Validate data source exists first
         self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
@@ -390,7 +382,6 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If environment variables missing
         """
-
         # Find data source by name (include archived for broker requests)
         data_source = self.data_source_loader.get_data_source_by_name(
             name=request.data_source_name, project_id=project_id, include_archived=True
