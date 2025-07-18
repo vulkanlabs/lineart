@@ -11,6 +11,3 @@ dependencies = [
     "vulkan",
     "gcsfs>=2024.10.0",
 ]
-
-[tool.uv.sources]
-vulkan = { path = "../vulkan" }
