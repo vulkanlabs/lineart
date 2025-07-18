@@ -34,7 +34,7 @@ def create_gcp_handler(
         # Consider re-raising or handling more robustly to avoid masking critical errors.
         # Graceful degradation when GCP dependencies aren't installed
         logging.getLogger(logger_name).warning(
-            "Cloud Logging não está disponível: instale 'google-cloud-logging' para ativar o log na nuvem."
+            "Cloud Logging is not available: install 'google-cloud-logging' to enable cloud logging."
         )
         return None
 
@@ -48,7 +48,7 @@ def create_gcp_handler(
         # Consider re-raising or handling more robustly to avoid masking critical errors.
         # Graceful degradation if GCP setup fails (auth, network, etc.)
         logging.getLogger(logger_name).warning(
-            f"Falha ao inicializar Cloud Logging: {e}"
+            f"Failed to initialize Cloud Logging: {e}"
         )
         return None
 
