@@ -14,6 +14,7 @@ from vulkan_engine.exceptions import (
 from vulkan_engine.loaders import PolicyLoader
 from vulkan_engine.schemas import PolicyAllocationStrategy
 from vulkan_engine.services.base import BaseService
+from vulkan_engine.validators import validate_uuid, validate_optional_uuid
 
 
 class AllocationService(BaseService):
@@ -55,6 +56,9 @@ class AllocationService(BaseService):
             PolicyNotFoundException: If policy doesn't exist or doesn't belong to specified project
             InvalidAllocationStrategyException: If policy has no allocation strategy
         """
+        # Validate policy ID
+        validate_uuid(policy_id, "policy")
+
         policy = self.policy_loader.get_policy(policy_id, project_id=project_id)
 
         if not policy.allocation_strategy:

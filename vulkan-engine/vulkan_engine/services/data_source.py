@@ -44,6 +44,7 @@ from vulkan_engine.schemas import (
     DataSourceEnvVar as DataSourceEnvVarSchema,
 )
 from vulkan_engine.services.base import BaseService
+from vulkan_engine.validators import validate_uuid, validate_optional_uuid
 
 
 class DataSourceService(BaseService):
@@ -132,6 +133,9 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
+        # Validate data source ID
+        validate_uuid(data_source_id, "data source")
+
         return self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
         )
@@ -153,6 +157,9 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If data source is in use
         """
+        # Validate data source ID
+        validate_uuid(data_source_id, "data source")
+
         # Get non-archived data source
         try:
             data_source = self.data_source_loader.get_data_source(
@@ -237,6 +244,9 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If variables are not supported
         """
+        # Validate data source ID
+        validate_uuid(data_source_id, "data source")
+
         # Validate data source exists and is not archived
         self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=False
@@ -287,6 +297,9 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
+        # Validate data source ID
+        validate_uuid(data_source_id, "data source")
+
         # Validate data source exists and is not archived
         self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=False
@@ -314,6 +327,9 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
+        # Validate data source ID
+        validate_uuid(data_source_id, "data source")
+
         # Validate data source exists (include archived for data objects listing)
         self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
@@ -350,6 +366,10 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source or data object doesn't exist
         """
+        # Validate IDs
+        validate_uuid(data_source_id, "data source")
+        validate_uuid(data_object_id, "data object")
+
         # Validate data source exists first
         self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
@@ -384,6 +404,9 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If environment variables missing
         """
+        # Validate run ID
+        validate_uuid(request.run_id, "run")
+
         # Find data source by name (include archived for broker requests)
         data_source = self.data_source_loader.get_data_source_by_name(
             name=request.data_source_name, project_id=project_id, include_archived=True

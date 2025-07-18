@@ -34,6 +34,7 @@ from vulkan_engine.loaders import PolicyLoader, PolicyVersionLoader
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.services.workflow import WorkflowService
 from vulkan_engine.utils import validate_date_range
+from vulkan_engine.validators import validate_uuid, validate_optional_uuid
 
 
 class PolicyVersionService(BaseService):
@@ -120,6 +121,9 @@ class PolicyVersionService(BaseService):
         Returns:
             PolicyVersion object or None if not found
         """
+        # Validate policy version ID
+        validate_uuid(policy_version_id, "policy version")
+
         try:
             return self.policy_version_loader.get_policy_version(
                 policy_version_id, project_id=project_id
@@ -170,6 +174,9 @@ class PolicyVersionService(BaseService):
             DSNotFound: If referenced data sources don't exist
             InvalidDataSourceException: If data source configuration is invalid
         """
+        # Validate policy version ID
+        validate_uuid(policy_version_id, "policy version")
+
         version = self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id, include_archived=False
         )
@@ -229,6 +236,9 @@ class PolicyVersionService(BaseService):
             PolicyVersionNotFoundException: If version doesn't exist
             PolicyVersionInUseException: If version is in use by allocation strategy
         """
+        # Validate policy version ID
+        validate_uuid(policy_version_id, "policy version")
+
         try:
             version = self.policy_version_loader.get_policy_version(
                 policy_version_id, project_id=project_id, include_archived=False
@@ -270,6 +280,9 @@ class PolicyVersionService(BaseService):
         Returns:
             Dictionary with policy_version_id and run_id
         """
+        # Validate policy version ID
+        validate_uuid(policy_version_id, "policy version")
+
         if not self.launcher:
             raise Exception("No launcher available")
 
@@ -304,6 +317,9 @@ class PolicyVersionService(BaseService):
         Returns:
             RunResult object
         """
+        # Validate policy version ID
+        validate_uuid(policy_version_id, "policy version")
+
         if not self.launcher:
             raise Exception("No launcher available")
 
@@ -334,6 +350,10 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
         """
+        # Validate policy version ID
+        validate_uuid(policy_version_id, "policy version")
+
+        # Validate policy version exists
         version = self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id, include_archived=False
         )
@@ -395,6 +415,9 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
         """
+        # Validate policy version ID
+        validate_uuid(policy_version_id, "policy version")
+
         # Validate policy version exists
         self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id, include_archived=False
@@ -454,6 +477,9 @@ class PolicyVersionService(BaseService):
         Returns:
             List of Run objects
         """
+        # Validate policy version ID
+        validate_uuid(policy_version_id, "policy version")
+
         start_date, end_date = validate_date_range(start_date, end_date)
 
         query = select(Run).filter(
@@ -485,6 +511,9 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
         """
+        # Validate policy version ID
+        validate_uuid(policy_version_id, "policy version")
+
         # Validate policy version exists
         version = self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id
