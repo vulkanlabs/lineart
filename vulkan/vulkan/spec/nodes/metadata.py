@@ -46,6 +46,10 @@ class PolicyNodeMetadata(BaseNodeMetadata):
     policy_id: str
 
 
+class ComponentNodeMetadata(BaseNodeMetadata):
+    component_id: str
+
+
 class ConnectionNodeMetadata(BaseNodeMetadata):
     url: str
     method: str = "GET"
@@ -82,4 +86,5 @@ NodeMetadata: TypeAlias = (
     | PolicyNodeMetadata
     | ConnectionNodeMetadata
     | DecisionNodeMetadata
+    | ComponentNodeMetadata
 )

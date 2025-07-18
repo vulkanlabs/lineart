@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from vulkan.spec.dependency import Dependency, DependencyDict
 from vulkan.spec.nodes.metadata import (
     BranchNodeMetadata,
+    ComponentNodeMetadata,
     ConnectionNodeMetadata,
     DataInputNodeMetadata,
     DecisionNodeMetadata,
@@ -29,6 +30,7 @@ class NodeType(Enum):
     POLICY = "POLICY"
     CONNECTION = "CONNECTION"
     DECISION = "DECISION"
+    COMPONENT = "COMPONENT"
 
 
 class NodeDefinitionDict(BaseModel):
@@ -51,6 +53,7 @@ NODE_METADATA_TYPE_MAP = {
     NodeType.POLICY: PolicyNodeMetadata,
     NodeType.CONNECTION: ConnectionNodeMetadata,
     NodeType.DECISION: DecisionNodeMetadata,
+    NodeType.COMPONENT: ComponentNodeMetadata,
 }
 
 
