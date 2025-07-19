@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Callable, Literal
 
-from pydantic import BaseModel
-
 from vulkan.spec.dependency import INPUT_NODE
 from vulkan.spec.graph import GraphDefinition
 from vulkan.spec.nodes import (
@@ -16,15 +14,7 @@ from vulkan.spec.nodes import (
     TerminateNode,
     TransformNode,
 )
-from vulkan.spec.nodes.base import Node, NodeDefinitionDict, NodeType
-
-
-class PolicyDefinitionDict(BaseModel):
-    """Dict representation of a PolicyDefinition object."""
-
-    nodes: list[NodeDefinitionDict]
-    input_schema: dict[str, str]
-    config_variables: list[str] | None = None
+from vulkan.spec.nodes.base import Node, NodeType, PolicyDefinitionDict
 
 
 @dataclass

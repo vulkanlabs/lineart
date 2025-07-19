@@ -8,13 +8,13 @@ from pydantic import BaseModel
 
 from vulkan.spec.dependency import Dependency, DependencyDict
 from vulkan.spec.nodes.metadata import (
+    BaseNodeMetadata,
     BranchNodeMetadata,
     ComponentNodeMetadata,
     ConnectionNodeMetadata,
     DataInputNodeMetadata,
     DecisionNodeMetadata,
     InputNodeMetadata,
-    NodeMetadata,
     PolicyNodeMetadata,
     TerminateNodeMetadata,
     TransformNodeMetadata,
@@ -33,17 +33,6 @@ class NodeType(Enum):
     COMPONENT = "COMPONENT"
 
 
-class NodeDefinitionDict(BaseModel):
-    """Dict representation of a NodeDefinition object."""
-
-    name: str
-    node_type: str
-    dependencies: dict[str, DependencyDict] | None = None
-    metadata: dict | None = None
-    description: str | None = None
-    hierarchy: list[str] | None = None
-
-
 NODE_METADATA_TYPE_MAP = {
     NodeType.TRANSFORM: TransformNodeMetadata,
     NodeType.TERMINATE: TerminateNodeMetadata,
@@ -57,6 +46,17 @@ NODE_METADATA_TYPE_MAP = {
 }
 
 
+class NodeDefinitionDict(BaseModel):
+    """Dict representation of a NodeDefinition object."""
+
+    name: str
+    node_type: str
+    dependencies: dict[str, DependencyDict] | None = None
+    metadata: dict | None = None
+    description: str | None = None
+    hierarchy: list[str] | None = None
+
+
 @dataclass()
 class NodeDefinition:
     "Internal representation of a node."
@@ -65,17 +65,15 @@ class NodeDefinition:
     node_type: str
     description: str | None = None
     dependencies: dict[str, DependencyDict] | None = None
-    metadata: NodeMetadata | None = None
+    metadata: BaseNodeMetadata | None = None
     hierarchy: list[str] | None = None
 
     _REQUIRED_KEYS = {"name", "node_type"}
 
     def __post_init__(self):
         if self.metadata is not None:
-            if not isinstance(self.metadata, NodeMetadata):
-                msg = (
-                    f"Metadata must be of type NodeMetadata, got {type(self.metadata)}"
-                )
+            if not isinstance(self.metadata, BaseNodeMetadata):
+                msg = f"Metadata must be an instance of ComponentNodeMetadata, got {type(self.metadata)}"
                 raise TypeError(msg)
         if self.dependencies is not None:
             deps = {}
@@ -227,3 +225,11 @@ class Node(ABC):
         if not isinstance(other, Node):
             return False
         return self.node_definition() == other.node_definition()
+
+
+class PolicyDefinitionDict(BaseModel):
+    """Dict representation of a PolicyDefinition object."""
+
+    nodes: list[NodeDefinitionDict]
+    input_schema: dict[str, str]
+    config_variables: list[str] | None = None
