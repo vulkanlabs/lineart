@@ -76,7 +76,6 @@ class PolicyService(BaseService):
         policy = Policy(**policy_dict)
         self.db.add(policy)
         self.db.commit()
-
         self._log_event(
             VulkanEvent.POLICY_CREATED,
             policy_id=policy.policy_id,

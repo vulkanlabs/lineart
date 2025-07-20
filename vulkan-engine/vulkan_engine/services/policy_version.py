@@ -562,9 +562,8 @@ class PolicyVersionService(BaseService):
             strategy = schemas.PolicyAllocationStrategy.model_validate(
                 policy.allocation_strategy
             )
-            active_versions = [opt.policy_version_id for opt in strategy.choice]
-            if strategy.shadow:
-                active_versions.append(strategy.shadow.policy_version_id)
+            active_versions: list[str] = [opt.policy_version_id for opt in strategy.choice]
+            active_versions.extend(strategy.shadow or [])
 
             if str(version.policy_version_id) in active_versions:
                 raise PolicyVersionInUseException(
