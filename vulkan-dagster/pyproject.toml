@@ -12,3 +12,6 @@ dependencies = [
 
 [tool.setuptools]
 packages = ["server"]
+
+[tool.uv.sources]
+vulkan = { path = "../vulkan" }
