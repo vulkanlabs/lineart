@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from vulkan.spec.dependency import INPUT_NODE, Dependency
+from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import InputNode, Node, NodeType, TransformNode
 from vulkan.spec.policy import PolicyDefinition
 
@@ -37,7 +37,10 @@ def resolve(
         component = PolicyDefinition.from_dict(node.definition, hierarchy=hierarchy)
 
         # Inject the component's dependencies into the input node
-        component.input_node = component.input_node.with_dependencies(node.dependencies)
+        # and replace the input node with an identity transform node.
+        input_node = component.input_node.with_dependencies(node.dependencies)
+        input_node = _as_identity_transform_node(input_node)
+        component.input_node = input_node
 
         # Join workflow outputs into an identity transform node
         output_joiner = _make_output_joiner(
@@ -52,6 +55,7 @@ def resolve(
         )
 
         # Add nodes in the component to the node map
+        node_map[component.input_node.id] = input_node
         for n in component.nodes:
             node_map[n.id] = n
 
@@ -117,3 +121,19 @@ def _or_op_leaves(**kwargs):
         msg = f"Exactly one leaf should execute, got {non_null_count=}"
         raise ValueError(msg)
     return retval
+
+
+def _as_identity_transform_node(input_node: InputNode) -> TransformNode:
+    return TransformNode(
+        name=input_node.name,
+        func=_identity,
+        dependencies=input_node.dependencies,
+        description=input_node.description,
+        hierarchy=input_node.hierarchy,
+    )
+
+
+def _identity(**kwargs):
+    if len(kwargs) == 1:
+        return list(kwargs.values())[0]
+    return kwargs

@@ -10,6 +10,7 @@ from dagster import (
 
 from vulkan.core.run import RunStatus
 from vulkan.runners.dagster.io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
+from vulkan.runners.dagster.names import normalize_node_id
 from vulkan.runners.dagster.nodes import to_dagster_nodes
 from vulkan.runners.dagster.run_config import RUN_CONFIG_KEY
 from vulkan.spec.dependency import Dependency
@@ -93,8 +94,8 @@ def _as_dagster_dependencies(
     for k, v in dependencies.items():
         # Check if the dependency specifies an output name or a key
         if v.output is not None:
-            definition = DependencyDefinition(v.node, v.output)
+            definition = DependencyDefinition(normalize_node_id(v.id), v.output)
         else:
-            definition = DependencyDefinition(v.node, "result")
+            definition = DependencyDefinition(normalize_node_id(v.id), "result")
         deps[k] = definition
     return deps

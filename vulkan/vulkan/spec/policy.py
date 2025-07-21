@@ -68,7 +68,7 @@ class PolicyDefinition(GraphDefinition):
 
     def __post_init__(self):
         super().__post_init__()
-        self._input_node = make_input_node(self.input_schema)
+        self._input_node = make_input_node(self.input_schema, self.hierarchy)
 
         for node in self.nodes:
             node.hierarchy = self.hierarchy
