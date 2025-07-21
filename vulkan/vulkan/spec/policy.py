@@ -1,3 +1,4 @@
+import builtins
 from dataclasses import dataclass, field
 from typing import Callable, Literal
 
@@ -63,9 +64,17 @@ class PolicyDefinition(GraphDefinition):
     input_schema: dict[str, str]
     output_callback: Callable | None = None
     config_variables: list[str] = field(default_factory=list)
+    hierarchy: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         super().__post_init__()
+        self._input_node = make_input_node(self.input_schema)
+
+        for node in self.nodes:
+            node.hierarchy = self.hierarchy
+            for dep in node.dependencies.values():
+                dep.hierarchy = self.hierarchy
+
         if self.output_callback is not None:
             if not callable(self.output_callback):
                 raise ValueError("Output callback must be a callable")
@@ -91,7 +100,11 @@ class PolicyDefinition(GraphDefinition):
         }
 
     @classmethod
-    def from_dict(self, spec: PolicyDefinitionDict) -> "PolicyDefinition":
+    def from_dict(
+        self,
+        spec: PolicyDefinitionDict,
+        hierarchy: list[str] | None = None,
+    ) -> "PolicyDefinition":
         nodes = [node_from_spec(node) for node in spec["nodes"]]
 
         return PolicyDefinition(
@@ -99,7 +112,16 @@ class PolicyDefinition(GraphDefinition):
             input_schema=spec["input_schema"],
             output_callback=spec.get("output_callback", None),
             config_variables=spec.get("config_variables", []),
+            hierarchy=hierarchy,
         )
+
+    @property
+    def input_node(self) -> InputNode:
+        return self._input_node
+
+    @input_node.setter
+    def input_node(self, input_node: InputNode):
+        self._input_node = input_node
 
 
 NODE_IMPLEMENTS = {
@@ -143,3 +165,35 @@ def node_from_spec(spec: dict[str, str]) -> Node:
         raise ValueError(f"Unknown node type: {node_type}")
 
     return NODE_IMPLEMENTS[node_type].from_dict(spec)
+
+
+def make_input_node(
+    input_schema: dict[str, type | str],
+    hierarchy: list[str] | None = None,
+) -> InputNode:
+    input_schema = _parse_input_schema(input_schema)
+    return InputNode(
+        name=INPUT_NODE,
+        description="Input node",
+        schema=input_schema,
+        hierarchy=hierarchy,
+    )
+
+
+def _parse_input_schema(input_schema: dict[str, type | str]) -> dict[str, type | str]:
+    """Parse the input schema to ensure that all types are valid."""
+    parsed_schema = {}
+    for key, value in input_schema.items():
+        if isinstance(value, str):
+            # If the type is a string, we assume it's a built-in type
+            if hasattr(builtins, value):
+                parsed_schema[key] = getattr(builtins, value)
+            else:
+                msg = f"Invalid type '{value}' for key '{key}'"
+                raise ValueError(msg)
+        elif isinstance(value, type):
+            parsed_schema[key] = value
+        else:
+            msg = f"Invalid type for key '{key}': {type(value)}"
+            raise ValueError(msg)
+    return parsed_schema

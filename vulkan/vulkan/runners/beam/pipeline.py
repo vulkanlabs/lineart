@@ -203,7 +203,7 @@ class __PipelineBuilder:
             self.collections[node.id]
             for node in sorted_nodes
             # TODO: replace with actual leaves method
-            if node.type == NodeType.TERMINATE and node.hierarchy is None
+            if node.type == NodeType.TERMINATE and not node.hierarchy
         ]
         statuses = leaves | "Join Terminate Nodes" >> beam.Flatten()
         result = {

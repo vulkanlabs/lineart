@@ -196,20 +196,13 @@ class Node(ABC):
     def hierarchy(self) -> list[str] | None:
         return self._hierarchy
 
-    def add_hierarchy_level(self, level: str) -> "Node":
-        hierarchy = self.hierarchy if self.hierarchy is not None else []
-        hierarchy = [*hierarchy, level]
-
-        n = deepcopy(self)
-        n._hierarchy = hierarchy
-        for dep in n.dependencies.values():
-            dep.hierarchy = hierarchy
-
-        return n
+    @hierarchy.setter
+    def hierarchy(self, hierarchy: list[str]):
+        self._hierarchy = hierarchy
 
     @property
     def id(self) -> str:
-        if self._hierarchy is None:
+        if self._hierarchy is None or len(self._hierarchy) == 0:
             return self.name
         return "-".join(self._hierarchy) + "." + self._name
 

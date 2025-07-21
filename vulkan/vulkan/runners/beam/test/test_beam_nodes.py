@@ -16,6 +16,7 @@ from vulkan.runners.beam.pipeline import build_pipeline
 from vulkan.spec.dependency import INPUT_NODE, Dependency
 from vulkan.spec.graph import sort_nodes
 from vulkan.spec.nodes import BranchNode, NodeType, TerminateNode, TransformNode
+from vulkan.spec.policy import PolicyDefinition
 
 
 def test_pipeline():
@@ -91,10 +92,11 @@ def test_pipeline_from_policy():
         dependencies={"condition": Dependency(branch.name, "denied")},
     )
 
-    policy = Policy(
+    definition = PolicyDefinition(
         nodes=[transform, branch, approved, denied],
         input_schema={"data": dict},
     )
+    policy = Policy.from_definition(definition)
     nodes = policy.nodes
     edges = policy.edges
 
