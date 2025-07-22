@@ -86,9 +86,11 @@ def init_system_logger(logging_config: LoggingConfig | None = None) -> logging.L
     if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
         stream_handler = get_stream_handler()
         logger.addHandler(stream_handler)
-        
+
     cloud_handler = get_cloud_logging_handler(logging_config)
-    if cloud_handler and not any(type(h) == type(cloud_handler) for h in logger.handlers):
+    if cloud_handler and not any(
+        isinstance(h, type(cloud_handler)) for h in logger.handlers
+    ):
         logger.addHandler(cloud_handler)
     return logger
 

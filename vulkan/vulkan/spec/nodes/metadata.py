@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Literal, TypeAlias
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -73,13 +73,6 @@ class DecisionNodeMetadata(BaseNodeMetadata):
     conditions: list[DecisionCondition]
 
 
-NodeMetadata: TypeAlias = (
-    InputNodeMetadata
-    | BranchNodeMetadata
-    | TransformNodeMetadata
-    | TerminateNodeMetadata
-    | DataInputNodeMetadata
-    | PolicyNodeMetadata
-    | ConnectionNodeMetadata
-    | DecisionNodeMetadata
-)
+class ComponentNodeMetadata(BaseNodeMetadata):
+    component_id: str
+    definition: dict | None = None

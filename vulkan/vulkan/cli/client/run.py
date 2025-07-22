@@ -1,6 +1,8 @@
 import time
 
+from vulkan.cli.client.policy_version import get as get_policy_version
 from vulkan.cli.context import Context
+from vulkan.core.run import WorkflowStatus
 
 
 class RunLauncher:
@@ -74,6 +76,22 @@ class RunLauncher:
         return response.json()
 
     def _launch_run_by_policy_version_id(self, policy_version_id: str):
+        self.ctx.logger.debug("Checking if policy version is valid")
+        policy_version = get_policy_version(self.ctx, policy_version_id)
+        if policy_version is None:
+            msg = (
+                f"No policy version with id {policy_version_id} found.\n"
+                "Check the policy version id and try again."
+            )
+            raise ValueError(msg)
+        if policy_version["workflow"]["status"] != WorkflowStatus.VALID.value:
+            msg = (
+                f"Policy version {policy_version_id} is not active.\n"
+                "Check the policy version id and try again:\n"
+                f"{policy_version}"
+            )
+            raise ValueError(msg)
+
         response = self.__launch_run(
             url=f"{self.ctx.server_url}/policy-versions/{policy_version_id}/runs"
         )

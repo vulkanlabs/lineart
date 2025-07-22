@@ -1,29 +1,21 @@
+import builtins
 from dataclasses import dataclass, field
-from typing import Any, Callable, Literal
+from typing import Callable, Literal
 
-from pydantic import BaseModel
-
-from vulkan.spec.dependency import INPUT_NODE, Dependency
+from vulkan.spec.dependency import INPUT_NODE
 from vulkan.spec.graph import GraphDefinition
 from vulkan.spec.nodes import (
     BranchNode,
+    ComponentNode,
     ConnectionNode,
     DataInputNode,
     DecisionNode,
     InputNode,
+    PolicyDefinitionNode,
     TerminateNode,
     TransformNode,
 )
-from vulkan.spec.nodes.base import Node, NodeDefinition, NodeDefinitionDict, NodeType
-from vulkan.spec.nodes.metadata import PolicyNodeMetadata
-
-
-class PolicyDefinitionDict(BaseModel):
-    """Dict representation of a PolicyDefinition object."""
-
-    nodes: list[NodeDefinitionDict]
-    input_schema: dict[str, str]
-    config_variables: list[str] | None = None
+from vulkan.spec.nodes.base import Node, NodeType, PolicyDefinitionDict
 
 
 @dataclass
@@ -72,9 +64,17 @@ class PolicyDefinition(GraphDefinition):
     input_schema: dict[str, str]
     output_callback: Callable | None = None
     config_variables: list[str] = field(default_factory=list)
+    hierarchy: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         super().__post_init__()
+        self._input_node = make_input_node(self.input_schema, self.hierarchy)
+
+        for node in self.nodes:
+            node.hierarchy = self.hierarchy
+            for dep in node.dependencies.values():
+                dep.hierarchy = self.hierarchy
+
         if self.output_callback is not None:
             if not callable(self.output_callback):
                 raise ValueError("Output callback must be a callable")
@@ -100,7 +100,11 @@ class PolicyDefinition(GraphDefinition):
         }
 
     @classmethod
-    def from_dict(self, spec: PolicyDefinitionDict) -> "PolicyDefinition":
+    def from_dict(
+        self,
+        spec: PolicyDefinitionDict,
+        hierarchy: list[str] | None = None,
+    ) -> "PolicyDefinition":
         nodes = [node_from_spec(node) for node in spec["nodes"]]
 
         return PolicyDefinition(
@@ -108,66 +112,16 @@ class PolicyDefinition(GraphDefinition):
             input_schema=spec["input_schema"],
             output_callback=spec.get("output_callback", None),
             config_variables=spec.get("config_variables", []),
+            hierarchy=hierarchy,
         )
 
+    @property
+    def input_node(self) -> InputNode:
+        return self._input_node
 
-class PolicyDefinitionNode(Node):
-    """A node that represents a policy definition.
-    Policy nodes are used to "invoke" policies from within other policies.
-    They're used to insert additional metadata for the policy so that it
-    can be appropriately connectied to the rest of the workflow.
-    """
-
-    def __init__(
-        self,
-        name: str,
-        policy_id: str,
-        description: str | None = None,
-        dependencies: dict[str, Dependency] | None = None,
-    ):
-        super().__init__(
-            name=name,
-            description=description,
-            typ=NodeType.POLICY,
-            dependencies=dependencies,
-        )
-        self.policy_id = policy_id
-
-    def node_definition(self) -> NodeDefinition:
-        metadata = PolicyNodeMetadata(policy_id=self.policy_id)
-        return NodeDefinition(
-            name=self.name,
-            description=self.description,
-            node_type=self.type.value,
-            dependencies=self.dependencies,
-            metadata=metadata,
-        )
-
-    @classmethod
-    def from_dict(cls, spec: dict[str, Any]) -> "PolicyDefinitionNode":
-        definition = NodeDefinition.from_dict(spec)
-        if definition.node_type != NodeType.POLICY.value:
-            raise ValueError(f"Expected NodeType.POLICY, got {definition.node_type}")
-        if definition.metadata is None or definition.metadata.policy_id is None:
-            raise ValueError("Missing policy metadata")
-
-        return cls(
-            name=definition.name,
-            description=definition.description,
-            dependencies=definition.dependencies,
-            policy_id=definition.metadata.policy_id,
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "name": self.name,
-            "node_type": self.type.value,
-            "description": self.description,
-            "dependencies": self.dependencies,
-            "metadata": {
-                "policy_definition": self.policy_id,
-            },
-        }
+    @input_node.setter
+    def input_node(self, input_node: InputNode):
+        self._input_node = input_node
 
 
 NODE_IMPLEMENTS = {
@@ -179,6 +133,7 @@ NODE_IMPLEMENTS = {
     NodeType.POLICY: PolicyDefinitionNode,
     NodeType.CONNECTION: ConnectionNode,
     NodeType.DECISION: DecisionNode,
+    NodeType.COMPONENT: ComponentNode,
 }
 
 
@@ -210,3 +165,35 @@ def node_from_spec(spec: dict[str, str]) -> Node:
         raise ValueError(f"Unknown node type: {node_type}")
 
     return NODE_IMPLEMENTS[node_type].from_dict(spec)
+
+
+def make_input_node(
+    input_schema: dict[str, type | str],
+    hierarchy: list[str] | None = None,
+) -> InputNode:
+    input_schema = _parse_input_schema(input_schema)
+    return InputNode(
+        name=INPUT_NODE,
+        description="Input node",
+        schema=input_schema,
+        hierarchy=hierarchy,
+    )
+
+
+def _parse_input_schema(input_schema: dict[str, type | str]) -> dict[str, type | str]:
+    """Parse the input schema to ensure that all types are valid."""
+    parsed_schema = {}
+    for key, value in input_schema.items():
+        if isinstance(value, str):
+            # If the type is a string, we assume it's a built-in type
+            if hasattr(builtins, value):
+                parsed_schema[key] = getattr(builtins, value)
+            else:
+                msg = f"Invalid type '{value}' for key '{key}'"
+                raise ValueError(msg)
+        elif isinstance(value, type):
+            parsed_schema[key] = value
+        else:
+            msg = f"Invalid type for key '{key}': {type(value)}"
+            raise ValueError(msg)
+    return parsed_schema
