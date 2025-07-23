@@ -388,25 +388,21 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         return result
 
     def _resolve_json_metadata(self, template_metadata: dict, kwargs: dict) -> dict:
-        """Resolve template expressions in JSON metadata.
+        """Replace template expressions with actual node data.
 
-        Supports expressions like {{nodeId.data.field.subfield}} and static values.
-        Maps node IDs from templates to actual dependency keys available in kwargs.
+        Maps {{nodeId.path}} expressions to real values from kwargs using dependency keys.
         """
         import re
 
         def resolve_value(value):
             if isinstance(value, str):
-                # Pattern to match {{nodeId.data.field.subfield}} expressions
-                pattern = r"\{\{(\w+)\.data(?:\.[\w\[\]\.]+)?\}\}"
+                pattern = r"\{\{(\w+)(?:\.[\w\[\]\.]+)+\}\}"
                 matches = re.findall(pattern, value)
 
                 if matches:
                     resolved_value = value
                     for node_id in matches:
-                        # Map the node_id from template to the actual dependency key
-                        # The dependencies dict maps dependency keys to Dependency objects
-                        # The Dependency objects have a 'node' attribute that contains the actual node ID
+                        # Find which dependency key corresponds to this node_id
                         dep_key = None
                         for dep_key_candidate, dependency in self.dependencies.items():
                             if (
@@ -416,46 +412,35 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
                                 dep_key = dep_key_candidate
                                 break
 
-                        # If no mapping found, try the node_id directly as dependency key
                         if dep_key is None:
                             dep_key = node_id
 
-                        # Get the node data from kwargs using the dependency key
                         node_data = kwargs.get(dep_key)
                         if node_data is not None:
-                            template_expr = f"{{{{{node_id}.data"
-                            # Find the full expression including any sub-paths
-                            full_expr_pattern = rf"\{{\{{{node_id}\.data[^}}]*\}}\}}"
+                            full_expr_pattern = rf"\{{\{{{node_id}\.[\w\[\]\.]+\}}\}}"
                             full_matches = re.findall(full_expr_pattern, value)
 
                             for full_expr in full_matches:
-                                # Extract the path after 'data.'
+                                # Extract path after node_id (e.g., "data.field" from "{{nodeId.data.field}}")
                                 path_match = re.search(
-                                    rf"{node_id}\.data\.?(.*?)\}}", full_expr
+                                    rf"{node_id}\.(.+?)\}}", full_expr
                                 )
                                 if path_match:
                                     path = path_match.group(1)
-                                    if path:
-                                        resolved_data = node_data
-                                        for part in path.split("."):
-                                            if part and isinstance(resolved_data, dict):
-                                                resolved_data = resolved_data.get(part)
-                                            else:
-                                                resolved_data = None
-                                                break
-                                        resolved_value = resolved_value.replace(
-                                            full_expr,
-                                            str(resolved_data)
-                                            if resolved_data is not None
-                                            else "",
-                                        )
-                                    else:
-                                        resolved_value = resolved_value.replace(
-                                            full_expr,
-                                            str(node_data)
-                                            if node_data is not None
-                                            else "",
-                                        )
+                                    # Walk the nested object path
+                                    resolved_data = node_data
+                                    for part in path.split("."):
+                                        if part and isinstance(resolved_data, dict):
+                                            resolved_data = resolved_data.get(part)
+                                        else:
+                                            resolved_data = None
+                                            break
+                                    resolved_value = resolved_value.replace(
+                                        full_expr,
+                                        str(resolved_data)
+                                        if resolved_data is not None
+                                        else "",
+                                    )
                     return resolved_value
                 return value
             elif isinstance(value, dict):

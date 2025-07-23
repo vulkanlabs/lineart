@@ -74,7 +74,6 @@ class TerminateNode(Node):
         )
         self.callback = callback
 
-        # Validate input_mode
         if input_mode not in ("structured", "json"):
             raise ValueError(
                 f"Invalid input_mode: {input_mode}. Must be 'structured' or 'json'"
@@ -84,16 +83,16 @@ class TerminateNode(Node):
             if input_mode == "structured":
                 if not isinstance(return_metadata, dict):
                     raise TypeError(
-                        f"Return metadata must be a dict when input_mode is 'structured', got: {type(return_metadata)}"
+                        f"Structured mode expects dict, got {type(return_metadata)}"
                     )
                 if not all(isinstance(d, Dependency) for d in return_metadata.values()):
                     raise ValueError(
-                        "Return metadata values must be of type Dependency when input_mode is 'structured'"
+                        "Structured mode requires Dependency objects as values"
                     )
             elif input_mode == "json":
                 if not isinstance(return_metadata, str):
                     raise TypeError(
-                        f"Return metadata must be a string when input_mode is 'json', got: {type(return_metadata)}"
+                        f"JSON mode expects string, got {type(return_metadata)}"
                     )
                 self._validate_json_metadata(return_metadata)
 
@@ -101,23 +100,21 @@ class TerminateNode(Node):
         self.input_mode = input_mode
 
     def _validate_json_metadata(self, json_metadata: str) -> None:
-        """Validate that the JSON metadata string is valid JSON and contains valid template expressions."""
+        """Validate JSON syntax and template expressions like {{nodeId.field.subfield}}."""
         try:
             parsed = json.loads(json_metadata)
 
             if not isinstance(parsed, dict):
                 raise ValueError("JSON metadata must be a dictionary at the root level")
 
-            # Validate template expressions
-            template_pattern = r"\{\{(\w+)\.data(?:\.[\w\[\]\.]+)?\}\}"
+            template_pattern = r"\{\{(\w+)(?:\.[\w\[\]\.]+)+\}\}"
 
             def validate_value(value, path=""):
                 if isinstance(value, str):
-                    # Check for malformed template expressions
                     malformed_patterns = [
                         r"\{\{[^}]*$",  # Unclosed braces
                         r"^[^{]*\}\}",  # Unmatched closing braces
-                        r"\{\{[^.]*\}\}",  # No dot notation
+                        r"\{\{[^.]*\}\}",  # Missing dot notation
                         r"\{\{\s*\}\}",  # Empty expression
                     ]
 
@@ -127,7 +124,6 @@ class TerminateNode(Node):
                                 f"Malformed template expression in JSON metadata at path '{path}': {value}"
                             )
 
-                    # Check for valid template expressions
                     templates = re.findall(r"\{\{[^}]+\}\}", value)
                     for template in templates:
                         if not re.match(template_pattern, template):
