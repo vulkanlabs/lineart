@@ -1,3 +1,4 @@
+import json
 import time
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -334,7 +335,8 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         description: str,
         return_status: UserStatus | str,
         dependencies: dict[str, Dependency],
-        return_metadata: dict[str, Dependency] | None = None,
+        return_metadata: dict[str, Dependency] | str | None = None,
+        input_mode: str = "structured",
         callback: Callable | None = None,
     ):
         super().__init__(
@@ -342,6 +344,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             description=description,
             return_status=return_status,
             return_metadata=return_metadata,
+            input_mode=input_mode,
             dependencies=dependencies,
             callback=callback,
         )
@@ -355,7 +358,18 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
 
         metadata = None
         if self.return_metadata is not None:
-            metadata = {k: kwargs.get(k) for k in self.return_metadata.keys()}
+            if self.input_mode == "structured":
+                metadata = {k: kwargs.get(k) for k in self.return_metadata.keys()}
+            elif self.input_mode == "json":
+                try:
+                    template_metadata = json.loads(self.return_metadata)
+                    metadata = self._resolve_json_metadata(template_metadata, kwargs)
+                except json.JSONDecodeError as e:
+                    context.log.error(f"Failed to parse JSON metadata: {e}")
+                    raise ValueError(f"Invalid JSON in return_metadata: {e}")
+                except Exception as e:
+                    context.log.error(f"Failed to resolve JSON metadata: {e}")
+                    raise ValueError(f"Failed to resolve JSON metadata: {e}")
 
         terminated = self._terminate(context, result, metadata)
         if not terminated:
@@ -372,6 +386,86 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
                 raise ValueError("Callback function failed")
 
         return result
+
+    def _resolve_json_metadata(self, template_metadata: dict, kwargs: dict) -> dict:
+        """Resolve template expressions in JSON metadata.
+
+        Supports expressions like {{nodeId.data.field.subfield}} and static values.
+        Maps node IDs from templates to actual dependency keys available in kwargs.
+        """
+        import re
+
+        def resolve_value(value):
+            if isinstance(value, str):
+                # Pattern to match {{nodeId.data.field.subfield}} expressions
+                pattern = r"\{\{(\w+)\.data(?:\.[\w\[\]\.]+)?\}\}"
+                matches = re.findall(pattern, value)
+
+                if matches:
+                    resolved_value = value
+                    for node_id in matches:
+                        # Map the node_id from template to the actual dependency key
+                        # The dependencies dict maps dependency keys to Dependency objects
+                        # The Dependency objects have a 'node' attribute that contains the actual node ID
+                        dep_key = None
+                        for dep_key_candidate, dependency in self.dependencies.items():
+                            if (
+                                hasattr(dependency, "node")
+                                and dependency.node == node_id
+                            ):
+                                dep_key = dep_key_candidate
+                                break
+
+                        # If no mapping found, try the node_id directly as dependency key
+                        if dep_key is None:
+                            dep_key = node_id
+
+                        # Get the node data from kwargs using the dependency key
+                        node_data = kwargs.get(dep_key)
+                        if node_data is not None:
+                            template_expr = f"{{{{{node_id}.data"
+                            # Find the full expression including any sub-paths
+                            full_expr_pattern = rf"\{{\{{{node_id}\.data[^}}]*\}}\}}"
+                            full_matches = re.findall(full_expr_pattern, value)
+
+                            for full_expr in full_matches:
+                                # Extract the path after 'data.'
+                                path_match = re.search(
+                                    rf"{node_id}\.data\.?(.*?)\}}", full_expr
+                                )
+                                if path_match:
+                                    path = path_match.group(1)
+                                    if path:
+                                        resolved_data = node_data
+                                        for part in path.split("."):
+                                            if part and isinstance(resolved_data, dict):
+                                                resolved_data = resolved_data.get(part)
+                                            else:
+                                                resolved_data = None
+                                                break
+                                        resolved_value = resolved_value.replace(
+                                            full_expr,
+                                            str(resolved_data)
+                                            if resolved_data is not None
+                                            else "",
+                                        )
+                                    else:
+                                        resolved_value = resolved_value.replace(
+                                            full_expr,
+                                            str(node_data)
+                                            if node_data is not None
+                                            else "",
+                                        )
+                    return resolved_value
+                return value
+            elif isinstance(value, dict):
+                return {k: resolve_value(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [resolve_value(item) for item in value]
+            else:
+                return value
+
+        return resolve_value(template_metadata)
 
     def _terminate(
         self,
@@ -405,7 +499,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
     @classmethod
     def from_spec(cls, node: TerminateNode):
         dependencies = node.dependencies
-        if node.return_metadata is not None:
+        if node.return_metadata is not None and node.input_mode == "structured":
             dependencies.update(node.return_metadata)
 
         return cls(
@@ -413,6 +507,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             description=node.description,
             return_status=node.return_status,
             return_metadata=node.return_metadata,
+            input_mode=node.input_mode,
             dependencies=dependencies,
             callback=node.callback,
         )

@@ -1,3 +1,5 @@
+import json
+import re
 from enum import Enum
 from typing import Any, Callable, cast
 
@@ -27,7 +29,8 @@ class TerminateNode(Node):
         name: str,
         return_status: Enum | str,
         dependencies: dict[str, Dependency],
-        return_metadata: dict[str, Dependency] | None = None,
+        return_metadata: dict[str, Dependency] | str | None = None,
+        input_mode: str = "structured",
         description: str | None = None,
         callback: Callable | None = None,
         hierarchy: list[str] | None = None,
@@ -43,8 +46,11 @@ class TerminateNode(Node):
         dependencies: dict, optional
             The dependencies of the node.
             See `Dependency` for more information.
-        return_metadata: dict, optional
-            A dictionary of metadata that will be returned by the run.
+        return_metadata: dict | str, optional
+            A dictionary of metadata that will be returned by the run, or a JSON string
+            when input_mode is 'json'.
+        input_mode: str, optional
+            The input mode for metadata. Either 'structured' (default) or 'json'.
         description: str, optional
             A description of the node.
         callback: Callable, optional
@@ -68,14 +74,82 @@ class TerminateNode(Node):
         )
         self.callback = callback
 
+        # Validate input_mode
+        if input_mode not in ("structured", "json"):
+            raise ValueError(
+                f"Invalid input_mode: {input_mode}. Must be 'structured' or 'json'"
+            )
+
         if return_metadata is not None:
-            if not isinstance(return_metadata, dict):
-                raise TypeError(
-                    f"Return metadata must be a dict, got: {type(return_metadata)}"
-                )
-            if not all(isinstance(d, Dependency) for d in return_metadata.values()):
-                raise ValueError("Return metadata values must be of type Dependency")
+            if input_mode == "structured":
+                if not isinstance(return_metadata, dict):
+                    raise TypeError(
+                        f"Return metadata must be a dict when input_mode is 'structured', got: {type(return_metadata)}"
+                    )
+                if not all(isinstance(d, Dependency) for d in return_metadata.values()):
+                    raise ValueError(
+                        "Return metadata values must be of type Dependency when input_mode is 'structured'"
+                    )
+            elif input_mode == "json":
+                if not isinstance(return_metadata, str):
+                    raise TypeError(
+                        f"Return metadata must be a string when input_mode is 'json', got: {type(return_metadata)}"
+                    )
+                self._validate_json_metadata(return_metadata)
+
         self.return_metadata = return_metadata
+        self.input_mode = input_mode
+
+    def _validate_json_metadata(self, json_metadata: str) -> None:
+        """Validate that the JSON metadata string is valid JSON and contains valid template expressions."""
+        try:
+            parsed = json.loads(json_metadata)
+
+            if not isinstance(parsed, dict):
+                raise ValueError("JSON metadata must be a dictionary at the root level")
+
+            # Validate template expressions
+            template_pattern = r"\{\{(\w+)\.data(?:\.[\w\[\]\.]+)?\}\}"
+
+            def validate_value(value, path=""):
+                if isinstance(value, str):
+                    # Check for malformed template expressions
+                    malformed_patterns = [
+                        r"\{\{[^}]*$",  # Unclosed braces
+                        r"^[^{]*\}\}",  # Unmatched closing braces
+                        r"\{\{[^.]*\}\}",  # No dot notation
+                        r"\{\{\s*\}\}",  # Empty expression
+                    ]
+
+                    for pattern in malformed_patterns:
+                        if re.search(pattern, value):
+                            raise ValueError(
+                                f"Malformed template expression in JSON metadata at path '{path}': {value}"
+                            )
+
+                    # Check for valid template expressions
+                    templates = re.findall(r"\{\{[^}]+\}\}", value)
+                    for template in templates:
+                        if not re.match(template_pattern, template):
+                            raise ValueError(
+                                f"Invalid template expression '{template}' at path '{path}'. Use format: {{{{nodeId.data.field}}}}"
+                            )
+
+                elif isinstance(value, dict):
+                    for k, v in value.items():
+                        validate_value(v, f"{path}.{k}" if path else k)
+                elif isinstance(value, list):
+                    for i, item in enumerate(value):
+                        validate_value(item, f"{path}[{i}]" if path else f"[{i}]")
+
+            validate_value(parsed)
+
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in return_metadata: {e}")
+        except Exception as e:
+            if isinstance(e, ValueError):
+                raise
+            raise ValueError(f"Validation error in JSON metadata: {e}")
 
     def node_definition(self) -> NodeDefinition:
         return NodeDefinition(
@@ -86,6 +160,7 @@ class TerminateNode(Node):
             metadata=TerminateNodeMetadata(
                 return_status=self.return_status,
                 return_metadata=self.return_metadata,
+                input_mode=self.input_mode,
             ),
             hierarchy=self.hierarchy,
         )
@@ -107,5 +182,6 @@ class TerminateNode(Node):
             dependencies=definition.dependencies,
             return_status=metadata.return_status,
             return_metadata=metadata.return_metadata,
+            input_mode=metadata.input_mode,
             hierarchy=definition.hierarchy,
         )
