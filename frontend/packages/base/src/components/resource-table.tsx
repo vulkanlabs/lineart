@@ -102,55 +102,58 @@ export function ResourceTable<TData, TValue>({
         <div className="w-full">
             {disableFilters ? null : (
                 <div className="flex items-center py-4">
-                    {searchOptions && (
-                        <Input
-                            placeholder={`Filter ${searchOptions.label}...`}
-                            value={
-                                (table
-                                    .getColumn(searchOptions.column)
-                                    ?.getFilterValue() as string) ?? ""
-                            }
-                            onChange={(event) =>
-                                table
-                                    .getColumn(searchOptions.column)
-                                    ?.setFilterValue(event.target.value)
-                            }
-                            className="max-w-sm"
-                        />
-                    )}
-                    <div className="flex-1" />
-                    <Button variant="outline" onClick={() => router.refresh()} className="mr-2">
-                        <RefreshCcw className="h-4 w-4" />
-                    </Button>
-                    {CreationDialog}
-                    {enableColumnHiding && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="ml-auto">
-                                    Columns <ChevronDown />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                {table
-                                    .getAllColumns()
-                                    .filter((column) => column.getCanHide())
-                                    .map((column) => {
-                                        return (
-                                            <DropdownMenuCheckboxItem
-                                                key={column.id}
-                                                className="capitalize"
-                                                checked={column.getIsVisible()}
-                                                onCheckedChange={(value) =>
-                                                    column.toggleVisibility(!!value)
-                                                }
-                                            >
-                                                {column.id}
-                                            </DropdownMenuCheckboxItem>
-                                        );
-                                    })}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {searchOptions && (
+                            <Input
+                                placeholder={`Filter ${searchOptions.label}...`}
+                                value={
+                                    (table
+                                        .getColumn(searchOptions.column)
+                                        ?.getFilterValue() as string) ?? ""
+                                }
+                                onChange={(event) =>
+                                    table
+                                        .getColumn(searchOptions.column)
+                                        ?.setFilterValue(event.target.value)
+                                }
+                                className="max-w-sm"
+                            />
+                        )}
+                        <Button variant="outline" onClick={() => router.refresh()}>
+                            <RefreshCcw className="h-4 w-4" />
+                        </Button>
+                        {CreationDialog}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {enableColumnHiding && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline">
+                                        Columns <ChevronDown />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    {table
+                                        .getAllColumns()
+                                        .filter((column) => column.getCanHide())
+                                        .map((column) => {
+                                            return (
+                                                <DropdownMenuCheckboxItem
+                                                    key={column.id}
+                                                    className="capitalize"
+                                                    checked={column.getIsVisible()}
+                                                    onCheckedChange={(value) =>
+                                                        column.toggleVisibility(!!value)
+                                                    }
+                                                >
+                                                    {column.id}
+                                                </DropdownMenuCheckboxItem>
+                                            );
+                                        })}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                    </div>
                 </div>
             )}
             <div className="rounded-md border">
@@ -200,31 +203,33 @@ export function ResourceTable<TData, TValue>({
                     </TableBody>
                 </Table>
             </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="flex-1 text-sm text-muted-foreground">
-                    <span>
-                        Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-                    </span>
+            {table.getPageCount() > 1 && (
+                <div className="flex items-center justify-end space-x-2 py-4">
+                    <div className="flex-1 text-sm text-muted-foreground">
+                        <span>
+                            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                        </span>
+                    </div>
+                    <div className="space-x-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => table.previousPage()}
+                            disabled={!table.getCanPreviousPage()}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => table.nextPage()}
+                            disabled={!table.getCanNextPage()}
+                        >
+                            Next
+                        </Button>
+                    </div>
                 </div>
-                <div className="space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Next
-                    </Button>
-                </div>
-            </div>
+            )}
         </div>
     );
 }
