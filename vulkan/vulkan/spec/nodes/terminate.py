@@ -1,8 +1,11 @@
 import json
-import re
 from enum import Enum
 from typing import Any, Callable, cast
 
+from vulkan.node_config import (
+    extract_env_vars_from_string,
+    extract_runtime_params_from_string,
+)
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes.base import Node, NodeDefinition, NodeType
 from vulkan.spec.nodes.metadata import TerminateNodeMetadata
@@ -80,36 +83,23 @@ class TerminateNode(Node):
         self.return_metadata = return_metadata
 
     def _validate_json_metadata(self, json_metadata: str) -> None:
-        """Validate JSON syntax and template expressions like {{nodeId.field.subfield}}."""
+        """Validate JSON syntax and template expressions."""
         try:
             parsed = json.loads(json_metadata)
 
             if not isinstance(parsed, dict):
                 raise ValueError("JSON metadata must be a dictionary at the root level")
 
-            template_pattern = r"\{\{(\w+)(?:\.[\w\[\]\.]+)+\}\}"
-
             def validate_value(value, path=""):
                 if isinstance(value, str):
-                    malformed_patterns = [
-                        r"\{\{[^}]*$",  # Unclosed braces
-                        r"^[^{]*\}\}",  # Unmatched closing braces
-                        r"\{\{[^.]*\}\}",  # Missing dot notation
-                        r"\{\{\s*\}\}",  # Empty expression
-                    ]
-
-                    for pattern in malformed_patterns:
-                        if re.search(pattern, value):
-                            raise ValueError(
-                                f"Malformed template expression in JSON metadata at path '{path}': {value}"
-                            )
-
-                    templates = re.findall(r"\{\{[^}]+\}\}", value)
-                    for template in templates:
-                        if not re.match(template_pattern, template):
-                            raise ValueError(
-                                f"Invalid template expression '{template}' at path '{path}'. Use format: {{{{nodeId.data.field}}}}"
-                            )
+                    try:
+                        # Try to extract both runtime params and env vars to validate template syntax
+                        extract_runtime_params_from_string(value)
+                        extract_env_vars_from_string(value)
+                    except ValueError as e:
+                        raise ValueError(
+                            f"Invalid template expression in JSON metadata at path '{path}': {value}. Error: {e}"
+                        )
 
                 elif isinstance(value, dict):
                     for k, v in value.items():
