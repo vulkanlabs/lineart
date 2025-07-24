@@ -11,6 +11,13 @@ on:
     paths:
       - 'frontend/packages/**'
       - '.github/workflows/publish-packages.yml'
+  workflow_dispatch:
+    inputs:
+      force_publish:
+        description: 'Force publish packages'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
   publish:
@@ -72,7 +79,7 @@ jobs:
       - name: Publish packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_publish == 'true')
         run: |
           cd frontend/packages
           
