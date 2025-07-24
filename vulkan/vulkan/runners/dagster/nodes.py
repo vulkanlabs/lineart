@@ -358,7 +358,9 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         if self.return_metadata is not None:
             try:
                 template_metadata = json.loads(self.return_metadata)
-                metadata = self._resolve_json_metadata(template_metadata, kwargs)
+                metadata = self._resolve_json_metadata(
+                    template_metadata, kwargs, context
+                )
             except json.JSONDecodeError as e:
                 context.log.error(f"Failed to parse JSON metadata: {e}")
                 raise ValueError(f"Invalid JSON in return_metadata: {e}")
@@ -382,62 +384,38 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
 
         return result
 
-    def _resolve_json_metadata(self, template_metadata: dict, kwargs: dict) -> dict:
-        """Replace template expressions with actual node data.
+    def _resolve_json_metadata(
+        self, template_metadata: dict, kwargs: dict, context
+    ) -> dict:
+        """Replace template expressions with actual node data using Jinja2."""
 
-        Maps {{nodeId.path}} expressions to real values from kwargs using dependency keys.
-        """
-        import re
+        # Create a context for Jinja2 where keys are the upstream node names
+        # and values are the corresponding data from kwargs. This allows templates
+        # to refer to dependencies by their node name, e.g., {{ my_node.output_field }}.
+        jinja_context = {}
+
+        # Map node names to their data from kwargs
+        for key, dep in self.dependencies.items():
+            if key in kwargs and hasattr(dep, "node"):
+                jinja_context[dep.node] = kwargs[key]
+
+        # Also include the raw kwargs, allowing access by dependency key
+        jinja_context.update(kwargs)
+
+        try:
+            env_config = getattr(context.resources, POLICY_CONFIG_KEY, None)
+            env_variables = env_config.variables if env_config else {}
+        except Exception:
+            env_variables = {}
 
         def resolve_value(value):
             if isinstance(value, str):
-                pattern = r"\{\{(\w+)(?:\.[\w\[\]\.]+)+\}\}"
-                matches = re.findall(pattern, value)
-
-                if matches:
-                    resolved_value = value
-                    for node_id in matches:
-                        # Find which dependency key corresponds to this node_id
-                        dep_key = None
-                        for dep_key_candidate, dependency in self.dependencies.items():
-                            if (
-                                hasattr(dependency, "node")
-                                and dependency.node == node_id
-                            ):
-                                dep_key = dep_key_candidate
-                                break
-
-                        if dep_key is None:
-                            dep_key = node_id
-
-                        node_data = kwargs.get(dep_key)
-                        if node_data is not None:
-                            full_expr_pattern = rf"\{{\{{{node_id}\.[\w\[\]\.]+\}}\}}"
-                            full_matches = re.findall(full_expr_pattern, value)
-
-                            for full_expr in full_matches:
-                                # Extract path after node_id (e.g., "data.field" from "{{nodeId.data.field}}")
-                                path_match = re.search(
-                                    rf"{node_id}\.(.+?)\}}", full_expr
-                                )
-                                if path_match:
-                                    path = path_match.group(1)
-                                    # Walk the nested object path
-                                    resolved_data = node_data
-                                    for part in path.split("."):
-                                        if part and isinstance(resolved_data, dict):
-                                            resolved_data = resolved_data.get(part)
-                                        else:
-                                            resolved_data = None
-                                            break
-                                    resolved_value = resolved_value.replace(
-                                        full_expr,
-                                        str(resolved_data)
-                                        if resolved_data is not None
-                                        else "",
-                                    )
-                    return resolved_value
-                return value
+                try:
+                    # Use the robust Jinja2-based template resolution with environment variables
+                    return resolve_template(value, jinja_context, env_variables)
+                except Exception as e:
+                    context.log.error(f"Failed to resolve template '{value}': {e}")
+                    return value
             elif isinstance(value, dict):
                 return {k: resolve_value(v) for k, v in value.items()}
             elif isinstance(value, list):
