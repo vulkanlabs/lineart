@@ -395,12 +395,10 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         jinja_context = {}
 
         # Map node names to their data from kwargs
+        # Only use canonical node names to avoid shadowing ambiguity
         for key, dep in self.dependencies.items():
             if key in kwargs and hasattr(dep, "node"):
                 jinja_context[dep.node] = kwargs[key]
-
-        # Also include the raw kwargs, allowing access by dependency key
-        jinja_context.update(kwargs)
 
         try:
             env_config = getattr(context.resources, POLICY_CONFIG_KEY, None)
