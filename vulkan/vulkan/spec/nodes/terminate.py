@@ -29,8 +29,7 @@ class TerminateNode(Node):
         name: str,
         return_status: Enum | str,
         dependencies: dict[str, Dependency],
-        return_metadata: dict[str, Dependency] | str | None = None,
-        input_mode: str = "structured",
+        return_metadata: str | None = None,
         description: str | None = None,
         callback: Callable | None = None,
         hierarchy: list[str] | None = None,
@@ -46,11 +45,8 @@ class TerminateNode(Node):
         dependencies: dict, optional
             The dependencies of the node.
             See `Dependency` for more information.
-        return_metadata: dict | str, optional
-            A dictionary of metadata that will be returned by the run, or a JSON string
-            when input_mode is 'json'.
-        input_mode: str, optional
-            The input mode for metadata. Either 'structured' (default) or 'json'.
+        return_metadata: str, optional
+            A JSON string of metadata that will be returned by the run.
         description: str, optional
             A description of the node.
         callback: Callable, optional
@@ -74,30 +70,14 @@ class TerminateNode(Node):
         )
         self.callback = callback
 
-        if input_mode not in ("structured", "json"):
-            raise ValueError(
-                f"Invalid input_mode: {input_mode}. Must be 'structured' or 'json'"
-            )
-
         if return_metadata is not None:
-            if input_mode == "structured":
-                if not isinstance(return_metadata, dict):
-                    raise TypeError(
-                        f"Structured mode expects dict, got {type(return_metadata)}"
-                    )
-                if not all(isinstance(d, Dependency) for d in return_metadata.values()):
-                    raise ValueError(
-                        "Structured mode requires Dependency objects as values"
-                    )
-            elif input_mode == "json":
-                if not isinstance(return_metadata, str):
-                    raise TypeError(
-                        f"JSON mode expects string, got {type(return_metadata)}"
-                    )
-                self._validate_json_metadata(return_metadata)
+            if not isinstance(return_metadata, str):
+                raise TypeError(
+                    f"return_metadata expects string, got {type(return_metadata)}"
+                )
+            self._validate_json_metadata(return_metadata)
 
         self.return_metadata = return_metadata
-        self.input_mode = input_mode
 
     def _validate_json_metadata(self, json_metadata: str) -> None:
         """Validate JSON syntax and template expressions like {{nodeId.field.subfield}}."""
@@ -156,7 +136,6 @@ class TerminateNode(Node):
             metadata=TerminateNodeMetadata(
                 return_status=self.return_status,
                 return_metadata=self.return_metadata,
-                input_mode=self.input_mode,
             ),
             hierarchy=self.hierarchy,
         )
@@ -178,6 +157,5 @@ class TerminateNode(Node):
             dependencies=definition.dependencies,
             return_status=metadata.return_status,
             return_metadata=metadata.return_metadata,
-            input_mode=metadata.input_mode,
             hierarchy=definition.hierarchy,
         )

@@ -335,8 +335,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         description: str,
         return_status: UserStatus | str,
         dependencies: dict[str, Dependency],
-        return_metadata: dict[str, Dependency] | str | None = None,
-        input_mode: str = "structured",
+        return_metadata: str | None = None,
         callback: Callable | None = None,
     ):
         super().__init__(
@@ -344,7 +343,6 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             description=description,
             return_status=return_status,
             return_metadata=return_metadata,
-            input_mode=input_mode,
             dependencies=dependencies,
             callback=callback,
         )
@@ -358,18 +356,15 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
 
         metadata = None
         if self.return_metadata is not None:
-            if self.input_mode == "structured":
-                metadata = {k: kwargs.get(k) for k in self.return_metadata.keys()}
-            elif self.input_mode == "json":
-                try:
-                    template_metadata = json.loads(self.return_metadata)
-                    metadata = self._resolve_json_metadata(template_metadata, kwargs)
-                except json.JSONDecodeError as e:
-                    context.log.error(f"Failed to parse JSON metadata: {e}")
-                    raise ValueError(f"Invalid JSON in return_metadata: {e}")
-                except Exception as e:
-                    context.log.error(f"Failed to resolve JSON metadata: {e}")
-                    raise ValueError(f"Failed to resolve JSON metadata: {e}")
+            try:
+                template_metadata = json.loads(self.return_metadata)
+                metadata = self._resolve_json_metadata(template_metadata, kwargs)
+            except json.JSONDecodeError as e:
+                context.log.error(f"Failed to parse JSON metadata: {e}")
+                raise ValueError(f"Invalid JSON in return_metadata: {e}")
+            except Exception as e:
+                context.log.error(f"Failed to resolve JSON metadata: {e}")
+                raise ValueError(f"Failed to resolve JSON metadata: {e}")
 
         terminated = self._terminate(context, result, metadata)
         if not terminated:
@@ -484,15 +479,12 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
     @classmethod
     def from_spec(cls, node: TerminateNode):
         dependencies = node.dependencies
-        if node.return_metadata is not None and node.input_mode == "structured":
-            dependencies.update(node.return_metadata)
 
         return cls(
             name=node.name,
             description=node.description,
             return_status=node.return_status,
             return_metadata=node.return_metadata,
-            input_mode=node.input_mode,
             dependencies=dependencies,
             callback=node.callback,
         )
