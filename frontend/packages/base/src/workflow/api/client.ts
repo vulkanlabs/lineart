@@ -1,4 +1,9 @@
-import type { PolicyVersion, PolicyDefinitionDictInput, UIMetadata } from "@vulkanlabs/client-open";
+import type {
+    PolicyVersion,
+    PolicyDefinitionDictInput,
+    UIMetadata,
+    Component,
+} from "@vulkanlabs/client-open";
 
 import type {
     WorkflowApiClient,
@@ -115,6 +120,36 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
             throw new Error(
                 error instanceof Error ? error.message : "Failed to fetch data sources",
             );
+        }
+    }
+
+    /**
+     * Fetch available components using the API route
+     */
+    async fetchComponents(includeArchived = false): Promise<Component[]> {
+        try {
+            const params = new URLSearchParams({
+                include_archived: includeArchived.toString(),
+            });
+
+            const response = await fetch(
+                `${this.config.baseUrl}/api/workflow/components?${params}`,
+                {
+                    headers: this.config.headers,
+                    signal: this.createTimeoutSignal(),
+                },
+            );
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data: Component[] = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Error fetching components:", error);
+            throw new Error(error instanceof Error ? error.message : "Failed to fetch components");
         }
     }
 

@@ -67,6 +67,13 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
         height: 200,
         icon: "POLICY",
     },
+    COMPONENT: {
+        id: "COMPONENT",
+        name: "Component Node",
+        width: 450,
+        height: 400,
+        icon: "COMPONENT",
+    },
 };
 
 /**

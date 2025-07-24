@@ -10,7 +10,7 @@ import React, {
 } from "react";
 import { useWorkflowApi } from "../api/context";
 import type { DataSource } from "../api/types";
-import type { PolicyVersion } from "@vulkanlabs/client-open";
+import type { PolicyVersion, Component } from "@vulkanlabs/client-open";
 
 /**
  * Shape of data provided by WorkflowDataProvider
@@ -26,9 +26,15 @@ export interface WorkflowData {
     isDataSourcesLoading: boolean;
     dataSourcesError: string | null;
 
+    // Component data
+    components: Component[];
+    isComponentsLoading: boolean;
+    componentsError: string | null;
+
     // Refresh functions
     refreshPolicies: () => Promise<void>;
     refreshDataSources: () => Promise<void>;
+    refreshComponents: () => Promise<void>;
     refreshAll: () => Promise<void>;
 }
 
@@ -94,6 +100,11 @@ export function WorkflowDataProvider({
     const [isDataSourcesLoading, setIsDataSourcesLoading] = useState(false);
     const [dataSourcesError, setDataSourcesError] = useState<string | null>(null);
 
+    // Components state
+    const [components, setComponents] = useState<Component[]>([]);
+    const [isComponentsLoading, setIsComponentsLoading] = useState(false);
+    const [componentsError, setComponentsError] = useState<string | null>(null);
+
     // Fetch policy versions
     const fetchPolicyVersions = async () => {
         setIsPoliciesLoading(true);
@@ -130,6 +141,24 @@ export function WorkflowDataProvider({
         }
     };
 
+    // Fetch components
+    const fetchComponents = async () => {
+        setIsComponentsLoading(true);
+        setComponentsError(null);
+
+        try {
+            const components = await apiClient.fetchComponents(includeArchived);
+            setComponents(components);
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error ? error.message : "Failed to fetch components";
+            setComponentsError(errorMessage);
+            console.error("Error fetching components:", error);
+        } finally {
+            setIsComponentsLoading(false);
+        }
+    };
+
     // Refresh functions
     const refreshPolicies = async () => {
         await fetchPolicyVersions();
@@ -139,8 +168,12 @@ export function WorkflowDataProvider({
         await fetchDataSources();
     };
 
+    const refreshComponents = async () => {
+        await fetchComponents();
+    };
+
     const refreshAll = async () => {
-        await Promise.all([fetchPolicyVersions(), fetchDataSources()]);
+        await Promise.all([fetchPolicyVersions(), fetchDataSources(), fetchComponents()]);
     };
 
     // Auto-fetch on mount and when dependencies change
@@ -163,9 +196,15 @@ export function WorkflowDataProvider({
             isDataSourcesLoading,
             dataSourcesError,
 
+            // Component data
+            components,
+            isComponentsLoading,
+            componentsError,
+
             // Refresh functions
             refreshPolicies,
             refreshDataSources,
+            refreshComponents,
             refreshAll,
         }),
         [
@@ -175,8 +214,12 @@ export function WorkflowDataProvider({
             dataSources,
             isDataSourcesLoading,
             dataSourcesError,
+            components,
+            isComponentsLoading,
+            componentsError,
             refreshPolicies,
             refreshDataSources,
+            refreshComponents,
             refreshAll,
         ],
     );
