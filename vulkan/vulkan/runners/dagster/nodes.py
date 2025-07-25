@@ -1,3 +1,4 @@
+import json
 import time
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -329,7 +330,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         description: str,
         return_status: str,
         dependencies: dict[str, Dependency],
-        return_metadata: dict[str, Dependency] | None = None,
+        return_metadata: str | None = None,
         callback: Callable | None = None,
     ):
         super().__init__(
@@ -350,7 +351,17 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
 
         metadata = None
         if self.return_metadata is not None:
-            metadata = {k: kwargs.get(k) for k in self.return_metadata.keys()}
+            try:
+                template_metadata = json.loads(self.return_metadata)
+                metadata = self._resolve_json_metadata(
+                    template_metadata, kwargs, context
+                )
+            except json.JSONDecodeError as e:
+                context.log.error(f"Failed to parse JSON metadata: {e}")
+                raise ValueError(f"Invalid JSON in return_metadata: {e}")
+            except Exception as e:
+                context.log.error(f"Failed to resolve JSON metadata: {e}")
+                raise ValueError(f"Failed to resolve JSON metadata: {e}")
 
         terminated = self._terminate(context, result, metadata)
         if not terminated:
@@ -367,6 +378,45 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
                 raise ValueError("Callback function failed")
 
         return result
+
+    def _resolve_json_metadata(
+        self, template_metadata: dict, kwargs: dict, context
+    ) -> dict:
+        """Replace template expressions with actual node data using Jinja2."""
+
+        # Create a context for Jinja2 where keys are the upstream node names
+        # and values are the corresponding data from kwargs. This allows templates
+        # to refer to dependencies by their node name, e.g., {{ my_node.output_field }}.
+        jinja_context = {}
+
+        # Map node names to their data from kwargs
+        # Only use canonical node names to avoid shadowing ambiguity
+        for key, dep in self.dependencies.items():
+            if key in kwargs and hasattr(dep, "node"):
+                jinja_context[dep.node] = kwargs[key]
+
+        try:
+            env_config = getattr(context.resources, POLICY_CONFIG_KEY, None)
+            env_variables = env_config.variables if env_config else {}
+        except Exception:
+            env_variables = {}
+
+        def resolve_value(value):
+            if isinstance(value, str):
+                try:
+                    # Use the robust Jinja2-based template resolution with environment variables
+                    return resolve_template(value, jinja_context, env_variables)
+                except Exception as e:
+                    context.log.error(f"Failed to resolve template '{value}': {e}")
+                    return value
+            elif isinstance(value, dict):
+                return {k: resolve_value(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [resolve_value(item) for item in value]
+            else:
+                return value
+
+        return resolve_value(template_metadata)
 
     def _terminate(
         self,
@@ -400,8 +450,6 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
     @classmethod
     def from_spec(cls, node: TerminateNode):
         dependencies = node.dependencies
-        if node.return_metadata is not None:
-            dependencies.update(node.return_metadata)
 
         return cls(
             name=normalize_node_id(node.id),
