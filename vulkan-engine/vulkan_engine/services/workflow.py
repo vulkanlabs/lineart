@@ -5,16 +5,16 @@ Handles internal workflow operations. Workflows should never be exposed directly
 to API users but are managed internally by PolicyVersionService and ComponentService.
 """
 
-from typing import Any
-
 from sqlalchemy.orm import Session
 
 from vulkan.core.run import WorkflowStatus
+from vulkan.spec.nodes import NodeType
 from vulkan.spec.policy import PolicyDefinitionDict
 from vulkan_engine.dagster.service_client import VulkanDagsterServiceClient
 from vulkan_engine.db import Workflow
 from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import WorkflowNotFoundException
+from vulkan_engine.loaders.component import ComponentLoader
 from vulkan_engine.logger import VulkanLogger
 from vulkan_engine.schemas import UIMetadata
 from vulkan_engine.services.base import BaseService
@@ -31,6 +31,7 @@ class WorkflowService(BaseService):
     ):
         super().__init__(db, logger)
         self.dagster_service_client = dagster_service_client
+        self.component_loader = ComponentLoader(db)
 
     def create_workflow(
         self,
@@ -122,6 +123,7 @@ class WorkflowService(BaseService):
 
         # Update the underlying workflow
         spec = self._convert_pydantic_to_dict(spec)
+        spec, requirements = self._inject_component_implementations(spec, requirements)
         if spec is not None:
             workflow.spec = spec
         if requirements is not None:
@@ -200,3 +202,48 @@ class WorkflowService(BaseService):
                     f"Failed to update workspace ({workflow.workflow_id}), version is invalid:\n{e}",
                     exc_info=False,
                 )
+
+    def _inject_component_implementations(
+        self,
+        spec: PolicyDefinitionDict,
+        requirements: list[str] | None,
+    ) -> tuple[PolicyDefinitionDict, list[str]]:
+        """Inject component implementations into the spec.
+
+        Component implementations are injected into the spec for each component node.
+        This is done on saving the workflow.
+        """
+        if spec is None or spec.get("nodes") is None:
+            return spec, requirements
+
+        if requirements is None:
+            requirements = []
+
+        component_requirements = []
+        definition = PolicyDefinitionDict.model_validate(spec)
+        new_nodes = []
+        for node in definition.nodes:
+            if node.node_type == NodeType.COMPONENT.value:
+                component_id = node.metadata.get("component_id")
+                if component_id is None:
+                    raise ValueError(f"Component node {node.name} has no component ID")
+
+                component = self.component_loader.get_component(
+                    component_id=component_id
+                )
+                node.metadata["definition"] = self._convert_pydantic_to_dict(
+                    component.workflow.spec
+                )
+                component_requirements.extend(component.workflow.requirements)
+            new_nodes.append(node)
+
+        definition.nodes = new_nodes
+        new_spec = self._convert_pydantic_to_dict(definition)
+
+        # TODO: This would probably be better with a dedicated requirement
+        # type that can be used to differentiate between component requirements
+        # and workflow requirements.
+        if len(component_requirements) > 0:
+            requirements = list(set(requirements + component_requirements))
+
+        return new_spec, requirements

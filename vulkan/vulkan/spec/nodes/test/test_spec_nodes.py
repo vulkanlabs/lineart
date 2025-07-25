@@ -1,6 +1,10 @@
 from vulkan.spec.dependency import Dependency
-from vulkan.spec.nodes import BranchNode, NodeType, TransformNode
-from vulkan.spec.nodes.metadata import BranchNodeMetadata, TransformNodeMetadata
+from vulkan.spec.nodes import BranchNode, ComponentNode, NodeType, TransformNode
+from vulkan.spec.nodes.metadata import (
+    BranchNodeMetadata,
+    ComponentNodeMetadata,
+    TransformNodeMetadata,
+)
 
 
 def test_transform_node():
@@ -93,3 +97,26 @@ def test_branch_node():
     score = 700
     node_from_spec = BranchNode.from_dict(node.to_dict())
     assert node_from_spec.func(score) == node.func(score)
+
+
+def test_component_node():
+    node = ComponentNode(
+        name="test",
+        description="Test Component Node",
+        component_id="test_component",
+    )
+
+    assert node.node_dependencies() == []
+
+    node_definition = node.node_definition()
+
+    assert isinstance(node_definition.metadata, ComponentNodeMetadata)
+
+    expected_spec = {
+        "name": "test",
+        "node_type": NodeType.COMPONENT.value,
+        "description": "Test Component Node",
+        "dependencies": {},
+        "metadata": {"component_id": "test_component", "definition": None},
+    }
+    assert node.to_dict() == expected_spec

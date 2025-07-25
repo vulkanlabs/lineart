@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 from vulkan_engine import schemas
 from vulkan_engine.db import Component
 from vulkan_engine.events import VulkanEvent
-from vulkan_engine.exceptions import ComponentNotFoundException
+from vulkan_engine.exceptions import WorkflowNotFoundException
+from vulkan_engine.loaders.component import ComponentLoader
 from vulkan_engine.logger import VulkanLogger
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.services.workflow import WorkflowService
@@ -29,6 +30,7 @@ class ComponentService(BaseService):
     ):
         super().__init__(db, logger)
         self.workflow_service = workflow_service
+        self.component_loader = ComponentLoader(db)
 
     def list_components(
         self,
@@ -36,24 +38,18 @@ class ComponentService(BaseService):
         project_id: str | None = None,
     ) -> List[schemas.Component]:
         """List all components."""
-        query = self.db.query(Component).filter(Component.project_id == project_id)
-        if not include_archived:
-            query = query.filter(Component.archived == False)  # noqa: E712
-        components = query.all()
+        components = self.component_loader.list_components(
+            project_id=project_id,
+            include_archived=include_archived,
+        )
         return components
 
     def get_component(self, component_id: str, project_id: str) -> schemas.Component:
         """Get a component by ID."""
-        component = (
-            self.db.query(Component)
-            .filter(
-                Component.component_id == component_id,
-                Component.project_id == project_id,
-            )
-            .first()
+        component = self.component_loader.get_component(
+            component_id=component_id,
+            project_id=project_id,
         )
-        if not component:
-            raise ComponentNotFoundException(f"Component {component_id} not found")
         return component
 
     def create_component(
@@ -99,16 +95,10 @@ class ComponentService(BaseService):
         project_id: str | None = None,
     ) -> schemas.Component:
         """Update a component."""
-        component = (
-            self.db.query(Component)
-            .filter(
-                Component.component_id == component_id,
-                Component.project_id == project_id,
-            )
-            .first()
+        component = self.component_loader.get_component(
+            component_id=str(component_id),
+            project_id=project_id,
         )
-        if not component:
-            raise ComponentNotFoundException(f"Component {component_id} not found")
 
         # Update component fields
         if config.name is not None:
@@ -141,20 +131,17 @@ class ComponentService(BaseService):
         project_id: str | None = None,
     ) -> None:
         """Delete (archive) a component."""
-        component = (
-            self.db.query(Component)
-            .filter(
-                Component.component_id == component_id,
-                Component.project_id == project_id,
-            )
-            .first()
+        component = self.component_loader.get_component(
+            component_id=str(component_id),
+            project_id=project_id,
         )
-        if not component:
-            raise ComponentNotFoundException(f"Component {component_id} not found")
 
         # Delete the underlying workflow
         if component.workflow_id:
-            self.workflow_service.delete_workflow(component.workflow_id, project_id)
+            try:
+                self.workflow_service.delete_workflow(component.workflow_id, project_id)
+            except WorkflowNotFoundException:
+                pass
 
         component.archived = True
         self.db.commit()

@@ -25,6 +25,7 @@ from vulkan.runners.dagster.io_manager import (
     METADATA_OUTPUT_KEY,
     PUBLISH_IO_MANAGER_KEY,
 )
+from vulkan.runners.dagster.names import normalize_node_id
 from vulkan.runners.dagster.resources import (
     DATA_CLIENT_KEY,
     RUN_CLIENT_KEY,
@@ -49,12 +50,6 @@ from vulkan.spec.nodes import (
 )
 from vulkan.spec.nodes.metadata import DecisionCondition, DecisionType
 from vulkan.spec.policy import PolicyDefinitionNode
-
-
-# TODO: we should review how to require users to define the possible return
-# values for each policy and then ensure that the values adhere to it.
-class UserStatus(Enum):
-    pass
 
 
 class DagsterNode(ABC):
@@ -158,7 +153,7 @@ class DagsterDataInput(DataInputNode, DagsterNode):
     @classmethod
     def from_spec(cls, node: DataInputNode):
         return cls(
-            name=node.name,
+            name=normalize_node_id(node.id),
             data_source=node.data_source,
             description=node.description,
             parameters=node.parameters,
@@ -232,7 +227,7 @@ class DagsterPolicy(PolicyDefinitionNode, DagsterNode):
     @classmethod
     def from_spec(cls, node: DataInputNode):
         return cls(
-            name=node.name,
+            name=normalize_node_id(node.id),
             policy_id=node.policy_id,
             dependencies=node.dependencies,
         )
@@ -321,7 +316,7 @@ class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
     @classmethod
     def from_spec(cls, node: TransformNode):
         return cls(
-            name=node.name,
+            name=normalize_node_id(node.id),
             description=node.description,
             func=node.func,
             dependencies=node.dependencies,
@@ -333,7 +328,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         self,
         name: str,
         description: str,
-        return_status: UserStatus | str,
+        return_status: str,
         dependencies: dict[str, Dependency],
         return_metadata: str | None = None,
         callback: Callable | None = None,
@@ -457,7 +452,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         dependencies = node.dependencies
 
         return cls(
-            name=node.name,
+            name=normalize_node_id(node.id),
             description=node.description,
             return_status=node.return_status,
             return_metadata=node.return_metadata,
@@ -523,7 +518,7 @@ class DagsterBranch(BranchNode, DagsterNode):
     @classmethod
     def from_spec(cls, node: BranchNode):
         return cls(
-            name=node.name,
+            name=normalize_node_id(node.id),
             description=node.description,
             func=node.func,
             choices=node.choices,
@@ -551,7 +546,7 @@ class DagsterInput(InputNode, DagsterNode):
     @classmethod
     def from_spec(cls, node: InputNode):
         return cls(
-            name=node.name,
+            name=normalize_node_id(node.id),
             description=node.description,
             schema=node.schema,
         )
@@ -652,7 +647,7 @@ class DagsterConnection(ConnectionNode, DagsterNode):
     @classmethod
     def from_spec(cls, node: ConnectionNode):
         return cls(
-            name=node.name,
+            name=normalize_node_id(node.id),
             url=node.url,
             method=node.method,
             description=node.description,
@@ -736,7 +731,7 @@ class DagsterDecision(DecisionNode, DagsterNode):
     @classmethod
     def from_spec(cls, node: DecisionNode):
         return cls(
-            name=node.name,
+            name=normalize_node_id(node.id),
             description=node.description,
             conditions=node.conditions,
             dependencies=node.dependencies,

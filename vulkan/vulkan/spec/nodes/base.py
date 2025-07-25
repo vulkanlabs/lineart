@@ -8,12 +8,13 @@ from pydantic import BaseModel
 
 from vulkan.spec.dependency import Dependency, DependencyDict
 from vulkan.spec.nodes.metadata import (
+    BaseNodeMetadata,
     BranchNodeMetadata,
+    ComponentNodeMetadata,
     ConnectionNodeMetadata,
     DataInputNodeMetadata,
     DecisionNodeMetadata,
     InputNodeMetadata,
-    NodeMetadata,
     PolicyNodeMetadata,
     TerminateNodeMetadata,
     TransformNodeMetadata,
@@ -29,6 +30,20 @@ class NodeType(Enum):
     POLICY = "POLICY"
     CONNECTION = "CONNECTION"
     DECISION = "DECISION"
+    COMPONENT = "COMPONENT"
+
+
+NODE_METADATA_TYPE_MAP = {
+    NodeType.TRANSFORM: TransformNodeMetadata,
+    NodeType.TERMINATE: TerminateNodeMetadata,
+    NodeType.BRANCH: BranchNodeMetadata,
+    NodeType.INPUT: InputNodeMetadata,
+    NodeType.DATA_INPUT: DataInputNodeMetadata,
+    NodeType.POLICY: PolicyNodeMetadata,
+    NodeType.CONNECTION: ConnectionNodeMetadata,
+    NodeType.DECISION: DecisionNodeMetadata,
+    NodeType.COMPONENT: ComponentNodeMetadata,
+}
 
 
 class NodeDefinitionDict(BaseModel):
@@ -42,18 +57,6 @@ class NodeDefinitionDict(BaseModel):
     hierarchy: list[str] | None = None
 
 
-NODE_METADATA_TYPE_MAP = {
-    NodeType.TRANSFORM: TransformNodeMetadata,
-    NodeType.TERMINATE: TerminateNodeMetadata,
-    NodeType.BRANCH: BranchNodeMetadata,
-    NodeType.INPUT: InputNodeMetadata,
-    NodeType.DATA_INPUT: DataInputNodeMetadata,
-    NodeType.POLICY: PolicyNodeMetadata,
-    NodeType.CONNECTION: ConnectionNodeMetadata,
-    NodeType.DECISION: DecisionNodeMetadata,
-}
-
-
 @dataclass()
 class NodeDefinition:
     "Internal representation of a node."
@@ -62,17 +65,15 @@ class NodeDefinition:
     node_type: str
     description: str | None = None
     dependencies: dict[str, DependencyDict] | None = None
-    metadata: NodeMetadata | None = None
+    metadata: BaseNodeMetadata | None = None
     hierarchy: list[str] | None = None
 
     _REQUIRED_KEYS = {"name", "node_type"}
 
     def __post_init__(self):
         if self.metadata is not None:
-            if not isinstance(self.metadata, NodeMetadata):
-                msg = (
-                    f"Metadata must be of type NodeMetadata, got {type(self.metadata)}"
-                )
+            if not isinstance(self.metadata, BaseNodeMetadata):
+                msg = f"Metadata must be an instance of ComponentNodeMetadata, got {type(self.metadata)}"
                 raise TypeError(msg)
         if self.dependencies is not None:
             deps = {}
@@ -195,20 +196,13 @@ class Node(ABC):
     def hierarchy(self) -> list[str] | None:
         return self._hierarchy
 
-    def add_hierarchy_level(self, level: str) -> "Node":
-        hierarchy = self.hierarchy if self.hierarchy is not None else []
-        hierarchy = [*hierarchy, level]
-
-        n = deepcopy(self)
-        n._hierarchy = hierarchy
-        for dep in n.dependencies.values():
-            dep.hierarchy = hierarchy
-
-        return n
+    @hierarchy.setter
+    def hierarchy(self, hierarchy: list[str]):
+        self._hierarchy = hierarchy
 
     @property
     def id(self) -> str:
-        if self._hierarchy is None:
+        if self._hierarchy is None or len(self._hierarchy) == 0:
             return self.name
         return "-".join(self._hierarchy) + "." + self._name
 
@@ -224,3 +218,11 @@ class Node(ABC):
         if not isinstance(other, Node):
             return False
         return self.node_definition() == other.node_definition()
+
+
+class PolicyDefinitionDict(BaseModel):
+    """Dict representation of a PolicyDefinition object."""
+
+    nodes: list[NodeDefinitionDict]
+    input_schema: dict[str, str]
+    config_variables: list[str] | None = None

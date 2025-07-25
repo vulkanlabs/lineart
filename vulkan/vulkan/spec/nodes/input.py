@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes.base import Node, NodeDefinition, NodeType
@@ -46,7 +46,8 @@ class InputNode(Node):
     @classmethod
     def from_dict(cls, spec: dict[str, Any]) -> "InputNode":
         definition = NodeDefinition.from_dict(spec)
-        schema = parse_input_schema(definition.metadata.schema)
+        metadata = cast(InputNodeMetadata, definition.metadata)
+        schema = parse_input_schema(metadata.schema)
         return cls(
             schema=schema,
             name=definition.name,
