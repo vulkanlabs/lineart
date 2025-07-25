@@ -18,10 +18,6 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuTrigger,
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
 } from "@vulkanlabs/base/ui";
 
 import { useDropdown } from "@/workflow/hooks/use-dropdown";
@@ -293,47 +289,32 @@ export function WorkflowCanvas({
                     variant={BackgroundVariant.Dots}
                 />
                 <Controls showZoom={false} showInteractive={false} orientation="horizontal">
-                    <ControlButton onClick={saveWorkflow}>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <SaveIcon />
-                                </TooltipTrigger>
-                                <TooltipContent>Save</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    <ControlButton onClick={saveWorkflow} title="Save">
+                        <SaveIcon 
+                            size={16} 
+                            strokeWidth={1.5} 
+                            style={{ 
+                                stroke: '#374151', 
+                                fill: 'none',
+                                display: 'block',
+                                color: '#374151'
+                            }} 
+                        />
                     </ControlButton>
-                    <ControlButton onClick={toggleAllNodesCollapsed}>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    {areAllNodesCollapsed ? <ChevronDownIcon /> : <ChevronUpIcon />}
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {areAllNodesCollapsed ? "Expand All" : "Collapse All"}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    <ControlButton 
+                        onClick={toggleAllNodesCollapsed}
+                        title={areAllNodesCollapsed ? "Expand All" : "Collapse All"}
+                    >
+                        {areAllNodesCollapsed ? 
+                            <ChevronDownIcon size={16} strokeWidth={1.5} style={{ stroke: '#374151', fill: 'none', display: 'block' }} /> : 
+                            <ChevronUpIcon size={16} strokeWidth={1.5} style={{ stroke: '#374151', fill: 'none', display: 'block' }} />
+                        }
                     </ControlButton>
-                    <ControlButton onClick={autoLayoutNodes}>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <LayoutIcon />
-                                </TooltipTrigger>
-                                <TooltipContent>Auto Layout</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    <ControlButton onClick={autoLayoutNodes} title="Auto Layout">
+                        <LayoutIcon size={16} strokeWidth={1.5} style={{ stroke: '#374151', fill: 'none', display: 'block' }} />
                     </ControlButton>
-                    <ControlButton onClick={copySpecToClipboard}>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <CopyIcon />
-                                </TooltipTrigger>
-                                <TooltipContent>Copy Specification</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    <ControlButton onClick={copySpecToClipboard} title="Copy Specification">
+                        <CopyIcon size={16} strokeWidth={1.5} style={{ stroke: '#374151', fill: 'none', display: 'block' }} />
                     </ControlButton>
                 </Controls>
             </ReactFlow>
