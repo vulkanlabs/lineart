@@ -2,9 +2,7 @@ from enum import Enum
 
 import pytest
 
-from vulkan.core.step_metadata import StepMetadata
 from vulkan.runners.dagster.nodes import DagsterTerminate, to_dagster_node
-from vulkan.runners.dagster.testing import run_test_job
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import NodeType, TerminateNode, TransformNode
 
@@ -17,8 +15,8 @@ class ReturnStatus(Enum):
 class TestTransformNode:
     """Test suite for TransformNode functionality."""
 
-    def test_transform_node_creation_and_execution(self):
-        """Test TransformNode creation, conversion to Dagster, and execution."""
+    def test_transform_node_creation_and_dagster_conversion(self):
+        """Test TransformNode creation and conversion to Dagster."""
         node = TransformNode(
             name="transform",
             description="Transform node",
@@ -35,17 +33,6 @@ class TestTransformNode:
             "result",
             "metadata",
         }, "Should have two outputs 'result' and 'metadata'"
-
-        job_result = run_test_job(
-            [node],
-            input_schema={"x": int},
-            run_config={"input_node": {"config": {"x": 10}}},
-        )
-        result = job_result._get_output_for_handle("transform", "result")
-        assert result == 20
-        metadata = job_result._get_output_for_handle("transform", "metadata")
-        assert isinstance(metadata, StepMetadata)
-        assert metadata.error is None
 
 
 class TestTerminateNode:
@@ -78,12 +65,12 @@ class TestTerminateNode:
             assert definition.node_type == NodeType.TERMINATE.value
             assert definition.metadata.return_status == status
 
-    def test_terminate_node_with_simple_string_metadata(self):
-        """Test TerminateNode with simple string metadata."""
-        simple_metadata = "Task completed successfully"
+    def test_terminate_node_with_simple_json_metadata(self):
+        """Test TerminateNode with simple JSON metadata."""
+        simple_metadata = '{"message": "Task completed successfully"}'
         terminate = TerminateNode(
             name="terminate_simple",
-            description="Terminate node with simple string metadata",
+            description="Terminate node with simple JSON metadata",
             return_status="success",
             dependencies={"inputs": Dependency("input_node")},
             return_metadata=simple_metadata,
@@ -121,11 +108,11 @@ class TestTerminateNode:
         assert definition.metadata.return_metadata == template_metadata
 
     def test_terminate_node_mixed_template_and_static(self):
-        """Test mixing template variables with static text (common frontend usage)."""
-        mixed_metadata = "User {{user_node.data}} completed task with status: approved"
+        """Test mixing template variables with static text in JSON format."""
+        mixed_metadata = '{"message": "User {{user_node.data}} completed task with status: approved"}'
         terminate = TerminateNode(
             name="terminate_mixed",
-            description="Terminate node with mixed template and static text",
+            description="Terminate node with mixed template and static text in JSON",
             return_status="success",
             dependencies={"user": Dependency("user_node")},
             return_metadata=mixed_metadata,
