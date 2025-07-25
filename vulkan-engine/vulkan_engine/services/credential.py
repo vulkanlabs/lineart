@@ -1,0 +1,71 @@
+# vulkan-engine/vulkan_engine/services/credential.py
+
+import base64
+import json
+import os
+from typing import Any, Dict
+
+# Placeholder for a more robust session management solution
+SESSION_CACHE = {}
+
+
+class CredentialService:
+    """Service for handling OAuth2 credential flows and management."""
+
+    def __init__(self):
+        # In a real application, you might pass in a database session
+        # or other dependencies here.
+        pass
+
+    def _get_google_credentials(self) -> Dict[str, Any]:
+        """Loads and parses the Google credentials from the environment variable."""
+        b64_creds = os.environ.get("GOOGLE_CREDENTIALS_B64")
+        if not b64_creds:
+            raise ValueError("GOOGLE_CREDENTIALS_B64 environment variable not set.")
+
+        try:
+            json_creds = base64.b64decode(b64_creds).decode("utf-8")
+            creds = json.loads(json_creds)
+            if (
+                "web" not in creds
+                or "client_id" not in creds["web"]
+                or "client_secret" not in creds["web"]
+            ):
+                raise ValueError("Invalid Google credentials format.")
+            return creds["web"]
+        except (json.JSONDecodeError, TypeError, ValueError) as e:
+            raise ValueError(f"Failed to parse Google credentials: {e}") from e
+
+    def start_oauth_flow(
+        self, service_name: str, user_id: str, redirect_uri: str
+    ) -> Dict[str, str]:
+        """Constructs the authorization URL for the given service."""
+        if service_name.lower() != "google":
+            raise NotImplementedError(f"Service '{service_name}' is not supported.")
+
+        creds = self._get_google_credentials()
+        client_id = creds["client_id"]
+
+        # Generate a state token for CSRF protection
+        state = os.urandom(16).hex()
+        SESSION_CACHE[user_id] = {"state": state}  # Store state against user_id
+
+        # Define the required scopes
+        scopes = [
+            "https://www.googleapis.com/auth/userinfo.email",
+            "https://www.googleapis.com/auth/spreadsheets",
+        ]
+        scope_str = " ".join(scopes)
+
+        auth_url = (
+            f"https://accounts.google.com/o/oauth2/v2/auth?"
+            f"client_id={client_id}&"
+            f"redirect_uri={redirect_uri}&"
+            f"response_type=code&"
+            f"scope={scope_str}&"
+            f"access_type=offline&"
+            f"prompt=consent&"
+            f"state={state}"
+        )
+
+        return {"authorization_url": auth_url}

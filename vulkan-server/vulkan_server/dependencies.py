@@ -33,6 +33,7 @@ from vulkan_engine.services import (
     PolicyService,
     PolicyVersionService,
 )
+from vulkan_engine.services.credential import CredentialService
 from vulkan_engine.services.run_orchestration import RunOrchestrationService
 from vulkan_engine.services.run_query import RunQueryService
 from vulkan_engine.services.workflow import WorkflowService
@@ -356,3 +357,20 @@ def get_policy_analytics_service(
         Configured PolicyAnalyticsService instance
     """
     return PolicyAnalyticsService(db=db, logger=logger)
+
+
+def get_credential_service(
+    db: Annotated[Session, Depends(get_database_session)],
+    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
+) -> CredentialService:
+    """
+    Get CredentialService for OAuth credential management.
+
+    Args:
+        db: Database session
+        logger: Configured logger
+
+    Returns:
+        Configured CredentialService instance
+    """
+    return CredentialService(db=db, logger=logger)
