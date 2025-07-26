@@ -185,7 +185,11 @@ function BaseWorkflowNodeCore({
                             </div>
                         )}
                         <NodeHeaderActions>
-                            <NodeHeaderAction onClick={openPanel} label="Open Panel">
+                            <NodeHeaderAction 
+                                onClick={openPanel} 
+                                label="Open Panel"
+                                style={{ display: 'none' }}
+                            >
                                 <PanelRight />
                             </NodeHeaderAction>
                             <NodeHeaderAction onClick={toggleDetails} label="Toggle Details">

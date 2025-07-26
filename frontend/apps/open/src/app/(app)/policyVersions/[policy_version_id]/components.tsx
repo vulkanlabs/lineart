@@ -2,6 +2,7 @@
 
 // External libraries
 import { Layers, Network, FolderCog, Play } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 // Local imports
 import { InnerNavbar, InnerNavbarSectionProps } from "@/components/inner-navbar";
@@ -19,7 +20,10 @@ export function RouteLayout({
     policyVersion: PolicyVersion;
     children: React.ReactNode;
 }) {
+    const pathname = usePathname();
     const baseUrl = `/policyVersions/${policyVersion.policy_version_id}`;
+    const isOnLauncherPage = pathname.endsWith('/launcher');
+    
     const sections: SidebarSectionProps[] = [
         {
             name: "Workflow",
@@ -48,7 +52,9 @@ export function RouteLayout({
         { key: "Version:", value: policyVersion.alias || "" },
         { key: "Status:", value: policyVersion.workflow?.status || "" },
     ];
-    const rightSections: InnerNavbarSectionProps[] = [
+    
+    // Only show LauncherButton when NOT on the launcher page
+    const rightSections: InnerNavbarSectionProps[] = isOnLauncherPage ? [] : [
         {
             element: (
                 <LauncherButton

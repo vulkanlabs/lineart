@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { SaveIcon, ChevronDownIcon, ChevronUpIcon, LayoutIcon, CopyIcon } from "lucide-react";
+import { ToolbarIcon } from "./toolbar-icon";
 import {
     ReactFlow,
     Controls,
@@ -18,10 +19,6 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuTrigger,
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
 } from "@vulkanlabs/base/ui";
 
 import { useDropdown } from "@/workflow/hooks/use-dropdown";
@@ -293,47 +290,23 @@ export function WorkflowCanvas({
                     variant={BackgroundVariant.Dots}
                 />
                 <Controls showZoom={false} showInteractive={false} orientation="horizontal">
-                    <ControlButton onClick={saveWorkflow}>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <SaveIcon />
-                                </TooltipTrigger>
-                                <TooltipContent>Save</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    <ControlButton onClick={saveWorkflow} title="Save">
+                        <ToolbarIcon icon={SaveIcon} />
                     </ControlButton>
-                    <ControlButton onClick={toggleAllNodesCollapsed}>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    {areAllNodesCollapsed ? <ChevronDownIcon /> : <ChevronUpIcon />}
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {areAllNodesCollapsed ? "Expand All" : "Collapse All"}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    <ControlButton 
+                        onClick={toggleAllNodesCollapsed}
+                        title={areAllNodesCollapsed ? "Expand All" : "Collapse All"}
+                    >
+                        {areAllNodesCollapsed ? 
+                            <ToolbarIcon icon={ChevronDownIcon} /> : 
+                            <ToolbarIcon icon={ChevronUpIcon} />
+                        }
                     </ControlButton>
-                    <ControlButton onClick={autoLayoutNodes}>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <LayoutIcon />
-                                </TooltipTrigger>
-                                <TooltipContent>Auto Layout</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    <ControlButton onClick={autoLayoutNodes} title="Auto Layout">
+                        <ToolbarIcon icon={LayoutIcon} />
                     </ControlButton>
-                    <ControlButton onClick={copySpecToClipboard}>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <CopyIcon />
-                                </TooltipTrigger>
-                                <TooltipContent>Copy Specification</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    <ControlButton onClick={copySpecToClipboard} title="Copy Specification">
+                        <ToolbarIcon icon={CopyIcon} />
                     </ControlButton>
                 </Controls>
             </ReactFlow>
