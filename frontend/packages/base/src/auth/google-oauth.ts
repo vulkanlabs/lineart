@@ -7,13 +7,17 @@
 export async function initiateGoogleOAuth() {
     console.log("Initiating Google OAuth flow...");
     try {
-        const response = await fetch("/api/v1/auth/google/start");
+        const baseUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+        const response = await fetch(`${baseUrl}/auth/google/start`, {
+            headers: { "ngrok-skip-browser-warning": "true" },
+        });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
         if (data.authorization_url) {
-            window.location.href = data.authorization_url;
+            console.log("Authorization URL:", data.authorization_url);
+            // window.location.href = `${baseUrl}/auth/google/callback?code=${data.authorization_url}`;
         } else {
             console.error("Authorization URL not found in response:", data);
             alert("Failed to get authorization URL.");
@@ -42,7 +46,11 @@ export function useGoogleAuth() {
             setUser({ email: "test.user@example.com" }); // Placeholder user
             // Clean up the URL to remove the auth_status parameter
             params.delete("auth_status");
-            window.history.replaceState({}, document.title, `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+            window.history.replaceState(
+                {},
+                document.title,
+                `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`,
+            );
         }
     }, []);
 

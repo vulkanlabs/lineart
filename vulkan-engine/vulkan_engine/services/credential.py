@@ -5,23 +5,28 @@ import json
 import os
 from typing import Any, Dict
 
+from sqlalchemy.orm import Session
+
+from vulkan_engine.logger import VulkanLogger
+from vulkan_engine.services.base import BaseService
+
 # Placeholder for a more robust session management solution
 SESSION_CACHE = {}
 
 
-class CredentialService:
+class CredentialService(BaseService):
     """Service for handling OAuth2 credential flows and management."""
 
-    def __init__(self):
-        # In a real application, you might pass in a database session
-        # or other dependencies here.
-        pass
+    def __init__(self, db: Session, logger: VulkanLogger | None = None):
+        super().__init__(db, logger)
 
     def _get_google_credentials(self) -> Dict[str, Any]:
         """Loads and parses the Google credentials from the environment variable."""
-        b64_creds = os.environ.get("GOOGLE_CREDENTIALS_B64")
+        b64_creds = os.environ.get("GOOGLE_OAUTH_CREDENTIALS_B64")
         if not b64_creds:
-            raise ValueError("GOOGLE_CREDENTIALS_B64 environment variable not set.")
+            raise ValueError(
+                "GOOGLE_OAUTH_CREDENTIALS_B64 environment variable not set."
+            )
 
         try:
             json_creds = base64.b64decode(b64_creds).decode("utf-8")
@@ -37,7 +42,7 @@ class CredentialService:
             raise ValueError(f"Failed to parse Google credentials: {e}") from e
 
     def start_oauth_flow(
-        self, service_name: str, user_id: str, redirect_uri: str
+        self, service_name: str, project_id: str | None, redirect_uri: str
     ) -> Dict[str, str]:
         """Constructs the authorization URL for the given service."""
         if service_name.lower() != "google":
@@ -48,12 +53,12 @@ class CredentialService:
 
         # Generate a state token for CSRF protection
         state = os.urandom(16).hex()
-        SESSION_CACHE[user_id] = {"state": state}  # Store state against user_id
+        SESSION_CACHE[project_id] = {"state": state}  # Store state against project_id
 
         # Define the required scopes
         scopes = [
             "https://www.googleapis.com/auth/userinfo.email",
-            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/spreadsheets.readonly",
         ]
         scope_str = " ".join(scopes)
 
