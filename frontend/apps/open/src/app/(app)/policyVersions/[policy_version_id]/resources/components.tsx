@@ -30,7 +30,6 @@ import {
 } from "@vulkanlabs/base";
 import type {
     ConfigurationVariablesBase,
-    DataSource,
     DataSourceReference,
     PolicyVersion,
 } from "@vulkanlabs/client-open";
