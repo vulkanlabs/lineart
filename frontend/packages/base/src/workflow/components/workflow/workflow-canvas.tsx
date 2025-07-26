@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { SaveIcon, ChevronDownIcon, ChevronUpIcon, LayoutIcon, CopyIcon } from "lucide-react";
+import { ToolbarIcon } from "./toolbar-icon";
 import {
     ReactFlow,
     Controls,
@@ -290,31 +291,22 @@ export function WorkflowCanvas({
                 />
                 <Controls showZoom={false} showInteractive={false} orientation="horizontal">
                     <ControlButton onClick={saveWorkflow} title="Save">
-                        <SaveIcon 
-                            size={16} 
-                            strokeWidth={1.5} 
-                            style={{ 
-                                stroke: '#374151', 
-                                fill: 'none',
-                                display: 'block',
-                                color: '#374151'
-                            }} 
-                        />
+                        <ToolbarIcon icon={SaveIcon} />
                     </ControlButton>
                     <ControlButton 
                         onClick={toggleAllNodesCollapsed}
                         title={areAllNodesCollapsed ? "Expand All" : "Collapse All"}
                     >
                         {areAllNodesCollapsed ? 
-                            <ChevronDownIcon size={16} strokeWidth={1.5} style={{ stroke: '#374151', fill: 'none', display: 'block' }} /> : 
-                            <ChevronUpIcon size={16} strokeWidth={1.5} style={{ stroke: '#374151', fill: 'none', display: 'block' }} />
+                            <ToolbarIcon icon={ChevronDownIcon} /> : 
+                            <ToolbarIcon icon={ChevronUpIcon} />
                         }
                     </ControlButton>
                     <ControlButton onClick={autoLayoutNodes} title="Auto Layout">
-                        <LayoutIcon size={16} strokeWidth={1.5} style={{ stroke: '#374151', fill: 'none', display: 'block' }} />
+                        <ToolbarIcon icon={LayoutIcon} />
                     </ControlButton>
                     <ControlButton onClick={copySpecToClipboard} title="Copy Specification">
-                        <CopyIcon size={16} strokeWidth={1.5} style={{ stroke: '#374151', fill: 'none', display: 'block' }} />
+                        <ToolbarIcon icon={CopyIcon} />
                     </ControlButton>
                 </Controls>
             </ReactFlow>
