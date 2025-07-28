@@ -117,8 +117,8 @@ export function DataInputNode({ id, data, selected, height, width }: VulkanNodeP
 
     return (
         <StandardWorkflowNode id={id} selected={selected} data={nodeData} width={width}>
-            <div className="flex flex-col p-2 w-full h-fit">
-                <div className="flex flex-col gap-1 space-y-2 p-3">
+            <div className="flex flex-col p-3 w-full h-fit">
+                <div className="flex flex-col gap-2">
                     <span className="nodrag text-sm font-medium">Data Source:</span>
                     {dataSourcesError ? (
                         <div className="text-sm text-red-600 p-2 bg-red-50 rounded">
@@ -140,7 +140,7 @@ export function DataInputNode({ id, data, selected, height, width }: VulkanNodeP
                         />
                     )}
                 </div>
-                <div className="flex flex-col gap-1 space-y-2 p-3">
+                <div className="flex flex-col gap-2 mt-4">
                     <span className="nodrag text-sm font-medium">Configuration:</span>
                     <div className="nodrag flex flex-col gap-2 h-full overflow-y-auto">
                         <Table>
