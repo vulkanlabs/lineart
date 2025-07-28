@@ -1,6 +1,11 @@
+import json
 from enum import Enum
 from typing import Any, Callable, cast
 
+from vulkan.node_config import (
+    extract_env_vars_from_string,
+    extract_runtime_params_from_string,
+)
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes.base import Node, NodeDefinition, NodeType
 from vulkan.spec.nodes.metadata import TerminateNodeMetadata
@@ -27,7 +32,7 @@ class TerminateNode(Node):
         name: str,
         return_status: Enum | str,
         dependencies: dict[str, Dependency],
-        return_metadata: dict[str, Dependency] | None = None,
+        return_metadata: str | None = None,
         description: str | None = None,
         callback: Callable | None = None,
         hierarchy: list[str] | None = None,
@@ -43,8 +48,8 @@ class TerminateNode(Node):
         dependencies: dict, optional
             The dependencies of the node.
             See `Dependency` for more information.
-        return_metadata: dict, optional
-            A dictionary of metadata that will be returned by the run.
+        return_metadata: str, optional
+            A JSON string of metadata that will be returned by the run.
         description: str, optional
             A description of the node.
         callback: Callable, optional
@@ -69,13 +74,48 @@ class TerminateNode(Node):
         self.callback = callback
 
         if return_metadata is not None:
-            if not isinstance(return_metadata, dict):
+            if not isinstance(return_metadata, str):
                 raise TypeError(
-                    f"Return metadata must be a dict, got: {type(return_metadata)}"
+                    f"return_metadata expects string, got {type(return_metadata)}"
                 )
-            if not all(isinstance(d, Dependency) for d in return_metadata.values()):
-                raise ValueError("Return metadata values must be of type Dependency")
+            self._validate_json_metadata(return_metadata)
+
         self.return_metadata = return_metadata
+
+    def _validate_json_metadata(self, json_metadata: str) -> None:
+        """Validate JSON syntax and template expressions."""
+        try:
+            parsed = json.loads(json_metadata)
+
+            if not isinstance(parsed, dict):
+                raise ValueError("JSON metadata must be a dictionary at the root level")
+
+            def validate_value(value, path=""):
+                if isinstance(value, str):
+                    try:
+                        # Try to extract both runtime params and env vars to validate template syntax
+                        extract_runtime_params_from_string(value)
+                        extract_env_vars_from_string(value)
+                    except ValueError as e:
+                        raise ValueError(
+                            f"Invalid template expression in JSON metadata at path '{path}': {value}. Error: {e}"
+                        )
+
+                elif isinstance(value, dict):
+                    for k, v in value.items():
+                        validate_value(v, f"{path}.{k}" if path else k)
+                elif isinstance(value, list):
+                    for i, item in enumerate(value):
+                        validate_value(item, f"{path}[{i}]" if path else f"[{i}]")
+
+            validate_value(parsed)
+
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in return_metadata: {e}")
+        except Exception as e:
+            if isinstance(e, ValueError):
+                raise
+            raise ValueError(f"Validation error in JSON metadata: {e}")
 
     def node_definition(self) -> NodeDefinition:
         return NodeDefinition(

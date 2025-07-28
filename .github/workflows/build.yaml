@@ -20,7 +20,7 @@ jobs:
     - name: Install uv
       run: |
         set -x
-        pip install uv
+        pip install 'uv<0.8'
         uv sync
         
     - name: Run tests with uv

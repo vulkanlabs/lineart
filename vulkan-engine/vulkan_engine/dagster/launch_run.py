@@ -190,16 +190,16 @@ def allocate_runs(
     shadow = []
 
     if allocation_strategy.shadow is not None:
-        for policy_version_id in allocation_strategy.shadow:
-            run = Run(
-                policy_version_id=policy_version_id,
-                status=RunStatus.PENDING,
-                run_group_id=run_group_id,
-                project_id=project_id,
-            )
-            db.add(run)
-            db.commit()
-            shadow.append(run.run_id)
+        with db.begin():
+            for policy_version_id in allocation_strategy.shadow:
+                run = Run(
+                    policy_version_id=policy_version_id,
+                    status=RunStatus.PENDING,
+                    run_group_id=run_group_id,
+                    project_id=project_id,
+                )
+                db.add(run)
+                shadow.append(run.run_id)
 
     opts = [opt.policy_version_id for opt in allocation_strategy.choice]
     freq = [opt.frequency / 1000 for opt in allocation_strategy.choice]
