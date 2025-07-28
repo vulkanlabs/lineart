@@ -33,7 +33,7 @@ from vulkan_engine.services import (
     PolicyService,
     PolicyVersionService,
 )
-from vulkan_engine.services.credential import CredentialService
+from vulkan_engine.services.credential.credential import CredentialService
 from vulkan_engine.services.run_orchestration import RunOrchestrationService
 from vulkan_engine.services.run_query import RunQueryService
 from vulkan_engine.services.workflow import WorkflowService

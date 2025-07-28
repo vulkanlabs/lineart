@@ -7,12 +7,17 @@ from typing import Any, Dict
 
 import requests
 from sqlalchemy.orm import Session
-
 from vulkan_engine.logger import VulkanLogger
 from vulkan_engine.services.base import BaseService
 
 # Placeholder for a more robust session management solution
 SESSION_CACHE = {}
+
+
+GOOGLE_OAUTH_SCOPES = [
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/spreadsheets.readonly",
+]
 
 
 class CredentialService(BaseService):
@@ -57,10 +62,7 @@ class CredentialService(BaseService):
         SESSION_CACHE[project_id] = {"state": state}  # Store state against project_id
 
         # Define the required scopes
-        scopes = [
-            "https://www.googleapis.com/auth/userinfo.email",
-            "https://www.googleapis.com/auth/spreadsheets.readonly",
-        ]
+        scopes = GOOGLE_OAUTH_SCOPES
         scope_str = " ".join(scopes)
 
         auth_url = (
@@ -117,8 +119,7 @@ class CredentialService(BaseService):
         tokens = response.json()
 
         # Store tokens in session cache (in a real implementation, this would be stored securely)
-        if project_id:
-            SESSION_CACHE[project_id]["tokens"] = tokens
+        SESSION_CACHE[project_id]["tokens"] = tokens
 
         return {
             "access_token": tokens.get("access_token"),
@@ -126,3 +127,43 @@ class CredentialService(BaseService):
             "expires_in": tokens.get("expires_in"),
             "token_type": tokens.get("token_type"),
         }
+
+    def get_user_info(
+        self, service_name: str, project_id: str | None
+    ) -> dict[str, str]:
+        if service_name.lower() != "google":
+            raise NotImplementedError(f"Service '{service_name}' is not supported.")
+
+        self.logger.system.info(
+            f"Getting user info for project_id {project_id}: {SESSION_CACHE}"
+        )
+        msg = f"Failed to retrieve tokens for project_id {project_id}"
+        project_id_cache = SESSION_CACHE.get(project_id)
+        if project_id_cache is None:
+            raise ValueError(msg)
+
+        tokens = project_id_cache.get("tokens")
+        if tokens is None:
+            raise ValueError(msg)
+
+        access_token = tokens.get("access_token")
+        response = requests.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+            },
+        )
+        if response.status_code != 200:
+            raise ValueError(msg)
+
+        user_info = response.json()
+        return user_info
+
+    def disconnect(self, service_name: str, project_id: str | None):
+        if service_name.lower() != "google":
+            raise NotImplementedError(f"Service '{service_name}' is not supported.")
+
+        if project_id not in SESSION_CACHE:
+            raise ValueError(f"Project {project_id} not found in session cache")
+
+        del SESSION_CACHE[project_id]

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
 # Assuming a dependency injection system for the service
-from vulkan_engine.services.credential import CredentialService
+from vulkan_engine.services.credential.credential import CredentialService
 
 from vulkan_server.dependencies import get_credential_service
 
@@ -40,6 +40,32 @@ def start_auth(
         return JSONResponse(content=result)
     except (NotImplementedError, ValueError) as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/{service_name}/user_info")
+def get_user_info(
+    service_name: str,
+    project_id: str | None = None,
+    service: CredentialService = Depends(get_credential_service),
+):
+    try:
+        user_info = service.get_user_info(
+            service_name=service_name,
+            project_id=project_id,
+        )
+        return user_info
+    except (NotImplementedError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{service_name}/disconnect")
+def disconnect(
+    service_name: str,
+    project_id: str | None = None,
+    service: CredentialService = Depends(get_credential_service),
+):
+    service.disconnect(service_name=service_name, project_id=project_id)
+    return JSONResponse(content={"message": "Disconnected successfully"})
 
 
 @router.get("/{service_name}/callback", name="auth_callback")
@@ -83,11 +109,11 @@ def auth_callback(
             redirect_uri=redirect_uri,
         )
 
-        # Redirect to frontend with success and tokens
-        token_param = base64.urlsafe_b64encode(json.dumps(tokens).encode()).decode()
+        service.logger.system.info(f"Tokens: {tokens}")
+
+        # Notify the frontend that the token has been created.
         return RedirectResponse(
-            url=f"{frontend_url}?auth_success=true&tokens={token_param}",
-            status_code=302,
+            url=f"{frontend_url}?auth_success=true", status_code=302
         )
     except Exception as e:
         # Redirect to frontend with error

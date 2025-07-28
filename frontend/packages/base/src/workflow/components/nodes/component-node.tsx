@@ -171,21 +171,19 @@ export function ComponentNode({ id, data, selected, height, width }: VulkanNodeP
                 {/* Tab switcher */}
                 <div className="flex border-b">
                     <button
-                        className={`px-4 py-2 text-sm font-medium ${
-                            activeTab === "configuration"
-                                ? "border-b-2 border-blue-500 text-blue-600"
-                                : "text-gray-500 hover:text-gray-700"
-                        }`}
+                        className={`px-4 py-2 text-sm font-medium ${activeTab === "configuration"
+                            ? "border-b-2 border-blue-500 text-blue-600"
+                            : "text-gray-500 hover:text-gray-700"
+                            }`}
                         onClick={() => setActiveTab("configuration")}
                     >
                         Configuration
                     </button>
                     <button
-                        className={`px-4 py-2 text-sm font-medium ${
-                            activeTab === "settings"
-                                ? "border-b-2 border-blue-500 text-blue-600"
-                                : "text-gray-500 hover:text-gray-700"
-                        }`}
+                        className={`px-4 py-2 text-sm font-medium ${activeTab === "settings"
+                            ? "border-b-2 border-blue-500 text-blue-600"
+                            : "text-gray-500 hover:text-gray-700"
+                            }`}
                         onClick={() => setActiveTab("settings")}
                     >
                         Settings
@@ -237,9 +235,11 @@ export function ComponentNode({ id, data, selected, height, width }: VulkanNodeP
                             </p>
                         ) : isAuthenticated ? (
                             <div className="flex flex-col gap-2">
-                                <p className="text-sm text-gray-800">
-                                    Authenticated as {user?.email || "your Google account"}
-                                </p>
+                                <div className="flex flex-row gap-2 items-center">
+                                    <p className="text-sm text-gray-800">
+                                        Authenticated as {user?.email || "your Google account"}
+                                    </p>
+                                </div>
                                 <button
                                     onClick={disconnect}
                                     className="px-3 py-1 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700"
