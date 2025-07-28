@@ -5,6 +5,7 @@ import json
 import os
 from typing import Any, Dict
 
+import requests
 from sqlalchemy.orm import Session
 
 from vulkan_engine.logger import VulkanLogger
@@ -74,3 +75,54 @@ class CredentialService(BaseService):
         )
 
         return {"authorization_url": auth_url}
+
+    def complete_oauth_flow(
+        self,
+        service_name: str,
+        authorization_code: str,
+        state: str,
+        project_id: str | None,
+        redirect_uri: str,
+    ) -> Dict[str, Any]:
+        """Completes the OAuth2 flow by exchanging the authorization code for tokens."""
+        if service_name.lower() != "google":
+            raise NotImplementedError(f"Service '{service_name}' is not supported.")
+
+        # Verify state token for CSRF protection
+        if (
+            project_id not in SESSION_CACHE
+            or SESSION_CACHE[project_id].get("state") != state
+        ):
+            raise ValueError("Invalid state token")
+
+        creds = self._get_google_credentials()
+        client_id = creds["client_id"]
+        client_secret = creds["client_secret"]
+
+        # Exchange authorization code for tokens
+
+        token_url = "https://oauth2.googleapis.com/token"
+        token_data = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "code": authorization_code,
+            "grant_type": "authorization_code",
+            "redirect_uri": redirect_uri,
+        }
+
+        response = requests.post(token_url, data=token_data)
+        if not response.ok:
+            raise ValueError(f"Failed to exchange code for tokens: {response.text}")
+
+        tokens = response.json()
+
+        # Store tokens in session cache (in a real implementation, this would be stored securely)
+        if project_id:
+            SESSION_CACHE[project_id]["tokens"] = tokens
+
+        return {
+            "access_token": tokens.get("access_token"),
+            "refresh_token": tokens.get("refresh_token"),
+            "expires_in": tokens.get("expires_in"),
+            "token_type": tokens.get("token_type"),
+        }

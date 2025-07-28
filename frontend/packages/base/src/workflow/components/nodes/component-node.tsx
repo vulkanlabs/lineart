@@ -114,15 +114,6 @@ export function ComponentNode({ id, data, selected, height, width }: VulkanNodeP
         [id, data, fieldMappings, selectedComponent, updateNodeData],
     );
 
-    // Update node icon when component is selected
-    // useEffect(() => {
-    //     if (selectedComponentDetails?.icon) {
-    //         updateNodeData(id, {
-    //             ...data,
-    //             icon: selectedComponentDetails.icon,
-    //         });
-    //     }
-    // }, [selectedComponentDetails, id, data, updateNodeData]);
 
     const [activeTab, setActiveTab] = useState("configuration");
     const [dynamicHeight, setDynamicHeight] = useState<number | undefined>(height);
