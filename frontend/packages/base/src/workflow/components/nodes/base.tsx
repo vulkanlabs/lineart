@@ -200,7 +200,7 @@ function BaseWorkflowNodeCore({
                                 )}
                             </NodeHeaderAction>
                             {headerActions}
-                            <NodeHeaderDeleteAction />
+                            {!isInput && <NodeHeaderDeleteAction />}
                         </NodeHeaderActions>
                     </NodeHeader>
                     {isExpanded && <div className="flex-grow min-h-0">{children}</div>}
