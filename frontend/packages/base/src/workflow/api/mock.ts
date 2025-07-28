@@ -1,4 +1,9 @@
-import type { PolicyVersion, PolicyDefinitionDictInput, UIMetadata, Component } from "@vulkanlabs/client-open";
+import type {
+    PolicyVersion,
+    PolicyDefinitionDictInput,
+    UIMetadata,
+    Component,
+} from "@vulkanlabs/client-open";
 
 import type { WorkflowApiClient, SaveWorkflowResult, DataSource } from "./types";
 

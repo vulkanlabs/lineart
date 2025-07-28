@@ -114,7 +114,6 @@ export function ComponentNode({ id, data, selected, height, width }: VulkanNodeP
         [id, data, fieldMappings, selectedComponent, updateNodeData],
     );
 
-
     const [activeTab, setActiveTab] = useState("configuration");
     const [dynamicHeight, setDynamicHeight] = useState<number | undefined>(height);
     const { isAuthenticated, user, disconnect } = useGoogleAuth();
@@ -129,12 +128,21 @@ export function ComponentNode({ id, data, selected, height, width }: VulkanNodeP
         const baseHeight = 300; // Base height for a node with tabs but no fields
         const heightPerField = 80; // Approximate height for each label-input pair
         const minHeight = 460;
-        const newHeight = Math.max(baseHeight + (componentInputFields.length * heightPerField), minHeight);
+        const newHeight = Math.max(
+            baseHeight + componentInputFields.length * heightPerField,
+            minHeight,
+        );
         setDynamicHeight(newHeight);
     }, [componentInputFields.length]);
 
     return (
-        <StandardWorkflowNode id={id} selected={selected} data={data} height={dynamicHeight} width={width}>
+        <StandardWorkflowNode
+            id={id}
+            selected={selected}
+            data={data}
+            height={dynamicHeight}
+            width={width}
+        >
             <div className="flex flex-col gap-4 p-4">
                 {componentsError ? (
                     <div className="text-sm text-red-600 p-2 bg-red-50 rounded">
@@ -171,19 +179,21 @@ export function ComponentNode({ id, data, selected, height, width }: VulkanNodeP
                 {/* Tab switcher */}
                 <div className="flex border-b">
                     <button
-                        className={`px-4 py-2 text-sm font-medium ${activeTab === "configuration"
-                            ? "border-b-2 border-blue-500 text-blue-600"
-                            : "text-gray-500 hover:text-gray-700"
-                            }`}
+                        className={`px-4 py-2 text-sm font-medium ${
+                            activeTab === "configuration"
+                                ? "border-b-2 border-blue-500 text-blue-600"
+                                : "text-gray-500 hover:text-gray-700"
+                        }`}
                         onClick={() => setActiveTab("configuration")}
                     >
                         Configuration
                     </button>
                     <button
-                        className={`px-4 py-2 text-sm font-medium ${activeTab === "settings"
-                            ? "border-b-2 border-blue-500 text-blue-600"
-                            : "text-gray-500 hover:text-gray-700"
-                            }`}
+                        className={`px-4 py-2 text-sm font-medium ${
+                            activeTab === "settings"
+                                ? "border-b-2 border-blue-500 text-blue-600"
+                                : "text-gray-500 hover:text-gray-700"
+                        }`}
                         onClick={() => setActiveTab("settings")}
                     >
                         Settings

@@ -1,4 +1,3 @@
-
 /**
  * Initiates the Google OAuth2 flow.
  * In a real implementation, this would redirect the user to Google's consent screen.
