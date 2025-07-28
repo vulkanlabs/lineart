@@ -9,6 +9,11 @@ import requests
 from sqlalchemy.orm import Session
 from vulkan_engine.logger import VulkanLogger
 from vulkan_engine.services.base import BaseService
+from vulkan_engine.services.credential.schemas import (
+    AuthCompleteResponse,
+    AuthStartResponse,
+    AuthUserInfoResponse,
+)
 
 # Placeholder for a more robust session management solution
 SESSION_CACHE = {}
@@ -49,7 +54,7 @@ class CredentialService(BaseService):
 
     def start_oauth_flow(
         self, service_name: str, project_id: str | None, redirect_uri: str
-    ) -> Dict[str, str]:
+    ) -> AuthStartResponse:
         """Constructs the authorization URL for the given service."""
         if service_name.lower() != "google":
             raise NotImplementedError(f"Service '{service_name}' is not supported.")
@@ -85,7 +90,7 @@ class CredentialService(BaseService):
         state: str,
         project_id: str | None,
         redirect_uri: str,
-    ) -> Dict[str, Any]:
+    ) -> AuthCompleteResponse:
         """Completes the OAuth2 flow by exchanging the authorization code for tokens."""
         if service_name.lower() != "google":
             raise NotImplementedError(f"Service '{service_name}' is not supported.")
@@ -130,7 +135,7 @@ class CredentialService(BaseService):
 
     def get_user_info(
         self, service_name: str, project_id: str | None
-    ) -> dict[str, str]:
+    ) -> AuthUserInfoResponse:
         if service_name.lower() != "google":
             raise NotImplementedError(f"Service '{service_name}' is not supported.")
 
@@ -159,7 +164,7 @@ class CredentialService(BaseService):
         user_info = response.json()
         return user_info
 
-    def disconnect(self, service_name: str, project_id: str | None):
+    def disconnect(self, service_name: str, project_id: str | None) -> None:
         if service_name.lower() != "google":
             raise NotImplementedError(f"Service '{service_name}' is not supported.")
 

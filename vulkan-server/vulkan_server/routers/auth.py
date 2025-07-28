@@ -1,14 +1,17 @@
 # vulkan-server/vulkan_server/routers/auth.py
 
-import base64
-import json
 import urllib.parse
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 
 # Assuming a dependency injection system for the service
 from vulkan_engine.services.credential.credential import CredentialService
+from vulkan_engine.services.credential.schemas import (
+    AuthDisconnectResponse,
+    AuthStartResponse,
+    AuthUserInfoResponse,
+)
 
 from vulkan_server.dependencies import get_credential_service
 
@@ -25,7 +28,7 @@ def start_auth(
     request: Request,
     project_id: str | None = None,
     service: CredentialService = Depends(get_credential_service),
-):
+) -> AuthStartResponse:
     """Initiates the OAuth2 flow for a given service."""
     try:
         # The redirect URI must be registered in your Google Cloud project
@@ -37,7 +40,7 @@ def start_auth(
             project_id=project_id,
             redirect_uri=str(redirect_uri),
         )
-        return JSONResponse(content=result)
+        return result
     except (NotImplementedError, ValueError) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -47,7 +50,7 @@ def get_user_info(
     service_name: str,
     project_id: str | None = None,
     service: CredentialService = Depends(get_credential_service),
-):
+) -> AuthUserInfoResponse:
     try:
         user_info = service.get_user_info(
             service_name=service_name,
@@ -63,9 +66,9 @@ def disconnect(
     service_name: str,
     project_id: str | None = None,
     service: CredentialService = Depends(get_credential_service),
-):
+) -> AuthDisconnectResponse:
     service.disconnect(service_name=service_name, project_id=project_id)
-    return JSONResponse(content={"message": "Disconnected successfully"})
+    return AuthDisconnectResponse(message="Disconnected successfully")
 
 
 @router.get("/{service_name}/callback", name="auth_callback")
