@@ -16,6 +16,7 @@ export type WorkflowFrameProps = {
     onPaneClick?: (e: React.MouseEvent) => void;
     toast?: (message: string, options?: any) => void;
     onRefresh?: () => void;
+    projectId?: string;
 };
 
 /**
@@ -28,6 +29,7 @@ export function WorkflowFrame({
     onPaneClick = (e: React.MouseEvent) => {},
     toast,
     onRefresh,
+    projectId,
 }: WorkflowFrameProps) {
     return (
         <WorkflowProviderWrapper workflow={workflow}>
@@ -38,6 +40,7 @@ export function WorkflowFrame({
                 onPaneClick={onPaneClick}
                 toast={toast}
                 onRefresh={onRefresh}
+                projectId={projectId}
             />
         </WorkflowProviderWrapper>
     );

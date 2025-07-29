@@ -30,9 +30,19 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
         workflow: Workflow,
         spec: PolicyDefinitionDictInput,
         uiMetadata: { [key: string]: UIMetadata },
+        projectId?: string,
     ): Promise<SaveWorkflowResult> {
         try {
-            const response = await fetch(`${this.config.baseUrl}/api/workflow/save`, {
+            const params = new URLSearchParams();
+
+            if (projectId) {
+                params.append("project_id", projectId);
+            }
+
+            const queryString = params.toString();
+            const url = `${this.config.baseUrl}/api/workflow/save${queryString ? `?${queryString}` : ""}`;
+
+            const response = await fetch(url, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -60,6 +70,7 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
     async fetchPolicyVersions(
         policyId?: string | null,
         includeArchived = false,
+        projectId?: string,
     ): Promise<PolicyVersion[]> {
         try {
             const params = new URLSearchParams({
@@ -68,6 +79,10 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
 
             if (policyId) {
                 params.append("policy_id", policyId);
+            }
+
+            if (projectId) {
+                params.append("project_id", projectId);
             }
 
             const response = await fetch(
@@ -96,9 +111,18 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
     /**
      * Fetch available data sources using the API route
      */
-    async fetchDataSources(): Promise<DataSource[]> {
+    async fetchDataSources(projectId?: string): Promise<DataSource[]> {
         try {
-            const response = await fetch(`${this.config.baseUrl}/api/workflow/data-sources`, {
+            const params = new URLSearchParams();
+
+            if (projectId) {
+                params.append("project_id", projectId);
+            }
+
+            const queryString = params.toString();
+            const url = `${this.config.baseUrl}/api/workflow/data-sources${queryString ? `?${queryString}` : ""}`;
+
+            const response = await fetch(url, {
                 headers: this.config.headers,
                 signal: this.createTimeoutSignal(),
             });
