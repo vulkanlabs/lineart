@@ -28,7 +28,6 @@ import { useWorkflowStore } from "@/workflow/store";
 import { useWorkflowApi, Workflow } from "@/workflow/api";
 import {
     getLayoutedNodes,
-    defaultElkOptions,
     type UnlayoutedVulkanNode,
 } from "@/workflow/utils/layout";
 
@@ -156,10 +155,9 @@ export function WorkflowCanvas({
         if (!workflow.workflow?.ui_metadata) {
             const unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => ({
                 ...node,
-                layoutOptions: defaultElkOptions,
             }));
 
-            getLayoutedNodes(unpositionedNodes, edges, defaultElkOptions).then((layoutedNodes) => {
+            getLayoutedNodes(unpositionedNodes, edges).then((layoutedNodes) => {
                 const nodesMap = Object.fromEntries(layoutedNodes.map((node) => [node.id, node]));
                 const newNodes = nodes.map((node) => ({
                     ...node,
@@ -229,14 +227,12 @@ export function WorkflowCanvas({
     const autoLayoutNodes = useCallback(async () => {
         const unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => ({
             ...node,
-            layoutOptions: defaultElkOptions,
         }));
 
         try {
             const layoutedNodes = await getLayoutedNodes(
                 unpositionedNodes,
-                edges,
-                defaultElkOptions,
+                edges
             );
             const nodesMap = Object.fromEntries(layoutedNodes.map((node) => [node.id, node]));
             const newNodes = nodes.map((node) => ({
