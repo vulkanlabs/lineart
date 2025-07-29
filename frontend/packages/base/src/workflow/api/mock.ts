@@ -28,6 +28,7 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
         policyVersion: PolicyVersion,
         spec: PolicyDefinitionDictInput,
         uiMetadata: { [key: string]: UIMetadata },
+        projectId?: string,
     ): Promise<SaveWorkflowResult> {
         // Simulate network delay
         await this.simulateDelay();
@@ -41,7 +42,12 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
         }
 
         // Simulate successful save
-        console.log("Mock API: Saving workflow spec", { policyVersion, spec, uiMetadata });
+        console.log("Mock API: Saving workflow spec", {
+            policyVersion,
+            spec,
+            uiMetadata,
+            projectId,
+        });
 
         return {
             success: true,
@@ -60,6 +66,7 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
     async fetchPolicyVersions(
         policyId?: string | null,
         includeArchived = false,
+        projectId?: string,
     ): Promise<PolicyVersion[]> {
         // Simulate network delay
         await this.simulateDelay();
@@ -68,7 +75,7 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
             throw new Error("Mock API client configured to fail");
         }
 
-        console.log("Mock API: Fetching policy versions", { policyId, includeArchived });
+        console.log("Mock API: Fetching policy versions", { policyId, includeArchived, projectId });
 
         // Return mock data
         const mockPolicyVersions: PolicyVersion[] = [
@@ -116,7 +123,7 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
     /**
      * Mock fetch data sources
      */
-    async fetchDataSources(): Promise<DataSource[]> {
+    async fetchDataSources(projectId?: string): Promise<DataSource[]> {
         // Simulate network delay
         await this.simulateDelay();
 
@@ -124,7 +131,7 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
             throw new Error("Mock API client configured to fail");
         }
 
-        console.log("Mock API: Fetching data sources");
+        console.log("Mock API: Fetching data sources", { projectId });
 
         // Return mock data sources
         const mockDataSources: DataSource[] = [

@@ -2,16 +2,12 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import {
-    Input,
-    Textarea,
-} from "@vulkanlabs/base/ui";
+import { Input, Textarea } from "@vulkanlabs/base/ui";
 
 import { useWorkflowStore } from "@/workflow/store";
 import { TerminateWorkflowNode } from "./base";
 import type { VulkanNodeProps } from "@/workflow/types/workflow";
 import type { TerminateNodeMetadata } from "@/workflow/types/nodes";
-
 
 /**
  * Terminate node component - ends workflow execution
@@ -23,8 +19,8 @@ export function TerminateNode({ id, data, selected, height, width }: VulkanNodeP
         })),
     );
 
-    const [metadata, setMetadata] = useState<string>('');
-    const [updateError, setUpdateError] = useState<string>('');
+    const [metadata, setMetadata] = useState<string>("");
+    const [updateError, setUpdateError] = useState<string>("");
 
     // Initialize local state from node data
     useEffect(() => {
@@ -37,10 +33,10 @@ export function TerminateNode({ id, data, selected, height, width }: VulkanNodeP
         } else if (storedMetadata && typeof storedMetadata === "object") {
             setMetadata(JSON.stringify(storedMetadata, null, 2));
         } else {
-            setMetadata('');
+            setMetadata("");
         }
-        
-        setUpdateError('');
+
+        setUpdateError("");
     }, [id, data]);
 
     const setReturnStatus = useCallback(
@@ -56,23 +52,21 @@ export function TerminateNode({ id, data, selected, height, width }: VulkanNodeP
     // Function to save the metadata
     const saveMetadata = useCallback(
         async (metadataString: string) => {
-            setUpdateError('');
-            
+            setUpdateError("");
+
             try {
                 await updateNodeData(id, {
                     ...data,
                     metadata: { ...data.metadata, return_metadata: metadataString },
                 });
             } catch (error) {
-                setUpdateError(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                setUpdateError(
+                    `Failed to save: ${error instanceof Error ? error.message : "Unknown error"}`,
+                );
             }
         },
         [id, data, updateNodeData],
     );
-
-
-
-
 
     const returnStatus = (data.metadata as any)?.return_status || "";
 
@@ -102,7 +96,7 @@ export function TerminateNode({ id, data, selected, height, width }: VulkanNodeP
                                 value={metadata}
                                 onChange={(e) => {
                                     setMetadata(e.target.value);
-                                    setUpdateError('');
+                                    setUpdateError("");
                                 }}
                                 onBlur={() => {
                                     saveMetadata(metadata);
@@ -125,11 +119,24 @@ export function TerminateNode({ id, data, selected, height, width }: VulkanNodeP
 
                             {/* Helper Text */}
                             <div className="text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-md border">
-                                <div className="font-medium text-gray-700 mb-1">Template Syntax:</div>
+                                <div className="font-medium text-gray-700 mb-1">
+                                    Template Syntax:
+                                </div>
                                 <div className="space-y-1">
-                                    <div>• Use <code className="bg-gray-200 px-1 rounded text-xs">{"{{nodeId.data}}"}</code> to reference node output</div>
+                                    <div>
+                                        • Use{" "}
+                                        <code className="bg-gray-200 px-1 rounded text-xs">
+                                            {"{{nodeId.data}}"}
+                                        </code>{" "}
+                                        to reference node output
+                                    </div>
                                     <div>• Mix with static text, JSON, or any format you need</div>
-                                    <div>• Supports nested paths like <code className="bg-gray-200 px-1 rounded text-xs">{"{{node.data.field.subfield}}"}</code></div>
+                                    <div>
+                                        • Supports nested paths like{" "}
+                                        <code className="bg-gray-200 px-1 rounded text-xs">
+                                            {"{{node.data.field.subfield}}"}
+                                        </code>
+                                    </div>
                                 </div>
                             </div>
                         </div>

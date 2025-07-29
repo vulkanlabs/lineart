@@ -56,6 +56,10 @@ export interface WorkflowDataProviderProps {
      * Specific policy ID to filter by (optional)
      */
     policyId?: string | null;
+    /**
+     * Project ID to filter by (optional)
+     */
+    projectId?: string;
 }
 
 /**
@@ -81,6 +85,7 @@ export function WorkflowDataProvider({
     autoFetch = true,
     includeArchived = false,
     policyId = null,
+    projectId,
 }: WorkflowDataProviderProps) {
     const apiClient = useWorkflowApi();
 
@@ -100,7 +105,11 @@ export function WorkflowDataProvider({
         setPoliciesError(null);
 
         try {
-            const versions = await apiClient.fetchPolicyVersions(policyId, includeArchived);
+            const versions = await apiClient.fetchPolicyVersions(
+                policyId,
+                includeArchived,
+                projectId,
+            );
             setPolicyVersions(versions);
         } catch (error) {
             const errorMessage =
@@ -118,7 +127,7 @@ export function WorkflowDataProvider({
         setDataSourcesError(null);
 
         try {
-            const sources = await apiClient.fetchDataSources();
+            const sources = await apiClient.fetchDataSources(projectId);
             setDataSources(sources);
         } catch (error) {
             const errorMessage =
@@ -148,7 +157,7 @@ export function WorkflowDataProvider({
         if (autoFetch) {
             refreshAll();
         }
-    }, [autoFetch, policyId, includeArchived]);
+    }, [autoFetch, policyId, includeArchived, projectId]);
 
     // Memoize the context value to prevent unnecessary re-renders
     const value = useMemo<WorkflowData>(
