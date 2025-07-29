@@ -39,7 +39,7 @@ def resolve(
         # Inject the component's dependencies into the input node
         # and replace the input node with an identity transform node.
         input_node = component.input_node.with_dependencies(node.dependencies)
-        input_node = _as_identity_transform_node(input_node)
+        input_node = _as_identity_transform_node(input_node, node.parameters)
         component.input_node = input_node
 
         # Join workflow outputs into an identity transform node
@@ -123,17 +123,29 @@ def _or_op_leaves(**kwargs):
     return retval
 
 
-def _as_identity_transform_node(input_node: InputNode) -> TransformNode:
+def _as_identity_transform_node(
+    input_node: InputNode,
+    parameters: dict[str, str],
+) -> TransformNode:
     return TransformNode(
         name=input_node.name,
-        func=_identity,
+        func=_identity_transform(input_node.schema),
         dependencies=input_node.dependencies,
         description=input_node.description,
         hierarchy=input_node.hierarchy,
+        parameters=parameters,
     )
 
 
-def _identity(**kwargs):
-    if len(kwargs) == 1:
-        return list(kwargs.values())[0]
-    return kwargs
+def _identity_transform(input_schema: dict[str, type]):
+    def _identity(**kwargs):
+        if len(kwargs) == 1:
+            return list(kwargs.values())[0]
+        with_types = deepcopy(kwargs)
+        for k, typ in input_schema.items():
+            # If the key is in the input schema, we need to cast the value to the type.
+            if k in with_types:
+                with_types[k] = typ(with_types[k])
+        return with_types
+
+    return _identity

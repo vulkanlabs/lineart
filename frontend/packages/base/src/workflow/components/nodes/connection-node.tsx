@@ -24,7 +24,7 @@ import { Plus, Trash2, ChevronDown, ChevronRight, Check, X } from "lucide-react"
 
 import { useWorkflowStore } from "@/workflow/store";
 import { StandardWorkflowNode } from "./base";
-import type { VulkanNodeProps, VulkanNode } from "@/workflow/types/workflow";
+import type { VulkanNodeProps, VulkanNode, VulkanNodeData } from "@/workflow/types/workflow";
 
 interface ConnectionMetadata {
     url?: string;
@@ -40,14 +40,14 @@ interface ConnectionMetadata {
 /**
  * Connection node component - manages connections between workflow elements
  */
-export function ConnectionNode({ id, data, selected, height, width }: VulkanNodeProps) {
+export function ConnectionNode({ id, data, selected, width }: VulkanNodeProps) {
     const { updateNodeData } = useWorkflowStore(
         useShallow((state) => ({
             updateNodeData: state.updateNodeData,
         })),
     );
 
-    const nodeData = data as VulkanNode["data"];
+    const nodeData = data as VulkanNodeData;
     const metadata: ConnectionMetadata = useMemo(
         () => nodeData.metadata || {},
         [nodeData.metadata],

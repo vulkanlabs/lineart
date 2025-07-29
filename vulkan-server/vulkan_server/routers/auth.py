@@ -71,6 +71,9 @@ def disconnect(
     return AuthDisconnectResponse(message="Disconnected successfully")
 
 
+# TODO: This is still broken: the redirects are not working.
+# We may want to just point to a "done" page that says whether or not
+# the auth was successful.
 @router.get("/{service_name}/callback", name="auth_callback")
 def auth_callback(
     service_name: str,

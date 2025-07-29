@@ -62,7 +62,6 @@ export function useServiceAuth(serviceName: string, projectId: string | null) {
                 headers: headers,
             },
         );
-        console.log("User info:", userInfo);
         if (!userInfo.email) {
             throw new Error("User info not found");
         }
