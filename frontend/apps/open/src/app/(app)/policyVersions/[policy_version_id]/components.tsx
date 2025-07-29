@@ -23,6 +23,7 @@ export function RouteLayout({
     const pathname = usePathname();
     const baseUrl = `/policyVersions/${policyVersion.policy_version_id}`;
     const isOnLauncherPage = pathname.endsWith('/launcher');
+    const isOnWorkflowPage = pathname.endsWith('/workflow');
     
     const sections: SidebarSectionProps[] = [
         {
@@ -72,7 +73,7 @@ export function RouteLayout({
                 sections={innerNavbarSections}
                 rightSections={rightSections}
             />
-            <PageLayout sidebar={{ sections, retractable: true }} content={{ scrollable: true }}>
+            <PageLayout sidebar={{ sections, retractable: true }} content={{ scrollable: !isOnWorkflowPage }}>
                 {children}
             </PageLayout>
         </div>

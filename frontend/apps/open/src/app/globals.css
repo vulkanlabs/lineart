@@ -65,5 +65,66 @@
     }
     body {
         @apply bg-background text-foreground;
+        /* Ensure consistent behavior across browsers */
+        overflow: hidden;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: none;
+        height: 100vh;
+        height: 100dvh; /* Dynamic viewport height */
+    }
+}
+
+/* Cross-browser scrollbar improvements */
+@layer utilities {
+    /* Webkit browsers */
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: hsl(var(--muted));
+        border-radius: 4px;
+    }
+    
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: hsl(var(--muted-foreground) / 0.3);
+        border-radius: 4px;
+    }
+    
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: hsl(var(--muted-foreground) / 0.5);
+    }
+    
+    /* Firefox */
+    .scrollbar-thin {
+        scrollbar-width: thin;
+        scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--muted));
+    }
+    
+    /* Cross-browser smooth scrolling */
+    .scroll-smooth {
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch; 
+    }
+    
+    /* Edge fallback */
+    @supports not (display: grid) {
+        .grid {
+            display: -ms-flexbox;
+            display: flex;
+            flex-wrap: wrap;
+        }
+    }
+    
+    .overflow-auto-safe {
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain; 
+    }
+    
+    .overflow-hidden-safe {
+        overflow: hidden;
+        -webkit-overflow-scrolling: touch;
     }
 }
