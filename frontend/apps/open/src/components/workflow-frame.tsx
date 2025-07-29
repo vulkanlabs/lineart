@@ -20,6 +20,7 @@ export type AppWorkflowFrameProps = {
     workflowData: Workflow;
     onNodeClick?: (e: React.MouseEvent, node: any) => void;
     onPaneClick?: (e: React.MouseEvent) => void;
+    projectId?: string;
 };
 
 /**
@@ -30,6 +31,7 @@ export function AppWorkflowFrame({
     workflowData,
     onNodeClick = () => {},
     onPaneClick = () => {},
+    projectId,
 }: AppWorkflowFrameProps) {
     const router = useRouter();
     const apiClient = createWorkflowApiClient();
@@ -38,13 +40,14 @@ export function AppWorkflowFrame({
     // Add empty config if required by WorkflowApiProvider
     return (
         <WorkflowApiProvider client={apiClient} config={{}}>
-            <WorkflowDataProvider autoFetch={true} includeArchived={false}>
+            <WorkflowDataProvider autoFetch={true} includeArchived={false} projectId={projectId}>
                 <WorkflowFrame
                     workflow={workflowData}
                     onNodeClick={onNodeClick}
                     onPaneClick={onPaneClick}
                     toast={handleToast}
                     onRefresh={handleRefresh}
+                    projectId={projectId}
                 />
             </WorkflowDataProvider>
         </WorkflowApiProvider>

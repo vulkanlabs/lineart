@@ -6,8 +6,9 @@
         "skipLibCheck": true,
         "strict": true,
         "forceConsistentCasingInFileNames": true,
-        "composite": false,
-        "incremental": false,
+        "composite": true,
+        "incremental": true,
+        "tsBuildInfoFile": "./dist/.tsBuildInfo",
         "noEmit": false,
         "esModuleInterop": true,
         "module": "esnext",
@@ -27,6 +28,6 @@
             "@vulkanlabs/base/workflow": ["./src/workflow/index.ts"]
         }
     },
-    "include": ["src/**/*"],
+    "include": ["src/**/*", "src/**/*.ts", "src/**/*.tsx"],
     "exclude": ["node_modules", "dist"]
 }

@@ -11,6 +11,7 @@ import {
     BackgroundVariant,
     useReactFlow,
     ControlButton,
+    type OnInit,
 } from "@xyflow/react";
 
 import {
@@ -30,6 +31,7 @@ import {
     getLayoutedNodes,
     type UnlayoutedVulkanNode,
 } from "@/workflow/utils/layout";
+import type { VulkanNode, Edge } from "@/workflow/types/workflow";
 
 /**
  * Props for the workflow canvas component
@@ -84,7 +86,7 @@ export function WorkflowCanvas({
         })),
     );
 
-    const { screenToFlowPosition, fitView, getZoom, setViewport, getViewport } = useReactFlow();
+    const { screenToFlowPosition, fitView, setViewport } = useReactFlow();
 
     const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
     const { isOpen, connectingHandle, toggleDropdown, ref } = useDropdown();
@@ -149,7 +151,7 @@ export function WorkflowCanvas({
     /**
      * Initialize the workflow layout when component mounts
      */
-    const onInit = useCallback((reactFlowInstance) => {
+    const onInit: OnInit<VulkanNode, Edge> = useCallback((_reactFlowInstance) => {
         setTimeout(() => {
             smartFitView();
         }, 0);
@@ -342,7 +344,6 @@ export function WorkflowCanvas({
                 onConnectEnd={onConnectEnd}
                 nodeTypes={nodeTypes}
                 minZoom={0.1}
-                defaultZoom={1}
                 defaultViewport={{ x: 0, y: 0, zoom: 1 }}
                 fitView={false}
                 fitViewOptions={{ includeHiddenNodes: false }}

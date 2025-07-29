@@ -247,8 +247,11 @@ function LaunchRunFormCard({
                                         <Textarea
                                             className="min-h-48 font-mono text-sm resize-none border-2 focus:border-blue-500 transition-colors"
                                             placeholder={placeholderText}
-                                            value={field.value || ""}
-                                            {...field}
+                                            name={field.name}
+                                            onBlur={field.onBlur}
+                                            onChange={field.onChange}
+                                            ref={field.ref}
+                                            value={field.value ?? ""}
                                         />
                                     </FormControl>
                                     <FormDescription className="text-sm">

@@ -12,7 +12,7 @@ import type { TerminateNodeMetadata } from "@/workflow/types/nodes";
 /**
  * Terminate node component - ends workflow execution
  */
-export function TerminateNode({ id, data, selected, height, width }: VulkanNodeProps) {
+export function TerminateNode({ id, data, selected, width }: VulkanNodeProps) {
     const { updateNodeData } = useWorkflowStore(
         useShallow((state) => ({
             updateNodeData: state.updateNodeData,
@@ -55,7 +55,7 @@ export function TerminateNode({ id, data, selected, height, width }: VulkanNodeP
             setUpdateError("");
 
             try {
-                await updateNodeData(id, {
+                updateNodeData(id, {
                     ...data,
                     metadata: { ...data.metadata, return_metadata: metadataString },
                 });
