@@ -15,15 +15,18 @@ const authApi = new AuthApi(apiConfig);
  * Initiates the Google OAuth2 flow.
  * In a real implementation, this would redirect the user to Google's consent screen.
  */
-export async function initiateGoogleOAuth() {
+export async function initiateServiceAuth(serviceName: string, projectId: string | null) {
+    const headers = {
+        "ngrok-skip-browser-warning": "true",
+    };
     try {
         const response = await authApi.startAuth(
             {
-                serviceName: "google",
-                projectId: null,
+                serviceName: serviceName,
+                projectId: projectId,
             },
             {
-                headers: { "ngrok-skip-browser-warning": "true" },
+                headers: headers,
             },
         );
         if (response.authorization_url) {
@@ -42,20 +45,21 @@ export async function initiateGoogleOAuth() {
 /**
  * A hook to manage Google authentication state.
  */
-export function useGoogleAuth() {
+export function useServiceAuth(serviceName: string, projectId: string | null) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState<{ email: string } | null>(null);
+    const headers = {
+        "ngrok-skip-browser-warning": "true",
+    };
 
     const getUserInfo = async () => {
         const userInfo = await authApi.getUserInfo(
             {
-                serviceName: "google",
-                projectId: null,
+                serviceName: serviceName,
+                projectId: projectId,
             },
             {
-                headers: {
-                    "ngrok-skip-browser-warning": "true",
-                },
+                headers: headers,
             },
         );
         console.log("User info:", userInfo);
@@ -80,8 +84,8 @@ export function useGoogleAuth() {
     const disconnect = () => {
         authApi
             .disconnect({
-                serviceName: "google",
-                projectId: null,
+                serviceName: serviceName,
+                projectId: projectId,
             })
             .then(() => {
                 setIsAuthenticated(false);

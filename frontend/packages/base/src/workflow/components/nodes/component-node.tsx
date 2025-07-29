@@ -12,7 +12,7 @@ import { useWorkflowData } from "@/workflow/context";
 import { StandardWorkflowNode } from "./base";
 import type { VulkanNodeProps } from "@/workflow/types/workflow";
 import { Component, WorkflowStatus } from "@vulkanlabs/client-open";
-import { useGoogleAuth, initiateGoogleOAuth } from "@/auth/google-oauth";
+import { useServiceAuth, initiateServiceAuth } from "@/auth/google-oauth";
 
 /**
  * Component details display component
@@ -116,7 +116,7 @@ export function ComponentNode({ id, data, selected, height, width }: VulkanNodeP
 
     const [activeTab, setActiveTab] = useState("configuration");
     const [dynamicHeight, setDynamicHeight] = useState<number | undefined>(height);
-    const { isAuthenticated, user, disconnect } = useGoogleAuth();
+    const { isAuthenticated, user, disconnect } = useServiceAuth("google", null);
 
     const requiresAuth = useMemo(() => {
         if (!selectedComponentDetails) return false;
@@ -179,21 +179,19 @@ export function ComponentNode({ id, data, selected, height, width }: VulkanNodeP
                 {/* Tab switcher */}
                 <div className="flex border-b">
                     <button
-                        className={`px-4 py-2 text-sm font-medium ${
-                            activeTab === "configuration"
+                        className={`px-4 py-2 text-sm font-medium ${activeTab === "configuration"
                                 ? "border-b-2 border-blue-500 text-blue-600"
                                 : "text-gray-500 hover:text-gray-700"
-                        }`}
+                            }`}
                         onClick={() => setActiveTab("configuration")}
                     >
                         Configuration
                     </button>
                     <button
-                        className={`px-4 py-2 text-sm font-medium ${
-                            activeTab === "settings"
+                        className={`px-4 py-2 text-sm font-medium ${activeTab === "settings"
                                 ? "border-b-2 border-blue-500 text-blue-600"
                                 : "text-gray-500 hover:text-gray-700"
-                        }`}
+                            }`}
                         onClick={() => setActiveTab("settings")}
                     >
                         Settings
@@ -263,7 +261,7 @@ export function ComponentNode({ id, data, selected, height, width }: VulkanNodeP
                                     This component requires you to connect a Google account.
                                 </p>
                                 <button
-                                    onClick={initiateGoogleOAuth}
+                                    onClick={() => initiateServiceAuth("google", null)}
                                     className="px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
                                 >
                                     Connect to Google
