@@ -49,8 +49,8 @@ function renderSection(section: InnerNavbarSectionProps) {
         <div className="flex py-4 gap-2 items-center" key={section.key}>
             {section.key && <h1 className="text-base text-wrap font-semibold">{section.key}</h1>}
             {section.element ? <div className="flex items-center">{section.element}</div> : null}
-            {section.value && section.value.length > 0 && (
-                <h1 className="text-base text-wrap font-normal">{section.value}</h1>
+            {section.value !== undefined && (
+                <h1 className="text-base text-wrap font-normal">{section.value || ""}</h1>
             )}
         </div>
     );
