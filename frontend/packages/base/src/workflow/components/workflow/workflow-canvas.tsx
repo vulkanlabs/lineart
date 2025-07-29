@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { SaveIcon, ChevronDownIcon, ChevronUpIcon, LayoutIcon, CopyIcon } from "lucide-react";
+import { SaveIcon, ChevronDownIcon, ChevronUpIcon, LayoutIcon, CopyIcon, FocusIcon } from "lucide-react";
 import { ToolbarIcon } from "./toolbar-icon";
 import {
     ReactFlow,
@@ -83,7 +83,7 @@ export function WorkflowCanvas({
         })),
     );
 
-    const { screenToFlowPosition, fitView } = useReactFlow();
+    const { screenToFlowPosition, fitView, getZoom, setViewport, getViewport } = useReactFlow();
 
     const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
     const { isOpen, connectingHandle, toggleDropdown, ref } = useDropdown();
@@ -91,10 +91,68 @@ export function WorkflowCanvas({
     const clickNode = (e: React.MouseEvent, node: any) => onNodeClick(e, node);
     const clickPane = (e: React.MouseEvent) => onPaneClick(e);
 
+    const smartFitView = useCallback(() => {
+        if (nodes.length === 0) return;
+        
+        // Calculate workflow spatial characteristics
+        const bounds = nodes.reduce((acc, node) => {
+            const x1 = node.position.x;
+            const y1 = node.position.y;
+            const x2 = x1 + (node.width || 450);
+            const y2 = y1 + (node.height || 225);
+            
+            return {
+                minX: Math.min(acc.minX, x1),
+                minY: Math.min(acc.minY, y1),
+                maxX: Math.max(acc.maxX, x2),
+                maxY: Math.max(acc.maxY, y2),
+            };
+        }, { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+        
+        const workflowWidth = bounds.maxX - bounds.minX;
+        const workflowHeight = bounds.maxY - bounds.minY;
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        
+        // Determine complexity based on spatial distribution
+        const isSimple = workflowWidth < screenWidth * 0.7 && workflowHeight < screenHeight * 0.7;
+        const isMedium = workflowWidth < screenWidth * 1.5 && workflowHeight < screenHeight * 1.5;
+        
+        if (isSimple) {
+            fitView({ padding: 0.1, maxZoom: 1.2, minZoom: 0.5 });
+        } else if (isMedium) {
+            fitView({ padding: 0.15, maxZoom: 1.0, minZoom: 0.3 });
+        } else {
+            // too large to fit well, use INPUT-left strategy
+            const inputNode = nodes.find(node => node.type === "INPUT");
+            if (inputNode) {
+                const nodeWidth = inputNode.width || 450;
+                const nodeHeight = inputNode.height || 225;
+                const leftMargin = 150; 
+                
+                const nodeCenterX = inputNode.position.x + nodeWidth / 2;
+                const nodeCenterY = inputNode.position.y + nodeHeight / 2;
+                
+                setViewport({
+                    x: -nodeCenterX + leftMargin + nodeWidth / 2,
+                    y: -nodeCenterY + window.innerHeight / 2,
+                    zoom: 0.6
+                });
+            } else {
+                // Fallback: fit all but with limited zoom to keep nodes readable
+                fitView({ padding: 0.2, maxZoom: 0.6, minZoom: 0.2 });
+            }
+        }
+    }, [nodes, fitView, setViewport]);
+
     /**
      * Initialize the workflow layout when component mounts
      */
-    const onInit = useCallback(() => {
+    const onInit = useCallback((reactFlowInstance) => {
+        setTimeout(() => {
+            smartFitView();
+        }, 0);
+        
         if (!workflow.workflow?.ui_metadata) {
             const unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => ({
                 ...node,
@@ -108,14 +166,18 @@ export function WorkflowCanvas({
                     position: nodesMap[node.id].position,
                 }));
                 setNodes(newNodes);
-                // Fit the view after nodes are positioned
-                setTimeout(() => fitView(), 0);
+                // Apply smart fit view after nodes are positioned
+                setTimeout(() => {
+                    smartFitView();
+                }, 100);
             });
         } else {
-            // Also fit view when ui_metadata exists
-            setTimeout(() => fitView(), 0);
+            // For existing workflows, use smart fit view for consistent UX
+            setTimeout(() => {
+                smartFitView();
+            }, 100);
         }
-    }, [workflow, nodes, edges, setNodes, fitView]);
+    }, [workflow, nodes, edges, setNodes, smartFitView]);
 
     /**
      * Handle connection end events for node creation dropdown
@@ -162,7 +224,7 @@ export function WorkflowCanvas({
     }, [nodes]);
 
     /**
-     * Apply automatic layout to all nodes
+     * Apply automatic layout to all nodes and fit view
      */
     const autoLayoutNodes = useCallback(async () => {
         const unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => ({
@@ -182,11 +244,13 @@ export function WorkflowCanvas({
                 position: nodesMap[node.id].position,
             }));
             setNodes(newNodes);
-            setTimeout(() => fitView(), 0);
+            setTimeout(() => {
+                smartFitView();
+            }, 100);
         } catch (error) {
             console.error("Error applying auto-layout:", error);
         }
-    }, [nodes, edges, setNodes, fitView]);
+    }, [nodes, edges, setNodes, smartFitView]);
 
     /**
      * Copy workflow specification to clipboard
@@ -280,6 +344,10 @@ export function WorkflowCanvas({
                 onConnectEnd={onConnectEnd}
                 nodeTypes={nodeTypes}
                 minZoom={0.1}
+                defaultZoom={1}
+                defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+                fitView={false}
+                fitViewOptions={{ includeHiddenNodes: false }}
                 proOptions={{ hideAttribution: true }}
             >
                 <Background
@@ -289,9 +357,12 @@ export function WorkflowCanvas({
                     gap={30}
                     variant={BackgroundVariant.Dots}
                 />
-                <Controls showZoom={false} showInteractive={false} orientation="horizontal">
+                <Controls showZoom={false} showInteractive={false} showFitView={false} orientation="horizontal">
                     <ControlButton onClick={saveWorkflow} title="Save">
                         <ToolbarIcon icon={SaveIcon} />
+                    </ControlButton>
+                    <ControlButton onClick={smartFitView} title="Smart Fit View">
+                        <ToolbarIcon icon={FocusIcon} />
                     </ControlButton>
                     <ControlButton 
                         onClick={toggleAllNodesCollapsed}
