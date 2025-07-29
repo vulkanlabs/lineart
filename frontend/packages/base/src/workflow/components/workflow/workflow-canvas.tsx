@@ -45,6 +45,7 @@ export type WorkflowCanvasProps = {
     nodeTypes: Record<string, React.ComponentType<any>>;
     toast?: (message: string, options?: any) => void;
     onRefresh?: () => void;
+    projectId?: string;
 };
 
 /**
@@ -57,6 +58,7 @@ export function WorkflowCanvas({
     nodeTypes,
     toast = console.log,
     onRefresh = () => {},
+    projectId,
 }: WorkflowCanvasProps) {
     const api = useWorkflowApi();
 
@@ -229,7 +231,7 @@ export function WorkflowCanvas({
                 ]),
             );
 
-            const result = await api.saveWorkflowSpec(workflow, spec, uiMetadata);
+            const result = await api.saveWorkflowSpec(workflow, spec, uiMetadata, projectId);
 
             if (result.success) {
                 toast("Workflow saved", {

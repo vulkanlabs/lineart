@@ -1,7 +1,11 @@
 {
   "name": "@vulkanlabs/base",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
+  "files": [
+    "dist",
+    "tailwind.config.js"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
