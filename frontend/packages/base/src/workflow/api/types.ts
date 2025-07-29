@@ -38,6 +38,7 @@ export interface WorkflowApiClient {
         workflow: Workflow,
         spec: PolicyDefinitionDictInput,
         uiMetadata: { [key: string]: UIMetadata },
+        projectId?: string,
     ): Promise<SaveWorkflowResult>;
 
     /**
@@ -46,12 +47,13 @@ export interface WorkflowApiClient {
     fetchPolicyVersions(
         policyId?: string | null,
         includeArchived?: boolean,
+        projectId?: string,
     ): Promise<PolicyVersion[]>;
 
     /**
      * Fetch available data sources from the server
      */
-    fetchDataSources(): Promise<DataSource[]>;
+    fetchDataSources(projectId?: string): Promise<DataSource[]>;
 }
 
 /**
