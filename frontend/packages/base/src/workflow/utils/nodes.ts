@@ -16,7 +16,7 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
         name: "input_node",
         width: 450,
         height: 225,
-        icon: undefined, // INPUT nodes don't have icons
+        icon: "INPUT",
     },
     DECISION: {
         id: "DECISION",
