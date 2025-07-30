@@ -54,6 +54,11 @@ export interface WorkflowApiClient {
      * Fetch available data sources from the server
      */
     fetchDataSources(projectId?: string): Promise<DataSource[]>;
+
+    /**
+     * Fetch available components from the server
+     */
+    fetchComponents(includeArchived?: boolean, projectId?: string): Promise<Component[]>;
 }
 
 /**

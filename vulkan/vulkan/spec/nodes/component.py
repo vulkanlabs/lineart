@@ -6,11 +6,7 @@ from vulkan.spec.nodes.metadata import ComponentNodeMetadata
 
 
 class ComponentNode(Node):
-    """A node that represents a component.
-    Component nodes are used to "invoke" components from within workflows.
-    They're used to insert additional metadata for the component so that it
-    can be appropriately connected to the rest of the workflow.
-    """
+    """A node that represents a component."""
 
     def __init__(
         self,
@@ -19,7 +15,32 @@ class ComponentNode(Node):
         definition: dict | None = None,
         description: str | None = None,
         dependencies: dict[str, Dependency] | None = None,
+        parameters: dict[str, str] | None = None,
     ):
+        """A node that represents a component.
+
+        Component nodes are used to "invoke" components from within workflows.
+        They're used to insert additional metadata for the component so that it
+        can be appropriately connected to the rest of the workflow.
+
+        Parameters
+        ----------
+        name : str
+            The name of the node.
+        component_id : str
+            The ID of the component to invoke.
+        definition : dict, optional
+            The definition of the component to invoke.
+        description : str, optional
+            A description of the node. Used for documentation purposes and
+            shown in the user interface.
+        dependencies : dict, optional
+            The dependencies of the node.
+            See `Dependency` for more information.
+        parameters : dict, optional
+            A dictionary of runtime parameters to be passed to the component.
+            These parameters can be used to customize the component invocation.
+        """
         super().__init__(
             name=name,
             description=description,
@@ -28,11 +49,13 @@ class ComponentNode(Node):
         )
         self.component_id = component_id
         self.definition = definition
+        self.parameters = parameters or {}
 
     def node_definition(self) -> NodeDefinition:
         metadata = ComponentNodeMetadata(
             component_id=self.component_id,
             definition=self.definition,
+            parameters=self.parameters,
         )
         return NodeDefinition(
             name=self.name,
@@ -56,4 +79,5 @@ class ComponentNode(Node):
             dependencies=node.dependencies,
             component_id=node.metadata.component_id,
             definition=node.metadata.definition,
+            parameters=node.metadata.parameters,
         )

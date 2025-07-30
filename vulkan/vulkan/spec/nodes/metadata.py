@@ -30,6 +30,7 @@ class BranchNodeMetadata(BaseNodeMetadata):
 
 class TransformNodeMetadata(BaseNodeMetadata):
     source_code: str
+    parameters: dict[str, str] | None = None
 
 
 class TerminateNodeMetadata(BaseNodeMetadata):
@@ -76,3 +77,4 @@ class DecisionNodeMetadata(BaseNodeMetadata):
 class ComponentNodeMetadata(BaseNodeMetadata):
     component_id: str
     definition: dict | None = None
+    parameters: dict[str, str] | None = None

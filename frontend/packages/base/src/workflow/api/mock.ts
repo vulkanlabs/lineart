@@ -1,4 +1,9 @@
-import type { PolicyVersion, PolicyDefinitionDictInput, UIMetadata } from "@vulkanlabs/client-open";
+import type {
+    PolicyVersion,
+    PolicyDefinitionDictInput,
+    UIMetadata,
+    Component,
+} from "@vulkanlabs/client-open";
 
 import type { WorkflowApiClient, SaveWorkflowResult, DataSource } from "./types";
 
@@ -19,6 +24,10 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
     constructor(options: { delay?: number; shouldFail?: boolean } = {}) {
         this.delay = options.delay ?? 1000;
         this.shouldFail = options.shouldFail ?? false;
+    }
+
+    async fetchComponents(): Promise<Component[]> {
+        return [];
     }
 
     /**

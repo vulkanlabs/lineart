@@ -50,7 +50,8 @@ export type VulkanNode =
     | Node<VulkanNodeData, "BRANCH">
     | Node<VulkanNodeData, "TERMINATE">
     | Node<VulkanNodeData, "POLICY">
-    | Node<VulkanNodeData, "DECISION">;
+    | Node<VulkanNodeData, "DECISION">
+    | Node<VulkanNodeData, "COMPONENT">;
 
 /**
  * Extract node type from VulkanNode
