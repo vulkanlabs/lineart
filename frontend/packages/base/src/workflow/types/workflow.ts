@@ -131,6 +131,6 @@ function AsDependencyDict(dependency: NodeDependency): DependencyDict {
         output: dependency.output || null,
         key: dependency.key || null,
         hierarchy: null,
-        expression: null,
+        // expression: null, // TODO: Commented out due to CI/CD TypeScript errors - needs proper type definition
     };
 }
