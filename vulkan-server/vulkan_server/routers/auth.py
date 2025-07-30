@@ -107,15 +107,13 @@ def auth_callback(
         redirect_uri = str(request.url_for("auth_callback", service_name=service_name))
 
         # Complete the OAuth flow
-        tokens = service.complete_oauth_flow(
+        _ = service.complete_oauth_flow(
             service_name=service_name,
             authorization_code=code,
             state=state,
             project_id=project_id,
             redirect_uri=redirect_uri,
         )
-
-        service.logger.system.info(f"Tokens: {tokens}")
 
         # Notify the frontend that the token has been created.
         return RedirectResponse(

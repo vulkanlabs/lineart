@@ -139,9 +139,6 @@ class CredentialService(BaseService):
         if service_name.lower() != "google":
             raise NotImplementedError(f"Service '{service_name}' is not supported.")
 
-        self.logger.system.info(
-            f"Getting user info for project_id {project_id}: {SESSION_CACHE}"
-        )
         msg = f"Failed to retrieve tokens for project_id {project_id}"
         project_id_cache = SESSION_CACHE.get(project_id)
         if project_id_cache is None:
