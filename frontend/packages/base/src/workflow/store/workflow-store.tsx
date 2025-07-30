@@ -102,7 +102,14 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
         },
 
         onNodesChange: async (changes) => {
-            const nextNodes = applyNodeChanges(changes, get().nodes);
+            const filteredChanges = changes.filter((change) => {
+                if (change.type === 'remove') {
+                    const node = get().nodes.find(n => n.id === change.id);
+                    return node?.type !== 'INPUT';
+                }
+                return true;
+            });
+            const nextNodes = applyNodeChanges(filteredChanges, get().nodes);
             set({ nodes: nextNodes });
         },
 
@@ -129,7 +136,12 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             set({ nodes: nextNodes });
         },
 
-        removeNode: (nodeId) => set({ nodes: get().nodes.filter((node) => node.id !== nodeId) }),
+        removeNode: (nodeId) => {
+            const node = get().nodes.find(n => n.id === nodeId);
+            if (node?.type === 'INPUT') return;
+            
+            set({ nodes: get().nodes.filter((node) => node.id !== nodeId) });
+        },
 
         addNodeByType: (type, position) => {
             const existingNodes = get().nodes;
