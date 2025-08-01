@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 export interface AssetOption {
     value: string;
     label: string;
+    icon?: string;
 }
 
 interface AssetComboboxProps {
@@ -63,7 +64,7 @@ export function AssetCombobox({
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[200px] p-0">
+            <PopoverContent className="w-full p-0">
                 <Command>
                     <CommandInput
                         placeholder={searchPlaceholder}
@@ -88,6 +89,13 @@ export function AssetCombobox({
                                         value === option.value ? "opacity-100" : "opacity-0",
                                     )}
                                 />
+                                {option?.icon ? (
+                                    <img
+                                        src={option.icon}
+                                        alt=""
+                                        className="mr-2 h-4 w-4 object-contain"
+                                    />
+                                ) : null}
                                 {option.label}
                             </CommandItem>
                         ))}

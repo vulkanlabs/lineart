@@ -38,6 +38,7 @@ def test_transform_node():
             }
         },
         "metadata": {
+            "parameters": None,
             "source_code": """def example_function(inputs):
     return inputs
 """,
@@ -117,6 +118,10 @@ def test_component_node():
         "node_type": NodeType.COMPONENT.value,
         "description": "Test Component Node",
         "dependencies": {},
-        "metadata": {"component_id": "test_component", "definition": None},
+        "metadata": {
+            "component_id": "test_component",
+            "definition": None,
+            "parameters": {},
+        },
     }
     assert node.to_dict() == expected_spec

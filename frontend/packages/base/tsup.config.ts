@@ -61,6 +61,14 @@ export default defineConfig({
                 }
             }
         }
+
+        // Copy styles to dist
+        const stylesDir = "dist/styles";
+        if (!fs.existsSync(stylesDir)) {
+            fs.mkdirSync(stylesDir, { recursive: true });
+        }
+        fs.copyFileSync("src/styles/globals.css", "dist/styles/globals.css");
+
         console.log("Build completed successfully!");
     },
 });

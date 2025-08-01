@@ -7,6 +7,7 @@ import { TerminateNode } from "./terminate-node";
 import { PolicyNode } from "./policy-node";
 import { DataInputNode } from "./data-input-node";
 import { ConnectionNode } from "./connection-node";
+import { ComponentNode } from "./component-node";
 
 // Re-export all node components
 export { InputNode } from "./input-node";
@@ -31,4 +32,5 @@ export const nodeTypes = {
     BRANCH: BranchNode,
     TERMINATE: TerminateNode,
     POLICY: PolicyNode,
+    COMPONENT: ComponentNode,
 };

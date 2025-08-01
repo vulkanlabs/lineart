@@ -43,6 +43,7 @@ app.include_router(routers.data.broker)
 app.include_router(routers.policies.router)
 app.include_router(routers.policy_versions.router)
 app.include_router(routers.runs.router)
+app.include_router(routers.auth.router)
 
 
 logger = init_logger("vulkan_server")

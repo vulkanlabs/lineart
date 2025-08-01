@@ -5,6 +5,7 @@ services:
     env_file:
       - config/active/app.env
       - config/active/.env
+      - config/active/gcp.env
     ports:
       - "6001:6001"
     depends_on:

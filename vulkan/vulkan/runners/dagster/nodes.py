@@ -142,12 +142,15 @@ class DagsterDataInput(DataInputNode, DagsterNode):
             yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 
     def _get_configured_params(self, inputs):
+        if self.parameters is None:
+            return {}
+
         configured_params = {}
-        try:
-            for k, v in self.parameters.items():
+        for k, v in self.parameters.items():
+            try:
                 configured_params[k] = resolve_template(v, inputs, env_variables={})
-        except Exception:
-            raise ValueError(f"Invalid parameter configuration: {v}")
+            except Exception:
+                raise ValueError(f"Invalid parameter configuration: {v}")
         return configured_params
 
     @classmethod
@@ -236,11 +239,13 @@ class DagsterPolicy(PolicyDefinitionNode, DagsterNode):
 class DagsterTransformNodeMixin(DagsterNode):
     def op(self) -> OpDefinition:
         def fn(context, inputs):
-            inputs = _resolved_inputs(inputs, self.dependencies)
             start_time = time.time()
+            inputs = _resolved_inputs(inputs, self.dependencies)
+            configured_params = self._get_configured_params(inputs)
             error = None
             try:
-                result = self._func(context, **inputs)
+                fn_params = {**inputs, **configured_params}
+                result = self._func(context, **fn_params)
             except Exception as e:
                 error = ("\n").join(format_exception_only(type(e), e))
                 raise UserCodeException(self.name) from e
@@ -271,6 +276,18 @@ class DagsterTransformNodeMixin(DagsterNode):
         )
 
         return node_op
+
+    def _get_configured_params(self, inputs):
+        if self.parameters is None:
+            return {}
+
+        configured_params = {}
+        for k, v in self.parameters.items():
+            try:
+                configured_params[k] = resolve_template(v, inputs, env_variables={})
+            except Exception:
+                raise ValueError(f"Invalid parameter configuration: {v}")
+        return configured_params
 
 
 def _with_vulkan_context(func: callable) -> callable:
@@ -304,12 +321,14 @@ class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
         description: str,
         func: Callable,
         dependencies: dict[str, Any],
+        parameters: dict[str, str] | None = None,
     ):
         super().__init__(
             name=name,
             description=description,
             func=func,
             dependencies=dependencies,
+            parameters=parameters,
         )
         self._func = _with_vulkan_context(self.func)
 
@@ -320,6 +339,7 @@ class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
             description=node.description,
             func=node.func,
             dependencies=node.dependencies,
+            parameters=node.parameters,
         )
 
 

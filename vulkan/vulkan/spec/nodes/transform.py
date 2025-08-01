@@ -26,6 +26,7 @@ class TransformNode(Node):
         dependencies: dict[str, Any],
         description: str | None = None,
         hierarchy: list[str] | None = None,
+        parameters: dict[str, str] | None = None,
     ):
         """Evaluate an arbitrary function.
 
@@ -70,6 +71,7 @@ class TransformNode(Node):
         if not callable(func):
             raise TypeError(f"Expected callable, got ({type(func)})")
         self.func = func
+        self.parameters = parameters
 
     def node_definition(self) -> NodeDefinition:
         # Get the text of source code for the user function
@@ -80,7 +82,10 @@ class TransformNode(Node):
             description=self.description,
             node_type=self.type.value,
             dependencies=self.dependencies,
-            metadata=TransformNodeMetadata(source_code=source_code),
+            metadata=TransformNodeMetadata(
+                source_code=source_code,
+                parameters=self.parameters,
+            ),
             hierarchy=self.hierarchy,
         )
 
@@ -107,4 +112,5 @@ class TransformNode(Node):
             dependencies=definition.dependencies,
             func=udf_instance,
             hierarchy=definition.hierarchy,
+            parameters=metadata.parameters,
         )

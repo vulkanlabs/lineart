@@ -81,6 +81,7 @@ class TerminateNode(Node):
             self._validate_json_metadata(return_metadata)
 
         self.return_metadata = return_metadata
+        self.parameters = None
 
     def _validate_json_metadata(self, json_metadata: str) -> None:
         """Validate JSON syntax and template expressions."""

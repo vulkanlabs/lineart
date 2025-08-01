@@ -1,3 +1,4 @@
+import { PolicyDefinitionDictInput } from "@vulkanlabs/client-open";
 import type { GenericNodeDefinition, NodeDependency } from "./workflow";
 
 // Re-export commonly used types
@@ -63,6 +64,12 @@ export type DecisionNodeMetadata = {
     conditions: DecisionCondition[];
 };
 
+export type ComponentNodeMetadata = {
+    component_id: string;
+    definition: PolicyDefinitionDictInput;
+    parameters: { [key: string]: string };
+};
+
 /**
  * Union type for all node metadata types
  */
@@ -73,7 +80,8 @@ export type NodeMetadata =
     | TransformNodeMetadata
     | PolicyDefinitionNodeMetadata
     | DecisionNodeMetadata
-    | InputNodeMetadata;
+    | InputNodeMetadata
+    | ComponentNodeMetadata;
 
 /**
  * Complete node definition with typed metadata
