@@ -108,7 +108,7 @@ export default function PolicyMetrics({
     ];
 
     return (
-        <div className="overflow-scroll flex flex-col gap-4">
+        <div className="overflow-hidden flex flex-col gap-4">
             <div className="flex flex-col gap-4 pb-4">
                 <h1 className="text-lg font-semibold md:text-2xl">Metrics</h1>
                 <div className="flex gap-4">
@@ -120,9 +120,9 @@ export default function PolicyMetrics({
                     />
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 w-[90%] px-16 overflow-y-scroll">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full px-4 lg:px-8">
                 {graphDefinitions.map((graphDefinition) => (
-                    <div key={graphDefinition.name} className="col-span-1 px-8 pb-8">
+                    <div key={graphDefinition.name} className="col-span-1 px-2 lg:px-4 pb-8">
                         <h3 className="text-lg">{graphDefinition.name}</h3>
                         <div>
                             <graphDefinition.component chartData={graphDefinition.data} />

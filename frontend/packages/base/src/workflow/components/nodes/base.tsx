@@ -185,7 +185,11 @@ function BaseWorkflowNodeCore({
                             </div>
                         )}
                         <NodeHeaderActions>
-                            <NodeHeaderAction onClick={openPanel} label="Open Panel">
+                            <NodeHeaderAction 
+                                onClick={openPanel} 
+                                label="Open Panel"
+                                style={{ display: 'none' }}
+                            >
                                 <PanelRight />
                             </NodeHeaderAction>
                             <NodeHeaderAction onClick={toggleDetails} label="Toggle Details">
@@ -196,7 +200,7 @@ function BaseWorkflowNodeCore({
                                 )}
                             </NodeHeaderAction>
                             {headerActions}
-                            <NodeHeaderDeleteAction />
+                            {!isInput && <NodeHeaderDeleteAction />}
                         </NodeHeaderActions>
                     </NodeHeader>
                     {isExpanded && <div className="flex-grow min-h-0">{children}</div>}
@@ -353,7 +357,7 @@ export function InputWorkflowNode({
 }
 
 /**
- * Terminate workflow node (not playable, no footer, output only)
+ * Terminate workflow node (not playable, output only, supports footer)
  */
 export function TerminateWorkflowNode({
     id,
@@ -362,7 +366,8 @@ export function TerminateWorkflowNode({
     height,
     selected,
     children,
-}: TerminateWorkflowNodeProps) {
+    footerContent,
+}: TerminateWorkflowNodeProps & { footerContent?: React.ReactNode }) {
     return (
         <BaseWorkflowNodeCore
             id={id}
@@ -372,6 +377,7 @@ export function TerminateWorkflowNode({
             selected={selected}
             isOutput={true}
             headerActions={null}
+            footerContent={footerContent}
         >
             {children}
         </BaseWorkflowNodeCore>

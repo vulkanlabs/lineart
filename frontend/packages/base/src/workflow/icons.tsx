@@ -1,4 +1,4 @@
-import { Link, ArrowRightFromLine, Split, ArrowDown01, Code2, Network, Puzzle } from "lucide-react";
+import { Link, ArrowRightFromLine, Split, ArrowDown01, Code2, Network, FormInput, Puzzle } from "lucide-react";
 
 /**
  * Mapping of node types to their corresponding Lucide React icons
@@ -8,6 +8,7 @@ export const iconMapping = {
     CONNECTION: Link,
     TRANSFORM: Code2,
     BRANCH: Split,
+    INPUT: FormInput,
     DATA_INPUT: ArrowDown01,
     TERMINATE: ArrowRightFromLine,
     POLICY: Network,

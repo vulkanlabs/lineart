@@ -46,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     ];
 
     return (
-        <div className="flex flex-col w-screen h-screen max-h-screen">
+        <div className="flex flex-col w-full h-screen max-h-screen overflow-hidden-safe">
             <header className="sticky flex h-16 min-h-16 items-center gap-4 border-b-2 bg-background px-4 md:px-6">
                 <Sheet open={open} onOpenChange={setOpen}>
                     <SheetTrigger asChild>
@@ -110,7 +110,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </div>
                 </nav>
             </header>
-            <div className="w-full h-full overflow-scroll">{children}</div>
+            <div className="w-full h-full overflow-hidden-safe">{children}</div>
         </div>
     );
 }
