@@ -357,7 +357,7 @@ export function InputWorkflowNode({
 }
 
 /**
- * Terminate workflow node (not playable, no footer, output only)
+ * Terminate workflow node (not playable, output only, supports footer)
  */
 export function TerminateWorkflowNode({
     id,
@@ -366,7 +366,8 @@ export function TerminateWorkflowNode({
     height,
     selected,
     children,
-}: TerminateWorkflowNodeProps) {
+    footerContent,
+}: TerminateWorkflowNodeProps & { footerContent?: React.ReactNode }) {
     return (
         <BaseWorkflowNodeCore
             id={id}
@@ -376,6 +377,7 @@ export function TerminateWorkflowNode({
             selected={selected}
             isOutput={true}
             headerActions={null}
+            footerContent={footerContent}
         >
             {children}
         </BaseWorkflowNodeCore>
