@@ -11,7 +11,7 @@ class ComponentNode(Node):
     def __init__(
         self,
         name: str,
-        component_id: str,
+        component_name: str,
         definition: dict | None = None,
         description: str | None = None,
         dependencies: dict[str, Dependency] | None = None,
@@ -47,13 +47,13 @@ class ComponentNode(Node):
             typ=NodeType.COMPONENT,
             dependencies=dependencies,
         )
-        self.component_id = component_id
+        self.component_name = component_name
         self.definition = definition
         self.parameters = parameters or {}
 
     def node_definition(self) -> NodeDefinition:
         metadata = ComponentNodeMetadata(
-            component_id=self.component_id,
+            component_name=self.component_name,
             definition=self.definition,
             parameters=self.parameters,
         )
@@ -70,14 +70,14 @@ class ComponentNode(Node):
         node = NodeDefinition.from_dict(spec)
         if node.node_type != NodeType.COMPONENT.value:
             raise ValueError(f"Expected NodeType.COMPONENT, got {node.node_type}")
-        if node.metadata is None or node.metadata.component_id is None:
+        if node.metadata is None or node.metadata.component_name is None:
             raise ValueError("Missing component metadata")
 
         return cls(
             name=node.name,
             description=node.description,
             dependencies=node.dependencies,
-            component_id=node.metadata.component_id,
+            component_name=node.metadata.component_name,
             definition=node.metadata.definition,
             parameters=node.metadata.parameters,
         )

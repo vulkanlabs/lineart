@@ -5,14 +5,15 @@ Handles business logic for component operations.
 """
 
 from typing import List
-from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from vulkan_engine import schemas
 from vulkan_engine.db import Component
 from vulkan_engine.events import VulkanEvent
-from vulkan_engine.exceptions import WorkflowNotFoundException
+from vulkan_engine.exceptions import (
+    WorkflowNotFoundException,
+)
 from vulkan_engine.loaders.component import ComponentLoader
 from vulkan_engine.logger import VulkanLogger
 from vulkan_engine.services.base import BaseService
@@ -44,10 +45,12 @@ class ComponentService(BaseService):
         )
         return components
 
-    def get_component(self, component_id: str, project_id: str) -> schemas.Component:
-        """Get a component by ID."""
+    def get_component(
+        self, component_name: str, project_id: str = None
+    ) -> schemas.Component:
+        """Get a component by name."""
         component = self.component_loader.get_component(
-            component_id=component_id,
+            name=component_name,
             project_id=project_id,
         )
         return component
@@ -90,13 +93,13 @@ class ComponentService(BaseService):
 
     def update_component(
         self,
-        component_id: UUID,
+        component_name: str,
         config: schemas.ComponentBase,
         project_id: str | None = None,
     ) -> schemas.Component:
         """Update a component."""
-        component = self.component_loader.get_component(
-            component_id=str(component_id),
+        component = self.get_component(
+            component_name=component_name,
             project_id=project_id,
         )
 
@@ -127,12 +130,12 @@ class ComponentService(BaseService):
 
     def delete_component(
         self,
-        component_id: UUID,
+        component_name: str,
         project_id: str | None = None,
     ) -> None:
         """Delete (archive) a component."""
-        component = self.component_loader.get_component(
-            component_id=str(component_id),
+        component = self.get_component(
+            component_name=component_name,
             project_id=project_id,
         )
 
@@ -145,4 +148,7 @@ class ComponentService(BaseService):
 
         component.archived = True
         self.db.commit()
-        self._log_event(VulkanEvent.COMPONENT_DELETED, component_id=component_id)
+        self._log_event(
+            VulkanEvent.COMPONENT_DELETED,
+            component_id=component.component_id,
+        )

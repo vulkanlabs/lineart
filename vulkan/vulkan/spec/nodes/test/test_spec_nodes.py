@@ -104,7 +104,7 @@ def test_component_node():
     node = ComponentNode(
         name="test",
         description="Test Component Node",
-        component_id="test_component",
+        component_name="test_component",
     )
 
     assert node.node_dependencies() == []

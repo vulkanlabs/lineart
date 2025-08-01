@@ -3,8 +3,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
-from vulkan.spec.dependency import Dependency
-
 
 class BaseNodeMetadata(BaseModel):
     def to_dict(
@@ -75,6 +73,6 @@ class DecisionNodeMetadata(BaseNodeMetadata):
 
 
 class ComponentNodeMetadata(BaseNodeMetadata):
-    component_id: str
+    component_name: str
     definition: dict | None = None
     parameters: dict[str, str] | None = None
