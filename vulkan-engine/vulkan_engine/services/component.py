@@ -65,7 +65,10 @@ class ComponentService(BaseService):
         # Fill in defaults for non-nullable fields
         requirements = config.requirements or []
         variables = config.variables or []
-        spec = config.spec or {"nodes": [], "input_schema": {}}
+        spec = self._convert_pydantic_to_dict(config.spec) or {
+            "nodes": [],
+            "input_schema": {},
+        }
 
         # Create workflow for the component
         workflow = self.workflow_service.create_workflow(

@@ -25,7 +25,7 @@ from vulkan.runners.dagster.io_manager import (
     METADATA_OUTPUT_KEY,
     PUBLISH_IO_MANAGER_KEY,
 )
-from vulkan.runners.dagster.names import normalize_node_id
+from vulkan.runners.dagster.names import normalize_dependencies, normalize_node_id
 from vulkan.runners.dagster.resources import (
     DATA_CLIENT_KEY,
     RUN_CLIENT_KEY,
@@ -334,11 +334,14 @@ class DagsterTransform(TransformNode, DagsterTransformNodeMixin):
 
     @classmethod
     def from_spec(cls, node: TransformNode):
+        # This is only necessary here, as TransformNodes are the only
+        # type that can depend on internal nodes.
+        deps = normalize_dependencies(node.dependencies)
         return cls(
             name=normalize_node_id(node.id),
             description=node.description,
             func=node.func,
-            dependencies=node.dependencies,
+            dependencies=deps,
             parameters=node.parameters,
         )
 

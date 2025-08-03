@@ -1,5 +1,3 @@
-from vulkan_engine.exceptions import ComponentNotFoundException
-
 from vulkan.cli.context import Context
 
 
@@ -16,7 +14,6 @@ def create(
         json={
             "name": name,
             "requirements": requirements,
-            "spec": spec,
         },
     )
 
@@ -25,8 +22,14 @@ def create(
 
     component = response.json()
     component_id = component["component_id"]
-    ctx.logger.debug(f"Created component {name} with ID {component_id}")
-    return component
+    ctx.logger.info(f"Created component {name} with ID {component_id}")
+
+    return _update_component(
+        ctx,
+        name,
+        spec=spec,
+        requirements=requirements,
+    )
 
 
 def update(
@@ -35,7 +38,7 @@ def update(
     spec: dict,
     requirements: list[str],
 ):
-    return _update_policy_version(
+    return _update_component(
         ctx,
         name,
         spec,
@@ -46,7 +49,7 @@ def update(
 def get(ctx: Context, name: str):
     response = ctx.session.get(f"{ctx.server_url}/components/{name}")
     if response.status_code == 404:
-        raise ComponentNotFoundException(f"Component {name} not found")
+        raise ValueError(f"Component {name} not found")
     if response.status_code != 200:
         raise ValueError(f"Failed to get component: {response.content}")
     return response.json()
@@ -62,7 +65,7 @@ def delete(
     ctx.logger.info(f"Deleted component {name}")
 
 
-def _update_policy_version(
+def _update_component(
     ctx: Context,
     name: str,
     spec: dict,
@@ -90,7 +93,7 @@ def _update_policy_version(
     return component
 
 
-def _update_policy_version(
+def _update_component(
     ctx: Context,
     name: str,
     spec: dict,
@@ -128,5 +131,5 @@ def create_or_update(
     try:
         get(ctx, name)
         return update(ctx, name, spec, requirements)
-    except ComponentNotFoundException:
+    except ValueError:
         return create(ctx, name, spec, requirements)

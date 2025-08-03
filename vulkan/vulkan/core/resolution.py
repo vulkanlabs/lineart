@@ -1,7 +1,13 @@
 from copy import deepcopy
 
-from vulkan.spec.dependency import Dependency
-from vulkan.spec.nodes import InputNode, Node, NodeType, TransformNode
+from vulkan.spec.dependency import INPUT_NODE, Dependency
+from vulkan.spec.nodes import (
+    InputNode,
+    Node,
+    NodeType,
+    TerminateNode,
+    TransformNode,
+)
 from vulkan.spec.policy import PolicyDefinition
 
 
@@ -21,10 +27,6 @@ def resolve(
         return nodes
 
     node_map = {node.id: node for node in nodes if node.type != NodeType.COMPONENT}
-    resolved = []
-    replacement_dependencies = {}
-
-    component_node_ids = set(node.id for node in component_nodes)
 
     # For each component, we resolve the component and then insert all
     # its nodes into the flattened node list.
@@ -35,59 +37,33 @@ def resolve(
 
         hierarchy = (node.hierarchy or []) + [node.name]
         component = PolicyDefinition.from_dict(node.definition, hierarchy=hierarchy)
+        component_nodes = {n.id: n for n in component.nodes}
 
         # Inject the component's dependencies into the input node
         # and replace the input node with an identity transform node.
         input_node = component.input_node.with_dependencies(node.dependencies)
-        input_node = _as_identity_transform_node(input_node, node.parameters)
-        component.input_node = input_node
+        input_node = _identity_transform_from_input_node(input_node, node.parameters)
+        component_nodes[input_node.id] = input_node
+
+        # Replace the leaves (terminates) with identity transform nodes.
+        leaves = {
+            leaf.id: _identity_transform_from_terminate_node(leaf)
+            for leaf in component.leaves.values()
+        }
+        component_nodes.update(leaves)
 
         # Join workflow outputs into an identity transform node
         output_joiner = _make_output_joiner(
-            subpolicy_name=node.id,
-            leaves=component.leaves,
-            hierarchy=hierarchy,
+            subpolicy_name=node.name,
+            leaves=leaves,
+            hierarchy=node.hierarchy,
         )
-        component.nodes.append(output_joiner)
-        replacement_dependencies[node.id] = Dependency(
-            output_joiner.name,
-            hierarchy=hierarchy,
-        )
+        component_nodes[output_joiner.id] = output_joiner
 
         # Add nodes in the component to the node map
-        node_map[component.input_node.id] = input_node
-        for n in component.nodes:
-            node_map[n.id] = n
+        node_map.update(component_nodes)
 
-    for _node in node_map.values():
-        # If a node doesn't depend on any component, it's already resolved.
-        deps = set((n.id for n in _node.dependencies.values()))
-        intersection = set(component_node_ids) & deps
-        if len(intersection) == 0:
-            resolved.append(_node)
-            continue
-
-        if _node.type == NodeType.COMPONENT:
-            # Components aren't handled in the actual computation.
-            # They're not added to the resolved list.
-            continue
-
-        # Avoid modifying the original node
-        node = deepcopy(_node)
-        original_dependencies = deepcopy(node.dependencies)
-
-        # Reassign dependencies on nested workflows.
-        # If a node depends on a component, it'll instead depend
-        # on the output joiner of that component.
-        for dep_name, dependency in original_dependencies.items():
-            replacement = replacement_dependencies.get(dependency.id)
-            if replacement is None:
-                continue
-            node.dependencies[dep_name] = replacement
-
-        resolved.append(node)
-
-    return resolved
+    return list(node_map.values())
 
 
 def _make_output_joiner(
@@ -101,7 +77,7 @@ def _make_output_joiner(
         for name, leaf in leaves.items()
     }
     return TransformNode(
-        name=f"{subpolicy_name}_joiner",
+        name=subpolicy_name,
         func=_or_op_leaves,
         dependencies=dependencies,
         description=description,
@@ -123,7 +99,7 @@ def _or_op_leaves(**kwargs):
     return retval
 
 
-def _as_identity_transform_node(
+def _identity_transform_from_input_node(
     input_node: InputNode,
     parameters: dict[str, str],
 ) -> TransformNode:
@@ -135,6 +111,25 @@ def _as_identity_transform_node(
         hierarchy=input_node.hierarchy,
         parameters=parameters,
     )
+
+
+def _identity_transform_from_terminate_node(node: TerminateNode) -> TransformNode:
+    parameters = {}  # node.return_metadata or {}
+    parameters["return_status"] = node.return_status
+    return TransformNode(
+        name=node.name,
+        func=_identity_fn,
+        dependencies=node.dependencies,
+        description=node.description,
+        hierarchy=node.hierarchy,
+        parameters=parameters,
+    )
+
+
+def _identity_fn(**kwargs):
+    if len(kwargs) == 1:
+        return list(kwargs.values())[0]
+    return kwargs
 
 
 def _identity_transform(input_schema: dict[str, type]):

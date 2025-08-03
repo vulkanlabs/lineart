@@ -38,13 +38,14 @@ export function AppWorkflowFrame({
     // Add empty config if required by WorkflowApiProvider
     return (
         <WorkflowApiProvider client={apiClient} config={{}}>
-            <WorkflowDataProvider autoFetch={true} includeArchived={false}>
+            <WorkflowDataProvider autoFetch={true} includeArchived={false} projectId={undefined}>
                 <WorkflowFrame
                     workflow={workflowData}
                     onNodeClick={onNodeClick}
                     onPaneClick={onPaneClick}
                     toast={handleToast}
                     onRefresh={handleRefresh}
+                    projectId={undefined}
                 />
             </WorkflowDataProvider>
         </WorkflowApiProvider>
