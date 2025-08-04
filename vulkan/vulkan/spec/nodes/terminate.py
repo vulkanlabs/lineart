@@ -36,6 +36,7 @@ class TerminateNode(Node):
         description: str | None = None,
         callback: Callable | None = None,
         hierarchy: list[str] | None = None,
+        parameters: dict[str, str] | None = None,
     ):
         """Marks the end of a workflow.
 
@@ -50,6 +51,7 @@ class TerminateNode(Node):
             See `Dependency` for more information.
         return_metadata: str, optional
             A JSON string of metadata that will be returned by the run.
+            DEPRECATED: Use 'parameters' instead for better type safety and consistency.
         description: str, optional
             A description of the node.
         callback: Callable, optional
@@ -57,6 +59,10 @@ class TerminateNode(Node):
             In the current implementation, the callback function always
             receives an execution context as its first argument.
             TODO: improve documentation on callback function signature.
+        parameters: dict[str, str], optional
+            A dictionary of parameters that will be returned as metadata.
+            Supports template expressions like '{{node.data.field}}'.
+            This is the preferred way to pass metadata over return_metadata.
 
         """
         self.return_status = (
@@ -81,7 +87,7 @@ class TerminateNode(Node):
             self._validate_json_metadata(return_metadata)
 
         self.return_metadata = return_metadata
-        self.parameters = None
+        self.parameters = parameters or {}
 
     def _validate_json_metadata(self, json_metadata: str) -> None:
         """Validate JSON syntax and template expressions."""
@@ -127,6 +133,7 @@ class TerminateNode(Node):
             metadata=TerminateNodeMetadata(
                 return_status=self.return_status,
                 return_metadata=self.return_metadata,
+                parameters=self.parameters,
             ),
             hierarchy=self.hierarchy,
         )
@@ -148,5 +155,6 @@ class TerminateNode(Node):
             dependencies=definition.dependencies,
             return_status=metadata.return_status,
             return_metadata=metadata.return_metadata,
+            parameters=metadata.parameters,
             hierarchy=definition.hierarchy,
         )

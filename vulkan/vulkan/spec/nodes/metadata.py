@@ -36,6 +36,7 @@ class TransformNodeMetadata(BaseNodeMetadata):
 class TerminateNodeMetadata(BaseNodeMetadata):
     return_status: str
     return_metadata: str | None = None
+    parameters: dict[str, str] | None = None
 
 
 class DataInputNodeMetadata(BaseNodeMetadata):
