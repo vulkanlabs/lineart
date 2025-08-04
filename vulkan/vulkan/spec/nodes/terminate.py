@@ -89,6 +89,10 @@ class TerminateNode(Node):
         self.return_metadata = return_metadata
         self.parameters = parameters or {}
 
+        # Validate parameters templates if provided
+        if self.parameters:
+            self._validate_parameters_templates(self.parameters)
+
     def _validate_json_metadata(self, json_metadata: str) -> None:
         """Validate JSON syntax and template expressions."""
         try:
@@ -123,6 +127,19 @@ class TerminateNode(Node):
             if isinstance(e, ValueError):
                 raise
             raise ValueError(f"Validation error in JSON metadata: {e}")
+
+    def _validate_parameters_templates(self, parameters: dict[str, str]) -> None:
+        """Validate template expressions in parameters dictionary."""
+        for param_name, param_value in parameters.items():
+            if isinstance(param_value, str):
+                try:
+                    # Try to extract both to validate template syntax
+                    extract_runtime_params_from_string(param_value)
+                    extract_env_vars_from_string(param_value)
+                except ValueError as e:
+                    raise ValueError(
+                        f"Invalid template expression in parameters at '{param_name}': {param_value}. Error: {e}"
+                    )
 
     def node_definition(self) -> NodeDefinition:
         return NodeDefinition(
