@@ -21,18 +21,11 @@ dependencies = [
 
 [project.optional-dependencies]
 beam = ["apache-beam[dataframe,gcp]>=2.60.0"]
-dagster = [
-    "dagster==1.8.2",
-    "dagster-webserver>=1.8.2",
-    "dagster-postgres>=0.24.2",
-    "sqlalchemy>=2.0.41",
-]
 hatchet = [
-    "hatchet-sdk",
+    "hatchet-sdk>=1.16",
 ]
 all = [
     "vulkan[beam]",
-    "vulkan[dagster]",
     "vulkan[hatchet]",
 ]
 
