@@ -119,7 +119,7 @@ def test_component_node():
         "description": "Test Component Node",
         "dependencies": {},
         "metadata": {
-            "component_id": "test_component",
+            "component_name": "test_component",
             "definition": None,
             "parameters": {},
         },
