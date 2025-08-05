@@ -50,8 +50,7 @@ class TerminateNode(Node):
             The dependencies of the node.
             See `Dependency` for more information.
         return_metadata: str, optional
-            A JSON string of metadata that will be returned by the run.
-            DEPRECATED: Use 'parameters' instead for better type safety and consistency.
+            Legacy JSON string format. Use 'parameters' instead.
         description: str, optional
             A description of the node.
         callback: Callable, optional
@@ -60,9 +59,8 @@ class TerminateNode(Node):
             receives an execution context as its first argument.
             TODO: improve documentation on callback function signature.
         parameters: dict[str, str], optional
-            A dictionary of parameters that will be returned as metadata.
-            Supports template expressions like '{{node.data.field}}'.
-            This is the preferred way to pass metadata over return_metadata.
+            Structured parameters dict. Preferred over return_metadata.
+            Supports Jinja2 templates: '{{node.field}}'.
 
         """
         self.return_status = (
@@ -86,15 +84,17 @@ class TerminateNode(Node):
                 )
             self._validate_json_metadata(return_metadata)
 
-        self.return_metadata = return_metadata
-        self.parameters = parameters or {}
+        # Auto-convert between parameters and return_metadata for compatibility
+        self.return_metadata, self.parameters = self._handle_metadata_conversion(
+            return_metadata, parameters
+        )
 
-        # Validate parameters templates if provided
+        # Validate Jinja2 template syntax
         if self.parameters:
             self._validate_parameters_templates(self.parameters)
 
     def _validate_json_metadata(self, json_metadata: str) -> None:
-        """Validate JSON syntax and template expressions."""
+        """Validate JSON and Jinja2 templates."""
         try:
             parsed = json.loads(json_metadata)
 
@@ -104,7 +104,7 @@ class TerminateNode(Node):
             def validate_value(value, path=""):
                 if isinstance(value, str):
                     try:
-                        # Try to extract both runtime params and env vars to validate template syntax
+                        # Validate template syntax
                         extract_runtime_params_from_string(value)
                         extract_env_vars_from_string(value)
                     except ValueError as e:
@@ -129,17 +129,129 @@ class TerminateNode(Node):
             raise ValueError(f"Validation error in JSON metadata: {e}")
 
     def _validate_parameters_templates(self, parameters: dict[str, str]) -> None:
-        """Validate template expressions in parameters dictionary."""
+        """Validate Jinja2 templates in parameters."""
         for param_name, param_value in parameters.items():
             if isinstance(param_value, str):
                 try:
-                    # Try to extract both to validate template syntax
+                    # Validate template syntax
                     extract_runtime_params_from_string(param_value)
                     extract_env_vars_from_string(param_value)
                 except ValueError as e:
                     raise ValueError(
                         f"Invalid template expression in parameters at '{param_name}': {param_value}. Error: {e}"
                     )
+
+    def _handle_metadata_conversion(
+        self, return_metadata: str | None, parameters: dict[str, str] | None
+    ) -> tuple[str | None, dict[str, str]]:
+        """
+        Convert between parameters and return_metadata formats.
+
+        Priority: parameters > return_metadata > None
+        Both provided: prefer parameters, log warning
+
+        Returns:
+            tuple: (return_metadata, parameters)
+        """
+
+        if parameters is not None and return_metadata is not None:
+            # Both provided - prefer parameters
+            import logging
+
+            logging.warning(
+                f"Both parameters and return_metadata provided for node. "
+                f"Using parameters as source of truth and ignoring return_metadata."
+            )
+            return self._parameters_to_metadata(parameters), parameters
+
+        elif parameters is not None:
+            # SDK path - generate JSON from parameters
+            if parameters:
+                return self._parameters_to_metadata(parameters), parameters
+            else:
+                return None, parameters
+
+        elif return_metadata is not None:
+            # UI path - parse JSON to parameters
+            converted_params = self._metadata_to_parameters(return_metadata)
+            return return_metadata, converted_params
+
+        else:
+            return None, {}
+
+    def _parameters_to_metadata(self, parameters: dict[str, str]) -> str:
+        """Convert parameters dict to JSON string (lossless)."""
+        try:
+            return json.dumps(parameters, sort_keys=True)
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"Failed to convert parameters to JSON: {e}")
+
+    def _metadata_to_parameters(self, return_metadata: str) -> dict[str, str]:
+        """
+        Convert JSON to parameters dict (potentially lossy).
+
+        Flattens nested objects with dot notation.
+        Converts all values to strings.
+        """
+        try:
+            parsed = json.loads(return_metadata)
+
+            if not isinstance(parsed, dict):
+                return {"value": str(parsed)}
+
+            return self._flatten_dict(parsed)
+
+        except json.JSONDecodeError:
+            return {}
+        except Exception as e:
+            import logging
+
+            logging.warning(f"Failed to convert return_metadata to parameters: {e}")
+            return {}
+
+    def _flatten_dict(
+        self, data: dict, parent_key: str = "", sep: str = "."
+    ) -> dict[str, str]:
+        """
+        Flatten nested dict with dot notation.
+
+        {"user": {"id": 123}} -> {"user.id": "123"}
+        {"items": [1, 2]} -> {"items.0": "1", "items.1": "2"}
+        """
+        items = []
+
+        for key, value in data.items():
+            new_key = f"{parent_key}{sep}{key}" if parent_key else key
+
+            if isinstance(value, dict):
+                items.extend(self._flatten_dict(value, new_key, sep).items())
+            elif isinstance(value, list):
+                for i, item in enumerate(value):
+                    array_key = f"{new_key}{sep}{i}"
+                    if isinstance(item, (dict, list)):
+                        if isinstance(item, dict):
+                            items.extend(
+                                self._flatten_dict(item, array_key, sep).items()
+                            )
+                        else:
+                            items.append((array_key, str(item)))
+                    else:
+                        items.append((array_key, str(item)))
+            else:
+                items.append((new_key, self._safe_str_conversion(value)))
+
+        return dict(items)
+
+    def _safe_str_conversion(self, value) -> str:
+        """Convert value to string with type preservation."""
+        if value is None:
+            return "null"
+        elif isinstance(value, bool):
+            return "true" if value else "false"
+        elif isinstance(value, (int, float)):
+            return str(value)
+        else:
+            return str(value)
 
     def node_definition(self) -> NodeDefinition:
         return NodeDefinition(
