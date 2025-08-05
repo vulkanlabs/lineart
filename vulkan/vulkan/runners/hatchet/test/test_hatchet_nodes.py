@@ -1,0 +1,214 @@
+from typing import Any, Dict
+from unittest.mock import Mock, patch
+
+import pytest
+
+from vulkan.runners.hatchet.nodes import (
+    HatchetBranch,
+    HatchetConnection,
+    HatchetDataInput,
+    HatchetDecision,
+    HatchetInput,
+    HatchetTerminate,
+    HatchetTransform,
+    to_hatchet_node,
+    to_hatchet_nodes,
+)
+from vulkan.runners.hatchet.policy import HatchetFlow, create_hatchet_workflow
+from vulkan.runners.hatchet.run_config import HatchetPolicyConfig, HatchetRunConfig
+from vulkan.runners.hatchet.workspace import HatchetWorkspaceManager
+from vulkan.spec.dependency import INPUT_NODE, Dependency
+from vulkan.spec.nodes import (
+    BranchNode,
+    ConnectionNode,
+    DataInputNode,
+    DecisionNode,
+    InputNode,
+    TerminateNode,
+    TransformNode,
+)
+
+
+class TestHatchetNodes:
+    """Test Hatchet node implementations."""
+
+    def test_data_input_node_conversion(self):
+        """Test DataInputNode to HatchetDataInput conversion."""
+        node = DataInputNode(
+            name="test_data_input",
+            data_source="test_source",
+            description="Test data input",
+            parameters={"param1": "value1"},
+        )
+
+        hatchet_node = HatchetDataInput.from_spec(node)
+
+        assert hatchet_node.name == "test_data_input"
+        assert hatchet_node.data_source == "test_source"
+        assert hatchet_node.description == "Test data input"
+        assert hatchet_node.parameters == {"param1": "value1"}
+        assert hatchet_node.task_name == "test_data_input"
+        assert callable(hatchet_node.task_fn())
+
+    def test_transform_node_conversion(self):
+        """Test TransformNode to HatchetTransform conversion."""
+
+        def test_func(x):
+            return x * 2
+
+        node = TransformNode(
+            name="test_transform",
+            description="Test transform",
+            func=test_func,
+            dependencies={"input": Dependency(INPUT_NODE)},
+        )
+
+        hatchet_node = HatchetTransform.from_spec(node)
+
+        assert hatchet_node.name == "test_transform"
+        assert hatchet_node.description == "Test transform"
+        assert hatchet_node.func == test_func
+        assert hatchet_node.task_name == "test_transform"
+        assert callable(hatchet_node.task_fn())
+
+    def test_terminate_node_conversion(self):
+        """Test TerminateNode to HatchetTerminate conversion."""
+        node = TerminateNode(
+            name="test_terminate",
+            description="Test terminate",
+            return_status="SUCCESS",
+            dependencies={"input": Dependency(INPUT_NODE)},
+        )
+
+        hatchet_node = HatchetTerminate.from_spec(node)
+
+        assert hatchet_node.name == "test_terminate"
+        assert hatchet_node.description == "Test terminate"
+        assert hatchet_node.return_status == "SUCCESS"
+        assert hatchet_node.task_name == "test_terminate"
+        assert callable(hatchet_node.task_fn())
+
+    def test_to_hatchet_nodes(self):
+        """Test conversion of multiple nodes."""
+        nodes = [
+            DataInputNode(name="data_input", data_source="test", dependencies={}),
+            TransformNode(
+                name="transform", description="test", func=lambda x: x, dependencies={}
+            ),
+            TerminateNode(
+                name="terminate",
+                description="test",
+                return_status="SUCCESS",
+                dependencies={},
+            ),
+        ]
+
+        hatchet_nodes = to_hatchet_nodes(nodes)
+
+        assert len(hatchet_nodes) == 3
+        assert isinstance(hatchet_nodes[0], HatchetDataInput)
+        assert isinstance(hatchet_nodes[1], HatchetTransform)
+        assert isinstance(hatchet_nodes[2], HatchetTerminate)
+
+
+class TestHatchetFlow:
+    """Test HatchetFlow workflow creation."""
+
+    def test_hatchet_flow_creation(self):
+        """Test creating a HatchetFlow from nodes."""
+        nodes = [
+            DataInputNode(name="data_input", data_source="test", dependencies={}),
+            TransformNode(
+                name="transform", description="test", func=lambda x: x, dependencies={}
+            ),
+            TerminateNode(
+                name="terminate",
+                description="test",
+                return_status="SUCCESS",
+                dependencies={},
+            ),
+        ]
+
+        flow = HatchetFlow(nodes, "test_policy")
+
+        assert flow.policy_name == "test_policy"
+        assert len(flow.nodes) == 3
+        assert flow.workflow_fn is not None
+
+    def test_create_hatchet_workflow(self):
+        """Test the create_hatchet_workflow helper function."""
+        nodes = [
+            DataInputNode(name="data_input", data_source="test"),
+        ]
+
+        flow = create_hatchet_workflow(nodes, "test_workflow")
+
+        assert isinstance(flow, HatchetFlow)
+        assert flow.policy_name == "test_workflow"
+
+
+class TestHatchetRunConfig:
+    """Test Hatchet configuration classes."""
+
+    def test_hatchet_run_config_creation(self):
+        """Test HatchetRunConfig creation."""
+        config = HatchetRunConfig(
+            run_id="test_run",
+            server_url="http://localhost:8000",
+            hatchet_server_url="http://localhost:8080",
+            hatchet_api_key="test_key",
+            namespace="test_namespace",
+        )
+
+        assert config.run_id == "test_run"
+        assert config.server_url == "http://localhost:8000"
+        assert config.hatchet_server_url == "http://localhost:8080"
+        assert config.hatchet_api_key == "test_key"
+        assert config.namespace == "test_namespace"
+
+    @patch.dict(
+        "os.environ",
+        {
+            "HATCHET_SERVER_URL": "http://test:8080",
+            "HATCHET_API_KEY": "test_api_key",
+            "HATCHET_NAMESPACE": "test_ns",
+        },
+    )
+    def test_hatchet_run_config_from_env(self):
+        """Test HatchetRunConfig creation from environment."""
+        config = HatchetRunConfig.from_env("test_run", "http://localhost:8000")
+
+        assert config.run_id == "test_run"
+        assert config.server_url == "http://localhost:8000"
+        assert config.hatchet_server_url == "http://test:8080"
+        assert config.hatchet_api_key == "test_api_key"
+        assert config.namespace == "test_ns"
+
+    def test_hatchet_policy_config(self):
+        """Test HatchetPolicyConfig creation."""
+        config = HatchetPolicyConfig.from_dict({"var1": "value1", "var2": "value2"})
+
+        assert config.variables == {"var1": "value1", "var2": "value2"}
+
+
+class TestHatchetWorkspaceManager:
+    """Test HatchetWorkspaceManager."""
+
+    def test_workspace_manager_creation(self):
+        """Test workspace manager creation."""
+        config = HatchetRunConfig(
+            run_id="test_run",
+            server_url="http://localhost:8000",
+            hatchet_server_url="http://localhost:8080",
+        )
+
+        manager = HatchetWorkspaceManager(config)
+
+        assert manager.config == config
+        assert manager.client is None
+        assert manager.worker is None
+        assert manager.resources is not None
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

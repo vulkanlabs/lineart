@@ -27,9 +27,13 @@ dagster = [
     "dagster-postgres>=0.24.2",
     "sqlalchemy>=2.0.41",
 ]
+hatchet = [
+    "hatchet-sdk",
+]
 all = [
     "vulkan[beam]",
     "vulkan[dagster]",
+    "vulkan[hatchet]",
 ]
 
 

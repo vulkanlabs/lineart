@@ -1,0 +1,756 @@
+import json
+import time
+from abc import ABC, abstractmethod
+from enum import Enum
+from traceback import format_exception_only
+from typing import Any, Callable, Dict, List, Optional
+
+import requests
+from requests.exceptions import HTTPError
+
+try:
+    from hatchet_sdk import Context
+
+    HATCHET_AVAILABLE = True
+except ImportError:
+    HATCHET_AVAILABLE = False
+
+    # Create a mock Context for type hints
+    class Context:
+        def __init__(self):
+            self.additional_metadata = {}
+
+        def workflow_input(self):
+            return {}
+
+
+from vulkan.connections import (
+    HTTPConfig,
+    RetryPolicy,
+    format_response_data,
+    make_request,
+)
+from vulkan.constants import POLICY_CONFIG_KEY
+from vulkan.core.context import VulkanExecutionContext
+from vulkan.core.run import RunStatus
+from vulkan.core.step_metadata import StepMetadata
+from vulkan.exceptions import UserCodeException
+from vulkan.node_config import normalize_to_template, resolve_template
+from vulkan.runners.hatchet.io_manager import METADATA_OUTPUT_KEY
+from vulkan.runners.hatchet.resources import (
+    DATA_CLIENT_KEY,
+    RUN_CLIENT_KEY,
+    HatchetDataClient,
+    HatchetRunClient,
+)
+from vulkan.runners.hatchet.run_config import (
+    POLICY_CONFIG_KEY,
+    RUN_CONFIG_KEY,
+    HatchetPolicyConfig,
+    HatchetRunConfig,
+)
+from vulkan.spec.dependency import Dependency
+from vulkan.spec.nodes import (
+    BranchNode,
+    ConnectionNode,
+    DataInputNode,
+    DecisionNode,
+    InputNode,
+    Node,
+    TerminateNode,
+    TransformNode,
+)
+from vulkan.spec.nodes.metadata import DecisionCondition, DecisionType
+from vulkan.spec.policy import PolicyDefinitionNode
+
+
+def _check_hatchet_available():
+    """Check if Hatchet SDK is available."""
+    if not HATCHET_AVAILABLE:
+        raise ImportError(
+            "Hatchet SDK is not installed. Install it with: pip install hatchet-sdk"
+        )
+
+
+def normalize_node_id(node_id: str) -> str:
+    """Normalize node ID for Hatchet compatibility."""
+    return node_id.replace("-", "_").replace(".", "_")
+
+
+class HatchetNode(ABC):
+    """Base class for Hatchet node implementations."""
+
+    @abstractmethod
+    def task_fn(self) -> Callable:
+        """Return the task function for this node."""
+
+    @property
+    @abstractmethod
+    def task_name(self) -> str:
+        """Return the task name."""
+
+
+class HatchetDataInput(DataInputNode, HatchetNode):
+    """Hatchet implementation of DataInputNode."""
+
+    def __init__(
+        self,
+        name: str,
+        data_source: str,
+        description: str | None = None,
+        parameters: dict[str, str] | None = None,
+        dependencies: dict | None = None,
+    ):
+        super().__init__(
+            name=name,
+            data_source=data_source,
+            description=description,
+            parameters=parameters,
+            dependencies=dependencies,
+        )
+
+    @property
+    def task_name(self) -> str:
+        return self.name
+
+    def task_fn(self) -> Callable:
+        _check_hatchet_available()
+
+        def data_input_task(context: Context) -> Dict[str, Any]:
+            start_time = time.time()
+
+            # Get resources from context (would need to be passed in)
+            client = context.additional_metadata.get(DATA_CLIENT_KEY)
+            run_config = context.additional_metadata.get(RUN_CONFIG_KEY)
+
+            if not client or not run_config:
+                raise RuntimeError("Required resources not available in context")
+
+            inputs = self._get_inputs_from_context(context)
+            extra = dict(data_source=self.data_source)
+            error = None
+
+            try:
+                configured_params = self._get_configured_params(inputs)
+
+                response = client.get_data(
+                    data_source=self.data_source,
+                    configured_params=configured_params,
+                    run_id=run_config.run_id,
+                )
+                extra.update({"status_code": response.status_code})
+                response.raise_for_status()
+
+                if response.status_code == 200:
+                    data = response.json()
+                    response_metadata = {
+                        "data_object_id": data.get("data_object_id"),
+                        "request_key": data.get("key"),
+                        "origin": data.get("origin"),
+                    }
+                    extra.update({"response_metadata": response_metadata})
+                    return data["value"]
+
+            except (requests.exceptions.RequestException, HTTPError) as e:
+                error = ("\n").join(format_exception_only(type(e), e))
+                raise e
+            except ValueError as e:
+                error = ("\n").join(format_exception_only(type(e), e))
+                raise e
+            finally:
+                end_time = time.time()
+                metadata = StepMetadata(
+                    node_type=self.type.value,
+                    start_time=start_time,
+                    end_time=end_time,
+                    error=error,
+                    extra=extra,
+                )
+                # Store metadata (would need proper implementation)
+                context.additional_metadata[METADATA_OUTPUT_KEY] = metadata
+
+        return data_input_task
+
+    def _get_inputs_from_context(self, context: Context) -> Dict[str, Any]:
+        """Extract inputs from Hatchet context."""
+        # This would extract dependency data from the context
+        return context.workflow_input()
+
+    def _get_configured_params(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """Get configured parameters with template resolution."""
+        if self.parameters is None:
+            return {}
+
+        configured_params = {}
+        for k, v in self.parameters.items():
+            try:
+                configured_params[k] = resolve_template(v, inputs, env_variables={})
+            except Exception:
+                raise ValueError(f"Invalid parameter configuration: {v}")
+        return configured_params
+
+    @classmethod
+    def from_spec(cls, node: DataInputNode):
+        return cls(
+            name=normalize_node_id(node.id),
+            data_source=node.data_source,
+            description=node.description,
+            parameters=node.parameters,
+            dependencies=node.dependencies,
+        )
+
+
+class HatchetTransform(TransformNode, HatchetNode):
+    """Hatchet implementation of TransformNode."""
+
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        func: Callable,
+        dependencies: dict[str, Any],
+        parameters: dict[str, str] | None = None,
+    ):
+        super().__init__(
+            name=name,
+            description=description,
+            func=func,
+            dependencies=dependencies,
+            parameters=parameters,
+        )
+        self._func = self._with_vulkan_context(self.func)
+
+    @property
+    def task_name(self) -> str:
+        return self.name
+
+    def task_fn(self) -> Callable:
+        def transform_task(context: Context) -> Any:
+            start_time = time.time()
+            inputs = self._get_inputs_from_context(context)
+            configured_params = self._get_configured_params(inputs)
+            error = None
+
+            try:
+                fn_params = {**inputs, **configured_params}
+                result = self._func(context, **fn_params)
+                return result
+            except Exception as e:
+                error = ("\n").join(format_exception_only(type(e), e))
+                raise UserCodeException(self.name) from e
+            finally:
+                end_time = time.time()
+                metadata = StepMetadata(
+                    self.type.value,
+                    start_time,
+                    end_time,
+                    error,
+                )
+                context.additional_metadata[METADATA_OUTPUT_KEY] = metadata
+
+        return transform_task
+
+    def _with_vulkan_context(self, func: Callable) -> Callable:
+        """Wrap function with Vulkan context."""
+
+        def fn(context: Context, **kwargs):
+            if func.__code__.co_varnames[0] == "context":
+                env = context.additional_metadata.get(POLICY_CONFIG_KEY)
+                ctx = VulkanExecutionContext(
+                    logger=context.logger if hasattr(context, "logger") else None,
+                    env=env.variables if env else {},
+                )
+                return func(ctx, **kwargs)
+            return func(**kwargs)
+
+        return fn
+
+    def _get_inputs_from_context(self, context: Context) -> Dict[str, Any]:
+        """Extract inputs from Hatchet context."""
+        return context.workflow_input()
+
+    def _get_configured_params(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """Get configured parameters with template resolution."""
+        if self.parameters is None:
+            return {}
+
+        configured_params = {}
+        for k, v in self.parameters.items():
+            try:
+                configured_params[k] = resolve_template(v, inputs, env_variables={})
+            except Exception:
+                raise ValueError(f"Invalid parameter configuration: {v}")
+        return configured_params
+
+    @classmethod
+    def from_spec(cls, node: TransformNode):
+        return cls(
+            name=normalize_node_id(node.id),
+            description=node.description,
+            func=node.func,
+            dependencies=node.dependencies,
+            parameters=node.parameters,
+        )
+
+
+class HatchetTerminate(TerminateNode, HatchetNode):
+    """Hatchet implementation of TerminateNode."""
+
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        return_status: str,
+        dependencies: dict[str, Dependency],
+        return_metadata: str | None = None,
+        callback: Callable | None = None,
+    ):
+        super().__init__(
+            name=name,
+            description=description,
+            return_status=return_status,
+            return_metadata=return_metadata,
+            dependencies=dependencies,
+            callback=callback,
+        )
+
+    @property
+    def task_name(self) -> str:
+        return self.name
+
+    def task_fn(self) -> Callable:
+        def terminate_task(context: Context) -> str:
+            start_time = time.time()
+            inputs = self._get_inputs_from_context(context)
+            error = None
+
+            try:
+                status = self.return_status
+                result = status.value if isinstance(status, Enum) else status
+                run_config = context.additional_metadata.get(RUN_CONFIG_KEY)
+
+                metadata = None
+                if self.return_metadata is not None:
+                    try:
+                        template_metadata = json.loads(self.return_metadata)
+                        metadata = self._resolve_json_metadata(
+                            template_metadata, inputs, context
+                        )
+                    except json.JSONDecodeError as e:
+                        raise ValueError(f"Invalid JSON in return_metadata: {e}")
+                    except Exception as e:
+                        raise ValueError(f"Failed to resolve JSON metadata: {e}")
+
+                terminated = self._terminate(context, result, metadata)
+                if not terminated:
+                    raise ValueError("Failed to terminate run")
+
+                if self.callback is not None:
+                    reported = self.callback(
+                        context=context,
+                        run_id=run_config.run_id if run_config else None,
+                        return_status=status,
+                        **inputs,
+                    )
+                    if not reported:
+                        raise ValueError("Callback function failed")
+
+                return result
+
+            except Exception as e:
+                error = ("\n").join(format_exception_only(type(e), e))
+                raise e
+            finally:
+                end_time = time.time()
+                metadata = StepMetadata(
+                    self.type.value,
+                    start_time,
+                    end_time,
+                    error,
+                )
+                context.additional_metadata[METADATA_OUTPUT_KEY] = metadata
+
+        return terminate_task
+
+    def _get_inputs_from_context(self, context: Context) -> Dict[str, Any]:
+        """Extract inputs from Hatchet context."""
+        return context.workflow_input()
+
+    def _resolve_json_metadata(
+        self, template_metadata: dict, inputs: dict, context: Context
+    ) -> dict:
+        """Resolve JSON metadata templates."""
+
+        def resolve_value(value):
+            if isinstance(value, str):
+                try:
+                    env_config = context.additional_metadata.get(POLICY_CONFIG_KEY)
+                    env_variables = env_config.variables if env_config else {}
+                    return resolve_template(value, inputs, env_variables)
+                except Exception:
+                    return value
+            elif isinstance(value, dict):
+                return {k: resolve_value(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [resolve_value(item) for item in value]
+            else:
+                return value
+
+        return resolve_value(template_metadata)
+
+    def _terminate(
+        self, context: Context, result: str, metadata: Dict[str, Any] | None = None
+    ) -> bool:
+        """Terminate the run by notifying the server."""
+        run_config = context.additional_metadata.get(RUN_CONFIG_KEY)
+        if not run_config:
+            return False
+
+        server_url = run_config.server_url
+        run_id = run_config.run_id
+
+        url = f"{server_url}/runs/{run_id}"
+        response = requests.put(
+            url,
+            json={
+                "result": result,
+                "metadata": metadata,
+                "status": RunStatus.SUCCESS.value,
+            },
+        )
+        return response.status_code in {200, 204}
+
+    @classmethod
+    def from_spec(cls, node: TerminateNode):
+        return cls(
+            name=normalize_node_id(node.id),
+            description=node.description,
+            return_status=node.return_status,
+            return_metadata=node.return_metadata,
+            dependencies=node.dependencies,
+            callback=node.callback,
+        )
+
+
+class HatchetBranch(BranchNode, HatchetNode):
+    """Hatchet implementation of BranchNode."""
+
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        func: Callable,
+        choices: list[str],
+        dependencies: dict[str, Any],
+    ):
+        super().__init__(
+            name=name,
+            description=description,
+            func=func,
+            choices=choices,
+            dependencies=dependencies,
+        )
+        self._func = self._with_vulkan_context(self.func)
+
+    @property
+    def task_name(self) -> str:
+        return self.name
+
+    def task_fn(self) -> Callable:
+        def branch_task(context: Context) -> str:
+            start_time = time.time()
+            inputs = self._get_inputs_from_context(context)
+            error = None
+
+            try:
+                output = self._func(context, **inputs)
+                return output
+            except Exception as e:
+                error = format_exception_only(type(e), e)
+                raise UserCodeException(self.name) from e
+            finally:
+                end_time = time.time()
+                metadata = StepMetadata(
+                    self.type.value,
+                    start_time,
+                    end_time,
+                    error,
+                    extra={"choices": self.choices},
+                )
+                context.additional_metadata[METADATA_OUTPUT_KEY] = metadata
+
+        return branch_task
+
+    def _with_vulkan_context(self, func: Callable) -> Callable:
+        """Wrap function with Vulkan context."""
+
+        def fn(context: Context, **kwargs):
+            if func.__code__.co_varnames[0] == "context":
+                env = context.additional_metadata.get(POLICY_CONFIG_KEY)
+                ctx = VulkanExecutionContext(
+                    logger=context.logger if hasattr(context, "logger") else None,
+                    env=env.variables if env else {},
+                )
+                return func(ctx, **kwargs)
+            return func(**kwargs)
+
+        return fn
+
+    def _get_inputs_from_context(self, context: Context) -> Dict[str, Any]:
+        """Extract inputs from Hatchet context."""
+        return context.workflow_input()
+
+    @classmethod
+    def from_spec(cls, node: BranchNode):
+        return cls(
+            name=normalize_node_id(node.id),
+            description=node.description,
+            func=node.func,
+            choices=node.choices,
+            dependencies=node.dependencies,
+        )
+
+
+class HatchetInput(InputNode, HatchetNode):
+    """Hatchet implementation of InputNode."""
+
+    def __init__(self, description: str, schema: dict[str, type], name="input_node"):
+        super().__init__(name=name, description=description, schema=schema)
+
+    @property
+    def task_name(self) -> str:
+        return self.name
+
+    def task_fn(self) -> Callable:
+        def input_task(context: Context) -> Dict[str, Any]:
+            # Return the workflow input data
+            return context.workflow_input()
+
+        return input_task
+
+    @classmethod
+    def from_spec(cls, node: InputNode):
+        return cls(
+            name=normalize_node_id(node.id),
+            description=node.description,
+            schema=node.schema,
+        )
+
+
+class HatchetConnection(ConnectionNode, HatchetNode):
+    """Hatchet implementation of ConnectionNode."""
+
+    def __init__(
+        self,
+        name: str,
+        url: str,
+        method: str = "GET",
+        description: str | None = None,
+        headers: dict | None = None,
+        params: dict | None = None,
+        body: dict | None = None,
+        timeout: int | None = None,
+        retry_max_retries: int = 1,
+        response_type: str = "JSON",
+        dependencies: dict | None = None,
+    ):
+        super().__init__(
+            name=name,
+            url=url,
+            method=method,
+            description=description,
+            headers=headers,
+            params=params,
+            body=body,
+            timeout=timeout,
+            retry_max_retries=retry_max_retries,
+            response_type=response_type,
+            dependencies=dependencies,
+        )
+
+    @property
+    def task_name(self) -> str:
+        return self.name
+
+    def task_fn(self) -> Callable:
+        def connection_task(context: Context) -> Any:
+            start_time = time.time()
+            env = context.additional_metadata.get(POLICY_CONFIG_KEY)
+            inputs = self._get_inputs_from_context(context)
+            error = None
+            extra = {}
+
+            try:
+                config = HTTPConfig(
+                    url=self.url,
+                    method=self.method,
+                    headers=self.headers,
+                    params=self.params,
+                    body=self.body,
+                    retry=RetryPolicy(max_retries=self.retry_max_retries),
+                    response_type=self.response_type,
+                )
+
+                req = make_request(config, inputs, env.variables if env else {})
+                response = requests.Session().send(req, timeout=self.timeout)
+
+                extra = {
+                    "url": self.url,
+                    "method": self.method,
+                    "status_code": response.status_code,
+                    "response_headers": dict(response.headers),
+                }
+                response.raise_for_status()
+
+                if response.status_code == 200:
+                    result = format_response_data(response.content, self.response_type)
+                    return result
+
+            except (requests.exceptions.RequestException, HTTPError) as e:
+                error = ("\n").join(format_exception_only(type(e), e))
+                raise e
+            except Exception as e:
+                error = ("\n").join(format_exception_only(type(e), e))
+                raise e
+            finally:
+                end_time = time.time()
+                metadata = StepMetadata(
+                    node_type=self.type.value,
+                    start_time=start_time,
+                    end_time=end_time,
+                    error=error,
+                    extra=extra,
+                )
+                context.additional_metadata[METADATA_OUTPUT_KEY] = metadata
+
+        return connection_task
+
+    def _get_inputs_from_context(self, context: Context) -> Dict[str, Any]:
+        """Extract inputs from Hatchet context."""
+        return context.workflow_input()
+
+    @classmethod
+    def from_spec(cls, node: ConnectionNode):
+        return cls(
+            name=normalize_node_id(node.id),
+            url=node.url,
+            method=node.method,
+            description=node.description,
+            headers=node.headers,
+            params=node.params,
+            body=node.body,
+            timeout=node.timeout,
+            retry_max_retries=node.retry_max_retries,
+            response_type=node.response_type,
+            dependencies=node.dependencies,
+        )
+
+
+class HatchetDecision(DecisionNode, HatchetNode):
+    """Hatchet implementation of DecisionNode."""
+
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        conditions: list[DecisionCondition],
+        dependencies: dict[str, Any],
+    ):
+        super().__init__(
+            name=name,
+            description=description,
+            conditions=conditions,
+            dependencies=dependencies,
+        )
+
+    @property
+    def task_name(self) -> str:
+        return self.name
+
+    def task_fn(self) -> Callable:
+        def decision_task(context: Context) -> str:
+            start_time = time.time()
+            inputs = self._get_inputs_from_context(context)
+            error = None
+
+            try:
+                output = self._decision_fn(context, inputs)
+                return output
+            except Exception as e:
+                error = format_exception_only(type(e), e)
+                raise UserCodeException(self.name) from e
+            finally:
+                end_time = time.time()
+                metadata = StepMetadata(
+                    self.type.value,
+                    start_time,
+                    end_time,
+                    error,
+                )
+                context.additional_metadata[METADATA_OUTPUT_KEY] = metadata
+
+        return decision_task
+
+    def _decision_fn(self, context: Context, inputs: Dict[str, Any]) -> str:
+        """Execute decision logic."""
+        if_cond = next(c for c in self.conditions if c.decision_type == DecisionType.IF)
+        else_cond = next(
+            c for c in self.conditions if c.decision_type == DecisionType.ELSE
+        )
+        elif_conds = [
+            c for c in self.conditions if c.decision_type == DecisionType.ELSE_IF
+        ]
+
+        if self._evaluate_condition(if_cond.condition, inputs):
+            return if_cond.output
+        for elif_cond in elif_conds:
+            if self._evaluate_condition(elif_cond.condition, inputs):
+                return elif_cond.output
+        return else_cond.output
+
+    def _evaluate_condition(self, condition: str, inputs: Dict[str, Any]) -> bool:
+        """Evaluate a condition string."""
+        norm_cond = normalize_to_template(condition)
+        result = resolve_template(norm_cond, inputs, env_variables={})
+        return result == "True"
+
+    def _get_inputs_from_context(self, context: Context) -> Dict[str, Any]:
+        """Extract inputs from Hatchet context."""
+        return context.workflow_input()
+
+    @classmethod
+    def from_spec(cls, node: DecisionNode):
+        return cls(
+            name=normalize_node_id(node.id),
+            description=node.description,
+            conditions=node.conditions,
+            dependencies=node.dependencies,
+        )
+
+
+# Node type mapping
+_NODE_TYPE_MAP: dict[type[Node], type[HatchetNode]] = {
+    TransformNode: HatchetTransform,
+    TerminateNode: HatchetTerminate,
+    BranchNode: HatchetBranch,
+    DataInputNode: HatchetDataInput,
+    InputNode: HatchetInput,
+    ConnectionNode: HatchetConnection,
+    DecisionNode: HatchetDecision,
+}
+
+
+def to_hatchet_nodes(nodes: list[Node]) -> list[HatchetNode]:
+    """Convert Vulkan nodes to Hatchet nodes."""
+    return [to_hatchet_node(node) for node in nodes]
+
+
+def to_hatchet_node(node: Node) -> HatchetNode:
+    """Convert a single Vulkan node to a Hatchet node."""
+    typ = type(node)
+    impl_type = _NODE_TYPE_MAP.get(typ)
+    if impl_type is None:
+        msg = f"Node type {typ} has no known Hatchet implementation"
+        raise ValueError(msg)
+
+    return impl_type.from_spec(node)
