@@ -218,34 +218,19 @@ def test_terminate_node_parameters():
     assert reconstructed_node.return_status == node.return_status
 
 
-def test_terminate_node_backward_compatibility():
-    """Test backward compatibility."""
-    # Legacy usage: return_metadata only
-    node_old = TerminateNode(
-        name="test_terminate_old",
+def test_terminate_node_parameter_to_metadata_conversion():
+    """Test parameter to return_metadata conversion."""
+    # Parameters are converted to return_metadata for serialization
+    node = TerminateNode(
+        name="test_terminate",
         return_status="SUCCESS",
         dependencies={"input": Dependency("input_node")},
-        return_metadata='{"legacy": "{{input.data}}"}',
+        parameters={"key": "{{input.data}}", "value": "test"},
     )
 
-    # Bidirectional: JSON -> parameters
-    assert node_old.parameters == {"legacy": "{{input.data}}"}
-    assert node_old.return_metadata == '{"legacy": "{{input.data}}"}'
-
-    # Mixed usage: both provided
-    node_mixed = TerminateNode(
-        name="test_terminate_mixed",
-        return_status="SUCCESS",
-        dependencies={"input": Dependency("input_node")},
-        return_metadata='{"legacy": "value"}',
-        parameters={"new_param": "{{input.new_field}}"},
-    )
-
-    # Parameters wins over return_metadata
-    assert node_mixed.parameters == {"new_param": "{{input.new_field}}"}
-    assert (
-        node_mixed.return_metadata == '{"new_param": "{{input.new_field}}"}'
-    )  # Generated from parameters
+    # Parameters stored as-is, return_metadata generated as JSON
+    assert node.parameters == {"key": "{{input.data}}", "value": "test"}
+    assert node.return_metadata == '{"key": "{{input.data}}", "value": "test"}'
 
 
 def test_terminate_node_dependencies_validation():
@@ -268,47 +253,17 @@ def test_terminate_node_dependencies_validation():
     assert len(node.dependencies) == 1
 
 
-def test_terminate_node_return_metadata_validation():
-    """Test return_metadata validation."""
-    # Wrong type -> error
-    with pytest.raises(TypeError, match="return_metadata expects string"):
-        TerminateNode(
-            name="test_terminate",
-            return_status="SUCCESS",
-            dependencies={"input": Dependency("input_node")},
-            return_metadata={"key": "value"},  # Dict instead of string
-        )
-
-    # Invalid JSON -> error
-    with pytest.raises(ValueError, match="Invalid JSON in return_metadata"):
-        TerminateNode(
-            name="test_terminate",
-            return_status="SUCCESS",
-            dependencies={"input": Dependency("input_node")},
-            return_metadata='{"invalid": json}',  # Malformed JSON
-        )
-
-    # Non-dict JSON -> error
-    with pytest.raises(
-        ValueError, match="JSON metadata must be a dictionary at the root level"
-    ):
-        TerminateNode(
-            name="test_terminate",
-            return_status="SUCCESS",
-            dependencies={"input": Dependency("input_node")},
-            return_metadata='["array", "not", "dict"]',  # Array instead of dict
-        )
-
-    # String JSON -> error
-    with pytest.raises(
-        ValueError, match="JSON metadata must be a dictionary at the root level"
-    ):
-        TerminateNode(
-            name="test_terminate",
-            return_status="SUCCESS",
-            dependencies={"input": Dependency("input_node")},
-            return_metadata='"just a string"',  # String instead of dict
-        )
+def test_terminate_node_parameters_validation():
+    """Test parameters validation."""
+    # Valid parameters should work
+    node = TerminateNode(
+        name="test_terminate",
+        return_status="SUCCESS",
+        dependencies={"input": Dependency("input_node")},
+        parameters={"key": "value", "template": "{{input.data}}"},
+    )
+    assert node.parameters == {"key": "value", "template": "{{input.data}}"}
+    assert node.return_metadata == '{"key": "value", "template": "{{input.data}}"}'
 
 
 def test_terminate_node_template_validation():
@@ -319,25 +274,9 @@ def test_terminate_node_template_validation():
             name="test_terminate",
             return_status="SUCCESS",
             dependencies={"input": Dependency("input_node")},
-            return_metadata='{"invalid_template": "{{unclosed.template"}',  # Missing closing braces
-        )
-
-    # Nested invalid template -> error
-    with pytest.raises(ValueError, match="Invalid template expression"):
-        TerminateNode(
-            name="test_terminate",
-            return_status="SUCCESS",
-            dependencies={"input": Dependency("input_node")},
-            return_metadata='{"nested": {"deep": {"invalid": "{{bad..syntax}}"}}}',  # Invalid template
-        )
-
-    # Array invalid template -> error
-    with pytest.raises(ValueError, match="Invalid template expression"):
-        TerminateNode(
-            name="test_terminate",
-            return_status="SUCCESS",
-            dependencies={"input": Dependency("input_node")},
-            return_metadata='{"array": ["{{valid.template}}", "{{invalid..template}}"]}',  # Mixed valid/invalid
+            parameters={
+                "invalid_template": "{{unclosed.template"
+            },  # Missing closing braces
         )
 
     # Valid templates -> ok
@@ -345,8 +284,9 @@ def test_terminate_node_template_validation():
         name="test_terminate",
         return_status="SUCCESS",
         dependencies={"input": Dependency("input_node")},
-        return_metadata='{"valid": "{{input.data}}", "nested": {"also_valid": "{{input.nested.value}}"}}',
+        parameters={"valid": "{{input.data}}", "also_valid": "{{input.nested.value}}"},
     )
+    assert node.parameters is not None
     assert node.return_metadata is not None
 
 
@@ -397,8 +337,7 @@ def test_terminate_node_serialization_edge_cases():
         return_status="COMPLETE",
         dependencies={"input": Dependency("input_node")},
         description="Full featured terminate node",
-        return_metadata='{"message": "All done"}',
-        parameters={"extra": "data"},
+        parameters={"extra": "data", "message": "All done"},
     )
 
     # Full round-trip
@@ -467,78 +406,30 @@ def test_terminate_node_callback_handling():
     assert node_with_callback.callback == test_callback
 
 
-def test_terminate_node_complex_nested_structures():
-    """Test complex nested JSON flattening."""
-    complex_metadata = """{
-        "result": {
-            "status": "{{decision.final_status}}",
-            "details": {
-                "score": "{{risk.calculated_score}}",
-                "factors": [
-                    "{{factor1.value}}",
-                    "static_factor",
-                    "{{factor2.computed}}"
-                ],
-                "metadata": {
-                    "timestamp": "{{system.timestamp}}",
-                    "version": "1.0.0",
-                    "nested_array": [
-                        {"key": "{{nested.key1}}", "static": "value"},
-                        {"key": "{{nested.key2}}", "number": 42}
-                    ]
-                }
-            }
-        },
-        "static_info": "This is static",
-        "array_of_objects": [
-            {"template": "{{obj1.data}}", "static": "data1"},
-            {"template": "{{obj2.data}}", "static": "data2"}
-        ]
-    }"""
-
-    # Complex structure should work
+def test_terminate_node_simple_parameters():
+    """Test simple parameter handling."""
+    # Simple parameters should work
     node = TerminateNode(
-        name="complex_terminate",
-        return_status="COMPLEX_DONE",
-        dependencies={
-            "decision": Dependency("decision_node"),
-            "risk": Dependency("risk_node"),
-            "factor1": Dependency("factor1_node"),
-            "factor2": Dependency("factor2_node"),
-            "system": Dependency("system_node"),
-            "nested": Dependency("nested_node"),
-            "obj1": Dependency("obj1_node"),
-            "obj2": Dependency("obj2_node"),
+        name="simple_terminate",
+        return_status="DONE",
+        dependencies={"input": Dependency("input_node")},
+        parameters={
+            "status": "{{decision.final_status}}",
+            "score": "{{risk.calculated_score}}",
+            "static_info": "This is static",
         },
-        return_metadata=complex_metadata,
     )
 
-    assert node.return_metadata == complex_metadata
-
-    # Round-trip complex structure
-    spec_dict = node.node_definition().to_dict()
-    reconstructed = TerminateNode.from_dict(spec_dict)
-
-    # Check flattening worked
-    expected_flattened = {
-        "array_of_objects.0.static": "data1",
-        "array_of_objects.0.template": "{{obj1.data}}",
-        "array_of_objects.1.static": "data2",
-        "array_of_objects.1.template": "{{obj2.data}}",
-        "result.details.factors.0": "{{factor1.value}}",
-        "result.details.factors.1": "static_factor",
-        "result.details.factors.2": "{{factor2.computed}}",
-        "result.details.metadata.nested_array.0.key": "{{nested.key1}}",
-        "result.details.metadata.nested_array.0.static": "value",
-        "result.details.metadata.nested_array.1.key": "{{nested.key2}}",
-        "result.details.metadata.nested_array.1.number": "42",
-        "result.details.metadata.timestamp": "{{system.timestamp}}",
-        "result.details.metadata.version": "1.0.0",
-        "result.details.score": "{{risk.calculated_score}}",
-        "result.status": "{{decision.final_status}}",
+    assert node.parameters == {
+        "status": "{{decision.final_status}}",
+        "score": "{{risk.calculated_score}}",
         "static_info": "This is static",
     }
-    assert reconstructed.parameters == expected_flattened
+
+    # Round-trip should preserve parameters
+    spec_dict = node.node_definition().to_dict()
+    reconstructed = TerminateNode.from_dict(spec_dict)
+    assert reconstructed.parameters == node.parameters
 
 
 def test_terminate_node_parameters_template_validation():
@@ -595,24 +486,6 @@ def test_terminate_node_return_status_validation():
 
 def test_terminate_node_empty_collections():
     """Test empty values handling."""
-    # Empty string -> error
-    with pytest.raises(ValueError, match="Invalid JSON in return_metadata"):
-        TerminateNode(
-            name="test_terminate",
-            return_status="SUCCESS",
-            dependencies={"input": Dependency("input_node")},
-            return_metadata="",  # Empty string is invalid JSON
-        )
-
-    # Empty JSON dict works
-    node_minimal_json = TerminateNode(
-        name="test_terminate",
-        return_status="SUCCESS",
-        dependencies={"input": Dependency("input_node")},
-        return_metadata="{}",  # Empty but valid JSON dict
-    )
-    assert node_minimal_json.return_metadata == "{}"
-
     # Empty parameters dict works
     node_empty_params = TerminateNode(
         name="test_terminate",
@@ -621,6 +494,16 @@ def test_terminate_node_empty_collections():
         parameters={},
     )
     assert node_empty_params.parameters == {}
+    assert node_empty_params.return_metadata is None  # No metadata for empty parameters
+
+    # None parameters works (defaults to empty)
+    node_no_params = TerminateNode(
+        name="test_terminate",
+        return_status="SUCCESS",
+        dependencies={"input": Dependency("input_node")},
+    )
+    assert node_no_params.parameters == {}
+    assert node_no_params.return_metadata is None
 
 
 def test_terminate_node_parameters_mixed_types():
@@ -651,8 +534,8 @@ def test_terminate_node_parameters_mixed_types():
     assert reconstructed.parameters == node.parameters
 
 
-def test_terminate_node_bidirectional_conversion():
-    """Test parameters <-> return_metadata conversion."""
+def test_terminate_node_parameter_to_metadata_serialization():
+    """Test parameters to return_metadata conversion for serialization."""
 
     # SDK path: parameters -> return_metadata
     sdk_node = TerminateNode(
@@ -677,101 +560,92 @@ def test_terminate_node_bidirectional_conversion():
         "template": "{{input.data}}",
     }
 
-    # UI path: return_metadata -> parameters
-    ui_node = TerminateNode(
-        name="ui_node",
-        return_status="SUCCESS",
-        dependencies={"input": Dependency("input_node")},
-        return_metadata='{"result": "approved", "timestamp": "2023-01-01"}',
-    )
-
-    # Parse JSON to parameters dict
-    assert (
-        ui_node.return_metadata == '{"result": "approved", "timestamp": "2023-01-01"}'
-    )
-    assert ui_node.parameters == {"result": "approved", "timestamp": "2023-01-01"}
+    # Round-trip through serialization
+    spec_dict = sdk_node.node_definition().to_dict()
+    reconstructed = TerminateNode.from_dict(spec_dict)
+    assert reconstructed.parameters == sdk_node.parameters
 
 
-def test_terminate_node_complex_json_flattening():
-    """Test nested JSON flattening with dot notation."""
-    complex_json = """{
-        "user": {"id": 123, "name": "John"},
-        "scores": [85, 92, 78],
-        "metadata": {"timestamp": "2023-01-01", "active": true},
-        "nullable": null
-    }"""
-
-    node = TerminateNode(
-        name="complex_node",
-        return_status="SUCCESS",
-        dependencies={"input": Dependency("input_node")},
-        return_metadata=complex_json,
-    )
-
-    # Flatten to dot notation
-    expected_params = {
-        "user.id": "123",
-        "user.name": "John",
-        "scores.0": "85",
-        "scores.1": "92",
-        "scores.2": "78",
-        "metadata.timestamp": "2023-01-01",
-        "metadata.active": "true",
-        "nullable": "null",
+def test_terminate_node_backward_compatibility_deserialization():
+    """Test deserializing old return_metadata format."""
+    # Simulate old serialized format with return_metadata
+    old_spec = {
+        "name": "legacy_node",
+        "node_type": "TERMINATE",
+        "dependencies": {
+            "input": {
+                "node": "input_node",
+                "output": None,
+                "key": None,
+                "hierarchy": None,
+            }
+        },
+        "metadata": {
+            "return_status": "SUCCESS",
+            "return_metadata": '{"user": "John", "score": "95"}',
+        },
     }
 
-    assert node.parameters == expected_params
-    assert node.return_metadata == complex_json
+    # Should be able to deserialize and convert to parameters
+    node = TerminateNode.from_dict(old_spec)
+    assert node.parameters == {"user": "John", "score": "95"}
+    # JSON is sorted by keys
+    assert node.return_metadata == '{"score": "95", "user": "John"}'
 
 
-def test_terminate_node_conversion_priority():
-    """Test parameters takes precedence over return_metadata."""
+def test_terminate_node_parameters_only():
+    """Test that only parameters are accepted in constructor."""
 
-    # Parameters wins when both provided
+    # Only parameters are used now
     node = TerminateNode(
-        name="priority_node",
+        name="params_node",
         return_status="SUCCESS",
         dependencies={"input": Dependency("input_node")},
-        parameters={"source": "sdk"},
-        return_metadata='{"source": "ui"}',  # This should be ignored
+        parameters={"source": "sdk", "value": "test"},
     )
 
-    # Verify parameters took precedence
-    assert node.parameters == {"source": "sdk"}
-    assert node.return_metadata == '{"source": "sdk"}'  # Generated from parameters
+    # Verify parameters are stored and converted to return_metadata
+    assert node.parameters == {"source": "sdk", "value": "test"}
+    assert node.return_metadata == '{"source": "sdk", "value": "test"}'
 
 
-def test_terminate_node_edge_case_conversions():
-    """Test conversion edge cases."""
+def test_terminate_node_parameter_type_handling():
+    """Test parameter type handling."""
 
-    # Edge cases for conversion behavior
-
-    # Mixed types in JSON
-    node1 = TerminateNode(
-        name="edge1",
+    # All parameter values should be strings
+    node = TerminateNode(
+        name="typed_node",
         return_status="SUCCESS",
         dependencies={"input": Dependency("input_node")},
-        return_metadata='{"number": 42, "boolean": true, "string": "text"}',
+        parameters={"string": "text", "template": "{{input.value}}"},
     )
-    expected_params1 = {"number": "42", "boolean": "true", "string": "text"}
-    assert node1.parameters == expected_params1
 
-    # Empty JSON
-    node2 = TerminateNode(
-        name="edge2",
-        return_status="SUCCESS",
-        dependencies={"input": Dependency("input_node")},
-        return_metadata="{}",
-    )
-    assert node2.parameters == {}
-    assert node2.return_metadata == "{}"
+    # Verify all stored as strings
+    assert node.parameters == {"string": "text", "template": "{{input.value}}"}
+    assert node.return_metadata == '{"string": "text", "template": "{{input.value}}"}'
 
-    # No metadata provided
-    node3 = TerminateNode(
-        name="edge3",
-        return_status="SUCCESS",
-        dependencies={"input": Dependency("input_node")},
-    )
-    # Empty state
-    assert node3.parameters == {}
-    assert node3.return_metadata is None
+    # Test deserialization from metadata with mixed types
+    old_spec = {
+        "name": "mixed_node",
+        "node_type": "TERMINATE",
+        "dependencies": {
+            "input": {
+                "node": "input_node",
+                "output": None,
+                "key": None,
+                "hierarchy": None,
+            }
+        },
+        "metadata": {
+            "return_status": "SUCCESS",
+            "return_metadata": '{"number": 42, "boolean": true, "string": "text"}',
+        },
+    }
+
+    deserialized = TerminateNode.from_dict(old_spec)
+    # Should convert all to strings (Python uses "True" for booleans)
+    assert deserialized.parameters == {
+        "number": "42",
+        "boolean": "True",
+        "string": "text",
+    }

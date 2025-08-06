@@ -66,17 +66,19 @@ class TestTerminateNode:
             assert definition.metadata.return_status == status
 
     def test_terminate_node_with_simple_json_metadata(self):
-        """Test TerminateNode with simple JSON metadata."""
-        simple_metadata = '{"message": "Task completed successfully"}'
+        """Test TerminateNode with simple parameters converted to JSON metadata."""
         terminate = TerminateNode(
             name="terminate_simple",
-            description="Terminate node with simple JSON metadata",
+            description="Terminate node with parameters",
             return_status="success",
             dependencies={"inputs": Dependency("input_node")},
-            return_metadata=simple_metadata,
+            parameters={"message": "Task completed successfully"},
         )
         definition = terminate.node_definition()
-        assert definition.metadata.return_metadata == simple_metadata
+        assert (
+            definition.metadata.return_metadata
+            == '{"message": "Task completed successfully"}'
+        )
 
     def test_terminate_node_with_json_string_metadata(self):
         """Test TerminateNode with JSON string metadata (as frontend sends)."""
