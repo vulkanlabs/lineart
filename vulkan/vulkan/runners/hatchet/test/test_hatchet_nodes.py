@@ -1,17 +1,11 @@
-from typing import Any, Dict
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
 from vulkan.runners.hatchet.nodes import (
-    HatchetBranch,
-    HatchetConnection,
     HatchetDataInput,
-    HatchetDecision,
-    HatchetInput,
     HatchetTerminate,
     HatchetTransform,
-    to_hatchet_node,
     to_hatchet_nodes,
 )
 from vulkan.runners.hatchet.policy import HatchetFlow, create_hatchet_workflow
@@ -19,11 +13,7 @@ from vulkan.runners.hatchet.run_config import HatchetPolicyConfig, HatchetRunCon
 from vulkan.runners.hatchet.workspace import HatchetWorkspaceManager
 from vulkan.spec.dependency import INPUT_NODE, Dependency
 from vulkan.spec.nodes import (
-    BranchNode,
-    ConnectionNode,
     DataInputNode,
-    DecisionNode,
-    InputNode,
     TerminateNode,
     TransformNode,
 )
@@ -206,7 +196,7 @@ class TestHatchetWorkspaceManager:
 
         assert manager.config == config
         assert manager.client is None
-        assert manager.worker is None
+        assert manager._worker is None
         assert manager.resources is not None
 
 

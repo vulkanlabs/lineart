@@ -1,32 +1,11 @@
 from typing import Any, Dict, Optional
 
-try:
-    from hatchet_sdk import Hatchet
-
-    HATCHET_AVAILABLE = True
-except ImportError:
-    HATCHET_AVAILABLE = False
-
-    # Mock Hatchet class
-    class Hatchet:
-        def __init__(self, **kwargs):
-            pass
-
+from hatchet_sdk import Hatchet
 
 from vulkan.runners.hatchet.run_config import HatchetRunConfig
 
-
-def _check_hatchet_available():
-    """Check if Hatchet SDK is available."""
-    if not HATCHET_AVAILABLE:
-        raise ImportError(
-            "Hatchet SDK is not installed. Install it with: pip install hatchet-sdk"
-        )
-
-
 DATA_CLIENT_KEY = "hatchet_data_client"
 RUN_CLIENT_KEY = "hatchet_run_client"
-HATCHET_CLIENT_KEY = "hatchet_client"
 
 
 class HatchetDataClient:
@@ -89,5 +68,4 @@ def create_hatchet_resources(config: HatchetRunConfig) -> Dict[str, Any]:
     return {
         DATA_CLIENT_KEY: HatchetDataClient(config.server_url),
         RUN_CLIENT_KEY: HatchetRunClient(config.server_url),
-        HATCHET_CLIENT_KEY: HatchetClientResource(config),
     }

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from pydantic import BaseModel
 
@@ -13,22 +13,6 @@ class HatchetRunConfig:
 
     run_id: str
     server_url: str
-    hatchet_server_url: str
-    hatchet_api_key: Optional[str] = None
-    namespace: str = "default"
-
-    @classmethod
-    def from_env(cls, run_id: str, server_url: str) -> "HatchetRunConfig":
-        """Create configuration from environment variables."""
-        import os
-
-        return cls(
-            run_id=run_id,
-            server_url=server_url,
-            hatchet_server_url=os.getenv("HATCHET_SERVER_URL", "http://localhost:8080"),
-            hatchet_api_key=os.getenv("HATCHET_API_KEY"),
-            namespace=os.getenv("HATCHET_NAMESPACE", "default"),
-        )
 
 
 class HatchetPolicyConfig(BaseModel):

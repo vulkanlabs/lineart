@@ -1,0 +1,88 @@
+import json
+import os
+import subprocess
+from shutil import rmtree
+
+from vulkan.runners.hatchet.workspace import HATCHET_ENTRYPOINT
+
+from .config import VulkanConfig
+from .pyproject import get_pyproject, set_dependencies
+
+SPEC_FILE_NAME = "policy.json"
+
+
+class VulkanWorkspaceManager:
+    def __init__(self, config: VulkanConfig, workspace_id: str) -> None:
+        self.config = config
+        self.workspace_path = os.path.join(config.workspaces_path, workspace_id)
+
+    def create_workspace(self) -> None:
+        completed_process = subprocess.run(
+            [
+                "bash",
+                f"{self.config.scripts_path}/venv_create.sh",
+                self.workspace_path,
+            ],
+            capture_output=True,
+        )
+        if completed_process.returncode != 0:
+            msg = f"Failed to create virtual environment: {completed_process.stderr}"
+            raise Exception(msg)
+
+    def add_spec(self, spec: dict) -> None:
+        if not os.path.exists(self.workspace_path):
+            raise ValueError(f"Workspace does not exist: {self.workspace_path}")
+
+        try:
+            spec_path = f"{self.workspace_path}/{SPEC_FILE_NAME}"
+            with open(spec_path, "w") as fp:
+                json.dump(spec, fp)
+            self._add_init_file(spec_path)
+        except Exception as e:
+            raise ValueError(f"Failed to add spec: {e}")
+
+    def _add_init_file(self, spec_file_path: str) -> None:
+        init_path = os.path.join(self.workspace_path, "__init__.py")
+        with open(init_path, "w") as fp:
+            fp.write(HATCHET_ENTRYPOINT.format(spec_file_path=spec_file_path))
+
+    def set_requirements(self, requirements: list[str]) -> None:
+        if not os.path.exists(self.workspace_path):
+            raise ValueError(f"Workspace does not exist: {self.workspace_path}")
+
+        try:
+            pyproject_path = f"{self.workspace_path}/pyproject.toml"
+            # We need to ensure vulkan is always in the requirements.
+            reqs = list(DEFAULT_DEPENDENCIES.union(set(requirements)))
+            set_dependencies(pyproject_path, reqs)
+            self._sync_requirements()
+        except Exception as e:
+            raise ValueError(f"Failed to set requirements: {e}")
+
+    def get_requirements(self) -> list[str]:
+        try:
+            pyproject_path = f"{self.workspace_path}/pyproject.toml"
+            pyproject = get_pyproject(pyproject_path)
+            return pyproject["project"]["dependencies"]
+        except Exception as e:
+            raise ValueError(f"Failed to get requirements: {e}")
+
+    def _sync_requirements(self) -> None:
+        completed_process = subprocess.run(
+            [
+                "bash",
+                f"{self.config.scripts_path}/venv_sync.sh",
+                self.workspace_path,
+            ],
+            cwd=self.workspace_path,
+            capture_output=True,
+        )
+        if completed_process.returncode != 0:
+            msg = f"Failed to sync requirements: {completed_process.stderr}"
+            raise Exception(msg)
+
+    def delete_resources(self):
+        rmtree(self.workspace_path)
+
+
+DEFAULT_DEPENDENCIES = {"vulkan[hatchet]"}
