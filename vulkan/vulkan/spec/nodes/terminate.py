@@ -32,7 +32,6 @@ class TerminateNode(Node):
         name: str,
         return_status: Enum | str,
         dependencies: dict[str, Dependency],
-        return_metadata: str | None = None,
         description: str | None = None,
         callback: Callable | None = None,
         hierarchy: list[str] | None = None,
@@ -49,8 +48,6 @@ class TerminateNode(Node):
         dependencies: dict, optional
             The dependencies of the node.
             See `Dependency` for more information.
-        return_metadata: str, optional
-            JSON string metadata. Auto-converted from/to parameters.
         description: str, optional
             A description of the node.
         callback: Callable, optional
@@ -59,7 +56,7 @@ class TerminateNode(Node):
             receives an execution context as its first argument.
             TODO: improve documentation on callback function signature.
         parameters: dict[str, str], optional
-            Parameter dict. Preferred over return_metadata. Supports templates.
+            Parameter dict with template support. Converted to return_metadata for storage.
 
         """
         self.return_status = (
@@ -76,16 +73,10 @@ class TerminateNode(Node):
         )
         self.callback = callback
 
-        if return_metadata is not None:
-            if not isinstance(return_metadata, str):
-                raise TypeError(
-                    f"return_metadata expects string, got {type(return_metadata)}"
-                )
-            self._validate_json_metadata(return_metadata)
-
-        # Bidirectional conversion: parameters <-> return_metadata
-        self.return_metadata, self.parameters = self._handle_metadata_conversion(
-            return_metadata, parameters
+        # Store parameters and convert to return_metadata for serialization
+        self.parameters = parameters or {}
+        self.return_metadata = (
+            self._parameters_to_metadata(self.parameters) if self.parameters else None
         )
 
         # Validate templates
@@ -138,96 +129,12 @@ class TerminateNode(Node):
                         f"Invalid template expression in parameters at '{param_name}': {param_value}. Error: {e}"
                     )
 
-    def _handle_metadata_conversion(
-        self, return_metadata: str | None, parameters: dict[str, str] | None
-    ) -> tuple[str | None, dict[str, str]]:
-        """Bidirectional conversion between parameters and return_metadata."""
-
-        if parameters is not None and return_metadata is not None:
-            import logging
-
-            logging.warning(
-                f"Both parameters and return_metadata provided for node. "
-                f"Using parameters as source of truth and ignoring return_metadata."
-            )
-            return self._parameters_to_metadata(parameters), parameters
-
-        elif parameters is not None:
-            if parameters:
-                return self._parameters_to_metadata(parameters), parameters
-            else:
-                return None, parameters
-
-        elif return_metadata is not None:
-            converted_params = self._metadata_to_parameters(return_metadata)
-            return return_metadata, converted_params
-
-        else:
-            return None, {}
-
     def _parameters_to_metadata(self, parameters: dict[str, str]) -> str:
         """Convert parameters to JSON."""
         try:
             return json.dumps(parameters, sort_keys=True)
         except (TypeError, ValueError) as e:
             raise ValueError(f"Failed to convert parameters to JSON: {e}")
-
-    def _metadata_to_parameters(self, return_metadata: str) -> dict[str, str]:
-        """Convert JSON to parameters. Flattens nested objects."""
-        try:
-            parsed = json.loads(return_metadata)
-
-            if not isinstance(parsed, dict):
-                return {"value": str(parsed)}
-
-            return self._flatten_dict(parsed)
-
-        except json.JSONDecodeError:
-            return {}
-        except Exception as e:
-            import logging
-
-            logging.warning(f"Failed to convert return_metadata to parameters: {e}")
-            return {}
-
-    def _flatten_dict(
-        self, data: dict, parent_key: str = "", sep: str = "."
-    ) -> dict[str, str]:
-        """Flatten nested dict to dot notation."""
-        items = []
-
-        for key, value in data.items():
-            new_key = f"{parent_key}{sep}{key}" if parent_key else key
-
-            if isinstance(value, dict):
-                items.extend(self._flatten_dict(value, new_key, sep).items())
-            elif isinstance(value, list):
-                for i, item in enumerate(value):
-                    array_key = f"{new_key}{sep}{i}"
-                    if isinstance(item, (dict, list)):
-                        if isinstance(item, dict):
-                            items.extend(
-                                self._flatten_dict(item, array_key, sep).items()
-                            )
-                        else:
-                            items.append((array_key, str(item)))
-                    else:
-                        items.append((array_key, str(item)))
-            else:
-                items.append((new_key, self._safe_str_conversion(value)))
-
-        return dict(items)
-
-    def _safe_str_conversion(self, value) -> str:
-        """Convert value to string."""
-        if value is None:
-            return "null"
-        elif isinstance(value, bool):
-            return "true" if value else "false"
-        elif isinstance(value, (int, float)):
-            return str(value)
-        else:
-            return str(value)
 
     def node_definition(self) -> NodeDefinition:
         return NodeDefinition(
@@ -254,12 +161,31 @@ class TerminateNode(Node):
             raise ValueError(f"Metadata not set for TERMINATE node {definition.name}")
 
         metadata = cast(TerminateNodeMetadata, definition.metadata)
+
+        # If we have parameters, use them directly; otherwise convert from return_metadata
+        if metadata.parameters:
+            parameters = metadata.parameters
+        elif metadata.return_metadata:
+            parameters = cls._metadata_to_parameters_static(metadata.return_metadata)
+        else:
+            parameters = {}
+
         return cls(
             name=definition.name,
             description=definition.description,
             dependencies=definition.dependencies,
             return_status=metadata.return_status,
-            return_metadata=metadata.return_metadata,
-            parameters=metadata.parameters,
+            parameters=parameters,
             hierarchy=definition.hierarchy,
         )
+
+    @staticmethod
+    def _metadata_to_parameters_static(return_metadata: str) -> dict[str, str]:
+        """Convert JSON metadata to parameters dict for deserialization."""
+        try:
+            parsed = json.loads(return_metadata)
+            if not isinstance(parsed, dict):
+                return {"value": str(parsed)}
+            return {k: str(v) for k, v in parsed.items()}
+        except (json.JSONDecodeError, Exception):
+            return {}
