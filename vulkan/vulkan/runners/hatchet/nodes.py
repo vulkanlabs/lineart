@@ -3,26 +3,13 @@ import time
 from abc import ABC, abstractmethod
 from enum import Enum
 from traceback import format_exception_only
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict
 
 import requests
+from hatchet_sdk import Context
+from hatchet_sdk.runnables.types import TWorkflowInput
+from pydantic import BaseModel
 from requests.exceptions import HTTPError
-
-try:
-    from hatchet_sdk import Context
-
-    HATCHET_AVAILABLE = True
-except ImportError:
-    HATCHET_AVAILABLE = False
-
-    # Create a mock Context for type hints
-    class Context:
-        def __init__(self):
-            self.additional_metadata = {}
-
-        def workflow_input(self):
-            return {}
-
 
 from vulkan.connections import (
     HTTPConfig,
@@ -39,15 +26,9 @@ from vulkan.node_config import normalize_to_template, resolve_template
 from vulkan.runners.hatchet.io_manager import METADATA_OUTPUT_KEY
 from vulkan.runners.hatchet.resources import (
     DATA_CLIENT_KEY,
-    RUN_CLIENT_KEY,
-    HatchetDataClient,
-    HatchetRunClient,
 )
 from vulkan.runners.hatchet.run_config import (
-    POLICY_CONFIG_KEY,
     RUN_CONFIG_KEY,
-    HatchetPolicyConfig,
-    HatchetRunConfig,
 )
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import (
@@ -61,15 +42,6 @@ from vulkan.spec.nodes import (
     TransformNode,
 )
 from vulkan.spec.nodes.metadata import DecisionCondition, DecisionType
-from vulkan.spec.policy import PolicyDefinitionNode
-
-
-def _check_hatchet_available():
-    """Check if Hatchet SDK is available."""
-    if not HATCHET_AVAILABLE:
-        raise ImportError(
-            "Hatchet SDK is not installed. Install it with: pip install hatchet-sdk"
-        )
 
 
 def normalize_node_id(node_id: str) -> str:
@@ -77,17 +49,33 @@ def normalize_node_id(node_id: str) -> str:
     return node_id.replace("-", "_").replace(".", "_")
 
 
+class TaskOutput(BaseModel):
+    """Output of a task."""
+
+    task_name: str
+    data: Any
+
+
 class HatchetNode(ABC):
     """Base class for Hatchet node implementations."""
 
     @abstractmethod
-    def task_fn(self) -> Callable:
+    def task_fn(self) -> Callable[[TWorkflowInput, Context], Any]:
         """Return the task function for this node."""
 
     @property
     @abstractmethod
     def task_name(self) -> str:
         """Return the task name."""
+
+    def _get_parent_outputs(self, context: Context) -> Dict[str, Any]:
+        """Extract inputs from Hatchet context."""
+        parent_outputs = {
+            k: context.data.parents[v.id].get("data")
+            for k, v in self.dependencies.items()
+        }
+
+        return parent_outputs
 
 
 class HatchetDataInput(DataInputNode, HatchetNode):
@@ -113,10 +101,10 @@ class HatchetDataInput(DataInputNode, HatchetNode):
     def task_name(self) -> str:
         return self.name
 
-    def task_fn(self) -> Callable:
-        _check_hatchet_available()
-
-        def data_input_task(context: Context) -> Dict[str, Any]:
+    def task_fn(self) -> Callable[[TWorkflowInput, Context], Any]:
+        def data_input_task(
+            workflow_input: TWorkflowInput, context: Context
+        ) -> Dict[str, Any]:
             start_time = time.time()
 
             # Get resources from context (would need to be passed in)
@@ -126,7 +114,7 @@ class HatchetDataInput(DataInputNode, HatchetNode):
             if not client or not run_config:
                 raise RuntimeError("Required resources not available in context")
 
-            inputs = self._get_inputs_from_context(context)
+            inputs = self._get_parent_outputs(context)
             extra = dict(data_source=self.data_source)
             error = None
 
@@ -149,7 +137,10 @@ class HatchetDataInput(DataInputNode, HatchetNode):
                         "origin": data.get("origin"),
                     }
                     extra.update({"response_metadata": response_metadata})
-                    return data["value"]
+                    return TaskOutput(
+                        task_name=self.name,
+                        data=data["value"],
+                    )
 
             except (requests.exceptions.RequestException, HTTPError) as e:
                 error = ("\n").join(format_exception_only(type(e), e))
@@ -170,11 +161,6 @@ class HatchetDataInput(DataInputNode, HatchetNode):
                 context.additional_metadata[METADATA_OUTPUT_KEY] = metadata
 
         return data_input_task
-
-    def _get_inputs_from_context(self, context: Context) -> Dict[str, Any]:
-        """Extract inputs from Hatchet context."""
-        # This would extract dependency data from the context
-        return context.workflow_input()
 
     def _get_configured_params(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Get configured parameters with template resolution."""
@@ -224,17 +210,20 @@ class HatchetTransform(TransformNode, HatchetNode):
     def task_name(self) -> str:
         return self.name
 
-    def task_fn(self) -> Callable:
-        def transform_task(context: Context) -> Any:
+    def task_fn(self) -> Callable[[TWorkflowInput, Context], Any]:
+        def transform_task(workflow_input: TWorkflowInput, context: Context) -> Any:
             start_time = time.time()
-            inputs = self._get_inputs_from_context(context)
+            inputs = self._get_parent_outputs(context)
             configured_params = self._get_configured_params(inputs)
             error = None
 
             try:
                 fn_params = {**inputs, **configured_params}
                 result = self._func(context, **fn_params)
-                return result
+                return TaskOutput(
+                    task_name=self.name,
+                    data=result,
+                )
             except Exception as e:
                 error = ("\n").join(format_exception_only(type(e), e))
                 raise UserCodeException(self.name) from e
@@ -264,10 +253,6 @@ class HatchetTransform(TransformNode, HatchetNode):
             return func(**kwargs)
 
         return fn
-
-    def _get_inputs_from_context(self, context: Context) -> Dict[str, Any]:
-        """Extract inputs from Hatchet context."""
-        return context.workflow_input()
 
     def _get_configured_params(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Get configured parameters with template resolution."""
@@ -318,10 +303,10 @@ class HatchetTerminate(TerminateNode, HatchetNode):
     def task_name(self) -> str:
         return self.name
 
-    def task_fn(self) -> Callable:
-        def terminate_task(context: Context) -> str:
+    def task_fn(self) -> Callable[[TWorkflowInput, Context], Any]:
+        def terminate_task(workflow_input: TWorkflowInput, context: Context) -> str:
             start_time = time.time()
-            inputs = self._get_inputs_from_context(context)
+            inputs = self._get_parent_outputs(context)
             error = None
 
             try:
@@ -355,7 +340,10 @@ class HatchetTerminate(TerminateNode, HatchetNode):
                     if not reported:
                         raise ValueError("Callback function failed")
 
-                return result
+                return TaskOutput(
+                    task_name=self.name,
+                    data=result,
+                )
 
             except Exception as e:
                 error = ("\n").join(format_exception_only(type(e), e))
@@ -371,10 +359,6 @@ class HatchetTerminate(TerminateNode, HatchetNode):
                 context.additional_metadata[METADATA_OUTPUT_KEY] = metadata
 
         return terminate_task
-
-    def _get_inputs_from_context(self, context: Context) -> Dict[str, Any]:
-        """Extract inputs from Hatchet context."""
-        return context.workflow_input()
 
     def _resolve_json_metadata(
         self, template_metadata: dict, inputs: dict, context: Context
@@ -456,15 +440,19 @@ class HatchetBranch(BranchNode, HatchetNode):
     def task_name(self) -> str:
         return self.name
 
-    def task_fn(self) -> Callable:
-        def branch_task(context: Context) -> str:
+    def task_fn(self) -> Callable[[TWorkflowInput, Context], Any]:
+        def branch_task(workflow_input: TWorkflowInput, context: Context) -> str:
             start_time = time.time()
-            inputs = self._get_inputs_from_context(context)
+            inputs = self._get_parent_outputs(context)
             error = None
 
             try:
+                context.log(f"Branching on {self.name} with inputs {inputs}")
                 output = self._func(context, **inputs)
-                return output
+                return TaskOutput(
+                    task_name=self.name,
+                    data=output,
+                )
             except Exception as e:
                 error = format_exception_only(type(e), e)
                 raise UserCodeException(self.name) from e
@@ -496,10 +484,6 @@ class HatchetBranch(BranchNode, HatchetNode):
 
         return fn
 
-    def _get_inputs_from_context(self, context: Context) -> Dict[str, Any]:
-        """Extract inputs from Hatchet context."""
-        return context.workflow_input()
-
     @classmethod
     def from_spec(cls, node: BranchNode):
         return cls(
@@ -521,10 +505,15 @@ class HatchetInput(InputNode, HatchetNode):
     def task_name(self) -> str:
         return self.name
 
-    def task_fn(self) -> Callable:
-        def input_task(context: Context) -> Dict[str, Any]:
+    def task_fn(self) -> Callable[[TWorkflowInput, Context], TaskOutput]:
+        def input_task(
+            workflow_input: TWorkflowInput, context: Context
+        ) -> dict[str, Any]:
             # Return the workflow input data
-            return context.workflow_input()
+            return TaskOutput(
+                task_name=self.name,
+                data=workflow_input.model_dump(),
+            )
 
         return input_task
 
@@ -572,11 +561,13 @@ class HatchetConnection(ConnectionNode, HatchetNode):
     def task_name(self) -> str:
         return self.name
 
-    def task_fn(self) -> Callable:
-        def connection_task(context: Context) -> Any:
+    def task_fn(self) -> Callable[[TWorkflowInput, Context], TaskOutput]:
+        def connection_task(
+            workflow_input: TWorkflowInput, context: Context
+        ) -> TaskOutput:
             start_time = time.time()
             env = context.additional_metadata.get(POLICY_CONFIG_KEY)
-            inputs = self._get_inputs_from_context(context)
+            inputs = self._get_parent_outputs(context)
             error = None
             extra = {}
 
@@ -604,7 +595,10 @@ class HatchetConnection(ConnectionNode, HatchetNode):
 
                 if response.status_code == 200:
                     result = format_response_data(response.content, self.response_type)
-                    return result
+                    return TaskOutput(
+                        task_name=self.name,
+                        data=result,
+                    )
 
             except (requests.exceptions.RequestException, HTTPError) as e:
                 error = ("\n").join(format_exception_only(type(e), e))
@@ -624,10 +618,6 @@ class HatchetConnection(ConnectionNode, HatchetNode):
                 context.additional_metadata[METADATA_OUTPUT_KEY] = metadata
 
         return connection_task
-
-    def _get_inputs_from_context(self, context: Context) -> Dict[str, Any]:
-        """Extract inputs from Hatchet context."""
-        return context.workflow_input()
 
     @classmethod
     def from_spec(cls, node: ConnectionNode):
@@ -667,15 +657,20 @@ class HatchetDecision(DecisionNode, HatchetNode):
     def task_name(self) -> str:
         return self.name
 
-    def task_fn(self) -> Callable:
-        def decision_task(context: Context) -> str:
+    def task_fn(self) -> Callable[[TWorkflowInput, Context], TaskOutput]:
+        def decision_task(
+            workflow_input: TWorkflowInput, context: Context
+        ) -> TaskOutput:
             start_time = time.time()
-            inputs = self._get_inputs_from_context(context)
+            inputs = self._get_parent_outputs(context)
             error = None
 
             try:
                 output = self._decision_fn(context, inputs)
-                return output
+                return TaskOutput(
+                    task_name=self.name,
+                    data=output,
+                )
             except Exception as e:
                 error = format_exception_only(type(e), e)
                 raise UserCodeException(self.name) from e
@@ -713,10 +708,6 @@ class HatchetDecision(DecisionNode, HatchetNode):
         norm_cond = normalize_to_template(condition)
         result = resolve_template(norm_cond, inputs, env_variables={})
         return result == "True"
-
-    def _get_inputs_from_context(self, context: Context) -> Dict[str, Any]:
-        """Extract inputs from Hatchet context."""
-        return context.workflow_input()
 
     @classmethod
     def from_spec(cls, node: DecisionNode):
