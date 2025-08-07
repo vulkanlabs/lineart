@@ -243,8 +243,8 @@ class JWTAppClient(BaseAppClient):
             "aud": self.jwt_audience,
             "iat": now,
             "exp": now + self.jwt_ttl,
-            "sub": f"dagster-executor-{self.run_id}",
-            "run_id": self.run_id,  # Include run_id in JWT for tracing
+            "sub": f"run-{self.run_id}",
+            "jti": self.run_id,
         }
 
         logger.debug(
