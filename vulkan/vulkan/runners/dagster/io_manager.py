@@ -2,13 +2,14 @@ from dataclasses import asdict, dataclass
 from pickle import dumps, loads
 from typing import Any
 
-import requests
 from dagster import InputContext, IOManager, OutputContext
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.sql import text
 
 from vulkan.core.step_metadata import StepMetadata
+from vulkan.runners.dagster.app_client import BaseAppClient
+from vulkan.runners.dagster.resources import APP_CLIENT_KEY, AppClientResource
 from vulkan.runners.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
 
 PUBLISH_IO_MANAGER_KEY = "publish_metadata_io_manager"
@@ -117,8 +118,8 @@ def postgresql_io_manager(context) -> PostgreSQLIOManager:
 
 
 class PublishMetadataIOManager(IOManager):
-    def __init__(self, url: str):
-        self._url = url
+    def __init__(self, client: BaseAppClient):
+        self._client = client
 
     def handle_output(self, context: OutputContext, obj):
         if context.name != "metadata":
@@ -128,16 +129,10 @@ class PublishMetadataIOManager(IOManager):
             raise TypeError(f"Expected StepMetadata, got {type(obj)}")
 
         try:
-            response = requests.post(
-                self._url,
-                json={
-                    "step_name": context.step_key,
-                    **asdict(obj),
-                },
+            self._client.publish_step_metadata(
+                step_name=context.step_key,
+                metadata=asdict(obj),
             )
-            if response.status_code != 200:
-                msg = f"ERROR {response.status_code}: Failed to publish metadata: {response.text}"
-                raise ValueError(msg)
         except Exception as e:
             msg = f"Failed to publish metadata for step {context.get_identifier()}"
             raise ValueError(msg) from e
@@ -147,9 +142,6 @@ class PublishMetadataIOManager(IOManager):
 
 
 def metadata_io_manager(context) -> PublishMetadataIOManager:
-    run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
-    run_id = run_config.run_id
-    server_url = run_config.server_url
-    url = f"{server_url}/runs/{run_id}/metadata"
-
-    return PublishMetadataIOManager(url=url)
+    app_client_resource: AppClientResource = getattr(context.resources, APP_CLIENT_KEY)
+    client = app_client_resource.get_client()
+    return PublishMetadataIOManager(client=client)
