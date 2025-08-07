@@ -21,7 +21,7 @@ export default function RunPageContent({
     const [clickedNode, setClickedNode] = useState(null);
 
     return (
-        <div className="grid grid-rows-2 h-full w-full overflow-scroll">
+        <div className="grid grid-rows-2 h-full w-full overflow-hidden">
             <div className="row-span-1 w-full border-b-2">
                 <div className="w-full h-full grid grid-cols-12">
                     <div className="col-span-8">
@@ -34,7 +34,7 @@ export default function RunPageContent({
                             />
                         </div>
                     </div>
-                    <div className="col-span-4 border-l-2 overflow-auto">
+                    <div className="col-span-4 border-l-2 overflow-hidden">
                         <WorkflowSidebar clickedNode={clickedNode} runData={runData} />
                     </div>
                 </div>
@@ -59,14 +59,14 @@ function LogsTable({
 
     return (
         <div className="flex flex-row w-full h-full overflow-y-auto">
-            <table className="min-w-full divide-y divide-gray-200 border-collapse">
+            <table className="w-full divide-y divide-gray-200 border-collapse">
                 <colgroup>
-                    <col style={{ width: "15%" }} />
-                    <col style={{ width: "20%" }} />
-                    <col style={{ width: "10%" }} />
-                    <col style={{ width: "15%" }} />
-                    <col style={{ width: "30%" }} />
-                    <col style={{ width: "10%" }} />
+                    <col className="w-[12%] min-w-[100px]" />
+                    <col className="w-[18%] min-w-[120px]" />
+                    <col className="w-[8%] min-w-[80px]" />
+                    <col className="w-[12%] min-w-[100px]" />
+                    <col className="w-[40%] min-w-[200px]" />
+                    <col className="w-[10%] min-w-[80px]" />
                 </colgroup>
                 <thead className="bg-gray-50 sticky top-0">
                     <tr>
@@ -127,7 +127,7 @@ function WorkflowSidebar({
     runData: RunData;
 }) {
     return (
-        <div className="h-full bg-white border-l-2 overflow-auto">
+        <div className="h-full bg-white border-l-2 overflow-hidden">
             {clickedNode === null ? (
                 <RunInfo runData={runData} />
             ) : (

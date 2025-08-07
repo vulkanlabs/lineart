@@ -8,20 +8,11 @@ import Link from "next/link";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, UseFormReturn } from "react-hook-form";
-import { Play } from "lucide-react";
+import { Play, Settings } from "lucide-react";
 
 // Vulkan packages
 import {
     Button,
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-    Dialog,
-    DialogContent,
-    DialogTitle,
-    DialogTrigger,
     Form,
     FormControl,
     FormDescription,
@@ -80,53 +71,48 @@ export function LauncherButton({
     configVariables,
     launchFn,
 }: LauncherPageProps) {
-    const [createdRun, setCreatedRun] = useState(null);
-    const [error, setError] = useState<Error | null>(null);
-    const [open, setOpen] = useState(false);
+    const [isQuickLaunching, setIsQuickLaunching] = useState(false);
 
-    const handleOpenChange = (open: boolean) => {
-        setOpen(open);
-        if (!open) {
-            setError(null);
-            setCreatedRun(null);
+    const handleQuickLaunch = async () => {
+        setIsQuickLaunching(true);
+        
+        try {
+            const defaultBody = {
+                input_data: asInputData(inputSchema),
+                config_variables: asConfigMap(configVariables || []),
+            };
+
+            const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+            const launchUrl = `${serverUrl}/policy-versions/${policyVersionId}/runs`;
+            
+            await launchFn({ launchUrl, body: defaultBody, headers: {} });
+            
+        } catch (error) {
+            console.error("Launch failed:", error);
+        } finally {
+            setIsQuickLaunching(false);
         }
     };
 
     return (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
-                <Button variant="outline">
-                    <>
-                        <Play />
-                        <span>Launch Run</span>
-                    </>
-                </Button>
-            </DialogTrigger>
-            <DialogTitle className="sr-only">Launch a Run</DialogTitle>
-            <DialogContent className="md:max-w-[60%]">
-                {!error && !createdRun && (
-                    <LaunchRunForm
-                        policyVersionId={policyVersionId}
-                        launchFn={launchFn}
-                        defaultConfigVariables={asConfigMap(configVariables || [])}
-                        defaultInputData={asInputData(inputSchema)}
-                        setCreatedRun={setCreatedRun}
-                        setError={setError}
-                    />
-                )}
-                {error && <RunCreationErrorCard error={error} />}
-                {createdRun && (
-                    <RunCreatedCard
-                        createdRun={createdRun}
-                        closeDialog={() => {
-                            handleOpenChange(false);
-                        }}
-                    />
-                )}
-            </DialogContent>
-        </Dialog>
+        <Button 
+            onClick={handleQuickLaunch}
+            disabled={isQuickLaunching}
+            variant="outline"
+            className="border-input bg-background hover:bg-accent hover:text-accent-foreground"
+        >
+            {isQuickLaunching ? (
+                <Sending text="Launching..." />
+            ) : (
+                <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Launch Run
+                </>
+            )}
+        </Button>
     );
 }
+
 
 const formSchema = z.object({
     input_data: z.string().refine(ensureJSON, { message: "Not a valid JSON object" }),
@@ -135,6 +121,7 @@ const formSchema = z.object({
         .nullable()
         .refine(ensureJSON, { message: "Not a valid JSON object" }),
 });
+
 
 type LaunchRunFormProps = {
     policyVersionId: string;
@@ -184,10 +171,10 @@ function LaunchRunForm({
             .then((data) => {
                 setError(null);
                 setCreatedRun(data);
-
                 return data;
             })
             .catch((error) => {
+                console.error("Form launch failed:", error);
                 setCreatedRun(null);
                 setError(error);
             })
@@ -219,32 +206,32 @@ function LaunchRunFormCard({
 }) {
     const placeholderText = JSON.stringify({ string_field: "value1", numeric_field: 1 }, null, 2);
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Launch a Run</CardTitle>
-                <CardDescription>
-                    Configure and launch a run for this Policy Version
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-2">
+        <div className="space-y-6">
+            <div className="space-y-2">
+                <h2 className="text-xl font-semibold tracking-tight">Configure Launch Parameters</h2>
+                <p className="text-sm text-muted-foreground">
+                    Customize input data and configuration variables for this run
+                </p>
+            </div>
+            
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <FormField
                             control={form.control}
                             name="input_data"
                             render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Input Data</FormLabel>
+                                <FormItem className="space-y-3">
+                                    <FormLabel className="text-base font-medium">Input Data</FormLabel>
                                     <FormControl>
                                         <Textarea
-                                            className="min-h-40"
+                                            className="min-h-48 font-mono text-sm resize-none border-2 focus:border-blue-500 transition-colors"
                                             placeholder={placeholderText}
                                             {...field}
                                         />
                                     </FormControl>
-                                    <FormDescription>
-                                        Input data for the run. <br />
-                                        Must follow the input schema for the policy.
+                                    <FormDescription className="text-sm">
+                                        JSON data that will be passed to the policy run. Must match the expected input schema.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
@@ -254,45 +241,61 @@ function LaunchRunFormCard({
                             control={form.control}
                             name="config_variables"
                             render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Configuration Variables</FormLabel>
+                                <FormItem className="space-y-3">
+                                    <FormLabel className="text-base font-medium">Configuration Variables</FormLabel>
                                     <FormControl>
                                         <Textarea
-                                            className="min-h-40"
+                                            className="min-h-48 font-mono text-sm resize-none border-2 focus:border-blue-500 transition-colors"
                                             placeholder={placeholderText}
-                                            value={field.value || ""}
+                                            name={field.name}
+                                            onBlur={field.onBlur}
+                                            onChange={field.onChange}
+                                            ref={field.ref}
+                                            value={field.value ?? ""}
                                         />
                                     </FormControl>
-                                    <FormDescription>
-                                        Configuration variables for the run. <br />
-                                        Override any configuration set in the policy version.
+                                    <FormDescription className="text-sm">
+                                        Optional configuration overrides for this specific run.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
-                        <div className="flex flex-row gap-4">
-                            <Button type="submit" disabled={submitting}>
+                    </div>
+                    
+                    <div className="flex flex-row justify-between items-center pt-4 border-t">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={setDefaults}
+                            disabled={submitting}
+                            className="flex items-center gap-2 border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                        >
+                            <Settings className="h-4 w-4" />
+                            Reset to Defaults
+                        </Button>
+                        
+                        <div className="flex gap-3">
+                            <Button
+                                type="submit"
+                                disabled={submitting}
+                                variant="outline"
+                                className="min-w-[120px] border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                            >
                                 {submitting ? (
-                                    <Sending text={"Launching..."} />
+                                    <Sending text="Launching..." />
                                 ) : (
-                                    <span>Launch Run</span>
+                                    <>
+                                        <Play className="h-4 w-4 mr-2" />
+                                        Launch Run
+                                    </>
                                 )}
                             </Button>
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={setDefaults}
-                                disabled={submitting}
-                                className="bg-gray-200 hover:bg-gray-500"
-                            >
-                                Use Default Values
-                            </Button>
                         </div>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
+                    </div>
+                </form>
+            </Form>
+        </div>
     );
 }
 
@@ -339,35 +342,79 @@ function asConfigMap(configVariables: string[]) {
 
 function RunCreatedCard({ createdRun, closeDialog }: { createdRun: Run; closeDialog: () => void }) {
     return (
-        <Card className="flex flex-col w-fit border-green-600 border-2">
-            <CardHeader>
-                <CardTitle>Launched run successfully</CardTitle>
-                <CardDescription>
-                    <Link
-                        href={`/policyVersions/${createdRun.policy_version_id}/runs/${createdRun.run_id}`}
+        <div className="text-center space-y-6 py-6">
+            <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <div className="w-6 h-6 bg-green-500 rounded-full"></div>
+            </div>
+            
+            <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Run Launched Successfully!</h3>
+                <p className="text-sm text-muted-foreground">
+                    Your policy run has been started and is now executing.
+                </p>
+                <p className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded">
+                    Run ID: {createdRun.run_id}
+                </p>
+            </div>
+            
+            <div className="flex justify-center gap-3">
+                <Link href={`/policyVersions/${createdRun.policy_version_id}/runs/${createdRun.run_id}`}>
+                    <Button 
+                        onClick={closeDialog}
+                        className="bg-primary text-primary-foreground hover:bg-primary/90"
                     >
-                        <Button className="bg-green-600 hover:bg-green-500" onClick={closeDialog}>
-                            View Run
-                        </Button>
-                    </Link>
-                </CardDescription>
-            </CardHeader>
-        </Card>
+                        View Run Details
+                    </Button>
+                </Link>
+                <Button 
+                    variant="outline" 
+                    onClick={closeDialog}
+                    className="border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                >
+                    Close
+                </Button>
+            </div>
+        </div>
     );
 }
 
 function RunCreationErrorCard({ error }: { error: Error }) {
     return (
-        <Card className="flex flex-col w-fit border-red-600 border-2">
-            <CardHeader>
-                <CardTitle>Failed to launch run</CardTitle>
-                <CardDescription>
-                    Launch failed with error: <br />
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <pre className="text-wrap">{error.message}</pre>
-            </CardContent>
-        </Card>
+        <div className="text-center space-y-6 py-6">
+            <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <div className="w-6 h-6 bg-red-500 rounded-full"></div>
+            </div>
+            
+            <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Launch Failed</h3>
+                <p className="text-sm text-muted-foreground">
+                    There was an error starting your policy run.
+                </p>
+            </div>
+            
+            <div className="bg-muted border rounded-lg p-3 text-left">
+                <h4 className="text-sm font-medium mb-2">Error Details:</h4>
+                <pre className="text-xs text-muted-foreground whitespace-pre-wrap overflow-auto max-h-24">
+                    {error.message}
+                </pre>
+            </div>
+            
+            <div className="flex justify-center gap-3">
+                <Button 
+                    variant="outline" 
+                    onClick={() => window.location.reload()}
+                    className="border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                >
+                    Try Again
+                </Button>
+                <Button 
+                    variant="outline" 
+                    onClick={() => window.history.back()}
+                    className="border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                >
+                    Go Back
+                </Button>
+            </div>
+        </div>
     );
 }

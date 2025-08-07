@@ -30,7 +30,6 @@ import {
 } from "@vulkanlabs/base";
 import type {
     ConfigurationVariablesBase,
-    DataSource,
     DataSourceReference,
     PolicyVersion,
 } from "@vulkanlabs/client-open";
@@ -100,7 +99,12 @@ export function DataSourcesTable({ sources }: { sources: DataSourceReference[] }
 export function RequirementsEditor({ policyVersion }: { policyVersion: PolicyVersion }) {
     const [isLoading, setIsLoading] = useState(false);
 
-    const initialRequirements = policyVersion.requirements.toString().replace(/,/g, "\n") || "";
+    // Safely handle requirements conversion with proper null checking
+    const initialRequirements = policyVersion.requirements 
+        ? Array.isArray(policyVersion.requirements) 
+            ? policyVersion.requirements.join("\n")
+            : policyVersion.requirements.toString().replace(/,/g, "\n")
+        : "";
     const form = useForm<z.infer<typeof requirementsSchema>>({
         resolver: zodResolver(requirementsSchema),
         defaultValues: {
@@ -112,14 +116,14 @@ export function RequirementsEditor({ policyVersion }: { policyVersion: PolicyVer
 
     const onSubmit = async (data: z.infer<typeof requirementsSchema>) => {
         setIsLoading(true);
-        const formattedRequirements = data.requirements.split("\n").map((line) => line.trim());
+        const formattedRequirements = (data.requirements || "").split("\n").map((line) => line.trim()).filter(line => line.length > 0);
         try {
             await updatePolicyVersion(policyVersion.policy_version_id, {
                 requirements: formattedRequirements,
                 alias: policyVersion.alias || null,
-                input_schema: policyVersion.spec.input_schema,
-                spec: policyVersion.spec,
-                ui_metadata: policyVersion.ui_metadata,
+                input_schema: policyVersion.spec?.input_schema || {},
+                spec: policyVersion.spec || {},
+                ui_metadata: policyVersion.ui_metadata || null,
             });
             form.reset({ requirements: data.requirements });
             toast("Requirements saved", {

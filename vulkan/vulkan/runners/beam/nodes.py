@@ -334,7 +334,7 @@ class BeamTerminate(TerminateNode, BeamNode):
         name: str,
         return_status: str,
         dependencies: dict[str, Dependency],
-        return_metadata: dict[str, Dependency] | None = None,
+        output_data: dict[str, str] | None = None,
         description: str | None = None,
         hierarchy: list[str] | None = None,
     ):
@@ -343,7 +343,7 @@ class BeamTerminate(TerminateNode, BeamNode):
             description=description,
             return_status=return_status,
             dependencies=dependencies,
-            return_metadata=return_metadata,
+            output_data=output_data,
             callback=None,
             hierarchy=hierarchy,
         )
@@ -355,7 +355,7 @@ class BeamTerminate(TerminateNode, BeamNode):
             description=node.description,
             return_status=node.return_status,
             dependencies=node.dependencies,
-            return_metadata=node.return_metadata,
+            output_data=node.output_data,
             hierarchy=node._hierarchy,
         )
 

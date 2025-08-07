@@ -37,20 +37,20 @@ export function InnerNavbar({
                 >
                     <Undo2 />
                 </div>
-                {sections.map((section) => renderSection(section))}
+                {sections.map((section, index) => renderSection(section, index))}
             </div>
-            <div className="px-6">{rightSections?.map((section) => renderSection(section))}</div>
+            <div className="px-6">{rightSections?.map((section, index) => renderSection(section, index))}</div>
         </div>
     );
 }
 
-function renderSection(section: InnerNavbarSectionProps) {
+function renderSection(section: InnerNavbarSectionProps, index: number) {
     return (
-        <div className="flex py-4 gap-2 items-center" key={section.key}>
+        <div className="flex py-4 gap-2 items-center" key={section.key || `section-${index}`}>
             {section.key && <h1 className="text-base text-wrap font-semibold">{section.key}</h1>}
             {section.element ? <div className="flex items-center">{section.element}</div> : null}
-            {section.value && section.value.length > 0 && (
-                <h1 className="text-base text-wrap font-normal">{section.value}</h1>
+            {section.value !== undefined && (
+                <h1 className="text-base text-wrap font-normal">{section.value || ""}</h1>
             )}
         </div>
     );

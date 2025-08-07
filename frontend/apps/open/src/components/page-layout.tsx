@@ -41,7 +41,7 @@ export function PageLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex flex-row w-full h-full overflow-scroll">
+        <div className="flex flex-row w-full h-full overflow-hidden">
             <Sidebar
                 title={sidebar.title}
                 sections={sidebar.sections}
@@ -49,8 +49,8 @@ export function PageLayout({
             />
             <div
                 className={cn(
-                    "flex flex-col w-full h-full",
-                    content?.scrollable ? "overflow-scroll" : "overflow-clip",
+                    "flex flex-col w-full h-full scroll-smooth",
+                    content?.scrollable ? "overflow-auto-safe scrollbar-thin" : "overflow-hidden-safe",
                 )}
             >
                 {children}
@@ -104,7 +104,7 @@ export function Sidebar({ title, sections, retractable }: SidebarProps) {
         <div
             className={cn(
                 "flex flex-col border-r-2 gap-4 h-full overflow-clip",
-                isExpanded ? "w-64 max-w-64" : "w-16 max-w-16",
+                isExpanded ? "w-48 md:w-64 max-w-48 md:max-w-64" : "w-12 md:w-16 max-w-12 md:max-w-16",
             )}
             onMouseEnter={mouseEnterEvent}
             onMouseLeave={mouseLeaveEvent}
