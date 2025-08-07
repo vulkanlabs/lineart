@@ -277,7 +277,8 @@ class DagsterTransformNodeMixin(DagsterNode):
         return node_op
 
     def _get_configured_params(self, inputs):
-        if self.parameters is None:
+        # FIXME: this is a quick fix to avoid breaking existing transforms.
+        if not hasattr(self, "parameters") or self.parameters is None:
             return {}
 
         configured_params = {}
