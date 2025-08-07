@@ -69,10 +69,10 @@ class TestTerminateNode:
         """Test TerminateNode with simple parameters converted to JSON metadata."""
         terminate = TerminateNode(
             name="terminate_simple",
-            description="Terminate node with parameters",
+            description="Terminate node with output_data",
             return_status="success",
             dependencies={"inputs": Dependency("input_node")},
-            parameters={"message": "Task completed successfully"},
+            output_data={"message": "Task completed successfully"},
         )
         definition = terminate.node_definition()
         assert (

@@ -35,7 +35,7 @@ class TerminateNode(Node):
         description: str | None = None,
         callback: Callable | None = None,
         hierarchy: list[str] | None = None,
-        parameters: dict[str, str] | None = None,
+        output_data: dict[str, str] | None = None,
     ):
         """Marks the end of a workflow.
 
@@ -55,8 +55,8 @@ class TerminateNode(Node):
             In the current implementation, the callback function always
             receives an execution context as its first argument.
             TODO: improve documentation on callback function signature.
-        parameters: dict[str, str], optional
-            Parameter dict with template support. Converted to return_metadata for storage.
+        output_data: dict[str, str], optional
+            Output data dict with template support. Converted to return_metadata for storage.
 
         """
         self.return_status = (
@@ -73,15 +73,17 @@ class TerminateNode(Node):
         )
         self.callback = callback
 
-        # Store parameters and convert to return_metadata for serialization
-        self.parameters = parameters or {}
+        # Store output_data and convert to return_metadata for serialization
+        self.output_data = output_data or {}
         self.return_metadata = (
-            self._parameters_to_metadata(self.parameters) if self.parameters else None
+            self._output_data_to_metadata(self.output_data)
+            if self.output_data
+            else None
         )
 
         # Validate templates
-        if self.parameters:
-            self._validate_parameters_templates(self.parameters)
+        if self.output_data:
+            self._validate_output_data_templates(self.output_data)
 
     def _validate_json_metadata(self, json_metadata: str) -> None:
         """Validate JSON and templates."""
@@ -117,24 +119,24 @@ class TerminateNode(Node):
                 raise
             raise ValueError(f"Validation error in JSON metadata: {e}")
 
-    def _validate_parameters_templates(self, parameters: dict[str, str]) -> None:
-        """Validate templates in parameters."""
-        for param_name, param_value in parameters.items():
-            if isinstance(param_value, str):
+    def _validate_output_data_templates(self, output_data: dict[str, str]) -> None:
+        """Validate templates in output_data."""
+        for data_key, data_value in output_data.items():
+            if isinstance(data_value, str):
                 try:
-                    extract_runtime_params_from_string(param_value)
-                    extract_env_vars_from_string(param_value)
+                    extract_runtime_params_from_string(data_value)
+                    extract_env_vars_from_string(data_value)
                 except ValueError as e:
                     raise ValueError(
-                        f"Invalid template expression in parameters at '{param_name}': {param_value}. Error: {e}"
+                        f"Invalid template expression in output_data at '{data_key}': {data_value}. Error: {e}"
                     )
 
-    def _parameters_to_metadata(self, parameters: dict[str, str]) -> str:
-        """Convert parameters to JSON."""
+    def _output_data_to_metadata(self, output_data: dict[str, str]) -> str:
+        """Convert output_data to JSON."""
         try:
-            return json.dumps(parameters, sort_keys=True)
+            return json.dumps(output_data, sort_keys=True)
         except (TypeError, ValueError) as e:
-            raise ValueError(f"Failed to convert parameters to JSON: {e}")
+            raise ValueError(f"Failed to convert output_data to JSON: {e}")
 
     def node_definition(self) -> NodeDefinition:
         return NodeDefinition(
@@ -145,7 +147,7 @@ class TerminateNode(Node):
             metadata=TerminateNodeMetadata(
                 return_status=self.return_status,
                 return_metadata=self.return_metadata,
-                parameters=self.parameters,
+                output_data=self.output_data,
             ),
             hierarchy=self.hierarchy,
         )
@@ -162,26 +164,26 @@ class TerminateNode(Node):
 
         metadata = cast(TerminateNodeMetadata, definition.metadata)
 
-        # If we have parameters, use them directly; otherwise convert from return_metadata
-        if metadata.parameters:
-            parameters = metadata.parameters
+        # Priority: output_data > return_metadata
+        if metadata.output_data:
+            output_data = metadata.output_data
         elif metadata.return_metadata:
-            parameters = cls._metadata_to_parameters_static(metadata.return_metadata)
+            output_data = cls._metadata_to_output_data_static(metadata.return_metadata)
         else:
-            parameters = {}
+            output_data = {}
 
         return cls(
             name=definition.name,
             description=definition.description,
             dependencies=definition.dependencies,
             return_status=metadata.return_status,
-            parameters=parameters,
+            output_data=output_data,
             hierarchy=definition.hierarchy,
         )
 
     @staticmethod
-    def _metadata_to_parameters_static(return_metadata: str) -> dict[str, str]:
-        """Convert JSON metadata to parameters dict for deserialization."""
+    def _metadata_to_output_data_static(return_metadata: str) -> dict[str, str]:
+        """Convert JSON metadata to output_data dict for deserialization."""
         try:
             parsed = json.loads(return_metadata)
             if not isinstance(parsed, dict):

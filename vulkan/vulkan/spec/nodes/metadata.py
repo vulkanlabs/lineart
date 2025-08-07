@@ -36,9 +36,9 @@ class TransformNodeMetadata(BaseNodeMetadata):
 class TerminateNodeMetadata(BaseNodeMetadata):
     return_status: str
     return_metadata: str | None = (
-        None  # Generated from parameters for frontend compatibility
+        None  # Generated from output_data for frontend compatibility
     )
-    parameters: dict[str, str] | None = None  # Primary storage for SDK
+    output_data: dict[str, str] | None = None  # Primary storage for SDK
 
 
 class DataInputNodeMetadata(BaseNodeMetadata):
