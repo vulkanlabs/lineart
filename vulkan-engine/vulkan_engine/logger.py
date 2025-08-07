@@ -12,7 +12,7 @@ from vulkan_engine.db import LogRecord
 from vulkan_engine.events import VulkanEvent
 from vulkan_engine.gcp_logging import create_gcp_handler
 
-SYS_LOGGER_NAME = "vulkan"
+SYS_LOGGER_NAME = "vulkan_engine"
 USER_LOGGER_NAME = f"{SYS_LOGGER_NAME}.user"
 GCP_LOGGER_NAME = "vulkan-server"
 

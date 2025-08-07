@@ -60,8 +60,15 @@ class RunOrchestrationService(BaseService):
         self.run_loader.get_run(run_id, project_id=project_id)
 
         # Create metadata record
-        args = {"run_id": run_id, **metadata.model_dump()}
-        meta = StepMetadata(**args)
+        meta = StepMetadata(
+            run_id=run_id,
+            step_name=metadata.step_name,
+            node_type=metadata.node_type,
+            start_time=metadata.start_time,
+            end_time=metadata.end_time,
+            error=metadata.error,
+            extra=metadata.extra,
+        )
         self.db.add(meta)
         self.db.commit()
 
