@@ -119,7 +119,7 @@ class BaseAppClient(ABC):
         """Create a new run for a policy version."""
         response = self._request(
             "POST",
-            "/run-version-sync",
+            "/internal/run-version-sync",
             json={
                 "policy_version_id": policy_version_id,
                 "project_id": self.project_id,
@@ -225,6 +225,7 @@ class JWTAppClient(BaseAppClient):
         """Generate JWT once and configure session with bearer token."""
         token = self._generate_jwt()
         self.session.headers.update({"Authorization": f"Bearer {token}"})
+
         logger.debug(
             f"Using JWT client with issuer={self.jwt_issuer}, audience={self.jwt_audience}",
             extra={

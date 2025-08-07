@@ -1,7 +1,4 @@
-"""
-Internal services webhooks.
-
-"""
+"""Internal API endpoints for service-to-service communication."""
 
 from typing import Annotated, Any
 from uuid import UUID
