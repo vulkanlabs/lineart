@@ -82,13 +82,17 @@ class TestTerminateNode:
 
     def test_terminate_node_with_json_string_metadata(self):
         """Test TerminateNode with JSON string metadata (as frontend sends)."""
-        json_metadata = '{"result": "completed", "items_processed": 42, "timestamp": "2024-01-01T00:00:00Z"}'
+        json_metadata = '{"items_processed": "42", "result": "completed", "timestamp": "2024-01-01T00:00:00Z"}'
         terminate = TerminateNode(
             name="terminate_json",
             description="Terminate node with JSON string metadata",
             return_status="success",
             dependencies={"inputs": Dependency("input_node")},
-            return_metadata=json_metadata,
+            output_data={
+                "result": "completed",
+                "items_processed": "42",
+                "timestamp": "2024-01-01T00:00:00Z",
+            },
         )
         definition = terminate.node_definition()
         assert definition.metadata.return_metadata == json_metadata
@@ -104,7 +108,10 @@ class TestTerminateNode:
                 "decision": Dependency("decision_node"),
                 "input": Dependency("input_node"),
             },
-            return_metadata=template_metadata,
+            output_data={
+                "decision": "{{decision_node.data}}",
+                "user_input": "{{input_node.data}}",
+            },
         )
         definition = terminate.node_definition()
         assert definition.metadata.return_metadata == template_metadata
@@ -117,7 +124,9 @@ class TestTerminateNode:
             description="Terminate node with mixed template and static text in JSON",
             return_status="success",
             dependencies={"user": Dependency("user_node")},
-            return_metadata=mixed_metadata,
+            output_data={
+                "message": "User {{user_node.data}} completed task with status: approved"
+            },
         )
         definition = terminate.node_definition()
         assert definition.metadata.return_metadata == mixed_metadata
@@ -135,7 +144,7 @@ class TestTerminateNodeTemplateResolution:
             description="Simple template resolution test",
             return_status="success",
             dependencies={"decision": Dependency("decision_node")},
-            return_metadata=json_metadata,
+            output_data={"decision": "{{decision_node.data}}", "status": "completed"},
         )
 
         dagster_terminate = DagsterTerminate.from_spec(terminate)
@@ -181,7 +190,11 @@ class TestTerminateNodeTemplateResolution:
                 "task": Dependency("task_node"),
                 "result": Dependency("result_node"),
             },
-            return_metadata=template_metadata,
+            output_data={
+                "user": "{{user_node.data}}",
+                "task": "{{task_node.data}}",
+                "result": "{{result_node.data}}",
+            },
         )
 
         dagster_terminate = DagsterTerminate.from_spec(terminate)
@@ -222,26 +235,26 @@ class TestTerminateNodeTemplateResolution:
 class TestTerminateNodeValidation:
     """Test basic validation scenarios that matter for frontend usage."""
 
-    def test_invalid_json_metadata(self):
-        """Test that invalid JSON in metadata is caught."""
-        with pytest.raises(ValueError, match="Invalid JSON"):
+    def test_invalid_template_expression(self):
+        """Test that invalid template expressions are caught."""
+        with pytest.raises(ValueError, match="Invalid template expression"):
             TerminateNode(
                 name="terminate",
-                description="Invalid JSON test",
+                description="Invalid template test",
                 return_status="success",
                 dependencies={"inputs": Dependency("input_node")},
-                return_metadata='{"invalid": json syntax}',  # Invalid JSON
+                output_data={"value": "{{node.data"},  # Missing closing brace
             )
 
-    def test_wrong_metadata_type(self):
-        """Test that non-string metadata types are rejected."""
-        with pytest.raises(TypeError, match="return_metadata expects string, got"):
+    def test_wrong_output_data_type(self):
+        """Test that non-dict output_data types cause AttributeError during validation."""
+        with pytest.raises(AttributeError, match="object has no attribute 'items'"):
             TerminateNode(
                 name="terminate",
                 description="Wrong type test",
                 return_status="success",
                 dependencies={"inputs": Dependency("input_node")},
-                return_metadata={"dict": "value"},  # Should be string
+                output_data="should be dict",  # Should be dict
             )
 
     def test_unclosed_template_braces(self):
@@ -252,7 +265,7 @@ class TestTerminateNodeValidation:
                 description="Malformed template test",
                 return_status="success",
                 dependencies={"inputs": Dependency("input_node")},
-                return_metadata='{"value": "{{node.data"}',  # Missing closing brace
+                output_data={"value": "{{node.data"},  # Missing closing brace
             )
 
 

@@ -350,14 +350,14 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         description: str,
         return_status: str,
         dependencies: dict[str, Dependency],
-        return_metadata: str | None = None,
+        output_data: dict[str, str] | None = None,
         callback: Callable | None = None,
     ):
         super().__init__(
             name=name,
             description=description,
             return_status=return_status,
-            return_metadata=return_metadata,
+            output_data=output_data,
             dependencies=dependencies,
             callback=callback,
         )
@@ -475,7 +475,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             name=normalize_node_id(node.id),
             description=node.description,
             return_status=node.return_status,
-            return_metadata=node.return_metadata,
+            output_data=node.output_data,
             dependencies=dependencies,
             callback=node.callback,
         )
