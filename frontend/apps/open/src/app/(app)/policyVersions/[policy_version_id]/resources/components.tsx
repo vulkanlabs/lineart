@@ -48,7 +48,7 @@ export function EnvironmentVariables({ policyVersion, variables }: EnvironmentVa
     return (
         <EnvironmentVariablesEditor
             variables={variables}
-            requiredVariableNames={policyVersion.variables || []}
+            requiredVariableNames={policyVersion.workflow?.variables || []}
             onSave={async (updatedVariables: ConfigurationVariablesBase[]) => {
                 await setPolicyVersionVariablesAction(
                     policyVersion.policy_version_id,
@@ -100,10 +100,10 @@ export function RequirementsEditor({ policyVersion }: { policyVersion: PolicyVer
     const [isLoading, setIsLoading] = useState(false);
 
     // Safely handle requirements conversion with proper null checking
-    const initialRequirements = policyVersion.requirements 
-        ? Array.isArray(policyVersion.requirements) 
-            ? policyVersion.requirements.join("\n")
-            : policyVersion.requirements.toString().replace(/,/g, "\n")
+    const initialRequirements = policyVersion.workflow?.requirements
+        ? Array.isArray(policyVersion.workflow.requirements)
+            ? policyVersion.workflow.requirements.join("\n")
+            : policyVersion.workflow.requirements.toString().replace(/,/g, "\n")
         : "";
     const form = useForm<z.infer<typeof requirementsSchema>>({
         resolver: zodResolver(requirementsSchema),
@@ -116,14 +116,16 @@ export function RequirementsEditor({ policyVersion }: { policyVersion: PolicyVer
 
     const onSubmit = async (data: z.infer<typeof requirementsSchema>) => {
         setIsLoading(true);
-        const formattedRequirements = (data.requirements || "").split("\n").map((line) => line.trim()).filter(line => line.length > 0);
+        const formattedRequirements = (data.requirements || "")
+            .split("\n")
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0);
         try {
             await updatePolicyVersion(policyVersion.policy_version_id, {
                 requirements: formattedRequirements,
                 alias: policyVersion.alias || null,
-                input_schema: policyVersion.spec?.input_schema || {},
-                spec: policyVersion.spec || {},
-                ui_metadata: policyVersion.ui_metadata || null,
+                spec: policyVersion.workflow?.spec || {},
+                ui_metadata: policyVersion.workflow?.ui_metadata || null,
             });
             form.reset({ requirements: data.requirements });
             toast("Requirements saved", {

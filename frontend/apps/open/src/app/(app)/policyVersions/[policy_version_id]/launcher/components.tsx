@@ -75,7 +75,7 @@ export function LauncherButton({
 
     const handleQuickLaunch = async () => {
         setIsQuickLaunching(true);
-        
+
         try {
             const defaultBody = {
                 input_data: asInputData(inputSchema),
@@ -84,9 +84,8 @@ export function LauncherButton({
 
             const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
             const launchUrl = `${serverUrl}/policy-versions/${policyVersionId}/runs`;
-            
+
             await launchFn({ launchUrl, body: defaultBody, headers: {} });
-            
         } catch (error) {
             console.error("Launch failed:", error);
         } finally {
@@ -95,7 +94,7 @@ export function LauncherButton({
     };
 
     return (
-        <Button 
+        <Button
             onClick={handleQuickLaunch}
             disabled={isQuickLaunching}
             variant="outline"
@@ -113,7 +112,6 @@ export function LauncherButton({
     );
 }
 
-
 const formSchema = z.object({
     input_data: z.string().refine(ensureJSON, { message: "Not a valid JSON object" }),
     config_variables: z
@@ -121,7 +119,6 @@ const formSchema = z.object({
         .nullable()
         .refine(ensureJSON, { message: "Not a valid JSON object" }),
 });
-
 
 type LaunchRunFormProps = {
     policyVersionId: string;
@@ -208,12 +205,14 @@ function LaunchRunFormCard({
     return (
         <div className="space-y-6">
             <div className="space-y-2">
-                <h2 className="text-xl font-semibold tracking-tight">Configure Launch Parameters</h2>
+                <h2 className="text-xl font-semibold tracking-tight">
+                    Configure Launch Parameters
+                </h2>
                 <p className="text-sm text-muted-foreground">
                     Customize input data and configuration variables for this run
                 </p>
             </div>
-            
+
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -222,7 +221,9 @@ function LaunchRunFormCard({
                             name="input_data"
                             render={({ field }) => (
                                 <FormItem className="space-y-3">
-                                    <FormLabel className="text-base font-medium">Input Data</FormLabel>
+                                    <FormLabel className="text-base font-medium">
+                                        Input Data
+                                    </FormLabel>
                                     <FormControl>
                                         <Textarea
                                             className="min-h-48 font-mono text-sm resize-none border-2 focus:border-blue-500 transition-colors"
@@ -231,7 +232,8 @@ function LaunchRunFormCard({
                                         />
                                     </FormControl>
                                     <FormDescription className="text-sm">
-                                        JSON data that will be passed to the policy run. Must match the expected input schema.
+                                        JSON data that will be passed to the policy run. Must match
+                                        the expected input schema.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
@@ -242,7 +244,9 @@ function LaunchRunFormCard({
                             name="config_variables"
                             render={({ field }) => (
                                 <FormItem className="space-y-3">
-                                    <FormLabel className="text-base font-medium">Configuration Variables</FormLabel>
+                                    <FormLabel className="text-base font-medium">
+                                        Configuration Variables
+                                    </FormLabel>
                                     <FormControl>
                                         <Textarea
                                             className="min-h-48 font-mono text-sm resize-none border-2 focus:border-blue-500 transition-colors"
@@ -262,7 +266,7 @@ function LaunchRunFormCard({
                             )}
                         />
                     </div>
-                    
+
                     <div className="flex flex-row justify-between items-center pt-4 border-t">
                         <Button
                             type="button"
@@ -274,7 +278,7 @@ function LaunchRunFormCard({
                             <Settings className="h-4 w-4" />
                             Reset to Defaults
                         </Button>
-                        
+
                         <div className="flex gap-3">
                             <Button
                                 type="submit"
@@ -346,7 +350,7 @@ function RunCreatedCard({ createdRun, closeDialog }: { createdRun: Run; closeDia
             <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                 <div className="w-6 h-6 bg-green-500 rounded-full"></div>
             </div>
-            
+
             <div className="space-y-2">
                 <h3 className="text-lg font-semibold">Run Launched Successfully!</h3>
                 <p className="text-sm text-muted-foreground">
@@ -356,18 +360,20 @@ function RunCreatedCard({ createdRun, closeDialog }: { createdRun: Run; closeDia
                     Run ID: {createdRun.run_id}
                 </p>
             </div>
-            
+
             <div className="flex justify-center gap-3">
-                <Link href={`/policyVersions/${createdRun.policy_version_id}/runs/${createdRun.run_id}`}>
-                    <Button 
+                <Link
+                    href={`/policyVersions/${createdRun.policy_version_id}/runs/${createdRun.run_id}`}
+                >
+                    <Button
                         onClick={closeDialog}
                         className="bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                         View Run Details
                     </Button>
                 </Link>
-                <Button 
-                    variant="outline" 
+                <Button
+                    variant="outline"
                     onClick={closeDialog}
                     className="border-input bg-background hover:bg-accent hover:text-accent-foreground"
                 >
@@ -384,31 +390,31 @@ function RunCreationErrorCard({ error }: { error: Error }) {
             <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                 <div className="w-6 h-6 bg-red-500 rounded-full"></div>
             </div>
-            
+
             <div className="space-y-2">
                 <h3 className="text-lg font-semibold">Launch Failed</h3>
                 <p className="text-sm text-muted-foreground">
                     There was an error starting your policy run.
                 </p>
             </div>
-            
+
             <div className="bg-muted border rounded-lg p-3 text-left">
                 <h4 className="text-sm font-medium mb-2">Error Details:</h4>
                 <pre className="text-xs text-muted-foreground whitespace-pre-wrap overflow-auto max-h-24">
                     {error.message}
                 </pre>
             </div>
-            
+
             <div className="flex justify-center gap-3">
-                <Button 
-                    variant="outline" 
+                <Button
+                    variant="outline"
                     onClick={() => window.location.reload()}
                     className="border-input bg-background hover:bg-accent hover:text-accent-foreground"
                 >
                     Try Again
                 </Button>
-                <Button 
-                    variant="outline" 
+                <Button
+                    variant="outline"
                     onClick={() => window.history.back()}
                     className="border-input bg-background hover:bg-accent hover:text-accent-foreground"
                 >

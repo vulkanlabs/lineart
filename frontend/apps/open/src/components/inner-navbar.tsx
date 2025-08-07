@@ -39,7 +39,9 @@ export function InnerNavbar({
                 </div>
                 {sections.map((section, index) => renderSection(section, index))}
             </div>
-            <div className="px-6">{rightSections?.map((section, index) => renderSection(section, index))}</div>
+            <div className="px-6">
+                {rightSections?.map((section, index) => renderSection(section, index))}
+            </div>
         </div>
     );
 }

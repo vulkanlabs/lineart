@@ -1,4 +1,13 @@
-import { Link, ArrowRightFromLine, Split, ArrowDown01, Code2, Network, FormInput, Puzzle } from "lucide-react";
+import {
+    Link,
+    ArrowRightFromLine,
+    Split,
+    ArrowDown01,
+    Code2,
+    Network,
+    FormInput,
+    Puzzle,
+} from "lucide-react";
 
 /**
  * Mapping of node types to their corresponding Lucide React icons

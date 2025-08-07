@@ -22,9 +22,9 @@ export function RouteLayout({
 }) {
     const pathname = usePathname();
     const baseUrl = `/policyVersions/${policyVersion.policy_version_id}`;
-    const isOnLauncherPage = pathname.endsWith('/launcher');
-    const isOnWorkflowPage = pathname.endsWith('/workflow');
-    
+    const isOnLauncherPage = pathname.endsWith("/launcher");
+    const isOnWorkflowPage = pathname.endsWith("/workflow");
+
     const sections: SidebarSectionProps[] = [
         {
             name: "Workflow",
@@ -53,19 +53,21 @@ export function RouteLayout({
         { key: "Version:", value: policyVersion.alias || "" },
         { key: "Status:", value: policyVersion.workflow?.status || "" },
     ];
-    
+
     // Only show LauncherButton when NOT on the launcher page
-    const rightSections: InnerNavbarSectionProps[] = isOnLauncherPage ? [] : [
-        {
-            element: (
-                <LauncherButton
-                    policyVersionId={policyVersion.policy_version_id}
-                    inputSchema={new Map()}
-                    launchFn={postLaunchFormAction}
-                />
-            ),
-        },
-    ];
+    const rightSections: InnerNavbarSectionProps[] = isOnLauncherPage
+        ? []
+        : [
+              {
+                  element: (
+                      <LauncherButton
+                          policyVersionId={policyVersion.policy_version_id}
+                          inputSchema={new Map()}
+                          launchFn={postLaunchFormAction}
+                      />
+                  ),
+              },
+          ];
     return (
         <div className="flex flex-col w-full h-full">
             <InnerNavbar
@@ -73,7 +75,10 @@ export function RouteLayout({
                 sections={innerNavbarSections}
                 rightSections={rightSections}
             />
-            <PageLayout sidebar={{ sections, retractable: true }} content={{ scrollable: !isOnWorkflowPage }}>
+            <PageLayout
+                sidebar={{ sections, retractable: true }}
+                content={{ scrollable: !isOnWorkflowPage }}
+            >
                 {children}
             </PageLayout>
         </div>
