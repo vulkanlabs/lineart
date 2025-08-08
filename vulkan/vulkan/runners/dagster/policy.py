@@ -1,4 +1,3 @@
-import requests
 from dagster import (
     ConfigurableResource,
     DependencyDefinition,
@@ -12,7 +11,7 @@ from vulkan.core.run import RunStatus
 from vulkan.runners.dagster.io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
 from vulkan.runners.dagster.names import normalize_node_id
 from vulkan.runners.dagster.nodes import to_dagster_nodes
-from vulkan.runners.dagster.run_config import RUN_CONFIG_KEY
+from vulkan.runners.dagster.resources import APP_CLIENT_KEY, AppClientResource
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import Node
 
@@ -50,25 +49,24 @@ class DagsterFlow:
         return nodes
 
 
-@failure_hook(required_resource_keys={RUN_CONFIG_KEY})
+@failure_hook(required_resource_keys={APP_CLIENT_KEY})
 def _notify_failure(context: HookContext) -> bool:
-    vulkan_run_config = context.resources.vulkan_run_config
-    server_url = vulkan_run_config.server_url
-    run_id = vulkan_run_config.run_id
-
-    context.log.debug(f"Notifying failure for run {run_id}")
-    url = f"{server_url}/runs/{run_id}"
+    app_client_resource: AppClientResource = getattr(context.resources, APP_CLIENT_KEY)
+    client = app_client_resource.get_client()
     dagster_run_id: str = context.run_id
-    result = requests.put(
-        url,
-        json={
-            "result": "",
-            "status": RunStatus.FAILURE.value,
-        },
+
+    context.log.debug(f"Notifying failure for Dagster run {dagster_run_id}")
+
+    success = client.update_run_status(
+        status=RunStatus.FAILURE.value,
+        result="",
     )
-    if result.status_code not in {200, 204}:
-        msg = f"Error {result.status_code} Failed to notify failure to {url} for run {dagster_run_id}"
+
+    if not success:
+        msg = f"Failed to notify failure for Dagster run {dagster_run_id}"
         context.log.error(msg)
+
+    return success
 
 
 def _accesses_internal_resources(op: OpDefinition) -> bool:

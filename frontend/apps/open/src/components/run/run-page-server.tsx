@@ -40,7 +40,7 @@ async function getGraphDefinition(
     policyVersionId: string,
 ): Promise<Array<NodeDefinitionDict | null>> {
     const policyVersion: PolicyVersion = await fetchPolicyVersion(policyVersionId);
-    let nodes: Array<NodeDefinitionDict | null> = policyVersion?.spec.nodes || [];
+    let nodes: Array<NodeDefinitionDict | null> = policyVersion?.workflow?.spec.nodes || [];
     if (nodes.length > 0) nodes.push(inputNode);
     return nodes;
 }

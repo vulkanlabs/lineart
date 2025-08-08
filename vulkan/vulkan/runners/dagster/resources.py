@@ -1,53 +1,33 @@
-import json
-import time
-
-import requests
 from dagster import ConfigurableResource, ResourceDependency
 
+from vulkan.runners.dagster.app_client import BaseAppClient, create_app_client
 from vulkan.runners.dagster.run_config import VulkanRunConfig
 
-DATA_CLIENT_KEY = "vulkan_data_client"
-RUN_CLIENT_KEY = "vulkan_run_client"
+APP_CLIENT_KEY = "app_client"
 
 
-class VulkanDataClient(ConfigurableResource):
+class AppClientResource(ConfigurableResource):
+    """
+    Unified client resource for app server communication with optional JWT authentication.
+
+    The client is created once per run and reuses the same JWT token (if enabled)
+    for all requests within that run.
+    """
+
     run_config: ResourceDependency[VulkanRunConfig]
+    _client: BaseAppClient | None = None
 
-    def get_data(
-        self, data_source: str, configured_params: dict, run_id: str
-    ) -> requests.Response:
-        response = requests.post(
-            f"{self.run_config.server_url}/data-broker",
-            json={
-                "data_source_name": data_source,
-                "configured_params": configured_params,
-                "run_id": run_id,
-            },
-        )
-        return response
+    def get_client(self) -> BaseAppClient:
+        """
+        Get or create the app client (singleton per run).
 
-
-class VulkanRunClient(ConfigurableResource):
-    run_config: ResourceDependency[VulkanRunConfig]
-
-    def run_version_sync(
-        self,
-        policy_version_id: str,
-        data: dict,
-    ) -> dict:
-        response = requests.post(
-            f"{self.run_config.server_url}/policy-versions/{policy_version_id}/run/",
-            json=data,
-        )
-        if response.status_code != 200:
-            raise ValueError(
-                f"Failed to create run for policy version {policy_version_id}: {response.text}"
+        Returns:
+            BaseAppClient: Either SimpleAppClient or JWTAppClient based on configuration
+        """
+        if self._client is None:
+            self._client = create_app_client(
+                run_id=self.run_config.run_id,
+                project_id=self.run_config.project_id,
+                server_url=self.run_config.server_url,
             )
-        run_result = response.json()
-
-        return {
-            "run_id": run_result["run_id"],
-            "status": run_result["status"],
-            "result": run_result["result"],
-            "data": run_result["run_metadata"],
-        }
+        return self._client

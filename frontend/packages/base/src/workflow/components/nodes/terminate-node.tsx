@@ -19,10 +19,8 @@ function TemplateHelp() {
             <div className="text-xs text-gray-600 space-y-1">
                 <div>
                     • Use{" "}
-                    <code className="bg-gray-200 px-1 rounded text-xs">
-                        {"{{nodeId.data}}"}
-                    </code>{" "}
-                    to reference node output
+                    <code className="bg-gray-200 px-1 rounded text-xs">{"{{nodeId.data}}"}</code> to
+                    reference node output
                 </div>
                 <div>• Mix with static text, JSON, or any format you need</div>
                 <div>
