@@ -3,8 +3,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
-from vulkan.spec.dependency import Dependency
-
 
 class BaseNodeMetadata(BaseModel):
     def to_dict(

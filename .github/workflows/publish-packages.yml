@@ -16,7 +16,7 @@ on:
       force_publish:
         description: 'Force publish packages'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 jobs:
