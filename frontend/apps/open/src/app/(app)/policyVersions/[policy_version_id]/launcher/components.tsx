@@ -7,7 +7,7 @@ import Link from "next/link";
 // External libraries
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, UseFormReturn } from "react-hook-form";
+import { useForm, UseFormReturn, ControllerRenderProps } from "react-hook-form";
 import { Play, Settings, CheckCircle, AlertCircle } from "lucide-react";
 
 // Vulkan packages
@@ -240,7 +240,7 @@ function LaunchRunFormCard({
                         <FormField
                             control={form.control}
                             name="input_data"
-                            render={({ field }: { field: any }) => (
+                            render={({ field }: { field: ControllerRenderProps }) => (
                                 <FormItem className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <FormLabel className="text-base font-semibold">
@@ -270,7 +270,7 @@ function LaunchRunFormCard({
                         <FormField
                             control={form.control}
                             name="config_variables"
-                            render={({ field }: { field: any }) => (
+                            render={({ field }: { field: ControllerRenderProps }) => (
                                 <FormItem className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <FormLabel className="text-base font-semibold">
