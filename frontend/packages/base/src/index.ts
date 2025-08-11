@@ -33,6 +33,9 @@ export * from "./components/run";
 // Re-export workflow frame components
 export * from "./components/app-workflow-frame";
 
+// Re-export data source components
+export * from "./components/data-sources";
+
 // Re-export workflow components
 export * from "./workflow";
 

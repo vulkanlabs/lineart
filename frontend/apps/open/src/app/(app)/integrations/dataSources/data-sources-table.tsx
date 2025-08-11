@@ -19,7 +19,7 @@ import { DataSource } from "@vulkanlabs/client-open";
 // Local imports
 import { parseDate } from "@/lib/utils";
 import { deleteDataSource } from "@/lib/api";
-import { CreateDataSourceDialog } from "./create-dialog";
+import { OSSCreateDataSourceDialog } from "../../../../components/data-sources/create-dialog";
 
 export default function DataSourcesTable({ dataSources }: { dataSources: DataSource[] }) {
     const searchOptions: SearchFilterOptions = {
@@ -40,7 +40,7 @@ export default function DataSourcesTable({ dataSources }: { dataSources: DataSou
             data={dataSources}
             searchOptions={searchOptions}
             deleteOptions={deleteOptions}
-            CreationDialog={<CreateDataSourceDialog />}
+            CreationDialog={<OSSCreateDataSourceDialog />}
         />
     );
 }
