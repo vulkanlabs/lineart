@@ -21,6 +21,7 @@ export type {
     PolicyNode,
     DataInputNode,
     ConnectionNode,
+    ComponentNode,
 } from "./components/nodes";
 
 // === State Management ===
