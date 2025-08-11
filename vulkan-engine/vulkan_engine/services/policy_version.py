@@ -174,7 +174,6 @@ class PolicyVersionService(BaseService):
             policy_version_id, project_id=project_id, include_archived=False
         )
 
-        self.logger.system.error(f"Got version {version}")
         # Update basic fields
         version.alias = config.alias
 
@@ -186,7 +185,13 @@ class PolicyVersionService(BaseService):
             ui_metadata=config.ui_metadata,
             project_id=project_id,
         )
-        self.logger.system.error(f"Updated workflow {version.workflow_id}")
+        self.logger.system.info(
+            f"Updated workflow {version.workflow_id}",
+            extra={
+                "project_id": project_id,
+                "policy_version_id": policy_version_id,
+            },
+        )
 
         # Handle data source dependencies
         data_input_nodes = [

@@ -103,9 +103,9 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
         onNodesChange: async (changes) => {
             const filteredChanges = changes.filter((change) => {
-                if (change.type === 'remove') {
-                    const node = get().nodes.find(n => n.id === change.id);
-                    return node?.type !== 'INPUT';
+                if (change.type === "remove") {
+                    const node = get().nodes.find((n) => n.id === change.id);
+                    return node?.type !== "INPUT";
                 }
                 return true;
             });
@@ -137,9 +137,9 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
         },
 
         removeNode: (nodeId) => {
-            const node = get().nodes.find(n => n.id === nodeId);
-            if (node?.type === 'INPUT') return;
-            
+            const node = get().nodes.find((n) => n.id === nodeId);
+            if (node?.type === "INPUT") return;
+
             set({ nodes: get().nodes.filter((node) => node.id !== nodeId) });
         },
 

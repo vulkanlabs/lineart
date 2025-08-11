@@ -6,7 +6,16 @@ import { PlusIcon, Trash2 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { z } from "zod";
 
-import { Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@vulkanlabs/base/ui";
+import {
+    Button,
+    Input,
+    Label,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@vulkanlabs/base/ui";
 
 import { InputWorkflowNode } from "./base";
 import { useWorkflowStore } from "@/workflow/store";
@@ -58,14 +67,14 @@ export function InputNode({ id, data, selected, width }: VulkanNodeProps) {
 
     const handleAddField = () => {
         const schema = data.metadata?.schema || {};
-        
+
         // Find the next available field number
         let fieldNumber = 1;
         while (schema[`field_${fieldNumber}`]) {
             fieldNumber++;
         }
         const newFieldName = `field_${fieldNumber}`;
-        
+
         const updatedSchema = {
             ...schema,
             [newFieldName]: "str",
@@ -254,7 +263,10 @@ export function InputNode({ id, data, selected, width }: VulkanNodeProps) {
                         const schema = (data.metadata?.schema || {}) as Record<string, string>;
                         const fieldType = schema[fieldName];
                         return (
-                            <div key={fieldName} className="grid grid-cols-[2fr_80px_auto] gap-3 items-center">
+                            <div
+                                key={fieldName}
+                                className="grid grid-cols-[2fr_80px_auto] gap-3 items-center"
+                            >
                                 <div className="space-y-1">
                                     <Input
                                         type="text"
@@ -284,9 +296,14 @@ export function InputNode({ id, data, selected, width }: VulkanNodeProps) {
                                 </div>
                                 <Select
                                     value={fieldType}
-                                    onValueChange={(value) => handleFieldTypeChange(fieldName, value)}
+                                    onValueChange={(value) =>
+                                        handleFieldTypeChange(fieldName, value)
+                                    }
                                 >
-                                    <SelectTrigger className="h-8" onMouseDown={(e) => e.stopPropagation()}>
+                                    <SelectTrigger
+                                        className="h-8"
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                    >
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -309,21 +326,23 @@ export function InputNode({ id, data, selected, width }: VulkanNodeProps) {
                         );
                     })}
                     {fieldOrder.length === 0 && (
-                        <div 
+                        <div
                             className="flex flex-col items-center justify-center text-gray-500 py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
                             onClick={handleAddField}
                         >
                             <PlusIcon className="w-8 h-8 mb-3 text-gray-400" />
-                            <span className="text-sm font-medium text-gray-600 mb-1">Click to add a field</span>
+                            <span className="text-sm font-medium text-gray-600 mb-1">
+                                Click to add a field
+                            </span>
                             <span className="text-xs text-gray-400">Define your input schema</span>
                         </div>
                     )}
                 </div>
-                
+
                 {fieldOrder.length > 0 && (
                     <div className="mt-2">
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             className="w-full p-2 text-blue-600 border-blue-300 hover:bg-blue-50 hover:border-blue-400 transition-colors"
                             onClick={handleAddField}
                         >

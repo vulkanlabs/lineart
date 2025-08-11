@@ -185,10 +185,10 @@ function BaseWorkflowNodeCore({
                             </div>
                         )}
                         <NodeHeaderActions>
-                            <NodeHeaderAction 
-                                onClick={openPanel} 
+                            <NodeHeaderAction
+                                onClick={openPanel}
                                 label="Open Panel"
-                                style={{ display: 'none' }}
+                                style={{ display: "none" }}
                             >
                                 <PanelRight />
                             </NodeHeaderAction>

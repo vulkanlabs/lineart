@@ -22,9 +22,8 @@ export function RouteLayout({
 }) {
     const pathname = usePathname();
     const baseUrl = `/policyVersions/${policyVersion.policy_version_id}`;
-    const isOnLauncherPage = pathname.endsWith('/launcher');
-    const isOnWorkflowPage = pathname.endsWith('/workflow');
-    
+    const isOnWorkflowPage = pathname.endsWith("/workflow");
+
     const sections: SidebarSectionProps[] = [
         {
             name: "Workflow",
@@ -53,9 +52,8 @@ export function RouteLayout({
         { key: "Version:", value: policyVersion.alias || "" },
         { key: "Status:", value: policyVersion.workflow?.status || "" },
     ];
-    
-    // Only show LauncherButton when NOT on the launcher page
-    const rightSections: InnerNavbarSectionProps[] = isOnLauncherPage ? [] : [
+
+    const rightSections: InnerNavbarSectionProps[] = [
         {
             element: (
                 <LauncherButton
@@ -73,7 +71,10 @@ export function RouteLayout({
                 sections={innerNavbarSections}
                 rightSections={rightSections}
             />
-            <PageLayout sidebar={{ sections, retractable: true }} content={{ scrollable: !isOnWorkflowPage }}>
+            <PageLayout
+                sidebar={{ sections, retractable: true }}
+                content={{ scrollable: !isOnWorkflowPage }}
+            >
                 {children}
             </PageLayout>
         </div>
