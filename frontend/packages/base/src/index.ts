@@ -30,6 +30,9 @@ export * from "./components/inner-navbar";
 // Re-export run components
 export * from "./components/run";
 
+// Re-export workflow frame components
+export * from "./components/app-workflow-frame";
+
 // Re-export workflow components
 export * from "./workflow";
 
