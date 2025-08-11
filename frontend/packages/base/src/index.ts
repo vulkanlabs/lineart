@@ -23,6 +23,10 @@ export * from "./components/resource-table";
 export * from "./components/shortened-id";
 export * from "./components/reactflow";
 
+// Re-export layout components
+export * from "./components/page-layout";
+export * from "./components/inner-navbar";
+
 // Re-export workflow components
 export * from "./workflow";
 
