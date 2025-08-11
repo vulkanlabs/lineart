@@ -27,6 +27,9 @@ export * from "./components/reactflow";
 export * from "./components/page-layout";
 export * from "./components/inner-navbar";
 
+// Re-export run components
+export * from "./components/run";
+
 // Re-export workflow components
 export * from "./workflow";
 
