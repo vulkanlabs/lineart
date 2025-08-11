@@ -22,7 +22,6 @@ export function RouteLayout({
 }) {
     const pathname = usePathname();
     const baseUrl = `/policyVersions/${policyVersion.policy_version_id}`;
-    const isOnLauncherPage = pathname.endsWith("/launcher");
     const isOnWorkflowPage = pathname.endsWith("/workflow");
 
     const sections: SidebarSectionProps[] = [
@@ -54,20 +53,17 @@ export function RouteLayout({
         { key: "Status:", value: policyVersion.workflow?.status || "" },
     ];
 
-    // Only show LauncherButton when NOT on the launcher page
-    const rightSections: InnerNavbarSectionProps[] = isOnLauncherPage
-        ? []
-        : [
-              {
-                  element: (
-                      <LauncherButton
-                          policyVersionId={policyVersion.policy_version_id}
-                          inputSchema={new Map()}
-                          launchFn={postLaunchFormAction}
-                      />
-                  ),
-              },
-          ];
+    const rightSections: InnerNavbarSectionProps[] = [
+        {
+            element: (
+                <LauncherButton
+                    policyVersionId={policyVersion.policy_version_id}
+                    inputSchema={new Map()}
+                    launchFn={postLaunchFormAction}
+                />
+            ),
+        },
+    ];
     return (
         <div className="flex flex-col w-full h-full">
             <InnerNavbar
