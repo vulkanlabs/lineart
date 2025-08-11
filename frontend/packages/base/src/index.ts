@@ -27,6 +27,4 @@ export * from "./components/reactflow";
 export * from "./workflow";
 
 // Re-export shared app components
-export { Providers } from "./components/providers";
-export { Toaster } from "./components/toaster";
 export { RefreshButton } from "./components/refresh-button";
