@@ -137,8 +137,6 @@ class TestTerminateNodeTemplateResolution:
 
     def test_simple_template_resolution(self):
         """Test resolution of simple template variables."""
-        json_metadata = '{"decision": "{{decision_node.data}}", "status": "completed"}'
-
         terminate = TerminateNode(
             name="terminate_simple_template",
             description="Simple template resolution test",
@@ -179,8 +177,6 @@ class TestTerminateNodeTemplateResolution:
 
     def test_multiple_template_variables(self):
         """Test multiple template variables in metadata."""
-        template_metadata = '{"user": "{{user_node.data}}", "task": "{{task_node.data}}", "result": "{{result_node.data}}"}'
-
         terminate = TerminateNode(
             name="terminate_multiple",
             description="Multiple template variables test",

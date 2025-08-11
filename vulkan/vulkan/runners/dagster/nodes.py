@@ -278,11 +278,12 @@ class DagsterTransformNodeMixin(DagsterNode):
         return node_op
 
     def _get_configured_params(self, inputs):
-        if self.parameters is None:
+        params = getattr(self, "parameters", None)
+        if params is None:
             return {}
 
         configured_params = {}
-        for k, v in self.parameters.items():
+        for k, v in params.items():
             try:
                 configured_params[k] = resolve_template(v, inputs, env_variables={})
             except Exception:
@@ -403,20 +404,21 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         return result
 
     def _resolve_json_metadata(
-        self, template_metadata: dict, kwargs: dict, context
+        self,
+        template_metadata: dict,
+        kwargs: dict,
+        context: VulkanExecutionContext,
     ) -> dict:
         """Replace template expressions with actual node data using Jinja2."""
-
         # Create a context for Jinja2 where keys are the upstream node names
         # and values are the corresponding data from kwargs. This allows templates
         # to refer to dependencies by their node name, e.g., {{ my_node.output_field }}.
-        jinja_context = {}
-
-        # Map node names to their data from kwargs
-        # Only use canonical node names to avoid shadowing ambiguity
-        for key, dep in self.dependencies.items():
-            if key in kwargs and hasattr(dep, "node"):
-                jinja_context[dep.node] = kwargs[key]
+        # Only use canonical node names to avoid shadowing.
+        jinja_context = {
+            dep.node: kwargs[key]
+            for key, dep in self.dependencies.items()
+            if key in kwargs
+        }
 
         try:
             env_config = getattr(context.resources, POLICY_CONFIG_KEY, None)
@@ -424,22 +426,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         except Exception:
             env_variables = {}
 
-        def resolve_value(value):
-            if isinstance(value, str):
-                try:
-                    # Use the robust Jinja2-based template resolution with environment variables
-                    return resolve_template(value, jinja_context, env_variables)
-                except Exception as e:
-                    context.log.error(f"Failed to resolve template '{value}': {e}")
-                    return value
-            elif isinstance(value, dict):
-                return {k: resolve_value(v) for k, v in value.items()}
-            elif isinstance(value, list):
-                return [resolve_value(item) for item in value]
-            else:
-                return value
-
-        return resolve_value(template_metadata)
+        return resolve_value(context, template_metadata, jinja_context, env_variables)
 
     def _terminate(
         self,
@@ -482,6 +469,27 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             dependencies=dependencies,
             callback=node.callback,
         )
+
+
+def resolve_value(context: VulkanExecutionContext, value, jinja_context, env_variables):
+    if isinstance(value, str):
+        try:
+            # Use the robust Jinja2-based template resolution with environment variables
+            return resolve_template(value, jinja_context, env_variables)
+        except Exception as e:
+            context.log.error(f"Failed to resolve template '{value}': {e}")
+            return value
+    elif isinstance(value, dict):
+        return {
+            k: resolve_value(context, v, jinja_context, env_variables)
+            for k, v in value.items()
+        }
+    elif isinstance(value, list):
+        return [
+            resolve_value(context, item, jinja_context, env_variables) for item in value
+        ]
+    else:
+        return value
 
 
 class DagsterBranch(BranchNode, DagsterNode):
