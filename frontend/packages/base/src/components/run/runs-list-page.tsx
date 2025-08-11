@@ -16,7 +16,7 @@ import { ShortenedID, DetailsButton, DatePickerWithRange, ResourceTable } from "
 import type { Run } from "@vulkanlabs/client-open";
 
 // Local imports
-import { parseDate } from "@/lib/utils";
+import { parseDate } from "../../lib/utils";
 
 type RunsLoader = ({
     resourceId,
