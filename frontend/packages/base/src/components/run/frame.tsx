@@ -43,8 +43,8 @@ function VulkanWorkflow({
     onPaneClick: any;
     config: RunFrameConfig;
 }) {
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const [nodes, setNodes, onNodesChange] = useNodesState<BaseRunNodeLayout>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
     const { fitView } = useReactFlow();
 
     const loadAndLayout = () => {
@@ -87,7 +87,7 @@ function VulkanWorkflow({
         setNodes(newNodes);
     };
 
-    const clickNode = (e, node) => {
+    const clickNode = (e: React.MouseEvent, node: BaseRunNodeLayout) => {
         resetClick();
         const newNodes = nodes.map((n) => {
             if (n.id === node.id) {
@@ -99,7 +99,7 @@ function VulkanWorkflow({
         onNodeClick(e, node);
     };
 
-    const clickPane = (e) => {
+    const clickPane = (e: React.MouseEvent) => {
         resetClick();
         onPaneClick(e);
     };
@@ -153,7 +153,7 @@ const NodeTypeToRunStepMapping = {
 
 function withRunNodeProps(node: BaseRunNodeLayout): BaseRunNodeLayout {
     if (Object.keys(NodeTypeToRunStepMapping).includes(node.data.type)) {
-        node.type = NodeTypeToRunStepMapping[node.data.type];
+        node.type = NodeTypeToRunStepMapping[node.data.type as keyof typeof NodeTypeToRunStepMapping];
     } else {
         // @ts-ignore - apps will provide proper typing
         node.targetPosition = "left";

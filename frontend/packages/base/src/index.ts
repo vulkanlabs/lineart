@@ -27,8 +27,20 @@ export * from "./components/reactflow";
 export * from "./components/page-layout";
 export * from "./components/inner-navbar";
 
-// Re-export run components
-export * from "./components/run";
+// Re-export run components (specific exports to avoid conflicts)
+// NOTE: Run components temporarily disabled due to TypeScript compatibility issues
+// export {
+//     WorkflowFrame as RunWorkflowFrame,
+// } from "./components/run";
+// export type {
+//     RunFrameConfig,
+//     RunFrameProps,
+//     BaseRunNodeLayout,
+//     BaseRunNodeData,
+//     RunLogEvent,
+//     RunLog,
+//     RunLogs,
+// } from "./components/run";
 
 // Re-export workflow frame components
 export * from "./components/app-workflow-frame";
@@ -36,7 +48,7 @@ export * from "./components/app-workflow-frame";
 // Re-export data source components
 export * from "./components/data-sources";
 
-// Re-export workflow components
+// Re-export workflow components (primary source for workflow functionality)
 export * from "./workflow";
 
 // Re-export shared app components
