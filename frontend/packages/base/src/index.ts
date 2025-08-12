@@ -53,3 +53,9 @@ export { RefreshButton } from "./components/refresh-button";
 
 // Re-export policy components
 export * from "./components/policies";
+
+// Re-export analytics components
+export * from "./components/analytics";
+
+// Re-export components table
+export * from "./components/components";
