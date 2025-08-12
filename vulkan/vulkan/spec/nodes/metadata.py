@@ -78,4 +78,4 @@ class DecisionNodeMetadata(BaseNodeMetadata):
 class ComponentNodeMetadata(BaseNodeMetadata):
     component_name: str
     definition: dict | None = None
-    parameters: dict[str, str] | None = None
+    parameters: dict | None = None
