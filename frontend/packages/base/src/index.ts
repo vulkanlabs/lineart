@@ -50,3 +50,6 @@ export * from "./workflow";
 
 // Re-export shared app components
 export { RefreshButton } from "./components/refresh-button";
+
+// Re-export policy components
+export * from "./components/policies";
