@@ -1,4 +1,4 @@
-// OSS App - Use shared run page content
+// Use shared run page content with local workflow frame
 import { SharedRunPageContent } from "@vulkanlabs/base";
 import { WorkflowFrame } from "@/components/run/frame";
 import type { RunNodeLayout } from "@/components/run/types";

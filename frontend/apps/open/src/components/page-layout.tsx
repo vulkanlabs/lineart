@@ -4,13 +4,13 @@ import "@/app/globals.css";
 // Re-export shared types
 export * from "@vulkanlabs/base";
 
-// OSS-specific configuration
-const ossConfig: PageLayoutConfig = {
+// Local page layout configuration
+const layoutConfig: PageLayoutConfig = {
     useCustomScrollClasses: true,
     useResponsiveBreakpoints: true,
 };
 
-// OSS-specific PageLayout wrapper
+// Local PageLayout wrapper
 export function PageLayout(props: Parameters<typeof SharedPageLayout>[0]) {
-    return <SharedPageLayout {...props} config={ossConfig} />;
+    return <SharedPageLayout {...props} config={layoutConfig} />;
 }

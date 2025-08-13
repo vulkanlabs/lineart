@@ -3,7 +3,7 @@ import React, { useState } from "react";
 
 import { WorkflowFrame } from "@/components/run/frame";
 import type { RunNodeLayout } from "@/components/run/types";
-import { EdgeLayoutConfig, NodeLayoutConfig } from "@/lib/workflow/types";
+import type { Edge } from "@xyflow/react";
 
 import type { RunData, RunLogs, StepMetadataBase } from "@vulkanlabs/client-open";
 
@@ -14,7 +14,7 @@ export default function RunPageContent({
     runData,
 }: {
     nodes: RunNodeLayout[];
-    edges: EdgeLayoutConfig[];
+    edges: Edge[];
     runLogs: RunLogs;
     runData: RunData;
 }) {
@@ -51,7 +51,7 @@ function LogsTable({
     clickedNode,
 }: {
     runLogs: RunLogs;
-    clickedNode: NodeLayoutConfig | null;
+    clickedNode: any | null;
 }) {
     const filteredLogs = runLogs.logs.filter(
         (log) => clickedNode === null || log.step_key === clickedNode.id,

@@ -1,23 +1,24 @@
 "use client";
+
+// React and Next.js
 import React, { useState } from "react";
-import type { EdgeLayoutConfig, NodeLayoutConfig } from "../../lib/workflow/types";
+
+// Vulkan packages
+import type { Edge } from "@xyflow/react";
 import type { RunData, RunLogs, StepMetadataBase } from "@vulkanlabs/client-open";
 
-export interface RunPageContentConfig {
-    // Component dependencies injected by apps
+export interface RunPageConfig {
     WorkflowFrame: React.ComponentType<{
         nodes: any[];
-        edges: EdgeLayoutConfig[];
+        edges: Edge[];
         onNodeClick: (event: any, node: any) => void;
         onPaneClick: () => void;
     }>;
     RunNodeLayout: any;
-    
-    // Style configuration differences
     containerOverflow?: "hidden" | "scroll";
     sidebarOverflow?: "hidden" | "auto";
     tableClass?: "w-full" | "min-w-full";
-    useResponsiveColumns?: boolean; // true for OSS, false for SaaS
+    enableResponsiveColumns?: boolean;
 }
 
 export function SharedRunPageContent({
@@ -28,10 +29,10 @@ export function SharedRunPageContent({
     config,
 }: {
     nodes: any[];
-    edges: EdgeLayoutConfig[];
+    edges: Edge[];
     runLogs: RunLogs;
     runData: RunData;
-    config: RunPageContentConfig;
+    config: RunPageConfig;
 }) {
     const [clickedNode, setClickedNode] = useState(null);
     const {
@@ -39,7 +40,7 @@ export function SharedRunPageContent({
         containerOverflow = "hidden",
         sidebarOverflow = "hidden", 
         tableClass = "w-full",
-        useResponsiveColumns = true
+        enableResponsiveColumns = true
     } = config;
 
     return (
@@ -66,7 +67,7 @@ export function SharedRunPageContent({
                     runLogs={runLogs} 
                     clickedNode={clickedNode} 
                     tableClass={tableClass}
-                    useResponsiveColumns={useResponsiveColumns}
+                    enableResponsiveColumns={enableResponsiveColumns}
                 />
             </div>
         </div>
@@ -77,12 +78,12 @@ function LogsTable({
     runLogs,
     clickedNode,
     tableClass = "w-full",
-    useResponsiveColumns = true
+    enableResponsiveColumns = true
 }: {
     runLogs: RunLogs;
-    clickedNode: NodeLayoutConfig | null;
+    clickedNode: any | null;
     tableClass?: "w-full" | "min-w-full";
-    useResponsiveColumns?: boolean;
+    enableResponsiveColumns?: boolean;
 }) {
     const filteredLogs = runLogs.logs.filter(
         (log) => clickedNode === null || log.step_key === clickedNode.id,
@@ -113,7 +114,7 @@ function LogsTable({
     return (
         <div className="flex flex-row w-full h-full overflow-y-auto">
             <table className={`${tableClass} divide-y divide-gray-200 border-collapse`}>
-                {useResponsiveColumns ? responsiveColumns : fixedColumns}
+                {enableResponsiveColumns ? responsiveColumns : fixedColumns}
                 <thead className="bg-gray-50 sticky top-0">
                     <tr>
                         <TableHeader>Timestamp</TableHeader>

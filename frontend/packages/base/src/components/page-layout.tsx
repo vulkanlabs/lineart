@@ -32,11 +32,11 @@ export type PageContentProps = {
 };
 
 export type PageLayoutConfig = {
-    /** Function to add project parameter to paths (used by SaaS) */
+    /** Function to add project parameter to paths */
     withProject?: (path: string, project?: string) => string;
-    /** Use custom scroll classes (used by OSS) */
+    /** Use custom scroll classes for enhanced styling */
     useCustomScrollClasses?: boolean;
-    /** Use responsive breakpoints for sidebar width (used by OSS) */
+    /** Use responsive breakpoints for sidebar width */
     useResponsiveBreakpoints?: boolean;
 };
 

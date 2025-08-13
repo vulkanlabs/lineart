@@ -1,19 +1,19 @@
 import {
     AppWorkflowFrame as SharedAppWorkflowFrame,
-    type OSSWorkflowFrameProps,
+    type BasicWorkflowFrameProps,
     type AppWorkflowFrameConfig,
 } from "@vulkanlabs/base";
 
-// OSS-specific configuration
-const ossWorkflowConfig: AppWorkflowFrameConfig = {
+// Local workflow configuration
+const workflowConfig: AppWorkflowFrameConfig = {
     requirePolicyId: false,
     passProjectIdToFrame: true,
 };
 
 // Re-export the props type for backward compatibility
-export type AppWorkflowFrameProps = OSSWorkflowFrameProps;
+export type AppWorkflowFrameProps = BasicWorkflowFrameProps;
 
-// OSS-specific AppWorkflowFrame wrapper
+// Local AppWorkflowFrame wrapper
 export function AppWorkflowFrame(props: AppWorkflowFrameProps) {
-    return <SharedAppWorkflowFrame {...props} config={ossWorkflowConfig} />;
+    return <SharedAppWorkflowFrame {...props} config={workflowConfig} />;
 }

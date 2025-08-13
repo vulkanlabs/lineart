@@ -14,7 +14,7 @@ export interface WorkflowSaveHandlerConfig {
     updatePolicyVersion?: (policyVersionId: string, data: any, projectId?: string) => Promise<any>;
     updateComponent?: (componentId: string, data: any) => Promise<any>;
     
-    // Direct server communication (for OSS)
+    // Direct server communication
     serverUrl?: string;
     
     // App-specific requirements
@@ -30,7 +30,7 @@ export interface ListHandlerConfig {
     listComponents?: (projectId?: string, includeArchived?: boolean) => Promise<any>;
     listPolicyVersions?: (policyId: string, projectId?: string) => Promise<any>;
     
-    // Direct server communication (for OSS)
+    // Direct server communication
     serverUrl?: string;
     
     // App-specific requirements
@@ -101,14 +101,14 @@ export class SharedWorkflowHandlers {
             let data: any;
 
             if (this.config.updatePolicyVersion) {
-                // SaaS: Use API wrapper with project context
+                // Use API wrapper with project context
                 data = await this.config.updatePolicyVersion(
                     policyVersion.policy_version_id,
                     updateData,
                     projectId || undefined
                 );
             } else if (this.config.serverUrl) {
-                // OSS: Direct server communication
+                // Direct server communication
                 const serverError = validateServerUrl(this.config.serverUrl);
                 if (serverError) {
                     return this.config.responseUtils.serverError(serverError);
@@ -207,10 +207,10 @@ export class SharedListHandlers {
             let data: any;
 
             if (this.config.listComponents) {
-                // SaaS: Use API wrapper
+                // Use API wrapper
                 data = await this.config.listComponents(projectId || undefined, includeArchived);
             } else if (this.config.serverUrl) {
-                // OSS: Direct server communication
+                // Direct server communication
                 const serverError = validateServerUrl(this.config.serverUrl);
                 if (serverError) {
                     return this.config.responseUtils.serverError(serverError);

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 
 export interface VulkanLogoConfig {
-    /** Function to transform the home path with project context (used by SaaS) */
+    /** Function to transform the home path with project context */
     withProject?: (path: string, project?: string) => string;
     /** Logo image source (apps should provide their logo import) */
     logoSrc?: any;

@@ -17,7 +17,7 @@ import {
  * Configuration for app-specific workflow frame behavior
  */
 export interface AppWorkflowFrameConfig {
-    /** Whether policyId is required (SaaS-specific) */
+    /** Whether policyId is required for multi-tenant environments */
     requirePolicyId?: boolean;
     /** Whether to pass projectId to WorkflowFrame component */
     passProjectIdToFrame?: boolean;
@@ -34,16 +34,16 @@ interface BaseAppWorkflowFrameProps {
 }
 
 /**
- * OSS-style props (projectId optional, no policyId)
+ * Basic workflow frame props (projectId optional, no policyId)
  */
-export interface OSSWorkflowFrameProps extends BaseAppWorkflowFrameProps {
+export interface BasicWorkflowFrameProps extends BaseAppWorkflowFrameProps {
     projectId?: string;
 }
 
 /**
- * SaaS-style props (projectId and policyId required)
+ * Enterprise workflow frame props (projectId and policyId required)
  */
-export interface SaaSWorkflowFrameProps extends BaseAppWorkflowFrameProps {
+export interface EnterpriseWorkflowFrameProps extends BaseAppWorkflowFrameProps {
     projectId: string;
     policyId: string;
 }
@@ -51,17 +51,17 @@ export interface SaaSWorkflowFrameProps extends BaseAppWorkflowFrameProps {
 /**
  * Union type for all possible props
  */
-export type AppWorkflowFrameProps = OSSWorkflowFrameProps | SaaSWorkflowFrameProps;
+export type AppWorkflowFrameProps = BasicWorkflowFrameProps | EnterpriseWorkflowFrameProps;
 
 /**
- * Type guard to check if props include policyId (SaaS)
+ * Type guard to check if props include policyId (enterprise mode)
  */
-function isSaaSProps(props: AppWorkflowFrameProps): props is SaaSWorkflowFrameProps {
+function isEnterpriseProps(props: AppWorkflowFrameProps): props is EnterpriseWorkflowFrameProps {
     return 'policyId' in props && typeof props.policyId === 'string';
 }
 
 /**
- * Configurable application workflow frame that adapts to both OSS and SaaS needs
+ * Configurable application workflow frame that adapts to different deployment modes
  */
 export function AppWorkflowFrame(props: AppWorkflowFrameProps) {
     const {
@@ -80,7 +80,7 @@ export function AppWorkflowFrame(props: AppWorkflowFrameProps) {
 
     // Extract projectId and policyId based on props type
     const projectId = 'projectId' in props ? props.projectId : undefined;
-    const policyId = isSaaSProps(props) ? props.policyId : undefined;
+    const policyId = isEnterpriseProps(props) ? props.policyId : undefined;
 
     // Validate required fields based on config
     if (requirePolicyId && !policyId) {

@@ -36,7 +36,7 @@ export interface ComponentsTableConfig {
     withProject?: (path: string, projectId: string) => string;
     deleteComponent?: (componentId: string, projectId?: string) => Promise<void>;
     CreateComponentDialog?: React.ReactElement;
-    mode?: "full" | "simple"; // full = OSS-style, simple = SaaS-style
+    mode?: "full" | "simple"; // full = complete table, simple = minimal table
 }
 
 // Create a context for component deletion
@@ -87,7 +87,7 @@ export function ComponentsTable({
 
     const columns = getComponentsTableColumns(config);
 
-    // Use simple DataTable for SaaS-style, full ResourceTable for OSS-style
+    // Use simple DataTable for minimal mode, full ResourceTable for complete mode
     if (config.mode === "simple") {
         return (
             <div>
@@ -103,7 +103,7 @@ export function ComponentsTable({
         );
     }
 
-    // Full OSS-style table with deletion dialog
+    // Full table with deletion dialog
     return (
         <DeleteComponentContext.Provider value={{ openDeleteDialog }}>
             <div>
@@ -153,7 +153,7 @@ function getComponentsTableColumns(config: ComponentsTableConfig): ColumnDef<Com
         return basePath;
     };
 
-    // Simple columns for SaaS-style
+    // Simple columns for minimal mode
     if (config.mode === "simple") {
         return [
             {
@@ -175,7 +175,7 @@ function getComponentsTableColumns(config: ComponentsTableConfig): ColumnDef<Com
         ];
     }
 
-    // Full columns for OSS-style
+    // Full columns for complete mode
     return [
         {
             id: "link",

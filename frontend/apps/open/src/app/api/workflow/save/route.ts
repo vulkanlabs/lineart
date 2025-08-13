@@ -1,4 +1,4 @@
-// OSS App - Shared API patterns (inline approach)
+// Workflow save API - Uses direct server communication
 import {
     PolicyVersionBase,
     PolicyDefinitionDictInput,

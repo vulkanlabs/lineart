@@ -1,14 +1,14 @@
 import { VulkanLogo as SharedVulkanLogo, type VulkanLogoConfig } from "@vulkanlabs/base";
 import VulkanEngineLogo from "@public/vulkan-engine.png";
 
-// OSS-specific configuration
-const ossLogoConfig: VulkanLogoConfig = {
+// Local logo configuration
+const logoConfig: VulkanLogoConfig = {
     logoSrc: VulkanEngineLogo,
     homePath: "/",
     useProjectRouting: false,
 };
 
-// OSS-specific VulkanLogo wrapper
+// Local VulkanLogo wrapper
 export function VulkanLogo() {
-    return <SharedVulkanLogo config={ossLogoConfig} />;
+    return <SharedVulkanLogo config={logoConfig} />;
 }

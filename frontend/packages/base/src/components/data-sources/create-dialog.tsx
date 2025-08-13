@@ -46,7 +46,7 @@ import type { DataSourceSpec } from "@vulkanlabs/client-open";
 export interface CreateDataSourceDialogConfig {
     /** Function to create the data source */
     createAction: (dataSourceSpec: DataSourceSpec, projectId?: string) => Promise<any>;
-    /** Optional function to get current project ID for SaaS */
+    /** Optional function to get current project ID */
     getProjectId?: () => string | undefined;
 }
 
