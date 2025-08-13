@@ -34,16 +34,16 @@ interface BaseAppWorkflowFrameProps {
 }
 
 /**
- * Basic workflow frame props (projectId optional, no policyId)
+ * Global scope workflow frame props (no policy isolation)
  */
-export interface BasicWorkflowFrameProps extends BaseAppWorkflowFrameProps {
+export interface GlobalScopeWorkflowFrameProps extends BaseAppWorkflowFrameProps {
     projectId?: string;
 }
 
 /**
- * Enterprise workflow frame props (projectId and policyId required)
+ * Project scope workflow frame props (requires policy isolation)
  */
-export interface EnterpriseWorkflowFrameProps extends BaseAppWorkflowFrameProps {
+export interface ProjectScopeWorkflowFrameProps extends BaseAppWorkflowFrameProps {
     projectId: string;
     policyId: string;
 }
@@ -51,12 +51,12 @@ export interface EnterpriseWorkflowFrameProps extends BaseAppWorkflowFrameProps 
 /**
  * Union type for all possible props
  */
-export type AppWorkflowFrameProps = BasicWorkflowFrameProps | EnterpriseWorkflowFrameProps;
+export type AppWorkflowFrameProps = GlobalScopeWorkflowFrameProps | ProjectScopeWorkflowFrameProps;
 
 /**
- * Type guard to check if props include policyId (enterprise mode)
+ * Type guard to check if props include policyId (project scope mode)
  */
-function isEnterpriseProps(props: AppWorkflowFrameProps): props is EnterpriseWorkflowFrameProps {
+function isProjectScopeProps(props: AppWorkflowFrameProps): props is ProjectScopeWorkflowFrameProps {
     return 'policyId' in props && typeof props.policyId === 'string';
 }
 
@@ -80,7 +80,7 @@ export function AppWorkflowFrame(props: AppWorkflowFrameProps) {
 
     // Extract projectId and policyId based on props type
     const projectId = 'projectId' in props ? props.projectId : undefined;
-    const policyId = isEnterpriseProps(props) ? props.policyId : undefined;
+    const policyId = isProjectScopeProps(props) ? props.policyId : undefined;
 
     // Validate required fields based on config
     if (requirePolicyId && !policyId) {

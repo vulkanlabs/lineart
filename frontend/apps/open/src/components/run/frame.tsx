@@ -3,12 +3,12 @@ import type { RunNodeLayout } from "./types";
 import type { EdgeLayoutConfig } from "@vulkanlabs/base";
 import { layoutGraph } from "@vulkanlabs/base";
 
-// Local run frame configuration
-const runConfig: RunFrameConfig = {
+// Global scope run frame configuration
+const globalScopeRunConfig: RunFrameConfig = {
     layoutGraph: layoutGraph,
 };
 
-// Local WorkflowFrame wrapper
+// Global scope WorkflowFrame wrapper
 export function WorkflowFrame({ 
     nodes, 
     edges, 
@@ -26,7 +26,7 @@ export function WorkflowFrame({
             edges={edges}
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
-            config={runConfig}
+            config={globalScopeRunConfig}
         />
     );
 }

@@ -1,14 +1,14 @@
 import { VulkanLogo as SharedVulkanLogo, type VulkanLogoConfig } from "@vulkanlabs/base";
 import VulkanEngineLogo from "@public/vulkan-engine.png";
 
-// Local logo configuration
-const logoConfig: VulkanLogoConfig = {
+// Global scope logo configuration
+const globalScopeLogoConfig: VulkanLogoConfig = {
     logoSrc: VulkanEngineLogo,
     homePath: "/",
     useProjectRouting: false,
 };
 
-// Local VulkanLogo wrapper
+// Global scope VulkanLogo wrapper
 export function VulkanLogo() {
-    return <SharedVulkanLogo config={logoConfig} />;
+    return <SharedVulkanLogo config={globalScopeLogoConfig} />;
 }
