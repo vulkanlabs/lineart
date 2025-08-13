@@ -1,3 +1,4 @@
+// OSS App - Shared API patterns (inline approach)
 import {
     PolicyVersionBase,
     PolicyDefinitionDictInput,
@@ -7,145 +8,95 @@ import {
     ComponentBase,
 } from "@vulkanlabs/client-open";
 import { updateComponent } from "@/lib/api";
-import { Workflow } from "@vulkanlabs/base/workflow";
+
+// Shared response pattern
+const apiResponse = {
+    success: (data: any) => Response.json({ success: true, data, error: null }),
+    error: (message: string, status: number = 500) => {
+        console.error(`API Error: ${message}`);
+        return Response.json({ success: false, error: message, data: null }, { status });
+    }
+};
+
+// Shared validation pattern
+function validateWorkflow(workflow: any, spec: any): string | null {
+    if (!workflow) return "Workflow is required";
+    if (!spec) return "Workflow spec is required";
+    return null;
+}
 
 export async function PUT(request: Request) {
     try {
-        const {
-            workflow,
-            spec,
-            uiMetadata,
-        }: {
-            workflow: Workflow;
+        const { workflow, spec, uiMetadata }: {
+            workflow: any;
             spec: PolicyDefinitionDictInput;
             uiMetadata: { [key: string]: UIMetadata };
         } = await request.json();
 
-        // Here we handle what type of workflow we are saving.
-        // In the future, it'd be nicer to have a single type of workflow that
-        // is then managed in many different ways by the backend.
+        const validationError = validateWorkflow(workflow, spec);
+        if (validationError) return apiResponse.error(validationError, 400);
+
+        // Handle workflow types
         if (typeof workflow === "object" && "policy_version_id" in workflow) {
-            const policyVersion = workflow as PolicyVersion;
-            return savePolicyVersion(policyVersion, spec, uiMetadata);
+            return savePolicyVersion(workflow as PolicyVersion, spec, uiMetadata);
         } else if (typeof workflow === "object" && "component_id" in workflow) {
-            const component = workflow as Component;
-            return saveComponent(component, spec, uiMetadata);
+            return saveComponent(workflow as Component, spec, uiMetadata);
         } else {
-            console.error("Invalid workflow type:", workflow);
-            return Response.json(
-                { success: false, error: "Invalid workflow type", data: null },
-                { status: 400 },
-            );
+            return apiResponse.error("Invalid workflow type", 400);
         }
     } catch (error) {
-        console.error("Error saving workflow:", error);
-        return Response.json(
-            {
-                success: false,
-                error: error instanceof Error ? error.message : "Unknown error",
-                data: null,
-            },
-            { status: 500 },
-        );
+        return apiResponse.error(error instanceof Error ? error.message : "Unknown error");
     }
 }
 
-async function saveComponent(
-    component: Component,
-    spec: PolicyDefinitionDictInput,
-    uiMetadata: { [key: string]: UIMetadata },
-) {
-    if (!spec) {
-        return Response.json(
-            { success: false, error: "Workflow spec is required", data: null },
-            { status: 400 },
-        );
+async function saveComponent(component: Component, spec: PolicyDefinitionDictInput, uiMetadata: { [key: string]: UIMetadata }) {
+    try {
+        const requestBody: ComponentBase = {
+            requirements: component.workflow?.requirements || [],
+            name: component.name,
+            description: component.description || null,
+            icon: component.icon || null,
+            spec,
+            variables: component.workflow?.variables || [],
+            ui_metadata: uiMetadata,
+        };
+        const response = await updateComponent(component.component_id, requestBody);
+        return apiResponse.success(response);
+    } catch (error) {
+        return apiResponse.error(error instanceof Error ? error.message : "Failed to save component");
     }
-
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    if (!serverUrl) {
-        return Response.json(
-            { success: false, error: "Server URL is not configured", data: null },
-            { status: 500 },
-        );
-    }
-
-    // Prepare the request body matching the original server action
-    const requestBody: ComponentBase = {
-        requirements: component.workflow?.requirements || [],
-        name: component.name,
-        description: component.description || null,
-        icon: component.icon || null,
-        spec,
-        variables: component.workflow?.variables || [],
-        ui_metadata: uiMetadata,
-    };
-
-    const response = await updateComponent(component.component_id, requestBody);
-    return Response.json({ success: true, data: response, error: null });
 }
 
-async function savePolicyVersion(
-    policyVersion: PolicyVersion,
-    spec: PolicyDefinitionDictInput,
-    uiMetadata: { [key: string]: UIMetadata },
-) {
-    if (!spec) {
-        return Response.json(
-            { success: false, error: "Workflow spec is required", data: null },
-            { status: 400 },
-        );
-    }
+async function savePolicyVersion(policyVersion: PolicyVersion, spec: PolicyDefinitionDictInput, uiMetadata: { [key: string]: UIMetadata }) {
+    try {
+        const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+        if (!serverUrl) return apiResponse.error("Server URL is not configured");
 
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    if (!serverUrl) {
-        return Response.json(
-            { success: false, error: "Server URL is not configured", data: null },
-            { status: 500 },
-        );
-    }
+        const requestBody: PolicyVersionBase = {
+            alias: policyVersion.alias || null,
+            spec,
+            requirements: [],
+            ui_metadata: uiMetadata,
+        };
 
-    // Prepare the request body matching the original server action
-    const requestBody: PolicyVersionBase = {
-        alias: policyVersion.alias || null,
-        spec,
-        requirements: [],
-        ui_metadata: uiMetadata,
-    };
-
-    // Make the request to the backend server
-    const response = await fetch(
-        `${serverUrl}/policy-versions/${policyVersion.policy_version_id}`,
-        {
+        const response = await fetch(`${serverUrl}/policy-versions/${policyVersion.policy_version_id}`, {
             method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(requestBody),
             cache: "no-store",
-        },
-    );
+        });
 
-    if (!response.ok) {
-        const error = await response.json();
-        if (response.status !== 500) {
-            return Response.json(
-                {
-                    success: false,
-                    error: `Server responded with status: ${response.status}: ${error.detail}`,
-                    data: null,
-                },
-                { status: response.status },
-            );
-        } else {
-            console.error(`Server responded with status ${response.status}:`, error);
-            return Response.json(
-                { success: false, error: "Internal server error", data: null },
-                { status: 500 },
+        if (!response.ok) {
+            const error = await response.json();
+            return apiResponse.error(
+                response.status !== 500 ? `Server error ${response.status}: ${error.detail}` : "Internal server error",
+                response.status
             );
         }
-    }
 
-    const data = await response.json();
-    return Response.json({ success: true, data, error: null });
+        const data = await response.json();
+        return apiResponse.success(data);
+    } catch (error) {
+        return apiResponse.error(error instanceof Error ? error.message : "Failed to save policy version");
+    }
 }
