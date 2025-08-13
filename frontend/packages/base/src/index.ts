@@ -66,3 +66,6 @@ export * from "./components/analytics";
 
 // Re-export components table
 export * from "./components/components";
+
+// Re-export shared page templates
+export * from "./components/templates";
