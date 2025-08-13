@@ -3,6 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { z } from "zod";
 import "@xyflow/react/dist/style.css";
 
 import {
@@ -12,6 +13,16 @@ import {
     createWorkflowApiClient,
     type Workflow,
 } from "../workflow";
+
+/**
+ * Configuration schema for runtime validation
+ */
+const AppWorkflowFrameConfigSchema = z.object({
+    /** Whether policyId is required for multi-tenant environments */
+    requirePolicyId: z.boolean().optional().default(false),
+    /** Whether to pass projectId to WorkflowFrame component */
+    passProjectIdToFrame: z.boolean().optional().default(false),
+});
 
 /**
  * Configuration for app-specific workflow frame behavior
@@ -71,7 +82,9 @@ export function AppWorkflowFrame(props: AppWorkflowFrameProps) {
         config = {},
     } = props;
     
-    const { requirePolicyId = false, passProjectIdToFrame = false } = config;
+    // Validate and parse configuration
+    const validatedConfig = AppWorkflowFrameConfigSchema.parse(config);
+    const { requirePolicyId, passProjectIdToFrame } = validatedConfig;
     
     const router = useRouter();
     const apiClient = createWorkflowApiClient();
@@ -84,7 +97,7 @@ export function AppWorkflowFrame(props: AppWorkflowFrameProps) {
 
     // Validate required fields based on config
     if (requirePolicyId && !policyId) {
-        console.error('AppWorkflowFrame: policyId is required when requirePolicyId is true');
+        throw new Error('AppWorkflowFrame: policyId is required when requirePolicyId is true');
     }
 
     return (
@@ -93,7 +106,7 @@ export function AppWorkflowFrame(props: AppWorkflowFrameProps) {
                 autoFetch={true}
                 includeArchived={false}
                 projectId={projectId}
-                {...(policyId && { policyId })}
+                policyId={policyId || undefined}
             >
                 <WorkflowFrame
                     workflow={workflowData}
@@ -101,7 +114,7 @@ export function AppWorkflowFrame(props: AppWorkflowFrameProps) {
                     onPaneClick={onPaneClick}
                     toast={handleToast}
                     onRefresh={handleRefresh}
-                    {...(passProjectIdToFrame && projectId && { projectId })}
+                    projectId={passProjectIdToFrame && projectId ? projectId : undefined}
                 />
             </WorkflowDataProvider>
         </WorkflowApiProvider>
