@@ -2,6 +2,9 @@
 export * from "./lib/utils";
 export * from "./lib/chart";
 
+// Re-export workflow utilities
+export * from "./lib/workflow";
+
 // Re-export UI components
 export { VulkanLogo } from "./components/logo";
 
