@@ -1,11 +1,10 @@
 "use client";
 
 // Vulkan packages
-import { SharedAllocatedVersionsTable } from "@vulkanlabs/base";
+import { SharedAllocatedVersionsTable, parseDate } from "@vulkanlabs/base";
 import type { Policy, PolicyVersion } from "@vulkanlabs/client-open";
 
 // Local imports
-import { parseDate } from "@/lib/utils";
 import { UpdateAllocationsDialog } from "./dialog";
 
 export function AllocatedVersionsTable({

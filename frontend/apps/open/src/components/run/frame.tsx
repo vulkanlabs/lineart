@@ -1,7 +1,7 @@
 import { WorkflowFrame as SharedWorkflowFrame, type RunFrameConfig } from "@vulkanlabs/base";
 import type { RunNodeLayout } from "./types";
-import type { EdgeLayoutConfig } from "@/lib/workflow/types";
-import { layoutGraph } from "@/lib/workflow/graph";
+import type { EdgeLayoutConfig } from "@vulkanlabs/base";
+import { layoutGraph } from "@vulkanlabs/base";
 
 // OSS-specific configuration
 const ossRunConfig: RunFrameConfig = {

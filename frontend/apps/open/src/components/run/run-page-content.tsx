@@ -2,7 +2,7 @@
 import { SharedRunPageContent } from "@vulkanlabs/base";
 import { WorkflowFrame } from "@/components/run/frame";
 import type { RunNodeLayout } from "@/components/run/types";
-import { EdgeLayoutConfig } from "@/lib/workflow/types";
+import { EdgeLayoutConfig } from "@vulkanlabs/base";
 import type { RunData, RunLogs } from "@vulkanlabs/client-open";
 
 export default function RunPageContent({

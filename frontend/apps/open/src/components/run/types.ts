@@ -1,4 +1,4 @@
-import { NodeLayoutConfig, NodeDependency } from "@/lib/workflow/types";
+import { NodeLayoutConfig, NodeDependency } from "@vulkanlabs/base";
 import { StepDetails } from "@vulkanlabs/client-open";
 
 // Re-export shared base types
