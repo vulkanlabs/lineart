@@ -3,7 +3,7 @@
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, ToasterProps } from "sonner";
 
-const SharedToaster = ({ ...props }: ToasterProps) => {
+const Toaster = ({ ...props }: ToasterProps) => {
     const { theme = "system" } = useTheme();
 
     return (
@@ -22,4 +22,4 @@ const SharedToaster = ({ ...props }: ToasterProps) => {
     );
 };
 
-export { SharedToaster };
+export { Toaster };
