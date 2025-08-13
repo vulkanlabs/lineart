@@ -26,6 +26,8 @@ export * from "./components/reactflow";
 // Re-export layout components
 export * from "./components/page-layout";
 export * from "./components/inner-navbar";
+export * from "./components/navigation";
+export * from "./components/providers";
 
 // Re-export run components (safe exports only)
 export {

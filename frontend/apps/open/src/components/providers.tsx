@@ -1,13 +1,7 @@
 "use client";
 
-import { ThemeProvider } from "next-themes";
-import { Toaster } from "./toaster";
+import { SharedProviders } from "@vulkanlabs/base";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-    return (
-        <ThemeProvider attribute="class" defaultTheme="light">
-            {children}
-            <Toaster />
-        </ThemeProvider>
-    );
+    return <SharedProviders>{children}</SharedProviders>;
 }
