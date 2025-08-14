@@ -11,8 +11,10 @@ export { VulkanLogo } from "./components/logo";
 // Re-export animations
 export * from "./components/animations";
 
-// Re-export charts
-export * from "./components/charts";
+// Re-export charts (selective exports for better tree-shaking)
+export { DatePickerWithRange } from "./components/charts/date-picker";
+export { VersionPicker } from "./components/charts/version-picker";
+// data-source-charts and policy-stats not currently used by apps
 
 // Re-export reusable components
 export * from "./components/combobox";
@@ -49,8 +51,30 @@ export * from "./components/app-workflow-frame";
 // Re-export data source components
 export * from "./components/data-sources";
 
-// Re-export workflow components (primary source for workflow functionality)
-export * from "./workflow";
+// Re-export workflow components (selective exports for better tree-shaking)
+// Core workflow components used by apps
+export { 
+  WorkflowFrame,
+  WorkflowApiProvider,
+  WorkflowDataProvider,
+  createWorkflowApiClient,
+} from "./workflow";
+
+// Workflow utilities used by apps
+export {
+  makeGraphElements,
+  layoutGraph,
+  defaultElkOptions,
+} from "./workflow";
+
+// Workflow types used by apps
+export type {
+  NodeLayoutConfig,
+  EdgeLayoutConfig,
+  NodeDependency,
+  RunFrameConfig,
+  DataSource,
+} from "./workflow";
 
 // Re-export shared app components
 export { RefreshButton } from "./components/refresh-button";
