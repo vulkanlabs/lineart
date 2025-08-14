@@ -17,7 +17,10 @@ vi.mock('next/navigation', () => ({
 
 // Mock base package components for isolated testing
 vi.mock('@vulkanlabs/base', () => ({
-  AppWorkflowFrame: ({ children, ...props }: any) => <div data-testid="shared-app-workflow-frame" {...props}>{children}</div>,
+  AppWorkflowFrame: ({ children, ...props }: any) => {
+    const React = require('react')
+    return React.createElement('div', { 'data-testid': 'shared-app-workflow-frame', ...props }, children)
+  },
 }))
 
 // Global test utilities

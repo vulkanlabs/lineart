@@ -22,9 +22,18 @@ vi.mock('sonner', () => ({
 
 // Mock workflow API client
 vi.mock('../workflow', () => ({
-  WorkflowFrame: ({ children, ...props }: any) => <div data-testid="workflow-frame" {...props}>{children}</div>,
-  WorkflowApiProvider: ({ children }: any) => <div data-testid="workflow-api-provider">{children}</div>,
-  WorkflowDataProvider: ({ children }: any) => <div data-testid="workflow-data-provider">{children}</div>,
+  WorkflowFrame: ({ children, ...props }: any) => {
+    const React = require('react')
+    return React.createElement('div', { 'data-testid': 'workflow-frame', ...props }, children)
+  },
+  WorkflowApiProvider: ({ children }: any) => {
+    const React = require('react')
+    return React.createElement('div', { 'data-testid': 'workflow-api-provider' }, children)
+  },
+  WorkflowDataProvider: ({ children }: any) => {
+    const React = require('react')
+    return React.createElement('div', { 'data-testid': 'workflow-data-provider' }, children)
+  },
   createWorkflowApiClient: vi.fn(() => ({})),
 }))
 
