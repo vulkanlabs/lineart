@@ -27,8 +27,8 @@ export default defineConfig({
     dts: true, // Re-enabled - we'll focus on core components first
     clean: true,
     external: ["react", "react-dom", "next"],
-    splitting: false,
-    minify: false,
+    splitting: true,  // Enable code splitting for better load performance
+    minify: true,     // Enable minification for smaller bundle size
     outDir: "dist",
     treeshake: true,
     esbuildOptions(options) {

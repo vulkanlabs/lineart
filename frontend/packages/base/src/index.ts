@@ -15,7 +15,25 @@ export { Loader, Sending } from "./components/animations";
 // Re-export charts (selective exports for better tree-shaking)
 export { DatePickerWithRange } from "./components/charts/date-picker";
 export { VersionPicker } from "./components/charts/version-picker";
-// data-source-charts and policy-stats not currently used by apps
+
+// Re-export data source charts
+export { 
+    CacheHitRatioChart,
+    ErrorRateChart,
+    LoadingChartState,
+    RequestVolumeChart,
+    ResponseTimeChart,
+} from "./components/charts/data-source-charts";
+
+// Re-export policy charts
+export {
+    AvgDurationByStatusChart,
+    RunDurationStatsChart,
+    RunErrorRateChart,
+    RunOutcomeDistributionChart,
+    RunOutcomesChart,
+    RunsChart,
+} from "./components/charts/policy-stats";
 
 // Re-export reusable components (selective exports for better tree-shaking)
 export { DataTable } from "./components/data-table";
@@ -24,7 +42,12 @@ export {
     EnvironmentVariablesEditor,
     type EnvironmentVariablesEditorProps,
 } from "./components/environment-variables-editor";
-export { ResourceTable } from "./components/resource-table";
+export { 
+    ResourceTable,
+    DeletableResourceTable,
+    DeletableResourceTableActions,
+    type DeletableResourceTableProps,
+} from "./components/resource-table";
 export { ShortenedID } from "./components/shortened-id";
 // Note: combobox and reactflow components not currently used by apps
 
@@ -61,18 +84,19 @@ export {
 
 // Workflow utilities used by apps
 export {
-  makeGraphElements,
-  layoutGraph,
   defaultElkOptions,
+  getLayoutedNodes,
+  standardizeNodeName,
+  createWorkflowState,
 } from "./workflow";
 
 // Workflow types used by apps
 export type {
-  NodeLayoutConfig,
-  EdgeLayoutConfig,
   NodeDependency,
-  RunFrameConfig,
   DataSource,
+  VulkanNode,
+  VulkanNodeData,
+  WorkflowState,
 } from "./workflow";
 
 // Re-export shared app components

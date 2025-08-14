@@ -54,6 +54,7 @@ export type {
     WorkflowState,
     NodeConfig,
     IncomingEdges,
+    NodeDependency,
 } from "./types/workflow";
 
 // === Utilities ===
