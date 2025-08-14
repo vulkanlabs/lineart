@@ -75,7 +75,6 @@ export type {
   DataSource,
 } from "./workflow";
 
-// Note: RefreshButton not currently used by apps
 // Re-export shared app components
 export { RefreshButton } from "./components/refresh-button";
 
