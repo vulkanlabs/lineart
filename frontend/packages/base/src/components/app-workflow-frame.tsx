@@ -25,6 +25,22 @@ const AppWorkflowFrameConfigSchema = z.object({
 });
 
 /**
+ * Global scope configuration - no policy isolation required
+ */
+export const GLOBAL_SCOPE_CONFIG: AppWorkflowFrameConfig = {
+    requirePolicyId: false,
+    passProjectIdToFrame: true,
+};
+
+/**
+ * Project scope configuration - requires policy isolation  
+ */
+export const PROJECT_SCOPE_CONFIG: AppWorkflowFrameConfig = {
+    requirePolicyId: true,
+    passProjectIdToFrame: true,
+};
+
+/**
  * Configuration for app-specific workflow frame behavior
  */
 export interface AppWorkflowFrameConfig {

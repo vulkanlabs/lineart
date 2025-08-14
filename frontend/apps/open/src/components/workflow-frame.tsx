@@ -1,19 +1,13 @@
 import {
     AppWorkflowFrame as SharedAppWorkflowFrame,
+    GLOBAL_SCOPE_CONFIG,
     type GlobalScopeWorkflowFrameProps,
-    type AppWorkflowFrameConfig,
 } from "@vulkanlabs/base";
-
-// Global scope configuration (no policy isolation)
-const globalScopeConfig: AppWorkflowFrameConfig = {
-    requirePolicyId: false,
-    passProjectIdToFrame: true,
-};
 
 // Re-export the props type for backward compatibility
 export type AppWorkflowFrameProps = GlobalScopeWorkflowFrameProps;
 
-// Global scope AppWorkflowFrame wrapper
+// Global scope AppWorkflowFrame wrapper with pre-validated configuration
 export function AppWorkflowFrame(props: AppWorkflowFrameProps) {
-    return <SharedAppWorkflowFrame {...props} config={globalScopeConfig} />;
+    return <SharedAppWorkflowFrame {...props} config={GLOBAL_SCOPE_CONFIG} />;
 }
