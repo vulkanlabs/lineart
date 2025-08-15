@@ -130,7 +130,7 @@ export class SharedWorkflowHandlers {
                     const error = await response.json();
                     if (response.status !== 500) {
                         return this.config.responseUtils.error(
-                            `Server responded with status: ${response.status}: ${error.detail}`,
+                            `Server responded with status: ${response.status}: ${error.detail || 'Unknown server error'}`,
                             response.status
                         );
                     } else {
