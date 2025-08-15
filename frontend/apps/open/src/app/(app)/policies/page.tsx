@@ -1,3 +1,4 @@
+// Local imports
 import { fetchPolicies } from "@/lib/api";
 import { PoliciesTable } from "./policies-table";
 

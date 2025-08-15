@@ -356,46 +356,46 @@ describe("Real Integration Tests", () => {
     });
 
     describe("Real-World Usage Scenarios", () => {
-        it("should handle typical OSS application usage scenario", () => {
+        it("should handle typical Global application usage scenario", () => {
             // Simulate how the open app would use the component
-            const ossProps: GlobalScopeWorkflowFrameProps = {
+            const globalProps: GlobalScopeWorkflowFrameProps = {
                 workflowData: mockWorkflowData,
                 projectId: "open-source-project",
                 config: GLOBAL_SCOPE_CONFIG,
                 onNodeClick: (e, node) => {
-                    // Typical OSS workflow: simple node selection
-                    console.log("OSS: Node clicked", node.id);
+                    // Typical Global workflow: simple node selection
+                    console.log("Global: Node clicked", node.id);
                 },
                 onPaneClick: (e) => {
-                    // Typical OSS workflow: deselect nodes
-                    console.log("OSS: Pane clicked");
+                    // Typical Global workflow: deselect nodes
+                    console.log("Global: Pane clicked");
                 },
             };
 
-            render(<AppWorkflowFrame {...ossProps} />);
+            render(<AppWorkflowFrame {...globalProps} />);
 
             const workflowFrame = screen.getByTestId("workflow-frame");
             expect(workflowFrame).toBeInTheDocument();
         });
 
-        it("should handle typical SaaS application usage scenario", () => {
-            // Simulate how a SaaS app would use the component
-            const saasProps: ProjectScopeWorkflowFrameProps = {
+        it("should handle typical Project application usage scenario", () => {
+            // Simulate how a Project app would use the component
+            const projectProps: ProjectScopeWorkflowFrameProps = {
                 workflowData: mockWorkflowData,
-                projectId: "saas-project-123",
-                policyId: "saas-policy-456",
+                projectId: "project-123",
+                policyId: "project-456",
                 config: PROJECT_SCOPE_CONFIG,
                 onNodeClick: (e, node) => {
-                    // Typical SaaS workflow: node analytics and multi-tenant tracking
-                    console.log("SaaS: Node clicked with policy context", node.id);
+                    // Typical Project workflow: node analytics and multi-tenant tracking
+                    console.log("Project: Node clicked with policy context", node.id);
                 },
                 onPaneClick: (e) => {
-                    // Typical SaaS workflow: workspace management
-                    console.log("SaaS: Pane clicked in policy context");
+                    // Typical Project workflow: workspace management
+                    console.log("Project: Pane clicked in policy context");
                 },
             };
 
-            render(<AppWorkflowFrame {...saasProps} />);
+            render(<AppWorkflowFrame {...projectProps} />);
 
             const workflowFrame = screen.getByTestId("workflow-frame");
             expect(workflowFrame).toBeInTheDocument();

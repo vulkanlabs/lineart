@@ -19,21 +19,21 @@ const mockWorkflowData = {
 
 describe("Cross-App Configuration Compatibility", () => {
     describe("Configuration Interoperability", () => {
-        it("should work with global scope configuration (OSS pattern)", () => {
+        it("should work with global scope configuration (Global pattern)", () => {
             const globalScopeProps: GlobalScopeWorkflowFrameProps = {
                 workflowData: mockWorkflowData,
-                projectId: "oss-project",
+                projectId: "global-project",
                 config: GLOBAL_SCOPE_CONFIG,
             };
 
             expect(() => render(<BaseAppWorkflowFrame {...globalScopeProps} />)).not.toThrow();
         });
 
-        it("should work with project scope configuration (SaaS pattern)", () => {
+        it("should work with project scope configuration (Project pattern)", () => {
             const projectScopeProps: ProjectScopeWorkflowFrameProps = {
                 workflowData: mockWorkflowData,
-                projectId: "saas-project",
-                policyId: "saas-policy",
+                projectId: "project-project",
+                policyId: "project-policy",
                 config: PROJECT_SCOPE_CONFIG,
             };
 
@@ -169,27 +169,27 @@ describe("Cross-App Configuration Compatibility", () => {
 
 describe("Architecture Validation Tests", () => {
     describe("Scope-Based Component Sharing", () => {
-        it("should support OSS deployment patterns", () => {
-            // OSS: Single tenant, no policy isolation, global scope
-            const ossProps: GlobalScopeWorkflowFrameProps = {
+        it("should support Global deployment patterns", () => {
+            // Global: Single tenant, no policy isolation, global scope
+            const globalProps: GlobalScopeWorkflowFrameProps = {
                 workflowData: mockWorkflowData,
-                projectId: "oss-project",
+                projectId: "global-project",
                 config: GLOBAL_SCOPE_CONFIG,
             };
 
-            expect(() => render(<BaseAppWorkflowFrame {...ossProps} />)).not.toThrow();
+            expect(() => render(<BaseAppWorkflowFrame {...globalProps} />)).not.toThrow();
         });
 
-        it("should support SaaS deployment patterns", () => {
-            // SaaS: Multi-tenant, policy isolation required, project scope
-            const saasProps: ProjectScopeWorkflowFrameProps = {
+        it("should support Project deployment patterns", () => {
+            // Project: Multi-tenant, policy isolation required, project scope
+            const projectProps: ProjectScopeWorkflowFrameProps = {
                 workflowData: mockWorkflowData,
                 projectId: "tenant-1-project",
                 policyId: "tenant-1-policy",
                 config: PROJECT_SCOPE_CONFIG,
             };
 
-            expect(() => render(<BaseAppWorkflowFrame {...saasProps} />)).not.toThrow();
+            expect(() => render(<BaseAppWorkflowFrame {...projectProps} />)).not.toThrow();
         });
 
         it("should maintain clear separation between deployment modes", () => {

@@ -1,5 +1,6 @@
 import { fetchDataSources } from "@/lib/api";
 import { Separator } from "@vulkanlabs/base/ui";
+
 import DataSourcesTable from "./data-sources-table";
 
 export const dynamic = "force-dynamic";

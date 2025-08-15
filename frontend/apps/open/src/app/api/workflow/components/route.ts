@@ -1,4 +1,4 @@
-// OSS App - Shared API patterns (inline approach)
+// Global App - Shared API patterns (inline approach)
 import { Component } from "@vulkanlabs/client-open";
 
 // Shared response pattern

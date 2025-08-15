@@ -155,7 +155,7 @@ describe("Package Export/Import Validation", () => {
         it("should maintain scope configuration API contract", () => {
             // Test the API contract that other apps depend on
 
-            // GLOBAL_SCOPE_CONFIG should be suitable for OSS (no policy required)
+            // GLOBAL_SCOPE_CONFIG should be suitable for Global (no policy required)
             expect(GLOBAL_SCOPE_CONFIG.requirePolicyId).toBe(false);
             expect(GLOBAL_SCOPE_CONFIG.passProjectIdToFrame).toBe(true);
 
