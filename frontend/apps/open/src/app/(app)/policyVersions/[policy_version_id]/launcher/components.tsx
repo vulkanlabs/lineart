@@ -90,8 +90,8 @@ export function LauncherButton({
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button 
-                    variant="outline" 
+                <Button
+                    variant="outline"
                     className="border-input bg-background hover:bg-accent hover:text-accent-foreground transition-all duration-200 shadow-sm hover:shadow-md"
                 >
                     <Play className="h-4 w-4 mr-2" />
@@ -102,19 +102,22 @@ export function LauncherButton({
                 <div className="flex items-center justify-between pb-4 border-b">
                     <div className="space-y-1">
                         <DialogTitle className="text-xl font-semibold leading-none tracking-tight">
-                            {createdRun ? "Run Launched Successfully" : error ? "Launch Failed" : "Launch a New Run"}
+                            {createdRun
+                                ? "Run Launched Successfully"
+                                : error
+                                  ? "Launch Failed"
+                                  : "Launch a New Run"}
                         </DialogTitle>
                         <p className="text-sm text-muted-foreground">
-                            {createdRun 
-                                ? "Your policy run has been created and is now executing." 
-                                : error 
-                                ? "There was an error launching your run." 
-                                : "Configure parameters and launch a run for this policy version."
-                            }
+                            {createdRun
+                                ? "Your policy run has been created and is now executing."
+                                : error
+                                  ? "There was an error launching your run."
+                                  : "Configure parameters and launch a run for this policy version."}
                         </p>
                     </div>
                 </div>
-                
+
                 <div className="mt-6">
                     {!error && !createdRun && (
                         <LaunchRunForm
@@ -126,7 +129,14 @@ export function LauncherButton({
                             setError={setError}
                         />
                     )}
-                    {error && <RunCreationErrorCard error={error} onRetry={() => { setError(null); }} />}
+                    {error && (
+                        <RunCreationErrorCard
+                            error={error}
+                            onRetry={() => {
+                                setError(null);
+                            }}
+                        />
+                    )}
                     {createdRun && (
                         <RunCreatedCard
                             createdRun={createdRun}
@@ -246,7 +256,9 @@ function LaunchRunFormCard({
                                         <FormLabel className="text-base font-semibold">
                                             Input Data
                                         </FormLabel>
-                                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Required</span>
+                                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                            Required
+                                        </span>
                                     </div>
                                     <FormControl>
                                         <div className="relative">
@@ -261,7 +273,8 @@ function LaunchRunFormCard({
                                         </div>
                                     </FormControl>
                                     <FormDescription className="text-sm text-muted-foreground">
-                                        JSON data passed to the policy run. Must match the expected input schema.
+                                        JSON data passed to the policy run. Must match the expected
+                                        input schema.
                                     </FormDescription>
                                     <FormMessage className="text-sm" />
                                 </FormItem>
@@ -276,7 +289,9 @@ function LaunchRunFormCard({
                                         <FormLabel className="text-base font-semibold">
                                             Configuration Variables
                                         </FormLabel>
-                                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Optional</span>
+                                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                            Optional
+                                        </span>
                                     </div>
                                     <FormControl>
                                         <div className="relative">
@@ -290,7 +305,7 @@ function LaunchRunFormCard({
                                                 value={field.value ?? ""}
                                             />
                                             <div className="absolute bottom-3 right-3 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded backdrop-blur-sm">
-                                                {(field.value?.length || 0)} chars
+                                                {field.value?.length || 0} chars
                                             </div>
                                         </div>
                                     </FormControl>
@@ -307,7 +322,9 @@ function LaunchRunFormCard({
                         <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 space-y-2">
                             <div className="flex items-center gap-2 text-destructive">
                                 <AlertCircle className="h-4 w-4" />
-                                <span className="font-medium">Please fix the following errors:</span>
+                                <span className="font-medium">
+                                    Please fix the following errors:
+                                </span>
                             </div>
                             <ul className="list-disc list-inside text-sm text-destructive/80 space-y-1">
                                 {Object.entries(form.formState.errors).map(([field, error]) => (
@@ -404,11 +421,12 @@ function RunCreatedCard({ createdRun, closeDialog }: { createdRun: Run; closeDia
             <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
                 <CheckCircle className="w-8 h-8 text-foreground" />
             </div>
-            
+
             <div className="space-y-3">
                 <h3 className="text-xl font-semibold">Run Launched Successfully!</h3>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                    Your policy run has been created and is now executing. You can monitor its progress from the runs page.
+                    Your policy run has been created and is now executing. You can monitor its
+                    progress from the runs page.
                 </p>
                 <div className="inline-flex items-center gap-2 bg-muted border rounded-lg px-3 py-2">
                     <span className="text-xs font-medium">Run ID:</span>
@@ -417,9 +435,11 @@ function RunCreatedCard({ createdRun, closeDialog }: { createdRun: Run; closeDia
                     </code>
                 </div>
             </div>
-            
+
             <div className="flex justify-center gap-3 pt-2">
-                <Link href={`/policyVersions/${createdRun.policy_version_id}/runs/${createdRun.run_id}`}>
+                <Link
+                    href={`/policyVersions/${createdRun.policy_version_id}/runs/${createdRun.run_id}`}
+                >
                     <Button onClick={closeDialog}>
                         <Play className="h-4 w-4 mr-2" />
                         View Run Details
@@ -439,14 +459,15 @@ function RunCreationErrorCard({ error, onRetry }: { error: Error; onRetry: () =>
             <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
                 <AlertCircle className="w-8 h-8 text-destructive" />
             </div>
-            
+
             <div className="space-y-3">
                 <h3 className="text-xl font-semibold">Launch Failed</h3>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                    There was an error starting your policy run. Please review the error details below and try again.
+                    There was an error starting your policy run. Please review the error details
+                    below and try again.
                 </p>
             </div>
-            
+
             <div className="bg-muted border rounded-lg p-4 text-left max-w-lg mx-auto">
                 <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
                     <AlertCircle className="h-4 w-4" />
@@ -458,7 +479,7 @@ function RunCreationErrorCard({ error, onRetry }: { error: Error; onRetry: () =>
                     </pre>
                 </div>
             </div>
-            
+
             <div className="flex justify-center gap-3 pt-2">
                 <Button variant="outline" onClick={onRetry}>
                     <Settings className="h-4 w-4 mr-2" />

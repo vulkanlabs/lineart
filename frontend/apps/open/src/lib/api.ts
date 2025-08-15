@@ -233,10 +233,10 @@ export async function fetchComponents(includeArchived: boolean = false): Promise
     );
 }
 
-export async function fetchComponent(componentId: string): Promise<Component> {
+export async function fetchComponent(componentName: string): Promise<Component> {
     return withErrorHandling(
-        componentsApi.getComponent({ componentId }),
-        `fetch component ${componentId}`,
+        componentsApi.getComponent({ componentName }),
+        `fetch component ${componentName}`,
     );
 }
 
@@ -248,19 +248,19 @@ export async function createComponent(data: ComponentBase): Promise<Component> {
 }
 
 export async function updateComponent(
-    componentId: string,
+    componentName: string,
     data: ComponentBase,
 ): Promise<Component> {
     return withErrorHandling(
-        componentsApi.updateComponent({ componentId, componentBase: data }),
-        `update component ${componentId}`,
+        componentsApi.updateComponent({ componentName, componentBase: data }),
+        `update component ${componentName}`,
     );
 }
 
-export async function deleteComponent(componentId: string): Promise<void> {
+export async function deleteComponent(componentName: string): Promise<void> {
     return withErrorHandling(
-        componentsApi.deleteComponent({ componentId }),
-        `delete component ${componentId}`,
+        componentsApi.deleteComponent({ componentName }),
+        `delete component ${componentName}`,
     );
 }
 

@@ -1,4 +1,5 @@
 import logging
+from functools import wraps
 
 import coloredlogs
 
@@ -13,3 +14,19 @@ def init_logger(name: str, level: str = "INFO") -> logging.Logger:
     coloredlogs.install(level=level)
 
     return logger
+
+
+def log_exceptions(logger: logging.Logger, verbose: bool = False):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                if verbose:
+                    raise e
+                logger.error(e)
+
+        return wrapper
+
+    return decorator

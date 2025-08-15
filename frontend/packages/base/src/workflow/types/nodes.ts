@@ -65,7 +65,7 @@ export type DecisionNodeMetadata = {
 };
 
 export type ComponentNodeMetadata = {
-    component_id: string;
+    component_name: string;
     definition: PolicyDefinitionDictInput;
     parameters: { [key: string]: string };
 };
