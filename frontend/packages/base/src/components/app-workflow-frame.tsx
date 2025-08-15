@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -90,7 +90,7 @@ function isProjectScopeProps(props: AppWorkflowFrameProps): props is ProjectScop
 /**
  * Configurable application workflow frame that adapts to different deployment modes
  */
-export function AppWorkflowFrame(props: AppWorkflowFrameProps) {
+export const AppWorkflowFrame = React.memo(function AppWorkflowFrame(props: AppWorkflowFrameProps) {
     const {
         workflowData,
         onNodeClick = () => {},
@@ -98,12 +98,15 @@ export function AppWorkflowFrame(props: AppWorkflowFrameProps) {
         config = {},
     } = props;
     
-    // Validate and parse configuration
-    const validatedConfig = AppWorkflowFrameConfigSchema.parse(config);
+    // Validate and parse configuration (memoized for performance)
+    const validatedConfig = useMemo(() => 
+        AppWorkflowFrameConfigSchema.parse(config), [config]
+    );
     const { requirePolicyId, passProjectIdToFrame } = validatedConfig;
     
     const router = useRouter();
-    const apiClient = createWorkflowApiClient();
+    // Memoize API client creation (expensive operation)
+    const apiClient = useMemo(() => createWorkflowApiClient(), []);
     const handleRefresh = () => router.refresh();
     const handleToast = (message: string, options?: any) => toast(message, options);
 
@@ -135,4 +138,16 @@ export function AppWorkflowFrame(props: AppWorkflowFrameProps) {
             </WorkflowDataProvider>
         </WorkflowApiProvider>
     );
-}
+}, (prevProps, nextProps) => {
+    // Custom comparison for performance optimization
+    return (
+        prevProps.workflowData === nextProps.workflowData &&
+        prevProps.config === nextProps.config &&
+        prevProps.onNodeClick === nextProps.onNodeClick &&
+        prevProps.onPaneClick === nextProps.onPaneClick &&
+        ('projectId' in prevProps ? prevProps.projectId : undefined) === 
+        ('projectId' in nextProps ? nextProps.projectId : undefined) &&
+        (isProjectScopeProps(prevProps) ? prevProps.policyId : undefined) === 
+        (isProjectScopeProps(nextProps) ? nextProps.policyId : undefined)
+    );
+});

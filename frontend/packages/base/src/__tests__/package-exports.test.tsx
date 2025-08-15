@@ -21,7 +21,9 @@ describe('Package Export/Import Validation', () => {
     describe('AppWorkflowFrame Exports', () => {
         it('should export AppWorkflowFrame component', () => {
             expect(AppWorkflowFrame).toBeDefined()
-            expect(typeof AppWorkflowFrame).toBe('function')
+            // React.memo returns an object, not a function, but it's still a valid React component
+            expect(typeof AppWorkflowFrame).toBe('object')
+            expect(AppWorkflowFrame).toHaveProperty('$$typeof')
         })
 
         it('should export configuration constants', () => {
@@ -105,21 +107,27 @@ describe('Package Export/Import Validation', () => {
 
     describe('Component Function Properties', () => {
         it('should validate AppWorkflowFrame has expected properties', () => {
-            // Check that the component function has a name
-            expect(AppWorkflowFrame.name).toBe('AppWorkflowFrame')
-            
-            // Check that it's a React component (should have displayName or be a function)
-            expect(typeof AppWorkflowFrame).toBe('function')
+            // React.memo components have different properties than regular functions
+            // Check that it's a memoized React component
+            expect(typeof AppWorkflowFrame).toBe('object')
+            expect(AppWorkflowFrame).toHaveProperty('$$typeof')
         })
 
         it('should validate component imports work as expected', () => {
             // Test that we can reference the components without errors
-            const components = [AppWorkflowFrame, VulkanLogo, RefreshButton]
+            const regularComponents = [VulkanLogo, RefreshButton]
+            const memoizedComponents = [AppWorkflowFrame]
             
-            for (const component of components) {
+            for (const component of regularComponents) {
                 expect(component).toBeDefined()
                 expect(typeof component).toBe('function')
                 expect(component.length).toBeGreaterThanOrEqual(0) // Has at least 0 parameters
+            }
+            
+            for (const component of memoizedComponents) {
+                expect(component).toBeDefined()
+                expect(typeof component).toBe('object') // React.memo returns object
+                expect(component).toHaveProperty('$$typeof')
             }
         })
     })
@@ -186,7 +194,8 @@ describe('Package Export/Import Validation', () => {
             expect(() => {
                 // This tests that the component signature compiles and is callable
                 const ComponentRef = AppWorkflowFrame
-                expect(typeof ComponentRef).toBe('function')
+                expect(typeof ComponentRef).toBe('object') // React.memo returns object
+                expect(ComponentRef).toHaveProperty('$$typeof')
             }).not.toThrow()
         })
     })
