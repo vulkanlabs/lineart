@@ -43,8 +43,12 @@ export function SharedRunPageContent({
         enableResponsiveColumns = true
     } = config;
 
+    // Use conditional logic for CSS classes to ensure compatibility with CSS purging
+    const containerOverflowClass = containerOverflow === 'hidden' ? 'overflow-hidden' : 'overflow-scroll';
+    const sidebarOverflowClass = sidebarOverflow === 'hidden' ? 'overflow-hidden' : 'overflow-auto';
+
     return (
-        <div className={`grid grid-rows-2 h-full w-full overflow-${containerOverflow}`}>
+        <div className={`grid grid-rows-2 h-full w-full ${containerOverflowClass}`}>
             <div className="row-span-1 w-full border-b-2">
                 <div className="w-full h-full grid grid-cols-12">
                     <div className="col-span-8">
@@ -57,7 +61,7 @@ export function SharedRunPageContent({
                             />
                         </div>
                     </div>
-                    <div className={`col-span-4 border-l-2 overflow-${sidebarOverflow}`}>
+                    <div className={`col-span-4 border-l-2 ${sidebarOverflowClass}`}>
                         <WorkflowSidebar clickedNode={clickedNode} runData={runData} />
                     </div>
                 </div>
