@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -15,7 +15,7 @@ import {
 } from "../workflow";
 
 /**
- * Configuration schema for runtime validation
+ * Configuration schema for runtime validation with enhanced performance
  */
 const AppWorkflowFrameConfigSchema = z.object({
     /** Whether policyId is required for multi-tenant environments */
@@ -23,6 +23,11 @@ const AppWorkflowFrameConfigSchema = z.object({
     /** Whether to pass projectId to WorkflowFrame component */
     passProjectIdToFrame: z.boolean().optional().default(false),
 });
+
+/**
+ * Default empty configuration object - frozen for performance
+ */
+const DEFAULT_CONFIG: AppWorkflowFrameConfig = Object.freeze({});
 
 /**
  * Global scope configuration - no policy isolation required
@@ -88,14 +93,20 @@ function isProjectScopeProps(props: AppWorkflowFrameProps): props is ProjectScop
 }
 
 /**
- * Configurable application workflow frame that adapts to different deployment modes
+ * Configurable application workflow frame that adapts to different deployment modes.
+ * 
+ * Performance optimized with React.memo to prevent unnecessary re-renders when props haven't changed.
+ * Uses custom comparison function to handle union types and optional props correctly.
+ * 
+ * @param props - Union type supporting both global and project scope configurations
+ * @returns Memoized React component with workflow frame functionality
  */
-export const AppWorkflowFrame = React.memo(function AppWorkflowFrame(props: AppWorkflowFrameProps) {
+export const AppWorkflowFrame = React.memo<AppWorkflowFrameProps>(function AppWorkflowFrame(props: AppWorkflowFrameProps) {
     const {
         workflowData,
         onNodeClick = () => {},
         onPaneClick = () => {},
-        config = {},
+        config = DEFAULT_CONFIG,
     } = props;
     
     // Validate and parse configuration (memoized for performance)
@@ -105,10 +116,13 @@ export const AppWorkflowFrame = React.memo(function AppWorkflowFrame(props: AppW
     const { requirePolicyId, passProjectIdToFrame } = validatedConfig;
     
     const router = useRouter();
+    
     // Memoize API client creation (expensive operation)
     const apiClient = useMemo(() => createWorkflowApiClient(), []);
-    const handleRefresh = () => router.refresh();
-    const handleToast = (message: string, options?: any) => toast(message, options);
+    
+    // Memoize event handlers to prevent child re-renders
+    const handleRefresh = useCallback(() => router.refresh(), [router]);
+    const handleToast = useCallback((message: string, options?: any) => toast(message, options), []);
 
     // Extract projectId and policyId based on props type
     const projectId = 'projectId' in props ? props.projectId : undefined;

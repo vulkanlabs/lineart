@@ -127,10 +127,19 @@ export class SharedWorkflowHandlers {
                 );
 
                 if (!response.ok) {
-                    const error = await response.json();
+                    // Type-safe error handling with fallback for malformed responses
+                    let error: { detail?: string; message?: string } = {};
+                    try {
+                        error = await response.json();
+                    } catch (parseError) {
+                        // Handle cases where response is not valid JSON
+                        error = { detail: `Failed to parse error response: ${response.statusText}` };
+                    }
+                    
                     if (response.status !== 500) {
+                        const errorMessage = error.detail || error.message || 'Unknown server error';
                         return this.config.responseUtils.error(
-                            `Server responded with status: ${response.status}: ${error.detail || 'Unknown server error'}`,
+                            `Server responded with status: ${response.status}: ${errorMessage}`,
                             response.status
                         );
                     } else {

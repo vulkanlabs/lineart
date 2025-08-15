@@ -2,6 +2,7 @@
 
 // === Core Components ===
 // Main workflow frame for embedding complete workflow functionality
+// Note: WorkflowFrame is heavy component - exported as lazy from main index.ts for performance
 export { WorkflowFrame } from "./components/workflow-frame";
 export type { Workflow } from "./api/types";
 export type { WorkflowFrameProps } from "./components/workflow-frame";

@@ -43,7 +43,12 @@ export function SharedRunPageContent({
         enableResponsiveColumns = true
     } = config;
 
-    // Use conditional logic for CSS classes to ensure compatibility with CSS purging
+    /**
+     * CSS class computation using conditional logic for Tailwind CSS purging compatibility.
+     * Avoids template literals that may be purged during build optimization.
+     * 
+     * @see https://tailwindcss.com/docs/content-configuration#dynamic-class-names
+     */
     const containerOverflowClass = containerOverflow === 'hidden' ? 'overflow-hidden' : 'overflow-scroll';
     const sidebarOverflowClass = sidebarOverflow === 'hidden' ? 'overflow-hidden' : 'overflow-auto';
 

@@ -39,7 +39,7 @@ export {
 } from "./components/charts/policy-stats";
 
 // Re-export reusable components (selective exports for better tree-shaking)
-// Heavy components with lazy loading for better performance
+// Performance: Heavy components with lazy loading for code splitting and reduced initial bundle size
 export const DataTable = lazy(() => import("./components/data-table").then(m => ({ default: m.DataTable })));
 export const ResourceTable = lazy(() => import("./components/resource-table").then(m => ({ default: m.ResourceTable })));
 export const DeletableResourceTable = lazy(() => import("./components/resource-table").then(m => ({ default: m.DeletableResourceTable })));
@@ -50,8 +50,14 @@ export { DetailsButton } from "./components/details-button";
 export { ShortenedID } from "./components/shortened-id";
 
 // Re-export types (not affected by lazy loading)
-export type { EnvironmentVariablesEditorProps } from "./components/environment-variables-editor";
-export type { DeletableResourceTableProps } from "./components/resource-table";
+export type { 
+    EnvironmentVariablesEditorProps 
+} from "./components/environment-variables-editor";
+export type { 
+    DeletableResourceTableProps,
+    SearchFilterOptions,
+    DeleteResourceOptions,
+} from "./components/resource-table";
 export { DeletableResourceTableActions } from "./components/resource-table";
 // Note: combobox and reactflow components not currently used by apps
 
