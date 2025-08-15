@@ -18,7 +18,7 @@ import {
 import { Policy, PolicyVersion, WorkflowStatus } from "@vulkanlabs/client-open";
 
 // Local imports
-import { parseDate } from "@/lib/utils";
+import { parseDate } from "@vulkanlabs/base";
 import { deletePolicyVersion } from "@/lib/api";
 import { CreatePolicyVersionDialog } from "./create-version";
 

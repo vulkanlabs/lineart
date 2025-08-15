@@ -3,6 +3,7 @@
 // React and Next.js
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 // External libraries
 import { z } from "zod";
@@ -182,11 +183,12 @@ export function CreateComponentDialog() {
                                     <FormLabel htmlFor="icon">Icon</FormLabel>
                                     <FormControl>
                                         <div
-                                            className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-                                                dragActive
-                                                    ? "border-primary bg-primary/10"
-                                                    : "border-gray-300 hover:border-gray-400"
-                                            }`}
+                                            className={`border-2 border-dashed rounded-lg p-4 text-center 
+                                                transition-colors ${
+                                                    dragActive
+                                                        ? "border-primary bg-primary/10"
+                                                        : "border-gray-300 hover:border-gray-400"
+                                                }`}
                                             onDragEnter={handleDrag}
                                             onDragLeave={handleDrag}
                                             onDragOver={handleDrag}
@@ -207,9 +209,11 @@ export function CreateComponentDialog() {
                                             <label htmlFor="icon-upload" className="cursor-pointer">
                                                 {selectedFile ? (
                                                     <div className="space-y-2">
-                                                        <img
+                                                        <Image
                                                             src={field.value}
                                                             alt="Selected icon"
+                                                            width={64}
+                                                            height={64}
                                                             className="mx-auto h-16 w-16 object-contain rounded"
                                                         />
                                                         <p className="text-sm text-gray-600">

@@ -2,6 +2,7 @@
 
 // === Core Components ===
 // Main workflow frame for embedding complete workflow functionality
+// Note: WorkflowFrame is heavy component - exported as lazy from main index.ts for performance
 export { WorkflowFrame } from "./components/workflow-frame";
 export type { Workflow } from "./api/types";
 export type { WorkflowFrameProps } from "./components/workflow-frame";
@@ -21,6 +22,7 @@ export type {
     PolicyNode,
     DataInputNode,
     ConnectionNode,
+    ComponentNode,
 } from "./components/nodes";
 
 // === State Management ===
@@ -53,6 +55,7 @@ export type {
     WorkflowState,
     NodeConfig,
     IncomingEdges,
+    NodeDependency,
 } from "./types/workflow";
 
 // === Utilities ===

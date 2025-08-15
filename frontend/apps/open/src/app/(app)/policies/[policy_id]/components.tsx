@@ -4,7 +4,7 @@
 import { ChartColumnStacked, Settings2, Layers } from "lucide-react";
 
 // Local imports
-import { InnerNavbar, InnerNavbarSectionProps } from "@/components/inner-navbar";
+import { InnerNavbar, type InnerNavbarSectionProps } from "@vulkanlabs/base";
 import { PageLayout, SidebarSectionProps } from "@/components/page-layout";
 import { Policy } from "@vulkanlabs/client-open";
 

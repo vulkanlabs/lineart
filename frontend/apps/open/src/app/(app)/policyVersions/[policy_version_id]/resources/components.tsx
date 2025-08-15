@@ -36,7 +36,7 @@ import type {
 
 // Local imports
 import { updatePolicyVersion } from "@/lib/api";
-import { parseDate } from "@/lib/utils";
+import { parseDate } from "@vulkanlabs/base";
 import { setPolicyVersionVariablesAction } from "./actions";
 
 interface EnvironmentVariablesProps {
