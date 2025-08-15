@@ -9,7 +9,7 @@ export interface SharedApiResponse<T = any> {
 export interface SharedApiConfig {
     // Response factory function - apps can provide NextResponse.json or Response.json
     responseFactory: (body: any, options?: { status?: number }) => Response;
-    
+
     // Error logging function - apps can provide their own logger
     logError: (message: string, error?: any) => void;
 }
@@ -37,7 +37,7 @@ export class SharedResponseUtils {
                 error: message,
                 data: null,
             },
-            { status }
+            { status },
         );
     }
 
@@ -82,7 +82,7 @@ export function validateWorkflowSaveRequest(
     workflow: any,
     spec: any,
     projectIdRequired: boolean = false,
-    projectId?: string | null
+    projectId?: string | null,
 ): string | null {
     if (!workflow) {
         return "Workflow is required";

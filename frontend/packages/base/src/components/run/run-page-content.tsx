@@ -46,13 +46,7 @@ export default function RunPageContent({
     );
 }
 
-function LogsTable({
-    runLogs,
-    clickedNode,
-}: {
-    runLogs: RunLogs;
-    clickedNode: any | null;
-}) {
+function LogsTable({ runLogs, clickedNode }: { runLogs: RunLogs; clickedNode: any | null }) {
     const filteredLogs = runLogs.logs.filter(
         (log) => clickedNode === null || log.step_key === clickedNode.id,
     );

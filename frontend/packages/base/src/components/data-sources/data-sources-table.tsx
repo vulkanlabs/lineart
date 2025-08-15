@@ -26,11 +26,11 @@ export interface DataSourceTableConfig {
     CreateDataSourceDialog: React.ReactElement;
 }
 
-export function DataSourcesTable({ 
-    dataSources, 
-    config 
-}: { 
-    dataSources: DataSource[]; 
+export function DataSourcesTable({
+    dataSources,
+    config,
+}: {
+    dataSources: DataSource[];
     config: DataSourceTableConfig;
 }) {
     const searchOptions: SearchFilterOptions = {
@@ -71,9 +71,7 @@ function getDataSourceTableColumns(config: DataSourceTableConfig): ColumnDef<Dat
         {
             accessorKey: "link",
             header: "",
-            cell: ({ row }) => (
-                <DetailsButton href={buildHref(row.getValue("data_source_id"))} />
-            ),
+            cell: ({ row }) => <DetailsButton href={buildHref(row.getValue("data_source_id"))} />,
         },
         {
             header: "ID",

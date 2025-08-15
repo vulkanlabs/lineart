@@ -20,7 +20,7 @@ export { DatePickerWithRange } from "./components/charts/date-picker";
 export { VersionPicker } from "./components/charts/version-picker";
 
 // Re-export data source charts
-export { 
+export {
     CacheHitRatioChart,
     ErrorRateChart,
     LoadingChartState,
@@ -40,20 +40,28 @@ export {
 
 // Re-export reusable components (selective exports for better tree-shaking)
 // Performance: Heavy components with lazy loading for code splitting and reduced initial bundle size
-export const DataTable = lazy(() => import("./components/data-table").then(m => ({ default: m.DataTable })));
-export const ResourceTable = lazy(() => import("./components/resource-table").then(m => ({ default: m.ResourceTable })));
-export const DeletableResourceTable = lazy(() => import("./components/resource-table").then(m => ({ default: m.DeletableResourceTable })));
-export const EnvironmentVariablesEditor = lazy(() => import("./components/environment-variables-editor").then(m => ({ default: m.EnvironmentVariablesEditor })));
+export const DataTable = lazy(() =>
+    import("./components/data-table").then((m) => ({ default: m.DataTable })),
+);
+export const ResourceTable = lazy(() =>
+    import("./components/resource-table").then((m) => ({ default: m.ResourceTable })),
+);
+export const DeletableResourceTable = lazy(() =>
+    import("./components/resource-table").then((m) => ({ default: m.DeletableResourceTable })),
+);
+export const EnvironmentVariablesEditor = lazy(() =>
+    import("./components/environment-variables-editor").then((m) => ({
+        default: m.EnvironmentVariablesEditor,
+    })),
+);
 
 // Lightweight components - keep regular exports
 export { DetailsButton } from "./components/details-button";
 export { ShortenedID } from "./components/shortened-id";
 
 // Re-export types (not affected by lazy loading)
-export type { 
-    EnvironmentVariablesEditorProps 
-} from "./components/environment-variables-editor";
-export type { 
+export type { EnvironmentVariablesEditorProps } from "./components/environment-variables-editor";
+export type {
     DeletableResourceTableProps,
     SearchFilterOptions,
     DeleteResourceOptions,
@@ -67,10 +75,8 @@ export { InnerNavbar, type InnerNavbarSectionProps } from "./components/inner-na
 export { SharedNavbar, type NavigationSection } from "./components/navigation";
 
 // Re-export run components (safe exports only)
-export {
-    RunsPage,
-} from "./components/run";
-// Note: Run-related types (BaseRunNodeLayout, BaseRunNodeData, RunLogEvent, RunLog, RunLogs) 
+export { RunsPage } from "./components/run";
+// Note: Run-related types (BaseRunNodeLayout, BaseRunNodeData, RunLogEvent, RunLog, RunLogs)
 // not currently used by apps - RunLogs comes from @vulkanlabs/client-open instead
 
 // Re-export workflow frame components
@@ -78,48 +84,50 @@ export * from "./components/app-workflow-frame";
 
 // Re-export data source components (selective exports for better tree-shaking)
 // Heavy dialog components with lazy loading
-export const SharedCreateDataSourceDialog = lazy(() => import("./components/data-sources").then(m => ({ default: m.SharedCreateDataSourceDialog })));
-export const SharedDataSourcesTable = lazy(() => import("./components/data-sources").then(m => ({ default: m.DataSourcesTable })));
+export const SharedCreateDataSourceDialog = lazy(() =>
+    import("./components/data-sources").then((m) => ({ default: m.SharedCreateDataSourceDialog })),
+);
+export const SharedDataSourcesTable = lazy(() =>
+    import("./components/data-sources").then((m) => ({ default: m.DataSourcesTable })),
+);
 
 // Re-export types
 export type { CreateDataSourceDialogConfig } from "./components/data-sources";
 
 // Re-export workflow components (selective exports for better tree-shaking)
 // Heavy workflow components with lazy loading for better startup performance
-export const WorkflowFrame = lazy(() => import("./workflow").then(m => ({ default: m.WorkflowFrame })));
+export const WorkflowFrame = lazy(() =>
+    import("./workflow").then((m) => ({ default: m.WorkflowFrame })),
+);
 
 // Lightweight API components - keep regular exports
-export { 
-  WorkflowApiProvider,
-  WorkflowDataProvider,
-  createWorkflowApiClient,
-} from "./workflow";
+export { WorkflowApiProvider, WorkflowDataProvider, createWorkflowApiClient } from "./workflow";
 
 // Workflow utilities used by apps
 export {
-  defaultElkOptions,
-  getLayoutedNodes,
-  standardizeNodeName,
-  createWorkflowState,
+    defaultElkOptions,
+    getLayoutedNodes,
+    standardizeNodeName,
+    createWorkflowState,
 } from "./workflow";
 
 // Workflow types used by apps
 export type {
-  NodeDependency,
-  DataSource,
-  VulkanNode,
-  VulkanNodeData,
-  WorkflowState,
+    NodeDependency,
+    DataSource,
+    VulkanNode,
+    VulkanNodeData,
+    WorkflowState,
 } from "./workflow";
 
 // Re-export shared app components
 export { RefreshButton } from "./components/refresh-button";
 
 // Re-export policy components (selective exports for better tree-shaking)
-export { 
-  CreatePolicyDialog as SharedCreatePolicyDialog,
-  PoliciesTable as SharedPoliciesTable,
-  SharedAllocatedVersionsTable,
+export {
+    CreatePolicyDialog as SharedCreatePolicyDialog,
+    PoliciesTable as SharedPoliciesTable,
+    SharedAllocatedVersionsTable,
 } from "./components/policies";
 
 // Re-export analytics components (selective exports for better tree-shaking)

@@ -38,7 +38,7 @@ export const GLOBAL_SCOPE_CONFIG: AppWorkflowFrameConfig = Object.freeze({
 });
 
 /**
- * Project scope configuration - requires policy isolation  
+ * Project scope configuration - requires policy isolation
  */
 export const PROJECT_SCOPE_CONFIG: AppWorkflowFrameConfig = Object.freeze({
     requirePolicyId: true,
@@ -88,80 +88,86 @@ export type AppWorkflowFrameProps = GlobalScopeWorkflowFrameProps | ProjectScope
 /**
  * Type guard to check if props include policyId (project scope mode)
  */
-function isProjectScopeProps(props: AppWorkflowFrameProps): props is ProjectScopeWorkflowFrameProps {
-    return 'policyId' in props && typeof props.policyId === 'string';
+function isProjectScopeProps(
+    props: AppWorkflowFrameProps,
+): props is ProjectScopeWorkflowFrameProps {
+    return "policyId" in props && typeof props.policyId === "string";
 }
 
 /**
  * Configurable application workflow frame that adapts to different deployment modes.
- * 
+ *
  * Performance optimized with React.memo to prevent unnecessary re-renders when props haven't changed.
  * Uses custom comparison function to handle union types and optional props correctly.
- * 
+ *
  * @param props - Union type supporting both global and project scope configurations
  * @returns Memoized React component with workflow frame functionality
  */
-export const AppWorkflowFrame = React.memo<AppWorkflowFrameProps>(function AppWorkflowFrame(props: AppWorkflowFrameProps) {
-    const {
-        workflowData,
-        onNodeClick = () => {},
-        onPaneClick = () => {},
-        config = DEFAULT_CONFIG,
-    } = props;
-    
-    // Validate and parse configuration (memoized for performance)
-    const validatedConfig = useMemo(() => 
-        AppWorkflowFrameConfigSchema.parse(config), [config]
-    );
-    const { requirePolicyId, passProjectIdToFrame } = validatedConfig;
-    
-    const router = useRouter();
-    
-    // Memoize API client creation (expensive operation)
-    const apiClient = useMemo(() => createWorkflowApiClient(), []);
-    
-    // Memoize event handlers to prevent child re-renders
-    const handleRefresh = useCallback(() => router.refresh(), [router]);
-    const handleToast = useCallback((message: string, options?: any) => toast(message, options), []);
+export const AppWorkflowFrame = React.memo<AppWorkflowFrameProps>(
+    function AppWorkflowFrame(props: AppWorkflowFrameProps) {
+        const {
+            workflowData,
+            onNodeClick = () => {},
+            onPaneClick = () => {},
+            config = DEFAULT_CONFIG,
+        } = props;
 
-    // Extract projectId and policyId based on props type
-    const projectId = 'projectId' in props ? props.projectId : undefined;
-    const policyId = isProjectScopeProps(props) ? props.policyId : undefined;
+        // Validate and parse configuration (memoized for performance)
+        const validatedConfig = useMemo(() => AppWorkflowFrameConfigSchema.parse(config), [config]);
+        const { requirePolicyId, passProjectIdToFrame } = validatedConfig;
 
-    // Validate required fields based on config
-    if (requirePolicyId && !policyId) {
-        throw new Error('AppWorkflowFrame: policyId is required when requirePolicyId is true');
-    }
+        const router = useRouter();
 
-    return (
-        <WorkflowApiProvider client={apiClient} config={{}}>
-            <WorkflowDataProvider
-                autoFetch={true}
-                includeArchived={false}
-                projectId={projectId}
-                policyId={policyId || undefined}
-            >
-                <WorkflowFrame
-                    workflow={workflowData}
-                    onNodeClick={onNodeClick}
-                    onPaneClick={onPaneClick}
-                    toast={handleToast}
-                    onRefresh={handleRefresh}
-                    projectId={passProjectIdToFrame && projectId ? projectId : undefined}
-                />
-            </WorkflowDataProvider>
-        </WorkflowApiProvider>
-    );
-}, (prevProps, nextProps) => {
-    // Custom comparison for performance optimization
-    return (
-        prevProps.workflowData === nextProps.workflowData &&
-        prevProps.config === nextProps.config &&
-        prevProps.onNodeClick === nextProps.onNodeClick &&
-        prevProps.onPaneClick === nextProps.onPaneClick &&
-        ('projectId' in prevProps ? prevProps.projectId : undefined) === 
-        ('projectId' in nextProps ? nextProps.projectId : undefined) &&
-        (isProjectScopeProps(prevProps) ? prevProps.policyId : undefined) === 
-        (isProjectScopeProps(nextProps) ? nextProps.policyId : undefined)
-    );
-});
+        // Memoize API client creation (expensive operation)
+        const apiClient = useMemo(() => createWorkflowApiClient(), []);
+
+        // Memoize event handlers to prevent child re-renders
+        const handleRefresh = useCallback(() => router.refresh(), [router]);
+        const handleToast = useCallback(
+            (message: string, options?: any) => toast(message, options),
+            [],
+        );
+
+        // Extract projectId and policyId based on props type
+        const projectId = "projectId" in props ? props.projectId : undefined;
+        const policyId = isProjectScopeProps(props) ? props.policyId : undefined;
+
+        // Validate required fields based on config
+        if (requirePolicyId && !policyId) {
+            throw new Error("AppWorkflowFrame: policyId is required when requirePolicyId is true");
+        }
+
+        return (
+            <WorkflowApiProvider client={apiClient} config={{}}>
+                <WorkflowDataProvider
+                    autoFetch={true}
+                    includeArchived={false}
+                    projectId={projectId}
+                    policyId={policyId || undefined}
+                >
+                    <WorkflowFrame
+                        workflow={workflowData}
+                        onNodeClick={onNodeClick}
+                        onPaneClick={onPaneClick}
+                        toast={handleToast}
+                        onRefresh={handleRefresh}
+                        projectId={passProjectIdToFrame && projectId ? projectId : undefined}
+                    />
+                </WorkflowDataProvider>
+            </WorkflowApiProvider>
+        );
+    },
+    (prevProps, nextProps) => {
+        // Custom comparison for performance optimization
+        return (
+            prevProps.workflowData === nextProps.workflowData &&
+            prevProps.config === nextProps.config &&
+            prevProps.onNodeClick === nextProps.onNodeClick &&
+            prevProps.onPaneClick === nextProps.onPaneClick &&
+            ("projectId" in prevProps ? prevProps.projectId : undefined) ===
+                ("projectId" in nextProps ? nextProps.projectId : undefined) &&
+            (isProjectScopeProps(prevProps) ? prevProps.policyId : undefined) ===
+                (isProjectScopeProps(nextProps) ? nextProps.policyId : undefined)
+        );
+    },
+);

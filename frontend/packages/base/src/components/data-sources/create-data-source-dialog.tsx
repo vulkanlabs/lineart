@@ -208,7 +208,8 @@ export function SharedCreateDataSourceDialog({ config }: { config: CreateDataSou
             metadata: keyValuePairsToMap(keyValuePairsFromObject(data.metadata)),
         };
 
-        await config.createDataSource(dataSourceSpec, config.projectId)
+        await config
+            .createDataSource(dataSourceSpec, config.projectId)
             .then(() => {
                 setOpen(false);
                 form.reset();

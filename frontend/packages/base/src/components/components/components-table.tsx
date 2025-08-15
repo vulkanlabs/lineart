@@ -48,11 +48,11 @@ const DeleteComponentContext = React.createContext<DeleteComponentContextType | 
     undefined,
 );
 
-export function ComponentsTable({ 
-    components, 
-    config 
-}: { 
-    components: Component[]; 
+export function ComponentsTable({
+    components,
+    config,
+}: {
+    components: Component[];
     config: ComponentsTableConfig;
 }) {
     const [componentToDelete, setComponentToDelete] = React.useState<Component | null>(null);
@@ -159,9 +159,7 @@ function getComponentsTableColumns(config: ComponentsTableConfig): ColumnDef<Com
             {
                 accessorKey: "link",
                 header: "",
-                cell: ({ row }) => (
-                    <DetailsButton href={buildHref(row.getValue("component_id"))} />
-                ),
+                cell: ({ row }) => <DetailsButton href={buildHref(row.getValue("component_id"))} />,
             },
             {
                 accessorKey: "component_id",
@@ -180,9 +178,7 @@ function getComponentsTableColumns(config: ComponentsTableConfig): ColumnDef<Com
         {
             id: "link",
             enableHiding: false,
-            cell: ({ row }) => (
-                <DetailsButton href={buildHref(row.getValue("component_id"))} />
-            ),
+            cell: ({ row }) => <DetailsButton href={buildHref(row.getValue("component_id"))} />,
         },
         {
             header: "ID",
@@ -266,13 +262,17 @@ function getComponentsTableColumns(config: ComponentsTableConfig): ColumnDef<Com
             },
             cell: ({ row }) => parseDate(row.getValue("last_updated_at")),
         },
-        ...(config.deleteComponent ? [{
-            id: "delete" as const,
-            enableHiding: false,
-            cell: ({ row }: any) => {
-                return <DeleteComponentButton component={row.original} />;
-            },
-        }] : []),
+        ...(config.deleteComponent
+            ? [
+                  {
+                      id: "delete" as const,
+                      enableHiding: false,
+                      cell: ({ row }: any) => {
+                          return <DeleteComponentButton component={row.original} />;
+                      },
+                  },
+              ]
+            : []),
         {
             id: "actions",
             enableHiding: false,
@@ -331,9 +331,7 @@ function ComponentsTableActions({ row, config }: { row: any; config: ComponentsT
                     Copy Component ID
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    onClick={() => router.push(buildHref(component.component_id))}
-                >
+                <DropdownMenuItem onClick={() => router.push(buildHref(component.component_id))}>
                     View Component
                 </DropdownMenuItem>
             </DropdownMenuContent>

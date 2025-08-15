@@ -52,7 +52,7 @@ export function PageLayout({
     config?: PageLayoutConfig;
 }) {
     const baseClass = config.useCustomScrollClasses ? "overflow-hidden" : "overflow-scroll";
-    
+
     return (
         <div className={cn("flex flex-row w-full h-full", baseClass)}>
             <Sidebar
@@ -66,11 +66,11 @@ export function PageLayout({
                     "flex flex-col w-full h-full",
                     config.useCustomScrollClasses && content?.scrollable
                         ? "overflow-auto-safe scrollbar-thin scroll-smooth"
-                        : content?.scrollable 
-                        ? "overflow-scroll"
-                        : config.useCustomScrollClasses 
-                        ? "overflow-hidden-safe" 
-                        : "overflow-clip",
+                        : content?.scrollable
+                          ? "overflow-scroll"
+                          : config.useCustomScrollClasses
+                            ? "overflow-hidden-safe"
+                            : "overflow-clip",
                 )}
             >
                 {children}
@@ -79,11 +79,11 @@ export function PageLayout({
     );
 }
 
-export function Sidebar({ 
-    title, 
-    sections, 
-    retractable, 
-    config = {} 
+export function Sidebar({
+    title,
+    sections,
+    retractable,
+    config = {},
 }: SidebarProps & { config?: PageLayoutConfig }) {
     const [expandOnHover, setExpandOnHover] = useState(false);
     const [isMouseOver, setIsMouseOver] = useState(true);
@@ -133,8 +133,8 @@ export function Sidebar({
             ? "w-48 md:w-64 max-w-48 md:max-w-64"
             : "w-12 md:w-16 max-w-12 md:max-w-16"
         : isExpanded
-            ? "w-64 max-w-64"
-            : "w-16 max-w-16";
+          ? "w-64 max-w-64"
+          : "w-16 max-w-16";
 
     return (
         <div

@@ -1,11 +1,11 @@
-import { 
+import {
     SharedResponseUtils,
-    parseWorkflowRequest, 
-    parseQueryParams, 
+    parseWorkflowRequest,
+    parseQueryParams,
     getProjectIdFromParams,
     validateWorkflowSaveRequest,
     validateServerUrl,
-    type SharedApiConfig 
+    type SharedApiConfig,
 } from "./shared-response-utils";
 
 // Configuration interface for workflow save handlers
@@ -13,29 +13,29 @@ export interface WorkflowSaveHandlerConfig {
     // App-specific API functions
     updatePolicyVersion?: (policyVersionId: string, data: any, projectId?: string) => Promise<any>;
     updateComponent?: (componentId: string, data: any) => Promise<any>;
-    
+
     // Direct server communication
     serverUrl?: string;
-    
+
     // App-specific requirements
     requiresProjectId: boolean;
-    
+
     // Response utilities
     responseUtils: SharedResponseUtils;
 }
 
-// Configuration interface for list handlers  
+// Configuration interface for list handlers
 export interface ListHandlerConfig {
     // App-specific API functions
     listComponents?: (projectId?: string, includeArchived?: boolean) => Promise<any>;
     listPolicyVersions?: (policyId: string, projectId?: string) => Promise<any>;
-    
+
     // Direct server communication
     serverUrl?: string;
-    
+
     // App-specific requirements
     requiresProjectId: boolean;
-    
+
     // Response utilities
     responseUtils: SharedResponseUtils;
 }
@@ -55,10 +55,10 @@ export class SharedWorkflowHandlers {
 
             // Validate request
             const validationError = validateWorkflowSaveRequest(
-                workflow, 
-                spec, 
-                this.config.requiresProjectId, 
-                projectId
+                workflow,
+                spec,
+                this.config.requiresProjectId,
+                projectId,
             );
             if (validationError) {
                 return this.config.responseUtils.validationError(validationError);
@@ -75,7 +75,7 @@ export class SharedWorkflowHandlers {
         } catch (error) {
             return this.config.responseUtils.serverError(
                 error instanceof Error ? error.message : "Unknown error",
-                error
+                error,
             );
         }
     }
@@ -84,7 +84,7 @@ export class SharedWorkflowHandlers {
         policyVersion: any,
         spec: any,
         uiMetadata: any,
-        projectId?: string | null
+        projectId?: string | null,
     ): Promise<Response> {
         try {
             if (!policyVersion.policy_version_id) {
@@ -105,7 +105,7 @@ export class SharedWorkflowHandlers {
                 data = await this.config.updatePolicyVersion(
                     policyVersion.policy_version_id,
                     updateData,
-                    projectId || undefined
+                    projectId || undefined,
                 );
             } else if (this.config.serverUrl) {
                 // Direct server communication
@@ -123,7 +123,7 @@ export class SharedWorkflowHandlers {
                         },
                         body: JSON.stringify(updateData),
                         cache: "no-store",
-                    }
+                    },
                 );
 
                 if (!response.ok) {
@@ -133,17 +133,23 @@ export class SharedWorkflowHandlers {
                         error = await response.json();
                     } catch (parseError) {
                         // Handle cases where response is not valid JSON
-                        error = { detail: `Failed to parse error response: ${response.statusText}` };
+                        error = {
+                            detail: `Failed to parse error response: ${response.statusText}`,
+                        };
                     }
-                    
+
                     if (response.status !== 500) {
-                        const errorMessage = error.detail || error.message || 'Unknown server error';
+                        const errorMessage =
+                            error.detail || error.message || "Unknown server error";
                         return this.config.responseUtils.error(
                             `Server responded with status: ${response.status}: ${errorMessage}`,
-                            response.status
+                            response.status,
                         );
                     } else {
-                        return this.config.responseUtils.serverError("Internal server error", error);
+                        return this.config.responseUtils.serverError(
+                            "Internal server error",
+                            error,
+                        );
                     }
                 }
 
@@ -156,16 +162,12 @@ export class SharedWorkflowHandlers {
         } catch (error) {
             return this.config.responseUtils.serverError(
                 error instanceof Error ? error.message : "Failed to save policy version",
-                error
+                error,
             );
         }
     }
 
-    private async saveComponent(
-        component: any,
-        spec: any,
-        uiMetadata: any
-    ): Promise<Response> {
+    private async saveComponent(component: any, spec: any, uiMetadata: any): Promise<Response> {
         try {
             if (!component.component_id) {
                 return this.config.responseUtils.validationError("Component ID is required");
@@ -190,7 +192,7 @@ export class SharedWorkflowHandlers {
         } catch (error) {
             return this.config.responseUtils.serverError(
                 error instanceof Error ? error.message : "Failed to save component",
-                error
+                error,
             );
         }
     }
@@ -237,7 +239,7 @@ export class SharedListHandlers {
                 if (!response.ok) {
                     return this.config.responseUtils.error(
                         `Failed to fetch components: ${response.statusText}`,
-                        response.status
+                        response.status,
                     );
                 }
 
@@ -254,7 +256,7 @@ export class SharedListHandlers {
         } catch (error) {
             return this.config.responseUtils.serverError(
                 error instanceof Error ? error.message : "Failed to fetch components",
-                error
+                error,
             );
         }
     }

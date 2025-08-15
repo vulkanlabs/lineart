@@ -29,15 +29,11 @@ export function VulkanLogo({
     const { withProject, logoSrc, homePath = "/", useProjectRouting = false } = config;
     const searchParams = useSearchParams();
     const currentProject = searchParams.get("project");
-    
+
     // For click-only behavior (no navigation)
     if (onClick) {
         return (
-            <div
-                className={className}
-                onClick={onClick}
-                style={{ cursor: "pointer" }}
-            >
+            <div className={className} onClick={onClick} style={{ cursor: "pointer" }}>
                 {logoSrc ? (
                     <Image src={logoSrc} alt="Vulkan logo" className="max-h-14 max-w-48" />
                 ) : (
@@ -52,7 +48,7 @@ export function VulkanLogo({
     if (useProjectRouting && withProject) {
         href = withProject(homePath, currentProject || undefined);
     }
-    
+
     return (
         <Link href={href} className={className}>
             {logoSrc ? (

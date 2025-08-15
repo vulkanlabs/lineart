@@ -1,41 +1,45 @@
-import '@testing-library/jest-dom'
-import { vi } from 'vitest'
+import "@testing-library/jest-dom";
+import { vi } from "vitest";
 
 // Mock Next.js router
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    refresh: vi.fn(),
-    back: vi.fn(),
-    forward: vi.fn(),
-    prefetch: vi.fn(),
-  }),
-  usePathname: () => '/',
-  useSearchParams: () => new URLSearchParams(),
-}))
+vi.mock("next/navigation", () => ({
+    useRouter: () => ({
+        push: vi.fn(),
+        replace: vi.fn(),
+        refresh: vi.fn(),
+        back: vi.fn(),
+        forward: vi.fn(),
+        prefetch: vi.fn(),
+    }),
+    usePathname: () => "/",
+    useSearchParams: () => new URLSearchParams(),
+}));
 
 // Mock base package components for isolated testing
-vi.mock('@vulkanlabs/base', () => ({
-  AppWorkflowFrame: ({ children, ...props }: any) => {
-    const React = require('react')
-    return React.createElement('div', { 'data-testid': 'shared-app-workflow-frame', ...props }, children)
-  },
-}))
+vi.mock("@vulkanlabs/base", () => ({
+    AppWorkflowFrame: ({ children, ...props }: any) => {
+        const React = require("react");
+        return React.createElement(
+            "div",
+            { "data-testid": "shared-app-workflow-frame", ...props },
+            children,
+        );
+    },
+}));
 
 // Global test utilities
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
+}));
 
 // Suppress console errors in tests unless specifically testing error handling
-const originalError = console.error
+const originalError = console.error;
 beforeAll(() => {
-  console.error = vi.fn()
-})
+    console.error = vi.fn();
+});
 
 afterAll(() => {
-  console.error = originalError
-})
+    console.error = originalError;
+});

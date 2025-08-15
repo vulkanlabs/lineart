@@ -45,11 +45,11 @@ type DeletePolicyContextType = {
 
 const DeletePolicyContext = React.createContext<DeletePolicyContextType | undefined>(undefined);
 
-export function PoliciesTable({ 
-    policies, 
-    config 
-}: { 
-    policies: Policy[]; 
+export function PoliciesTable({
+    policies,
+    config,
+}: {
+    policies: Policy[];
     config: PolicyTableConfig;
 }) {
     const [policyToDelete, setPolicyToDelete] = React.useState<Policy | null>(null);
@@ -132,9 +132,7 @@ function getTableColumns(config: PolicyTableConfig): ColumnDef<Policy>[] {
         {
             id: "link",
             enableHiding: false,
-            cell: ({ row }) => (
-                <DetailsButton href={buildHref(row.getValue("policy_id"))} />
-            ),
+            cell: ({ row }) => <DetailsButton href={buildHref(row.getValue("policy_id"))} />,
         },
         {
             header: "ID",
@@ -255,9 +253,7 @@ function PoliciesTableActions({ row, config }: { row: any; config: PolicyTableCo
                     Copy Policy ID
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    onClick={() => router.push(buildHref(policy.policy_id))}
-                >
+                <DropdownMenuItem onClick={() => router.push(buildHref(policy.policy_id))}>
                     View Policy
                 </DropdownMenuItem>
             </DropdownMenuContent>

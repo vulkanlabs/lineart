@@ -38,19 +38,20 @@ export function SharedRunPageContent({
     const {
         WorkflowFrame,
         containerOverflow = "hidden",
-        sidebarOverflow = "hidden", 
+        sidebarOverflow = "hidden",
         tableClass = "w-full",
-        enableResponsiveColumns = true
+        enableResponsiveColumns = true,
     } = config;
 
     /**
      * CSS class computation using conditional logic for Tailwind CSS purging compatibility.
      * Avoids template literals that may be purged during build optimization.
-     * 
+     *
      * @see https://tailwindcss.com/docs/content-configuration#dynamic-class-names
      */
-    const containerOverflowClass = containerOverflow === 'hidden' ? 'overflow-hidden' : 'overflow-scroll';
-    const sidebarOverflowClass = sidebarOverflow === 'hidden' ? 'overflow-hidden' : 'overflow-auto';
+    const containerOverflowClass =
+        containerOverflow === "hidden" ? "overflow-hidden" : "overflow-scroll";
+    const sidebarOverflowClass = sidebarOverflow === "hidden" ? "overflow-hidden" : "overflow-auto";
 
     return (
         <div className={`grid grid-rows-2 h-full w-full ${containerOverflowClass}`}>
@@ -72,9 +73,9 @@ export function SharedRunPageContent({
                 </div>
             </div>
             <div className="row-span-1 w-full">
-                <LogsTable 
-                    runLogs={runLogs} 
-                    clickedNode={clickedNode} 
+                <LogsTable
+                    runLogs={runLogs}
+                    clickedNode={clickedNode}
                     tableClass={tableClass}
                     enableResponsiveColumns={enableResponsiveColumns}
                 />
@@ -87,7 +88,7 @@ function LogsTable({
     runLogs,
     clickedNode,
     tableClass = "w-full",
-    enableResponsiveColumns = true
+    enableResponsiveColumns = true,
 }: {
     runLogs: RunLogs;
     clickedNode: any | null;
@@ -175,13 +176,7 @@ function TableCell({ children }: { children: React.ReactNode }) {
     );
 }
 
-function WorkflowSidebar({
-    clickedNode,
-    runData,
-}: {
-    clickedNode: any | null;
-    runData: RunData;
-}) {
+function WorkflowSidebar({ clickedNode, runData }: { clickedNode: any | null; runData: RunData }) {
     return (
         <div className="h-full bg-white border-l-2 overflow-auto">
             {clickedNode === null ? (

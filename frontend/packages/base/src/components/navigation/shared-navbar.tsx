@@ -87,10 +87,7 @@ export function SharedNavbar({ config }: { config: SharedNavbarConfig }) {
                             asChild={!section.disabled}
                         >
                             {!section.disabled ? (
-                                <Link
-                                    href={getHref(section)}
-                                    className="flex items-center gap-2"
-                                >
+                                <Link href={getHref(section)} className="flex items-center gap-2">
                                     {/* {section.icon && <section.icon className="h-4 w-4" />} */}
                                     <span>{section.name}</span>
                                 </Link>
@@ -105,9 +102,7 @@ export function SharedNavbar({ config }: { config: SharedNavbarConfig }) {
                 </div>
             </nav>
             {config.rightContent && (
-                <div className="ml-auto flex items-center gap-4">
-                    {config.rightContent}
-                </div>
+                <div className="ml-auto flex items-center gap-4">{config.rightContent}</div>
             )}
         </header>
     );

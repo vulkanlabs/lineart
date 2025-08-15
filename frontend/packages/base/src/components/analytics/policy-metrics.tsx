@@ -34,9 +34,9 @@ export interface PolicyMetricsConfig {
         runDurationByStatus: any[];
     }>;
     outcomesLoader: (
-        policyId: string, 
-        data: { dateRange: DateRange; versions: string[] }, 
-        projectId?: string
+        policyId: string,
+        data: { dateRange: DateRange; versions: string[] },
+        projectId?: string,
     ) => Promise<any[]>;
 }
 

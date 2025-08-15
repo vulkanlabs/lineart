@@ -9,11 +9,11 @@ const globalScopeRunConfig: RunFrameConfig = {
 };
 
 // Global scope WorkflowFrame wrapper
-export function WorkflowFrame({ 
-    nodes, 
-    edges, 
-    onNodeClick, 
-    onPaneClick 
+export function WorkflowFrame({
+    nodes,
+    edges,
+    onNodeClick,
+    onPaneClick,
 }: {
     nodes: RunNodeLayout[];
     edges: EdgeLayoutConfig[];

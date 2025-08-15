@@ -26,7 +26,7 @@ export default function RunPageContent({
                 WorkflowFrame,
                 RunNodeLayout,
                 containerOverflow: "hidden",
-                sidebarOverflow: "hidden", 
+                sidebarOverflow: "hidden",
                 tableClass: "w-full",
                 useResponsiveColumns: true,
             }}

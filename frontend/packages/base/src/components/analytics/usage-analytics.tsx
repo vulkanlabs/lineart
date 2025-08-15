@@ -19,23 +19,38 @@ import {
 
 export interface UsageAnalyticsConfig {
     projectId?: string;
-    fetchUsage: (dataSourceId: string, from: Date, to: Date, projectId?: string) => Promise<{
+    fetchUsage: (
+        dataSourceId: string,
+        from: Date,
+        to: Date,
+        projectId?: string,
+    ) => Promise<{
         requests_by_date: any[];
     }>;
-    fetchMetrics: (dataSourceId: string, from: Date, to: Date, projectId?: string) => Promise<{
+    fetchMetrics: (
+        dataSourceId: string,
+        from: Date,
+        to: Date,
+        projectId?: string,
+    ) => Promise<{
         avg_response_time_by_date: any[];
         error_rate_by_date: any[];
     }>;
-    fetchCacheStats: (dataSourceId: string, from: Date, to: Date, projectId?: string) => Promise<{
+    fetchCacheStats: (
+        dataSourceId: string,
+        from: Date,
+        to: Date,
+        projectId?: string,
+    ) => Promise<{
         cache_hit_ratio_by_date: any[];
     }>;
 }
 
-export function DataSourceUsageAnalytics({ 
-    dataSourceId, 
-    config 
-}: { 
-    dataSourceId: string; 
+export function DataSourceUsageAnalytics({
+    dataSourceId,
+    config,
+}: {
+    dataSourceId: string;
     config: UsageAnalyticsConfig;
 }) {
     // Chart Data States
@@ -59,7 +74,8 @@ export function DataSourceUsageAnalytics({
         setIsLoading(true);
 
         // Fetch request volume data
-        config.fetchUsage(dataSourceId, dateRange.from, dateRange.to, config.projectId)
+        config
+            .fetchUsage(dataSourceId, dateRange.from, dateRange.to, config.projectId)
             .then((data) => {
                 setRequestVolume(data.requests_by_date);
                 setIsLoading(false);
@@ -70,7 +86,8 @@ export function DataSourceUsageAnalytics({
             });
 
         // Fetch response time and error rate data
-        config.fetchMetrics(dataSourceId, dateRange.from, dateRange.to, config.projectId)
+        config
+            .fetchMetrics(dataSourceId, dateRange.from, dateRange.to, config.projectId)
             .then((data) => {
                 setResponseTime(data.avg_response_time_by_date);
                 setErrorRate(data.error_rate_by_date);
@@ -80,7 +97,8 @@ export function DataSourceUsageAnalytics({
             });
 
         // Fetch cache hit ratio data
-        config.fetchCacheStats(dataSourceId, dateRange.from, dateRange.to, config.projectId)
+        config
+            .fetchCacheStats(dataSourceId, dateRange.from, dateRange.to, config.projectId)
             .then((data) => {
                 setCacheHitRatio(data.cache_hit_ratio_by_date);
             })

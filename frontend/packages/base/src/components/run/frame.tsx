@@ -63,13 +63,13 @@ function VulkanWorkflow({
             return !edge.isComponentIO || edge.fromComponentChild || edge.toComponentChild;
         });
 
-        config.layoutGraph(filteredNodes, filteredEdges, defaultElkOptions).then(
-            ([layoutedNodes, layoutedEdges]) => {
+        config
+            .layoutGraph(filteredNodes, filteredEdges, defaultElkOptions)
+            .then(([layoutedNodes, layoutedEdges]) => {
                 setNodes(layoutedNodes);
                 setEdges(layoutedEdges);
                 window.requestAnimationFrame(() => fitView());
-            },
-        );
+            });
     };
 
     const onLayout = useCallback(loadAndLayout, []);
@@ -153,7 +153,8 @@ const NodeTypeToRunStepMapping = {
 
 function withRunNodeProps(node: BaseRunNodeLayout): BaseRunNodeLayout {
     if (Object.keys(NodeTypeToRunStepMapping).includes(node.data.type)) {
-        node.type = NodeTypeToRunStepMapping[node.data.type as keyof typeof NodeTypeToRunStepMapping];
+        node.type =
+            NodeTypeToRunStepMapping[node.data.type as keyof typeof NodeTypeToRunStepMapping];
     } else {
         // @ts-ignore - apps will provide proper typing
         node.targetPosition = "left";

@@ -15,7 +15,7 @@ const apiResponse = {
     error: (message: string, status: number = 500) => {
         console.error(`API Error: ${message}`);
         return Response.json({ success: false, error: message, data: null }, { status });
-    }
+    },
 };
 
 // Shared validation pattern
@@ -27,7 +27,11 @@ function validateWorkflow(workflow: any, spec: any): string | null {
 
 export async function PUT(request: Request) {
     try {
-        const { workflow, spec, uiMetadata }: {
+        const {
+            workflow,
+            spec,
+            uiMetadata,
+        }: {
             workflow: any;
             spec: PolicyDefinitionDictInput;
             uiMetadata: { [key: string]: UIMetadata };
@@ -49,7 +53,11 @@ export async function PUT(request: Request) {
     }
 }
 
-async function saveComponent(component: Component, spec: PolicyDefinitionDictInput, uiMetadata: { [key: string]: UIMetadata }) {
+async function saveComponent(
+    component: Component,
+    spec: PolicyDefinitionDictInput,
+    uiMetadata: { [key: string]: UIMetadata },
+) {
     try {
         const requestBody: ComponentBase = {
             requirements: component.workflow?.requirements || [],
@@ -63,11 +71,17 @@ async function saveComponent(component: Component, spec: PolicyDefinitionDictInp
         const response = await updateComponent(component.component_id, requestBody);
         return apiResponse.success(response);
     } catch (error) {
-        return apiResponse.error(error instanceof Error ? error.message : "Failed to save component");
+        return apiResponse.error(
+            error instanceof Error ? error.message : "Failed to save component",
+        );
     }
 }
 
-async function savePolicyVersion(policyVersion: PolicyVersion, spec: PolicyDefinitionDictInput, uiMetadata: { [key: string]: UIMetadata }) {
+async function savePolicyVersion(
+    policyVersion: PolicyVersion,
+    spec: PolicyDefinitionDictInput,
+    uiMetadata: { [key: string]: UIMetadata },
+) {
     try {
         const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
         if (!serverUrl) return apiResponse.error("Server URL is not configured");
@@ -79,24 +93,31 @@ async function savePolicyVersion(policyVersion: PolicyVersion, spec: PolicyDefin
             ui_metadata: uiMetadata,
         };
 
-        const response = await fetch(`${serverUrl}/policy-versions/${policyVersion.policy_version_id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requestBody),
-            cache: "no-store",
-        });
+        const response = await fetch(
+            `${serverUrl}/policy-versions/${policyVersion.policy_version_id}`,
+            {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestBody),
+                cache: "no-store",
+            },
+        );
 
         if (!response.ok) {
             const error = await response.json();
             return apiResponse.error(
-                response.status !== 500 ? `Server error ${response.status}: ${error.detail}` : "Internal server error",
-                response.status
+                response.status !== 500
+                    ? `Server error ${response.status}: ${error.detail}`
+                    : "Internal server error",
+                response.status,
             );
         }
 
         const data = await response.json();
         return apiResponse.success(data);
     } catch (error) {
-        return apiResponse.error(error instanceof Error ? error.message : "Failed to save policy version");
+        return apiResponse.error(
+            error instanceof Error ? error.message : "Failed to save policy version",
+        );
     }
 }

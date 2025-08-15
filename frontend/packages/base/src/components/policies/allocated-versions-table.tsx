@@ -100,14 +100,16 @@ function getAllocationSpec(strategy: PolicyAllocationStrategy | null) {
 }
 
 function getPolicyVersionsTableColumns(
-    config: AllocatedVersionsTableConfig
+    config: AllocatedVersionsTableConfig,
 ): ColumnDef<PolicyVersion & { mode: string; frequency: number | null }>[] {
     return [
         {
             header: "",
             accessorKey: "link",
             cell: ({ row }) => (
-                <DetailsButton href={`/policyVersions/${row.original.policy_version_id}/workflow`} />
+                <DetailsButton
+                    href={`/policyVersions/${row.original.policy_version_id}/workflow`}
+                />
             ),
         },
         {
