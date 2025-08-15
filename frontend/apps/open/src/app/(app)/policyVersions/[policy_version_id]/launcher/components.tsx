@@ -226,7 +226,8 @@ function LaunchRunFormCard({
                                     </FormLabel>
                                     <FormControl>
                                         <Textarea
-                                            className="min-h-48 font-mono text-sm resize-none border-2 focus:border-blue-500 transition-colors"
+                                            className="min-h-48 font-mono text-sm resize-none border-2 
+                                                focus:border-blue-500 transition-colors"
                                             placeholder={placeholderText}
                                             {...field}
                                         />
@@ -249,7 +250,8 @@ function LaunchRunFormCard({
                                     </FormLabel>
                                     <FormControl>
                                         <Textarea
-                                            className="min-h-48 font-mono text-sm resize-none border-2 focus:border-blue-500 transition-colors"
+                                            className="min-h-48 font-mono text-sm resize-none border-2 
+                                                focus:border-blue-500 transition-colors"
                                             placeholder={placeholderText}
                                             name={field.name}
                                             onBlur={field.onBlur}
@@ -273,7 +275,8 @@ function LaunchRunFormCard({
                             variant="outline"
                             onClick={setDefaults}
                             disabled={submitting}
-                            className="flex items-center gap-2 border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                            className="flex items-center gap-2 border-input bg-background 
+                                hover:bg-accent hover:text-accent-foreground"
                         >
                             <Settings className="h-4 w-4" />
                             Reset to Defaults
@@ -284,7 +287,8 @@ function LaunchRunFormCard({
                                 type="submit"
                                 disabled={submitting}
                                 variant="outline"
-                                className="min-w-[120px] border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                                className="min-w-[120px] border-input bg-background 
+                                    hover:bg-accent hover:text-accent-foreground"
                             >
                                 {submitting ? (
                                     <Sending text="Launching..." />
