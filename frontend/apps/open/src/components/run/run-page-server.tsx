@@ -6,7 +6,7 @@ import { makeGraphElements } from "@vulkanlabs/base";
 
 import RunPageContent from "@/components/run/run-page-content";
 import type { RunNodeLayout } from "@/components/run/types";
-import { defaultElkOptions } from "@/components/run/options";
+import { RunDefaultElkOptions as defaultElkOptions } from "@vulkanlabs/base";
 
 export async function RunPage({ runId }: { runId: string }) {
     const runLogs: RunLogs = await fetchRunLogs(runId);

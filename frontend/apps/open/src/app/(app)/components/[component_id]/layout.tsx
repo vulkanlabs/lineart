@@ -1,4 +1,4 @@
-import { InnerNavbar, InnerNavbarSectionProps } from "@/components/inner-navbar";
+import { InnerNavbar, type InnerNavbarSectionProps } from "@vulkanlabs/base";
 import { fetchComponent } from "@/lib/api";
 
 export default async function Layout(props: {

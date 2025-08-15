@@ -6,8 +6,22 @@ export { parseDate } from "./lib/utils";
 // Note: Other utils from "./lib/utils" not currently used by apps
 export * from "./lib/chart";
 
-// Re-export API utilities
-export * from "./lib/api";
+// Re-export API utilities (selective exports for better tree-shaking)
+export {
+    SharedWorkflowHandlers,
+    SharedListHandlers,
+    type WorkflowSaveHandlerConfig,
+    type ListHandlerConfig,
+} from "./lib/api/shared-api-handlers";
+export {
+    SharedResponseUtils,
+    parseWorkflowRequest,
+    parseQueryParams,
+    getProjectIdFromParams,
+    validateWorkflowSaveRequest,
+    validateServerUrl,
+    type SharedApiConfig,
+} from "./lib/api/shared-response-utils";
 
 // Re-export UI components
 export { VulkanLogo, type VulkanLogoConfig } from "./components/logo";
@@ -72,10 +86,12 @@ export { DeletableResourceTableActions } from "./components/resource-table";
 // Re-export layout components (selective exports for better tree-shaking)
 export { PageLayout, type PageLayoutConfig } from "./components/page-layout";
 export { InnerNavbar, type InnerNavbarSectionProps } from "./components/inner-navbar";
-export { SharedNavbar, type NavigationSection } from "./components/navigation";
+export { SharedNavbar, type NavigationSection } from "./components/navigation/shared-navbar";
 
-// Re-export run components (safe exports only)
-export { RunsPage } from "./components/run";
+// Re-export run components (selective exports for better tree-shaking)
+export { RunsPage } from "./components/run/runs-list-page";
+export { SharedRunPageContent, type RunPageConfig } from "./components/run/shared-run-page-content";
+export { defaultElkOptions as RunDefaultElkOptions } from "./components/run/options";
 // Note: Run-related types (BaseRunNodeLayout, BaseRunNodeData, RunLogEvent, RunLog, RunLogs)
 // not currently used by apps - RunLogs comes from @vulkanlabs/client-open instead
 
@@ -85,14 +101,18 @@ export * from "./components/app-workflow-frame";
 // Re-export data source components (selective exports for better tree-shaking)
 // Heavy dialog components with lazy loading
 export const SharedCreateDataSourceDialog = lazy(() =>
-    import("./components/data-sources").then((m) => ({ default: m.SharedCreateDataSourceDialog })),
+    import("./components/data-sources/create-data-source-dialog").then((m) => ({
+        default: m.SharedCreateDataSourceDialog,
+    })),
 );
 export const SharedDataSourcesTable = lazy(() =>
-    import("./components/data-sources").then((m) => ({ default: m.DataSourcesTable })),
+    import("./components/data-sources/data-sources-table").then((m) => ({
+        default: m.DataSourcesTable,
+    })),
 );
 
 // Re-export types
-export type { CreateDataSourceDialogConfig } from "./components/data-sources";
+export type { CreateDataSourceDialogConfig } from "./components/data-sources/create-data-source-dialog";
 
 // Re-export workflow components (selective exports for better tree-shaking)
 // Heavy workflow components with lazy loading for better startup performance
@@ -124,14 +144,13 @@ export type {
 export { RefreshButton } from "./components/refresh-button";
 
 // Re-export policy components (selective exports for better tree-shaking)
-export {
-    CreatePolicyDialog as SharedCreatePolicyDialog,
-    PoliciesTable as SharedPoliciesTable,
-    SharedAllocatedVersionsTable,
-} from "./components/policies";
+export { CreatePolicyDialog as SharedCreatePolicyDialog } from "./components/policies/create-policy-dialog";
+export { PoliciesTable as SharedPoliciesTable } from "./components/policies/policies-table";
+export { SharedAllocatedVersionsTable } from "./components/policies/allocated-versions-table";
 
 // Re-export analytics components (selective exports for better tree-shaking)
-export { DataSourceUsageAnalytics } from "./components/analytics";
+export { DataSourceUsageAnalytics } from "./components/analytics/usage-analytics";
+export { PolicyRunsChart, PolicyMetricsCard } from "./components/analytics/policy-metrics";
 
 // Re-export components table (selective exports for better tree-shaking)
-export { ComponentsTable } from "./components/components";
+export { ComponentsTable } from "./components/components/components-table";
