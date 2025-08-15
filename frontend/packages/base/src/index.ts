@@ -1,3 +1,6 @@
+// Performance: Import React for lazy loading
+import { lazy } from "react";
+
 // Re-export essential utilities (selective exports for better tree-shaking)
 export { parseDate } from "./lib/utils";
 // Note: Other utils from "./lib/utils" not currently used by apps
@@ -36,19 +39,20 @@ export {
 } from "./components/charts/policy-stats";
 
 // Re-export reusable components (selective exports for better tree-shaking)
-export { DataTable } from "./components/data-table";
+// Heavy components with lazy loading for better performance
+export const DataTable = lazy(() => import("./components/data-table").then(m => ({ default: m.DataTable })));
+export const ResourceTable = lazy(() => import("./components/resource-table").then(m => ({ default: m.ResourceTable })));
+export const DeletableResourceTable = lazy(() => import("./components/resource-table").then(m => ({ default: m.DeletableResourceTable })));
+export const EnvironmentVariablesEditor = lazy(() => import("./components/environment-variables-editor").then(m => ({ default: m.EnvironmentVariablesEditor })));
+
+// Lightweight components - keep regular exports
 export { DetailsButton } from "./components/details-button";
-export {
-    EnvironmentVariablesEditor,
-    type EnvironmentVariablesEditorProps,
-} from "./components/environment-variables-editor";
-export { 
-    ResourceTable,
-    DeletableResourceTable,
-    DeletableResourceTableActions,
-    type DeletableResourceTableProps,
-} from "./components/resource-table";
 export { ShortenedID } from "./components/shortened-id";
+
+// Re-export types (not affected by lazy loading)
+export type { EnvironmentVariablesEditorProps } from "./components/environment-variables-editor";
+export type { DeletableResourceTableProps } from "./components/resource-table";
+export { DeletableResourceTableActions } from "./components/resource-table";
 // Note: combobox and reactflow components not currently used by apps
 
 // Re-export layout components (selective exports for better tree-shaking)
@@ -67,16 +71,19 @@ export {
 export * from "./components/app-workflow-frame";
 
 // Re-export data source components (selective exports for better tree-shaking)
-export { 
-  SharedCreateDataSourceDialog,
-  type CreateDataSourceDialogConfig,
-  DataSourcesTable as SharedDataSourcesTable,
-} from "./components/data-sources";
+// Heavy dialog components with lazy loading
+export const SharedCreateDataSourceDialog = lazy(() => import("./components/data-sources").then(m => ({ default: m.SharedCreateDataSourceDialog })));
+export const SharedDataSourcesTable = lazy(() => import("./components/data-sources").then(m => ({ default: m.DataSourcesTable })));
+
+// Re-export types
+export type { CreateDataSourceDialogConfig } from "./components/data-sources";
 
 // Re-export workflow components (selective exports for better tree-shaking)
-// Core workflow components used by apps
+// Heavy workflow components with lazy loading for better startup performance
+export const WorkflowFrame = lazy(() => import("./workflow").then(m => ({ default: m.WorkflowFrame })));
+
+// Lightweight API components - keep regular exports
 export { 
-  WorkflowFrame,
   WorkflowApiProvider,
   WorkflowDataProvider,
   createWorkflowApiClient,
