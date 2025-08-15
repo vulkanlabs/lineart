@@ -3,7 +3,7 @@ speakeasyVersion: latest
 sources:
     FastAPI:
         inputs:
-            - location: ../../generated/openapi.json
+            - location: generated/openapi.json
         overlays:
             - location: .speakeasy/speakeasy-modifications-overlay.yaml
         output: .speakeasy/out.openapi.yaml

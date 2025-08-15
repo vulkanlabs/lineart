@@ -20,14 +20,42 @@ on:
 
 jobs:
   generate:
-    uses: speakeasy-api/sdk-generation-action/.github/workflows/workflow-executor.yaml@v15
-    with:
-      force: ${{ github.event.inputs.force }}
-      mode: test
-      set_version: ${{ github.event.inputs.set_version }}
-      speakeasy_version: latest
-      github_repository: vulkanlabs/vulkan-client
-      runs-on: ${{ github.event.inputs.runs-on }}
-    secrets:
-        github_access_token: ${{ secrets.GITHUB_TOKEN }}
-        speakeasy_api_key: ${{ secrets.SPEAKEASY_API_KEY }}
+    runs-on: ${{ github.event.inputs.runs-on }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Install root dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies with uv
+        run: |
+          set -x 
+          pip install 'uv<0.8'
+          uv sync
+
+      - name: Render OpenAPI Specification
+        run: |
+          uv run python scripts/export-openapi.py --out ./generated/openapi.json
+
+      - uses: speakeasy-api/sdk-generation-action/.github/workflows/workflow-executor.yaml@v15
+        with:
+          force: ${{ github.event.inputs.force }}
+          mode: test
+          set_version: ${{ github.event.inputs.set_version }}
+          speakeasy_version: latest
+          github_repository: vulkanlabs/vulkan-client
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          speakeasy_api_key: ${{ secrets.SPEAKEASY_API_KEY }}
