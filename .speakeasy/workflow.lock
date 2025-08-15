@@ -1,0 +1,39 @@
+speakeasyVersion: 1.605.0
+sources:
+    FastAPI:
+        sourceNamespace: fast-api
+        sourceRevisionDigest: sha256:a66a8fd4fbf53dad1ecb1b781379dea9c31bc104b8ecfcde73c82a1b566add96
+        sourceBlobDigest: sha256:86674a6ecbbb74179608395e194474a7343b813924db0d083bc3783dfc1b1768
+        tags:
+            - latest
+            - 0.1.0
+targets:
+    vulkan:
+        source: FastAPI
+        sourceNamespace: fast-api
+        sourceRevisionDigest: sha256:a66a8fd4fbf53dad1ecb1b781379dea9c31bc104b8ecfcde73c82a1b566add96
+        sourceBlobDigest: sha256:86674a6ecbbb74179608395e194474a7343b813924db0d083bc3783dfc1b1768
+        codeSamplesNamespace: fast-api-python-code-samples
+        codeSamplesRevisionDigest: sha256:b8e5582c3e6831689a06434c9b0e1516d69f97c9bd1a5de7bce48a3a67151ce9
+workflow:
+    workflowVersion: 1.0.0
+    speakeasyVersion: latest
+    sources:
+        FastAPI:
+            inputs:
+                - location: ../../generated/openapi.json
+            overlays:
+                - location: .speakeasy/speakeasy-modifications-overlay.yaml
+            output: .speakeasy/out.openapi.yaml
+            registry:
+                location: registry.speakeasyapi.dev/vulkan/lineart/fast-api
+    targets:
+        vulkan:
+            target: python
+            source: FastAPI
+            codeSamples:
+                registry:
+                    location: registry.speakeasyapi.dev/vulkan/lineart/fast-api-python-code-samples
+                labelOverride:
+                    fixedValue: Python (SDK)
+                blocking: false
