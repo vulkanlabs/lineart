@@ -84,7 +84,6 @@
     "react-day-picker": ">8.10.1",
     "react-dom": "^18 || ^19",
     "react-hook-form": "^7.53.1",
-    "react-syntax-highlighter": "^15.6.1",
     "recharts": ">2.13.0",
     "sharp": "^0.33.5",
     "sonner": "^1.7.4",
