@@ -1,8 +1,8 @@
 // Local imports
 import { ComponentsTable as SharedComponentsTable } from "@vulkanlabs/base";
 import { type Component } from "@vulkanlabs/client-open";
-import { deleteComponent } from "@/lib/api";
-import { CreateComponentDialog } from "@/app/(app)/components/create-dialog";
+import { deleteComponentAction } from "./actions";
+import { CreateComponentDialog } from "./create-dialog";
 
 export function ComponentsTable({ components }: { components: Component[] }) {
     return (
@@ -10,7 +10,7 @@ export function ComponentsTable({ components }: { components: Component[] }) {
             components={components}
             config={{
                 mode: "full",
-                deleteComponent: (id) => deleteComponent(id),
+                deleteComponent: deleteComponentAction,
                 CreateComponentDialog: <CreateComponentDialog />,
             }}
         />

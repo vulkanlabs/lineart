@@ -4,7 +4,7 @@
 import { Workflow, Puzzle, ArrowDownUp, Logs } from "lucide-react";
 
 // Vulkan packages
-import { SharedNavbar, NavigationSection } from "@vulkanlabs/base";
+import { SharedNavbar, type NavigationSection } from "@vulkanlabs/base";
 
 // Local imports
 import { VulkanLogo } from "@/components/logo";

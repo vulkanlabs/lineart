@@ -25,7 +25,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@vulkanlabs/base/ui";
-import { DetailsButton, ResourceTable, ShortenedID } from "../../index";
+import { DetailsButton } from "../details-button";
+import { ShortenedID } from "../shortened-id";
+import { ResourceTable } from "../resource-table";
 import { Policy } from "@vulkanlabs/client-open";
 
 // Local imports

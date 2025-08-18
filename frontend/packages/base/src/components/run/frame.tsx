@@ -11,7 +11,6 @@ import {
     useEdgesState,
     useReactFlow,
 } from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
 
 import { nodeTypes } from "./nodes";
 import { defaultElkOptions } from "./options";

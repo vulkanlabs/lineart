@@ -4,7 +4,6 @@ import React, { useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { z } from "zod";
-import "@xyflow/react/dist/style.css";
 
 import {
     WorkflowFrame,

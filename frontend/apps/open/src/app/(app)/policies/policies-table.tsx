@@ -1,7 +1,6 @@
-// Local imports
-import { PoliciesTable as SharedPoliciesTable } from "@vulkanlabs/base";
+import { SharedPoliciesTable } from "@vulkanlabs/base";
 import { Policy } from "@vulkanlabs/client-open";
-import { deletePolicy } from "@/lib/api";
+import { deletePolicyAction } from "./actions";
 import { CreatePolicyDialog } from "./create-dialog";
 
 export function PoliciesTable({ policies }: { policies: Policy[] }) {
@@ -9,8 +8,8 @@ export function PoliciesTable({ policies }: { policies: Policy[] }) {
         <SharedPoliciesTable
             policies={policies}
             config={{
-                deletePolicy: (policyId) => deletePolicy(policyId),
-                CreatePolicyDialog: <CreatePolicyDialog />,
+                deletePolicy: deletePolicyAction,
+                CreatePolicyDialog: CreatePolicyDialog,
             }}
         />
     );

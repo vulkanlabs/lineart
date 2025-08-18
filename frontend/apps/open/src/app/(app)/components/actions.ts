@@ -1,6 +1,6 @@
 "use server";
 
-import { createComponent } from "@/lib/api";
+import { createComponent, deleteComponent } from "@/lib/api";
 import { type ComponentBase } from "@vulkanlabs/client-open";
 
 export async function createComponentAction(data: ComponentBase): Promise<any> {
@@ -10,5 +10,14 @@ export async function createComponentAction(data: ComponentBase): Promise<any> {
     } catch (error) {
         console.error("Error creating component:", error);
         throw new Error("Failed to create component");
+    }
+}
+
+export async function deleteComponentAction(componentId: string): Promise<void> {
+    try {
+        await deleteComponent(componentId);
+    } catch (error) {
+        console.error("Error deleting component:", error);
+        throw new Error("Failed to delete component");
     }
 }

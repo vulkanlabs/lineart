@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ChartSpline, Users2, Code2 } from "lucide-react";
 
-import { fetchComponents, fetchPolicy, fetchPolicyVersionComponents } from "@/lib/api";
+import { fetchComponents, fetchPolicy, fetchPolicyVersions } from "@/lib/api";
 
 export default function Sidebar() {
     const pathname = usePathname();
@@ -153,7 +153,7 @@ function PolicyDetailsSidebar({ policyId }: { policyId: string }) {
         if (!currentPolicy || !currentPolicy.active_policy_version_id) {
             return;
         }
-        fetchPolicyVersionComponents(currentPolicy.active_policy_version_id)
+        fetchPolicyVersions(currentPolicy.active_policy_version_id)
             .then((dependencies) => {
                 const componentData = dependencies.map((dep) => ({
                     name: dep.component_name,
