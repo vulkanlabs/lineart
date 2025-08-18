@@ -21,7 +21,7 @@ on:
       mode:
         description: Speakeasy generation mode (e.g. pr, direct, test)
         type: string
-        default: pr
+        default: test
 
 permissions:
   contents: read
@@ -66,18 +66,24 @@ jobs:
           path: ${{ env.OPENAPI_SPEC_PATH }}
           if-no-files-found: error
 
+      - name: Verify spec exists before SDK generation
+        run: |
+          set -euxo pipefail
+          echo "Workspace: $GITHUB_WORKSPACE"
+          ls -al . || true
+          ls -al generated || true
+          test -f "$OPENAPI_SPEC_PATH" || { echo "Spec missing before Speakeasy step" >&2; exit 1; }
+          echo "Spec size:" $(wc -c < "$OPENAPI_SPEC_PATH")
+          
+          # Copy spec to root as openapi.json for easier path resolution
+          cp "$OPENAPI_SPEC_PATH" openapi.json
+          echo "Copied spec to root: $(wc -c < openapi.json) bytes"
+
       - name: Generate SDK (Python)
         uses: speakeasy-api/sdk-generation-action@v15
         with:
-          # Required secrets passed implicitly via env/secrets below
-          # Path (or URL) to the OpenAPI document.
-          openapi_doc_location: ${{ env.OPENAPI_SPEC_PATH }}
-          language: python
           force: ${{ github.event.inputs.force }}
           set_version: ${{ github.event.inputs.set_version }}
           mode: ${{ github.event.inputs.mode }}
-          speakeasy_version: latest
-          github_repository: vulkanlabs/vulkan-client
-        env:
-          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SPEAKEASY_API_KEY: ${{ secrets.SPEAKEASY_API_KEY }}
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          speakeasy_api_key: ${{ secrets.SPEAKEASY_API_KEY }}
