@@ -53,8 +53,6 @@ jobs:
 
   generate-openapi-spec:
     uses: ./.github/workflows/openapi-build-spec.yml
-    # with:
-    #   force_publish: ${{ github.event.inputs.force_publish }}
 
   publish-frontend-packages:
     runs-on: ubuntu-latest
@@ -62,11 +60,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Retrieve OpenAPI spec
-        run: |
-          mkdir -p ${{ github.workspace }}/generated
-          touch ${{ github.workspace }}/generated/openapi.json
-          echo ${{ needs.generate-openapi-spec.outputs.spec }} > ${{ github.workspace }}/generated/openapi.json
+      - name: Download OpenAPI spec
+        uses: actions/download-artifact@v5
+        with:
+          name: spec
+          path: ${{ github.workspace }}/generated/openapi.json
 
       - name: Generate new client
         run: |

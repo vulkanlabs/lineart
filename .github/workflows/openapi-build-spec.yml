@@ -36,4 +36,10 @@ jobs:
           id: render-spec
           run: |
             uv run python scripts/export-openapi.py --out ${{ github.workspace }}/generated/openapi.json
-            echo "spec=$${{ github.workspace }}/generated/openapi.json" >> "$GITHUB_OUTPUT"
+
+        - name: Archive generated files
+          uses: actions/upload-artifact@v4
+          with:
+            name: spec
+            path: ${{ github.workspace }}/generated/openapi.json
+            if-no-files-found: error
