@@ -1,4 +1,4 @@
-name: Build Speakeasy SDKs
+name: Build SDKs
 
 on:
   workflow_dispatch:
@@ -24,7 +24,7 @@ jobs:
     outputs:
       spec: ${{ steps.archive-generated-files.outputs.spec }}
     steps:
-      # Generate OpenAPI Specification
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
