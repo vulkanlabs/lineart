@@ -1,55 +1,83 @@
-name: Build Speakeasy SDKs
+name: Build Python SDK (Speakeasy)
 
 on:
   push:
-    branches: ["*"]
+    # Use ** so branches with slashes (feature/x) are included.
+    branches: ["**"]
   workflow_dispatch:
     inputs:
       force:
-        description: Force generation of SDKs
+        description: Force regeneration of the SDK (bypass cache)
         type: boolean
         default: false
       set_version:
-        description: optionally set a specific SDK version
+        description: Optionally set a specific SDK version (e.g. 0.3.0)
         type: string
-      runs-on:
-        description: Runner to use for the workflow (e.g., large-ubuntu-runner)
+        required: false
+      runner:
+        description: Runner to use (override default ubuntu-latest)
         type: string
         default: ubuntu-latest
+      mode:
+        description: Speakeasy generation mode (e.g. pr, direct, test)
+        type: string
+        default: pr
 
+permissions:
+  contents: read
+  packages: write
+  # allow PR creation to downstream repo if action does that
+  pull-requests: write
 
 jobs:
-  generate:
-    runs-on: ${{ github.event.inputs.runs-on }}
-    permissions:
-      contents: read
-      packages: write
-
+  build_and_generate_python_sdk:
+    name: Generate OpenAPI + Python SDK
+    # NOTE: Linter flagged dynamic expression form; using static runner. Change manually if custom runner needed.
+    runs-on: ubuntu-latest
+    env:
+      OPENAPI_SPEC_PATH: generated/openapi.json
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
 
-      - name: Install dependencies with uv
+      - name: Install uv & sync deps
         run: |
-          set -x 
+          set -euxo pipefail
           pip install 'uv<0.8'
           uv sync
 
-      - name: Render OpenAPI Specification
+      - name: Generate OpenAPI spec
         run: |
-          uv run python scripts/export-openapi.py --out ./generated/openapi.json
+            set -euxo pipefail
+            mkdir -p generated
+            uv run python scripts/export-openapi.py --out "$OPENAPI_SPEC_PATH"
+            test -s "$OPENAPI_SPEC_PATH"
 
-      - name: Generate Speakeasy SDK
-        uses: speakeasy-api/sdk-generation-action/.github/workflows/workflow-executor.yaml@v15
+      - name: Upload spec artifact (debug/traceability)
+        uses: actions/upload-artifact@v4
         with:
+          name: openapi-spec
+          path: ${{ env.OPENAPI_SPEC_PATH }}
+          if-no-files-found: error
+
+      - name: Generate SDK (Python)
+        uses: speakeasy-api/sdk-generation-action@v15
+        with:
+          # Required secrets passed implicitly via env/secrets below
+          # Path (or URL) to the OpenAPI document.
+          openapi_doc_location: ${{ env.OPENAPI_SPEC_PATH }}
+          language: python
           force: ${{ github.event.inputs.force }}
-          mode: test
           set_version: ${{ github.event.inputs.set_version }}
+          mode: ${{ github.event.inputs.mode }}
           speakeasy_version: latest
           github_repository: vulkanlabs/vulkan-client
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          speakeasy_api_key: ${{ secrets.SPEAKEASY_API_KEY }}
+        env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SPEAKEASY_API_KEY: ${{ secrets.SPEAKEASY_API_KEY }}
