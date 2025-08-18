@@ -52,7 +52,7 @@ jobs:
           if-no-files-found: error
 
   generate-openapi-spec:
-    uses: ./.github/workflows/reusable/openapi-build-spec.yml
+    uses: ./.github/workflows/openapi-build-spec.yml
     # with:
     #   force_publish: ${{ github.event.inputs.force_publish }}
 
