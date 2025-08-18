@@ -1,9 +1,9 @@
-name: Build and Test Steps
+name: Test Steps
 
 on:
   pull_request:
     branches: 
-      - main
+      - "*"
 
 jobs:
   python-tests:
