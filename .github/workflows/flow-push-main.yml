@@ -23,9 +23,6 @@ jobs:
 
   publish-packages:
     uses: ./.github/workflows/publish-packages.yml
-    with:
-      version: latest
-      force_publish: false
     
   docker-build-images:
     uses: ./.github/workflows/docker-build.yaml

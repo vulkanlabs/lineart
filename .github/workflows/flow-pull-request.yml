@@ -30,9 +30,6 @@ jobs:
 
   publish-packages:
     uses: ./.github/workflows/publish-packages.yml
-    with:
-      version: ${{ github.sha }}
-      force_publish: ${{ inputs.force_publish }}
 
   docker-build-images:
     uses: ./.github/workflows/docker-build.yaml
