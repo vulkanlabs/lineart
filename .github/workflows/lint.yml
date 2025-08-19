@@ -1,8 +1,18 @@
 name: CI - Linting Steps
 
 on:
-  push:
-    branches: '*'
+  workflow_call:
+    inputs:
+      python_version:
+        description: 'Python version to use'
+        required: false
+        default: '3.12'
+        type: string
+      node_version:
+        description: 'Node version to use'
+        required: false
+        default: '23'
+        type: string
 
 jobs:
   python-lint:
@@ -14,7 +24,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.12'
+        python-version: ${{ inputs.python_version }}
         
     - name: Install linting tools
       run: |
@@ -37,7 +47,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '23'
+        node-version: ${{ inputs.node_version }}
         cache: 'npm'
         cache-dependency-path: 'frontend/package-lock.json'
                 

@@ -1,47 +1,23 @@
 name: Publish Packages to GitHub Packages
 
 on:
-  push:
-    branches: [ "*" ]
-    paths:
-      - 'vulkan-server/**'
-      - 'frontend/packages/**'
-      - '.github/workflows/publish-packages.yml'
-  pull_request:
-    branches: [ "main" ]
-  workflow_dispatch:
+  workflow_call:
     inputs:
+      version:
+        description: 'Version to publish'
+        required: true
+        type: string
       force_publish:
         description: 'Force publish packages'
         required: false
         default: false
         type: boolean
 
+    secrets:
+      GITHUB_TOKEN: 
+        required: true
+    
 jobs:
-  build-python-packages:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies with uv
-        run: |
-          set -x 
-          pip install 'uv<0.8'
-          uv sync
-
-      - name: Build Python Packages
-        run: |
-          uv build --wheel --all
-
   generate-openapi-spec:
     uses: ./.github/workflows/openapi-build-spec.yml
 
@@ -84,8 +60,6 @@ jobs:
       - name: Publish development version of packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # Only publish development version of packages on non-main, non-release refs
-        if: (github.ref != 'refs/heads/main' && github.ref != 'refs/tags/v*')
         run: |
           cd frontend/packages
 
@@ -97,7 +71,7 @@ jobs:
 
             # Check if package version already exists
             PACKAGE_NAME=$(node -p "require('./package.json').name")
-            PACKAGE_VERSION="${{ github.sha }}"
+            PACKAGE_VERSION="${{ inputs.version }}"
 
             if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" > /dev/null 2>&1; then
               echo "Package $PACKAGE_NAME@$PACKAGE_VERSION already exists, failing..."

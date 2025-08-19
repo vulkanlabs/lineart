@@ -1,0 +1,30 @@
+name: Commit
+
+on:
+  push:
+    branches: [ "*" ]
+
+jobs:
+  lint:
+    uses: ./.github/workflows/lint.yml
+    with:
+      python_version: '3.12'
+      node_version: '23'
+
+  test:
+    uses: ./.github/workflows/test.yml
+    with:
+      python_version: '3.12'
+
+  python-build-packages:
+    uses: ./.github/workflows/python-build-packages.yml
+    with:
+      python_version: '3.12'
+
+  publish-packages:
+    uses: ./.github/workflows/publish-packages.yml
+    with:
+      version: ${{ github.sha }}
+      force_publish: false
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
