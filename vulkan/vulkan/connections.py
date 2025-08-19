@@ -3,9 +3,10 @@ import io
 import json
 import xml.etree.ElementTree as ET
 from enum import Enum
+from typing import Literal
 
 import requests
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
@@ -25,19 +26,39 @@ class ResponseType(Enum):
     PLAIN_TEXT = "PLAIN_TEXT"
 
 
-class HTTPConfig(BaseModel):
-    url: str
-    method: str = "GET"
-    headers: ConfigurableDict | None = dict()
-    params: ConfigurableDict | None = dict()
-    body: ConfigurableDict | None = dict()
-    timeout: int | None = None
-    retry: RetryPolicy | None = RetryPolicy(max_retries=1)
-    response_type: str | None = ResponseType.PLAIN_TEXT.value
+HTTPMethod = Literal["GET", "POST", "PUT", "DELETE"]
 
-    def __post_init__(self):
-        # TODO: Validate url
-        pass
+
+class HTTPConfig(BaseModel):
+    """Configuration for an HTTP request with templated fields."""
+
+    url: str
+    method: HTTPMethod = "GET"
+    headers: ConfigurableDict = Field(default_factory=dict)
+    params: ConfigurableDict = Field(default_factory=dict)
+    body: ConfigurableDict = Field(default_factory=dict)
+    timeout: int | None = None
+    retry: RetryPolicy = Field(default_factory=lambda: RetryPolicy(max_retries=1))
+    response_type: Literal["JSON", "XML", "CSV", "PLAIN_TEXT"] = (
+        ResponseType.PLAIN_TEXT.value
+    )
+
+    @field_validator("url")
+    @classmethod
+    def _validate_url(cls, v: str) -> str:
+        if not isinstance(v, str) or not v.strip():
+            raise ValueError("url must be a non-empty string")
+        # Allow templated pieces but require explicit scheme at start
+        if not (v.startswith("http://") or v.startswith("https://")):
+            raise ValueError("url must start with 'http://' or 'https://'")
+        return v
+
+    @field_validator("headers", "params", "body")
+    @classmethod
+    def _ensure_dict(
+        cls, v
+    ):  # Pydantic will already coerce mapping types; keep for safety
+        return {} if v is None else v
 
 
 def make_request(
@@ -60,20 +81,20 @@ def make_request(
     params = configure_fields(config.params, local_variables, env_variables)
     body = configure_fields(config.body, local_variables, env_variables)
 
-    if config.headers.get("Content-Type") == "application/json":
-        json = body
-        data = None
+    if headers.get("Content-Type") == "application/json":
+        json_payload = body
+        data_payload = None
     else:
-        json = None
-        data = body
+        json_payload = None
+        data_payload = body
 
     req = requests.Request(
         url=url,
-        method=config.method,
+        method=config.method.value,
         headers=headers,
         params=params,
-        data=data,
-        json=json,
+        data=data_payload,
+        json=json_payload,
     ).prepare()
     return req
 
