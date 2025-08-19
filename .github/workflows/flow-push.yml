@@ -1,8 +1,9 @@
-name: Commit
+name: Push to Other Branches (not main)
 
 on:
   push:
     branches: [ "*" ]
+    branches-ignore: [ "main" ]
 
 jobs:
   lint:
