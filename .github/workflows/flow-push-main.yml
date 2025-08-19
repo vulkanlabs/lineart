@@ -23,9 +23,15 @@ jobs:
 
   publish-packages:
     uses: ./.github/workflows/publish-packages.yml
+    permissions:
+      contents: read
+      packages: write
     
   docker-build-images:
     uses: ./.github/workflows/docker-build.yaml
+    permissions:
+      contents: read
+      packages: write
     with:
       python_version: '3.12'
       postgres_version: '16.3'
