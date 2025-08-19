@@ -256,7 +256,7 @@ function ComponentsTableActions({ row }: { row: any }) {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                    onClick={() => router.push(`/components/${component.component_id}`)}
+                    onClick={() => router.push(`/components/${component.name}`)}
                 >
                     View Component
                 </DropdownMenuItem>
