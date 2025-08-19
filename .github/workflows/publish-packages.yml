@@ -2,15 +2,13 @@ name: Publish Packages to GitHub Packages
 
 on:
   push:
-    branches: [main]
+    branches: [ "*" ]
     paths:
+      - 'vulkan-server/**'
       - 'frontend/packages/**'
       - '.github/workflows/publish-packages.yml'
   pull_request:
     branches: [ "main" ]
-    paths:
-      - 'frontend/packages/**'
-      - '.github/workflows/publish-packages.yml'
   workflow_dispatch:
     inputs:
       force_publish:
@@ -20,7 +18,7 @@ on:
         type: boolean
 
 jobs:
-  publish-python-packages:
+  build-python-packages:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -43,13 +41,6 @@ jobs:
       - name: Build Python Packages
         run: |
           uv build --wheel --all
-
-      - name: Publish Python Packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-packages
-          path: dist
-          if-no-files-found: error
 
   generate-openapi-spec:
     uses: ./.github/workflows/openapi-build-spec.yml
@@ -94,7 +85,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # Only publish development version of packages on non-main, non-release refs
-        if: (github.event_name == 'push' && github.ref != 'refs/heads/main' && github.ref != 'refs/tags/v*')
+        if: (github.ref != 'refs/heads/main' && github.ref != 'refs/tags/v*')
         run: |
           cd frontend/packages
 

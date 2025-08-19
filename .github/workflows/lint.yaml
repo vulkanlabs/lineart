@@ -5,7 +5,6 @@ on:
     branches: '*'
 
 jobs:
-
   python-lint:
     runs-on: ubuntu-latest
     
@@ -32,10 +31,6 @@ jobs:
   js-lint:
     runs-on: ubuntu-latest
     
-    strategy:
-      matrix:
-        node-directory: ['frontend']
-    
     steps:
     - uses: actions/checkout@v4
     
@@ -44,12 +39,12 @@ jobs:
       with:
         node-version: '23'
         cache: 'npm'
-        cache-dependency-path: '${{ matrix.node-directory }}/package-lock.json'
+        cache-dependency-path: 'frontend/package-lock.json'
                 
     - name: Install dependencies
-      working-directory: ${{ matrix.node-directory }}
+      working-directory: frontend
       run: npm ci --include dev
 
     - name: Lint JavaScript/TypeScript
-      working-directory: ${{ matrix.node-directory }}
+      working-directory: frontend
       run: npm run format:check
