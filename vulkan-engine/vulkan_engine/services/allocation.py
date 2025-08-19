@@ -12,7 +12,7 @@ from vulkan_engine.exceptions import (
     InvalidAllocationStrategyException,
 )
 from vulkan_engine.loaders import PolicyLoader
-from vulkan_engine.schemas import PolicyAllocationStrategy
+from vulkan_engine.schemas import PolicyAllocationStrategy, RunGroupResult
 from vulkan_engine.services.base import BaseService
 
 
@@ -38,7 +38,7 @@ class AllocationService(BaseService):
         input_data: Dict,
         config_variables: Dict,
         project_id: str = None,
-    ) -> Dict:
+    ) -> RunGroupResult:
         """
         Create a run group and allocate runs based on policy strategy.
 
@@ -49,7 +49,7 @@ class AllocationService(BaseService):
             project_id: Optional project UUID to filter by
 
         Returns:
-            Dictionary with policy_id, run_group_id, and allocated runs
+            RunGroupResult
 
         Raises:
             PolicyNotFoundException: If policy doesn't exist or doesn't belong to specified project
@@ -89,8 +89,8 @@ class AllocationService(BaseService):
             project_id=policy.project_id,
         )
 
-        return {
-            "policy_id": policy.policy_id,
-            "run_group_id": run_group.run_group_id,
-            "runs": runs,
-        }
+        return RunGroupResult(
+            policy_id=policy.policy_id,
+            run_group_id=run_group.run_group_id,
+            runs=runs,
+        )
