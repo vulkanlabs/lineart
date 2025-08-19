@@ -2,7 +2,6 @@ name: Push to Other Branches (not main)
 
 on:
   push:
-    branches: [ "*" ]
     branches-ignore: [ "main" ]
 
 jobs:
@@ -27,5 +26,3 @@ jobs:
     with:
       version: ${{ github.sha }}
       force_publish: false
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
