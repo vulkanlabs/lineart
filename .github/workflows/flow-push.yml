@@ -23,6 +23,9 @@ jobs:
 
   publish-packages:
     uses: ./.github/workflows/publish-packages.yml
+    permissions:
+      contents: read
+      packages: write
     with:
       version: ${{ github.sha }}
       force_publish: false
