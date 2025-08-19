@@ -26,8 +26,6 @@ jobs:
     with:
       version: latest
       force_publish: false
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
   docker-build-images:
     uses: ./.github/workflows/docker-build.yaml
@@ -35,5 +33,3 @@ jobs:
       python_version: '3.12'
       postgres_version: '16.3'
       force_publish: true
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

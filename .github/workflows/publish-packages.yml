@@ -13,10 +13,6 @@ on:
         default: false
         type: boolean
 
-    secrets:
-      GITHUB_TOKEN: 
-        required: true
-    
 jobs:
   generate-openapi-spec:
     uses: ./.github/workflows/openapi-build-spec.yml
