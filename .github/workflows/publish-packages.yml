@@ -4,9 +4,10 @@ on:
   workflow_call:
     inputs:
       version:
-        description: 'Version to publish'
-        required: true
+        description: 'Version to publish. Should only be set on tags or main.'
+        required: false
         type: string
+        default: ""
       node_version:
         description: 'Node version to use'
         required: false
@@ -17,11 +18,6 @@ on:
         required: false
         default: 'https://npm.pkg.github.com'
         type: string
-      force_publish:
-        description: 'Force publish packages'
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   generate-openapi-spec:
@@ -88,14 +84,25 @@ jobs:
             # Check if package version already exists
             PACKAGE_NAME=$(node -p "require('./package.json').name")
             PACKAGE_VERSION="${{ inputs.version }}"
+            if [ -z "$PACKAGE_VERSION" ]; then
+              COMMIT_SHA=$(git rev-parse --short HEAD)
+              IS_SHA=true
+              PACKAGE_VERSION=$COMMIT_SHA
+            fi
+
+            if [ "$IS_SHA" = true ]; then
+              echo "Setting $PACKAGE_NAME@$COMMIT_SHA as pre-release version..."
+              npm version pre --preid="$COMMIT_SHA" --no-git-tag-version
+            fi
 
             if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" > /dev/null 2>&1; then
               echo "Package $PACKAGE_NAME@$PACKAGE_VERSION already exists, failing..."
               exit 1
-            else
-              npm publish
-              echo "Published $PACKAGE_NAME@$PACKAGE_VERSION"
             fi
+
+            echo "Publishing $PACKAGE_NAME@$PACKAGE_VERSION..."
+            npm publish
+            echo "Published $PACKAGE_NAME@$PACKAGE_VERSION"
 
             cd ..
           }

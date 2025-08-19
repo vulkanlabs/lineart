@@ -26,6 +26,3 @@ jobs:
     permissions:
       contents: read
       packages: write
-    with:
-      version: ${{ github.sha }}
-      force_publish: false
