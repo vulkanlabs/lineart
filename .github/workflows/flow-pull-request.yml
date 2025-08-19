@@ -42,4 +42,4 @@ jobs:
     with:
       python_version: '3.12'
       postgres_version: '16.3'
-      force_publish: ${{ inputs.force_publish }}
+      force_publish: false
