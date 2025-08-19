@@ -255,9 +255,7 @@ function ComponentsTableActions({ row }: { row: any }) {
                     Copy Component ID
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    onClick={() => router.push(`/components/${component.component_id}`)}
-                >
+                <DropdownMenuItem onClick={() => router.push(`/components/${component.name}`)}>
                     View Component
                 </DropdownMenuItem>
             </DropdownMenuContent>

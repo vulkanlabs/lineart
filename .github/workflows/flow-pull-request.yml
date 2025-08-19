@@ -30,17 +30,16 @@ jobs:
 
   publish-packages:
     uses: ./.github/workflows/publish-packages.yml
-    with:
-      version: ${{ github.sha }}
-      force_publish: ${{ inputs.force_publish }}
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: read
+      packages: write
 
   docker-build-images:
     uses: ./.github/workflows/docker-build.yaml
+    permissions:
+      contents: read
+      packages: write
     with:
       python_version: '3.12'
       postgres_version: '16.3'
-      force_publish: ${{ inputs.force_publish }}
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      force_publish: false

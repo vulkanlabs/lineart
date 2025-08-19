@@ -4,19 +4,21 @@ on:
   workflow_call:
     inputs:
       version:
-        description: 'Version to publish'
-        required: true
-        type: string
-      force_publish:
-        description: 'Force publish packages'
+        description: 'Version to publish. Should only be set on tags or main.'
         required: false
-        default: false
-        type: boolean
+        type: string
+        default: ""
+      node_version:
+        description: 'Node version to use'
+        required: false
+        default: '23'
+        type: string
+      npm_registry_url:
+        description: 'NPM registry URL'
+        required: false
+        default: 'https://npm.pkg.github.com'
+        type: string
 
-    secrets:
-      GITHUB_TOKEN: 
-        required: true
-    
 jobs:
   generate-openapi-spec:
     uses: ./.github/workflows/openapi-build-spec.yml
@@ -24,6 +26,10 @@ jobs:
   publish-frontend-packages:
     runs-on: ubuntu-latest
     needs: generate-openapi-spec
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - uses: actions/checkout@v4
 
@@ -50,6 +56,12 @@ jobs:
           cp -r ${{ github.workspace }}/generated/ts/* ${{ github.workspace }}/frontend/packages/client-open/src/
           ls -la ${{ github.workspace }}/frontend/packages/client-open/src/
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          registry-url: 'https://npm.pkg.github.com'
+
       # Build & Publish Frontend Packages
       - name: Build all packages
         run: |
@@ -72,14 +84,25 @@ jobs:
             # Check if package version already exists
             PACKAGE_NAME=$(node -p "require('./package.json').name")
             PACKAGE_VERSION="${{ inputs.version }}"
+            if [ -z "$PACKAGE_VERSION" ]; then
+              COMMIT_SHA=$(git rev-parse --short HEAD)
+              IS_SHA=true
+              PACKAGE_VERSION=$COMMIT_SHA
+            fi
+
+            if [ "$IS_SHA" = true ]; then
+              echo "Setting $PACKAGE_NAME@$COMMIT_SHA as pre-release version..."
+              npm version pre --preid="$COMMIT_SHA" --no-git-tag-version
+            fi
 
             if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" > /dev/null 2>&1; then
               echo "Package $PACKAGE_NAME@$PACKAGE_VERSION already exists, failing..."
               exit 1
-            else
-              npm publish
-              echo "Published $PACKAGE_NAME@$PACKAGE_VERSION"
             fi
+
+            echo "Publishing $PACKAGE_NAME@$PACKAGE_VERSION..."
+            npm publish
+            echo "Published $PACKAGE_NAME@$PACKAGE_VERSION"
 
             cd ..
           }
