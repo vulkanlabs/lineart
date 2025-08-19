@@ -1,8 +1,0 @@
-[project]
-name = "onboarding"
-version = "0.1.0"
-description = ""
-
-dependencies = [
-    "numpy>=1.21.0",
-]
