@@ -1,11 +1,20 @@
 name: CI - Linting Steps
 
 on:
-  push:
-    branches: '*'
+  workflow_call:
+    inputs:
+      python_version:
+        description: 'Python version to use'
+        required: false
+        default: '3.12'
+        type: string
+      node_version:
+        description: 'Node version to use'
+        required: false
+        default: '23'
+        type: string
 
 jobs:
-
   python-lint:
     runs-on: ubuntu-latest
     
@@ -15,7 +24,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.12'
+        python-version: ${{ inputs.python_version }}
         
     - name: Install linting tools
       run: |
@@ -32,24 +41,20 @@ jobs:
   js-lint:
     runs-on: ubuntu-latest
     
-    strategy:
-      matrix:
-        node-directory: ['frontend']
-    
     steps:
     - uses: actions/checkout@v4
     
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '23'
+        node-version: ${{ inputs.node_version }}
         cache: 'npm'
-        cache-dependency-path: '${{ matrix.node-directory }}/package-lock.json'
+        cache-dependency-path: 'frontend/package-lock.json'
                 
     - name: Install dependencies
-      working-directory: ${{ matrix.node-directory }}
+      working-directory: frontend
       run: npm ci --include dev
 
     - name: Lint JavaScript/TypeScript
-      working-directory: ${{ matrix.node-directory }}
+      working-directory: frontend
       run: npm run format:check
