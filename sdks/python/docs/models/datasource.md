@@ -1,0 +1,18 @@
+# DataSource
+
+
+## Fields
+
+| Field                                                                | Type                                                                 | Required                                                             | Description                                                          |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `name`                                                               | *str*                                                                | :heavy_check_mark:                                                   | N/A                                                                  |
+| `source`                                                             | [models.DataSourceSource](../models/datasourcesource.md)             | :heavy_check_mark:                                                   | N/A                                                                  |
+| `caching`                                                            | [Optional[models.CachingOptions]](../models/cachingoptions.md)       | :heavy_minus_sign:                                                   | N/A                                                                  |
+| `description`                                                        | *OptionalNullable[str]*                                              | :heavy_minus_sign:                                                   | N/A                                                                  |
+| `metadata`                                                           | Dict[str, *Any*]                                                     | :heavy_minus_sign:                                                   | N/A                                                                  |
+| `data_source_id`                                                     | *str*                                                                | :heavy_check_mark:                                                   | N/A                                                                  |
+| `archived`                                                           | *bool*                                                               | :heavy_check_mark:                                                   | N/A                                                                  |
+| `created_at`                                                         | [date](https://docs.python.org/3/library/datetime.html#date-objects) | :heavy_check_mark:                                                   | N/A                                                                  |
+| `last_updated_at`                                                    | [date](https://docs.python.org/3/library/datetime.html#date-objects) | :heavy_check_mark:                                                   | N/A                                                                  |
+| `variables`                                                          | List[*str*]                                                          | :heavy_minus_sign:                                                   | N/A                                                                  |
+| `runtime_params`                                                     | List[*str*]                                                          | :heavy_minus_sign:                                                   | N/A                                                                  |

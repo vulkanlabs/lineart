@@ -1,0 +1,10 @@
+# PolicyBase
+
+
+## Fields
+
+| Field                                                                                      | Type                                                                                       | Required                                                                                   | Description                                                                                |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `name`                                                                                     | *OptionalNullable[str]*                                                                    | :heavy_minus_sign:                                                                         | N/A                                                                                        |
+| `description`                                                                              | *OptionalNullable[str]*                                                                    | :heavy_minus_sign:                                                                         | N/A                                                                                        |
+| `allocation_strategy`                                                                      | [OptionalNullable[models.PolicyAllocationStrategy]](../models/policyallocationstrategy.md) | :heavy_minus_sign:                                                                         | N/A                                                                                        |

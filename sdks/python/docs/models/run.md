@@ -1,0 +1,15 @@
+# Run
+
+
+## Fields
+
+| Field                                                                | Type                                                                 | Required                                                             | Description                                                          |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `run_id`                                                             | *str*                                                                | :heavy_check_mark:                                                   | N/A                                                                  |
+| `policy_version_id`                                                  | *str*                                                                | :heavy_check_mark:                                                   | N/A                                                                  |
+| `run_group_id`                                                       | *OptionalNullable[str]*                                              | :heavy_minus_sign:                                                   | N/A                                                                  |
+| `status`                                                             | *str*                                                                | :heavy_check_mark:                                                   | N/A                                                                  |
+| `result`                                                             | *OptionalNullable[str]*                                              | :heavy_minus_sign:                                                   | N/A                                                                  |
+| `run_metadata`                                                       | Dict[str, *Any*]                                                     | :heavy_minus_sign:                                                   | N/A                                                                  |
+| `created_at`                                                         | [date](https://docs.python.org/3/library/datetime.html#date-objects) | :heavy_check_mark:                                                   | N/A                                                                  |
+| `last_updated_at`                                                    | [date](https://docs.python.org/3/library/datetime.html#date-objects) | :heavy_check_mark:                                                   | N/A                                                                  |
