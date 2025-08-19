@@ -7,6 +7,16 @@ on:
         description: 'Version to publish'
         required: true
         type: string
+      node_version:
+        description: 'Node version to use'
+        required: false
+        default: '23'
+        type: string
+      npm_registry_url:
+        description: 'NPM registry URL'
+        required: false
+        default: 'https://npm.pkg.github.com'
+        type: string
       force_publish:
         description: 'Force publish packages'
         required: false
@@ -45,6 +55,12 @@ jobs:
           mkdir -p ${{ github.workspace }}/frontend/packages/client-open/src/
           cp -r ${{ github.workspace }}/generated/ts/* ${{ github.workspace }}/frontend/packages/client-open/src/
           ls -la ${{ github.workspace }}/frontend/packages/client-open/src/
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          registry-url: 'https://npm.pkg.github.com'
 
       # Build & Publish Frontend Packages
       - name: Build all packages
