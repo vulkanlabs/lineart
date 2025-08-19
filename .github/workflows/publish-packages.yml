@@ -30,6 +30,10 @@ jobs:
   publish-frontend-packages:
     runs-on: ubuntu-latest
     needs: generate-openapi-spec
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - uses: actions/checkout@v4
 
