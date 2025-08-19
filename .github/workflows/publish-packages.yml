@@ -64,13 +64,10 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: spec
-          path: ${{ github.workspace }}/generated/openapi.json
+          path: ${{ github.workspace }}/generated/
 
       - name: Generate new client
         run: |
-          set -x
-          ls -la ${{ github.workspace }}/
-          ls -la ${{ github.workspace }}/generated/
           docker run --rm \
             -v "${{ github.workspace }}:/local" \
             openapitools/openapi-generator-cli generate \
