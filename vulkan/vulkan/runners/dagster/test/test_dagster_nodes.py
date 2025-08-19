@@ -1,10 +1,17 @@
+import logging
 from enum import Enum
 
 import pytest
 
+from vulkan.core.context import VulkanExecutionContext
 from vulkan.runners.dagster.nodes import DagsterTerminate, to_dagster_node
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import NodeType, TerminateNode, TransformNode
+
+
+@pytest.fixture
+def mock_context():
+    return VulkanExecutionContext(logging.Logger("test"), {})
 
 
 class ReturnStatus(Enum):
@@ -135,20 +142,20 @@ class TestTerminateNode:
 class TestTerminateNodeTemplateResolution:
     """Test template resolution functionality that frontend users would actually use."""
 
-    def test_simple_template_resolution(self):
+    def test_simple_template_resolution(self, mock_context):
         """Test resolution of simple template variables."""
         terminate = TerminateNode(
             name="terminate_simple_template",
             description="Simple template resolution test",
             return_status="success",
             dependencies={"decision": Dependency("decision_node")},
-            output_data={"decision": "{{decision_node.data}}", "status": "completed"},
+            output_data={"decision": "{{decision.data}}", "status": "completed"},
         )
 
         dagster_terminate = DagsterTerminate.from_spec(terminate)
 
         template_dict = {
-            "decision": "{{decision_node.data}}",
+            "decision": "{{decision.data}}",
             "status": "completed",
         }
 
@@ -156,14 +163,6 @@ class TestTerminateNodeTemplateResolution:
             "decision": {"data": "approved"},
         }
 
-        class MockContext:
-            class MockLog:
-                def error(self, msg):
-                    pass
-
-            log = MockLog()
-
-        mock_context = MockContext()
         resolved = dagster_terminate._resolve_json_metadata(
             template_dict, kwargs, mock_context
         )
@@ -175,7 +174,7 @@ class TestTerminateNodeTemplateResolution:
 
         assert resolved == expected
 
-    def test_multiple_template_variables(self):
+    def test_multiple_template_variables(self, mock_context):
         """Test multiple template variables in metadata."""
         terminate = TerminateNode(
             name="terminate_multiple",
@@ -187,18 +186,18 @@ class TestTerminateNodeTemplateResolution:
                 "result": Dependency("result_node"),
             },
             output_data={
-                "user": "{{user_node.data}}",
-                "task": "{{task_node.data}}",
-                "result": "{{result_node.data}}",
+                "user": "{{user.data}}",
+                "task": "{{task.data}}",
+                "result": "{{result.data}}",
             },
         )
 
         dagster_terminate = DagsterTerminate.from_spec(terminate)
 
         template_dict = {
-            "user": "{{user_node.data}}",
-            "task": "{{task_node.data}}",
-            "result": "{{result_node.data}}",
+            "user": "{{user.data}}",
+            "task": "{{task.data}}",
+            "result": "{{result.data}}",
         }
 
         kwargs = {
@@ -207,14 +206,6 @@ class TestTerminateNodeTemplateResolution:
             "result": {"data": "success"},
         }
 
-        class MockContext:
-            class MockLog:
-                def error(self, msg):
-                    pass
-
-            log = MockLog()
-
-        mock_context = MockContext()
         resolved = dagster_terminate._resolve_json_metadata(
             template_dict, kwargs, mock_context
         )

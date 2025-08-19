@@ -1,3 +1,5 @@
+import ast
+
 from jinja2 import Environment, Template
 from pydantic import BaseModel
 
@@ -205,7 +207,14 @@ def resolve_template(value: str, local_variables: dict, env_variables: dict) -> 
 
     template = Template(value)
     context = {"env": env_variables, **local_variables}
-    return template.render(context)
+    rendered = template.render(context)
+    try:
+        # Attempt to evaluate the rendered template as a Python literal.
+        # This gets the *actual* variable values, not just the template strings,
+        # if the template is a valid literal.
+        return ast.literal_eval(rendered)
+    except (ValueError, SyntaxError):
+        return rendered
 
 
 def normalize_to_template(value: ParameterType) -> str:

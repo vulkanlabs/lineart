@@ -115,7 +115,7 @@ export const componentsTableColumns: ColumnDef<Component>[] = [
     {
         id: "link",
         enableHiding: false,
-        cell: ({ row }) => <DetailsButton href={`/components/${row.getValue("component_id")}`} />,
+        cell: ({ row }) => <DetailsButton href={`/components/${row.getValue("name")}`} />,
     },
     {
         header: "ID",

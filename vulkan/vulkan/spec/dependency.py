@@ -55,6 +55,10 @@ class Dependency:
 
     @property
     def id(self) -> str:
+        """The ID of the dependency.
+
+        This is the full path to the dependency, including the hierarchy.
+        """
         hierarchy = "-".join(self.hierarchy) if self.hierarchy is not None else ""
 
         str_repr = self.node
