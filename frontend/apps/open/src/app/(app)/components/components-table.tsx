@@ -1,4 +1,3 @@
-// Local imports
 import { ComponentsTable as SharedComponentsTable } from "@vulkanlabs/base";
 import { type Component } from "@vulkanlabs/client-open";
 import { deleteComponentAction } from "./actions";

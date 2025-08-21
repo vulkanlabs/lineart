@@ -1,0 +1,45 @@
+name: Pull Request
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      force_publish:
+        description: 'Force publish packages'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  lint:
+    uses: ./.github/workflows/lint.yml
+    with:
+      python_version: '3.12'
+      node_version: '23'
+
+  test:
+    uses: ./.github/workflows/test.yml
+    with:
+      python_version: '3.12'
+
+  python-build-packages:
+    uses: ./.github/workflows/python-build-packages.yml
+    with:
+      python_version: '3.12'
+
+  publish-packages:
+    uses: ./.github/workflows/publish-packages.yml
+    permissions:
+      contents: read
+      packages: write
+
+  docker-build-images:
+    uses: ./.github/workflows/docker-build.yaml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      python_version: '3.12'
+      postgres_version: '16.3'
+      force_publish: false

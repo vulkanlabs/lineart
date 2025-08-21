@@ -123,7 +123,11 @@ class WorkflowService(BaseService):
 
         # Update the underlying workflow
         spec = self._convert_pydantic_to_dict(spec)
-        spec, requirements = self._inject_component_implementations(spec, requirements)
+        spec, requirements = self._inject_component_implementations(
+            spec,
+            requirements,
+            project_id,
+        )
         if spec is not None:
             workflow.spec = spec
         if requirements is not None:
@@ -207,6 +211,7 @@ class WorkflowService(BaseService):
         self,
         spec: PolicyDefinitionDict,
         requirements: list[str] | None,
+        project_id: str | None = None,
     ) -> tuple[PolicyDefinitionDict, list[str]]:
         """Inject component implementations into the spec.
 
@@ -224,12 +229,14 @@ class WorkflowService(BaseService):
         new_nodes = []
         for node in definition.nodes:
             if node.node_type == NodeType.COMPONENT.value:
-                component_id = node.metadata.get("component_id")
-                if component_id is None:
+                component_name = node.metadata.get("component_name")
+                if component_name is None:
                     raise ValueError(f"Component node {node.name} has no component ID")
 
                 component = self.component_loader.get_component(
-                    component_id=component_id
+                    name=component_name,
+                    project_id=project_id,
+                    include_archived=False,
                 )
                 node.metadata["definition"] = self._convert_pydantic_to_dict(
                     component.workflow.spec

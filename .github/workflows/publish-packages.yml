@@ -1,27 +1,31 @@
 name: Publish Packages to GitHub Packages
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'frontend/packages/**'
-      - '.github/workflows/publish-packages.yml'
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - 'frontend/packages/**'
-      - '.github/workflows/publish-packages.yml'
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      force_publish:
-        description: 'Force publish packages'
+      version:
+        description: 'Version to publish. Should only be set on tags or main.'
         required: false
-        default: false
-        type: boolean
+        type: string
+        default: ""
+      node_version:
+        description: 'Node version to use'
+        required: false
+        default: '23'
+        type: string
+      npm_registry_url:
+        description: 'NPM registry URL'
+        required: false
+        default: 'https://npm.pkg.github.com'
+        type: string
 
 jobs:
-  publish:
+  generate-openapi-spec:
+    uses: ./.github/workflows/openapi-build-spec.yml
+
+  publish-frontend-packages:
     runs-on: ubuntu-latest
+    needs: generate-openapi-spec
     permissions:
       contents: read
       packages: write
@@ -29,30 +33,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Download OpenAPI spec
+        uses: actions/download-artifact@v5
         with:
-          node-version: '18'
-          registry-url: 'https://npm.pkg.github.com'
-
-      - name: Install root dependencies
-        run: |
-          cd frontend
-          npm ci
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies with uv
-        run: |
-          set -x 
-          pip install 'uv<0.8'
-          uv sync
-
-      - name: Render OpenAPI Specification
-        run: |
-          uv run python scripts/export-openapi.py --out ./generated/openapi.json
+          name: spec
+          path: ${{ github.workspace }}/generated/
 
       - name: Generate new client
         run: |
@@ -63,7 +48,7 @@ jobs:
             -g typescript-fetch \
             --additional-properties=modelPropertyNaming=original \
             -o /local/generated/ts
-
+            
       - name: Copy generated files
         run: |
           set -x
@@ -71,15 +56,22 @@ jobs:
           cp -r ${{ github.workspace }}/generated/ts/* ${{ github.workspace }}/frontend/packages/client-open/src/
           ls -la ${{ github.workspace }}/frontend/packages/client-open/src/
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          registry-url: 'https://npm.pkg.github.com'
+
+      # Build & Publish Frontend Packages
       - name: Build all packages
         run: |
           cd frontend
+          npm ci
           npm run build
 
-      - name: Publish packages
+      - name: Publish development version of packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_publish == 'true')
         run: |
           cd frontend/packages
 
@@ -91,14 +83,26 @@ jobs:
 
             # Check if package version already exists
             PACKAGE_NAME=$(node -p "require('./package.json').name")
-            PACKAGE_VERSION=$(node -p "require('./package.json').version")
+            PACKAGE_VERSION="${{ inputs.version }}"
+            if [ -z "$PACKAGE_VERSION" ]; then
+              COMMIT_SHA=$(git rev-parse --short HEAD)
+              IS_SHA=true
+              PACKAGE_VERSION=$COMMIT_SHA
+            fi
+
+            if [ "$IS_SHA" = true ]; then
+              echo "Setting $PACKAGE_NAME@$COMMIT_SHA as pre-release version..."
+              npm version pre --preid="$COMMIT_SHA" --no-git-tag-version
+            fi
 
             if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" > /dev/null 2>&1; then
-              echo "Package $PACKAGE_NAME@$PACKAGE_VERSION already exists, skipping..."
-            else
-              npm publish
-              echo "Published $PACKAGE_NAME@$PACKAGE_VERSION"
+              echo "Package $PACKAGE_NAME@$PACKAGE_VERSION already exists, failing..."
+              exit 1
             fi
+
+            echo "Publishing $PACKAGE_NAME@$PACKAGE_VERSION..."
+            npm publish
+            echo "Published $PACKAGE_NAME@$PACKAGE_VERSION"
 
             cd ..
           }
