@@ -233,10 +233,10 @@ export async function fetchComponents(includeArchived: boolean = false): Promise
     );
 }
 
-export async function fetchComponent(componentId: string): Promise<Component> {
+export async function fetchComponent(componentName: string): Promise<Component> {
     return withErrorHandling(
-        componentsApi.getComponent({ componentId }),
-        `fetch component ${componentId}`,
+        componentsApi.getComponent({ componentId: componentName }),
+        `fetch component ${componentName}`,
     );
 }
 

@@ -261,7 +261,7 @@ function ComponentDetails({ component }: ComponentDetailsProps) {
         <div
             className="mt-4 p-3 bg-gray-50 rounded-lg"
             onDoubleClick={() => {
-                window.open(`/components/${component.component_id}`, "_blank");
+                window.open(`/components/${encodeURIComponent(component.name)}`, "_blank");
             }}
         >
             <div className="flex items-center gap-3 mb-2">
