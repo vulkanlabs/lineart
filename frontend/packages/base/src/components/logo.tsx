@@ -27,12 +27,12 @@ export function VulkanLogo({
     className = "flex items-center gap-2 text-xl font-bold",
     onClick,
 }: VulkanLogoProps) {
-    const { 
-        withProject, 
-        homePath = "/", 
-        useProjectRouting = false, 
-        currentProject, 
-        onNavigate 
+    const {
+        withProject,
+        homePath = "/",
+        useProjectRouting = false,
+        currentProject,
+        onNavigate,
     } = config;
 
     const handleClick = () => {
@@ -49,16 +49,8 @@ export function VulkanLogo({
     };
 
     return (
-        <div 
-            className={className} 
-            onClick={handleClick} 
-            style={{ cursor: "pointer" }}
-        >
-            <img 
-                src={VulkanEngineLogo} 
-                alt="Vulkan logo" 
-                className="max-h-14 max-w-48" 
-            />
+        <div className={className} onClick={handleClick} style={{ cursor: "pointer" }}>
+            <img src={VulkanEngineLogo} alt="Vulkan logo" className="max-h-14 max-w-48" />
         </div>
     );
 }

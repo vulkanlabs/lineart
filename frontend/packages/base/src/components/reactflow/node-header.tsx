@@ -5,11 +5,7 @@ import { EllipsisVertical, Trash } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Slot } from "@radix-ui/react-slot";
 import { Button, ButtonProps } from "../ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-} from "../ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from "../ui/dropdown-menu";
 
 /* NODE HEADER -------------------------------------------------------------- */
 
