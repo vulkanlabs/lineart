@@ -1,14 +1,17 @@
 "use client";
 
+import { Suspense } from "react";
 import { SharedCreateDataSourceDialog } from "@vulkanlabs/base";
 import { createDataSourceAction } from "../../app/(app)/integrations/dataSources/actions";
 
 export function CreateDataSourceDialog() {
     return (
-        <SharedCreateDataSourceDialog
-            config={{
-                createDataSource: createDataSourceAction,
-            }}
-        />
+        <Suspense fallback={<div>Loading...</div>}>
+            <SharedCreateDataSourceDialog
+                config={{
+                    createDataSource: createDataSourceAction,
+                }}
+            />
+        </Suspense>
     );
 }

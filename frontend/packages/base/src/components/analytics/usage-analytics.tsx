@@ -10,12 +10,12 @@ import { subDays } from "date-fns";
 // Vulkan packages
 import {
     CacheHitRatioChart,
-    DatePickerWithRange,
     ErrorRateChart,
     LoadingChartState,
     RequestVolumeChart,
     ResponseTimeChart,
-} from "../../index";
+} from "../charts/data-source-charts";
+import { DatePickerWithRange } from "../charts/date-picker";
 
 export interface UsageAnalyticsConfig {
     projectId?: string;

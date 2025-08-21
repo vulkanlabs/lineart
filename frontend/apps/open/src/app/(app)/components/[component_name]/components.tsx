@@ -1,4 +1,5 @@
 "use client";
+import { Suspense } from "react";
 import { EnvironmentVariablesEditor } from "@vulkanlabs/base";
 import { Card, CardTitle, CardHeader, CardContent } from "@vulkanlabs/base/ui";
 import { Component, ConfigurationVariablesBase } from "@vulkanlabs/client-open";
@@ -19,7 +20,9 @@ export function EnvTab({ component }: { component: Component }) {
                 <CardTitle className="flex items-center gap-2">Environment Variables</CardTitle>
             </CardHeader>
             <CardContent>
-                <EnvironmentVariablesEditor variables={variables} onSave={handleSave} />
+                <Suspense fallback={<div>Loading...</div>}>
+                    <EnvironmentVariablesEditor variables={variables} onSave={handleSave} />
+                </Suspense>
             </CardContent>
         </Card>
     );

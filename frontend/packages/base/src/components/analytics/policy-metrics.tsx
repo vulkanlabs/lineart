@@ -10,14 +10,14 @@ import { subDays } from "date-fns";
 // Vulkan packages
 import {
     AvgDurationByStatusChart,
-    DatePickerWithRange,
     RunDurationStatsChart,
     RunErrorRateChart,
     RunOutcomeDistributionChart,
     RunOutcomesChart,
     RunsChart,
-    VersionPicker,
-} from "../../index";
+} from "../charts/policy-stats";
+import { DatePickerWithRange } from "../charts/date-picker";
+import { VersionPicker } from "../charts/version-picker";
 import { PolicyVersion } from "@vulkanlabs/client-open";
 
 export interface PolicyMetricsConfig {

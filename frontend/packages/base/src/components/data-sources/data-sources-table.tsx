@@ -6,14 +6,14 @@ import { ColumnDef } from "@tanstack/react-table";
 
 // Vulkan packages
 import { Button } from "@vulkanlabs/base/ui";
+import { DetailsButton } from "../details-button";
+import { ShortenedID } from "../shortened-id";
 import {
-    DetailsButton,
-    ShortenedID,
     DeletableResourceTable,
     DeletableResourceTableActions,
     SearchFilterOptions,
     DeleteResourceOptions,
-} from "../../index";
+} from "../resource-table";
 import { DataSource } from "@vulkanlabs/client-open";
 
 // Local imports
@@ -151,3 +151,4 @@ function getDataSourceTableColumns(config: DataSourceTableConfig): ColumnDef<Dat
         },
     ];
 }
+

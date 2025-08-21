@@ -1,7 +1,7 @@
 "use client";
 
 // External libraries
-import { useMemo } from "react";
+import { useMemo, Suspense } from "react";
 import { ArrowUpDown } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -65,13 +65,15 @@ export function PolicyVersionsTable({
     };
 
     return (
-        <DeletableResourceTable
-            columns={policyVersionsTableColumns}
-            data={formattedVersions}
-            searchOptions={searchOptions}
-            deleteOptions={deleteOptions}
-            CreationDialog={<CreatePolicyVersionDialog policyId={policy.policy_id} />}
-        />
+        <Suspense fallback={<div>Loading...</div>}>
+            <DeletableResourceTable
+                columns={policyVersionsTableColumns}
+                data={formattedVersions}
+                searchOptions={searchOptions}
+                deleteOptions={deleteOptions}
+                CreationDialog={<CreatePolicyVersionDialog policyId={policy.policy_id} />}
+            />
+        </Suspense>
     );
 }
 

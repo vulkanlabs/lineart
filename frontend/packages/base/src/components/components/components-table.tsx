@@ -2,6 +2,7 @@
 
 // React and Next.js
 import * as React from "react";
+import { Suspense } from "react";
 import { useRouter } from "next/navigation";
 
 // External libraries
@@ -25,7 +26,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@vulkanlabs/base/ui";
-import { DetailsButton, ShortenedID } from "../../index";
+import { DetailsButton } from "../details-button";
+import { ShortenedID } from "../shortened-id";
 import { ResourceTable } from "../resource-table";
 import { DataTable } from "../data-table";
 import { type Component } from "@vulkanlabs/client-open";
@@ -95,11 +97,13 @@ export function ComponentsTable({
             <div>
                 <Button onClick={() => router.refresh()}>Refresh</Button>
                 <div className="mt-4">
-                    <DataTable
-                        columns={columns}
-                        data={components}
-                        emptyMessage="Create a component to start using it in your workflows."
-                    />
+                    <Suspense fallback={<div>Loading...</div>}>
+                        <DataTable
+                            columns={columns}
+                            data={components}
+                            emptyMessage="Create a component to start using it in your workflows."
+                        />
+                    </Suspense>
                 </div>
             </div>
         );
@@ -109,15 +113,17 @@ export function ComponentsTable({
     return (
         <DeleteComponentContext.Provider value={{ openDeleteDialog }}>
             <div>
-                <ResourceTable
-                    columns={columns}
-                    data={components}
-                    searchOptions={{ column: "name", label: "Name" }}
-                    CreationDialog={config.CreateComponentDialog}
-                    pageSize={10}
-                    enableColumnHiding={false}
-                    disableFilters={false}
-                />
+                <Suspense fallback={<div>Loading...</div>}>
+                    <ResourceTable
+                        columns={columns}
+                        data={components}
+                        searchOptions={{ column: "name", label: "Name" }}
+                        CreationDialog={config.CreateComponentDialog}
+                        pageSize={10}
+                        enableColumnHiding={false}
+                        disableFilters={false}
+                    />
+                </Suspense>
             </div>
 
             {config.deleteComponent && (

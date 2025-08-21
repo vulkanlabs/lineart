@@ -29,7 +29,7 @@ import {
     Input,
     Textarea,
 } from "@vulkanlabs/base/ui";
-import { Sending } from "../../index";
+import { Sending } from "../animations";
 
 const formSchema = z.object({
     name: z.string().min(1),

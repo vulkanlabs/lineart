@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { WorkflowFrame as SharedWorkflowFrame, type RunFrameConfig } from "@vulkanlabs/base";
 import type { RunNodeLayout } from "./types";
 import type { EdgeLayoutConfig } from "@vulkanlabs/base";
@@ -21,12 +22,14 @@ export function WorkflowFrame({
     onPaneClick: (e: React.MouseEvent) => void;
 }) {
     return (
-        <SharedWorkflowFrame
-            nodes={nodes}
-            edges={edges}
-            onNodeClick={onNodeClick}
-            onPaneClick={onPaneClick}
-            config={globalScopeRunConfig}
-        />
+        <Suspense fallback={<div>Loading...</div>}>
+            <SharedWorkflowFrame
+                nodes={nodes}
+                edges={edges}
+                onNodeClick={onNodeClick}
+                onPaneClick={onPaneClick}
+                config={globalScopeRunConfig}
+            />
+        </Suspense>
     );
 }

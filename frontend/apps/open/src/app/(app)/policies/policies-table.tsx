@@ -9,7 +9,7 @@ export function PoliciesTable({ policies }: { policies: Policy[] }) {
             policies={policies}
             config={{
                 deletePolicy: deletePolicyAction,
-                CreatePolicyDialog: CreatePolicyDialog,
+                CreatePolicyDialog: <CreatePolicyDialog />,
             }}
         />
     );
