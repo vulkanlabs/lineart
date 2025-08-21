@@ -1,9 +1,8 @@
 "use client";
 
-// React and Next.js
+// React
 import * as React from "react";
 import { Suspense } from "react";
-import { useRouter } from "next/navigation";
 
 // External libraries
 import { ColumnDef } from "@tanstack/react-table";
@@ -41,6 +40,8 @@ export interface ComponentsTableConfig {
     deleteComponent?: (componentName: string, projectId?: string) => Promise<void>;
     CreateComponentDialog?: React.ReactElement;
     mode?: "full" | "simple"; // full = complete table, simple = minimal table
+    onRefresh?: () => void;
+    onNavigate?: (path: string) => void;
 }
 
 // Create a context for component deletion
@@ -61,7 +62,6 @@ export function ComponentsTable({
 }) {
     const [componentToDelete, setComponentToDelete] = React.useState<Component | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-    const router = useRouter();
 
     const openDeleteDialog = React.useCallback((component: Component) => {
         setComponentToDelete(component);
@@ -82,7 +82,7 @@ export function ComponentsTable({
                 dismissible: true,
             });
             closeDeleteDialog();
-            router.refresh();
+            config.onRefresh?.();
         } catch (error: any) {
             closeDeleteDialog();
             toast.error(`${error.cause || error.message || "An unknown error occurred"}`);
@@ -95,7 +95,7 @@ export function ComponentsTable({
     if (config.mode === "simple") {
         return (
             <div>
-                <Button onClick={() => router.refresh()}>Refresh</Button>
+                <Button onClick={() => config.onRefresh?.()}>Refresh</Button>
                 <div className="mt-4">
                     <Suspense fallback={<div>Loading...</div>}>
                         <DataTable
@@ -313,7 +313,6 @@ function DeleteComponentButton({ component }: { component: Component }) {
 
 function ComponentsTableActions({ row, config }: { row: any; config: ComponentsTableConfig }) {
     const component = row.original;
-    const router = useRouter();
 
     const buildHref = (componentName: string): string => {
         const basePath = `/components/${componentName}`;
@@ -339,7 +338,7 @@ function ComponentsTableActions({ row, config }: { row: any; config: ComponentsT
                     Copy Component ID
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push(buildHref(component.name))}>
+                <DropdownMenuItem onClick={() => config.onNavigate?.(buildHref(component.name))}>
                     View Component
                 </DropdownMenuItem>
             </DropdownMenuContent>
