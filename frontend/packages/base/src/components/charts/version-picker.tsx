@@ -4,12 +4,12 @@ import * as React from "react";
 import { MenuIcon } from "lucide-react";
 
 import { cn } from "../../lib/utils";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Card } from "@/components/ui/card";
+import { Button } from "../ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Card } from "../ui/card";
 import { PolicyVersion } from "@vulkanlabs/client-open";
 import { ShortenedID } from "../shortened-id";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "../ui/checkbox";
 
 export function VersionPicker({
     versions,

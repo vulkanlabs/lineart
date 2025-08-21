@@ -1,8 +1,8 @@
 "use client";
 import React, { useState } from "react";
 
-import { WorkflowFrame } from "@/components/run/frame";
-import type { RunNodeLayout } from "@/components/run/types";
+import { WorkflowFrame } from "./frame";
+import type { RunNodeLayout } from "./types";
 import type { Edge } from "@xyflow/react";
 
 import type { RunData, RunLogs, StepMetadataBase } from "@vulkanlabs/client-open";
