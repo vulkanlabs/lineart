@@ -33,7 +33,14 @@ export async function RunPage({ runId }: { runId: string }) {
         return runNode;
     });
 
-    return <RunPageContent nodes={runNodes} edges={workflowState.edges} runLogs={runLogs} runData={runData} />;
+    return (
+        <RunPageContent
+            nodes={runNodes}
+            edges={workflowState.edges}
+            runLogs={runLogs}
+            runData={runData}
+        />
+    );
 }
 
 async function getGraphDefinition(

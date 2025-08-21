@@ -154,4 +154,3 @@ function getDataSourceTableColumns(config: DataSourceTableConfig): ColumnDef<Dat
 
 export default DataSourcesTable;
 export { DataSourcesTable };
-

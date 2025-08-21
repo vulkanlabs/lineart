@@ -16,10 +16,7 @@ export default async function Layout(props: {
     return (
         <div className="flex flex-row w-full h-full">
             <div className="flex flex-col flex-1 h-full">
-                <InnerNavbar 
-                    sections={innerNavbarSections}
-                    backRoute="/components"
-                />
+                <InnerNavbar sections={innerNavbarSections} backRoute="/components" />
                 <div className="flex-1 h-full">{children}</div>
             </div>
         </div>
