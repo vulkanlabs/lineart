@@ -53,21 +53,10 @@ export {
 } from "./components/charts/policy-stats";
 
 // Re-export reusable components (selective exports for better tree-shaking)
-// Performance: Heavy components with lazy loading for code splitting and reduced initial bundle size
-export const DataTable = lazy(() =>
-    import("./components/data-table").then((m) => ({ default: m.DataTable })),
-);
-export const ResourceTable = lazy(() =>
-    import("./components/resource-table").then((m) => ({ default: m.ResourceTable })),
-);
-export const DeletableResourceTable = lazy(() =>
-    import("./components/resource-table").then((m) => ({ default: m.DeletableResourceTable })),
-);
-export const EnvironmentVariablesEditor = lazy(() =>
-    import("./components/environment-variables-editor").then((m) => ({
-        default: m.EnvironmentVariablesEditor,
-    })),
-);
+// Table components - using regular imports for better stability
+export { DataTable } from "./components/data-table";
+export { ResourceTable, DeletableResourceTable } from "./components/resource-table";
+export { EnvironmentVariablesEditor } from "./components/environment-variables-editor";
 
 // Lightweight components - keep regular exports
 export { DetailsButton } from "./components/details-button";
@@ -99,17 +88,9 @@ export { defaultElkOptions as RunDefaultElkOptions } from "./components/run/opti
 export * from "./components/app-workflow-frame";
 
 // Re-export data source components (selective exports for better tree-shaking)
-// Heavy dialog components with lazy loading
-export const SharedCreateDataSourceDialog = lazy(() =>
-    import("./components/data-sources/create-data-source-dialog").then((m) => ({
-        default: m.SharedCreateDataSourceDialog,
-    })),
-);
-export const SharedDataSourcesTable = lazy(() =>
-    import("./components/data-sources/data-sources-table").then((m) => ({
-        default: m.DataSourcesTable,
-    })),
-);
+// Data source components - using regular imports to avoid lazy loading issues
+export { SharedCreateDataSourceDialog } from "./components/data-sources/create-data-source-dialog";
+export { DataSourcesTable as SharedDataSourcesTable } from "./components/data-sources/data-sources-table";
 
 // Re-export types
 export type { CreateDataSourceDialogConfig } from "./components/data-sources/create-data-source-dialog";

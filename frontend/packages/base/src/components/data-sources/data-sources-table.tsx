@@ -26,7 +26,7 @@ export interface DataSourceTableConfig {
     CreateDataSourceDialog: React.ReactElement;
 }
 
-export function DataSourcesTable({
+function DataSourcesTable({
     dataSources,
     config,
 }: {
@@ -151,4 +151,7 @@ function getDataSourceTableColumns(config: DataSourceTableConfig): ColumnDef<Dat
         },
     ];
 }
+
+export default DataSourcesTable;
+export { DataSourcesTable };
 

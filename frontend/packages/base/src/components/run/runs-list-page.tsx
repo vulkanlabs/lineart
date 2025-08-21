@@ -12,7 +12,10 @@ import { DateRange } from "react-day-picker";
 
 // Vulkan packages
 import { Badge, Button } from "@vulkanlabs/base/ui";
-import { ShortenedID, DetailsButton, DatePickerWithRange, ResourceTable } from "@vulkanlabs/base";
+import { ShortenedID } from "../shortened-id";
+import { DetailsButton } from "../details-button";
+import { DatePickerWithRange } from "../charts/date-picker";
+import { ResourceTable } from "../resource-table";
 import type { Run } from "@vulkanlabs/client-open";
 
 // Local imports

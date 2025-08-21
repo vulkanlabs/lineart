@@ -4,7 +4,10 @@
 import { ColumnDef } from "@tanstack/react-table";
 
 // Vulkan packages
-import { DetailsButton, DataTable, ShortenedID, RefreshButton } from "@vulkanlabs/base";
+import { DetailsButton } from "../details-button";
+import { DataTable } from "../data-table";
+import { ShortenedID } from "../shortened-id";
+import { RefreshButton } from "../refresh-button";
 import type { Policy, PolicyVersion, PolicyAllocationStrategy } from "@vulkanlabs/client-open";
 
 export interface AllocatedVersionsTableConfig {
