@@ -14,15 +14,8 @@ export async function RunPage({ runId }: { runId: string }) {
     const graphDefinition = await getGraphDefinition(runData.policy_version_id);
     const workflowState = createWorkflowState(graphDefinition);
     const layoutedNodes = await getLayoutedNodes(workflowState.nodes, workflowState.edges);
-    const flatNodes = layoutedNodes.reduce((acc: VulkanNode[], node) => {
-        if (node.type === "COMPONENT") {
-            // Handle component nodes - flatten their children if they exist
-            return acc.concat(node);
-        }
-        return acc.concat(node);
-    }, []);
 
-    const runNodes: RunNodeLayout[] = flatNodes.map((node: VulkanNode) => {
+    const runNodes: RunNodeLayout[] = layoutedNodes.map((node: VulkanNode) => {
         const runNode = {
             ...node,
             data: {
