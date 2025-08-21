@@ -38,7 +38,7 @@ import { parseDate } from "../../lib/utils";
 export interface ComponentsTableConfig {
     projectId?: string;
     withProject?: (path: string, projectId: string) => string;
-    deleteComponent?: (componentId: string, projectId?: string) => Promise<void>;
+    deleteComponent?: (componentName: string, projectId?: string) => Promise<void>;
     CreateComponentDialog?: React.ReactElement;
     mode?: "full" | "simple"; // full = complete table, simple = minimal table
 }
@@ -76,7 +76,7 @@ export function ComponentsTable({
         if (!componentToDelete || !config.deleteComponent) return;
 
         try {
-            await config.deleteComponent(componentToDelete.component_id, config.projectId);
+            await config.deleteComponent(componentToDelete.name, config.projectId);
             toast("Component deleted", {
                 description: `Component ${componentToDelete.name} has been deleted.`,
                 dismissible: true,
