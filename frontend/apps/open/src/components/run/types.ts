@@ -1,8 +1,28 @@
 import { NodeLayoutConfig, NodeDependency } from "@vulkanlabs/base";
 import { StepDetails } from "@vulkanlabs/client-open";
 
-// Re-export shared base types
-export * from "@vulkanlabs/base";
+// Re-export specific base types needed in run components
+export type {
+    NodeLayoutConfig,
+    NodeDependency,
+    VulkanNode,
+    EdgeLayoutConfig,
+} from "@vulkanlabs/base";
+
+export {
+    createWorkflowState,
+    getLayoutedNodes,
+    defaultElkOptions,
+    runNodeTypes,
+    SharedRunPageContent,
+    ShortenedID,
+    DetailsButton,
+    DatePickerWithRange,
+    ResourceTable,
+    parseDate,
+} from "@vulkanlabs/base";
+
+export { Badge, Button } from "@vulkanlabs/base/ui";
 
 // Local typed version that extends base types
 export type RunNodeLayout = NodeLayoutConfig & {

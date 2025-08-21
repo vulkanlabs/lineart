@@ -1,3 +1,9 @@
+/*
+ * DEPRECATED: This file is no longer used in the application.
+ * It is kept here as inspiration for future sidebar refactoring.
+ * Please refer to the current sidebar implementation elsewhere in the codebase.
+ */
+
 "use client";
 
 import { useEffect, useState } from "react";
