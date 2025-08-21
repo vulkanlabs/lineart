@@ -117,7 +117,7 @@ function PoliciesSidebarNav() {
         fetchComponents().then((data) => {
             const componentData = data.map((component: { component_id: number; name: string }) => ({
                 name: component.name,
-                path: `/components/${component.component_id}`,
+                path: `/components/${encodeURIComponent(component.name)}`,
             }));
             setComponents(componentData);
         });
@@ -157,7 +157,7 @@ function PolicyDetailsSidebar({ policyId }: { policyId: string }) {
             .then((dependencies) => {
                 const componentData = dependencies.map((dep) => ({
                     name: dep.component_name,
-                    path: `/components/${dep.component_id}`,
+                    path: `/components/${encodeURIComponent(dep.component_name)}`,
                 }));
                 setComponents(componentData);
             })
