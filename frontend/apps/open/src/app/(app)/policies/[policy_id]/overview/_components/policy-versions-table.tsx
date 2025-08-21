@@ -19,7 +19,7 @@ import { Policy, PolicyVersion, WorkflowStatus } from "@vulkanlabs/client-open";
 
 // Local imports
 import { parseDate } from "@vulkanlabs/base";
-import { deletePolicyVersion } from "@/lib/api";
+import { deletePolicyVersionAction } from "./actions";
 import { CreatePolicyVersionDialog } from "./create-version";
 
 export function PolicyVersionsTable({
@@ -61,7 +61,7 @@ export function PolicyVersionsTable({
         resourceType: "Policy Version",
         resourceIdColumn: "policy_version_id",
         resourceNameColumn: "alias",
-        deleteResourceFunction: deletePolicyVersion,
+        deleteResourceFunction: deletePolicyVersionAction,
     };
 
     return (

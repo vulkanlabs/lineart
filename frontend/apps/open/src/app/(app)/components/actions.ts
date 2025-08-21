@@ -2,22 +2,21 @@
 
 import { createComponent, deleteComponent } from "@/lib/api";
 import { type ComponentBase } from "@vulkanlabs/client-open";
+import { handleActionError } from "@/lib/error-handler";
 
 export async function createComponentAction(data: ComponentBase): Promise<any> {
     try {
         const response = await createComponent(data);
         return response;
     } catch (error) {
-        console.error("Error creating component:", error);
-        throw new Error("Failed to create component");
+        handleActionError("create", "component", error);
     }
 }
 
-export async function deleteComponentAction(componentId: string): Promise<void> {
+export async function deleteComponentAction(componentName: string): Promise<void> {
     try {
-        await deleteComponent(componentId);
+        await deleteComponent(componentName);
     } catch (error) {
-        console.error("Error deleting component:", error);
-        throw new Error("Failed to delete component");
+        handleActionError("delete", "component", error);
     }
 }
