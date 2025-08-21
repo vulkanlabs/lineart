@@ -147,8 +147,8 @@ export function ComponentsTable({
 }
 
 function getComponentsTableColumns(config: ComponentsTableConfig): ColumnDef<Component>[] {
-    const buildHref = (componentId: string): string => {
-        const basePath = `/components/${componentId}`;
+    const buildHref = (componentName: string): string => {
+        const basePath = `/components/${componentName}`;
         if (config.projectId && config.withProject) {
             return config.withProject(basePath, config.projectId);
         }
@@ -161,7 +161,7 @@ function getComponentsTableColumns(config: ComponentsTableConfig): ColumnDef<Com
             {
                 accessorKey: "link",
                 header: "",
-                cell: ({ row }) => <DetailsButton href={buildHref(row.getValue("component_id"))} />,
+                cell: ({ row }) => <DetailsButton href={buildHref(row.getValue("name"))} />,
             },
             {
                 accessorKey: "component_id",
@@ -180,7 +180,7 @@ function getComponentsTableColumns(config: ComponentsTableConfig): ColumnDef<Com
         {
             id: "link",
             enableHiding: false,
-            cell: ({ row }) => <DetailsButton href={buildHref(row.getValue("component_id"))} />,
+            cell: ({ row }) => <DetailsButton href={buildHref(row.getValue("name"))} />,
         },
         {
             header: "ID",
@@ -309,8 +309,8 @@ function ComponentsTableActions({ row, config }: { row: any; config: ComponentsT
     const component = row.original;
     const router = useRouter();
 
-    const buildHref = (componentId: string): string => {
-        const basePath = `/components/${componentId}`;
+    const buildHref = (componentName: string): string => {
+        const basePath = `/components/${componentName}`;
         if (config.projectId && config.withProject) {
             return config.withProject(basePath, config.projectId);
         }
@@ -333,7 +333,7 @@ function ComponentsTableActions({ row, config }: { row: any; config: ComponentsT
                     Copy Component ID
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push(buildHref(component.component_id))}>
+                <DropdownMenuItem onClick={() => router.push(buildHref(component.name))}>
                     View Component
                 </DropdownMenuItem>
             </DropdownMenuContent>

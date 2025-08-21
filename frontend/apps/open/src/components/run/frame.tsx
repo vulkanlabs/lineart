@@ -1,11 +1,11 @@
 import { WorkflowFrame as SharedWorkflowFrame, type RunFrameConfig } from "@vulkanlabs/base";
 import type { RunNodeLayout } from "./types";
 import type { EdgeLayoutConfig } from "@vulkanlabs/base";
-import { layoutGraph } from "@vulkanlabs/base";
+import { getLayoutedNodes } from "@vulkanlabs/base";
 
 // Global scope run frame configuration
 const globalScopeRunConfig: RunFrameConfig = {
-    layoutGraph: layoutGraph,
+    layoutGraph: getLayoutedNodes,
 };
 
 // Global scope WorkflowFrame wrapper
