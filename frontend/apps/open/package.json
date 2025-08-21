@@ -19,6 +19,7 @@
     "@vulkanlabs/client-open": "*",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "elkjs": "^0.9.3",
     "next": "^15.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
