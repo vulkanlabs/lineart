@@ -12,7 +12,8 @@ export function createUserFriendlyError(
     const errorPatterns = [
         {
             pattern: /network|fetch|connection/i,
-            message: `Unable to ${operation} ${resourceType} due to network issues. Please check your connection and try again.`
+            message: `Unable to ${operation} ${resourceType} due to network issues. ` +
+                     `Please check your connection and try again.`
         },
         {
             pattern: /unauthorized|403|forbidden/i,
@@ -20,7 +21,8 @@ export function createUserFriendlyError(
         },
         {
             pattern: /not found|404/i,
-            message: `The ${resourceType} you're trying to ${operation} was not found. It may have been deleted by someone else.`
+            message: `The ${resourceType} you're trying to ${operation} was not found. ` +
+                     `It may have been deleted by someone else.`
         },
         {
             pattern: /validation|invalid|bad request|400/i,
