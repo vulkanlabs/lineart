@@ -1,4 +1,4 @@
-import { PolicyDefinitionDictOutput } from "@vulkanlabs/client-open";
+import { PolicyDefinitionDict } from "@vulkanlabs/client-open";
 import { NodeLayoutConfig, NodeDefinition, EdgeLayoutConfig, Dict } from "@/lib/workflow/types";
 import { NodeTypeMapping, layoutGraph, makeGraphElements } from "@/lib/workflow/graph";
 
@@ -9,7 +9,7 @@ import { NodeTypeMapping, layoutGraph, makeGraphElements } from "@/lib/workflow/
  * @returns A Promise that returns the layouted nodes and edges of the graph.
  */
 export async function makeWorkflow(
-    graphData: PolicyDefinitionDictOutput,
+    graphData: PolicyDefinitionDict,
     componentsState: ComponentStateDict,
     options: Dict = defaultElkOptions,
 ): Promise<[NodeLayoutConfig[], EdgeLayoutConfig[]]> {

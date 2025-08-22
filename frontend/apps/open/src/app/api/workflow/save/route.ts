@@ -1,11 +1,11 @@
 // Workflow save API - Uses direct server communication
 import {
-    PolicyVersionBase,
-    PolicyDefinitionDictInput,
+    PolicyVersionUpdate,
+    PolicyDefinitionDict,
     UIMetadata,
     PolicyVersion,
     Component,
-    ComponentBase,
+    ComponentUpdate,
 } from "@vulkanlabs/client-open";
 import { updateComponent } from "@/lib/api";
 
@@ -33,7 +33,7 @@ export async function PUT(request: Request) {
             uiMetadata,
         }: {
             workflow: any;
-            spec: PolicyDefinitionDictInput;
+            spec: PolicyDefinitionDict;
             uiMetadata: { [key: string]: UIMetadata };
         } = await request.json();
 
@@ -55,20 +55,22 @@ export async function PUT(request: Request) {
 
 async function saveComponent(
     component: Component,
-    spec: PolicyDefinitionDictInput,
+    spec: PolicyDefinitionDict,
     uiMetadata: { [key: string]: UIMetadata },
 ) {
     try {
-        const requestBody: ComponentBase = {
-            requirements: component.workflow?.requirements || [],
+        const requestBody: ComponentUpdate = {
             name: component.name,
             description: component.description || null,
             icon: component.icon || null,
-            spec,
-            variables: component.workflow?.variables || [],
-            ui_metadata: uiMetadata,
+            workflow: {
+                spec,
+                requirements: component.workflow?.requirements || [],
+                variables: component.workflow?.variables || [],
+                ui_metadata: uiMetadata,
+            },
         };
-        const response = await updateComponent(component.component_id, requestBody);
+        const response = await updateComponent(component.name, requestBody);
         return apiResponse.success(response);
     } catch (error) {
         return apiResponse.error(
@@ -79,18 +81,20 @@ async function saveComponent(
 
 async function savePolicyVersion(
     policyVersion: PolicyVersion,
-    spec: PolicyDefinitionDictInput,
+    spec: PolicyDefinitionDict,
     uiMetadata: { [key: string]: UIMetadata },
 ) {
     try {
         const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
         if (!serverUrl) return apiResponse.error("Server URL is not configured");
 
-        const requestBody: PolicyVersionBase = {
+        const requestBody: PolicyVersionUpdate = {
             alias: policyVersion.alias || null,
-            spec,
-            requirements: [],
-            ui_metadata: uiMetadata,
+            workflow: {
+                spec: spec,
+                requirements: [],
+                ui_metadata: uiMetadata,
+            },
         };
 
         const response = await fetch(

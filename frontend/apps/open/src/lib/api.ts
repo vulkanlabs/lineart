@@ -8,8 +8,8 @@ import {
     type PolicyVersion,
     type PolicyBase,
     type PolicyCreate,
-    type PolicyVersionCreate,
     type PolicyVersionBase,
+    type PolicyVersionUpdate,
     type Run,
     type RunData,
     type RunLogs,
@@ -18,7 +18,7 @@ import {
     type DataSourceEnvVarBase,
     type PolicyAllocationStrategy,
     type ConfigurationVariablesBase,
-    type ComponentBase,
+    type ComponentUpdate,
     type Component,
 } from "@vulkanlabs/client-open";
 import { createApiConfig, withErrorHandling } from "@vulkanlabs/api-utils";
@@ -69,19 +69,19 @@ export const updatePolicyAllocationStrategy = async (
 };
 
 // Policy Version API methods
-export const createPolicyVersion = async (data: PolicyVersionCreate): Promise<PolicyVersion> => {
+export const createPolicyVersion = async (data: PolicyVersionBase): Promise<PolicyVersion> => {
     return withErrorHandling(
-        policyVersionsApi.createPolicyVersion({ policyVersionCreate: data }),
+        policyVersionsApi.createPolicyVersion({ policyVersionBase: data }),
         "create policy version",
     );
 };
 
 export const updatePolicyVersion = async (
     policyVersionId: string,
-    data: PolicyVersionBase,
+    data: PolicyVersionUpdate,
 ): Promise<PolicyVersion> => {
     return withErrorHandling(
-        policyVersionsApi.updatePolicyVersion({ policyVersionId, policyVersionBase: data }),
+        policyVersionsApi.updatePolicyVersion({ policyVersionId, policyVersionUpdate: data }),
         `update policy version ${policyVersionId}`,
     );
 };
@@ -235,24 +235,24 @@ export async function fetchComponents(includeArchived: boolean = false): Promise
 
 export async function fetchComponent(componentName: string): Promise<Component> {
     return withErrorHandling(
-        componentsApi.getComponent({ componentId: componentName }),
+        componentsApi.getComponent({ componentName: componentName }),
         `fetch component ${componentName}`,
     );
 }
 
-export async function createComponent(data: ComponentBase): Promise<Component> {
+export async function createComponent(data: ComponentUpdate): Promise<Component> {
     return withErrorHandling(
-        componentsApi.createComponent({ componentBase: data }),
+        componentsApi.createComponent({ componentUpdate: data }),
         `create component`,
     );
 }
 
 export async function updateComponent(
     componentName: string,
-    data: ComponentBase,
+    data: ComponentUpdate,
 ): Promise<Component> {
     return withErrorHandling(
-        componentsApi.updateComponent({ componentName, componentBase: data }),
+        componentsApi.updateComponent({ componentName, componentUpdate: data }),
         `update component ${componentName}`,
     );
 }
@@ -393,8 +393,8 @@ export type {
     PolicyVersion,
     PolicyBase,
     PolicyCreate,
-    PolicyVersionCreate,
     PolicyVersionBase,
+    PolicyVersionUpdate,
     DataSource,
     DataSourceSpec,
     DataSourceEnvVarBase,
