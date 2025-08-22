@@ -75,7 +75,3 @@ API server implementation that exposes the core functionality as RESTful endpoin
 ### `vulkan-dagster`
 
 Integration with Dagster workflow engine for defining and executing data pipelines and policy workflows.
-
-### `upload-svc`
-
-Service handling file uploads and processing for the platform. Currently not used.

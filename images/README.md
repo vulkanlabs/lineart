@@ -10,8 +10,6 @@ This folder holds the code for Vulkan images.
     * Image: `ghcr.io/vulkanlabs/dagster`
 * **Dagster Database (`dagster-db`)**: PostgresQL database for dagster.
     * Image: `ghcr.io/vulkanlabs/dagster-db`
-* **Upload Service (`upload-svc`)**: Accepts file uploads, not used at the moment.
-    * Image: `ghcr.io/vulkanlabs/upload-svc`
 
 ## How are the images built?
 
