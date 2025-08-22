@@ -1,24 +1,19 @@
 "use client";
 
-import { VulkanLogo as SharedVulkanLogo, type VulkanLogoConfig } from "@vulkanlabs/base";
 import { useRouter, useSearchParams } from "next/navigation";
 
 // Global scope VulkanLogo wrapper
 export function VulkanLogo() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const currentProject = searchParams.get("project");
 
-    const handleNavigate = (path: string) => {
-        router.push(path);
+    const handleClick = () => {
+        router.push("/");
     };
 
-    const globalScopeLogoConfig: VulkanLogoConfig = {
-        homePath: "/",
-        useProjectRouting: false,
-        currentProject: currentProject || undefined,
-        onNavigate: handleNavigate,
-    };
-
-    return <SharedVulkanLogo config={globalScopeLogoConfig} />;
+    return (
+        <div className="flex items-center gap-2 text-xl font-bold" onClick={handleClick} style={{ cursor: "pointer" }}>
+            <img src="/assets/vulkan-engine.png" alt="Vulkan logo" className="max-h-14 max-w-48" />
+        </div>
+    );
 }
