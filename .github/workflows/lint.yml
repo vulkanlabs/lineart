@@ -32,11 +32,11 @@ jobs:
         
     - name: Check imports with isort
       run: |
-        ruff check --select I --extend-exclude="scripts/*,vulkan/docs/*,upload-svc/*,sdks/*" .
+        ruff check --select I --extend-exclude="scripts/*,docs/*,upload-svc/*,sdks/*" .
         
     - name: Lint with ruff
       run: |
-         ruff check . --extend-exclude="scripts/*,vulkan/docs/*,upload-svc/*,sdks/*" --extend-ignore="F401"
+         ruff check . --extend-exclude="scripts/*,docs/*,upload-svc/*,sdks/*" --extend-ignore="F401"
 
   js-lint:
     runs-on: ubuntu-latest
