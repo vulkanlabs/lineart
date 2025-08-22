@@ -18,6 +18,7 @@ export { TerminateNode } from "./terminate-node";
 export { PolicyNode } from "./policy-node";
 export { DataInputNode } from "./data-input-node";
 export { ConnectionNode } from "./connection-node";
+export { ComponentNode } from "./component-node";
 
 // Base node components
 export { StandardWorkflowNode, InputWorkflowNode, TerminateWorkflowNode } from "./base";

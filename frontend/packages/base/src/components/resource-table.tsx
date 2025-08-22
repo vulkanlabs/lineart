@@ -17,7 +17,7 @@ import {
 import { ChevronDown, Copy, ExternalLink, MoreHorizontal, RefreshCcw, Trash } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "./ui/button";
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -26,16 +26,9 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+} from "./ui/dropdown-menu";
+import { Input } from "./ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import {
     Dialog,
     DialogContent,
@@ -43,7 +36,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
+} from "./ui/dialog";
 
 export interface SearchFilterOptions {
     column: string;

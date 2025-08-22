@@ -3,9 +3,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@vulkanlabs/base/ui";
 import { EnvTab } from "./components";
 import { AppWorkflowFrame } from "@/components/workflow-frame";
 
-export default async function Page(props: { params: Promise<{ component_id: string }> }) {
-    const { component_id } = await props.params;
-    const component = await fetchComponent(component_id);
+export default async function Page(props: { params: Promise<{ component_name: string }> }) {
+    const { component_name } = await props.params;
+    console.log("component_name", component_name);
+    const component = await fetchComponent(component_name);
 
     if (!component) {
         return <div>Component not found</div>;

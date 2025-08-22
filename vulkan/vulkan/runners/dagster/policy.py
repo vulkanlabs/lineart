@@ -90,10 +90,10 @@ def _as_dagster_dependencies(
 
     deps = {}
     for k, v in dependencies.items():
-        # Check if the dependency specifies an output name or a key
+        # Check if the dependency specifies an output name
         if v.output is not None:
             definition = DependencyDefinition(normalize_node_id(v.id), v.output)
         else:
             definition = DependencyDefinition(normalize_node_id(v.id), "result")
-        deps[k] = definition
+        deps[normalize_node_id(k)] = definition
     return deps

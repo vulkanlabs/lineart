@@ -1,0 +1,45 @@
+name: OpenAPI - Build Spec
+
+on:
+  workflow_call:
+    inputs:
+      force_publish:
+        description: 'Force publish packages'
+        required: false
+        default: false
+        type: boolean
+    outputs:
+      spec:
+        description: 'The generated OpenAPI specification'
+        value: ${{ jobs.build-spec.outputs.spec }}
+        
+jobs:
+    build-spec:
+      runs-on: ubuntu-latest
+      outputs:
+        spec: ${{ steps.render-spec.outputs.spec }}
+      steps:
+        - uses: actions/checkout@v4
+
+        - name: Set up Python
+          uses: actions/setup-python@v4
+          with:
+            python-version: '3.12'
+
+        - name: Install dependencies with uv
+          run: |
+            set -x 
+            pip install 'uv<0.8'
+            uv sync
+
+        - name: Render OpenAPI Specification
+          id: render-spec
+          run: |
+            uv run python scripts/export-openapi.py --out ${{ github.workspace }}/generated/openapi.json
+
+        - name: Archive generated files
+          uses: actions/upload-artifact@v4
+          with:
+            name: spec
+            path: ${{ github.workspace }}/generated/openapi.json
+            if-no-files-found: error

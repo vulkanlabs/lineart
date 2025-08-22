@@ -44,42 +44,46 @@ def create_component(
     return service.create_component(config, project_id=project_id)
 
 
-@router.get("/{component_id}", response_model=schemas.Component)
+@router.get("/{component_name}", response_model=schemas.Component)
 def get_component(
-    component_id: str,
+    component_name: str,
     service: ComponentService = Depends(get_component_service),
     project_id: str | None = None,
 ):
-    """Get a component by ID."""
+    """Get a component by name."""
     try:
-        return service.get_component(component_id, project_id)
+        return service.get_component(
+            component_name=component_name, project_id=project_id
+        )
     except ComponentNotFoundException:
         return Response(status_code=404)
 
 
-@router.put("/{component_id}", response_model=schemas.Component)
+@router.put("/{component_name}", response_model=schemas.Component)
 def update_component(
-    component_id: str,
+    component_name: str,
     config: schemas.ComponentUpdate,
     service: ComponentService = Depends(get_component_service),
     project_id: str | None = None,
 ):
-    """Update a component."""
+    """Update a component by name."""
     try:
-        return service.update_component(component_id, config, project_id=project_id)
+        return service.update_component(
+            component_name=component_name, config=config, project_id=project_id
+        )
     except ComponentNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.delete("/{component_id}")
+@router.delete("/{component_name}")
 def delete_component(
-    component_id: str,
+    component_name: str,
     service: ComponentService = Depends(get_component_service),
     project_id: str | None = None,
 ):
     """Delete (archive) a component."""
     try:
-        service.delete_component(component_id, project_id=project_id)
-        return {"component_id": component_id}
+        service.delete_component(component_name, project_id=project_id)
+        return {"component_name": component_name}
     except ComponentNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))

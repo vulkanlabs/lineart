@@ -72,7 +72,7 @@ export default function PolicyMetrics({
             .catch((error: any) => {
                 console.error(error);
             });
-    }, [dateRange, selectedVersions]);
+    }, [dateRange, selectedVersions, metricsLoader, outcomesLoader, policyId]);
 
     const graphDefinitions = [
         {
