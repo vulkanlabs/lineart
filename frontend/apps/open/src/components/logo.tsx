@@ -12,7 +12,11 @@ export function VulkanLogo() {
     };
 
     return (
-        <div className="flex items-center gap-2 text-xl font-bold" onClick={handleClick} style={{ cursor: "pointer" }}>
+        <div
+            className="flex items-center gap-2 text-xl font-bold"
+            onClick={handleClick}
+            style={{ cursor: "pointer" }}
+        >
             <img src="/assets/vulkan-engine.png" alt="Vulkan logo" className="max-h-14 max-w-48" />
         </div>
     );
