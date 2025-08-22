@@ -36,7 +36,7 @@ router = APIRouter(
 
 @router.post("/", response_model=schemas.PolicyVersion)
 def create_policy_version(
-    config: schemas.PolicyVersionCreate,
+    config: schemas.PolicyVersionBase,
     service: PolicyVersionService = Depends(get_policy_version_service),
 ):
     """Create a new policy version."""
@@ -74,7 +74,7 @@ def list_policy_versions(
 @router.put("/{policy_version_id}", response_model=schemas.PolicyVersion)
 def update_policy_version(
     policy_version_id: str,
-    config: schemas.PolicyVersionBase,
+    config: schemas.PolicyVersionUpdate,
     service: PolicyVersionService = Depends(get_policy_version_service),
 ):
     """Update a policy version."""
@@ -107,7 +107,7 @@ def delete_policy_version(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/{policy_version_id}/runs")
+@router.post("/{policy_version_id}/runs", response_model=schemas.RunCreated)
 def create_run_by_policy_version(
     policy_version_id: str,
     input_data: Annotated[dict, Body()],

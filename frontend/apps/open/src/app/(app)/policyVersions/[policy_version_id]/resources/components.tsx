@@ -122,10 +122,12 @@ export function RequirementsEditor({ policyVersion }: { policyVersion: PolicyVer
             .filter((line) => line.length > 0);
         try {
             await updatePolicyVersion(policyVersion.policy_version_id, {
-                requirements: formattedRequirements,
                 alias: policyVersion.alias || null,
-                spec: policyVersion.workflow?.spec || {},
-                ui_metadata: policyVersion.workflow?.ui_metadata || null,
+                workflow: {
+                    requirements: formattedRequirements,
+                    spec: policyVersion.workflow?.spec || {},
+                    ui_metadata: policyVersion.workflow?.ui_metadata || null,
+                },
             });
             form.reset({ requirements: data.requirements });
             toast("Requirements saved", {

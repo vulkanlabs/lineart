@@ -1,0 +1,39 @@
+speakeasyVersion: 1.606.3
+sources:
+    VulkanAPI:
+        sourceNamespace: vulkan-api
+        sourceRevisionDigest: sha256:5dc1429fd3cebb8cc0c9d179a927aefed175417d25a3aa0d1577744eb12294a6
+        sourceBlobDigest: sha256:64a48a282321887ebb378618cb4f2e6edd0b46d2da38c75cd18066b49336087b
+        tags:
+            - latest
+            - 0.1.0
+targets:
+    lineart:
+        source: VulkanAPI
+        sourceNamespace: vulkan-api
+        sourceRevisionDigest: sha256:5dc1429fd3cebb8cc0c9d179a927aefed175417d25a3aa0d1577744eb12294a6
+        sourceBlobDigest: sha256:64a48a282321887ebb378618cb4f2e6edd0b46d2da38c75cd18066b49336087b
+        codeSamplesNamespace: vulkan-api-python-code-samples
+        codeSamplesRevisionDigest: sha256:5eeb50e6a4d0dc4f0b3683159dd1e5ed6023f34012626e384bdd408b3b865ab9
+workflow:
+    workflowVersion: 1.0.0
+    speakeasyVersion: latest
+    sources:
+        VulkanAPI:
+            inputs:
+                - location: ../../generated/openapi.json
+            overlays:
+                - location: .speakeasy/speakeasy-modifications-overlay.yaml
+            output: .speakeasy/out.openapi.yaml
+            registry:
+                location: registry.speakeasyapi.dev/vulkan/lineart/vulkan-api
+    targets:
+        lineart:
+            target: python
+            source: VulkanAPI
+            codeSamples:
+                registry:
+                    location: registry.speakeasyapi.dev/vulkan/lineart/vulkan-api-python-code-samples
+                labelOverride:
+                    fixedValue: Python (SDK)
+                blocking: false

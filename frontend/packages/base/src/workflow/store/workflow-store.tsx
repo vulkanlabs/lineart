@@ -11,7 +11,7 @@ import {
     type Edge,
 } from "@xyflow/react";
 
-import type { PolicyDefinitionDictInput } from "@vulkanlabs/client-open";
+import type { PolicyDefinitionDict } from "@vulkanlabs/client-open";
 import type { WorkflowApiClient } from "../api/types";
 import { AsNodeDefinitionDict, type VulkanNode, type WorkflowState } from "../types/workflow";
 import type { InputNodeMetadata } from "../types/nodes";
@@ -48,7 +48,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
         getSpec: () => {
             const nodes = get().nodes || [];
-            const spec: PolicyDefinitionDictInput = {
+            const spec: PolicyDefinitionDict = {
                 nodes: nodes.filter((n) => n.type !== "INPUT").map(AsNodeDefinitionDict),
                 input_schema: get().getInputSchema(),
             };

@@ -225,3 +225,4 @@ class PolicyDefinitionDict(BaseModel):
     nodes: list[NodeDefinitionDict]
     input_schema: dict[str, str]
     config_variables: list[str] | None = None
+    output_callback: str | None = None

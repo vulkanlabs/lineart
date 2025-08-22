@@ -126,6 +126,8 @@ class PolicyService(BaseService):
                 update_data.allocation_strategy, project_id=project_id
             )
             policy.allocation_strategy = update_data.allocation_strategy.model_dump()
+        else:
+            policy.allocation_strategy = None
 
         # Update fields if provided
         if update_data.name is not None and update_data.name != policy.name:
@@ -300,7 +302,7 @@ class PolicyService(BaseService):
                 f"Policy version {policy_version_id} not found"
             )
 
-        if version.status != WorkflowStatus.VALID:
+        if version.workflow.status != WorkflowStatus.VALID:
             raise InvalidPolicyVersionException(
                 f"Policy version {policy_version_id} is not valid"
             )

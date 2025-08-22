@@ -57,15 +57,15 @@ class ComponentService(BaseService):
 
     def create_component(
         self,
-        config: schemas.ComponentBase,
+        config: schemas.ComponentUpdate,
         project_id: str | None = None,
     ) -> schemas.Component:
         """Create a new component."""
 
         # Fill in defaults for non-nullable fields
-        requirements = config.requirements or []
-        variables = config.variables or []
-        spec = self._convert_pydantic_to_dict(config.spec) or {
+        requirements = config.workflow.requirements or []
+        variables = config.workflow.variables or []
+        spec = self._convert_pydantic_to_dict(config.workflow.spec) or {
             "nodes": [],
             "input_schema": {},
         }
@@ -75,7 +75,7 @@ class ComponentService(BaseService):
             spec=spec,
             requirements=requirements,
             variables=variables,
-            ui_metadata=config.ui_metadata or {},
+            ui_metadata=config.workflow.ui_metadata or {},
         )
 
         component = Component(
@@ -97,7 +97,7 @@ class ComponentService(BaseService):
     def update_component(
         self,
         component_name: str,
-        config: schemas.ComponentBase,
+        config: schemas.ComponentUpdate,
         project_id: str | None = None,
     ) -> schemas.Component:
         """Update a component."""
@@ -119,10 +119,10 @@ class ComponentService(BaseService):
 
         workflow = self.workflow_service.update_workflow(
             workflow_id=component.workflow_id,
-            spec=config.spec,
-            requirements=config.requirements,
-            variables=config.variables,
-            ui_metadata=config.ui_metadata,
+            spec=config.workflow.spec,
+            requirements=config.workflow.requirements,
+            variables=config.workflow.variables,
+            ui_metadata=config.workflow.ui_metadata,
             project_id=project_id,
         )
 

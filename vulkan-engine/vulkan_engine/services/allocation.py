@@ -4,15 +4,13 @@ Run allocation service.
 Handles run group creation and allocation based on policy strategies.
 """
 
-from typing import Dict
-
 from vulkan_engine.dagster.launch_run import DagsterRunLauncher, allocate_runs
 from vulkan_engine.db import RunGroup
 from vulkan_engine.exceptions import (
     InvalidAllocationStrategyException,
 )
 from vulkan_engine.loaders import PolicyLoader
-from vulkan_engine.schemas import PolicyAllocationStrategy
+from vulkan_engine.schemas import PolicyAllocationStrategy, RunGroupResult
 from vulkan_engine.services.base import BaseService
 
 
@@ -35,10 +33,10 @@ class AllocationService(BaseService):
     def create_run_group(
         self,
         policy_id: str,
-        input_data: Dict,
-        config_variables: Dict,
+        input_data: dict,
+        config_variables: dict,
         project_id: str = None,
-    ) -> Dict:
+    ) -> RunGroupResult:
         """
         Create a run group and allocate runs based on policy strategy.
 
@@ -49,7 +47,7 @@ class AllocationService(BaseService):
             project_id: Optional project UUID to filter by
 
         Returns:
-            Dictionary with policy_id, run_group_id, and allocated runs
+            RunGroupResult
 
         Raises:
             PolicyNotFoundException: If policy doesn't exist or doesn't belong to specified project
@@ -89,8 +87,8 @@ class AllocationService(BaseService):
             project_id=policy.project_id,
         )
 
-        return {
-            "policy_id": policy.policy_id,
-            "run_group_id": run_group.run_group_id,
-            "runs": runs,
-        }
+        return RunGroupResult(
+            policy_id=policy.policy_id,
+            run_group_id=run_group.run_group_id,
+            runs=runs,
+        )

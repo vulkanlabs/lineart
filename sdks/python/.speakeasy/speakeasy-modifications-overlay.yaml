@@ -1,0 +1,466 @@
+overlay: 1.0.0
+x-speakeasy-jsonpath: rfc9535
+info:
+  title: Speakeasy Modifications
+  version: 0.0.2
+  x-speakeasy-metadata:
+    after: ""
+    before: ""
+    type: speakeasy-modifications
+actions:
+  - target: $["paths"]["/policies/{policy_id}/runs/count"]["post"]
+    update:
+      x-speakeasy-name-override: getRunCounts
+    x-speakeasy-metadata:
+      after: sdk.policies.getRunCounts()
+      before: sdk.policies.runs_by_policy()
+      created_at: 1755612364667
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policies/{policy_id}"]["put"]
+    update:
+      x-speakeasy-name-override: update
+    x-speakeasy-metadata:
+      after: sdk.policies.update()
+      before: sdk.policies.update_policy()
+      created_at: 1755612364667
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policy-versions/"]["get"]
+    update:
+      x-speakeasy-name-override: list
+    x-speakeasy-metadata:
+      after: sdk.policy-versions.list()
+      before: sdk.policy-versions.list_policy_versions()
+      created_at: 1755612364667
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policy-versions/{policy_version_id}"]["get"]
+    update:
+      x-speakeasy-name-override: get
+    x-speakeasy-metadata:
+      after: sdk.policy-versions.get()
+      before: sdk.policy-versions.get_policy_version()
+      created_at: 1755612364667
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/data-sources/{data_source_id}"]["get"]
+    update:
+      x-speakeasy-group: dataSources
+      x-speakeasy-name-override: get
+    x-speakeasy-metadata:
+      after: sdk.dataSources.get()
+      before: sdk.data-sources.get_data_source()
+      created_at: 1755612364667
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policies/{policy_id}/runs/duration"]["post"]
+    update:
+      x-speakeasy-name-override: getRunDurationStats
+    x-speakeasy-metadata:
+      after: sdk.policies.getRunDurationStats()
+      before: sdk.policies.run_duration_stats_by_policy()
+      created_at: 1755612364667
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/internal/run-version-sync"]["post"]
+    update:
+      x-speakeasy-name-override: runVersionSync
+    x-speakeasy-metadata:
+      after: sdk.internal.runVersionSync()
+      before: sdk.internal.run_version_sync()
+      created_at: 1755612364667
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/components/{component_id}"]["delete"]
+    update:
+      x-speakeasy-name-override: delete
+    x-speakeasy-metadata:
+      after: sdk.components.delete()
+      before: sdk.components.delete_component()
+      created_at: 1755612364667
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/internal/runs/{run_id}/metadata"]["post"]
+    update:
+      x-speakeasy-name-override: publishMetadata
+    x-speakeasy-metadata:
+      after: sdk.internal.publishMetadata()
+      before: sdk.internal.publish_metadata()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/data-sources/{data_source_id}/cache-stats"]["get"]
+    update:
+      x-speakeasy-group: dataSources
+      x-speakeasy-name-override: getCacheStatistics
+    x-speakeasy-metadata:
+      after: sdk.dataSources.getCacheStatistics()
+      before: sdk.data-sources.get_cache_statistics()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/data-sources/"]["post"]
+    update:
+      x-speakeasy-group: dataSources
+      x-speakeasy-name-override: create
+    x-speakeasy-metadata:
+      after: sdk.dataSources.create()
+      before: sdk.data-sources.create_data_source()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/data-sources/{data_source_id}/variables"]["put"]
+    update:
+      x-speakeasy-group: dataSources
+      x-speakeasy-name-override: setEnvVariables
+    x-speakeasy-metadata:
+      after: sdk.dataSources.setEnvVariables()
+      before: sdk.data-sources.set_data_source_env_variables()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/auth/{service_name}/user_info"]["get"]
+    update:
+      x-speakeasy-name-override: getUserInfo
+    x-speakeasy-metadata:
+      after: sdk.auth.getUserInfo()
+      before: sdk.auth.get_user_info()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policy-versions/{policy_version_id}"]["delete"]
+    update:
+      x-speakeasy-group: policyVersions
+      x-speakeasy-name-override: delete
+    x-speakeasy-metadata:
+      after: sdk.policyVersions.delete()
+      before: sdk.policy-versions.delete_policy_version()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/components/{component_id}"]["get"]
+    update:
+      x-speakeasy-name-override: get
+    x-speakeasy-metadata:
+      after: sdk.components.get()
+      before: sdk.components.get_component()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/data-sources/{data_source_id}/metrics"]["get"]
+    update:
+      x-speakeasy-group: dataSources
+      x-speakeasy-name-override: getMetrics
+    x-speakeasy-metadata:
+      after: sdk.dataSources.getMetrics()
+      before: sdk.data-sources.get_data_source_metrics()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/data-sources/{data_source_id}/usage"]["get"]
+    update:
+      x-speakeasy-name-override: getUsage
+    x-speakeasy-metadata:
+      after: sdk.data-sources.getUsage()
+      before: sdk.data-sources.get_data_source_usage()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policies/{policy_id}/versions"]["get"]
+    update:
+      x-speakeasy-name-override: listVersions
+    x-speakeasy-metadata:
+      after: sdk.policies.listVersions()
+      before: sdk.policies.list_policy_versions_by_policy()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/data-sources/"]["get"]
+    update:
+      x-speakeasy-group: dataSources
+      x-speakeasy-name-override: list
+    x-speakeasy-metadata:
+      after: sdk.dataSources.list()
+      before: sdk.data-sources.list_data_sources()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/data-sources/{data_source_id}/objects/{data_object_id}"]["get"]
+    update:
+      x-speakeasy-group: dataSources
+      x-speakeasy-name-override: getObject
+    x-speakeasy-metadata:
+      after: sdk.dataSources.getObject()
+      before: sdk.data-sources.get_data_object()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/data-sources/{data_source_id}/objects"]["get"]
+    update:
+      x-speakeasy-name-override: listDataObjects
+    x-speakeasy-metadata:
+      after: sdk.data-sources.listDataObjects()
+      before: sdk.data-sources.list_data_objects()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policies/"]["post"]
+    update:
+      x-speakeasy-name-override: create
+    x-speakeasy-metadata:
+      after: sdk.policies.create()
+      before: sdk.policies.create_policy()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policy-versions/{policy_version_id}/run"]["post"]
+    update:
+      x-speakeasy-name-override: runWorkflow
+    x-speakeasy-metadata:
+      after: sdk.policy-versions.runWorkflow()
+      before: sdk.policy-versions.run_workflow()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policy-versions/{policy_version_id}/data-sources"]["get"]
+    update:
+      x-speakeasy-group: policyVersions
+      x-speakeasy-name-override: listDataSources
+    x-speakeasy-metadata:
+      after: sdk.policyVersions.listDataSources()
+      before: sdk.policy-versions.list_data_sources_by_policy_version()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policy-versions/{policy_version_id}/runs"]["post"]
+    update:
+      x-speakeasy-group: policyVersions
+      x-speakeasy-name-override: createRun
+    x-speakeasy-metadata:
+      after: sdk.policyVersions.createRun()
+      before: sdk.policy-versions.create_run_by_policy_version()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/data-sources/{data_source_id}"]["delete"]
+    update:
+      x-speakeasy-group: dataSources
+      x-speakeasy-name-override: delete
+    x-speakeasy-metadata:
+      after: sdk.dataSources.delete()
+      before: sdk.data-sources.delete_data_source()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/auth/{service_name}/start"]["get"]
+    update:
+      x-speakeasy-name-override: start
+    x-speakeasy-metadata:
+      after: sdk.auth.start()
+      before: sdk.auth.start_auth()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/runs/{run_id}"]["get"]
+    update:
+      x-speakeasy-name-override: get
+    x-speakeasy-metadata:
+      after: sdk.runs.get()
+      before: sdk.runs.get_run()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/auth/{service_name}/callback"]["get"]
+    update:
+      x-speakeasy-name-override: callback
+    x-speakeasy-metadata:
+      after: sdk.auth.callback()
+      before: sdk.auth.auth_callback()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/internal/data-broker"]["post"]
+    update:
+      x-speakeasy-name-override: requestDataFromBroker
+    x-speakeasy-metadata:
+      after: sdk.internal.requestDataFromBroker()
+      before: sdk.internal.request_data_from_broker()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policy-versions/"]["post"]
+    update:
+      x-speakeasy-group: policyVersions
+      x-speakeasy-name-override: create
+    x-speakeasy-metadata:
+      after: sdk.policyVersions.create()
+      before: sdk.policy-versions.create_policy_version()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policies/{policy_id}"]["delete"]
+    update:
+      x-speakeasy-name-override: delete
+    x-speakeasy-metadata:
+      after: sdk.policies.delete()
+      before: sdk.policies.delete_policy()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policy-versions/{policy_version_id}"]["put"]
+    update:
+      x-speakeasy-group: policyVersions
+      x-speakeasy-name-override: update
+    x-speakeasy-metadata:
+      after: sdk.policyVersions.update()
+      before: sdk.policy-versions.update_policy_version()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policies/{policy_id}/runs"]["get"]
+    update:
+      x-speakeasy-name-override: listRuns
+    x-speakeasy-metadata:
+      after: sdk.policies.listRuns()
+      before: sdk.policies.list_runs_by_policy()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policy-versions/{policy_version_id}/variables"]["put"]
+    update:
+      x-speakeasy-group: policyVersions
+      x-speakeasy-name-override: setConfigVariables
+    x-speakeasy-metadata:
+      after: sdk.policyVersions.setConfigVariables()
+      before: sdk.policy-versions.set_config_variables()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/components/"]["get"]
+    update:
+      x-speakeasy-name-override: list
+    x-speakeasy-metadata:
+      after: sdk.components.list()
+      before: sdk.components.list_components()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policies/{policy_id}/runs/duration/by_status"]["post"]
+    update:
+      x-speakeasy-name-override: getRunDurationStatsByStatus
+    x-speakeasy-metadata:
+      after: sdk.policies.getRunDurationStatsByStatus()
+      before: sdk.policies.run_duration_stats_by_policy_status()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policies/{policy_id}/runs"]["post"]
+    update:
+      x-speakeasy-name-override: createRunGroup
+    x-speakeasy-metadata:
+      after: sdk.policies.createRunGroup()
+      before: sdk.policies.create_run_group()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/data-sources/{data_source_id}/variables"]["get"]
+    update:
+      x-speakeasy-name-override: getEnvVariables
+    x-speakeasy-metadata:
+      after: sdk.data-sources.getEnvVariables()
+      before: sdk.data-sources.get_data_source_env_variables()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/runs/{run_id}/logs"]["get"]
+    update:
+      x-speakeasy-name-override: getLogs
+    x-speakeasy-metadata:
+      after: sdk.runs.getLogs()
+      before: sdk.runs.get_run_logs()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/components/"]["post"]
+    update:
+      x-speakeasy-name-override: create
+    x-speakeasy-metadata:
+      after: sdk.components.create()
+      before: sdk.components.create_component()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policy-versions/{policy_version_id}/runs"]["get"]
+    update:
+      x-speakeasy-name-override: listRuns
+    x-speakeasy-metadata:
+      after: sdk.policy-versions.listRuns()
+      before: sdk.policy-versions.list_runs_by_policy_version()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/components/{component_id}"]["put"]
+    update:
+      x-speakeasy-name-override: update
+    x-speakeasy-metadata:
+      after: sdk.components.update()
+      before: sdk.components.update_component()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policy-versions/{policy_version_id}/variables"]["get"]
+    update:
+      x-speakeasy-group: policyVersions
+      x-speakeasy-name-override: listConfigVariables
+    x-speakeasy-metadata:
+      after: sdk.policyVersions.listConfigVariables()
+      before: sdk.policy-versions.list_config_variables()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policies/{policy_id}"]["get"]
+    update:
+      x-speakeasy-name-override: get
+    x-speakeasy-metadata:
+      after: sdk.policies.get()
+      before: sdk.policies.get_policy()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policies/"]["get"]
+    update:
+      x-speakeasy-name-override: list
+    x-speakeasy-metadata:
+      after: sdk.policies.list()
+      before: sdk.policies.list_policies()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/policies/{policy_id}/runs/outcomes"]["post"]
+    update:
+      x-speakeasy-name-override: createRunOutcomes
+    x-speakeasy-metadata:
+      after: sdk.policies.createRunOutcomes()
+      before: sdk.policies.runs_outcomes_by_policy()
+      created_at: 1755612364668
+      reviewed_at: 1755612377895
+      type: method-name
+  - target: $["paths"]["/internal/runs/{run_id}"]["put"]
+    update:
+      x-speakeasy-name-override: updateRun
+    x-speakeasy-metadata:
+      after: sdk.internal.updateRun()
+      before: sdk.internal.update_run()
+      created_at: 1755612364668
+      reviewed_at: 1755612377896
+      type: method-name
+  - target: $["paths"]["/runs/{run_id}/data"]["get"]
+    update:
+      x-speakeasy-name-override: getData
+    x-speakeasy-metadata:
+      after: sdk.runs.getData()
+      before: sdk.runs.get_run_data()
+      created_at: 1755612364668
+      reviewed_at: 1755612377896
+      type: method-name

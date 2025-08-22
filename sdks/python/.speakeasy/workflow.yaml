@@ -1,0 +1,21 @@
+workflowVersion: 1.0.0
+speakeasyVersion: latest
+sources:
+    VulkanAPI:
+        inputs:
+            - location: ../../generated/openapi.json
+        overlays:
+            - location: .speakeasy/speakeasy-modifications-overlay.yaml
+        output: .speakeasy/out.openapi.yaml
+        registry:
+            location: registry.speakeasyapi.dev/vulkan/lineart/vulkan-api
+targets:
+    lineart:
+        target: python
+        source: VulkanAPI
+        codeSamples:
+            registry:
+                location: registry.speakeasyapi.dev/vulkan/lineart/vulkan-api-python-code-samples
+            labelOverride:
+                fixedValue: Python (SDK)
+            blocking: false

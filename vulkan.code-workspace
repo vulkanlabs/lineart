@@ -12,6 +12,7 @@
 			"**/.ruff_cache/": true,
 			"**/node_modules/": true,
 			"**/.next/": true,
+			"**/dist/": true,
 		},
 		"files.autoSave": "afterDelay",
 		"[python]": {
