@@ -357,7 +357,7 @@ Get run duration statistics for a policy.
 
 ### Example Usage
 
-<!-- UsageSnippet language="python" operationID="run_duration_stats_by_policy" method="get" path="/policies/{policy_id}/runs/duration" -->
+<!-- UsageSnippet language="python" operationID="run_duration_stats_by_policy" method="post" path="/policies/{policy_id}/runs/duration/query" -->
 ```python
 from lineart_sdk import Lineart
 
@@ -400,7 +400,7 @@ Get run duration statistics grouped by status.
 
 ### Example Usage
 
-<!-- UsageSnippet language="python" operationID="run_duration_stats_by_policy_status" method="get" path="/policies/{policy_id}/runs/duration/by_status" -->
+<!-- UsageSnippet language="python" operationID="run_duration_stats_by_policy_status" method="post" path="/policies/{policy_id}/runs/duration/by_status/query" -->
 ```python
 from lineart_sdk import Lineart
 
@@ -443,7 +443,7 @@ Get run counts and error rates for a policy.
 
 ### Example Usage
 
-<!-- UsageSnippet language="python" operationID="runs_by_policy" method="get" path="/policies/{policy_id}/runs/count" -->
+<!-- UsageSnippet language="python" operationID="runs_by_policy" method="post" path="/policies/{policy_id}/runs/count/query" -->
 ```python
 from lineart_sdk import Lineart
 
@@ -486,7 +486,7 @@ Get run outcome distribution for a policy.
 
 ### Example Usage
 
-<!-- UsageSnippet language="python" operationID="runs_outcomes_by_policy" method="get" path="/policies/{policy_id}/runs/outcomes" -->
+<!-- UsageSnippet language="python" operationID="runs_outcomes_by_policy" method="post" path="/policies/{policy_id}/runs/outcomes/query" -->
 ```python
 from lineart_sdk import Lineart
 

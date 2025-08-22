@@ -12,8 +12,8 @@ test-integration:
 .PHONY: lint
 lint:
 	cd frontend && npm run format
-	uvx ruff check --force-exclude --select I --fix --extend-exclude=vulkan/vulkan/templates/policy/
-	uvx ruff format --force-exclude --exclude=vulkan/vulkan/templates/policy/
+	uvx ruff check --force-exclude --select I --fix
+	uvx ruff format --force-exclude
 
 .PHONY: down
 down:
