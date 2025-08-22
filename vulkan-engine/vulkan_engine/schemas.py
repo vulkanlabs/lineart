@@ -308,7 +308,7 @@ class DataBrokerResponse(BaseModel):
 
 class RunGroupRuns(BaseModel):
     main: UUID
-    shaddow: list[UUID] | None = None
+    shadow: list[UUID] | None = None
 
 
 class RunGroupResult(BaseModel):
