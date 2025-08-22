@@ -5,8 +5,8 @@ import importlib.metadata
 __title__: str = "lineart-sdk"
 __version__: str = "0.1.1"
 __openapi_doc_version__: str = "0.1.0"
-__gen_version__: str = "2.686.7"
-__user_agent__: str = "speakeasy-sdk/python 0.1.1 2.686.7 0.1.0 lineart-sdk"
+__gen_version__: str = "2.687.1"
+__user_agent__: str = "speakeasy-sdk/python 0.1.1 2.687.1 0.1.0 lineart-sdk"
 
 try:
     if __package__ is not None:

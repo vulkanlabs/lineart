@@ -23,13 +23,13 @@ from .componentupdate import ComponentUpdate, ComponentUpdateTypedDict
 
 
 class UpdateComponentRequestTypedDict(TypedDict):
-    component_id: str
+    component_name: str
     component_update: ComponentUpdateTypedDict
     project_id: NotRequired[Nullable[str]]
 
 
 class UpdateComponentRequest(BaseModel):
-    component_id: Annotated[
+    component_name: Annotated[
         str, FieldMetadata(path=PathParamMetadata(style="simple", explode=False))
     ]
 

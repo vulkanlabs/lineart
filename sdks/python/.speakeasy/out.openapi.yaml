@@ -77,20 +77,20 @@ paths:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
       x-speakeasy-name-override: "create"
-  "/components/{component_id}":
+  "/components/{component_name}":
     get:
       tags:
         - "components"
       summary: "Get Component"
-      description: "Get a component by ID."
+      description: "Get a component by name."
       operationId: "get_component"
       parameters:
-        - name: "component_id"
+        - name: "component_name"
           in: "path"
           required: true
           schema:
             type: "string"
-            title: "Component Id"
+            title: "Component Name"
         - name: "project_id"
           in: "query"
           required: false
@@ -112,20 +112,19 @@ paths:
           content:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
-      x-speakeasy-name-override: "get"
     put:
       tags:
         - "components"
       summary: "Update Component"
-      description: "Update a component."
+      description: "Update a component by name."
       operationId: "update_component"
       parameters:
-        - name: "component_id"
+        - name: "component_name"
           in: "path"
           required: true
           schema:
             type: "string"
-            title: "Component Id"
+            title: "Component Name"
         - name: "project_id"
           in: "query"
           required: false
@@ -152,7 +151,6 @@ paths:
           content:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
-      x-speakeasy-name-override: "update"
     delete:
       tags:
         - "components"
@@ -160,12 +158,12 @@ paths:
       description: "Delete (archive) a component."
       operationId: "delete_component"
       parameters:
-        - name: "component_id"
+        - name: "component_name"
           in: "path"
           required: true
           schema:
             type: "string"
-            title: "Component Id"
+            title: "Component Name"
         - name: "project_id"
           in: "query"
           required: false
@@ -187,7 +185,6 @@ paths:
           content:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
-      x-speakeasy-name-override: "delete"
   "/data-sources/":
     get:
       tags:
@@ -2941,14 +2938,14 @@ components:
           type: "string"
           format: "uuid"
           title: "Main"
-        "shaddow":
+        "shadow":
           anyOf:
             - items:
                 type: "string"
                 format: "uuid"
               type: "array"
             - type: "null"
-          title: "Shaddow"
+          title: "Shadow"
       type: "object"
       required:
         - "main"

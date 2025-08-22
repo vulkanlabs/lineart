@@ -419,10 +419,10 @@ class Components(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    def get(
+    def get_component(
         self,
         *,
-        component_id: str,
+        component_name: str,
         project_id: OptionalNullable[str] = UNSET,
         retries: OptionalNullable[utils.RetryConfig] = UNSET,
         server_url: Optional[str] = None,
@@ -431,9 +431,9 @@ class Components(BaseSDK):
     ) -> models.Component:
         r"""Get Component
 
-        Get a component by ID.
+        Get a component by name.
 
-        :param component_id:
+        :param component_name:
         :param project_id:
         :param retries: Override the default retry configuration for this method
         :param server_url: Override the default server URL for this method
@@ -451,13 +451,13 @@ class Components(BaseSDK):
             base_url = self._get_url(base_url, url_variables)
 
         request = models.GetComponentRequest(
-            component_id=component_id,
+            component_name=component_name,
             project_id=project_id,
         )
 
         req = self._build_request(
             method="GET",
-            path="/components/{component_id}",
+            path="/components/{component_name}",
             base_url=base_url,
             url_variables=url_variables,
             request=request,
@@ -512,10 +512,10 @@ class Components(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    async def get_async(
+    async def get_component_async(
         self,
         *,
-        component_id: str,
+        component_name: str,
         project_id: OptionalNullable[str] = UNSET,
         retries: OptionalNullable[utils.RetryConfig] = UNSET,
         server_url: Optional[str] = None,
@@ -524,9 +524,9 @@ class Components(BaseSDK):
     ) -> models.Component:
         r"""Get Component
 
-        Get a component by ID.
+        Get a component by name.
 
-        :param component_id:
+        :param component_name:
         :param project_id:
         :param retries: Override the default retry configuration for this method
         :param server_url: Override the default server URL for this method
@@ -544,13 +544,13 @@ class Components(BaseSDK):
             base_url = self._get_url(base_url, url_variables)
 
         request = models.GetComponentRequest(
-            component_id=component_id,
+            component_name=component_name,
             project_id=project_id,
         )
 
         req = self._build_request_async(
             method="GET",
-            path="/components/{component_id}",
+            path="/components/{component_name}",
             base_url=base_url,
             url_variables=url_variables,
             request=request,
@@ -605,10 +605,10 @@ class Components(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    def update(
+    def update_component(
         self,
         *,
-        component_id: str,
+        component_name: str,
         name: str,
         project_id: OptionalNullable[str] = UNSET,
         description: OptionalNullable[str] = UNSET,
@@ -623,9 +623,9 @@ class Components(BaseSDK):
     ) -> models.Component:
         r"""Update Component
 
-        Update a component.
+        Update a component by name.
 
-        :param component_id:
+        :param component_name:
         :param name:
         :param project_id:
         :param description:
@@ -647,7 +647,7 @@ class Components(BaseSDK):
             base_url = self._get_url(base_url, url_variables)
 
         request = models.UpdateComponentRequest(
-            component_id=component_id,
+            component_name=component_name,
             project_id=project_id,
             component_update=models.ComponentUpdate(
                 name=name,
@@ -661,7 +661,7 @@ class Components(BaseSDK):
 
         req = self._build_request(
             method="PUT",
-            path="/components/{component_id}",
+            path="/components/{component_name}",
             base_url=base_url,
             url_variables=url_variables,
             request=request,
@@ -719,10 +719,10 @@ class Components(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    async def update_async(
+    async def update_component_async(
         self,
         *,
-        component_id: str,
+        component_name: str,
         name: str,
         project_id: OptionalNullable[str] = UNSET,
         description: OptionalNullable[str] = UNSET,
@@ -737,9 +737,9 @@ class Components(BaseSDK):
     ) -> models.Component:
         r"""Update Component
 
-        Update a component.
+        Update a component by name.
 
-        :param component_id:
+        :param component_name:
         :param name:
         :param project_id:
         :param description:
@@ -761,7 +761,7 @@ class Components(BaseSDK):
             base_url = self._get_url(base_url, url_variables)
 
         request = models.UpdateComponentRequest(
-            component_id=component_id,
+            component_name=component_name,
             project_id=project_id,
             component_update=models.ComponentUpdate(
                 name=name,
@@ -775,7 +775,7 @@ class Components(BaseSDK):
 
         req = self._build_request_async(
             method="PUT",
-            path="/components/{component_id}",
+            path="/components/{component_name}",
             base_url=base_url,
             url_variables=url_variables,
             request=request,
@@ -833,10 +833,10 @@ class Components(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    def delete(
+    def delete_component(
         self,
         *,
-        component_id: str,
+        component_name: str,
         project_id: OptionalNullable[str] = UNSET,
         retries: OptionalNullable[utils.RetryConfig] = UNSET,
         server_url: Optional[str] = None,
@@ -847,7 +847,7 @@ class Components(BaseSDK):
 
         Delete (archive) a component.
 
-        :param component_id:
+        :param component_name:
         :param project_id:
         :param retries: Override the default retry configuration for this method
         :param server_url: Override the default server URL for this method
@@ -865,13 +865,13 @@ class Components(BaseSDK):
             base_url = self._get_url(base_url, url_variables)
 
         request = models.DeleteComponentRequest(
-            component_id=component_id,
+            component_name=component_name,
             project_id=project_id,
         )
 
         req = self._build_request(
             method="DELETE",
-            path="/components/{component_id}",
+            path="/components/{component_name}",
             base_url=base_url,
             url_variables=url_variables,
             request=request,
@@ -926,10 +926,10 @@ class Components(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    async def delete_async(
+    async def delete_component_async(
         self,
         *,
-        component_id: str,
+        component_name: str,
         project_id: OptionalNullable[str] = UNSET,
         retries: OptionalNullable[utils.RetryConfig] = UNSET,
         server_url: Optional[str] = None,
@@ -940,7 +940,7 @@ class Components(BaseSDK):
 
         Delete (archive) a component.
 
-        :param component_id:
+        :param component_name:
         :param project_id:
         :param retries: Override the default retry configuration for this method
         :param server_url: Override the default server URL for this method
@@ -958,13 +958,13 @@ class Components(BaseSDK):
             base_url = self._get_url(base_url, url_variables)
 
         request = models.DeleteComponentRequest(
-            component_id=component_id,
+            component_name=component_name,
             project_id=project_id,
         )
 
         req = self._build_request_async(
             method="DELETE",
-            path="/components/{component_id}",
+            path="/components/{component_name}",
             base_url=base_url,
             url_variables=url_variables,
             request=request,

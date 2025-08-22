@@ -18,18 +18,18 @@ from lineart_sdk.types import (
 
 class RunGroupRunsTypedDict(TypedDict):
     main: str
-    shaddow: NotRequired[Nullable[List[str]]]
+    shadow: NotRequired[Nullable[List[str]]]
 
 
 class RunGroupRuns(BaseModel):
     main: str
 
-    shaddow: OptionalNullable[List[str]] = UNSET
+    shadow: OptionalNullable[List[str]] = UNSET
 
     @model_serializer(mode="wrap")
     def serialize_model(self, handler):
-        optional_fields = ["shaddow"]
-        nullable_fields = ["shaddow"]
+        optional_fields = ["shadow"]
+        nullable_fields = ["shadow"]
         null_default_fields = []
 
         serialized = handler(self)

@@ -7,9 +7,9 @@
 
 * [list](#list) - List Components
 * [create](#create) - Create Component
-* [get](#get) - Get Component
-* [update](#update) - Update Component
-* [delete](#delete) - Delete Component
+* [get_component](#get_component) - Get Component
+* [update_component](#update_component) - Update Component
+* [delete_component](#delete_component) - Delete Component
 
 ## list
 
@@ -96,13 +96,13 @@ with Lineart(
 | errors.HTTPValidationError | 422                        | application/json           |
 | errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
 
-## get
+## get_component
 
-Get a component by ID.
+Get a component by name.
 
 ### Example Usage
 
-<!-- UsageSnippet language="python" operationID="get_component" method="get" path="/components/{component_id}" -->
+<!-- UsageSnippet language="python" operationID="get_component" method="get" path="/components/{component_name}" -->
 ```python
 from lineart_sdk import Lineart
 
@@ -111,7 +111,7 @@ with Lineart(
     server_url="https://api.example.com",
 ) as lineart:
 
-    res = lineart.components.get(component_id="<id>")
+    res = lineart.components.get_component(component_name="<value>")
 
     # Handle response
     print(res)
@@ -122,7 +122,7 @@ with Lineart(
 
 | Parameter                                                           | Type                                                                | Required                                                            | Description                                                         |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `component_id`                                                      | *str*                                                               | :heavy_check_mark:                                                  | N/A                                                                 |
+| `component_name`                                                    | *str*                                                               | :heavy_check_mark:                                                  | N/A                                                                 |
 | `project_id`                                                        | *OptionalNullable[str]*                                             | :heavy_minus_sign:                                                  | N/A                                                                 |
 | `retries`                                                           | [Optional[utils.RetryConfig]](../../models/utils/retryconfig.md)    | :heavy_minus_sign:                                                  | Configuration to override the default retry behavior of the client. |
 
@@ -137,13 +137,13 @@ with Lineart(
 | errors.HTTPValidationError | 422                        | application/json           |
 | errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
 
-## update
+## update_component
 
-Update a component.
+Update a component by name.
 
 ### Example Usage
 
-<!-- UsageSnippet language="python" operationID="update_component" method="put" path="/components/{component_id}" -->
+<!-- UsageSnippet language="python" operationID="update_component" method="put" path="/components/{component_name}" -->
 ```python
 from lineart_sdk import Lineart
 
@@ -152,7 +152,7 @@ with Lineart(
     server_url="https://api.example.com",
 ) as lineart:
 
-    res = lineart.components.update(component_id="<id>", name="<value>")
+    res = lineart.components.update_component(component_name="<value>", name="<value>")
 
     # Handle response
     print(res)
@@ -163,7 +163,7 @@ with Lineart(
 
 | Parameter                                                             | Type                                                                  | Required                                                              | Description                                                           |
 | --------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `component_id`                                                        | *str*                                                                 | :heavy_check_mark:                                                    | N/A                                                                   |
+| `component_name`                                                      | *str*                                                                 | :heavy_check_mark:                                                    | N/A                                                                   |
 | `name`                                                                | *str*                                                                 | :heavy_check_mark:                                                    | N/A                                                                   |
 | `project_id`                                                          | *OptionalNullable[str]*                                               | :heavy_minus_sign:                                                    | N/A                                                                   |
 | `description`                                                         | *OptionalNullable[str]*                                               | :heavy_minus_sign:                                                    | N/A                                                                   |
@@ -182,13 +182,13 @@ with Lineart(
 | errors.HTTPValidationError | 422                        | application/json           |
 | errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
 
-## delete
+## delete_component
 
 Delete (archive) a component.
 
 ### Example Usage
 
-<!-- UsageSnippet language="python" operationID="delete_component" method="delete" path="/components/{component_id}" -->
+<!-- UsageSnippet language="python" operationID="delete_component" method="delete" path="/components/{component_name}" -->
 ```python
 from lineart_sdk import Lineart
 
@@ -197,7 +197,7 @@ with Lineart(
     server_url="https://api.example.com",
 ) as lineart:
 
-    res = lineart.components.delete(component_id="<id>")
+    res = lineart.components.delete_component(component_name="<value>")
 
     # Handle response
     print(res)
@@ -208,7 +208,7 @@ with Lineart(
 
 | Parameter                                                           | Type                                                                | Required                                                            | Description                                                         |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `component_id`                                                      | *str*                                                               | :heavy_check_mark:                                                  | N/A                                                                 |
+| `component_name`                                                    | *str*                                                               | :heavy_check_mark:                                                  | N/A                                                                 |
 | `project_id`                                                        | *OptionalNullable[str]*                                             | :heavy_minus_sign:                                                  | N/A                                                                 |
 | `retries`                                                           | [Optional[utils.RetryConfig]](../../models/utils/retryconfig.md)    | :heavy_minus_sign:                                                  | Configuration to override the default retry behavior of the client. |
 

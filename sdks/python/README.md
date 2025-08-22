@@ -179,9 +179,9 @@ asyncio.run(main())
 
 * [list](docs/sdks/components/README.md#list) - List Components
 * [create](docs/sdks/components/README.md#create) - Create Component
-* [get](docs/sdks/components/README.md#get) - Get Component
-* [update](docs/sdks/components/README.md#update) - Update Component
-* [delete](docs/sdks/components/README.md#delete) - Delete Component
+* [get_component](docs/sdks/components/README.md#get_component) - Get Component
+* [update_component](docs/sdks/components/README.md#update_component) - Update Component
+* [delete_component](docs/sdks/components/README.md#delete_component) - Delete Component
 
 ### [data_sources](docs/sdks/datasources/README.md)
 

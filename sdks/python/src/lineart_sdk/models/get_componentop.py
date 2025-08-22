@@ -16,12 +16,12 @@ from lineart_sdk.utils import FieldMetadata, PathParamMetadata, QueryParamMetada
 
 
 class GetComponentRequestTypedDict(TypedDict):
-    component_id: str
+    component_name: str
     project_id: NotRequired[Nullable[str]]
 
 
 class GetComponentRequest(BaseModel):
-    component_id: Annotated[
+    component_name: Annotated[
         str, FieldMetadata(path=PathParamMetadata(style="simple", explode=False))
     ]
 

@@ -1,10 +1,10 @@
 lockVersion: 2.0.0
 id: 88929680-bb73-487a-94bf-9600cc541817
 management:
-  docChecksum: f114fe844c44fd08305c1cb68e1c6b5a
+  docChecksum: ff9e42437519803b540864e9374c0d15
   docVersion: 0.1.0
-  speakeasyVersion: 1.606.0
-  generationVersion: 2.686.7
+  speakeasyVersion: 1.606.3
+  generationVersion: 2.687.1
   releaseVersion: 0.1.1
   configChecksum: ead855dbef14a61429c1c8a4232952eb
 features:
@@ -355,6 +355,7 @@ examples:
       parameters:
         path:
           component_id: "<id>"
+          component_name: "<value>"
       responses:
         "200":
           application/json: {"name": "<value>", "component_id": "9b32f75c-3fa2-4c5f-a261-01c0f34779b7", "archived": false, "created_at": "2025-08-23T10:19:44.619Z", "last_updated_at": "2023-05-11T07:05:17.347Z"}
@@ -365,6 +366,7 @@ examples:
       parameters:
         path:
           component_id: "<id>"
+          component_name: "<value>"
       requestBody:
         application/json: {"name": "<value>"}
       responses:
@@ -377,6 +379,7 @@ examples:
       parameters:
         path:
           component_id: "<id>"
+          component_name: "<value>"
       responses:
         "200":
           application/json: "<value>"
