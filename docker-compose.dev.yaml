@@ -84,14 +84,6 @@ services:
         NEXT_PUBLIC_VULKAN_SERVER_URL: "http://app:6001"
     ports:
       - "3003:3000"
-  upload-svc:
-    build:
-      context: .
-      dockerfile: images/upload-svc.Dockerfile
-      args:
-        PYTHON_VERSION: "3.12"
-    env_file:
-      - config/active/upload-svc.env
   # Mock services
   testdata:
     build:
