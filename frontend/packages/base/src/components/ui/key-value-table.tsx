@@ -5,7 +5,7 @@ import { Plus, X } from "lucide-react";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
-import { cn } from "@/lib/utils";
+import { cn } from "../../lib/utils";
 
 export interface KeyValuePair {
     key?: string;

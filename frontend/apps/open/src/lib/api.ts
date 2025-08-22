@@ -235,7 +235,7 @@ export async function fetchComponents(includeArchived: boolean = false): Promise
 
 export async function fetchComponent(componentName: string): Promise<Component> {
     return withErrorHandling(
-        componentsApi.getComponent({ componentName }),
+        componentsApi.getComponent({ componentId: componentName }),
         `fetch component ${componentName}`,
     );
 }

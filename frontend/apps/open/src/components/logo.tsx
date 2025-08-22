@@ -1,11 +1,23 @@
-import Link from "next/link";
-import Image from "next/image";
-import VulkanEngineLogo from "@public/vulkan-engine.png";
+"use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
+
+// Global scope VulkanLogo wrapper
 export function VulkanLogo() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const handleClick = () => {
+        router.push("/");
+    };
+
     return (
-        <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-            <Image src={VulkanEngineLogo} alt="Vulkan logo" className="max-h-14 max-w-48" />
-        </Link>
+        <div
+            className="flex items-center gap-2 text-xl font-bold"
+            onClick={handleClick}
+            style={{ cursor: "pointer" }}
+        >
+            <img src="/assets/vulkan-engine.png" alt="Vulkan logo" className="max-h-14 max-w-48" />
+        </div>
     );
 }

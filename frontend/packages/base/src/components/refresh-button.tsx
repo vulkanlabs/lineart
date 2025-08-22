@@ -1,6 +1,6 @@
 import { useRouter } from "next/navigation";
 import { RotateCw } from "lucide-react";
-import { Button } from "@vulkanlabs/base/ui";
+import { Button } from "./ui/button";
 
 export function RefreshButton() {
     const router = useRouter();

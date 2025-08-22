@@ -92,7 +92,10 @@ export function LauncherButton({
             <DialogTrigger asChild>
                 <Button
                     variant="outline"
-                    className="border-input bg-background hover:bg-accent hover:text-accent-foreground transition-all duration-200 shadow-sm hover:shadow-md"
+                    className={
+                        "border-input bg-background hover:bg-accent hover:text-accent-foreground " +
+                        "transition-all duration-200 shadow-sm hover:shadow-md"
+                    }
                 >
                     <Play className="h-4 w-4 mr-2" />
                     <span>Launch Run</span>
@@ -267,7 +270,12 @@ function LaunchRunFormCard({
                                                 placeholder={placeholderText}
                                                 {...field}
                                             />
-                                            <div className="absolute bottom-3 right-3 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded backdrop-blur-sm">
+                                            <div
+                                                className={
+                                                    "absolute bottom-3 right-3 text-xs text-muted-foreground " +
+                                                    "bg-background/80 px-2 py-1 rounded backdrop-blur-sm"
+                                                }
+                                            >
                                                 {field.value?.length || 0} chars
                                             </div>
                                         </div>
@@ -304,7 +312,12 @@ function LaunchRunFormCard({
                                                 ref={field.ref}
                                                 value={field.value ?? ""}
                                             />
-                                            <div className="absolute bottom-3 right-3 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded backdrop-blur-sm">
+                                            <div
+                                                className={
+                                                    "absolute bottom-3 right-3 text-xs text-muted-foreground " +
+                                                    "bg-background/80 px-2 py-1 rounded backdrop-blur-sm"
+                                                }
+                                            >
                                                 {field.value?.length || 0} chars
                                             </div>
                                         </div>
@@ -334,7 +347,12 @@ function LaunchRunFormCard({
                         </div>
                     )}
 
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-6 border-t">
+                    <div
+                        className={
+                            "flex flex-col sm:flex-row justify-between items-start " +
+                            "sm:items-center gap-4 pt-6 border-t"
+                        }
+                    >
                         <div className="flex items-center gap-2">
                             <Button
                                 type="button"

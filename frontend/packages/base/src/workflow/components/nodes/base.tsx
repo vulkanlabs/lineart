@@ -5,6 +5,7 @@ import { Play, FoldVertical, UnfoldVertical, PanelRight } from "lucide-react";
 import { Position, NodeResizer } from "@xyflow/react";
 import { useShallow } from "zustand/react/shallow";
 
+import { Button, Input } from "@vulkanlabs/base/ui";
 import {
     BaseNode,
     BaseHandle,
@@ -15,12 +16,11 @@ import {
     NodeHeaderDeleteAction,
     NodeHeaderIcon,
 } from "@vulkanlabs/base/ui";
-import { Button, Input } from "@vulkanlabs/base/ui";
 
-import { useWorkflowStore } from "@/workflow/store";
-import { iconMapping } from "@/workflow/icons";
-import { standardizeNodeName } from "@/workflow/utils/names";
-import type { IncomingEdges } from "@/workflow/types/workflow";
+import { useWorkflowStore } from "../../store";
+import { iconMapping } from "../../icons";
+import { standardizeNodeName } from "../../utils/names";
+import type { IncomingEdges } from "../../types/workflow";
 
 /**
  * Default style for node handles
