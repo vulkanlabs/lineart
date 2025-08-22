@@ -2,7 +2,7 @@
 import { lazy } from "react";
 
 // Re-export essential utilities (selective exports for better tree-shaking)
-export { parseDate } from "./lib/utils";
+export { parseDate, cn } from "./lib/utils";
 // Note: Other utils from "./lib/utils" not currently used by apps
 export * from "./lib/chart";
 
