@@ -1601,8 +1601,8 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request(
-            method="GET",
-            path="/policies/{policy_id}/runs/duration",
+            method="POST",
+            path="/policies/{policy_id}/runs/duration/query",
             base_url=base_url,
             url_variables=url_variables,
             request=request,
@@ -1709,8 +1709,8 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request_async(
-            method="GET",
-            path="/policies/{policy_id}/runs/duration",
+            method="POST",
+            path="/policies/{policy_id}/runs/duration/query",
             base_url=base_url,
             url_variables=url_variables,
             request=request,
@@ -1817,8 +1817,8 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request(
-            method="GET",
-            path="/policies/{policy_id}/runs/duration/by_status",
+            method="POST",
+            path="/policies/{policy_id}/runs/duration/by_status/query",
             base_url=base_url,
             url_variables=url_variables,
             request=request,
@@ -1925,8 +1925,8 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request_async(
-            method="GET",
-            path="/policies/{policy_id}/runs/duration/by_status",
+            method="POST",
+            path="/policies/{policy_id}/runs/duration/by_status/query",
             base_url=base_url,
             url_variables=url_variables,
             request=request,
@@ -2033,8 +2033,8 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request(
-            method="GET",
-            path="/policies/{policy_id}/runs/count",
+            method="POST",
+            path="/policies/{policy_id}/runs/count/query",
             base_url=base_url,
             url_variables=url_variables,
             request=request,
@@ -2141,8 +2141,8 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request_async(
-            method="GET",
-            path="/policies/{policy_id}/runs/count",
+            method="POST",
+            path="/policies/{policy_id}/runs/count/query",
             base_url=base_url,
             url_variables=url_variables,
             request=request,
@@ -2249,8 +2249,8 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request(
-            method="GET",
-            path="/policies/{policy_id}/runs/outcomes",
+            method="POST",
+            path="/policies/{policy_id}/runs/outcomes/query",
             base_url=base_url,
             url_variables=url_variables,
             request=request,
@@ -2357,8 +2357,8 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request_async(
-            method="GET",
-            path="/policies/{policy_id}/runs/outcomes",
+            method="POST",
+            path="/policies/{policy_id}/runs/outcomes/query",
             base_url=base_url,
             url_variables=url_variables,
             request=request,

@@ -1,7 +1,7 @@
 lockVersion: 2.0.0
 id: 88929680-bb73-487a-94bf-9600cc541817
 management:
-  docChecksum: ff9e42437519803b540864e9374c0d15
+  docChecksum: e81c2d06221aca3a7f536255ea17547d
   docVersion: 0.1.0
   speakeasyVersion: 1.606.3
   generationVersion: 2.687.1
@@ -18,7 +18,6 @@ features:
     envVarSecurityUsage: 0.3.2
     flatRequests: 1.0.1
     flattening: 3.1.1
-    getRequestBodies: 3.0.0
     globalSecurityCallbacks: 1.0.0
     globalServerURLs: 3.1.1
     groups: 3.0.0
