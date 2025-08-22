@@ -1,21 +1,28 @@
 import type { NodeDefinitionDict, PolicyVersion, RunData, RunLogs } from "@vulkanlabs/client-open";
 import { fetchPolicyVersion, fetchRunData, fetchRunLogs } from "@/lib/api";
 
-import type { NodeLayoutConfig, VulkanNode } from "@vulkanlabs/base";
-import { createWorkflowState, getLayoutedNodes, defaultElkOptions } from "@vulkanlabs/base";
+import type { NodeLayoutConfig } from "@/lib/workflow/types";
+import { makeGraphElements } from "@/lib/workflow/graph";
 
 import RunPageContent from "@/components/run/run-page-content";
 import type { RunNodeLayout } from "@/components/run/types";
+import { defaultElkOptions } from "@/components/run/options";
 
 export async function RunPage({ runId }: { runId: string }) {
     const runLogs: RunLogs = await fetchRunLogs(runId);
     const runData: RunData = await fetchRunData(runId);
 
     const graphDefinition = await getGraphDefinition(runData.policy_version_id);
-    const workflowState = createWorkflowState(graphDefinition);
-    const layoutedNodes = await getLayoutedNodes(workflowState.nodes, workflowState.edges);
+    const [nodes, edges] = makeGraphElements(graphDefinition, defaultElkOptions);
+    const flatNodes = nodes.reduce((acc: NodeLayoutConfig[], node) => {
+        if (node.data.type === "COMPONENT") {
+            return acc.concat(...node.children);
+        }
 
-    const runNodes: RunNodeLayout[] = layoutedNodes.map((node: VulkanNode) => {
+        return acc.concat(node);
+    }, []);
+
+    const runNodes: RunNodeLayout[] = flatNodes.map((node: NodeLayoutConfig) => {
         const runNode = {
             ...node,
             data: {
@@ -26,14 +33,7 @@ export async function RunPage({ runId }: { runId: string }) {
         return runNode;
     });
 
-    return (
-        <RunPageContent
-            nodes={runNodes}
-            edges={workflowState.edges}
-            runLogs={runLogs}
-            runData={runData}
-        />
-    );
+    return <RunPageContent nodes={runNodes} edges={edges} runLogs={runLogs} runData={runData} />;
 }
 
 async function getGraphDefinition(

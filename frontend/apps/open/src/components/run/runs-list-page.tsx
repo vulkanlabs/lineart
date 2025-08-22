@@ -16,7 +16,7 @@ import { ShortenedID, DetailsButton, DatePickerWithRange, ResourceTable } from "
 import type { Run } from "@vulkanlabs/client-open";
 
 // Local imports
-import { parseDate } from "@vulkanlabs/base";
+import { parseDate } from "@/lib/utils";
 
 type RunsLoader = ({
     resourceId,
@@ -48,7 +48,7 @@ export function RunsPage({ resourceId, fetchRuns }: { resourceId: string; fetchR
             .catch((error) => {
                 console.error(error);
             });
-    }, [dateRange, fetchRuns, resourceId]);
+    }, [dateRange]);
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">

@@ -13,9 +13,11 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
+import { nodeTypes } from "./nodes";
+import { defaultElkOptions } from "@/components/run/options";
 import type { RunNodeLayout } from "@/components/run/types";
-import type { EdgeLayoutConfig } from "@vulkanlabs/base";
-import { getLayoutedNodes, defaultElkOptions, runNodeTypes } from "@vulkanlabs/base";
+import type { EdgeLayoutConfig } from "@/lib/workflow/types";
+import { layoutGraph } from "@/lib/workflow/graph";
 
 function VulkanWorkflow({
     graphNodes,
@@ -48,7 +50,7 @@ function VulkanWorkflow({
             return !edge.isComponentIO || edge.fromComponentChild || edge.toComponentChild;
         });
 
-        getLayoutedNodes(filteredNodes, filteredEdges, defaultElkOptions).then(
+        layoutGraph(filteredNodes, filteredEdges, defaultElkOptions).then(
             ([layoutedNodes, layoutedEdges]) => {
                 setNodes(layoutedNodes);
                 setEdges(layoutedEdges);
@@ -97,7 +99,7 @@ function VulkanWorkflow({
             onEdgesChange={onEdgesChange}
             onNodeClick={clickNode}
             onPaneClick={clickPane}
-            nodeTypes={runNodeTypes}
+            nodeTypes={nodeTypes}
             connectionLineType={ConnectionLineType.SmoothStep}
             minZoom={0.1}
             maxZoom={2}
