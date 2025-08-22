@@ -215,10 +215,10 @@ asyncio.run(main())
 * [list_versions](docs/sdks/policies/README.md#list_versions) - List Policy Versions By Policy
 * [list_runs](docs/sdks/policies/README.md#list_runs) - List Runs By Policy
 * [create_run_group](docs/sdks/policies/README.md#create_run_group) - Create Run Group
-* [get_run_duration_stats](docs/sdks/policies/README.md#get_run_duration_stats) - Run Duration Stats By Policy
-* [get_run_duration_stats_by_status](docs/sdks/policies/README.md#get_run_duration_stats_by_status) - Run Duration Stats By Policy Status
-* [get_run_counts](docs/sdks/policies/README.md#get_run_counts) - Runs By Policy
-* [create_run_outcomes](docs/sdks/policies/README.md#create_run_outcomes) - Runs Outcomes By Policy
+* [run_duration_stats_by_policy](docs/sdks/policies/README.md#run_duration_stats_by_policy) - Run Duration Stats By Policy
+* [run_duration_stats_by_policy_status](docs/sdks/policies/README.md#run_duration_stats_by_policy_status) - Run Duration Stats By Policy Status
+* [runs_by_policy](docs/sdks/policies/README.md#runs_by_policy) - Runs By Policy
+* [runs_outcomes_by_policy](docs/sdks/policies/README.md#runs_outcomes_by_policy) - Runs Outcomes By Policy
 
 ### [policy_versions](docs/sdks/policyversions/README.md)
 

@@ -240,6 +240,8 @@ if TYPE_CHECKING:
     from .run_workflowop import RunWorkflowRequest, RunWorkflowRequestTypedDict
     from .runcreated import RunCreated, RunCreatedTypedDict
     from .rundata import RunData, RunDataTypedDict
+    from .rungroupresult import RunGroupResult, RunGroupResultTypedDict
+    from .rungroupruns import RunGroupRuns, RunGroupRunsTypedDict
     from .runlogs import RunLogs, RunLogsTypedDict
     from .runresult import RunResult, RunResultTypedDict
     from .runs_by_policyop import RunsByPolicyRequest, RunsByPolicyRequestTypedDict
@@ -487,6 +489,10 @@ __all__ = [
     "RunDurationStatsByPolicyRequestTypedDict",
     "RunDurationStatsByPolicyStatusRequest",
     "RunDurationStatsByPolicyStatusRequestTypedDict",
+    "RunGroupResult",
+    "RunGroupResultTypedDict",
+    "RunGroupRuns",
+    "RunGroupRunsTypedDict",
     "RunLogs",
     "RunLogsTypedDict",
     "RunResult",
@@ -743,6 +749,10 @@ _dynamic_imports: dict[str, str] = {
     "RunCreatedTypedDict": ".runcreated",
     "RunData": ".rundata",
     "RunDataTypedDict": ".rundata",
+    "RunGroupResult": ".rungroupresult",
+    "RunGroupResultTypedDict": ".rungroupresult",
+    "RunGroupRuns": ".rungroupruns",
+    "RunGroupRunsTypedDict": ".rungroupruns",
     "RunLogs": ".runlogs",
     "RunLogsTypedDict": ".runlogs",
     "RunResult": ".runresult",

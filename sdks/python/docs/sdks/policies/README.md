@@ -13,10 +13,10 @@
 * [list_versions](#list_versions) - List Policy Versions By Policy
 * [list_runs](#list_runs) - List Runs By Policy
 * [create_run_group](#create_run_group) - Create Run Group
-* [get_run_duration_stats](#get_run_duration_stats) - Run Duration Stats By Policy
-* [get_run_duration_stats_by_status](#get_run_duration_stats_by_status) - Run Duration Stats By Policy Status
-* [get_run_counts](#get_run_counts) - Runs By Policy
-* [create_run_outcomes](#create_run_outcomes) - Runs Outcomes By Policy
+* [run_duration_stats_by_policy](#run_duration_stats_by_policy) - Run Duration Stats By Policy
+* [run_duration_stats_by_policy_status](#run_duration_stats_by_policy_status) - Run Duration Stats By Policy Status
+* [runs_by_policy](#runs_by_policy) - Runs By Policy
+* [runs_outcomes_by_policy](#runs_outcomes_by_policy) - Runs Outcomes By Policy
 
 ## list
 
@@ -342,7 +342,7 @@ with Lineart(
 
 ### Response
 
-**[Any](../../models/.md)**
+**[models.RunGroupResult](../../models/rungroupresult.md)**
 
 ### Errors
 
@@ -351,13 +351,13 @@ with Lineart(
 | errors.HTTPValidationError | 422                        | application/json           |
 | errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
 
-## get_run_duration_stats
+## run_duration_stats_by_policy
 
 Get run duration statistics for a policy.
 
 ### Example Usage
 
-<!-- UsageSnippet language="python" operationID="run_duration_stats_by_policy" method="post" path="/policies/{policy_id}/runs/duration" -->
+<!-- UsageSnippet language="python" operationID="run_duration_stats_by_policy" method="get" path="/policies/{policy_id}/runs/duration" -->
 ```python
 from lineart_sdk import Lineart
 
@@ -366,7 +366,7 @@ with Lineart(
     server_url="https://api.example.com",
 ) as lineart:
 
-    res = lineart.policies.get_run_duration_stats(policy_id="<id>")
+    res = lineart.policies.run_duration_stats_by_policy(policy_id="<id>")
 
     # Handle response
     print(res)
@@ -394,13 +394,13 @@ with Lineart(
 | errors.HTTPValidationError | 422                        | application/json           |
 | errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
 
-## get_run_duration_stats_by_status
+## run_duration_stats_by_policy_status
 
 Get run duration statistics grouped by status.
 
 ### Example Usage
 
-<!-- UsageSnippet language="python" operationID="run_duration_stats_by_policy_status" method="post" path="/policies/{policy_id}/runs/duration/by_status" -->
+<!-- UsageSnippet language="python" operationID="run_duration_stats_by_policy_status" method="get" path="/policies/{policy_id}/runs/duration/by_status" -->
 ```python
 from lineart_sdk import Lineart
 
@@ -409,7 +409,7 @@ with Lineart(
     server_url="https://api.example.com",
 ) as lineart:
 
-    res = lineart.policies.get_run_duration_stats_by_status(policy_id="<id>")
+    res = lineart.policies.run_duration_stats_by_policy_status(policy_id="<id>")
 
     # Handle response
     print(res)
@@ -437,13 +437,13 @@ with Lineart(
 | errors.HTTPValidationError | 422                        | application/json           |
 | errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
 
-## get_run_counts
+## runs_by_policy
 
 Get run counts and error rates for a policy.
 
 ### Example Usage
 
-<!-- UsageSnippet language="python" operationID="runs_by_policy" method="post" path="/policies/{policy_id}/runs/count" -->
+<!-- UsageSnippet language="python" operationID="runs_by_policy" method="get" path="/policies/{policy_id}/runs/count" -->
 ```python
 from lineart_sdk import Lineart
 
@@ -452,7 +452,7 @@ with Lineart(
     server_url="https://api.example.com",
 ) as lineart:
 
-    res = lineart.policies.get_run_counts(policy_id="<id>")
+    res = lineart.policies.runs_by_policy(policy_id="<id>")
 
     # Handle response
     print(res)
@@ -480,13 +480,13 @@ with Lineart(
 | errors.HTTPValidationError | 422                        | application/json           |
 | errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
 
-## create_run_outcomes
+## runs_outcomes_by_policy
 
 Get run outcome distribution for a policy.
 
 ### Example Usage
 
-<!-- UsageSnippet language="python" operationID="runs_outcomes_by_policy" method="post" path="/policies/{policy_id}/runs/outcomes" -->
+<!-- UsageSnippet language="python" operationID="runs_outcomes_by_policy" method="get" path="/policies/{policy_id}/runs/outcomes" -->
 ```python
 from lineart_sdk import Lineart
 
@@ -495,7 +495,7 @@ with Lineart(
     server_url="https://api.example.com",
 ) as lineart:
 
-    res = lineart.policies.create_run_outcomes(policy_id="<id>")
+    res = lineart.policies.runs_outcomes_by_policy(policy_id="<id>")
 
     # Handle response
     print(res)

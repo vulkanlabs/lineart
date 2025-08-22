@@ -1356,7 +1356,7 @@ class Policies(BaseSDK):
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
-    ) -> Any:
+    ) -> models.RunGroupResult:
         r"""Create Run Group
 
         Create a run group and allocate runs.
@@ -1432,7 +1432,7 @@ class Policies(BaseSDK):
 
         response_data: Any = None
         if utils.match_response(http_res, "200", "application/json"):
-            return unmarshal_json_response(Any, http_res)
+            return unmarshal_json_response(models.RunGroupResult, http_res)
         if utils.match_response(http_res, "422", "application/json"):
             response_data = unmarshal_json_response(
                 errors.HTTPValidationErrorData, http_res
@@ -1461,7 +1461,7 @@ class Policies(BaseSDK):
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
-    ) -> Any:
+    ) -> models.RunGroupResult:
         r"""Create Run Group
 
         Create a run group and allocate runs.
@@ -1537,7 +1537,7 @@ class Policies(BaseSDK):
 
         response_data: Any = None
         if utils.match_response(http_res, "200", "application/json"):
-            return unmarshal_json_response(Any, http_res)
+            return unmarshal_json_response(models.RunGroupResult, http_res)
         if utils.match_response(http_res, "422", "application/json"):
             response_data = unmarshal_json_response(
                 errors.HTTPValidationErrorData, http_res
@@ -1556,7 +1556,7 @@ class Policies(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    def get_run_duration_stats(
+    def run_duration_stats_by_policy(
         self,
         *,
         policy_id: str,
@@ -1601,7 +1601,7 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request(
-            method="POST",
+            method="GET",
             path="/policies/{policy_id}/runs/duration",
             base_url=base_url,
             url_variables=url_variables,
@@ -1664,7 +1664,7 @@ class Policies(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    async def get_run_duration_stats_async(
+    async def run_duration_stats_by_policy_async(
         self,
         *,
         policy_id: str,
@@ -1709,7 +1709,7 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request_async(
-            method="POST",
+            method="GET",
             path="/policies/{policy_id}/runs/duration",
             base_url=base_url,
             url_variables=url_variables,
@@ -1772,7 +1772,7 @@ class Policies(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    def get_run_duration_stats_by_status(
+    def run_duration_stats_by_policy_status(
         self,
         *,
         policy_id: str,
@@ -1817,7 +1817,7 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request(
-            method="POST",
+            method="GET",
             path="/policies/{policy_id}/runs/duration/by_status",
             base_url=base_url,
             url_variables=url_variables,
@@ -1880,7 +1880,7 @@ class Policies(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    async def get_run_duration_stats_by_status_async(
+    async def run_duration_stats_by_policy_status_async(
         self,
         *,
         policy_id: str,
@@ -1925,7 +1925,7 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request_async(
-            method="POST",
+            method="GET",
             path="/policies/{policy_id}/runs/duration/by_status",
             base_url=base_url,
             url_variables=url_variables,
@@ -1988,7 +1988,7 @@ class Policies(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    def get_run_counts(
+    def runs_by_policy(
         self,
         *,
         policy_id: str,
@@ -2033,7 +2033,7 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request(
-            method="POST",
+            method="GET",
             path="/policies/{policy_id}/runs/count",
             base_url=base_url,
             url_variables=url_variables,
@@ -2096,7 +2096,7 @@ class Policies(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    async def get_run_counts_async(
+    async def runs_by_policy_async(
         self,
         *,
         policy_id: str,
@@ -2141,7 +2141,7 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request_async(
-            method="POST",
+            method="GET",
             path="/policies/{policy_id}/runs/count",
             base_url=base_url,
             url_variables=url_variables,
@@ -2204,7 +2204,7 @@ class Policies(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    def create_run_outcomes(
+    def runs_outcomes_by_policy(
         self,
         *,
         policy_id: str,
@@ -2249,7 +2249,7 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request(
-            method="POST",
+            method="GET",
             path="/policies/{policy_id}/runs/outcomes",
             base_url=base_url,
             url_variables=url_variables,
@@ -2312,7 +2312,7 @@ class Policies(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
-    async def create_run_outcomes_async(
+    async def runs_outcomes_by_policy_async(
         self,
         *,
         policy_id: str,
@@ -2357,7 +2357,7 @@ class Policies(BaseSDK):
         )
 
         req = self._build_request_async(
-            method="POST",
+            method="GET",
             path="/policies/{policy_id}/runs/outcomes",
             base_url=base_url,
             url_variables=url_variables,

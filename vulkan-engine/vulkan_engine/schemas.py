@@ -306,10 +306,15 @@ class DataBrokerResponse(BaseModel):
     value: Any
 
 
+class RunGroupRuns(BaseModel):
+    main: UUID
+    shaddow: list[UUID] | None = None
+
+
 class RunGroupResult(BaseModel):
     policy_id: UUID
     run_group_id: UUID
-    runs: list[Run]
+    runs: RunGroupRuns
 
 
 class RunCreated(BaseModel):

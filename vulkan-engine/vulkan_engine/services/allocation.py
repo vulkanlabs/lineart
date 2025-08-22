@@ -4,8 +4,6 @@ Run allocation service.
 Handles run group creation and allocation based on policy strategies.
 """
 
-from typing import Dict
-
 from vulkan_engine.dagster.launch_run import DagsterRunLauncher, allocate_runs
 from vulkan_engine.db import RunGroup
 from vulkan_engine.exceptions import (
@@ -35,8 +33,8 @@ class AllocationService(BaseService):
     def create_run_group(
         self,
         policy_id: str,
-        input_data: Dict,
-        config_variables: Dict,
+        input_data: dict,
+        config_variables: dict,
         project_id: str = None,
     ) -> RunGroupResult:
         """

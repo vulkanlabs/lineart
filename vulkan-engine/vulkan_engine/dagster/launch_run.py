@@ -22,7 +22,7 @@ from vulkan_engine.exceptions import (
 )
 from vulkan_engine.loaders.policy_version import PolicyVersionLoader
 from vulkan_engine.logger import init_logger
-from vulkan_engine.schemas import PolicyAllocationStrategy, RunResult
+from vulkan_engine.schemas import PolicyAllocationStrategy, RunGroupRuns, RunResult
 
 logger = init_logger("run_launcher")
 
@@ -190,7 +190,7 @@ def allocate_runs(
     run_group_id: UUID,
     allocation_strategy: PolicyAllocationStrategy,
     project_id: UUID | None = None,
-):
+) -> RunGroupRuns:
     shadow = []
 
     if allocation_strategy.shadow is not None:
@@ -215,7 +215,7 @@ def allocate_runs(
         policy_version_id=policy_version_id,
         project_id=project_id,
     )
-    return {"main": main.run_id, "shadow": shadow}
+    return RunGroupRuns(main=main.run_id, shadow=shadow)
 
 
 MIN_POLLING_INTERVAL_MS = 500

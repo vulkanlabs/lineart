@@ -975,7 +975,7 @@ paths:
           description: "Successful Response"
           content:
             "application/json":
-              schema: {}
+              schema: {"$ref": "#/components/schemas/RunGroupResult"}
         "404":
           description: "Not found"
         "422":
@@ -985,7 +985,7 @@ paths:
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
       x-speakeasy-name-override: "createRunGroup"
   "/policies/{policy_id}/runs/duration":
-    post:
+    get:
       tags:
         - "policies"
       summary: "Run Duration Stats By Policy"
@@ -1036,9 +1036,8 @@ paths:
           content:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
-      x-speakeasy-name-override: "getRunDurationStats"
   "/policies/{policy_id}/runs/duration/by_status":
-    post:
+    get:
       tags:
         - "policies"
       summary: "Run Duration Stats By Policy Status"
@@ -1089,9 +1088,8 @@ paths:
           content:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
-      x-speakeasy-name-override: "getRunDurationStatsByStatus"
   "/policies/{policy_id}/runs/count":
-    post:
+    get:
       tags:
         - "policies"
       summary: "Runs By Policy"
@@ -1142,9 +1140,8 @@ paths:
           content:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
-      x-speakeasy-name-override: "getRunCounts"
   "/policies/{policy_id}/runs/outcomes":
-    post:
+    get:
       tags:
         - "policies"
       summary: "Runs Outcomes By Policy"
@@ -1195,7 +1192,6 @@ paths:
           content:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
-      x-speakeasy-name-override: "createRunOutcomes"
   "/policy-versions/":
     post:
       tags:
@@ -2922,6 +2918,41 @@ components:
         - "last_updated_at"
         - "steps"
       title: "RunData"
+    "RunGroupResult":
+      properties:
+        "policy_id":
+          type: "string"
+          format: "uuid"
+          title: "Policy Id"
+        "run_group_id":
+          type: "string"
+          format: "uuid"
+          title: "Run Group Id"
+        "runs": {"$ref": "#/components/schemas/RunGroupRuns"}
+      type: "object"
+      required:
+        - "policy_id"
+        - "run_group_id"
+        - "runs"
+      title: "RunGroupResult"
+    "RunGroupRuns":
+      properties:
+        "main":
+          type: "string"
+          format: "uuid"
+          title: "Main"
+        "shaddow":
+          anyOf:
+            - items:
+                type: "string"
+                format: "uuid"
+              type: "array"
+            - type: "null"
+          title: "Shaddow"
+      type: "object"
+      required:
+        - "main"
+      title: "RunGroupRuns"
     "RunLogs":
       properties:
         "run_id":

@@ -1,7 +1,7 @@
 lockVersion: 2.0.0
 id: 88929680-bb73-487a-94bf-9600cc541817
 management:
-  docChecksum: a399ac1c1d6d82728ad17b6329f30227
+  docChecksum: f114fe844c44fd08305c1cb68e1c6b5a
   docVersion: 0.1.0
   speakeasyVersion: 1.606.0
   generationVersion: 2.686.7
@@ -18,6 +18,7 @@ features:
     envVarSecurityUsage: 0.3.2
     flatRequests: 1.0.1
     flattening: 3.1.1
+    getRequestBodies: 3.0.0
     globalSecurityCallbacks: 1.0.0
     globalServerURLs: 3.1.1
     groups: 3.0.0
@@ -138,6 +139,8 @@ generatedFiles:
   - docs/models/rundata.md
   - docs/models/rundurationstatsbypolicyrequest.md
   - docs/models/rundurationstatsbypolicystatusrequest.md
+  - docs/models/rungroupresult.md
+  - docs/models/rungroupruns.md
   - docs/models/runlogs.md
   - docs/models/runresult.md
   - docs/models/runsbypolicyrequest.md
@@ -280,6 +283,8 @@ generatedFiles:
   - src/lineart_sdk/models/run_workflowop.py
   - src/lineart_sdk/models/runcreated.py
   - src/lineart_sdk/models/rundata.py
+  - src/lineart_sdk/models/rungroupresult.py
+  - src/lineart_sdk/models/rungroupruns.py
   - src/lineart_sdk/models/runlogs.py
   - src/lineart_sdk/models/runresult.py
   - src/lineart_sdk/models/runs_by_policyop.py
@@ -617,7 +622,7 @@ examples:
         application/json: {"input_data": {"key": "<value>", "key1": "<value>", "key2": "<value>"}}
       responses:
         "200":
-          application/json: "<value>"
+          application/json: {"policy_id": "f5b9a990-a1a7-49c8-a30a-6da75a28ec03", "run_group_id": "ccc0aa6b-bed7-44d8-895e-40ebcfdda15d", "runs": {"main": "f5b9a990-a1a7-49c8-a30a-6da75a28ec03"}}
         "422":
           application/json: {}
   run_duration_stats_by_policy:
