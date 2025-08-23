@@ -8,7 +8,7 @@ from vulkan.runners.hatchet.nodes import (
     HatchetTransform,
     to_hatchet_nodes,
 )
-from vulkan.runners.hatchet.policy import HatchetFlow, create_hatchet_workflow
+from vulkan.runners.hatchet.policy import HatchetFlow
 from vulkan.runners.hatchet.run_config import HatchetPolicyConfig, HatchetRunConfig
 from vulkan.runners.hatchet.workspace import HatchetWorkspaceManager
 from vulkan.spec.dependency import INPUT_NODE, Dependency
@@ -131,7 +131,7 @@ class TestHatchetFlow:
             DataInputNode(name="data_input", data_source="test"),
         ]
 
-        flow = create_hatchet_workflow(nodes, "test_workflow")
+        flow = HatchetFlow(nodes, "test_workflow")
 
         assert isinstance(flow, HatchetFlow)
         assert flow.policy_name == "test_workflow"
