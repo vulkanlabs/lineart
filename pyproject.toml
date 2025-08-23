@@ -9,6 +9,7 @@ dependencies = [
     "vulkan[beam,hatchet]",
     "vulkan-engine",
     "vulkan-server",
+    "lineart-sdk",
     "ruff>=0.11.0",
 ]
 
@@ -30,6 +31,7 @@ vulkan-dagster = { workspace = true }
 upload-svc = { workspace = true }
 vulkan = { path = "vulkan", editable = true }
 vulkan-engine = { path = "vulkan-engine", editable = true }
+lineart-sdk = { path = "sdks/python", editable = true }
 
 [build-system]
 requires = ["hatchling"]

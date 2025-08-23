@@ -1,4 +1,4 @@
-import { PolicyDefinitionDictInput } from "@vulkanlabs/client-open";
+import { PolicyDefinitionDict } from "@vulkanlabs/client-open";
 import type { GenericNodeDefinition, NodeDependency } from "./workflow";
 
 // Re-export commonly used types
@@ -65,8 +65,8 @@ export type DecisionNodeMetadata = {
 };
 
 export type ComponentNodeMetadata = {
-    component_id: string;
-    definition: PolicyDefinitionDictInput;
+    component_name: string;
+    definition: PolicyDefinitionDict;
     parameters: { [key: string]: string };
 };
 

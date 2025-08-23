@@ -1,6 +1,6 @@
 {
   "name": "@vulkanlabs/base",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "files": [
     "dist",
@@ -20,7 +20,12 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "lint": "eslint . --max-warnings 0"
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --watch",
+    "test:ui": "vitest --ui"
   },
   "peerDependencies": {
     "next": "^14 || ^15",
@@ -28,12 +33,18 @@
     "react-dom": "^18 || ^19"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.7.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5.0.0",
     "eslint": "^9",
+    "happy-dom": "^18.0.1",
     "tsup": "^8",
-    "typescript": "5.8.2"
+    "typescript": "5.8.2",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -73,7 +84,6 @@
     "react-day-picker": ">8.10.1",
     "react-dom": "^18 || ^19",
     "react-hook-form": "^7.53.1",
-    "react-syntax-highlighter": "^15.6.1",
     "recharts": ">2.13.0",
     "sharp": "^0.33.5",
     "sonner": "^1.7.4",

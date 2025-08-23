@@ -40,10 +40,10 @@ export function ComponentNode({ id, data, selected, height, width }: VulkanNodeP
 
     // Get selected component details for display
     const [selectedComponent, setSelectedComponent] = useState<string>(
-        metadata?.component_id || "",
+        metadata?.component_name || "",
     );
     const selectedComponentDetails = useMemo(() => {
-        return components.find((component) => component.component_id === selectedComponent);
+        return components.find((component) => component.name === selectedComponent);
     }, [components, selectedComponent]);
 
     // Get component input fields from workflow spec
@@ -261,7 +261,7 @@ function ComponentDetails({ component }: ComponentDetailsProps) {
         <div
             className="mt-4 p-3 bg-gray-50 rounded-lg"
             onDoubleClick={() => {
-                window.open(`/components/${component.component_id}`, "_blank");
+                window.open(`/components/${encodeURIComponent(component.name)}`, "_blank");
             }}
         >
             <div className="flex items-center gap-3 mb-2">

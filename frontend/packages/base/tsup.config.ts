@@ -24,13 +24,16 @@ export default defineConfig({
         "src/lib/chart.ts",
     ],
     format: ["cjs", "esm"],
-    dts: true, // Re-enabled - we'll focus on core components first
+    dts: false, // Disabled due to lazy loading compatibility issues with generics
     clean: true,
     external: ["react", "react-dom", "next"],
-    splitting: false,
-    minify: false,
+
+    // Performance optimizations for production builds
+    splitting: true, // Enable code splitting for better load performance and caching
+    minify: true, // Enable minification for smaller bundle size (20-30% reduction)
+    treeshake: true, // Remove unused code for optimal bundle size
+
     outDir: "dist",
-    treeshake: true,
     esbuildOptions(options) {
         options.alias = {
             "@": path.resolve(process.cwd(), "src"),

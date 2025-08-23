@@ -1,5 +1,0 @@
-name: policy
-description: ""
-packaging:
-  mode: python_package
-  entrypoint: onboarding

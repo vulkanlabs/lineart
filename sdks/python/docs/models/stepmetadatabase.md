@@ -1,0 +1,13 @@
+# StepMetadataBase
+
+
+## Fields
+
+| Field                                                | Type                                                 | Required                                             | Description                                          |
+| ---------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------- |
+| `step_name`                                          | *str*                                                | :heavy_check_mark:                                   | N/A                                                  |
+| `node_type`                                          | *str*                                                | :heavy_check_mark:                                   | N/A                                                  |
+| `start_time`                                         | *float*                                              | :heavy_check_mark:                                   | N/A                                                  |
+| `end_time`                                           | *float*                                              | :heavy_check_mark:                                   | N/A                                                  |
+| `error`                                              | [OptionalNullable[models.Error]](../models/error.md) | :heavy_minus_sign:                                   | N/A                                                  |
+| `extra`                                              | Dict[str, *Any*]                                     | :heavy_minus_sign:                                   | N/A                                                  |

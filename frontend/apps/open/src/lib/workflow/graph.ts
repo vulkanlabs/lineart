@@ -86,15 +86,15 @@ export function makeNode(
     }
 
     if (node.node_type === "COMPONENT") {
-        nodeConfig.children = Object.values(node.metadata.nodes || []).map((n: any) =>
+        nodeConfig.children = Object.values(node.metadata.nodes).map((n: NodeDefinition) =>
             makeNode(n, node),
-        ) as NodeLayoutConfig[];
+        );
         nodeConfig.type = "group";
         return nodeConfig;
     }
 
     if (Object.keys(NodeTypeMapping).includes(node.node_type)) {
-        nodeConfig.type = NodeTypeMapping[node.node_type as keyof typeof NodeTypeMapping];
+        nodeConfig.type = NodeTypeMapping[node.node_type];
     } else {
         nodeConfig.targetPosition = "top";
         nodeConfig.sourcePosition = "bottom";
@@ -219,13 +219,14 @@ export async function getLayoutedElements(
                 position: { x: node.x, y: node.y },
             });
 
-            const extractChildren = (node: NodeLayoutConfig): NodeLayoutConfig[] => {
+            const extractChildren = (node: NodeLayoutConfig) => {
                 if (node.children) {
-                    return node.children.flatMap((child: NodeLayoutConfig) =>
+                    const children = node.children.flatMap((child: NodeLayoutConfig) =>
                         extractChildren(child),
                     );
+                    return [format_node(node), ...children];
                 }
-                return [format_node(node)];
+                return format_node(node);
             };
 
             let nodes = layoutedGraph.children.flatMap((node: NodeLayoutConfig) =>

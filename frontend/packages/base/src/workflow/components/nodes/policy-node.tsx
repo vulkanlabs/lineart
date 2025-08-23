@@ -45,8 +45,8 @@ export function PolicyNode({ id, data, selected, height, width }: VulkanNodeProp
 
     return (
         <StandardWorkflowNode id={id} selected={selected} data={data} height={height} width={width}>
-            <div className="flex flex-col gap-4 p-4">
-                <span>Policy Version:</span>
+            <div className="flex flex-col gap-2 p-3">
+                <span className="text-sm font-medium">Policy Version:</span>
                 {policiesError ? (
                     <div className="text-sm text-red-600 p-2 bg-red-50 rounded">
                         Error loading policies: {policiesError}

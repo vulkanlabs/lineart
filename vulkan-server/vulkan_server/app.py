@@ -19,7 +19,12 @@ def custom_generate_unique_id(route: APIRoute) -> str:
     return route.name
 
 
-app = FastAPI(generate_unique_id_function=custom_generate_unique_id)
+app = FastAPI(
+    title="VulkanAPI",
+    version="0.1.0",
+    generate_unique_id_function=custom_generate_unique_id,
+    separate_input_output_schemas=False,
+)
 
 origins = [
     "http://127.0.0.1",
@@ -38,8 +43,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(routers.components.router)
-app.include_router(routers.data.sources)
-app.include_router(routers.data.broker)
+app.include_router(routers.data.router)
+app.include_router(routers.internal.router)
 app.include_router(routers.policies.router)
 app.include_router(routers.policy_versions.router)
 app.include_router(routers.runs.router)

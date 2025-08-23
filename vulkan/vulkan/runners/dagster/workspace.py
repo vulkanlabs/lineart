@@ -13,10 +13,8 @@ from vulkan.runners.dagster.io_manager import (
 )
 from vulkan.runners.dagster.policy import DagsterFlow
 from vulkan.runners.dagster.resources import (
-    DATA_CLIENT_KEY,
-    RUN_CLIENT_KEY,
-    VulkanDataClient,
-    VulkanRunClient,
+    APP_CLIENT_KEY,
+    AppClientResource,
 )
 from vulkan.runners.dagster.run_config import (
     RUN_CONFIG_KEY,
@@ -41,7 +39,8 @@ def make_workspace_definition(spec_file_path: str) -> Definitions:
             database=EnvVar("VULKAN_DB_DATABASE"),
             object_table=EnvVar("VULKAN_DB_OBJECT_TABLE"),
         ),
-        RUN_CLIENT_KEY: VulkanRunClient(run_config=run_config),
+        # Unified App Client
+        APP_CLIENT_KEY: AppClientResource(run_config=run_config),
         # IO Managers
         "io_manager": IOManagerDefinition(
             resource_fn=postgresql_io_manager,
@@ -49,9 +48,8 @@ def make_workspace_definition(spec_file_path: str) -> Definitions:
         ),
         PUBLISH_IO_MANAGER_KEY: IOManagerDefinition(
             resource_fn=metadata_io_manager,
-            required_resource_keys={RUN_CONFIG_KEY},
+            required_resource_keys={APP_CLIENT_KEY},
         ),
-        DATA_CLIENT_KEY: VulkanDataClient(run_config=run_config),
     }
 
     # Up to this point, everything should be defined in terms of core elements.

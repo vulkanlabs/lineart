@@ -11,7 +11,7 @@ import {
     type Edge,
 } from "@xyflow/react";
 
-import type { PolicyDefinitionDictInput } from "@vulkanlabs/client-open";
+import type { PolicyDefinitionDict } from "@vulkanlabs/client-open";
 import type { WorkflowApiClient } from "../api/types";
 import { AsNodeDefinitionDict, type VulkanNode, type WorkflowState } from "../types/workflow";
 import type { InputNodeMetadata } from "../types/nodes";
@@ -48,7 +48,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
         getSpec: () => {
             const nodes = get().nodes || [];
-            const spec: PolicyDefinitionDictInput = {
+            const spec: PolicyDefinitionDict = {
                 nodes: nodes.filter((n) => n.type !== "INPUT").map(AsNodeDefinitionDict),
                 input_schema: get().getInputSchema(),
             };
@@ -102,7 +102,14 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
         },
 
         onNodesChange: async (changes) => {
-            const nextNodes = applyNodeChanges(changes, get().nodes);
+            const filteredChanges = changes.filter((change) => {
+                if (change.type === "remove") {
+                    const node = get().nodes.find((n) => n.id === change.id);
+                    return node?.type !== "INPUT";
+                }
+                return true;
+            });
+            const nextNodes = applyNodeChanges(filteredChanges, get().nodes);
             set({ nodes: nextNodes });
         },
 
@@ -129,7 +136,12 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             set({ nodes: nextNodes });
         },
 
-        removeNode: (nodeId) => set({ nodes: get().nodes.filter((node) => node.id !== nodeId) }),
+        removeNode: (nodeId) => {
+            const node = get().nodes.find((n) => n.id === nodeId);
+            if (node?.type === "INPUT") return;
+
+            set({ nodes: get().nodes.filter((node) => node.id !== nodeId) });
+        },
 
         addNodeByType: (type, position) => {
             const existingNodes = get().nodes;

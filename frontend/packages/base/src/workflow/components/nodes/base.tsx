@@ -5,6 +5,7 @@ import { Play, FoldVertical, UnfoldVertical, PanelRight } from "lucide-react";
 import { Position, NodeResizer } from "@xyflow/react";
 import { useShallow } from "zustand/react/shallow";
 
+import { Button, Input } from "@vulkanlabs/base/ui";
 import {
     BaseNode,
     BaseHandle,
@@ -15,12 +16,11 @@ import {
     NodeHeaderDeleteAction,
     NodeHeaderIcon,
 } from "@vulkanlabs/base/ui";
-import { Button, Input } from "@vulkanlabs/base/ui";
 
-import { useWorkflowStore } from "@/workflow/store";
-import { iconMapping } from "@/workflow/icons";
-import { standardizeNodeName } from "@/workflow/utils/names";
-import type { IncomingEdges } from "@/workflow/types/workflow";
+import { useWorkflowStore } from "../../store";
+import { iconMapping } from "../../icons";
+import { standardizeNodeName } from "../../utils/names";
+import type { IncomingEdges } from "../../types/workflow";
 
 /**
  * Default style for node handles
@@ -185,7 +185,11 @@ function BaseWorkflowNodeCore({
                             </div>
                         )}
                         <NodeHeaderActions>
-                            <NodeHeaderAction onClick={openPanel} label="Open Panel">
+                            <NodeHeaderAction
+                                onClick={openPanel}
+                                label="Open Panel"
+                                style={{ display: "none" }}
+                            >
                                 <PanelRight />
                             </NodeHeaderAction>
                             <NodeHeaderAction onClick={toggleDetails} label="Toggle Details">
@@ -196,7 +200,7 @@ function BaseWorkflowNodeCore({
                                 )}
                             </NodeHeaderAction>
                             {headerActions}
-                            <NodeHeaderDeleteAction />
+                            {!isInput && <NodeHeaderDeleteAction />}
                         </NodeHeaderActions>
                     </NodeHeader>
                     {isExpanded && <div className="flex-grow min-h-0">{children}</div>}
@@ -353,7 +357,7 @@ export function InputWorkflowNode({
 }
 
 /**
- * Terminate workflow node (not playable, no footer, output only)
+ * Terminate workflow node (not playable, output only, supports footer)
  */
 export function TerminateWorkflowNode({
     id,
@@ -362,7 +366,8 @@ export function TerminateWorkflowNode({
     height,
     selected,
     children,
-}: TerminateWorkflowNodeProps) {
+    footerContent,
+}: TerminateWorkflowNodeProps & { footerContent?: React.ReactNode }) {
     return (
         <BaseWorkflowNodeCore
             id={id}
@@ -372,6 +377,7 @@ export function TerminateWorkflowNode({
             selected={selected}
             isOutput={true}
             headerActions={null}
+            footerContent={footerContent}
         >
             {children}
         </BaseWorkflowNodeCore>

@@ -5,14 +5,14 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from vulkan_engine.config import LoggingConfig
 from vulkan_engine.db import LogRecord
 from vulkan_engine.events import VulkanEvent
 from vulkan_engine.gcp_logging import create_gcp_handler
 
-SYS_LOGGER_NAME = "vulkan"
+SYS_LOGGER_NAME = "vulkan_engine"
 USER_LOGGER_NAME = f"{SYS_LOGGER_NAME}.user"
 GCP_LOGGER_NAME = "vulkan-server"
 
@@ -127,6 +127,10 @@ class SQLAlchemyHandler(logging.Handler):
     def __init__(self, db):
         super().__init__()
         self.db: Session = db
+        # Store the session maker to create independent sessions for logging
+        self.session_maker = (
+            db.get_bind().pool._creator if hasattr(db.get_bind(), "pool") else None
+        )
 
     def emit(self, record):
         """
@@ -139,8 +143,18 @@ class SQLAlchemyHandler(logging.Handler):
                 message=log.message,
                 timestamp=log.timestamp,
             )
-            self.db.add(log_record)
-            self.db.commit()
+
+            # Use a separate session for logging to avoid transaction conflicts
+            # Create a new independent session for this log entry
+            if self.db.bind:
+                LogSession = sessionmaker(bind=self.db.bind)
+                with LogSession() as log_session:
+                    log_session.add(log_record)
+                    log_session.commit()
+            else:
+                # Fallback to original behavior if can't create separate session
+                self.db.add(log_record)
+                self.db.commit()
 
         except Exception:
             # WARNING: This exception is only logged and not propagated.

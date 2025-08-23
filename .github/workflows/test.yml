@@ -1,0 +1,32 @@
+name: CI - Test Steps
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        description: 'Python version to use'
+        required: false
+        default: '3.12'
+        type: string
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python_version }}
+        
+    - name: Install uv
+      run: |
+        set -x
+        pip install 'uv<0.8'
+        uv sync
+        
+    - name: Run tests with uv
+      run: |
+        uv run pytest -m "not integration"

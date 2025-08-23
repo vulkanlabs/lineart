@@ -2,14 +2,10 @@ import { forwardRef, useCallback, HTMLAttributes, ReactNode } from "react";
 import { useNodeId, useReactFlow } from "@xyflow/react";
 import { EllipsisVertical, Trash } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "../../lib/utils";
 import { Slot } from "@radix-ui/react-slot";
-import { Button, ButtonProps } from "@/components/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-} from "@/components/ui/dropdown-menu";
+import { Button, ButtonProps } from "../ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from "../ui/dropdown-menu";
 
 /* NODE HEADER -------------------------------------------------------------- */
 

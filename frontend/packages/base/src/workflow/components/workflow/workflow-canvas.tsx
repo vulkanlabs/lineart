@@ -2,7 +2,15 @@
 
 import React, { useState, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { SaveIcon, ChevronDownIcon, ChevronUpIcon, LayoutIcon, CopyIcon } from "lucide-react";
+import {
+    SaveIcon,
+    ChevronDownIcon,
+    ChevronUpIcon,
+    LayoutIcon,
+    CopyIcon,
+    FocusIcon,
+} from "lucide-react";
+import { ToolbarIcon } from "./toolbar-icon";
 import {
     ReactFlow,
     Controls,
@@ -10,6 +18,7 @@ import {
     BackgroundVariant,
     useReactFlow,
     ControlButton,
+    type OnInit,
 } from "@xyflow/react";
 
 import {
@@ -18,10 +27,6 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuTrigger,
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
 } from "@vulkanlabs/base/ui";
 
 import { useDropdown } from "@/workflow/hooks/use-dropdown";
@@ -29,11 +34,8 @@ import { nodesConfig } from "@/workflow/utils/nodes";
 import { iconMapping } from "@/workflow/icons";
 import { useWorkflowStore } from "@/workflow/store";
 import { useWorkflowApi, Workflow } from "@/workflow/api";
-import {
-    getLayoutedNodes,
-    defaultElkOptions,
-    type UnlayoutedVulkanNode,
-} from "@/workflow/utils/layout";
+import { getLayoutedNodes, type UnlayoutedVulkanNode } from "@/workflow/utils/layout";
+import type { VulkanNode, Edge } from "@/workflow/types/workflow";
 
 /**
  * Props for the workflow canvas component
@@ -88,7 +90,7 @@ export function WorkflowCanvas({
         })),
     );
 
-    const { screenToFlowPosition, fitView } = useReactFlow();
+    const { screenToFlowPosition, fitView, setViewport } = useReactFlow();
 
     const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
     const { isOpen, connectingHandle, toggleDropdown, ref } = useDropdown();
@@ -96,31 +98,100 @@ export function WorkflowCanvas({
     const clickNode = (e: React.MouseEvent, node: any) => onNodeClick(e, node);
     const clickPane = (e: React.MouseEvent) => onPaneClick(e);
 
+    const smartFitView = useCallback(() => {
+        if (nodes.length === 0) return;
+
+        // Calculate workflow spatial characteristics
+        const bounds = nodes.reduce(
+            (acc, node) => {
+                const x1 = node.position.x;
+                const y1 = node.position.y;
+                const x2 = x1 + (node.width || 450);
+                const y2 = y1 + (node.height || 225);
+
+                return {
+                    minX: Math.min(acc.minX, x1),
+                    minY: Math.min(acc.minY, y1),
+                    maxX: Math.max(acc.maxX, x2),
+                    maxY: Math.max(acc.maxY, y2),
+                };
+            },
+            { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity },
+        );
+
+        const workflowWidth = bounds.maxX - bounds.minX;
+        const workflowHeight = bounds.maxY - bounds.minY;
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+
+        // Determine complexity based on spatial distribution
+        const isSimple = workflowWidth < screenWidth * 0.7 && workflowHeight < screenHeight * 0.7;
+        const isMedium = workflowWidth < screenWidth * 1.5 && workflowHeight < screenHeight * 1.5;
+
+        if (isSimple) {
+            fitView({ padding: 0.1, maxZoom: 1.2, minZoom: 0.5 });
+        } else if (isMedium) {
+            fitView({ padding: 0.15, maxZoom: 1.0, minZoom: 0.3 });
+        } else {
+            // too large to fit well, use INPUT-left strategy
+            const inputNode = nodes.find((node) => node.type === "INPUT");
+            if (inputNode) {
+                const nodeWidth = inputNode.width || 450;
+                const nodeHeight = inputNode.height || 225;
+                const leftMargin = 150;
+
+                const nodeCenterX = inputNode.position.x + nodeWidth / 2;
+                const nodeCenterY = inputNode.position.y + nodeHeight / 2;
+
+                setViewport({
+                    x: -nodeCenterX + leftMargin + nodeWidth / 2,
+                    y: -nodeCenterY + window.innerHeight / 2,
+                    zoom: 0.6,
+                });
+            } else {
+                // Fallback: fit all but with limited zoom to keep nodes readable
+                fitView({ padding: 0.2, maxZoom: 0.6, minZoom: 0.2 });
+            }
+        }
+    }, [nodes, fitView, setViewport]);
+
     /**
      * Initialize the workflow layout when component mounts
      */
-    const onInit = useCallback(() => {
-        if (!workflow.workflow?.ui_metadata) {
-            const unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => ({
-                ...node,
-                layoutOptions: defaultElkOptions,
-            }));
+    const onInit: OnInit<VulkanNode, Edge> = useCallback(
+        (_reactFlowInstance) => {
+            setTimeout(() => {
+                smartFitView();
+            }, 0);
 
-            getLayoutedNodes(unpositionedNodes, edges, defaultElkOptions).then((layoutedNodes) => {
-                const nodesMap = Object.fromEntries(layoutedNodes.map((node) => [node.id, node]));
-                const newNodes = nodes.map((node) => ({
+            if (!workflow.workflow?.ui_metadata) {
+                const unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => ({
                     ...node,
-                    position: nodesMap[node.id].position,
                 }));
-                setNodes(newNodes);
-                // Fit the view after nodes are positioned
-                setTimeout(() => fitView(), 0);
-            });
-        } else {
-            // Also fit view when ui_metadata exists
-            setTimeout(() => fitView(), 0);
-        }
-    }, [workflow, nodes, edges, setNodes, fitView]);
+
+                getLayoutedNodes(unpositionedNodes, edges).then((layoutedNodes) => {
+                    const nodesMap = Object.fromEntries(
+                        layoutedNodes.map((node) => [node.id, node]),
+                    );
+                    const newNodes = nodes.map((node) => ({
+                        ...node,
+                        position: nodesMap[node.id].position,
+                    }));
+                    setNodes(newNodes);
+                    // Apply smart fit view after nodes are positioned
+                    setTimeout(() => {
+                        smartFitView();
+                    }, 100);
+                });
+            } else {
+                // For existing workflows, use smart fit view for consistent UX
+                setTimeout(() => {
+                    smartFitView();
+                }, 100);
+            }
+        },
+        [workflow, nodes, edges, setNodes, smartFitView],
+    );
 
     /**
      * Handle connection end events for node creation dropdown
@@ -167,31 +238,28 @@ export function WorkflowCanvas({
     }, [nodes]);
 
     /**
-     * Apply automatic layout to all nodes
+     * Apply automatic layout to all nodes and fit view
      */
     const autoLayoutNodes = useCallback(async () => {
         const unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => ({
             ...node,
-            layoutOptions: defaultElkOptions,
         }));
 
         try {
-            const layoutedNodes = await getLayoutedNodes(
-                unpositionedNodes,
-                edges,
-                defaultElkOptions,
-            );
+            const layoutedNodes = await getLayoutedNodes(unpositionedNodes, edges);
             const nodesMap = Object.fromEntries(layoutedNodes.map((node) => [node.id, node]));
             const newNodes = nodes.map((node) => ({
                 ...node,
                 position: nodesMap[node.id].position,
             }));
             setNodes(newNodes);
-            setTimeout(() => fitView(), 0);
+            setTimeout(() => {
+                smartFitView();
+            }, 100);
         } catch (error) {
             console.error("Error applying auto-layout:", error);
         }
-    }, [nodes, edges, setNodes, fitView]);
+    }, [nodes, edges, setNodes, smartFitView]);
 
     /**
      * Copy workflow specification to clipboard
@@ -285,6 +353,9 @@ export function WorkflowCanvas({
                 onConnectEnd={onConnectEnd}
                 nodeTypes={nodeTypes}
                 minZoom={0.1}
+                defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+                fitView={false}
+                fitViewOptions={{ includeHiddenNodes: false }}
                 proOptions={{ hideAttribution: true }}
             >
                 <Background
@@ -294,48 +365,33 @@ export function WorkflowCanvas({
                     gap={30}
                     variant={BackgroundVariant.Dots}
                 />
-                <Controls showZoom={false} showInteractive={false} orientation="horizontal">
-                    <ControlButton onClick={saveWorkflow}>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <SaveIcon />
-                                </TooltipTrigger>
-                                <TooltipContent>Save</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                <Controls
+                    showZoom={false}
+                    showInteractive={false}
+                    showFitView={false}
+                    orientation="horizontal"
+                >
+                    <ControlButton onClick={saveWorkflow} title="Save">
+                        <ToolbarIcon icon={SaveIcon} />
                     </ControlButton>
-                    <ControlButton onClick={toggleAllNodesCollapsed}>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    {areAllNodesCollapsed ? <ChevronDownIcon /> : <ChevronUpIcon />}
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {areAllNodesCollapsed ? "Expand All" : "Collapse All"}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    <ControlButton onClick={smartFitView} title="Smart Fit View">
+                        <ToolbarIcon icon={FocusIcon} />
                     </ControlButton>
-                    <ControlButton onClick={autoLayoutNodes}>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <LayoutIcon />
-                                </TooltipTrigger>
-                                <TooltipContent>Auto Layout</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    <ControlButton
+                        onClick={toggleAllNodesCollapsed}
+                        title={areAllNodesCollapsed ? "Expand All" : "Collapse All"}
+                    >
+                        {areAllNodesCollapsed ? (
+                            <ToolbarIcon icon={ChevronDownIcon} />
+                        ) : (
+                            <ToolbarIcon icon={ChevronUpIcon} />
+                        )}
                     </ControlButton>
-                    <ControlButton onClick={copySpecToClipboard}>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <CopyIcon />
-                                </TooltipTrigger>
-                                <TooltipContent>Copy Specification</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    <ControlButton onClick={autoLayoutNodes} title="Auto Layout">
+                        <ToolbarIcon icon={LayoutIcon} />
+                    </ControlButton>
+                    <ControlButton onClick={copySpecToClipboard} title="Copy Specification">
+                        <ToolbarIcon icon={CopyIcon} />
                     </ControlButton>
                 </Controls>
             </ReactFlow>

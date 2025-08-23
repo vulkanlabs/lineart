@@ -36,7 +36,7 @@ def list_components(
 
 @router.post("/", response_model=schemas.Component)
 def create_component(
-    config: schemas.ComponentBase,
+    config: schemas.ComponentUpdate,
     service: ComponentService = Depends(get_component_service),
     project_id: str | None = None,
 ):
@@ -62,7 +62,7 @@ def get_component(
 @router.put("/{component_name}", response_model=schemas.Component)
 def update_component(
     component_name: str,
-    config: schemas.ComponentBase,
+    config: schemas.ComponentUpdate,
     service: ComponentService = Depends(get_component_service),
     project_id: str | None = None,
 ):

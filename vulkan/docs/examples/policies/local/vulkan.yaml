@@ -1,5 +1,0 @@
-name: test_policy
-description: ""
-packaging:
-  mode: python_package
-  entrypoint: test_policy

@@ -33,7 +33,10 @@ class TransformNodeMetadata(BaseNodeMetadata):
 
 class TerminateNodeMetadata(BaseNodeMetadata):
     return_status: str
-    return_metadata: str | None = None
+    return_metadata: str | None = (
+        None  # Generated from output_data for frontend compatibility
+    )
+    output_data: dict[str, str] | None = None  # Primary storage for SDK
 
 
 class DataInputNodeMetadata(BaseNodeMetadata):
@@ -75,4 +78,4 @@ class DecisionNodeMetadata(BaseNodeMetadata):
 class ComponentNodeMetadata(BaseNodeMetadata):
     component_name: str
     definition: dict | None = None
-    parameters: dict[str, str] | None = None
+    parameters: dict | None = None

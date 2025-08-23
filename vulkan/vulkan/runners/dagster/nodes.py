@@ -26,12 +26,7 @@ from vulkan.runners.dagster.io_manager import (
     PUBLISH_IO_MANAGER_KEY,
 )
 from vulkan.runners.dagster.names import normalize_dependencies, normalize_node_id
-from vulkan.runners.dagster.resources import (
-    DATA_CLIENT_KEY,
-    RUN_CLIENT_KEY,
-    VulkanDataClient,
-    VulkanRunClient,
-)
+from vulkan.runners.dagster.resources import APP_CLIENT_KEY, AppClientResource
 from vulkan.runners.dagster.run_config import (
     RUN_CONFIG_KEY,
     VulkanPolicyConfig,
@@ -84,13 +79,15 @@ class DagsterDataInput(DataInputNode, DagsterNode):
                 "result": Out(),
                 METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
             },
-            required_resource_keys={DATA_CLIENT_KEY, POLICY_CONFIG_KEY, RUN_CONFIG_KEY},
+            required_resource_keys={APP_CLIENT_KEY, POLICY_CONFIG_KEY, RUN_CONFIG_KEY},
         )
 
-    def run(self, context, inputs):
+    def run(self, context: OpExecutionContext, inputs: dict[str, Any]):
         start_time = time.time()
-        client: VulkanDataClient = getattr(context.resources, DATA_CLIENT_KEY)
-        run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
+        app_client_resource: AppClientResource = getattr(
+            context.resources, APP_CLIENT_KEY
+        )
+        client = app_client_resource.get_client()
         inputs = _resolved_inputs(inputs, self.dependencies)
         extra = dict(data_source=self.data_source)
         error = None
@@ -102,10 +99,9 @@ class DagsterDataInput(DataInputNode, DagsterNode):
                 f"parameters: {configured_params}"
             )
 
-            response = client.get_data(
+            response = client.fetch_data(
                 data_source=self.data_source,
                 configured_params=configured_params,
-                run_id=run_config.run_id,
             )
             extra.update({"status_code": response.status_code})
             response.raise_for_status()
@@ -148,7 +144,7 @@ class DagsterDataInput(DataInputNode, DagsterNode):
         configured_params = {}
         for k, v in self.parameters.items():
             try:
-                configured_params[k] = resolve_template(v, inputs, env_variables={})
+                configured_params[k] = resolve_value(v, inputs, env_variables={})
             except Exception:
                 raise ValueError(f"Invalid parameter configuration: {v}")
         return configured_params
@@ -186,12 +182,15 @@ class DagsterPolicy(PolicyDefinitionNode, DagsterNode):
                 "result": Out(),
                 METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
             },
-            required_resource_keys={POLICY_CONFIG_KEY, RUN_CONFIG_KEY, RUN_CLIENT_KEY},
+            required_resource_keys={APP_CLIENT_KEY, POLICY_CONFIG_KEY, RUN_CONFIG_KEY},
         )
 
-    def run(self, context, inputs):
+    def run(self, context: OpExecutionContext, inputs: dict[str, Any]):
         start_time = time.time()
-        client: VulkanRunClient = getattr(context.resources, RUN_CLIENT_KEY)
+        app_client_resource: AppClientResource = getattr(
+            context.resources, APP_CLIENT_KEY
+        )
+        client = app_client_resource.get_client()
         inputs = _resolved_inputs(inputs, self.dependencies)
 
         # TODO: handle schema same way as data input nodes
@@ -228,7 +227,7 @@ class DagsterPolicy(PolicyDefinitionNode, DagsterNode):
             yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 
     @classmethod
-    def from_spec(cls, node: DataInputNode):
+    def from_spec(cls, node: PolicyDefinitionNode):
         return cls(
             name=normalize_node_id(node.id),
             policy_id=node.policy_id,
@@ -272,19 +271,20 @@ class DagsterTransformNodeMixin(DagsterNode):
             # We expose the configuration in transform nodes
             # to allow the callback function in terminate nodes to
             # access it. In the future, we may separate terminate nodes.
-            required_resource_keys={RUN_CONFIG_KEY, POLICY_CONFIG_KEY},
+            required_resource_keys={APP_CLIENT_KEY, RUN_CONFIG_KEY, POLICY_CONFIG_KEY},
         )
 
         return node_op
 
     def _get_configured_params(self, inputs):
-        if self.parameters is None:
+        params = getattr(self, "parameters", None)
+        if params is None:
             return {}
 
         configured_params = {}
-        for k, v in self.parameters.items():
+        for k, v in params.items():
             try:
-                configured_params[k] = resolve_template(v, inputs, env_variables={})
+                configured_params[k] = resolve_value(v, inputs, env_variables={})
             except Exception:
                 raise ValueError(f"Invalid parameter configuration: {v}")
         return configured_params
@@ -353,23 +353,23 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         description: str,
         return_status: str,
         dependencies: dict[str, Dependency],
-        return_metadata: str | None = None,
+        output_data: dict[str, str] | None = None,
         callback: Callable | None = None,
     ):
         super().__init__(
             name=name,
             description=description,
             return_status=return_status,
-            return_metadata=return_metadata,
+            output_data=output_data,
             dependencies=dependencies,
             callback=callback,
         )
         self._func = self._fn
 
-    def _fn(self, context, **kwargs):
+    def _fn(self, context: OpExecutionContext, **kwargs):
         status = self.return_status
         result = status.value if isinstance(status, Enum) else status
-        vulkan_run_config = context.resources.vulkan_run_config
+        vulkan_run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
         context.log.debug(f"Terminating with status {status}")
 
         metadata = None
@@ -403,43 +403,19 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         return result
 
     def _resolve_json_metadata(
-        self, template_metadata: dict, kwargs: dict, context
+        self,
+        template_metadata: dict,
+        kwargs: dict,
+        context: VulkanExecutionContext,
     ) -> dict:
         """Replace template expressions with actual node data using Jinja2."""
-
-        # Create a context for Jinja2 where keys are the upstream node names
-        # and values are the corresponding data from kwargs. This allows templates
-        # to refer to dependencies by their node name, e.g., {{ my_node.output_field }}.
-        jinja_context = {}
-
-        # Map node names to their data from kwargs
-        # Only use canonical node names to avoid shadowing ambiguity
-        for key, dep in self.dependencies.items():
-            if key in kwargs and hasattr(dep, "node"):
-                jinja_context[dep.node] = kwargs[key]
-
         try:
             env_config = getattr(context.resources, POLICY_CONFIG_KEY, None)
             env_variables = env_config.variables if env_config else {}
         except Exception:
             env_variables = {}
 
-        def resolve_value(value):
-            if isinstance(value, str):
-                try:
-                    # Use the robust Jinja2-based template resolution with environment variables
-                    return resolve_template(value, jinja_context, env_variables)
-                except Exception as e:
-                    context.log.error(f"Failed to resolve template '{value}': {e}")
-                    return value
-            elif isinstance(value, dict):
-                return {k: resolve_value(v) for k, v in value.items()}
-            elif isinstance(value, list):
-                return [resolve_value(item) for item in value]
-            else:
-                return value
-
-        return resolve_value(template_metadata)
+        return resolve_value(template_metadata, kwargs, env_variables)
 
     def _terminate(
         self,
@@ -447,28 +423,26 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         result: str,
         metadata: dict[str, Any] | None = None,
     ) -> bool:
-        vulkan_run_config = getattr(context.resources, RUN_CONFIG_KEY)
-        server_url = vulkan_run_config.server_url
-        run_id = vulkan_run_config.run_id
-
-        url = f"{server_url}/runs/{run_id}"
+        app_client_resource: AppClientResource = getattr(
+            context.resources, APP_CLIENT_KEY
+        )
+        client = app_client_resource.get_client()
         dagster_run_id: str = context.run_id
-        context.log.debug(
-            f"Returning status {result} to {url} for run {dagster_run_id}"
+
+        context.log.debug(f"Returning status {result} for Dagster run {dagster_run_id}")
+
+        success = client.update_run_status(
+            status=RunStatus.SUCCESS.value,
+            result=result,
+            metadata=metadata,
         )
-        response = requests.put(
-            url,
-            json={
-                "result": result,
-                "metadata": metadata,
-                "status": RunStatus.SUCCESS.value,
-            },
-        )
-        if response.status_code not in {200, 204}:
-            msg = f"Error {response.status_code} Failed to return status {result} to {url} for run {dagster_run_id}"
-            context.log.error(msg)
-            return False
-        return True
+
+        if not success:
+            context.log.error(
+                f"Failed to return status {result} for Dagster run {dagster_run_id}"
+            )
+
+        return success
 
     @classmethod
     def from_spec(cls, node: TerminateNode):
@@ -478,10 +452,27 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             name=normalize_node_id(node.id),
             description=node.description,
             return_status=node.return_status,
-            return_metadata=node.return_metadata,
+            output_data=node.output_data,
             dependencies=dependencies,
             callback=node.callback,
         )
+
+
+def resolve_value(value, jinja_context, env_variables):
+    if isinstance(value, str):
+        try:
+            # Use Jinja2-based template resolution with environment variables
+            return resolve_template(value, jinja_context, env_variables)
+        except Exception:
+            return value
+    elif isinstance(value, dict):
+        return {
+            k: resolve_value(v, jinja_context, env_variables) for k, v in value.items()
+        }
+    elif isinstance(value, list):
+        return [resolve_value(item, jinja_context, env_variables) for item in value]
+    else:
+        return value
 
 
 class DagsterBranch(BranchNode, DagsterNode):

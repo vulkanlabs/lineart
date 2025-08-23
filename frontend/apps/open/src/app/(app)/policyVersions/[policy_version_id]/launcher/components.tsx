@@ -7,17 +7,12 @@ import Link from "next/link";
 // External libraries
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, UseFormReturn } from "react-hook-form";
-import { Play } from "lucide-react";
+import { useForm, UseFormReturn, ControllerRenderProps } from "react-hook-form";
+import { Play, Settings, CheckCircle, AlertCircle } from "lucide-react";
 
 // Vulkan packages
 import {
     Button,
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
     Dialog,
     DialogContent,
     DialogTitle,
@@ -69,7 +64,7 @@ export function LauncherPage({
             {createdRun && (
                 <RunCreatedCard createdRun={createdRun} closeDialog={() => setCreatedRun(null)} />
             )}
-            {error && <RunCreationErrorCard error={error} />}
+            {error && <RunCreationErrorCard error={error} onRetry={() => setError(null)} />}
         </div>
     );
 }
@@ -95,34 +90,63 @@ export function LauncherButton({
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button variant="outline">
-                    <>
-                        <Play />
-                        <span>Launch Run</span>
-                    </>
+                <Button
+                    variant="outline"
+                    className={
+                        "border-input bg-background hover:bg-accent hover:text-accent-foreground " +
+                        "transition-all duration-200 shadow-sm hover:shadow-md"
+                    }
+                >
+                    <Play className="h-4 w-4 mr-2" />
+                    <span>Launch Run</span>
                 </Button>
             </DialogTrigger>
-            <DialogTitle className="sr-only">Launch a Run</DialogTitle>
-            <DialogContent className="md:max-w-[60%]">
-                {!error && !createdRun && (
-                    <LaunchRunForm
-                        policyVersionId={policyVersionId}
-                        launchFn={launchFn}
-                        defaultConfigVariables={asConfigMap(configVariables || [])}
-                        defaultInputData={asInputData(inputSchema)}
-                        setCreatedRun={setCreatedRun}
-                        setError={setError}
-                    />
-                )}
-                {error && <RunCreationErrorCard error={error} />}
-                {createdRun && (
-                    <RunCreatedCard
-                        createdRun={createdRun}
-                        closeDialog={() => {
-                            handleOpenChange(false);
-                        }}
-                    />
-                )}
+            <DialogContent className="max-w-4xl w-[90vw] max-h-[85vh] overflow-y-auto">
+                <div className="flex items-center justify-between pb-4 border-b">
+                    <div className="space-y-1">
+                        <DialogTitle className="text-xl font-semibold leading-none tracking-tight">
+                            {createdRun
+                                ? "Run Launched Successfully"
+                                : error
+                                  ? "Launch Failed"
+                                  : "Launch a New Run"}
+                        </DialogTitle>
+                        <p className="text-sm text-muted-foreground">
+                            {createdRun
+                                ? "Your policy run has been created and is now executing."
+                                : error
+                                  ? "There was an error launching your run."
+                                  : "Configure parameters and launch a run for this policy version."}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-6">
+                    {!error && !createdRun && (
+                        <LaunchRunForm
+                            policyVersionId={policyVersionId}
+                            launchFn={launchFn}
+                            defaultConfigVariables={asConfigMap(configVariables || [])}
+                            defaultInputData={asInputData(inputSchema)}
+                            setCreatedRun={setCreatedRun}
+                            setError={setError}
+                        />
+                    )}
+                    {error && (
+                        <RunCreationErrorCard
+                            error={error}
+                            onRetry={() => {
+                                setError(null);
+                            }}
+                        />
+                    )}
+                    {createdRun && (
+                        <RunCreatedCard
+                            createdRun={createdRun}
+                            closeDialog={() => handleOpenChange(false)}
+                        />
+                    )}
+                </div>
             </DialogContent>
         </Dialog>
     );
@@ -184,10 +208,10 @@ function LaunchRunForm({
             .then((data) => {
                 setError(null);
                 setCreatedRun(data);
-
                 return data;
             })
             .catch((error) => {
+                console.error("Form launch failed:", error);
                 setCreatedRun(null);
                 setError(error);
             })
@@ -218,81 +242,153 @@ function LaunchRunFormCard({
     setDefaults: () => void;
 }) {
     const placeholderText = JSON.stringify({ string_field: "value1", numeric_field: 1 }, null, 2);
+    const hasErrors = Object.keys(form.formState.errors).length > 0;
+    const isDirty = form.formState.isDirty;
+
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Launch a Run</CardTitle>
-                <CardDescription>
-                    Configure and launch a run for this Policy Version
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-2">
+        <div className="space-y-6">
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                         <FormField
                             control={form.control}
                             name="input_data"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Input Data</FormLabel>
+                            render={({ field }: { field: ControllerRenderProps }) => (
+                                <FormItem className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <FormLabel className="text-base font-semibold">
+                                            Input Data
+                                        </FormLabel>
+                                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                            Required
+                                        </span>
+                                    </div>
                                     <FormControl>
-                                        <Textarea
-                                            className="min-h-40"
-                                            placeholder={placeholderText}
-                                            {...field}
-                                        />
+                                        <div className="relative">
+                                            <Textarea
+                                                className="min-h-56 font-mono text-sm resize-y"
+                                                placeholder={placeholderText}
+                                                {...field}
+                                            />
+                                            <div
+                                                className={
+                                                    "absolute bottom-3 right-3 text-xs text-muted-foreground " +
+                                                    "bg-background/80 px-2 py-1 rounded backdrop-blur-sm"
+                                                }
+                                            >
+                                                {field.value?.length || 0} chars
+                                            </div>
+                                        </div>
                                     </FormControl>
-                                    <FormDescription>
-                                        Input data for the run. <br />
-                                        Must follow the input schema for the policy.
+                                    <FormDescription className="text-sm text-muted-foreground">
+                                        JSON data passed to the policy run. Must match the expected
+                                        input schema.
                                     </FormDescription>
-                                    <FormMessage />
+                                    <FormMessage className="text-sm" />
                                 </FormItem>
                             )}
                         />
                         <FormField
                             control={form.control}
                             name="config_variables"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Configuration Variables</FormLabel>
+                            render={({ field }: { field: ControllerRenderProps }) => (
+                                <FormItem className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <FormLabel className="text-base font-semibold">
+                                            Configuration Variables
+                                        </FormLabel>
+                                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                            Optional
+                                        </span>
+                                    </div>
                                     <FormControl>
-                                        <Textarea
-                                            className="min-h-40"
-                                            placeholder={placeholderText}
-                                            value={field.value || ""}
-                                        />
+                                        <div className="relative">
+                                            <Textarea
+                                                className="min-h-56 font-mono text-sm resize-y"
+                                                placeholder={placeholderText}
+                                                name={field.name}
+                                                onBlur={field.onBlur}
+                                                onChange={field.onChange}
+                                                ref={field.ref}
+                                                value={field.value ?? ""}
+                                            />
+                                            <div
+                                                className={
+                                                    "absolute bottom-3 right-3 text-xs text-muted-foreground " +
+                                                    "bg-background/80 px-2 py-1 rounded backdrop-blur-sm"
+                                                }
+                                            >
+                                                {field.value?.length || 0} chars
+                                            </div>
+                                        </div>
                                     </FormControl>
-                                    <FormDescription>
-                                        Configuration variables for the run. <br />
-                                        Override any configuration set in the policy version.
+                                    <FormDescription className="text-sm text-muted-foreground">
+                                        Optional configuration overrides for this specific run.
                                     </FormDescription>
-                                    <FormMessage />
+                                    <FormMessage className="text-sm" />
                                 </FormItem>
                             )}
                         />
-                        <div className="flex flex-row gap-4">
-                            <Button type="submit" disabled={submitting}>
-                                {submitting ? (
-                                    <Sending text={"Launching..."} />
-                                ) : (
-                                    <span>Launch Run</span>
-                                )}
-                            </Button>
+                    </div>
+
+                    {hasErrors && (
+                        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 space-y-2">
+                            <div className="flex items-center gap-2 text-destructive">
+                                <AlertCircle className="h-4 w-4" />
+                                <span className="font-medium">
+                                    Please fix the following errors:
+                                </span>
+                            </div>
+                            <ul className="list-disc list-inside text-sm text-destructive/80 space-y-1">
+                                {Object.entries(form.formState.errors).map(([field, error]) => (
+                                    <li key={field}>{error?.message}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    <div
+                        className={
+                            "flex flex-col sm:flex-row justify-between items-start " +
+                            "sm:items-center gap-4 pt-6 border-t"
+                        }
+                    >
+                        <div className="flex items-center gap-2">
                             <Button
                                 type="button"
-                                variant="secondary"
+                                variant="outline"
+                                size="sm"
                                 onClick={setDefaults}
                                 disabled={submitting}
-                                className="bg-gray-200 hover:bg-gray-500"
                             >
-                                Use Default Values
+                                <Settings className="h-4 w-4 mr-2" />
+                                Reset to Defaults
                             </Button>
+                            {isDirty && (
+                                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                    Unsaved changes
+                                </span>
+                            )}
                         </div>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
+
+                        <Button
+                            type="submit"
+                            disabled={submitting || hasErrors}
+                            className="min-w-[140px]"
+                        >
+                            {submitting ? (
+                                <Sending text="Launching..." />
+                            ) : (
+                                <>
+                                    <Play className="h-4 w-4 mr-2" />
+                                    <span>Launch Run</span>
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </form>
+            </Form>
+        </div>
     );
 }
 
@@ -339,35 +435,78 @@ function asConfigMap(configVariables: string[]) {
 
 function RunCreatedCard({ createdRun, closeDialog }: { createdRun: Run; closeDialog: () => void }) {
     return (
-        <Card className="flex flex-col w-fit border-green-600 border-2">
-            <CardHeader>
-                <CardTitle>Launched run successfully</CardTitle>
-                <CardDescription>
-                    <Link
-                        href={`/policyVersions/${createdRun.policy_version_id}/runs/${createdRun.run_id}`}
-                    >
-                        <Button className="bg-green-600 hover:bg-green-500" onClick={closeDialog}>
-                            View Run
-                        </Button>
-                    </Link>
-                </CardDescription>
-            </CardHeader>
-        </Card>
+        <div className="text-center space-y-6 py-8">
+            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                <CheckCircle className="w-8 h-8 text-foreground" />
+            </div>
+
+            <div className="space-y-3">
+                <h3 className="text-xl font-semibold">Run Launched Successfully!</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                    Your policy run has been created and is now executing. You can monitor its
+                    progress from the runs page.
+                </p>
+                <div className="inline-flex items-center gap-2 bg-muted border rounded-lg px-3 py-2">
+                    <span className="text-xs font-medium">Run ID:</span>
+                    <code className="text-xs font-mono bg-background px-2 py-1 rounded border">
+                        {createdRun.run_id}
+                    </code>
+                </div>
+            </div>
+
+            <div className="flex justify-center gap-3 pt-2">
+                <Link
+                    href={`/policyVersions/${createdRun.policy_version_id}/runs/${createdRun.run_id}`}
+                >
+                    <Button onClick={closeDialog}>
+                        <Play className="h-4 w-4 mr-2" />
+                        View Run Details
+                    </Button>
+                </Link>
+                <Button variant="outline" onClick={closeDialog}>
+                    Close
+                </Button>
+            </div>
+        </div>
     );
 }
 
-function RunCreationErrorCard({ error }: { error: Error }) {
+function RunCreationErrorCard({ error, onRetry }: { error: Error; onRetry: () => void }) {
     return (
-        <Card className="flex flex-col w-fit border-red-600 border-2">
-            <CardHeader>
-                <CardTitle>Failed to launch run</CardTitle>
-                <CardDescription>
-                    Launch failed with error: <br />
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <pre className="text-wrap">{error.message}</pre>
-            </CardContent>
-        </Card>
+        <div className="text-center space-y-6 py-8">
+            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-destructive" />
+            </div>
+
+            <div className="space-y-3">
+                <h3 className="text-xl font-semibold">Launch Failed</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                    There was an error starting your policy run. Please review the error details
+                    below and try again.
+                </p>
+            </div>
+
+            <div className="bg-muted border rounded-lg p-4 text-left max-w-lg mx-auto">
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    Error Details
+                </h4>
+                <div className="bg-background rounded border p-3">
+                    <pre className="text-xs whitespace-pre-wrap overflow-auto max-h-32 font-mono text-muted-foreground">
+                        {error.message}
+                    </pre>
+                </div>
+            </div>
+
+            <div className="flex justify-center gap-3 pt-2">
+                <Button variant="outline" onClick={onRetry}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Try Again
+                </Button>
+                <Button variant="ghost" onClick={() => window.history.back()}>
+                    Go Back
+                </Button>
+            </div>
+        </div>
     );
 }

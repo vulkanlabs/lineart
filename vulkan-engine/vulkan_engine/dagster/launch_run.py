@@ -13,7 +13,7 @@ from vulkan.runners.dagster.policy import DEFAULT_POLICY_NAME
 from vulkan.runners.dagster.run_config import RUN_CONFIG_KEY
 from vulkan_engine.config_variables import resolve_config_variables_from_id
 from vulkan_engine.dagster import trigger_run
-from vulkan_engine.db import Run, Workflow
+from vulkan_engine.db import Run
 from vulkan_engine.exceptions import (
     NotFoundException,
     RunPollingTimeoutException,
@@ -22,7 +22,7 @@ from vulkan_engine.exceptions import (
 )
 from vulkan_engine.loaders.policy_version import PolicyVersionLoader
 from vulkan_engine.logger import init_logger
-from vulkan_engine.schemas import PolicyAllocationStrategy, RunResult
+from vulkan_engine.schemas import PolicyAllocationStrategy, RunGroupRuns, RunResult
 
 logger = init_logger("run_launcher")
 
@@ -51,7 +51,7 @@ class DagsterRunLauncher:
         policy_version_id: str,
         run_group_id: UUID | None = None,
         run_config_variables: dict[str, str] | None = None,
-        project_id: str = None,
+        project_id: UUID | None = None,
     ) -> Run:
         """Create and launch a run."""
         config = self._get_launch_config(
@@ -84,6 +84,7 @@ class DagsterRunLauncher:
         """Launch a run that has already been created."""
         config = self._get_launch_config(
             policy_version_id=run.policy_version_id,
+            project_id=run.project_id,
             run_config_variables=run_config_variables,
         )
         return self._trigger_job(
@@ -94,8 +95,8 @@ class DagsterRunLauncher:
 
     def _get_launch_config(
         self,
-        policy_version_id: str,
-        project_id: str,
+        policy_version_id: UUID,
+        project_id: UUID | None = None,
         run_config_variables: dict[str, str] | None = None,
     ) -> LaunchConfig:
         version = self.policy_version_loader.get_policy_version(
@@ -136,6 +137,7 @@ class DagsterRunLauncher:
                 config_variables=config.variables,
                 version_name=config.name,
                 run_id=run.run_id,
+                project_id=run.project_id,
             )
             run.status = RunStatus.STARTED
             run.dagster_run_id = dagster_run_id
@@ -155,6 +157,7 @@ def trigger_dagster_job(
     run_id: UUID,
     input_data: dict,
     config_variables: dict[str, str],
+    project_id: UUID | None = None,
 ):
     execution_config = {
         "ops": {"input_node": {"config": input_data}},
@@ -162,6 +165,7 @@ def trigger_dagster_job(
             RUN_CONFIG_KEY: {
                 "config": {
                     "run_id": str(run_id),
+                    "project_id": str(project_id) if project_id else None,
                     "server_url": server_url,
                 }
             },
@@ -185,8 +189,8 @@ def allocate_runs(
     input_data: dict,
     run_group_id: UUID,
     allocation_strategy: PolicyAllocationStrategy,
-    project_id: str = None,
-):
+    project_id: UUID | None = None,
+) -> RunGroupRuns:
     shadow = []
 
     if allocation_strategy.shadow is not None:
@@ -211,7 +215,7 @@ def allocate_runs(
         policy_version_id=policy_version_id,
         project_id=project_id,
     )
-    return {"main": main.run_id, "shadow": shadow}
+    return RunGroupRuns(main=main.run_id, shadow=shadow)
 
 
 MIN_POLLING_INTERVAL_MS = 500

@@ -2,9 +2,10 @@
 
 // External libraries
 import { Layers, Network, FolderCog, Play } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 // Local imports
-import { InnerNavbar, InnerNavbarSectionProps } from "@/components/inner-navbar";
+import { InnerNavbar, type InnerNavbarSectionProps } from "@vulkanlabs/base";
 import { PageLayout, SidebarSectionProps } from "@/components/page-layout";
 import { postLaunchFormAction } from "./launcher/actions";
 import { LauncherButton } from "./launcher/components";
@@ -19,7 +20,10 @@ export function RouteLayout({
     policyVersion: PolicyVersion;
     children: React.ReactNode;
 }) {
+    const pathname = usePathname();
     const baseUrl = `/policyVersions/${policyVersion.policy_version_id}`;
+    const isOnWorkflowPage = pathname.endsWith("/workflow");
+
     const sections: SidebarSectionProps[] = [
         {
             name: "Workflow",
@@ -48,6 +52,7 @@ export function RouteLayout({
         { key: "Version:", value: policyVersion.alias || "" },
         { key: "Status:", value: policyVersion.workflow?.status || "" },
     ];
+
     const rightSections: InnerNavbarSectionProps[] = [
         {
             element: (
@@ -66,7 +71,10 @@ export function RouteLayout({
                 sections={innerNavbarSections}
                 rightSections={rightSections}
             />
-            <PageLayout sidebar={{ sections, retractable: true }} content={{ scrollable: true }}>
+            <PageLayout
+                sidebar={{ sections, retractable: true }}
+                content={{ scrollable: !isOnWorkflowPage }}
+            >
                 {children}
             </PageLayout>
         </div>

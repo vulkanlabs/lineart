@@ -15,10 +15,10 @@ repos:
     # Run the linter.
     - id: ruff
       entry: ruff check
-      args: [ --force-exclude, --select, I, --fix, "--extend-exclude=vulkan/vulkan/templates/policy/**"]
+      args: [ --force-exclude, --select, I, --fix]
       types_or: [ python, pyi, jupyter ]
     # Run the formatter.
     - id: ruff-format
       entry: ruff format 
-      args: [--force-exclude, --exclude=vulkan/vulkan/templates/policy/]
+      args: [--force-exclude]
       types_or: [ python, pyi, jupyter ]

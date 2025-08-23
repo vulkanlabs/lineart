@@ -2,16 +2,9 @@
 
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 
-import { cn } from "@/lib/utils";
+import { cn } from "../lib/utils";
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
@@ -33,7 +26,7 @@ export function DataTable<TData, TValue>({
     });
 
     return (
-        <div className={cn(className, "rounded-md border overflow-y-scroll")}>
+        <div className={cn(className, "rounded-md border")}>
             <Table>
                 <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (

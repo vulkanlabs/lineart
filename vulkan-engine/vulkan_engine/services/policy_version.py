@@ -6,7 +6,6 @@ workspace management, configuration variables, data source dependencies, and run
 """
 
 from datetime import date
-from typing import Any
 
 from sqlalchemy import func as F
 from sqlalchemy import select
@@ -62,7 +61,7 @@ class PolicyVersionService(BaseService):
         self.policy_version_loader = PolicyVersionLoader(db)
 
     def create_policy_version(
-        self, config: schemas.PolicyVersionCreate, project_id: str = None
+        self, config: schemas.PolicyVersionBase, project_id: str = None
     ) -> schemas.PolicyVersion:
         """
         Create a new policy version.
@@ -151,7 +150,7 @@ class PolicyVersionService(BaseService):
     def update_policy_version(
         self,
         policy_version_id: str,
-        config: schemas.PolicyVersionBase,
+        config: schemas.PolicyVersionUpdate,
         project_id: str = None,
     ) -> PolicyVersion:
         """
@@ -174,24 +173,29 @@ class PolicyVersionService(BaseService):
             policy_version_id, project_id=project_id, include_archived=False
         )
 
-        self.logger.system.error(f"Got version {version}")
         # Update basic fields
         version.alias = config.alias
 
         workflow = self.workflow_service.update_workflow(
             workflow_id=version.workflow_id,
-            spec=config.spec,
-            requirements=config.requirements,
-            variables=config.spec.config_variables or [],
-            ui_metadata=config.ui_metadata,
+            spec=config.workflow.spec,
+            requirements=config.workflow.requirements,
+            variables=config.workflow.variables,
+            ui_metadata=config.workflow.ui_metadata,
             project_id=project_id,
         )
-        self.logger.system.error(f"Updated workflow {version.workflow_id}")
+        self.logger.system.info(
+            f"Updated workflow {version.workflow_id}",
+            extra={
+                "project_id": project_id,
+                "policy_version_id": policy_version_id,
+            },
+        )
 
         # Handle data source dependencies
         data_input_nodes = [
             node
-            for node in config.spec.nodes
+            for node in config.workflow.spec.nodes
             if node.node_type == NodeType.DATA_INPUT.value
         ]
         # List of data source names used in the data input nodes
@@ -257,7 +261,7 @@ class PolicyVersionService(BaseService):
         input_data: dict,
         config_variables: dict,
         project_id: str = None,
-    ) -> dict[str, str]:
+    ) -> schemas.RunCreated:
         """
         Create a run for a policy version.
 
@@ -268,7 +272,7 @@ class PolicyVersionService(BaseService):
             project_id: Optional project UUID to associate with
 
         Returns:
-            Dictionary with policy_version_id and run_id
+            RunCreated
         """
         if not self.launcher:
             raise Exception("No launcher available")
@@ -279,7 +283,9 @@ class PolicyVersionService(BaseService):
             run_config_variables=config_variables,
             project_id=project_id,
         )
-        return {"policy_version_id": policy_version_id, "run_id": run.run_id}
+        return schemas.RunCreated(
+            policy_version_id=policy_version_id, run_id=run.run_id
+        )
 
     async def run_workflow(
         self,
@@ -380,7 +386,7 @@ class PolicyVersionService(BaseService):
         policy_version_id: str,
         desired_variables: list[schemas.ConfigurationVariablesBase],
         project_id: str = None,
-    ) -> dict[str, Any]:
+    ) -> schemas.ConfigurationVariablesSetResult:
         """
         Set configuration variables for a policy version.
 
@@ -390,7 +396,7 @@ class PolicyVersionService(BaseService):
             project_id: Optional project UUID to filter by
 
         Returns:
-            Dictionary with policy_version_id and variables
+            ConfigurationVariablesSetResult
 
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
@@ -433,7 +439,16 @@ class PolicyVersionService(BaseService):
             variables=[v.model_dump_json() for v in desired_variables],
         )
 
-        return {"policy_version_id": policy_version_id, "variables": desired_variables}
+        return schemas.ConfigurationVariablesSetResult(
+            policy_version_id=policy_version_id,
+            variables=[
+                schemas.ConfigurationVariables(
+                    name=v.name,
+                    value=v.value,
+                )
+                for v in desired_variables
+            ],
+        )
 
     def list_runs_by_policy_version(
         self,

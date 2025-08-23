@@ -1,0 +1,860 @@
+lockVersion: 2.0.0
+id: 88929680-bb73-487a-94bf-9600cc541817
+management:
+  docChecksum: e81c2d06221aca3a7f536255ea17547d
+  docVersion: 0.1.0
+  speakeasyVersion: 1.606.3
+  generationVersion: 2.687.1
+  releaseVersion: 0.1.1
+  configChecksum: ead855dbef14a61429c1c8a4232952eb
+features:
+  python:
+    additionalDependencies: 1.0.0
+    constsAndDefaults: 1.0.5
+    core: 5.19.9
+    defaultEnabledRetries: 0.2.0
+    devContainers: 3.0.0
+    enumUnions: 0.1.0
+    envVarSecurityUsage: 0.3.2
+    flatRequests: 1.0.1
+    flattening: 3.1.1
+    globalSecurityCallbacks: 1.0.0
+    globalServerURLs: 3.1.1
+    groups: 3.0.0
+    methodArguments: 1.0.2
+    nameOverrides: 3.0.1
+    nullables: 1.0.1
+    responseFormat: 1.0.1
+    retries: 3.0.2
+    sdkHooks: 1.1.0
+    unions: 3.0.4
+generatedFiles:
+  - .devcontainer/README.md
+  - .devcontainer/devcontainer.json
+  - .devcontainer/setup.sh
+  - .gitattributes
+  - .vscode/settings.json
+  - USAGE.md
+  - docs/errors/httpvalidationerror.md
+  - docs/models/authcallbackrequest.md
+  - docs/models/authdisconnectresponse.md
+  - docs/models/authstartresponse.md
+  - docs/models/authuserinforesponse.md
+  - docs/models/body1.md
+  - docs/models/body2.md
+  - docs/models/bodycreaterunbypolicyversion.md
+  - docs/models/bodycreaterungroup.md
+  - docs/models/bodyrundurationstatsbypolicy.md
+  - docs/models/bodyrundurationstatsbypolicystatus.md
+  - docs/models/bodyrunsbypolicy.md
+  - docs/models/bodyrunsoutcomesbypolicy.md
+  - docs/models/bodyrunversionsync.md
+  - docs/models/bodyrunworkflow.md
+  - docs/models/bodyupdaterun.md
+  - docs/models/cachingoptions.md
+  - docs/models/cachingttl.md
+  - docs/models/component.md
+  - docs/models/componentupdate.md
+  - docs/models/configurationvariables.md
+  - docs/models/configurationvariablesbase.md
+  - docs/models/configurationvariablesbasevalue.md
+  - docs/models/configurationvariablesvalue.md
+  - docs/models/createcomponentrequest.md
+  - docs/models/createrunbypolicyversionrequest.md
+  - docs/models/createrungrouprequest.md
+  - docs/models/dagsterlogdetails.md
+  - docs/models/databrokerrequest.md
+  - docs/models/databrokerresponse.md
+  - docs/models/dataobject.md
+  - docs/models/dataobjectmetadata.md
+  - docs/models/dataobjectorigin.md
+  - docs/models/datasource.md
+  - docs/models/datasourceenvvar.md
+  - docs/models/datasourceenvvarbase.md
+  - docs/models/datasourceenvvarbasevalue.md
+  - docs/models/datasourceenvvarvalue.md
+  - docs/models/datasourcereference.md
+  - docs/models/datasourcesource.md
+  - docs/models/datasourcespec.md
+  - docs/models/datasourcespecsource.md
+  - docs/models/deletecomponentrequest.md
+  - docs/models/deletedatasourcerequest.md
+  - docs/models/deletepolicyrequest.md
+  - docs/models/deletepolicyversionrequest.md
+  - docs/models/dependencydict.md
+  - docs/models/disconnectrequest.md
+  - docs/models/envvarconfig.md
+  - docs/models/error.md
+  - docs/models/event.md
+  - docs/models/getcachestatisticsrequest.md
+  - docs/models/getcomponentrequest.md
+  - docs/models/getdataobjectrequest.md
+  - docs/models/getdatasourceenvvariablesrequest.md
+  - docs/models/getdatasourcemetricsrequest.md
+  - docs/models/getdatasourcerequest.md
+  - docs/models/getdatasourceusagerequest.md
+  - docs/models/getpolicyrequest.md
+  - docs/models/getpolicyversionrequest.md
+  - docs/models/getrundatarequest.md
+  - docs/models/getrunlogsrequest.md
+  - docs/models/getrunrequest.md
+  - docs/models/getuserinforequest.md
+  - docs/models/headers1.md
+  - docs/models/headers2.md
+  - docs/models/httpsource.md
+  - docs/models/listcomponentsrequest.md
+  - docs/models/listconfigvariablesrequest.md
+  - docs/models/listdataobjectsrequest.md
+  - docs/models/listdatasourcesbypolicyversionrequest.md
+  - docs/models/listdatasourcesrequest.md
+  - docs/models/listpoliciesrequest.md
+  - docs/models/listpolicyversionsbypolicyrequest.md
+  - docs/models/listpolicyversionsrequest.md
+  - docs/models/listrunsbypolicyrequest.md
+  - docs/models/listrunsbypolicyversionrequest.md
+  - docs/models/loc.md
+  - docs/models/localfilesource.md
+  - docs/models/logentry.md
+  - docs/models/method.md
+  - docs/models/nodedefinitiondict.md
+  - docs/models/output.md
+  - docs/models/params1.md
+  - docs/models/params2.md
+  - docs/models/policy.md
+  - docs/models/policyallocationstrategy.md
+  - docs/models/policybase.md
+  - docs/models/policycreate.md
+  - docs/models/policydefinitiondict.md
+  - docs/models/policyrunpartition.md
+  - docs/models/policyversion.md
+  - docs/models/policyversionbase.md
+  - docs/models/policyversionupdate.md
+  - docs/models/publishmetadatarequest.md
+  - docs/models/registeredfilesource.md
+  - docs/models/responsetype.md
+  - docs/models/retrypolicy.md
+  - docs/models/run.md
+  - docs/models/runcreated.md
+  - docs/models/rundata.md
+  - docs/models/rundurationstatsbypolicyrequest.md
+  - docs/models/rundurationstatsbypolicystatusrequest.md
+  - docs/models/rungroupresult.md
+  - docs/models/rungroupruns.md
+  - docs/models/runlogs.md
+  - docs/models/runresult.md
+  - docs/models/runsbypolicyrequest.md
+  - docs/models/runsoutcomesbypolicyrequest.md
+  - docs/models/runtimeparam.md
+  - docs/models/runversionsyncrequest.md
+  - docs/models/runworkflowrequest.md
+  - docs/models/setconfigvariablesrequest.md
+  - docs/models/setdatasourceenvvariablesrequest.md
+  - docs/models/startauthrequest.md
+  - docs/models/stepdetails.md
+  - docs/models/stepmetadatabase.md
+  - docs/models/ttl.md
+  - docs/models/uimetadata.md
+  - docs/models/uinodeposition.md
+  - docs/models/updatecomponentrequest.md
+  - docs/models/updatepolicyrequest.md
+  - docs/models/updatepolicyversionrequest.md
+  - docs/models/updaterunrequest.md
+  - docs/models/userlogdetails.md
+  - docs/models/utils/retryconfig.md
+  - docs/models/validationerror.md
+  - docs/models/workflow.md
+  - docs/models/workflowbase.md
+  - docs/models/workflowstatus.md
+  - docs/sdks/auth/README.md
+  - docs/sdks/components/README.md
+  - docs/sdks/datasources/README.md
+  - docs/sdks/internal/README.md
+  - docs/sdks/lineart/README.md
+  - docs/sdks/policies/README.md
+  - docs/sdks/policyversions/README.md
+  - docs/sdks/runs/README.md
+  - py.typed
+  - pylintrc
+  - pyproject.toml
+  - scripts/publish.sh
+  - src/lineart_sdk/__init__.py
+  - src/lineart_sdk/_hooks/__init__.py
+  - src/lineart_sdk/_hooks/sdkhooks.py
+  - src/lineart_sdk/_hooks/types.py
+  - src/lineart_sdk/_version.py
+  - src/lineart_sdk/auth.py
+  - src/lineart_sdk/basesdk.py
+  - src/lineart_sdk/components.py
+  - src/lineart_sdk/datasources.py
+  - src/lineart_sdk/errors/__init__.py
+  - src/lineart_sdk/errors/httpvalidationerror.py
+  - src/lineart_sdk/errors/lineartdefaulterror.py
+  - src/lineart_sdk/errors/linearterror.py
+  - src/lineart_sdk/errors/no_response_error.py
+  - src/lineart_sdk/errors/responsevalidationerror.py
+  - src/lineart_sdk/httpclient.py
+  - src/lineart_sdk/internal.py
+  - src/lineart_sdk/models/__init__.py
+  - src/lineart_sdk/models/_stepdetails.py
+  - src/lineart_sdk/models/auth_callbackop.py
+  - src/lineart_sdk/models/authdisconnectresponse.py
+  - src/lineart_sdk/models/authstartresponse.py
+  - src/lineart_sdk/models/authuserinforesponse.py
+  - src/lineart_sdk/models/body_create_run_by_policy_version.py
+  - src/lineart_sdk/models/body_create_run_group.py
+  - src/lineart_sdk/models/body_run_duration_stats_by_policy.py
+  - src/lineart_sdk/models/body_run_duration_stats_by_policy_status.py
+  - src/lineart_sdk/models/body_run_version_sync.py
+  - src/lineart_sdk/models/body_run_workflow.py
+  - src/lineart_sdk/models/body_runs_by_policy.py
+  - src/lineart_sdk/models/body_runs_outcomes_by_policy.py
+  - src/lineart_sdk/models/body_update_run.py
+  - src/lineart_sdk/models/cachingoptions.py
+  - src/lineart_sdk/models/cachingttl.py
+  - src/lineart_sdk/models/component.py
+  - src/lineart_sdk/models/componentupdate.py
+  - src/lineart_sdk/models/configurationvariables.py
+  - src/lineart_sdk/models/configurationvariablesbase.py
+  - src/lineart_sdk/models/create_componentop.py
+  - src/lineart_sdk/models/create_run_by_policy_versionop.py
+  - src/lineart_sdk/models/create_run_groupop.py
+  - src/lineart_sdk/models/dagsterlogdetails.py
+  - src/lineart_sdk/models/databrokerrequest.py
+  - src/lineart_sdk/models/databrokerresponse.py
+  - src/lineart_sdk/models/dataobject.py
+  - src/lineart_sdk/models/dataobjectmetadata.py
+  - src/lineart_sdk/models/dataobjectorigin.py
+  - src/lineart_sdk/models/datasource.py
+  - src/lineart_sdk/models/datasourceenvvar.py
+  - src/lineart_sdk/models/datasourceenvvarbase.py
+  - src/lineart_sdk/models/datasourcereference.py
+  - src/lineart_sdk/models/datasourcespec.py
+  - src/lineart_sdk/models/delete_componentop.py
+  - src/lineart_sdk/models/delete_data_sourceop.py
+  - src/lineart_sdk/models/delete_policy_versionop.py
+  - src/lineart_sdk/models/delete_policyop.py
+  - src/lineart_sdk/models/dependencydict.py
+  - src/lineart_sdk/models/disconnectop.py
+  - src/lineart_sdk/models/envvarconfig.py
+  - src/lineart_sdk/models/get_cache_statisticsop.py
+  - src/lineart_sdk/models/get_componentop.py
+  - src/lineart_sdk/models/get_data_objectop.py
+  - src/lineart_sdk/models/get_data_source_env_variablesop.py
+  - src/lineart_sdk/models/get_data_source_metricsop.py
+  - src/lineart_sdk/models/get_data_source_usageop.py
+  - src/lineart_sdk/models/get_data_sourceop.py
+  - src/lineart_sdk/models/get_policy_versionop.py
+  - src/lineart_sdk/models/get_policyop.py
+  - src/lineart_sdk/models/get_run_dataop.py
+  - src/lineart_sdk/models/get_run_logsop.py
+  - src/lineart_sdk/models/get_runop.py
+  - src/lineart_sdk/models/get_user_infoop.py
+  - src/lineart_sdk/models/httpsource.py
+  - src/lineart_sdk/models/list_componentsop.py
+  - src/lineart_sdk/models/list_config_variablesop.py
+  - src/lineart_sdk/models/list_data_objectsop.py
+  - src/lineart_sdk/models/list_data_sources_by_policy_versionop.py
+  - src/lineart_sdk/models/list_data_sourcesop.py
+  - src/lineart_sdk/models/list_policiesop.py
+  - src/lineart_sdk/models/list_policy_versions_by_policyop.py
+  - src/lineart_sdk/models/list_policy_versionsop.py
+  - src/lineart_sdk/models/list_runs_by_policy_versionop.py
+  - src/lineart_sdk/models/list_runs_by_policyop.py
+  - src/lineart_sdk/models/localfilesource.py
+  - src/lineart_sdk/models/logentry.py
+  - src/lineart_sdk/models/nodedefinitiondict.py
+  - src/lineart_sdk/models/policy.py
+  - src/lineart_sdk/models/policyallocationstrategy.py
+  - src/lineart_sdk/models/policybase.py
+  - src/lineart_sdk/models/policycreate.py
+  - src/lineart_sdk/models/policydefinitiondict.py
+  - src/lineart_sdk/models/policyrunpartition.py
+  - src/lineart_sdk/models/policyversion.py
+  - src/lineart_sdk/models/policyversionbase.py
+  - src/lineart_sdk/models/policyversionupdate.py
+  - src/lineart_sdk/models/publish_metadataop.py
+  - src/lineart_sdk/models/registeredfilesource.py
+  - src/lineart_sdk/models/retrypolicy.py
+  - src/lineart_sdk/models/run.py
+  - src/lineart_sdk/models/run_duration_stats_by_policy_statusop.py
+  - src/lineart_sdk/models/run_duration_stats_by_policyop.py
+  - src/lineart_sdk/models/run_version_syncop.py
+  - src/lineart_sdk/models/run_workflowop.py
+  - src/lineart_sdk/models/runcreated.py
+  - src/lineart_sdk/models/rundata.py
+  - src/lineart_sdk/models/rungroupresult.py
+  - src/lineart_sdk/models/rungroupruns.py
+  - src/lineart_sdk/models/runlogs.py
+  - src/lineart_sdk/models/runresult.py
+  - src/lineart_sdk/models/runs_by_policyop.py
+  - src/lineart_sdk/models/runs_outcomes_by_policyop.py
+  - src/lineart_sdk/models/runtimeparam.py
+  - src/lineart_sdk/models/set_config_variablesop.py
+  - src/lineart_sdk/models/set_data_source_env_variablesop.py
+  - src/lineart_sdk/models/start_authop.py
+  - src/lineart_sdk/models/stepmetadatabase.py
+  - src/lineart_sdk/models/uimetadata.py
+  - src/lineart_sdk/models/uinodeposition.py
+  - src/lineart_sdk/models/update_componentop.py
+  - src/lineart_sdk/models/update_policy_versionop.py
+  - src/lineart_sdk/models/update_policyop.py
+  - src/lineart_sdk/models/update_runop.py
+  - src/lineart_sdk/models/userlogdetails.py
+  - src/lineart_sdk/models/validationerror.py
+  - src/lineart_sdk/models/workflow.py
+  - src/lineart_sdk/models/workflowbase.py
+  - src/lineart_sdk/models/workflowstatus.py
+  - src/lineart_sdk/policies.py
+  - src/lineart_sdk/policyversions.py
+  - src/lineart_sdk/py.typed
+  - src/lineart_sdk/runs.py
+  - src/lineart_sdk/sdk.py
+  - src/lineart_sdk/sdkconfiguration.py
+  - src/lineart_sdk/types/__init__.py
+  - src/lineart_sdk/types/basemodel.py
+  - src/lineart_sdk/utils/__init__.py
+  - src/lineart_sdk/utils/annotations.py
+  - src/lineart_sdk/utils/datetimes.py
+  - src/lineart_sdk/utils/enums.py
+  - src/lineart_sdk/utils/eventstreaming.py
+  - src/lineart_sdk/utils/forms.py
+  - src/lineart_sdk/utils/headers.py
+  - src/lineart_sdk/utils/logger.py
+  - src/lineart_sdk/utils/metadata.py
+  - src/lineart_sdk/utils/queryparams.py
+  - src/lineart_sdk/utils/requestbodies.py
+  - src/lineart_sdk/utils/retries.py
+  - src/lineart_sdk/utils/security.py
+  - src/lineart_sdk/utils/serializers.py
+  - src/lineart_sdk/utils/unmarshal_json_response.py
+  - src/lineart_sdk/utils/url.py
+  - src/lineart_sdk/utils/values.py
+examples:
+  list_components:
+    speakeasy-default-list-components:
+      parameters:
+        query:
+          include_archived: false
+      responses:
+        "200":
+          application/json: [{"name": "<value>", "component_id": "5affce52-0608-4f63-9a58-a3bf5fc9593a", "archived": true, "created_at": "2025-03-07T14:20:22.321Z", "last_updated_at": "2024-03-31T11:38:06.565Z"}]
+        "422":
+          application/json: {}
+  create_component:
+    speakeasy-default-create-component:
+      requestBody:
+        application/json: {"name": "<value>"}
+      responses:
+        "200":
+          application/json: {"name": "<value>", "component_id": "ded4ff22-c9e6-41df-8f56-86edb36963c3", "archived": false, "created_at": "2023-09-10T03:56:18.697Z", "last_updated_at": "2025-08-10T09:55:25.348Z"}
+        "422":
+          application/json: {}
+  get_component:
+    speakeasy-default-get-component:
+      parameters:
+        path:
+          component_id: "<id>"
+          component_name: "<value>"
+      responses:
+        "200":
+          application/json: {"name": "<value>", "component_id": "9b32f75c-3fa2-4c5f-a261-01c0f34779b7", "archived": false, "created_at": "2025-08-23T10:19:44.619Z", "last_updated_at": "2023-05-11T07:05:17.347Z"}
+        "422":
+          application/json: {}
+  update_component:
+    speakeasy-default-update-component:
+      parameters:
+        path:
+          component_id: "<id>"
+          component_name: "<value>"
+      requestBody:
+        application/json: {"name": "<value>"}
+      responses:
+        "200":
+          application/json: {"name": "<value>", "component_id": "77e06347-5555-4d0e-a508-16919af0b56a", "archived": false, "created_at": "2023-08-20T09:45:54.913Z", "last_updated_at": "2025-05-27T05:55:21.461Z"}
+        "422":
+          application/json: {}
+  delete_component:
+    speakeasy-default-delete-component:
+      parameters:
+        path:
+          component_id: "<id>"
+          component_name: "<value>"
+      responses:
+        "200":
+          application/json: "<value>"
+        "422":
+          application/json: {}
+  list_data_sources:
+    speakeasy-default-list-data-sources:
+      parameters:
+        query:
+          include_archived: false
+      responses:
+        "200":
+          application/json: [{"name": "<value>", "source": {"file_id": "<id>"}, "data_source_id": "34e20577-cf42-4774-8ba8-577a365aca4f", "archived": true, "created_at": "2025-11-27T13:39:17.638Z", "last_updated_at": "2024-02-21T18:58:26.579Z"}]
+        "422":
+          application/json: {}
+  create_data_source:
+    speakeasy-default-create-data-source:
+      requestBody:
+        application/json: {"name": "<value>", "source": {"path": "/mnt"}}
+      responses:
+        "200":
+          application/json: "<value>"
+        "422":
+          application/json: {}
+  get_data_source:
+    speakeasy-default-get-data-source:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      responses:
+        "200":
+          application/json: {"name": "<value>", "source": {"path": "/var/tmp"}, "data_source_id": "a66636c7-45b5-4bf5-9cbd-46d7a4661240", "archived": true, "created_at": "2023-05-08T18:41:06.130Z", "last_updated_at": "2024-06-02T06:49:16.384Z"}
+        "422":
+          application/json: {}
+  delete_data_source:
+    speakeasy-default-delete-data-source:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      responses:
+        "200":
+          application/json: "<value>"
+        "422":
+          application/json: {}
+  set_data_source_env_variables:
+    speakeasy-default-set-data-source-env-variables:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      requestBody:
+        application/json: [{"name": "<value>"}]
+      responses:
+        "200":
+          application/json: "<value>"
+        "422":
+          application/json: {}
+  get_data_source_env_variables:
+    speakeasy-default-get-data-source-env-variables:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      responses:
+        "200":
+          application/json: [{"name": "<value>"}]
+        "422":
+          application/json: {}
+  list_data_objects:
+    speakeasy-default-list-data-objects:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      responses:
+        "200":
+          application/json: [{"data_object_id": "b8694736-43df-4ba9-bf61-a2a23e76e51e", "data_source_id": "03dc52bf-2b63-4d0b-bbb9-e51bd7652360", "key": "<key>", "created_at": "2023-12-27T15:03:36.080Z"}]
+        "422":
+          application/json: {}
+  get_data_object:
+    speakeasy-default-get-data-object:
+      parameters:
+        path:
+          data_source_id: "<id>"
+          data_object_id: "<id>"
+      responses:
+        "200":
+          application/json: {"data_object_id": "b4e452da-81b2-44a7-8e49-7541304e5ae6", "data_source_id": "4fa7594f-a76e-4c66-b87d-b01c4d4875a9", "key": "<key>", "created_at": "2025-02-01T06:35:45.948Z", "value": "<value>"}
+        "422":
+          application/json: {}
+  get_data_source_usage:
+    speakeasy-default-get-data-source-usage:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      responses:
+        "200":
+          application/json: {"key": "<value>", "key1": "<value>", "key2": "<value>"}
+        "422":
+          application/json: {}
+  get_data_source_metrics:
+    speakeasy-default-get-data-source-metrics:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      responses:
+        "200":
+          application/json: {"key": "<value>", "key1": "<value>"}
+        "422":
+          application/json: {}
+  get_cache_statistics:
+    speakeasy-default-get-cache-statistics:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      responses:
+        "200":
+          application/json: {"key": "<value>"}
+        "422":
+          application/json: {}
+  run_version_sync:
+    speakeasy-default-run-version-sync:
+      parameters:
+        query:
+          polling_interval_ms: 500
+          polling_timeout_ms: 300000
+      requestBody:
+        application/json: {"policy_version_id": "8c0e0b71-d393-42a9-bf86-3f9f801362b3", "input_data": {"key": "<value>", "key1": "<value>", "key2": "<value>"}}
+      responses:
+        "200":
+          application/json: {"run_id": "36bb6b80-5dee-4054-ba01-9b049a34872e", "status": "<value>"}
+        "422":
+          application/json: {}
+  request_data_from_broker:
+    speakeasy-default-request-data-from-broker:
+      requestBody:
+        application/json: {"data_source_name": "<value>", "configured_params": {}, "run_id": "<id>"}
+      responses:
+        "200":
+          application/json: {"data_object_id": "cda3c656-4bd7-4eb2-9069-332987923a2f", "origin": "CACHE", "key": "<key>", "value": "<value>"}
+        "422":
+          application/json: {}
+  publish_metadata:
+    speakeasy-default-publish-metadata:
+      parameters:
+        path:
+          run_id: "dbe848f3-e592-4b94-a751-dc7601bbe24b"
+      requestBody:
+        application/json: {"step_name": "<value>", "node_type": "<value>", "start_time": 6009.64, "end_time": 2185.26}
+      responses:
+        "200":
+          application/json: "<value>"
+        "422":
+          application/json: {}
+  update_run:
+    speakeasy-default-update-run:
+      parameters:
+        path:
+          run_id: "1eae35e9-4163-4df6-b3cf-800bde986dde"
+      requestBody:
+        application/json: {"status": "<value>", "result": "<value>"}
+      responses:
+        "200":
+          application/json: {"run_id": "a488906f-6476-400a-a614-3426a298c0a4", "policy_version_id": "0280e08b-52ca-48b5-bf89-354dc996508d", "status": "<value>", "created_at": "2023-05-14T19:51:55.177Z", "last_updated_at": "2023-10-18T15:44:08.342Z"}
+        "422":
+          application/json: {}
+  list_policies:
+    speakeasy-default-list-policies:
+      parameters:
+        query:
+          include_archived: false
+      responses:
+        "200":
+          application/json: [{"policy_id": "0ce35883-2eb2-46cf-89ed-4e9f06596c1b", "archived": true, "created_at": "2024-10-14T03:09:35.445Z", "last_updated_at": "2024-03-03T20:18:42.918Z"}]
+        "422":
+          application/json: {}
+  create_policy:
+    speakeasy-default-create-policy:
+      requestBody:
+        application/json: {"name": "<value>", "description": ""}
+      responses:
+        "200":
+          application/json: {"policy_id": "5ac3d22e-70a6-46d3-8fc4-796ea1815c3a", "archived": false, "created_at": "2023-09-24T06:00:29.246Z", "last_updated_at": "2024-04-02T18:51:37.584Z"}
+        "422":
+          application/json: {}
+  get_policy:
+    speakeasy-default-get-policy:
+      parameters:
+        path:
+          policy_id: "<id>"
+      responses:
+        "200":
+          application/json: {"policy_id": "ab545451-7855-4236-9e6e-221af95dc809", "archived": false, "created_at": "2023-07-09T18:14:46.316Z", "last_updated_at": "2025-03-16T07:54:53.604Z"}
+        "422":
+          application/json: {}
+  update_policy:
+    speakeasy-default-update-policy:
+      parameters:
+        path:
+          policy_id: "<id>"
+      requestBody:
+        application/json: {}
+      responses:
+        "200":
+          application/json: {"policy_id": "db3649b2-4d56-4eae-ad11-cbd42502d83f", "archived": false, "created_at": "2023-02-01T19:04:25.358Z", "last_updated_at": "2023-11-01T03:46:59.777Z"}
+        "422":
+          application/json: {}
+  delete_policy:
+    speakeasy-default-delete-policy:
+      parameters:
+        path:
+          policy_id: "<id>"
+      responses:
+        "200":
+          application/json: "<value>"
+        "422":
+          application/json: {}
+  list_policy_versions_by_policy:
+    speakeasy-default-list-policy-versions-by-policy:
+      parameters:
+        path:
+          policy_id: "<id>"
+        query:
+          include_archived: false
+      responses:
+        "200":
+          application/json: [{"policy_id": "7b3164fe-12d5-4ba8-b5fd-8c09b2ccc15e", "alias": "<value>", "policy_version_id": "60a8be9a-42db-4a35-95d1-ea8c82dbe61a", "archived": true, "created_at": "2024-10-27T10:08:22.469Z", "last_updated_at": "2025-01-16T07:05:14.648Z"}]
+        "422":
+          application/json: {}
+  list_runs_by_policy:
+    speakeasy-default-list-runs-by-policy:
+      parameters:
+        path:
+          policy_id: "<id>"
+      responses:
+        "200":
+          application/json: [{"run_id": "43af9101-2a9f-4728-a5f4-f66398f54a0a", "policy_version_id": "da53ed5c-e750-494c-99ed-c38bfd9daa8f", "status": "<value>", "created_at": "2025-03-03T13:46:01.609Z", "last_updated_at": "2025-04-29T22:16:23.308Z"}]
+        "422":
+          application/json: {}
+  create_run_group:
+    speakeasy-default-create-run-group:
+      parameters:
+        path:
+          policy_id: "<id>"
+      requestBody:
+        application/json: {"input_data": {"key": "<value>", "key1": "<value>", "key2": "<value>"}}
+      responses:
+        "200":
+          application/json: {"policy_id": "f5b9a990-a1a7-49c8-a30a-6da75a28ec03", "run_group_id": "ccc0aa6b-bed7-44d8-895e-40ebcfdda15d", "runs": {"main": "f5b9a990-a1a7-49c8-a30a-6da75a28ec03"}}
+        "422":
+          application/json: {}
+  run_duration_stats_by_policy:
+    speakeasy-default-run-duration-stats-by-policy:
+      parameters:
+        path:
+          policy_id: "<id>"
+      responses:
+        "200":
+          application/json: ["<value 1>"]
+        "422":
+          application/json: {}
+  run_duration_stats_by_policy_status:
+    speakeasy-default-run-duration-stats-by-policy-status:
+      parameters:
+        path:
+          policy_id: "<id>"
+      responses:
+        "200":
+          application/json: ["<value 1>"]
+        "422":
+          application/json: {}
+  runs_by_policy:
+    speakeasy-default-runs-by-policy:
+      parameters:
+        path:
+          policy_id: "<id>"
+      responses:
+        "200":
+          application/json: ["<value 1>", "<value 2>", "<value 3>"]
+        "422":
+          application/json: {}
+  runs_outcomes_by_policy:
+    speakeasy-default-runs-outcomes-by-policy:
+      parameters:
+        path:
+          policy_id: "<id>"
+      responses:
+        "200":
+          application/json: ["<value 1>", "<value 2>"]
+        "422":
+          application/json: {}
+  create_policy_version:
+    speakeasy-default-create-policy-version:
+      requestBody:
+        application/json: {"policy_id": "d5d23c1a-3798-494a-8b08-d6f3a58f856b", "alias": "<value>"}
+      responses:
+        "200":
+          application/json: {"policy_id": "c5810db8-1f3e-4748-9921-713062c7ad50", "alias": null, "policy_version_id": "604e7992-b7b2-442c-9a0f-69e628b59068", "archived": true, "created_at": "2024-02-10T21:29:12.166Z", "last_updated_at": "2023-04-19T16:07:14.932Z"}
+        "422":
+          application/json: {}
+  list_policy_versions:
+    speakeasy-default-list-policy-versions:
+      parameters:
+        query:
+          include_archived: false
+      responses:
+        "200":
+          application/json: [{"policy_id": "61de9eb8-7e04-435d-98bf-4b51f2255d88", "alias": "<value>", "policy_version_id": "c7a22fe5-ccbf-4d34-9d94-e34ccb6daba9", "archived": true, "created_at": "2025-07-13T09:58:58.956Z", "last_updated_at": "2025-05-30T03:24:46.533Z"}]
+        "422":
+          application/json: {}
+  get_policy_version:
+    speakeasy-default-get-policy-version:
+      parameters:
+        path:
+          policy_version_id: "<id>"
+      responses:
+        "200":
+          application/json: {"policy_id": "d0d09a53-fba2-4215-bdc8-8ec98acd20ff", "alias": "<value>", "policy_version_id": "8e023bf1-869f-422f-9404-ce810f2a4190", "archived": true, "created_at": "2025-04-14T21:37:46.396Z", "last_updated_at": "2024-01-16T11:00:00.146Z"}
+        "422":
+          application/json: {}
+  update_policy_version:
+    speakeasy-default-update-policy-version:
+      parameters:
+        path:
+          policy_version_id: "<id>"
+      requestBody:
+        application/json: {"alias": "<value>", "workflow": {"spec": {"nodes": [], "input_schema": {"key": "<value>", "key1": "<value>"}}, "requirements": ["<value 1>", "<value 2>", "<value 3>"]}}
+      responses:
+        "200":
+          application/json: {"policy_id": "83766f67-51d8-4e63-b97a-c27fbcfaf6d4", "alias": "<value>", "policy_version_id": "c9b4b22f-c6b7-49fd-8904-ffd207c4520e", "archived": false, "created_at": "2023-06-08T11:10:03.046Z", "last_updated_at": "2023-06-16T15:39:46.287Z"}
+        "422":
+          application/json: {}
+  delete_policy_version:
+    speakeasy-default-delete-policy-version:
+      parameters:
+        path:
+          policy_version_id: "<id>"
+      responses:
+        "200":
+          application/json: "<value>"
+        "422":
+          application/json: {}
+  create_run_by_policy_version:
+    speakeasy-default-create-run-by-policy-version:
+      parameters:
+        path:
+          policy_version_id: "<id>"
+      requestBody:
+        application/json: {"input_data": {"key": "<value>", "key1": "<value>", "key2": "<value>"}}
+      responses:
+        "200":
+          application/json: {"policy_version_id": "2ae99783-5695-40c4-af25-c19418591384", "run_id": "2e41aa4b-49ad-42a5-8a1d-f4eaa06cac6c"}
+        "422":
+          application/json: {}
+  list_runs_by_policy_version:
+    speakeasy-default-list-runs-by-policy-version:
+      parameters:
+        path:
+          policy_version_id: "<id>"
+      responses:
+        "200":
+          application/json: [{"run_id": "27f9d5f2-b814-4daf-a4b3-bd0f157d344a", "policy_version_id": "e820df81-1712-4fd9-8648-0c678befaf85", "status": "<value>", "created_at": "2024-02-20T00:44:39.959Z", "last_updated_at": "2025-10-26T17:27:01.188Z"}]
+        "422":
+          application/json: {}
+  run_workflow:
+    speakeasy-default-run-workflow:
+      parameters:
+        path:
+          policy_version_id: "<id>"
+        query:
+          polling_interval_ms: 500
+          polling_timeout_ms: 300000
+      requestBody:
+        application/json: {"input_data": {"key": "<value>", "key1": "<value>", "key2": "<value>"}}
+      responses:
+        "200":
+          application/json: {"run_id": "7054f23c-e92b-4f11-8d77-cf9cb14d013a", "status": "<value>"}
+        "422":
+          application/json: {}
+  list_config_variables:
+    speakeasy-default-list-config-variables:
+      parameters:
+        path:
+          policy_version_id: "<id>"
+      responses:
+        "200":
+          application/json: [{"name": "<value>"}]
+        "422":
+          application/json: {}
+  set_config_variables:
+    speakeasy-default-set-config-variables:
+      parameters:
+        path:
+          policy_version_id: "<id>"
+      requestBody:
+        application/json: [{"name": "<value>"}]
+      responses:
+        "200":
+          application/json: "<value>"
+        "422":
+          application/json: {}
+  list_data_sources_by_policy_version:
+    speakeasy-default-list-data-sources-by-policy-version:
+      parameters:
+        path:
+          policy_version_id: "<id>"
+      responses:
+        "200":
+          application/json: [{"data_source_id": "ab1dae22-ca84-4e64-a554-012088e3e2de", "name": "<value>", "created_at": "2024-12-21T12:50:34.801Z"}]
+        "422":
+          application/json: {}
+  get_run_data:
+    speakeasy-default-get-run-data:
+      parameters:
+        path:
+          run_id: "<id>"
+      responses:
+        "200":
+          application/json: {"run_id": "818c9e0c-3f40-4f0d-a02e-b5387c0ac48e", "policy_version_id": "f6a069c7-c80e-4812-a7cf-9826e9ca76bd", "status": "<value>", "last_updated_at": "2023-08-11T13:01:23.294Z", "steps": {"key": {"output": "0x44f34a8F9E", "metadata": {"step_name": "<value>", "node_type": "<value>", "start_time": 4683.58, "end_time": 7049.04}}}}
+        "422":
+          application/json: {}
+  get_run_logs:
+    speakeasy-default-get-run-logs:
+      parameters:
+        path:
+          run_id: "<id>"
+      responses:
+        "200":
+          application/json: {"run_id": "b015df34-4ff8-422e-968e-a54c4b109e1b", "status": "<value>", "last_updated_at": "2025-08-25T03:26:06.464Z", "logs": [{"timestamp": "2023-09-05T06:05:41.161Z", "step_key": "<value>", "source": "<value>", "event": {"log_type": "<value>", "message": "<value>"}}]}
+        "422":
+          application/json: {}
+  get_run:
+    speakeasy-default-get-run:
+      parameters:
+        path:
+          run_id: "<id>"
+      responses:
+        "200":
+          application/json: {"run_id": "4b80b622-732b-43d6-ac78-a6673df49379", "policy_version_id": "430a1836-b839-404c-851a-31cf2d26b43a", "status": "<value>", "created_at": "2025-02-19T02:53:11.261Z", "last_updated_at": "2025-08-22T01:47:37.539Z"}
+        "422":
+          application/json: {}
+  start_auth:
+    speakeasy-default-start-auth:
+      parameters:
+        path:
+          service_name: "<value>"
+      responses:
+        "200":
+          application/json: {"authorization_url": "https://clear-cut-casement.org/"}
+        "422":
+          application/json: {}
+  get_user_info:
+    speakeasy-default-get-user-info:
+      parameters:
+        path:
+          service_name: "<value>"
+      responses:
+        "200":
+          application/json: {"email": "Leanna.Emard@gmail.com", "picture": "https://loremflickr.com/1252/3555?lock=8630169004730469"}
+        "422":
+          application/json: {}
+  disconnect:
+    speakeasy-default-disconnect:
+      parameters:
+        path:
+          service_name: "<value>"
+      responses:
+        "200":
+          application/json: {"message": "<value>"}
+        "422":
+          application/json: {}
+  auth_callback:
+    speakeasy-default-auth-callback:
+      parameters:
+        path:
+          service_name: "<value>"
+      responses:
+        "200":
+          application/json: "<value>"
+        "422":
+          application/json: {}
+examplesVersion: 1.0.2

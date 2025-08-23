@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from vulkan.spec.dependency import INPUT_NODE, Dependency
+from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import (
     InputNode,
     Node,
@@ -114,7 +114,7 @@ def _identity_transform_from_input_node(
 
 
 def _identity_transform_from_terminate_node(node: TerminateNode) -> TransformNode:
-    parameters = {}  # node.return_metadata or {}
+    parameters = node.output_data or {}
     parameters["return_status"] = node.return_status
     return TransformNode(
         name=node.name,

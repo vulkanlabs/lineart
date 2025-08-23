@@ -2,9 +2,20 @@
 
 import React, { useState, useEffect } from "react";
 import { type NodeChange } from "@xyflow/react";
-import { PlusIcon, TrashIcon } from "lucide-react";
+import { PlusIcon, Trash2 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { z } from "zod";
+
+import {
+    Button,
+    Input,
+    Label,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@vulkanlabs/base/ui";
 
 import { InputWorkflowNode } from "./base";
 import { useWorkflowStore } from "@/workflow/store";
@@ -56,7 +67,14 @@ export function InputNode({ id, data, selected, width }: VulkanNodeProps) {
 
     const handleAddField = () => {
         const schema = data.metadata?.schema || {};
-        const newFieldName = `field_${Object.keys(schema).length + 1}`;
+
+        // Find the next available field number
+        let fieldNumber = 1;
+        while (schema[`field_${fieldNumber}`]) {
+            fieldNumber++;
+        }
+        const newFieldName = `field_${fieldNumber}`;
+
         const updatedSchema = {
             ...schema,
             [newFieldName]: "str",
@@ -229,103 +247,110 @@ export function InputNode({ id, data, selected, width }: VulkanNodeProps) {
 
     return (
         <InputWorkflowNode id={id} selected={selected} data={data} width={width}>
-            <div className="flex flex-col p-2 w-full h-fit">
-                <h3 className="text-sm font-semibold mb-2">Input Schema</h3>
-
-                <div className="max-h-[300px] overflow-y-auto">
-                    <table className="w-full text-xs">
-                        <thead>
-                            <tr className="border-b border-gray-200">
-                                <th className="py-1 px-2 text-left">Field</th>
-                                <th className="py-1 px-2 text-left">Type</th>
-                                <th className="py-1 px-2 w-8"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {fieldOrder.map((fieldName) => {
-                                const schema = (data.metadata?.schema || {}) as Record<
-                                    string,
-                                    string
-                                >;
-                                const fieldType = schema[fieldName];
-                                return (
-                                    <tr key={fieldName} className="border-b border-gray-100">
-                                        <td className="py-1 px-2">
-                                            <div className="flex flex-col">
-                                                <input
-                                                    className={`w-full p-1 border rounded text-xs ${
-                                                        invalidFields[fieldName]
-                                                            ? "border-red-400"
-                                                            : "border-gray-200"
-                                                    }`}
-                                                    value={
-                                                        editingFields[fieldName] !== undefined
-                                                            ? editingFields[fieldName]
-                                                            : fieldName
-                                                    }
-                                                    onChange={(e) =>
-                                                        handleFieldNameChange(
-                                                            fieldName,
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    onFocus={() => startEditingField(fieldName)}
-                                                    onBlur={() => commitFieldNameChange(fieldName)}
-                                                />
-                                                {invalidFields[fieldName] && (
-                                                    <div className="text-red-500 text-[10px] mt-1">
-                                                        {invalidFields[fieldName]}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="py-1 px-2">
-                                            <select
-                                                className="w-full p-1 border border-gray-200 rounded text-xs"
-                                                value={fieldType}
-                                                onChange={(e) =>
-                                                    handleFieldTypeChange(fieldName, e.target.value)
-                                                }
-                                            >
-                                                {fieldTypes.map((type) => (
-                                                    <option key={type} value={type}>
-                                                        {type}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </td>
-                                        <td className="py-1 px-2">
-                                            <button
-                                                className="p-1 hover:bg-gray-100 rounded"
-                                                onClick={() => handleRemoveField(fieldName)}
-                                            >
-                                                <TrashIcon className="w-3 h-3 text-gray-500" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                            {fieldOrder.length === 0 && (
-                                <tr>
-                                    <td colSpan={3} className="py-2 text-center text-gray-500">
-                                        No fields defined
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+            <div className="flex flex-col p-4 w-full h-fit space-y-4">
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Schema Fields</Label>
+                    </div>
+                    {fieldOrder.length > 0 && (
+                        <div className="grid grid-cols-[2fr_80px_auto] gap-3 items-center pb-2 border-b border-gray-200">
+                            <Label className="text-xs font-medium text-gray-600">Name</Label>
+                            <Label className="text-xs font-medium text-gray-600">Type</Label>
+                            <div></div>
+                        </div>
+                    )}
+                    {fieldOrder.map((fieldName) => {
+                        const schema = (data.metadata?.schema || {}) as Record<string, string>;
+                        const fieldType = schema[fieldName];
+                        return (
+                            <div
+                                key={fieldName}
+                                className="grid grid-cols-[2fr_80px_auto] gap-3 items-center"
+                            >
+                                <div className="space-y-1">
+                                    <Input
+                                        type="text"
+                                        className={`h-8 ${
+                                            invalidFields[fieldName]
+                                                ? "border-red-400 focus:border-red-500"
+                                                : ""
+                                        }`}
+                                        value={
+                                            editingFields[fieldName] !== undefined
+                                                ? editingFields[fieldName]
+                                                : fieldName
+                                        }
+                                        onChange={(e) =>
+                                            handleFieldNameChange(fieldName, e.target.value)
+                                        }
+                                        onFocus={() => startEditingField(fieldName)}
+                                        onBlur={() => commitFieldNameChange(fieldName)}
+                                        placeholder="field_name"
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                    />
+                                    {invalidFields[fieldName] && (
+                                        <div className="text-red-500 text-[10px]">
+                                            {invalidFields[fieldName]}
+                                        </div>
+                                    )}
+                                </div>
+                                <Select
+                                    value={fieldType}
+                                    onValueChange={(value) =>
+                                        handleFieldTypeChange(fieldName, value)
+                                    }
+                                >
+                                    <SelectTrigger
+                                        className="h-8"
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {fieldTypes.map((type) => (
+                                            <SelectItem key={type} value={type}>
+                                                {type}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleRemoveField(fieldName)}
+                                    className="h-6 w-6 p-0"
+                                >
+                                    <Trash2 className="h-3 w-3" />
+                                </Button>
+                            </div>
+                        );
+                    })}
+                    {fieldOrder.length === 0 && (
+                        <div
+                            className="flex flex-col items-center justify-center text-gray-500 py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+                            onClick={handleAddField}
+                        >
+                            <PlusIcon className="w-8 h-8 mb-3 text-gray-400" />
+                            <span className="text-sm font-medium text-gray-600 mb-1">
+                                Click to add a field
+                            </span>
+                            <span className="text-xs text-gray-400">Define your input schema</span>
+                        </div>
+                    )}
                 </div>
 
-                <div className="mt-2 flex justify-between">
-                    <button
-                        className="px-2 py-1 text-xs bg-blue-50 text-blue-600
-                         hover:bg-blue-100 rounded flex items-center"
-                        onClick={handleAddField}
-                    >
-                        <PlusIcon className="w-3 h-3 mr-1" />
-                        Add Field
-                    </button>
-                </div>
+                {fieldOrder.length > 0 && (
+                    <div className="mt-2">
+                        <Button
+                            variant="outline"
+                            className="w-full p-2 text-blue-600 border-blue-300 hover:bg-blue-50 hover:border-blue-400 transition-colors"
+                            onClick={handleAddField}
+                        >
+                            <PlusIcon className="w-4 h-4 mr-2" />
+                            Add field
+                        </Button>
+                    </div>
+                )}
             </div>
         </InputWorkflowNode>
     );

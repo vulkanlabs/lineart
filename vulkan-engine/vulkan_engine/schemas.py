@@ -14,7 +14,7 @@ from vulkan.spec.policy import PolicyDefinitionDict
 
 class PolicyCreate(BaseModel):
     name: str
-    description: str
+    description: str = ""
 
 
 class PolicyBase(BaseModel):
@@ -44,22 +44,15 @@ class UIMetadata(BaseModel):
     height: float
 
 
-class ComponentBase(BaseModel):
-    name: str
-    description: str | None = None
-    icon: str | None = None  # Base64 encoded image
-    requirements: list[str] | None = None
-    spec: PolicyDefinitionDict | None = None
-    variables: list[str] | None = None
-    ui_metadata: dict[str, UIMetadata] | None = None
-
-
-class Workflow(BaseModel):
-    workflow_id: UUID
-    requirements: list[str]
+class WorkflowBase(BaseModel):
     spec: PolicyDefinitionDict
+    requirements: list[str]
     variables: list[str] | None = None
     ui_metadata: dict[str, UIMetadata] | None = None
+
+
+class Workflow(WorkflowBase):
+    workflow_id: UUID
     status: WorkflowStatus
 
     @classmethod
@@ -77,10 +70,17 @@ class Workflow(BaseModel):
         )
 
 
-class Component(BaseModel):
+class ComponentBase(BaseModel):
     name: str
     description: str | None = None
     icon: str | None = None  # Base64 encoded image
+
+
+class ComponentUpdate(ComponentBase):
+    workflow: WorkflowBase | None = None
+
+
+class Component(ComponentBase):
     component_id: UUID
     archived: bool
     created_at: datetime
@@ -104,22 +104,18 @@ class Component(BaseModel):
         )
 
 
+class PolicyVersionUpdate(BaseModel):
+    alias: str | None
+    workflow: WorkflowBase
+
+
 class PolicyVersionBase(BaseModel):
-    alias: str | None
-    spec: PolicyDefinitionDict
-    requirements: list[str] | None = None
-    ui_metadata: dict[str, UIMetadata] | None = None
-
-
-class PolicyVersionCreate(BaseModel):
     policy_id: UUID
     alias: str | None
 
 
-class PolicyVersion(BaseModel):
+class PolicyVersion(PolicyVersionBase):
     policy_version_id: UUID
-    policy_id: UUID
-    alias: str | None = None
     archived: bool
     created_at: datetime
     last_updated_at: datetime
@@ -308,3 +304,24 @@ class DataBrokerResponse(BaseModel):
     origin: DataObjectOrigin
     key: str
     value: Any
+
+
+class RunGroupRuns(BaseModel):
+    main: UUID
+    shadow: list[UUID] | None = None
+
+
+class RunGroupResult(BaseModel):
+    policy_id: UUID
+    run_group_id: UUID
+    runs: RunGroupRuns
+
+
+class RunCreated(BaseModel):
+    policy_version_id: UUID
+    run_id: UUID
+
+
+class ConfigurationVariablesSetResult(BaseModel):
+    policy_version_id: UUID
+    variables: list[ConfigurationVariables]

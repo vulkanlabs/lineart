@@ -15,7 +15,7 @@ class ComponentNode(Node):
         definition: dict | None = None,
         description: str | None = None,
         dependencies: dict[str, Dependency] | None = None,
-        parameters: dict[str, str] | None = None,
+        parameters: dict | None = None,
     ):
         """A node that represents a component.
 

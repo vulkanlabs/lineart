@@ -13,8 +13,9 @@ if __name__ == "__main__":
     openapi = app.openapi()
     version = openapi.get("openapi", "unknown version")
 
-    if not os.path.exists(os.path.dirname(args.out)):
-        os.makedirs(os.path.dirname(args.out))
+    output_dir = os.path.dirname(args.out)
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     print(f"writing openapi spec v{version}")
     with open(args.out, "w") as f:

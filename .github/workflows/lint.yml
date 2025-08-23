@@ -1,0 +1,60 @@
+name: CI - Linting Steps
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        description: 'Python version to use'
+        required: false
+        default: '3.12'
+        type: string
+      node_version:
+        description: 'Node version to use'
+        required: false
+        default: '23'
+        type: string
+
+jobs:
+  python-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python_version }}
+        
+    - name: Install linting tools
+      run: |
+        pip install ruff black isort
+        
+    - name: Check imports with isort
+      run: |
+        ruff check --select I --extend-exclude="scripts/*,docs/*,upload-svc/*,sdks/*" .
+        
+    - name: Lint with ruff
+      run: |
+         ruff check . --extend-exclude="scripts/*,docs/*,upload-svc/*,sdks/*" --extend-ignore="F401"
+
+  js-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node_version }}
+        cache: 'npm'
+        cache-dependency-path: 'frontend/package-lock.json'
+                
+    - name: Install dependencies
+      working-directory: frontend
+      run: npm ci --include dev
+
+    - name: Lint JavaScript/TypeScript
+      working-directory: frontend
+      run: npm run format:check
