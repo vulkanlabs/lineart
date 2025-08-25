@@ -31,19 +31,18 @@ import { Run } from "@vulkanlabs/client-open";
 
 // Local imports
 import { LauncherFnParams } from "./types";
+import { createBacktestClient } from "@/lib/api-client";
 
 type LauncherPageProps = {
     policyVersionId: string;
     inputSchema: Map<string, string>;
     configVariables?: string[];
-    launchFn: any;
 };
 
 export function LauncherPage({
     policyVersionId,
     inputSchema,
     configVariables,
-    launchFn,
 }: LauncherPageProps) {
     const [createdRun, setCreatedRun] = useState(null);
     const [error, setError] = useState<Error | null>(null);
@@ -58,7 +57,6 @@ export function LauncherPage({
                     setError={setError}
                     defaultInputData={asInputData(inputSchema)}
                     defaultConfigVariables={asConfigMap(configVariables || [])}
-                    launchFn={launchFn}
                 />
             </div>
             {createdRun && (
@@ -73,7 +71,6 @@ export function LauncherButton({
     policyVersionId,
     inputSchema,
     configVariables,
-    launchFn,
 }: LauncherPageProps) {
     const [createdRun, setCreatedRun] = useState(null);
     const [error, setError] = useState<Error | null>(null);
@@ -125,8 +122,7 @@ export function LauncherButton({
                     {!error && !createdRun && (
                         <LaunchRunForm
                             policyVersionId={policyVersionId}
-                            launchFn={launchFn}
-                            defaultConfigVariables={asConfigMap(configVariables || [])}
+                                    defaultConfigVariables={asConfigMap(configVariables || [])}
                             defaultInputData={asInputData(inputSchema)}
                             setCreatedRun={setCreatedRun}
                             setError={setError}
@@ -166,7 +162,6 @@ type LaunchRunFormProps = {
     defaultConfigVariables: Object;
     setCreatedRun: (run: any) => void;
     setError: (error: any) => void;
-    launchFn: (params: LauncherFnParams) => Promise<Run>;
 };
 
 function LaunchRunForm({
@@ -175,7 +170,6 @@ function LaunchRunForm({
     defaultConfigVariables,
     setCreatedRun,
     setError,
-    launchFn,
 }: LaunchRunFormProps) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
     const launchUrl = `${serverUrl}/policy-versions/${policyVersionId}/runs`;
@@ -204,7 +198,7 @@ function LaunchRunForm({
         setSubmitting(true);
         setError(null);
         setCreatedRun(null);
-        launchFn({ launchUrl, body, headers: {} })
+        createBacktestClient(body)
             .then((data) => {
                 setError(null);
                 setCreatedRun(data);

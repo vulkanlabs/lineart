@@ -1,11 +1,9 @@
-"use server";
-
 import { fetchPolicyVersion } from "@/lib/api";
 import { LauncherPage } from "./components";
-import { postLaunchFormAction } from "./actions";
 
 export default async function Page(props: { params: Promise<{ policy_version_id: string }> }) {
-    const { policy_version_id } = await props.params;
+    const params = await props.params;
+    const { policy_version_id } = params;
     const policyVersion = await fetchPolicyVersion(policy_version_id);
 
     // TODO: we should redo this to use the new policy version definitions
@@ -16,7 +14,6 @@ export default async function Page(props: { params: Promise<{ policy_version_id:
             policyVersionId={policy_version_id}
             inputSchema={inputSchema}
             configVariables={policyVersion.variables || []}
-            launchFn={postLaunchFormAction}
         />
     );
 }

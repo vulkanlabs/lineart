@@ -56,56 +56,61 @@ export default function PolicyMetrics({
         }
         metricsLoader({ policyId, dateRange, versions: selectedVersions })
             .then((data: any) => {
-                setRunsCount(data.runsCount);
-                setErrorRate(data.errorRate);
-                setRunDurationStats(data.runDurationStats);
-                setRunDurationByStatus(data.runDurationByStatus);
+                setRunsCount(data.runsCount || []);
+                setErrorRate(data.errorRate || []);
+                setRunDurationStats(data.runDurationStats || []);
+                setRunDurationByStatus(data.runDurationByStatus || []);
             })
             .catch((error: any) => {
                 console.error(error);
+                setRunsCount([]);
+                setErrorRate([]);
+                setRunDurationStats([]);
+                setRunDurationByStatus([]);
             });
 
         outcomesLoader({ policyId, dateRange, versions: selectedVersions })
             .then((data: any) => {
-                setOutcomeDistribution(data.runOutcomes);
+                setOutcomeDistribution(data.runOutcomes || []);
             })
             .catch((error: any) => {
                 console.error(error);
+                setOutcomeDistribution([]);
             });
     }, [dateRange, selectedVersions, metricsLoader, outcomesLoader, policyId]);
 
     const graphDefinitions = [
         {
             name: "Policy Outcomes",
-            data: outcomeDistribution,
+            data: Array.isArray(outcomeDistribution) ? outcomeDistribution : [],
             component: RunOutcomesChart,
         },
         {
             name: "Policy Outcome Distribution (%)",
-            data: outcomeDistribution,
+            data: Array.isArray(outcomeDistribution) ? outcomeDistribution : [],
             component: RunOutcomeDistributionChart,
         },
         {
             name: "Runs",
-            data: runsCount,
+            data: Array.isArray(runsCount) ? runsCount : [],
             component: RunsChart,
         },
         {
             name: "Error Rate (%)",
-            data: errorRate,
+            data: Array.isArray(errorRate) ? errorRate : [],
             component: RunErrorRateChart,
         },
         {
             name: "Duration (seconds)",
-            data: runDurationStats,
+            data: Array.isArray(runDurationStats) ? runDurationStats : [],
             component: RunDurationStatsChart,
         },
         {
             name: "Average Duration by Status (seconds)",
-            data: runDurationByStatus,
+            data: Array.isArray(runDurationByStatus) ? runDurationByStatus : [],
             component: AvgDurationByStatusChart,
         },
-    ];
+    ].filter(graph => graph.data && Array.isArray(graph.data));
 
     return (
         <div className="overflow-hidden flex flex-col gap-4">

@@ -1,13 +1,13 @@
 "use client";
 
 import { SharedCreatePolicyDialog } from "@vulkanlabs/base";
-import { createPolicyAction } from "./actions";
+import { createPolicyClient } from "@/lib/api-client";
 
 export function CreatePolicyDialog() {
     return (
         <SharedCreatePolicyDialog
             config={{
-                createPolicy: createPolicyAction,
+                createPolicy: createPolicyClient,
             }}
         />
     );

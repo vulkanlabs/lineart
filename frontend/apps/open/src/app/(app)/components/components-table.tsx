@@ -3,7 +3,7 @@
 import { ComponentsTable as SharedComponentsTable } from "@vulkanlabs/base";
 import { type Component } from "@vulkanlabs/client-open";
 import { useRouter } from "next/navigation";
-import { deleteComponentAction } from "./actions";
+import { deleteComponentClient } from "@/lib/api-client";
 import { CreateComponentDialog } from "./create-dialog";
 
 export function ComponentsTable({ components }: { components: Component[] }) {
@@ -22,7 +22,7 @@ export function ComponentsTable({ components }: { components: Component[] }) {
             components={components}
             config={{
                 mode: "full",
-                deleteComponent: deleteComponentAction,
+                deleteComponent: deleteComponentClient,
                 CreateComponentDialog: <CreateComponentDialog />,
                 onRefresh: handleRefresh,
                 onNavigate: handleNavigate,

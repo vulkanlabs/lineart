@@ -34,7 +34,7 @@ import type {
 } from "@vulkanlabs/client-open";
 
 // Local imports
-import { setDataSourceVariablesAction, fetchDataSourceEnvVarsAction } from "./actions";
+
 import DataSourceUsageAnalytics from "./usage-analytics";
 
 export default function DataSourcePage({ dataSource }: { dataSource: DataSource }) {

@@ -32,7 +32,7 @@ import { Sending } from "@vulkanlabs/base";
 import { PolicyVersionCreate } from "@vulkanlabs/client-open";
 
 // Local imports
-import { createPolicyVersionAction } from "./actions";
+
 
 const formSchema = z.object({
     alias: z.string({ description: "Name of the Version" }).optional(),

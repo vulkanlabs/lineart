@@ -1,10 +1,10 @@
 // Local imports
 import { DataSourceUsageAnalytics as SharedDataSourceUsageAnalytics } from "@vulkanlabs/base";
 import {
-    fetchDataSourceCacheStatsAction,
-    fetchDataSourceMetricsAction,
-    fetchDataSourceUsageAction,
-} from "./actions";
+    fetchDataSourceCacheStatsClient,
+    fetchDataSourceMetricsClient,
+    fetchDataSourceUsageClient,
+} from "@/lib/api-client";
 
 export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceId: string }) {
     return (
@@ -12,18 +12,18 @@ export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceI
             dataSourceId={dataSourceId}
             config={{
                 fetchUsage: async (id, from, to) => {
-                    const data = await fetchDataSourceUsageAction(id, from, to);
+                    const data = await fetchDataSourceUsageClient(id, from, to);
                     return { requests_by_date: data.requests_by_date };
                 },
                 fetchMetrics: async (id, from, to) => {
-                    const data = await fetchDataSourceMetricsAction(id, from, to);
+                    const data = await fetchDataSourceMetricsClient(id, from, to);
                     return {
                         avg_response_time_by_date: data.avg_response_time_by_date,
                         error_rate_by_date: data.error_rate_by_date,
                     };
                 },
                 fetchCacheStats: async (id, from, to) => {
-                    const data = await fetchDataSourceCacheStatsAction(id, from, to);
+                    const data = await fetchDataSourceCacheStatsClient(id);
                     return { cache_hit_ratio_by_date: data.cache_hit_ratio_by_date };
                 },
             }}
