@@ -55,11 +55,19 @@ class HatchetClientResource:
     def client(self) -> Hatchet:
         """Get or create Hatchet client."""
         if self._client is None:
-            self._client = Hatchet(
-                server_url=self.config.hatchet_server_url,
+            from hatchet_sdk.config import ClientConfig
+
+            # Create config with token and any explicitly provided values
+            config = ClientConfig(
                 token=self.config.hatchet_api_key,
                 namespace=self.config.namespace,
             )
+
+            # Only set server_url if explicitly provided
+            if self.config.hatchet_server_url:
+                config.server_url = self.config.hatchet_server_url
+
+            self._client = Hatchet(config=config)
         return self._client
 
 

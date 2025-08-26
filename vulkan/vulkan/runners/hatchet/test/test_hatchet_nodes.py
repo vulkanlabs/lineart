@@ -10,7 +10,7 @@ from vulkan.runners.hatchet.nodes import (
 )
 from vulkan.runners.hatchet.policy import HatchetFlow
 from vulkan.runners.hatchet.run_config import HatchetPolicyConfig, HatchetRunConfig
-from vulkan.runners.hatchet.workspace import HatchetWorkspaceManager
+from vulkan.runners.hatchet.workspace import HatchetClientConfig
 from vulkan.spec.dependency import INPUT_NODE, Dependency
 from vulkan.spec.nodes import (
     DataInputNode,
@@ -106,7 +106,10 @@ class TestHatchetFlow:
 
     def test_hatchet_flow_creation(self):
         """Test creating a HatchetFlow from nodes."""
+        from vulkan.spec.nodes import InputNode
+
         nodes = [
+            InputNode(name="input", description="Input node", schema={"test": str}),
             DataInputNode(name="data_input", data_source="test", dependencies={}),
             TransformNode(
                 name="transform", description="test", func=lambda x: x, dependencies={}
@@ -122,8 +125,8 @@ class TestHatchetFlow:
         flow = HatchetFlow(nodes, "test_policy")
 
         assert flow.policy_name == "test_policy"
-        assert len(flow.nodes) == 3
-        assert flow.workflow_fn is not None
+        assert len(flow.nodes) == 4
+        assert flow.create_workflow() is not None
 
     def test_create_hatchet_workflow(self):
         """Test the create_hatchet_workflow helper function."""
@@ -160,7 +163,7 @@ class TestHatchetRunConfig:
         "os.environ",
         {
             "HATCHET_SERVER_URL": "http://test:8080",
-            "HATCHET_API_KEY": "test_api_key",
+            "HATCHET_CLIENT_TOKEN": "test_client_token",
             "HATCHET_NAMESPACE": "test_ns",
         },
     )
@@ -171,7 +174,7 @@ class TestHatchetRunConfig:
         assert config.run_id == "test_run"
         assert config.server_url == "http://localhost:8000"
         assert config.hatchet_server_url == "http://test:8080"
-        assert config.hatchet_api_key == "test_api_key"
+        assert config.hatchet_api_key == "test_client_token"
         assert config.namespace == "test_ns"
 
     def test_hatchet_policy_config(self):
@@ -181,23 +184,20 @@ class TestHatchetRunConfig:
         assert config.variables == {"var1": "value1", "var2": "value2"}
 
 
-class TestHatchetWorkspaceManager:
-    """Test HatchetWorkspaceManager."""
+class TestHatchetClientConfig:
+    """Test HatchetClientConfig."""
 
-    def test_workspace_manager_creation(self):
-        """Test workspace manager creation."""
-        config = HatchetRunConfig(
-            run_id="test_run",
-            server_url="http://localhost:8000",
-            hatchet_server_url="http://localhost:8080",
+    def test_client_config_creation(self):
+        """Test client config creation."""
+        config = HatchetClientConfig(
+            server_url="http://localhost:8080",
+            token="test_token",
+            namespace="test_namespace",
         )
 
-        manager = HatchetWorkspaceManager(config)
-
-        assert manager.config == config
-        assert manager.client is None
-        assert manager._worker is None
-        assert manager.resources is not None
+        assert config.server_url == "http://localhost:8080"
+        assert config.token == "test_token"
+        assert config.namespace == "test_namespace"
 
 
 if __name__ == "__main__":
