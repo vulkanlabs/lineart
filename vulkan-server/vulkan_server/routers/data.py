@@ -36,11 +36,10 @@ def list_data_sources(
     service: DataSourceService = Depends(get_data_source_service),
 ):
     """List all data sources."""
-    data_sources = service.list_data_sources(include_archived=include_archived)
-    return [schemas.DataSource.from_orm(ds) for ds in data_sources]
+    return service.list_data_sources(include_archived=include_archived)
 
 
-@router.post("/")
+@router.post("/", response_model=schemas.DataSource)
 def create_data_source(
     spec: DataSourceSpec,
     service: DataSourceService = Depends(get_data_source_service),
@@ -61,8 +60,7 @@ def get_data_source(
 ):
     """Get a data source by ID."""
     try:
-        data_source = service.get_data_source(data_source_id)
-        return schemas.DataSource.from_orm(data_source)
+        return service.get_data_source(data_source_id)
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
 

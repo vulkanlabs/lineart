@@ -234,7 +234,7 @@ paths:
           description: "Successful Response"
           content:
             "application/json":
-              schema: {}
+              schema: {"$ref": "#/components/schemas/DataSource"}
         "404":
           description: "Not found"
         "422":
