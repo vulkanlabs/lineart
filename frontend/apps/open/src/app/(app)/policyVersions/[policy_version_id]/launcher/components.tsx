@@ -35,7 +35,7 @@ import { createBacktestClient } from "@/lib/api-client";
 
 type LauncherPageProps = {
     policyVersionId: string;
-    inputSchema: Map<string, string>;
+    inputSchema: Record<string, string>;
     configVariables?: string[];
 };
 
@@ -44,7 +44,7 @@ export function LauncherPage({
     inputSchema,
     configVariables,
 }: LauncherPageProps) {
-    const [createdRun, setCreatedRun] = useState(null);
+    const [createdRun, setCreatedRun] = useState<Run | null>(null);
     const [error, setError] = useState<Error | null>(null);
 
     return (
@@ -72,7 +72,7 @@ export function LauncherButton({
     inputSchema,
     configVariables,
 }: LauncherPageProps) {
-    const [createdRun, setCreatedRun] = useState(null);
+    const [createdRun, setCreatedRun] = useState<Run | null>(null);
     const [error, setError] = useState<Error | null>(null);
     const [open, setOpen] = useState(false);
 
@@ -160,8 +160,8 @@ type LaunchRunFormProps = {
     policyVersionId: string;
     defaultInputData: Object;
     defaultConfigVariables: Object;
-    setCreatedRun: (run: any) => void;
-    setError: (error: any) => void;
+    setCreatedRun: (run: Run | null) => void;
+    setError: (error: Error | null) => void;
 };
 
 function LaunchRunForm({
@@ -399,7 +399,7 @@ function ensureJSON(data: string | null) {
     }
 }
 
-function asInputData(inputSchema: Map<string, string>) {
+function asInputData(inputSchema: Record<string, string>) {
     if (!inputSchema) {
         return {};
     }

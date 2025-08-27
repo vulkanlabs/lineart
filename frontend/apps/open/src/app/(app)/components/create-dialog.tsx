@@ -109,7 +109,7 @@ export function CreateComponentDialog() {
         }
     };
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: z.infer<typeof formSchema>) => {
         setIsSubmitting(true);
         try {
             const response = await createComponentClient(data);

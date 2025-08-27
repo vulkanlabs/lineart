@@ -32,6 +32,7 @@ import { Sending } from "@vulkanlabs/base";
 import { PolicyVersionCreate } from "@vulkanlabs/client-open";
 
 // Local imports
+import { createPolicyVersion } from "@/lib/api";
 
 
 const formSchema = z.object({
@@ -58,7 +59,7 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
         };
 
         try {
-            await createPolicyVersionAction(requestData);
+            await createPolicyVersion(requestData);
             setOpen(false);
             toast("Policy Version Created", {
                 description: `Policy Version ${data.alias} has been created.`,

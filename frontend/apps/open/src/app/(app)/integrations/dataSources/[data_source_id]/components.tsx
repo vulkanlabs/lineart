@@ -34,7 +34,7 @@ import type {
 } from "@vulkanlabs/client-open";
 
 // Local imports
-
+import { fetchDataSourceEnvVars, setDataSourceEnvVars } from "@/lib/api";
 import DataSourceUsageAnalytics from "./usage-analytics";
 
 export default function DataSourcePage({ dataSource }: { dataSource: DataSource }) {
@@ -403,7 +403,7 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
 
     const fetchVariables = useCallback(async () => {
         try {
-            const envVars = await fetchDataSourceEnvVarsAction(dataSource.data_source_id);
+            const envVars = await fetchDataSourceEnvVars(dataSource.data_source_id);
             setVariables(envVars);
         } catch (error) {
             console.error("Failed to fetch environment variables:", error);
@@ -457,7 +457,7 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
                     variables={variables}
                     requiredVariableNames={dataSource.variables || []}
                     onSave={async (updatedVariables) => {
-                        await setDataSourceVariablesAction(
+                        await setDataSourceEnvVars(
                             dataSource.data_source_id,
                             updatedVariables,
                         );
