@@ -7,5 +7,6 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
+  minify: false,
   external: ["@vulkanlabs/client-open"],
 });
