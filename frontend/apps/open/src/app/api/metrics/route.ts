@@ -3,6 +3,7 @@ import {
     fetchRunsCount,
     fetchRunDurationStats,
     fetchRunDurationByStatus,
+    fetchRunOutcomes,
 } from "@/lib/api";
 
 export async function POST(request: NextRequest) {
@@ -15,9 +16,18 @@ export async function POST(request: NextRequest) {
             fetchRunDurationByStatus(policyId, dateRange.from, dateRange.to, versions).catch(() => null),
         ]);
 
+        // Calculate error rate from runs data if available
+        let errorRate = null;
+        if (runsCount && Array.isArray(runsCount)) {
+            errorRate = runsCount.map((dayData: any) => ({
+                date: dayData.date,
+                error_rate: dayData.error_rate || 0,
+            }));
+        }
+
         return NextResponse.json({
             runsCount,
-            errorRate: runsCount,
+            errorRate,
             runDurationStats,
             runDurationByStatus,
         });

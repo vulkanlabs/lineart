@@ -23,7 +23,7 @@ export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceI
                     };
                 },
                 fetchCacheStats: async (id, from, to) => {
-                    const data = await fetchDataSourceCacheStatsClient(id);
+                    const data = await fetchDataSourceCacheStatsClient(id, from, to);
                     return { cache_hit_ratio_by_date: data.cache_hit_ratio_by_date };
                 },
             }}

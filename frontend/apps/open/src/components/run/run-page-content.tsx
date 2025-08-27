@@ -105,7 +105,10 @@ function LogsTable({
 
 function TableHeader({ children }: { children: React.ReactNode }) {
     return (
-        <th className="xl:text-xs xl:px-4 xl:py-2 2xl:px-6 2xl:py-4 2xl:text-sm text-left border-r-2 font-medium text-gray-500 uppercase tracking-wider sticky top-0">
+        <th 
+            className="xl:text-xs xl:px-4 xl:py-2 2xl:px-6 2xl:py-4 2xl:text-sm text-left border-r-2 
+                       font-medium text-gray-500 uppercase tracking-wider sticky top-0"
+        >
             {children}
         </th>
     );
@@ -113,7 +116,10 @@ function TableHeader({ children }: { children: React.ReactNode }) {
 
 function TableCell({ children }: { children: React.ReactNode }) {
     return (
-        <td className="xl:text-xs xl:px-4 xl:py-2 2xl:px-6 2xl:py-4 2xl:text-sm border-r-2 whitespace-normal text-gray-500">
+        <td 
+            className="xl:text-xs xl:px-4 xl:py-2 2xl:px-6 2xl:py-4 2xl:text-sm border-r-2 
+                       whitespace-normal text-gray-500"
+        >
             {children}
         </td>
     );

@@ -358,11 +358,18 @@ export async function fetchDataSourceMetrics(
  * Fetches cache performance
  * 
  * @param dataSourceId - Data source to analyze
+ * @param from - Start date
+ * @param to - End date
  * @returns Cache hit rates, miss counts
  */
-export async function fetchDataSourceCacheStats(dataSourceId: string): Promise<DataSourceCacheStats> {
+export async function fetchDataSourceCacheStats(
+    dataSourceId: string,
+    from: string,
+    to: string
+): Promise<DataSourceCacheStats> {
     try {
-        const url = `/api/proxy/data-sources/${encodeURIComponent(dataSourceId)}/cache-stats`;
+        const params = new URLSearchParams({ from, to });
+        const url = `/api/proxy/data-sources/${encodeURIComponent(dataSourceId)}/cache-stats?${params}`;
         return await apiFetch<DataSourceCacheStats>(url);
     } catch (error) {
         console.error(`Failed to fetch cache stats for data source "${dataSourceId}":`, error);
