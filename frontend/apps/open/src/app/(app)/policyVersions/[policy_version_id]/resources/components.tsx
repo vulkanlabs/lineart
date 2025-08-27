@@ -38,7 +38,6 @@ import type {
 import { updatePolicyVersion, setPolicyVersionVariables } from "@/lib/api";
 import { parseDate } from "@vulkanlabs/base";
 
-
 interface EnvironmentVariablesProps {
     policyVersion: PolicyVersion;
     variables: EnvironmentVariablesEditorProps["variables"];
@@ -50,10 +49,7 @@ export function EnvironmentVariables({ policyVersion, variables }: EnvironmentVa
             variables={variables}
             requiredVariableNames={policyVersion.workflow?.variables || []}
             onSave={async (updatedVariables: ConfigurationVariablesBase[]) => {
-                await setPolicyVersionVariables(
-                    policyVersion.policy_version_id,
-                    updatedVariables,
-                );
+                await setPolicyVersionVariables(policyVersion.policy_version_id, updatedVariables);
             }}
         />
     );

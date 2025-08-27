@@ -57,7 +57,7 @@ async function handleRequest(request: NextRequest, pathSegments: string[], metho
         const forwardHeaders = ["accept", "accept-language", "user-agent", "authorization"];
         forwardHeaders.forEach((header) => {
             const value = request.headers.get(header);
-            if (value)  headers.set(header, value);
+            if (value) headers.set(header, value);
         });
 
         const options: RequestInit = {

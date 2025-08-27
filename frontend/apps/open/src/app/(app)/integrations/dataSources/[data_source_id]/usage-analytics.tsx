@@ -1,10 +1,6 @@
 // Local imports
 import { DataSourceUsageAnalytics as SharedDataSourceUsageAnalytics } from "@vulkanlabs/base";
-import {
-    fetchDataSourceCacheStats,
-    fetchDataSourceMetrics,
-    fetchDataSourceUsage,
-} from "@/lib/api";
+import { fetchDataSourceCacheStats, fetchDataSourceMetrics, fetchDataSourceUsage } from "@/lib/api";
 
 export default function DataSourceUsageAnalytics({ dataSourceId }: { dataSourceId: string }) {
     return (

@@ -6,11 +6,15 @@ export async function POST(request: NextRequest) {
         const { type, resourceId, dateRange } = await request.json();
 
         let runs = null;
-        
+
         if (type === "policy") {
-            runs = await fetchPolicyRuns(resourceId, dateRange.from, dateRange.to).catch(() => null);
+            runs = await fetchPolicyRuns(resourceId, dateRange.from, dateRange.to).catch(
+                () => null,
+            );
         } else if (type === "policyVersion") {
-            runs = await fetchPolicyVersionRuns(resourceId, dateRange.from, dateRange.to).catch(() => null);
+            runs = await fetchPolicyVersionRuns(resourceId, dateRange.from, dateRange.to).catch(
+                () => null,
+            );
         }
 
         return NextResponse.json({ runs });

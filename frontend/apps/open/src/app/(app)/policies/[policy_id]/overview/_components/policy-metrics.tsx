@@ -110,7 +110,7 @@ export default function PolicyMetrics({
             data: Array.isArray(runDurationByStatus) ? runDurationByStatus : [],
             component: AvgDurationByStatusChart,
         },
-    ].filter(graph => graph.data && Array.isArray(graph.data));
+    ].filter((graph) => graph.data && Array.isArray(graph.data));
 
     return (
         <div className="overflow-hidden flex flex-col gap-4">

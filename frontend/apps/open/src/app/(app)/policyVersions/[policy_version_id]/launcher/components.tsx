@@ -39,11 +39,7 @@ type LauncherPageProps = {
     configVariables?: string[];
 };
 
-export function LauncherPage({
-    policyVersionId,
-    inputSchema,
-    configVariables,
-}: LauncherPageProps) {
+export function LauncherPage({ policyVersionId, inputSchema, configVariables }: LauncherPageProps) {
     const [createdRun, setCreatedRun] = useState<Run | null>(null);
     const [error, setError] = useState<Error | null>(null);
 
@@ -122,7 +118,7 @@ export function LauncherButton({
                     {!error && !createdRun && (
                         <LaunchRunForm
                             policyVersionId={policyVersionId}
-                                    defaultConfigVariables={asConfigMap(configVariables || [])}
+                            defaultConfigVariables={asConfigMap(configVariables || [])}
                             defaultInputData={asInputData(inputSchema)}
                             setCreatedRun={setCreatedRun}
                             setError={setError}

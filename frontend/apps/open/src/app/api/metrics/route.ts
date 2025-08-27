@@ -12,8 +12,12 @@ export async function POST(request: NextRequest) {
 
         const [runsCount, runDurationStats, runDurationByStatus] = await Promise.all([
             fetchRunsCount(policyId, dateRange.from, dateRange.to, versions).catch(() => null),
-            fetchRunDurationStats(policyId, dateRange.from, dateRange.to, versions).catch(() => null),
-            fetchRunDurationByStatus(policyId, dateRange.from, dateRange.to, versions).catch(() => null),
+            fetchRunDurationStats(policyId, dateRange.from, dateRange.to, versions).catch(
+                () => null,
+            ),
+            fetchRunDurationByStatus(policyId, dateRange.from, dateRange.to, versions).catch(
+                () => null,
+            ),
         ]);
 
         // Calculate error rate from runs data if available

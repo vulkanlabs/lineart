@@ -34,7 +34,6 @@ import { PolicyVersionCreate } from "@vulkanlabs/client-open";
 // Local imports
 import { createPolicyVersion } from "@/lib/api";
 
-
 const formSchema = z.object({
     alias: z.string({ description: "Name of the Version" }).optional(),
 });
