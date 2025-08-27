@@ -27,10 +27,8 @@ export default defineConfig({
     dts: false, // Disabled due to lazy loading compatibility issues with generics
     clean: true,
     external: ["react", "react-dom", "next"],
-
-    // Performance optimizations for production builds
     splitting: true, // Enable code splitting for better load performance and caching
-    minify: true, // Enable minification for smaller bundle size (20-30% reduction)
+    minify: false,
     treeshake: true, // Remove unused code for optimal bundle size
 
     outDir: "dist",
