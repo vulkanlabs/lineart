@@ -1,17 +1,17 @@
 import { SharedDataSourcesTable, SharedCreateDataSourceDialog } from "@vulkanlabs/base";
 import { DataSource } from "@vulkanlabs/client-open";
-import { deleteDataSourceClient, createDataSourceClient } from "@/lib/api-client";
+import { deleteDataSource, createDataSource } from "@/lib/api";
 
 export default function DataSourcesTable({ dataSources }: { dataSources: DataSource[] }) {
     return (
         <SharedDataSourcesTable
             dataSources={dataSources}
             config={{
-                deleteDataSource: deleteDataSourceClient,
+                deleteDataSource: deleteDataSource,
                 CreateDataSourceDialog: (
                     <SharedCreateDataSourceDialog
                         config={{
-                            createDataSource: createDataSourceClient,
+                            createDataSource: createDataSource,
                         }}
                     />
                 ),

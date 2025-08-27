@@ -1,6 +1,6 @@
 import { SharedPoliciesTable } from "@vulkanlabs/base";
 import { Policy } from "@vulkanlabs/client-open";
-import { deletePolicyClient } from "@/lib/api-client";
+import { deletePolicy } from "@/lib/api";
 import { CreatePolicyDialog } from "./create-dialog";
 
 export function PoliciesTable({ policies }: { policies: Policy[] }) {
@@ -8,7 +8,7 @@ export function PoliciesTable({ policies }: { policies: Policy[] }) {
         <SharedPoliciesTable
             policies={policies}
             config={{
-                deletePolicy: deletePolicyClient,
+                deletePolicy: deletePolicy,
                 CreatePolicyDialog: <CreatePolicyDialog />,
             }}
         />

@@ -41,7 +41,7 @@ import {
 import type { DataSourceSpec } from "@vulkanlabs/client-open";
 
 // Local imports
-import { createDataSourceClient } from "@/lib/api-client";
+import { createDataSource } from "@/lib/api";
 
 const formSchema = z.object({
     name: z
@@ -204,7 +204,7 @@ export function CreateDataSourceDialog() {
             metadata: keyValuePairsToMap(keyValuePairsFromObject(data.metadata)),
         };
 
-        await createDataSourceClient(dataSourceSpec)
+        await createDataSource(dataSourceSpec)
             .then(() => {
                 setOpen(false);
                 form.reset();
