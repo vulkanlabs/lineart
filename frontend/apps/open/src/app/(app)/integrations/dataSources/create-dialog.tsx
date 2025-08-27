@@ -243,7 +243,7 @@ export function CreateDataSourceDialog() {
                                 <FormField
                                     name="name"
                                     control={form.control}
-                                    render={({ field }) => (
+                                    render={({ field }: { field: any }) => (
                                         <FormItem>
                                             <FormLabel htmlFor="name">Name *</FormLabel>
                                             <FormDescription>
@@ -262,7 +262,7 @@ export function CreateDataSourceDialog() {
                                 <FormField
                                     name="description"
                                     control={form.control}
-                                    render={({ field }) => (
+                                    render={({ field }: { field: any }) => (
                                         <FormItem>
                                             <FormLabel htmlFor="description">Description</FormLabel>
                                             <FormDescription>
@@ -284,7 +284,7 @@ export function CreateDataSourceDialog() {
                                 <FormField
                                     control={form.control}
                                     name="metadata"
-                                    render={({ field }) => (
+                                    render={({ field }: { field: any }) => (
                                         <FormItem>
                                             <FormLabel>Metadata</FormLabel>
                                             <FormDescription>

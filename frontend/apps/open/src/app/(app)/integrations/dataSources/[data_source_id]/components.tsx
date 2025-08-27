@@ -456,7 +456,7 @@ function EditableVariablesCard({ dataSource }: { dataSource: DataSource }) {
                 <EnvironmentVariablesEditor
                     variables={variables}
                     requiredVariableNames={dataSource.variables || []}
-                    onSave={async (updatedVariables) => {
+                    onSave={async (updatedVariables: DataSourceEnvVarBase[]) => {
                         await setDataSourceEnvVars(
                             dataSource.data_source_id,
                             updatedVariables,
@@ -482,5 +482,5 @@ const paramsTableColumns: ColumnDef<ConfigurationVariablesBase>[] = [
 ];
 
 function ParamsTable({ params }: { params: ConfigurationVariablesBase[] }) {
-    return <DataTable columns={paramsTableColumns} data={params} />;
+    return <DataTable columns={paramsTableColumns} data={params} emptyMessage="No parameters found" className="" />;
 }
