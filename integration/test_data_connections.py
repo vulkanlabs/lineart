@@ -30,6 +30,8 @@ from vulkan.spec.policy import PolicyDefinition
 
 BASE_URL = "http://localhost:6001"
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def client():
@@ -49,7 +51,7 @@ def policy(client: Lineart):
     # Cleanup
     try:
         client.policies.delete(policy.policy_id)
-    except:
+    except Exception:
         pass
 
 
@@ -88,7 +90,7 @@ def data_source(client: Lineart):
     # Cleanup
     try:
         client.data_sources.delete(data_source_id=data_source.data_source_id)
-    except:
+    except Exception:
         pass
 
 
@@ -283,7 +285,7 @@ def test_policy_with_data_input_node(
     # Cleanup
     try:
         client.policy_versions.delete(version.policy_version_id)
-    except:
+    except Exception:
         pass
 
 
@@ -350,5 +352,5 @@ def test_policy_with_connection_node(client: Lineart, policy: Policy):
     # Cleanup
     try:
         client.policy_versions.delete(version.policy_version_id)
-    except:
+    except Exception:
         pass
