@@ -42,7 +42,6 @@ export async function PATCH(
     return handleWriteRequest(request, path);
 }
 
-
 async function handleWriteRequest(request: NextRequest, pathSegments: string[]) {
     try {
         const path = pathSegments.join("/");
