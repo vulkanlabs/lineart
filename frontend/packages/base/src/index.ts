@@ -22,12 +22,6 @@ export {
     validateServerUrl,
     type SharedApiConfig,
 } from "./lib/api/shared-response-utils";
-export {
-    createApiConfig,
-    withErrorHandling,
-    type ApiClientConfig,
-    type Configuration,
-} from "./lib/api/api-utils";
 
 // Re-export UI components
 export { VulkanLogo, type VulkanLogoConfig } from "./components/logo";

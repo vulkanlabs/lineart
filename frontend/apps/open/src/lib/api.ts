@@ -21,7 +21,7 @@ import {
     type ComponentUpdate,
     type Component,
 } from "@vulkanlabs/client-open";
-import { createApiConfig, withErrorHandling } from "@vulkanlabs/base";
+import { createApiConfig, withErrorHandling } from "@vulkanlabs/base/src/lib/api/api-utils";
 
 // Configure API clients with shared configuration
 const apiConfig = createApiConfig({
