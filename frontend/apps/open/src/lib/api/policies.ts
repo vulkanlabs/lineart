@@ -11,7 +11,8 @@ import {
     type ConfigurationVariablesBase,
     type Run,
 } from "@vulkanlabs/client-open";
-import { apiConfig, withErrorHandling } from "./client";
+import { apiConfig } from "./client";
+import { withErrorHandling } from "@vulkanlabs/base/src/lib/api/api-utils";
 import type { DateRange, MetricsData, RunOutcomes, RunsResponse } from "./types";
 
 const policiesApi = new PoliciesApi(apiConfig);

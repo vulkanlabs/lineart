@@ -1,5 +1,5 @@
 import { AuthApi } from "@vulkanlabs/client-open";
-import { createApiConfig } from "@vulkanlabs/api-utils";
+import { createApiConfig } from "../lib/api/api-utils";
 import { useState, useEffect } from "react";
 
 // Configure API clients with shared configuration

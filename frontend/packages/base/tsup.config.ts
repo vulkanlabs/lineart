@@ -8,6 +8,7 @@ export default defineConfig({
         "src/index.ts",
         "src/ui/index.ts",
         "src/workflow/index.ts",
+        "src/lib/api/api-utils.ts", // Separate entry for server-compatible API utils
         // Add individual component entries for proper TypeScript declarations
         "src/components/details-button.tsx",
         "src/components/shortened-id.tsx",
@@ -45,7 +46,7 @@ export default defineConfig({
         options.inject = [path.resolve(__dirname, "react-shim.js")];
     },
     onSuccess: async () => {
-        // Add "use client" directive to all built files
+        // Add "use client" directive to client-only built files (NOT api-utils)
         const files = [
             "dist/index.js",
             "dist/index.mjs",
