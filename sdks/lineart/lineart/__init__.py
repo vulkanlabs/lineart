@@ -4,9 +4,9 @@ from lineart_sdk import (
     USER_AGENT,
     VERSION,
     errors,
-    models,
-    types,
     utils,
 )
 
+# We reexport these to allow `from lineart.<submodule> import <definition>`
+from . import models, types
 from .client import Lineart
