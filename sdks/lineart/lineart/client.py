@@ -20,9 +20,26 @@ class Lineart(LineartBaseClient):
         self,
         server_url: str | None = None,
         project_id: str | None = None,
-        log_level: str = "DEBUG",
+        log_level: str = "INFO",
         **kwargs,
     ):
+        """Client for interacting with the Lineart API.
+
+        Args:
+        -----
+            server_url (str | None): The base URL of the Lineart server. If None,
+                it will be read from the VULKAN_SERVER_URL environment variable.
+                Leave empty to use the default server URL.
+            project_id (str | None): The project ID to scope API requests. If None,
+                it will be read from the VULKAN_PROJECT_ID environment variable.
+                Required if using the default server URL.
+            log_level (str): The logging level. Defaults to "INFO".
+
+        Raises:
+        ------
+            ValueError: When using the Vulkan platform, if no project ID is
+                provided or if no valid credentials are found.
+        """
         logger = init_logger(__name__, log_level)
         if server_url is None:
             server_url = os.getenv("VULKAN_SERVER_URL", _DEFAULT_SERVER_URL)
