@@ -428,25 +428,6 @@ export async function deletePolicyVersion(policyVersionId: string): Promise<void
     }
 }
 
-//  Backtest
-
-/**
- * Creates and launches a backtest run
- *
- * @param backtestConfig - Backtest configuration (input data and parameters)
- * @returns Created run object with  details
- */
-export async function createBacktest(backtestConfig: any): Promise<any> {
-    try {
-        return await apiFetch<any>("/api/proxy/backtests", {
-            method: "POST",
-            body: JSON.stringify(backtestConfig),
-        });
-    } catch (error) {
-        console.error("Backtest creation failed:", error);
-        throw error;
-    }
-}
 
 // Legacy Aliases
 
@@ -464,4 +445,3 @@ export const fetchDataSourceCacheStatsClient = fetchDataSourceCacheStats;
 export const createPolicyClient = createPolicy;
 export const deletePolicyClient = deletePolicy;
 export const deletePolicyVersionClient = deletePolicyVersion;
-export const createBacktestClient = createBacktest;
