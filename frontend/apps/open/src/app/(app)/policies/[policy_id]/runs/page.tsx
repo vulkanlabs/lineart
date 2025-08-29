@@ -1,7 +1,8 @@
 import { RunsPage } from "@vulkanlabs/base";
-import { fetchRunsByPolicy } from "@/lib/actions";
+import { fetchRunsByPolicy } from "@/lib/api";
 
 export default async function Page(props: { params: Promise<{ policy_id: string }> }) {
-    const { policy_id } = await props.params;
+    const params = await props.params;
+    const { policy_id } = params;
     return <RunsPage resourceId={policy_id} fetchRuns={fetchRunsByPolicy} />;
 }

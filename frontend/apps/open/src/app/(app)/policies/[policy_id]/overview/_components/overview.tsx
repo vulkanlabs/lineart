@@ -7,7 +7,7 @@ import { Suspense } from "react";
 import { Loader } from "@vulkanlabs/base";
 
 // Local imports
-import { fetchMetricsData, fetchPolicyOutcomeStats } from "@/lib/actions";
+import { fetchPolicyMetrics, fetchRunOutcomes } from "@/lib/api";
 import PolicyMetrics from "./policy-metrics";
 import { PolicyVersionsTable } from "./policy-versions-table";
 
@@ -31,8 +31,8 @@ export function PolicyOverviewPage({
             <Suspense fallback={<Loader />}>
                 <PolicyMetrics
                     policyId={policyId}
-                    metricsLoader={fetchMetricsData}
-                    outcomesLoader={fetchPolicyOutcomeStats}
+                    metricsLoader={fetchPolicyMetrics}
+                    outcomesLoader={fetchRunOutcomes}
                     versions={policyVersionsData}
                 />
             </Suspense>

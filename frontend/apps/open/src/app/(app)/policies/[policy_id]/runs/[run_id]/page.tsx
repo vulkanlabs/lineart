@@ -4,7 +4,8 @@ import { Loader } from "@vulkanlabs/base";
 import { RunPage } from "@/components/run/run-page-server";
 
 export default async function Page(props: { params: Promise<{ run_id: string }> }) {
-    const { run_id } = await props.params;
+    const params = await props.params;
+    const { run_id } = params;
     return (
         <div className="flex flex-col w-full h-full overflow-scroll">
             <Suspense fallback={<Loader />}>
