@@ -31,7 +31,7 @@ import { Run } from "@vulkanlabs/client-open";
 
 // Local imports
 import { LauncherFnParams } from "./types";
-import { createBacktestClient } from "@/lib/api-client";
+import { policyVersionsApi } from "@/lib/api";
 
 type LauncherPageProps = {
     policyVersionId: string;
@@ -167,8 +167,6 @@ function LaunchRunForm({
     setCreatedRun,
     setError,
 }: LaunchRunFormProps) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    const launchUrl = `${serverUrl}/policy-versions/${policyVersionId}/runs`;
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -194,7 +192,10 @@ function LaunchRunForm({
         setSubmitting(true);
         setError(null);
         setCreatedRun(null);
-        createBacktestClient(body)
+        policyVersionsApi.createRunByPolicyVersion({
+            policyVersionId: policyVersionId,
+            bodyCreateRunByPolicyVersion: body
+        })
             .then((data) => {
                 setError(null);
                 setCreatedRun(data);
