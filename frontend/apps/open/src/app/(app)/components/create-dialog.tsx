@@ -33,7 +33,7 @@ import {
 import { Sending } from "@vulkanlabs/base";
 
 // Local imports
-import { createComponentClient } from "@/lib/api-client";
+import { createComponent } from "@/lib/api-client";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required"),
@@ -112,7 +112,7 @@ export function CreateComponentDialog() {
     const onSubmit = async (data: z.infer<typeof formSchema>) => {
         setIsSubmitting(true);
         try {
-            const response = await createComponentClient(data);
+            const response = await createComponent(data);
             setOpen(false);
             form.reset();
             setSelectedFile(null);

@@ -429,19 +429,3 @@ export async function deletePolicyVersion(policyVersionId: string): Promise<void
 }
 
 
-// Legacy Aliases
-
-export const fetchMetricsDataClient = fetchPolicyMetrics;
-export const fetchRunOutcomesClient = fetchRunOutcomes;
-export const fetchRunsByPolicyClient = fetchRunsByPolicy;
-export const fetchRunsByPolicyVersionClient = fetchRunsByPolicyVersion;
-export const createComponentClient = createComponent;
-export const deleteComponentClient = deleteComponent;
-export const createDataSourceClient = createDataSource;
-export const deleteDataSourceClient = deleteDataSource;
-export const fetchDataSourceUsageClient = fetchDataSourceUsage;
-export const fetchDataSourceMetricsClient = fetchDataSourceMetrics;
-export const fetchDataSourceCacheStatsClient = fetchDataSourceCacheStats;
-export const createPolicyClient = createPolicy;
-export const deletePolicyClient = deletePolicy;
-export const deletePolicyVersionClient = deletePolicyVersion;
