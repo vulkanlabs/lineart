@@ -108,6 +108,6 @@ jobs:
           }
 
           # Publish packages
-          for package in client-open api-utils base; do
+          for package in client-open base; do
             publish_package $package
           done

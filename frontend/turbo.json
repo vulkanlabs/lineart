@@ -52,14 +52,6 @@
       "outputs": [
         "dist/**"
       ]
-    },
-    "@vulkanlabs/api-utils#build": {
-      "dependsOn": [
-        "@vulkanlabs/client-open#build"
-      ],
-      "outputs": [
-        "dist/**"
-      ]
     }
   }
 }
