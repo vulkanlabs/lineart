@@ -50,8 +50,7 @@ class Lineart(LineartBaseClient):
         if server_url == _DEFAULT_SERVER_URL and project_id is None:
             project_id = os.getenv("VULKAN_PROJECT_ID")
             if project_id is None:
-                logger.error(_NO_PROJECT_ID_MSG)
-                raise ValueError(_NO_PROJECT_ID_MSG)
+                logger.warning(_NO_PROJECT_ID_MSG)
 
         auth_headers = _get_auth_headers(log_level)
         if auth_headers is None and server_url == _DEFAULT_SERVER_URL:
@@ -63,6 +62,7 @@ class Lineart(LineartBaseClient):
 
         client = httpx.Client(headers=auth_headers, follow_redirects=True)
         super().__init__(server_url=server_url, client=client, **kwargs)
+        self.server_url = server_url
         self.project_id = project_id
         self.log_level = log_level
 

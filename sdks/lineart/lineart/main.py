@@ -2,6 +2,7 @@ import click
 
 from lineart.auth.command_login import login
 from lineart.logging import init_logger
+from lineart.projects.command_projects import projects
 
 logger = init_logger(__name__)
 
@@ -23,3 +24,4 @@ def cli(ctx: click.core.Context, verbose: bool):
 
 
 cli.add_command(login)
+cli.add_command(projects, name="projects")
