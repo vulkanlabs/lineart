@@ -1,6 +1,11 @@
 import click
 
-from .auth import LoginContext, base_login, pass_login_context, refresh_credentials
+from lineart.auth.login import (
+    LoginContext,
+    base_login,
+    pass_login_context,
+    refresh_credentials,
+)
 
 
 @click.command()

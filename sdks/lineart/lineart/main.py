@@ -1,7 +1,7 @@
 import click
 
+from lineart.auth.command_login import login
 from lineart.logging import init_logger
-from lineart.login import login
 
 logger = init_logger(__name__)
 

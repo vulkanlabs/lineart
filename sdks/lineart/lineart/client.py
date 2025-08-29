@@ -2,8 +2,9 @@ import os
 
 import httpx
 from lineart_sdk import Lineart as LineartBaseClient
+from requests.exceptions import ConnectionError
 
-from lineart.auth import LoginContext, refresh_credentials, retrieve_credentials
+from lineart.auth.login import LoginContext, refresh_credentials, retrieve_credentials
 from lineart.logging import init_logger
 
 _DEFAULT_SERVER_URL = "http://34.69.177.85:6001"
@@ -53,13 +54,12 @@ def _get_auth_headers(log_level: str) -> dict[str, str]:
     """Get authentication headers for API requests."""
     login_ctx = LoginContext(log_level=log_level)
 
-    ok = refresh_credentials(login_ctx)
-    if not ok:
-        return None
-
     try:
+        ok = refresh_credentials(login_ctx)
+        if not ok:
+            return None
         creds = retrieve_credentials()
-    except FileNotFoundError:
+    except (FileNotFoundError, ConnectionError):
         return None
 
     return {
