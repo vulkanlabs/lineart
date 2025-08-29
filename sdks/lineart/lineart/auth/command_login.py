@@ -1,4 +1,5 @@
 import click
+from requests import ConnectionError
 
 from lineart.auth.login import (
     LoginContext,
@@ -18,4 +19,9 @@ def login(ctx: LoginContext):
         return
 
     # 2. Base case: username and password are provided
-    base_login(ctx)
+    try:
+        base_login(ctx)
+    except ConnectionError as e:
+        ctx.logger.error(f"Failed to connect to auth server: {ctx.auth_server_url}")
+        ctx.logger.debug(f"Error details: {e}")
+        click.Abort()
