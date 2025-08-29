@@ -7,7 +7,8 @@ import { PolicyAllocationStrategy, PolicyVersion } from "@vulkanlabs/client-open
 import { AllocatedVersionsTable } from "./_components/table";
 
 export default async function Page(props: { params: Promise<{ policy_id: string }> }) {
-    const { policy_id } = await props.params;
+    const params = await props.params;
+    const { policy_id } = params;
 
     const policyData = await fetchPolicy(policy_id);
     const allPolicyVersionsForPolicy = await fetchPolicyVersions(policy_id).catch((error) => {

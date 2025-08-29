@@ -5,7 +5,8 @@ export default async function Layout(props: {
     params: Promise<{ policy_version_id: string }>;
     children: React.ReactNode;
 }) {
-    const { policy_version_id } = await props.params;
+    const params = await props.params;
+    const { policy_version_id } = params;
     const { children } = props;
 
     const policyVersion = await fetchPolicyVersion(policy_version_id);

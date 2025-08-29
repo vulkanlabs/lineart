@@ -41,7 +41,7 @@ import {
 import type { DataSourceSpec } from "@vulkanlabs/client-open";
 
 // Local imports
-import { createDataSourceAction } from "./actions";
+import { createDataSource } from "@/lib/api";
 
 const formSchema = z.object({
     name: z
@@ -204,7 +204,7 @@ export function CreateDataSourceDialog() {
             metadata: keyValuePairsToMap(keyValuePairsFromObject(data.metadata)),
         };
 
-        await createDataSourceAction(dataSourceSpec)
+        await createDataSource(dataSourceSpec)
             .then(() => {
                 setOpen(false);
                 form.reset();
@@ -243,7 +243,7 @@ export function CreateDataSourceDialog() {
                                 <FormField
                                     name="name"
                                     control={form.control}
-                                    render={({ field }) => (
+                                    render={({ field }: { field: any }) => (
                                         <FormItem>
                                             <FormLabel htmlFor="name">Name *</FormLabel>
                                             <FormDescription>
@@ -262,7 +262,7 @@ export function CreateDataSourceDialog() {
                                 <FormField
                                     name="description"
                                     control={form.control}
-                                    render={({ field }) => (
+                                    render={({ field }: { field: any }) => (
                                         <FormItem>
                                             <FormLabel htmlFor="description">Description</FormLabel>
                                             <FormDescription>
@@ -284,7 +284,7 @@ export function CreateDataSourceDialog() {
                                 <FormField
                                     control={form.control}
                                     name="metadata"
-                                    render={({ field }) => (
+                                    render={({ field }: { field: any }) => (
                                         <FormItem>
                                             <FormLabel>Metadata</FormLabel>
                                             <FormDescription>

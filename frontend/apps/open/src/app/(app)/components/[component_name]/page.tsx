@@ -4,7 +4,8 @@ import { EnvTab } from "./components";
 import { AppWorkflowFrame } from "@/components/workflow-frame";
 
 export default async function Page(props: { params: Promise<{ component_name: string }> }) {
-    const { component_name } = await props.params;
+    const params = await props.params;
+    const { component_name } = params;
     console.log("component_name", component_name);
     const component = await fetchComponent(component_name);
 

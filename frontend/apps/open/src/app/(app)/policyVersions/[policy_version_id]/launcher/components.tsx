@@ -31,21 +31,16 @@ import { Run } from "@vulkanlabs/client-open";
 
 // Local imports
 import { LauncherFnParams } from "./types";
+import { policyVersionsApi } from "@/lib/api";
 
 type LauncherPageProps = {
     policyVersionId: string;
-    inputSchema: Map<string, string>;
+    inputSchema: Record<string, string>;
     configVariables?: string[];
-    launchFn: any;
 };
 
-export function LauncherPage({
-    policyVersionId,
-    inputSchema,
-    configVariables,
-    launchFn,
-}: LauncherPageProps) {
-    const [createdRun, setCreatedRun] = useState(null);
+export function LauncherPage({ policyVersionId, inputSchema, configVariables }: LauncherPageProps) {
+    const [createdRun, setCreatedRun] = useState<Run | null>(null);
     const [error, setError] = useState<Error | null>(null);
 
     return (
@@ -58,7 +53,6 @@ export function LauncherPage({
                     setError={setError}
                     defaultInputData={asInputData(inputSchema)}
                     defaultConfigVariables={asConfigMap(configVariables || [])}
-                    launchFn={launchFn}
                 />
             </div>
             {createdRun && (
@@ -73,9 +67,8 @@ export function LauncherButton({
     policyVersionId,
     inputSchema,
     configVariables,
-    launchFn,
 }: LauncherPageProps) {
-    const [createdRun, setCreatedRun] = useState(null);
+    const [createdRun, setCreatedRun] = useState<Run | null>(null);
     const [error, setError] = useState<Error | null>(null);
     const [open, setOpen] = useState(false);
 
@@ -125,7 +118,6 @@ export function LauncherButton({
                     {!error && !createdRun && (
                         <LaunchRunForm
                             policyVersionId={policyVersionId}
-                            launchFn={launchFn}
                             defaultConfigVariables={asConfigMap(configVariables || [])}
                             defaultInputData={asInputData(inputSchema)}
                             setCreatedRun={setCreatedRun}
@@ -164,9 +156,8 @@ type LaunchRunFormProps = {
     policyVersionId: string;
     defaultInputData: Object;
     defaultConfigVariables: Object;
-    setCreatedRun: (run: any) => void;
-    setError: (error: any) => void;
-    launchFn: (params: LauncherFnParams) => Promise<Run>;
+    setCreatedRun: (run: Run | null) => void;
+    setError: (error: Error | null) => void;
 };
 
 function LaunchRunForm({
@@ -175,11 +166,7 @@ function LaunchRunForm({
     defaultConfigVariables,
     setCreatedRun,
     setError,
-    launchFn,
 }: LaunchRunFormProps) {
-    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    const launchUrl = `${serverUrl}/policy-versions/${policyVersionId}/runs`;
-
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -204,7 +191,11 @@ function LaunchRunForm({
         setSubmitting(true);
         setError(null);
         setCreatedRun(null);
-        launchFn({ launchUrl, body, headers: {} })
+        policyVersionsApi
+            .createRunByPolicyVersion({
+                policyVersionId: policyVersionId,
+                bodyCreateRunByPolicyVersion: body,
+            })
             .then((data) => {
                 setError(null);
                 setCreatedRun(data);
@@ -405,7 +396,7 @@ function ensureJSON(data: string | null) {
     }
 }
 
-function asInputData(inputSchema: Map<string, string>) {
+function asInputData(inputSchema: Record<string, string>) {
     if (!inputSchema) {
         return {};
     }
