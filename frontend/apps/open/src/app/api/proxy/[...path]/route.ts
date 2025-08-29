@@ -7,7 +7,7 @@ export async function GET(
     { params }: { params: Promise<{ path: string[] }> },
 ) {
     const { path } = await params;
-    return handleRequest(request, path, "GET");
+    return handleReadRequest(request, path);
 }
 
 export async function POST(
@@ -15,7 +15,7 @@ export async function POST(
     { params }: { params: Promise<{ path: string[] }> },
 ) {
     const { path } = await params;
-    return handleRequest(request, path, "POST");
+    return handleWriteRequest(request, path);
 }
 
 export async function PUT(
@@ -23,7 +23,7 @@ export async function PUT(
     { params }: { params: Promise<{ path: string[] }> },
 ) {
     const { path } = await params;
-    return handleRequest(request, path, "PUT");
+    return handleWriteRequest(request, path);
 }
 
 export async function DELETE(
@@ -31,7 +31,7 @@ export async function DELETE(
     { params }: { params: Promise<{ path: string[] }> },
 ) {
     const { path } = await params;
-    return handleRequest(request, path, "DELETE");
+    return handleReadRequest(request, path);
 }
 
 export async function PATCH(
@@ -39,10 +39,14 @@ export async function PATCH(
     { params }: { params: Promise<{ path: string[] }> },
 ) {
     const { path } = await params;
-    return handleRequest(request, path, "PATCH");
+    return handleWriteRequest(request, path);
 }
 
-async function handleRequest(request: NextRequest, pathSegments: string[], method: string) {
+async function handleReadRequest(request: NextRequest, pathSegments: string[]) {
+    return handleProxyRequest(request, pathSegments, request.method);
+}
+
+async function handleWriteRequest(request: NextRequest, pathSegments: string[]) {
     try {
         const path = pathSegments.join("/");
         const url = new URL(path, BACKEND_URL);
@@ -61,22 +65,60 @@ async function handleRequest(request: NextRequest, pathSegments: string[], metho
         });
 
         const options: RequestInit = {
-            method,
+            method: request.method,
             headers,
         };
 
-        if (["POST", "PUT", "PATCH"].includes(method)) {
-            try {
-                const body = await request.json();
-                options.body = JSON.stringify(body);
-            } catch {
-                // If not JSON, try to get raw body
-                const body = await request.text();
-                if (body) options.body = body;
-            }
+        try {
+            const body = await request.json();
+            options.body = JSON.stringify(body);
+        } catch {
+            // If not JSON, try to get raw body
+            const body = await request.text();
+            if (body) options.body = body;
         }
 
         const response = await fetch(url.toString(), options);
+        const responseBody = await response.text();
+
+        return new Response(responseBody, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: {
+                "Content-Type": response.headers.get("Content-Type") || "application/json",
+            },
+        });
+    } catch (error) {
+        console.error("Proxy error:", error);
+        return new Response(null, {
+            status: 500,
+            statusText: "Internal Server Error",
+        });
+    }
+}
+
+async function handleProxyRequest(request: NextRequest, pathSegments: string[], method: string) {
+    try {
+        const path = pathSegments.join("/");
+        const url = new URL(path, BACKEND_URL);
+
+        request.nextUrl.searchParams.forEach((value, key) => {
+            url.searchParams.append(key, value);
+        });
+
+        const headers = new Headers();
+        headers.set("Content-Type", "application/json");
+
+        const forwardHeaders = ["accept", "accept-language", "user-agent", "authorization"];
+        forwardHeaders.forEach((header) => {
+            const value = request.headers.get(header);
+            if (value) headers.set(header, value);
+        });
+
+        const response = await fetch(url.toString(), {
+            method,
+            headers,
+        });
         const responseBody = await response.text();
 
         return new Response(responseBody, {
