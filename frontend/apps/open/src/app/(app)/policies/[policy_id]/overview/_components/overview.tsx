@@ -7,7 +7,7 @@ import { Suspense } from "react";
 import { Loader } from "@vulkanlabs/base";
 
 // Local imports
-import { fetchPolicyMetrics, fetchRunOutcomes } from "@/lib/api-client";
+import { fetchPolicyMetrics, fetchRunOutcomes } from "@/lib/api";
 import PolicyMetrics from "./policy-metrics";
 import { PolicyVersionsTable } from "./policy-versions-table";
 

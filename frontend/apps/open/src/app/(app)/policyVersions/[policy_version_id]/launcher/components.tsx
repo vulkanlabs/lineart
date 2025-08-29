@@ -167,7 +167,6 @@ function LaunchRunForm({
     setCreatedRun,
     setError,
 }: LaunchRunFormProps) {
-
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -192,10 +191,11 @@ function LaunchRunForm({
         setSubmitting(true);
         setError(null);
         setCreatedRun(null);
-        policyVersionsApi.createRunByPolicyVersion({
-            policyVersionId: policyVersionId,
-            bodyCreateRunByPolicyVersion: body
-        })
+        policyVersionsApi
+            .createRunByPolicyVersion({
+                policyVersionId: policyVersionId,
+                bodyCreateRunByPolicyVersion: body,
+            })
             .then((data) => {
                 setError(null);
                 setCreatedRun(data);

@@ -33,7 +33,7 @@ import {
 import { Sending } from "@vulkanlabs/base";
 
 // Local imports
-import { createComponent } from "@/lib/api-client";
+import { createComponent } from "@/lib/api";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required"),

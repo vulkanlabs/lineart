@@ -1,5 +1,5 @@
 import { RunsPage } from "@vulkanlabs/base";
-import { fetchRunsByPolicy } from "@/lib/api-client";
+import { fetchRunsByPolicy } from "@/lib/api";
 
 export default async function Page(props: { params: Promise<{ policy_id: string }> }) {
     const params = await props.params;
