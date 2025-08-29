@@ -208,7 +208,7 @@ class DataSources(BaseSDK):
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
-    ) -> Any:
+    ) -> models.DataSource:
         r"""Create Data Source
 
         Create a new data source.
@@ -282,7 +282,7 @@ class DataSources(BaseSDK):
 
         response_data: Any = None
         if utils.match_response(http_res, "200", "application/json"):
-            return unmarshal_json_response(Any, http_res)
+            return unmarshal_json_response(models.DataSource, http_res)
         if utils.match_response(http_res, "422", "application/json"):
             response_data = unmarshal_json_response(
                 errors.HTTPValidationErrorData, http_res
@@ -317,7 +317,7 @@ class DataSources(BaseSDK):
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
-    ) -> Any:
+    ) -> models.DataSource:
         r"""Create Data Source
 
         Create a new data source.
@@ -391,7 +391,7 @@ class DataSources(BaseSDK):
 
         response_data: Any = None
         if utils.match_response(http_res, "200", "application/json"):
-            return unmarshal_json_response(Any, http_res)
+            return unmarshal_json_response(models.DataSource, http_res)
         if utils.match_response(http_res, "422", "application/json"):
             response_data = unmarshal_json_response(
                 errors.HTTPValidationErrorData, http_res

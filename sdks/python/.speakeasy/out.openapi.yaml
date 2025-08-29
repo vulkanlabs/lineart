@@ -234,7 +234,7 @@ paths:
           description: "Successful Response"
           content:
             "application/json":
-              schema: {}
+              schema: {"$ref": "#/components/schemas/DataSource"}
         "404":
           description: "Not found"
         "422":
@@ -981,8 +981,8 @@ paths:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
       x-speakeasy-name-override: "createRunGroup"
-  "/policies/{policy_id}/runs/duration":
-    get:
+  "/policies/{policy_id}/runs/duration/query":
+    post:
       tags:
         - "policies"
       summary: "Run Duration Stats By Policy"
@@ -1033,8 +1033,8 @@ paths:
           content:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
-  "/policies/{policy_id}/runs/duration/by_status":
-    get:
+  "/policies/{policy_id}/runs/duration/by_status/query":
+    post:
       tags:
         - "policies"
       summary: "Run Duration Stats By Policy Status"
@@ -1085,8 +1085,8 @@ paths:
           content:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
-  "/policies/{policy_id}/runs/count":
-    get:
+  "/policies/{policy_id}/runs/count/query":
+    post:
       tags:
         - "policies"
       summary: "Runs By Policy"
@@ -1137,8 +1137,8 @@ paths:
           content:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
-  "/policies/{policy_id}/runs/outcomes":
-    get:
+  "/policies/{policy_id}/runs/outcomes/query":
+    post:
       tags:
         - "policies"
       summary: "Runs Outcomes By Policy"

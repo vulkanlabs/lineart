@@ -157,7 +157,7 @@ def create_run_group(
         )
 
 
-@router.get("/{policy_id}/runs/duration", response_model=list[Any])
+@router.post("/{policy_id}/runs/duration/query", response_model=list[Any])
 def run_duration_stats_by_policy(
     policy_id: str,
     start_date: datetime.date | None = None,
@@ -169,7 +169,7 @@ def run_duration_stats_by_policy(
     return service.get_run_duration_stats(policy_id, start_date, end_date, versions)
 
 
-@router.get("/{policy_id}/runs/duration/by_status", response_model=list[Any])
+@router.post("/{policy_id}/runs/duration/by_status/query", response_model=list[Any])
 def run_duration_stats_by_policy_status(
     policy_id: str,
     start_date: datetime.date | None = None,
@@ -181,7 +181,7 @@ def run_duration_stats_by_policy_status(
     return service.get_run_duration_by_status(policy_id, start_date, end_date, versions)
 
 
-@router.get("/{policy_id}/runs/count", response_model=list[Any])
+@router.post("/{policy_id}/runs/count/query", response_model=list[Any])
 def runs_by_policy(
     policy_id: str,
     start_date: datetime.date | None = None,
@@ -193,7 +193,7 @@ def runs_by_policy(
     return service.get_run_counts(policy_id, start_date, end_date, versions)
 
 
-@router.get("/{policy_id}/runs/outcomes", response_model=list[Any])
+@router.post("/{policy_id}/runs/outcomes/query", response_model=list[Any])
 def runs_outcomes_by_policy(
     policy_id: str,
     start_date: Annotated[datetime.date | None, Query()] = None,
