@@ -7,7 +7,7 @@ export async function GET(
     { params }: { params: Promise<{ path: string[] }> },
 ) {
     const { path } = await params;
-    return handleReadRequest(request, path);
+    return handleProxyRequest(request, path, request.method);
 }
 
 export async function POST(
@@ -31,7 +31,7 @@ export async function DELETE(
     { params }: { params: Promise<{ path: string[] }> },
 ) {
     const { path } = await params;
-    return handleReadRequest(request, path);
+    return handleProxyRequest(request, path, request.method);
 }
 
 export async function PATCH(
@@ -42,9 +42,6 @@ export async function PATCH(
     return handleWriteRequest(request, path);
 }
 
-async function handleReadRequest(request: NextRequest, pathSegments: string[]) {
-    return handleProxyRequest(request, pathSegments, request.method);
-}
 
 async function handleWriteRequest(request: NextRequest, pathSegments: string[]) {
     try {
