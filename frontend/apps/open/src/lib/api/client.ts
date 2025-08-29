@@ -1,4 +1,4 @@
-import { createApiConfig, withErrorHandling } from "@vulkanlabs/api-utils";
+import { createApiConfig, withErrorHandling } from "@vulkanlabs/base/src/lib/api/api-utils";
 
 // Configure API clients with shared configuration
 export const apiConfig = createApiConfig({

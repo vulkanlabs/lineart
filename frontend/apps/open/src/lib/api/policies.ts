@@ -11,11 +11,12 @@ import {
     type ConfigurationVariablesBase,
     type Run,
 } from "@vulkanlabs/client-open";
-import { createApiConfig, withErrorHandling } from "@vulkanlabs/base/src/lib/api/api-utils";
+import { apiConfig } from "./client";
+import { withErrorHandling } from "@vulkanlabs/base/src/lib/api/api-utils";
 import type { DateRange, MetricsData, RunOutcomes, RunsResponse } from "./types";
 
-const policiesApi = new PoliciesApi(createApiConfig);
-const policyVersionsApi = new PolicyVersionsApi(createApiConfig);
+const policiesApi = new PoliciesApi(apiConfig);
+const policyVersionsApi = new PolicyVersionsApi(apiConfig);
 
 // Export API client instances for direct use if needed
 export { policiesApi, policyVersionsApi };
