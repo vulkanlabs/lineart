@@ -1,115 +1,100 @@
 "use client";
+
 import React, { useState } from "react";
 
-import { WorkflowFrame } from "./frame";
-import type { RunNodeLayout } from "./types";
-import type { Edge } from "@xyflow/react";
+import type {
+    NodeDefinitionDict,
+    PolicyVersion,
+    RunData,
+    RunLogs,
+    StepMetadataBase,
+} from "@vulkanlabs/client-open";
 
-import type { RunData, RunLogs, StepMetadataBase } from "@vulkanlabs/client-open";
+import { WorkflowFrame } from "./workflow/frame";
+import { EdgeLayoutConfig, NodeLayoutConfig, RunNodeLayout } from "./workflow/types";
+import { makeGraphElements } from "./workflow/graph";
 
-export default function RunPageContent({
+import { LogsTable } from "./run-logs";
+
+export interface RunPageConfig {
+    containerOverflow?: "hidden" | "scroll";
+    sidebarOverflow?: "hidden" | "auto";
+    tableClass?: "w-full" | "min-w-full";
+    enableResponsiveColumns?: boolean;
+}
+
+export function RunPageContent({
     nodes,
-    edges,
     runLogs,
     runData,
+    config,
 }: {
-    nodes: RunNodeLayout[];
-    edges: Edge[];
+    nodes: NodeDefinitionDict[];
     runLogs: RunLogs;
     runData: RunData;
+    config?: RunPageConfig;
 }) {
     const [clickedNode, setClickedNode] = useState(null);
+    const {
+        containerOverflow = "scroll",
+        sidebarOverflow = "auto",
+        tableClass = "w-full",
+        enableResponsiveColumns = true,
+    } = config || {};
+
+    const containerOverflowClass =
+        containerOverflow === "hidden" ? "overflow-hidden" : "overflow-scroll";
+    const sidebarOverflowClass = sidebarOverflow === "hidden" ? "overflow-hidden" : "overflow-auto";
+
+    const inputNode: NodeDefinitionDict = {
+        name: "input_node",
+        node_type: "INPUT",
+        dependencies: null,
+        metadata: null,
+    };
+    const allNodes = nodes.length > 0 ? [...nodes, inputNode] : nodes;
+
+    const [nodesToLayout, edges] = makeGraphElements(allNodes);
+
+    const runNodes: RunNodeLayout[] = nodesToLayout.map((node: NodeLayoutConfig) => {
+        const runNode = {
+            ...node,
+            data: {
+                ...node.data,
+                run: runData.steps[node.id] || null,
+            },
+        };
+        return runNode;
+    });
 
     return (
-        <div className="grid grid-rows-2 h-full w-full overflow-hidden">
+        <div className={`grid grid-rows-2 h-full w-full ${containerOverflowClass}`}>
             <div className="row-span-1 w-full border-b-2">
                 <div className="w-full h-full grid grid-cols-12">
                     <div className="col-span-8">
                         <div className="w-full h-full">
                             <WorkflowFrame
-                                nodes={nodes}
+                                nodes={runNodes}
                                 edges={edges}
-                                onNodeClick={(_, node) => setClickedNode(node)}
+                                onNodeClick={(_: any, node: any) => setClickedNode(node)}
                                 onPaneClick={() => setClickedNode(null)}
                             />
                         </div>
                     </div>
-                    <div className="col-span-4 border-l-2 overflow-hidden">
+                    <div className={`col-span-4 border-l-2 ${sidebarOverflowClass}`}>
                         <WorkflowSidebar clickedNode={clickedNode} runData={runData} />
                     </div>
                 </div>
             </div>
             <div className="row-span-1 w-full">
-                <LogsTable runLogs={runLogs} clickedNode={clickedNode} />
+                <LogsTable
+                    runLogs={runLogs}
+                    clickedNode={clickedNode}
+                    tableClass={tableClass}
+                    enableResponsiveColumns={enableResponsiveColumns}
+                />
             </div>
         </div>
-    );
-}
-
-function LogsTable({ runLogs, clickedNode }: { runLogs: RunLogs; clickedNode: any | null }) {
-    const filteredLogs = runLogs.logs.filter(
-        (log) => clickedNode === null || log.step_key === clickedNode.id,
-    );
-
-    return (
-        <div className="flex flex-row w-full h-full overflow-y-auto">
-            <table className="w-full divide-y divide-gray-200 border-collapse">
-                <colgroup>
-                    <col className="w-[12%] min-w-[100px]" />
-                    <col className="w-[18%] min-w-[120px]" />
-                    <col className="w-[8%] min-w-[80px]" />
-                    <col className="w-[12%] min-w-[100px]" />
-                    <col className="w-[40%] min-w-[200px]" />
-                    <col className="w-[10%] min-w-[80px]" />
-                </colgroup>
-                <thead className="bg-gray-50 sticky top-0">
-                    <tr>
-                        <TableHeader>Timestamp</TableHeader>
-                        <TableHeader>Step Key</TableHeader>
-                        <TableHeader>Source</TableHeader>
-                        <TableHeader>Log Type</TableHeader>
-                        <TableHeader>Message</TableHeader>
-                        <TableHeader>Level</TableHeader>
-                    </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredLogs.map((log, index) => (
-                        <tr key={index}>
-                            <TableCell>
-                                {(() => {
-                                    try {
-                                        return new Date(log.timestamp).toLocaleString();
-                                    } catch (error) {
-                                        return log.timestamp?.toString() || "N/A";
-                                    }
-                                })()}
-                            </TableCell>
-                            <TableCell>{log.step_key || "N/A"}</TableCell>
-                            <TableCell>{log.source}</TableCell>
-                            <TableCell>{log.event.log_type || "N/A"}</TableCell>
-                            <TableCell>{log.event.message}</TableCell>
-                            <TableCell>{log.event.level}</TableCell>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-}
-
-function TableHeader({ children }: { children: React.ReactNode }) {
-    return (
-        <th className="xl:text-xs xl:px-4 xl:py-2 2xl:px-6 2xl:py-4 2xl:text-sm text-left border-r-2 font-medium text-gray-500 uppercase tracking-wider sticky top-0">
-            {children}
-        </th>
-    );
-}
-
-function TableCell({ children }: { children: React.ReactNode }) {
-    return (
-        <td className="xl:text-xs xl:px-4 xl:py-2 2xl:px-6 2xl:py-4 2xl:text-sm border-r-2 whitespace-normal text-gray-500">
-            {children}
-        </td>
     );
 }
 
@@ -121,7 +106,7 @@ function WorkflowSidebar({
     runData: RunData;
 }) {
     return (
-        <div className="h-full bg-white border-l-2 overflow-hidden">
+        <div className="h-full bg-white border-l-2 overflow-auto">
             {clickedNode === null ? (
                 <RunInfo runData={runData} />
             ) : (

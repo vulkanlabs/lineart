@@ -78,8 +78,8 @@ export { InnerNavbar, type InnerNavbarSectionProps } from "./components/inner-na
 export { SharedNavbar, type NavigationSection } from "./components/navigation/shared-navbar";
 
 // Re-export run components (selective exports for better tree-shaking)
-export { RunsPage } from "./components/run/runs-list-page";
-export { RunPageContent, type RunPageConfig } from "./components/run/run-page-content";
+export { RunsPage } from "./components/runs/runs-list-page";
+export { RunPageContent, type RunPageConfig } from "./components/runs/run-page-content";
 // Note: Run-related types (BaseRunNodeLayout, BaseRunNodeData, RunLogEvent, RunLog, RunLogs)
 // not currently used by apps - RunLogs comes from @vulkanlabs/client-open instead
 

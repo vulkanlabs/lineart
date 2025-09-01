@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useLayoutEffect, useCallback } from "react";
 import {
     ReactFlow,
@@ -11,13 +12,11 @@ import {
     useEdgesState,
     useReactFlow,
 } from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
 
 import { nodeTypes } from "./nodes";
-import { defaultElkOptions } from "@/components/run/options";
-import type { RunNodeLayout } from "@/components/run/types";
-import type { EdgeLayoutConfig } from "@/lib/workflow/types";
-import { layoutGraph } from "@/lib/workflow/graph";
+import { defaultElkOptions } from "./options";
+import type { RunNodeLayout, EdgeLayoutConfig, LayoutedNode } from "./types";
+import { layoutGraph } from "./graph";
 
 function VulkanWorkflow({
     graphNodes,
@@ -35,22 +34,7 @@ function VulkanWorkflow({
     const { fitView } = useReactFlow();
 
     const loadAndLayout = () => {
-        const filteredNodes = graphNodes
-            .filter((node) => node.data.type !== "COMPONENT")
-            .map((n) => withRunNodeProps(n))
-            .map((n) => {
-                return {
-                    ...n,
-                    parentId: null,
-                    parentReference: null,
-                };
-            });
-
-        const filteredEdges = graphEdges.filter((edge) => {
-            return !edge.isComponentIO || edge.fromComponentChild || edge.toComponentChild;
-        });
-
-        layoutGraph(filteredNodes, filteredEdges, defaultElkOptions).then(
+        layoutGraph(graphNodes, graphEdges, defaultElkOptions).then(
             ([layoutedNodes, layoutedEdges]) => {
                 setNodes(layoutedNodes);
                 setEdges(layoutedEdges);
@@ -74,7 +58,7 @@ function VulkanWorkflow({
         setNodes(newNodes);
     };
 
-    const clickNode = (e, node) => {
+    const clickNode = (e: React.MouseEvent, node: LayoutedNode) => {
         resetClick();
         const newNodes = nodes.map((n) => {
             if (n.id === node.id) {
@@ -86,7 +70,7 @@ function VulkanWorkflow({
         onNodeClick(e, node);
     };
 
-    const clickPane = (e) => {
+    const clickPane = (e: React.MouseEvent) => {
         resetClick();
         onPaneClick(e);
     };
@@ -105,9 +89,18 @@ function VulkanWorkflow({
             maxZoom={2}
             fitViewOptions={{ maxZoom: 1 }}
             fitView
+            proOptions={{ hideAttribution: true }}
         >
-            <Background color="#ccc" variant={BackgroundVariant.Dots} />
-            <Controls />
+            <Background
+                    color="#c8c8c8"
+                    size={3}
+                    gap={30}
+                    variant={BackgroundVariant.Dots}
+                />
+            <Controls
+                showInteractive={false}
+                orientation="horizontal"
+            />
         </ReactFlow>
     );
 }
@@ -123,28 +116,4 @@ export function WorkflowFrame({ nodes, edges, onNodeClick, onPaneClick }) {
             />
         </ReactFlowProvider>
     );
-}
-
-const NodeTypeToRunStepMapping = {
-    TRANSFORM: "common",
-    CONNECTION: "common",
-    DATA_INPUT: "common",
-    BRANCH: "common",
-    DECISION: "common",
-    TERMINATE: "terminate",
-    INPUT: "entry",
-};
-
-function withRunNodeProps(node: RunNodeLayout): RunNodeLayout {
-    if (Object.keys(NodeTypeToRunStepMapping).includes(node.data.type)) {
-        node.type = NodeTypeToRunStepMapping[node.data.type];
-    } else {
-        node.targetPosition = "left";
-        node.sourcePosition = "right";
-    }
-
-    return {
-        ...node,
-        draggable: false,
-    };
 }
