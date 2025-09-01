@@ -1,12 +1,11 @@
+"use server";
+
 import {
-    DataSourcesApi,
     type DataSource,
     type DataSourceSpec,
     type DataSourceEnvVarBase,
 } from "@vulkanlabs/client-open";
-import { apiConfig, withErrorHandling } from "./client";
-
-const dataSourcesApi = new DataSourcesApi(apiConfig);
+import { dataSourcesApi, withErrorHandling } from "./client";
 
 export const fetchDataSources = async (): Promise<DataSource[]> => {
     return withErrorHandling(dataSourcesApi.listDataSources(), "fetch data sources");

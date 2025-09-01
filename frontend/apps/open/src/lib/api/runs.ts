@@ -1,7 +1,7 @@
-import { RunsApi, type Run, type RunData, type RunLogs } from "@vulkanlabs/client-open";
-import { apiConfig, withErrorHandling } from "./client";
+"use server";
 
-const runsApi = new RunsApi(apiConfig);
+import { type RunData, type RunLogs } from "@vulkanlabs/client-open";
+import { runsApi, withErrorHandling } from "./client";
 
 export const fetchRunData = async (runId: string): Promise<RunData> => {
     return withErrorHandling(runsApi.getRunData({ runId }), `fetch data for run ${runId}`);

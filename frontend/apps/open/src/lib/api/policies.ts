@@ -1,6 +1,6 @@
+"use server";
+
 import {
-    PoliciesApi,
-    PolicyVersionsApi,
     type Policy,
     type PolicyVersion,
     type PolicyBase,
@@ -11,15 +11,9 @@ import {
     type ConfigurationVariablesBase,
     type Run,
 } from "@vulkanlabs/client-open";
-import { apiConfig } from "./client";
-import { withErrorHandling } from "@vulkanlabs/base/src/lib/api/api-utils";
-import type { DateRange, MetricsData, RunOutcomes, RunsResponse } from "./types";
 
-const policiesApi = new PoliciesApi(apiConfig);
-const policyVersionsApi = new PolicyVersionsApi(apiConfig);
-
-// Export API client instances for direct use if needed
-export { policiesApi, policyVersionsApi };
+import { policiesApi, policyVersionsApi, withErrorHandling } from "./client";
+import type { DateRange, MetricsData, RunsResponse } from "./types";
 
 // Policy CRUD operations
 export const fetchPolicies = async (includeArchived = false): Promise<Policy[]> => {
