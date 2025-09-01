@@ -8,12 +8,6 @@ export * from "./lib/chart";
 
 // Re-export API utilities (selective exports for better tree-shaking)
 export {
-    SharedWorkflowHandlers,
-    SharedListHandlers,
-    type WorkflowSaveHandlerConfig,
-    type ListHandlerConfig,
-} from "./lib/api/shared-api-handlers";
-export {
     SharedResponseUtils,
     parseWorkflowRequest,
     parseQueryParams,
@@ -22,6 +16,12 @@ export {
     validateServerUrl,
     type SharedApiConfig,
 } from "./lib/api/shared-response-utils";
+export {
+    type Configuration,
+    type ApiClientConfig,
+    createApiConfig,
+    withErrorHandling,
+} from "./lib/api/api-utils";
 
 // Re-export UI components
 export { VulkanLogo, type VulkanLogoConfig } from "./components/logo";
@@ -79,8 +79,7 @@ export { SharedNavbar, type NavigationSection } from "./components/navigation/sh
 
 // Re-export run components (selective exports for better tree-shaking)
 export { RunsPage } from "./components/run/runs-list-page";
-export { SharedRunPageContent, type RunPageConfig } from "./components/run/shared-run-page-content";
-export { defaultElkOptions as RunDefaultElkOptions } from "./components/run/options";
+export { RunPageContent, type RunPageConfig } from "./components/run/run-page-content";
 // Note: Run-related types (BaseRunNodeLayout, BaseRunNodeData, RunLogEvent, RunLog, RunLogs)
 // not currently used by apps - RunLogs comes from @vulkanlabs/client-open instead
 
@@ -131,7 +130,7 @@ export { SharedAllocatedVersionsTable } from "./components/policies/allocated-ve
 
 // Re-export analytics components (selective exports for better tree-shaking)
 export { DataSourceUsageAnalytics } from "./components/analytics/usage-analytics";
-export { PolicyRunsChart, PolicyMetricsCard } from "./components/analytics/policy-metrics";
+// export { PolicyRunsChart, PolicyMetricsCard } from "./components/analytics/policy-metrics";
 
 // Re-export components table (selective exports for better tree-shaking)
 export { ComponentsTable } from "./components/components/components-table";
