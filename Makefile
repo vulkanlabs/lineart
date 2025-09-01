@@ -50,6 +50,8 @@ config:
 	cp ./config/active/.env ./frontend/apps/open/.env
 
 # Maintenance
-.PHONY: clean-pycache
-clean-pycache:
+.PHONY: clean-python
+python-clean:
 	 find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
+	 find . -type d -name '*.egg-info' -print -exec rm -r {} + 
+	 rm -rf dist/ || true

@@ -1,6 +1,6 @@
 [project]
-name = "one-ring"
-version = "0.1.0"
+name = "lineart-one-ring"
+version = "0.2.0a1"
 description = "A monorepo for all Vulkan projects."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -13,6 +13,10 @@ dependencies = [
     "ruff>=0.11.0",
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["vulkan*", "sdks/lineart"]
+
 [tool.uv]
 dev-dependencies = [
     "questionary>=2.0.1",
@@ -23,7 +27,17 @@ dev-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["vulkan-server", "vulkan-dagster", "upload-svc"]
+members = [
+    # Libs
+    "vulkan", 
+    "vulkan-engine",
+    # SDKs 
+    "sdks/lineart",
+    # Services 
+    "vulkan-server", 
+    "vulkan-dagster", 
+    "upload-svc",
+]
 
 [tool.uv.sources]
 vulkan-server = { workspace = true }
@@ -33,9 +47,11 @@ vulkan = { path = "vulkan", editable = true }
 vulkan-engine = { path = "vulkan-engine", editable = true }
 lineart = { path = "sdks/lineart", editable = true }
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
