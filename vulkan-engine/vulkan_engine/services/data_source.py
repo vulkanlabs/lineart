@@ -8,6 +8,7 @@ environment variables, data objects, and data broker operations.
 from typing import Any
 
 import requests
+from sqlalchemy import select
 
 from vulkan.data_source import DataSourceType
 from vulkan.schemas import DataSourceSpec
@@ -59,7 +60,7 @@ class DataSourceService(BaseService):
 
     def list_data_sources(
         self, include_archived: bool = False, project_id: str = None
-    ) -> list[DataSource]:
+    ) -> list[DataSourceSchema]:
         """
         List data sources, optionally filtered by project.
 
@@ -70,13 +71,14 @@ class DataSourceService(BaseService):
         Returns:
             List of DataSource objects
         """
-        return self.data_source_loader.list_data_sources(
+        data_sources = self.data_source_loader.list_data_sources(
             project_id=project_id, include_archived=include_archived
         )
+        return [DataSourceSchema.from_orm(ds) for ds in data_sources]
 
     def create_data_source(
         self, spec: DataSourceSpec, project_id: str = None
-    ) -> dict[str, str]:
+    ) -> DataSourceSchema:
         """
         Create a new data source.
 
@@ -112,11 +114,11 @@ class DataSourceService(BaseService):
         self.db.add(data_source)
         self.db.commit()
 
-        return {"data_source_id": data_source.data_source_id}
+        return DataSourceSchema.from_orm(data_source)
 
     def get_data_source(
         self, data_source_id: str, project_id: str = None
-    ) -> DataSource:
+    ) -> DataSourceSchema:
         """
         Get a data source by ID.
 
@@ -130,9 +132,10 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
-        return self.data_source_loader.get_data_source(
+        data_source = self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
         )
+        return DataSourceSchema.from_orm(data_source)
 
     def delete_data_source(
         self, data_source_id: str, project_id: str = None
@@ -164,16 +167,17 @@ class DataSourceService(BaseService):
             )
 
         # Check if data source is in use by policy versions
-        policy_uses = (
-            self.db.query(WorkflowDataDependency, PolicyVersion)
+        stmt = (
+            select(PolicyVersion)
+            .select_from(WorkflowDataDependency)
             .join(Workflow)
             .join(PolicyVersion)
-            .filter(
-                WorkflowDataDependency.data_source_id == data_source_id,
-                PolicyVersion.archived == False,  # noqa: E712
+            .where(
+                (WorkflowDataDependency.data_source_id == data_source_id)
+                & (PolicyVersion.archived.is_(False))
             )
-            .all()
         )
+        policy_uses = self.db.execute(stmt).all()
 
         if policy_uses:
             raise InvalidDataSourceException(
@@ -181,16 +185,17 @@ class DataSourceService(BaseService):
             )
 
         # Check if data source is in use by components
-        component_uses = (
-            self.db.query(WorkflowDataDependency, Component)
+        stmt_component = (
+            select(Component)
+            .select_from(WorkflowDataDependency)
             .join(Workflow)
             .join(Component)
-            .filter(
-                WorkflowDataDependency.data_source_id == data_source_id,
-                Component.archived == False,  # noqa: E712
+            .where(
+                (WorkflowDataDependency.data_source_id == data_source_id)
+                & (Component.archived.is_(False))
             )
-            .all()
         )
+        component_uses = self.db.execute(stmt_component).all()
 
         if component_uses:
             raise InvalidDataSourceException(

@@ -47,6 +47,13 @@ type DeletePolicyContextType = {
 
 const DeletePolicyContext = React.createContext<DeletePolicyContextType | undefined>(undefined);
 
+/**
+ * Policies table - full-featured data table for policy management
+ * @param {Object} props - Component properties
+ * @param {Policy[]} props.policies - Array of policy objects to display
+ * @param {PolicyTableConfig} props.config - Table configuration including actions and navigation
+ * @returns {JSX.Element} Complete policies table with sorting, actions, delete confirmation
+ */
 export function PoliciesTable({
     policies,
     config,

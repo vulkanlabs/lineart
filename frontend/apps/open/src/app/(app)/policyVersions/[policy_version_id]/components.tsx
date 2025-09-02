@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 // Local imports
 import { InnerNavbar, type InnerNavbarSectionProps } from "@vulkanlabs/base";
 import { PageLayout, SidebarSectionProps } from "@/components/page-layout";
-import { postLaunchFormAction } from "./launcher/actions";
+
 import { LauncherButton } from "./launcher/components";
 import { Policy, PolicyVersion } from "@vulkanlabs/client-open";
 
@@ -59,7 +59,6 @@ export function RouteLayout({
                 <LauncherButton
                     policyVersionId={policyVersion.policy_version_id}
                     inputSchema={new Map()}
-                    launchFn={postLaunchFormAction}
                 />
             ),
         },

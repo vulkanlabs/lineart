@@ -1,17 +1,17 @@
 lockVersion: 2.0.0
 id: 88929680-bb73-487a-94bf-9600cc541817
 management:
-  docChecksum: e81c2d06221aca3a7f536255ea17547d
+  docChecksum: 4c826b6a6baffd49ecc55eb2e7a4705b
   docVersion: 0.1.0
-  speakeasyVersion: 1.606.3
-  generationVersion: 2.687.1
+  speakeasyVersion: 1.606.8
+  generationVersion: 2.687.13
   releaseVersion: 0.1.1
-  configChecksum: ead855dbef14a61429c1c8a4232952eb
+  configChecksum: 9e9b4aa2dfaf57f98919f0a7c85f6418
 features:
   python:
     additionalDependencies: 1.0.0
     constsAndDefaults: 1.0.5
-    core: 5.19.9
+    core: 5.20.1
     defaultEnabledRetries: 0.2.0
     devContainers: 3.0.0
     enumUnions: 0.1.0
@@ -400,7 +400,7 @@ examples:
         application/json: {"name": "<value>", "source": {"path": "/mnt"}}
       responses:
         "200":
-          application/json: "<value>"
+          application/json: {"name": "<value>", "source": {"path": "/mnt"}, "data_source_id": "6ecd390b-9464-4697-af59-e2980ca9f9ed", "archived": false, "created_at": "2024-01-20T08:50:07.133Z", "last_updated_at": "2023-08-15T17:28:01.973Z"}
         "422":
           application/json: {}
   get_data_source:

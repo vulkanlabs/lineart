@@ -8,6 +8,7 @@ export default defineConfig({
         "src/index.ts",
         "src/ui/index.ts",
         "src/workflow/index.ts",
+        "src/lib/api/api-utils.ts", // Separate entry for server-compatible API utils
         // Add individual component entries for proper TypeScript declarations
         "src/components/details-button.tsx",
         "src/components/shortened-id.tsx",
@@ -27,10 +28,8 @@ export default defineConfig({
     dts: false, // Disabled due to lazy loading compatibility issues with generics
     clean: true,
     external: ["react", "react-dom", "next"],
-
-    // Performance optimizations for production builds
     splitting: true, // Enable code splitting for better load performance and caching
-    minify: true, // Enable minification for smaller bundle size (20-30% reduction)
+    minify: false,
     treeshake: true, // Remove unused code for optimal bundle size
 
     outDir: "dist",
@@ -47,7 +46,7 @@ export default defineConfig({
         options.inject = [path.resolve(__dirname, "react-shim.js")];
     },
     onSuccess: async () => {
-        // Add "use client" directive to all built files
+        // Add "use client" directive to client-only built files (NOT api-utils)
         const files = [
             "dist/index.js",
             "dist/index.mjs",

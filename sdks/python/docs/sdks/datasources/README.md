@@ -94,7 +94,7 @@ with Lineart(
 
 ### Response
 
-**[Any](../../models/.md)**
+**[models.DataSource](../../models/datasource.md)**
 
 ### Errors
 

@@ -90,7 +90,7 @@ def make_request(
 
     req = requests.Request(
         url=url,
-        method=config.method.value,
+        method=config.method,
         headers=headers,
         params=params,
         data=data_payload,

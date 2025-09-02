@@ -6,7 +6,8 @@ import { fetchDataSource } from "@/lib/api";
 import DataSourcePage from "./components";
 
 export default async function Page(props: { params: Promise<{ data_source_id: string }> }) {
-    const { data_source_id } = await props.params;
+    const params = await props.params;
+    const { data_source_id } = params;
     const dataSource: DataSource | null = await fetchDataSource(data_source_id).catch((error) => {
         console.error(error);
         return null;
