@@ -8,7 +8,7 @@ import type { RunLogs } from "@vulkanlabs/client-open";
 import { NodeLayoutConfig } from "./workflow/types";
 import { LogsTableSkeleton } from "./loading-states";
 
-type LogLevel = 'error' | 'warning' | 'info' | 'debug' | string;
+type LogLevel = "error" | "warning" | "info" | "debug" | string;
 
 export function LogsTable({
     runLogs,
@@ -34,7 +34,9 @@ export function LogsTable({
                     <div className="text-center">
                         <Info size={48} className="mx-auto mb-4 text-gray-300" />
                         <p className="text-lg font-medium text-gray-900 mb-2">No logs available</p>
-                        <p className="text-gray-500">Logs will appear here once the workflow runs</p>
+                        <p className="text-gray-500">
+                            Logs will appear here once the workflow runs
+                        </p>
                     </div>
                 </div>
             </div>
@@ -47,7 +49,7 @@ export function LogsTable({
     // Get unique log levels for filter buttons
     const availableLevels = useMemo(() => {
         const levels = new Set<LogLevel>();
-        runLogs.logs.forEach(log => {
+        runLogs.logs.forEach((log) => {
             if (log.event.level) {
                 levels.add(log.event.level);
             }
@@ -71,9 +73,11 @@ export function LogsTable({
                     log.step_key,
                     log.source,
                     log.event.log_type,
-                    log.event.level
-                ].join(' ').toLowerCase();
-                
+                    log.event.level,
+                ]
+                    .join(" ")
+                    .toLowerCase();
+
                 if (!searchableText.includes(query)) {
                     return false;
                 }
@@ -112,7 +116,10 @@ export function LogsTable({
                 <div className="flex items-center gap-3">
                     {/* Search */}
                     <div className="relative flex-1 max-w-md">
-                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <Search
+                            size={16}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        />
                         <input
                             type="text"
                             placeholder="Search logs..."
@@ -135,9 +142,10 @@ export function LogsTable({
                         onClick={() => setShowFilters(!showFilters)}
                         className={`
                             flex items-center gap-2 px-3 py-2 border rounded-lg text-sm transition-colors
-                            ${showFilters || hasActiveFilters
-                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                            ${
+                                showFilters || hasActiveFilters
+                                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
                             }
                         `}
                     >
@@ -177,9 +185,12 @@ export function LogsTable({
                                     onClick={() => toggleLevel(level)}
                                     className={`
                                         flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors
-                                        ${isSelected
-                                            ? getLevelStyles(level).selectedBg + ' ' + getLevelStyles(level).selectedText
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        ${
+                                            isSelected
+                                                ? getLevelStyles(level).selectedBg +
+                                                  " " +
+                                                  getLevelStyles(level).selectedText
+                                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                                         }
                                     `}
                                 >
@@ -223,22 +234,30 @@ export function LogsTable({
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
                         {filteredLogs.length > 0 ? (
-                            filteredLogs.map((log, index) => (
-                                <LogRow key={index} log={log} />
-                            ))
+                            filteredLogs.map((log, index) => <LogRow key={index} log={log} />)
                         ) : (
                             <tr>
                                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                                     {hasActiveFilters ? (
                                         <div>
-                                            <Search size={48} className="mx-auto mb-4 text-gray-300" />
-                                            <p className="text-lg font-medium mb-2">No logs found</p>
+                                            <Search
+                                                size={48}
+                                                className="mx-auto mb-4 text-gray-300"
+                                            />
+                                            <p className="text-lg font-medium mb-2">
+                                                No logs found
+                                            </p>
                                             <p>Try adjusting your search or filters</p>
                                         </div>
                                     ) : (
                                         <div>
-                                            <Info size={48} className="mx-auto mb-4 text-gray-300" />
-                                            <p className="text-lg font-medium mb-2">No logs available</p>
+                                            <Info
+                                                size={48}
+                                                className="mx-auto mb-4 text-gray-300"
+                                            />
+                                            <p className="text-lg font-medium mb-2">
+                                                No logs available
+                                            </p>
                                             <p>Logs will appear here once the workflow runs</p>
                                         </div>
                                     )}
@@ -263,32 +282,28 @@ function TableHeader({ children }: { children: React.ReactNode }) {
 
 function LogRow({ log }: { log: any }) {
     const levelStyles = getLevelStyles(log.event.level);
-    
+
     return (
         <tr className={`hover:bg-gray-50 ${levelStyles.rowBg}`}>
             <td className="px-4 py-3 text-sm text-gray-900">
-                <div className="font-mono text-xs">
-                    {formatTimestamp(log.timestamp)}
-                </div>
+                <div className="font-mono text-xs">{formatTimestamp(log.timestamp)}</div>
             </td>
             <td className="px-4 py-3 text-sm">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                     {log.step_key || "N/A"}
                 </span>
             </td>
-            <td className="px-4 py-3 text-sm text-gray-600">
-                {log.source}
-            </td>
+            <td className="px-4 py-3 text-sm text-gray-600">{log.source}</td>
             <td className="px-4 py-3 text-sm text-gray-900">
-                <div className="max-w-md">
-                    {log.event.message}
-                </div>
+                <div className="max-w-md">{log.event.message}</div>
             </td>
             <td className="px-4 py-3">
-                <span className={`
+                <span
+                    className={`
                     inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium
                     ${levelStyles.bg} ${levelStyles.text}
-                `}>
+                `}
+                >
                     {getLevelIcon(log.event.level)}
                     {log.event.level}
                 </span>
@@ -300,14 +315,14 @@ function LogRow({ log }: { log: any }) {
 // Utility Functions
 function getLevelIcon(level: LogLevel, size: number = 12) {
     switch (level?.toLowerCase()) {
-        case 'error':
+        case "error":
             return <AlertCircle size={size} />;
-        case 'warning':
-        case 'warn':
+        case "warning":
+        case "warn":
             return <AlertTriangle size={size} />;
-        case 'debug':
+        case "debug":
             return <Bug size={size} />;
-        case 'info':
+        case "info":
         default:
             return <Info size={size} />;
     }
@@ -315,39 +330,39 @@ function getLevelIcon(level: LogLevel, size: number = 12) {
 
 function getLevelStyles(level: LogLevel) {
     switch (level?.toLowerCase()) {
-        case 'error':
+        case "error":
             return {
-                bg: 'bg-red-100',
-                text: 'text-red-800',
-                selectedBg: 'bg-red-500',
-                selectedText: 'text-white',
-                rowBg: 'hover:bg-red-50'
+                bg: "bg-red-100",
+                text: "text-red-800",
+                selectedBg: "bg-red-500",
+                selectedText: "text-white",
+                rowBg: "hover:bg-red-50",
             };
-        case 'warning':
-        case 'warn':
+        case "warning":
+        case "warn":
             return {
-                bg: 'bg-yellow-100',
-                text: 'text-yellow-800',
-                selectedBg: 'bg-yellow-500',
-                selectedText: 'text-white',
-                rowBg: 'hover:bg-yellow-50'
+                bg: "bg-yellow-100",
+                text: "text-yellow-800",
+                selectedBg: "bg-yellow-500",
+                selectedText: "text-white",
+                rowBg: "hover:bg-yellow-50",
             };
-        case 'debug':
+        case "debug":
             return {
-                bg: 'bg-purple-100',
-                text: 'text-purple-800',
-                selectedBg: 'bg-purple-500',
-                selectedText: 'text-white',
-                rowBg: 'hover:bg-purple-50'
+                bg: "bg-purple-100",
+                text: "text-purple-800",
+                selectedBg: "bg-purple-500",
+                selectedText: "text-white",
+                rowBg: "hover:bg-purple-50",
             };
-        case 'info':
+        case "info":
         default:
             return {
-                bg: 'bg-blue-100',
-                text: 'text-blue-800',
-                selectedBg: 'bg-blue-500',
-                selectedText: 'text-white',
-                rowBg: 'hover:bg-blue-50'
+                bg: "bg-blue-100",
+                text: "text-blue-800",
+                selectedBg: "bg-blue-500",
+                selectedText: "text-white",
+                rowBg: "hover:bg-blue-50",
             };
     }
 }
@@ -356,12 +371,12 @@ function formatTimestamp(timestamp: any): string {
     try {
         const date = new Date(timestamp);
         return date.toLocaleString(undefined, {
-            month: 'short',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
         });
     } catch (error) {
         return timestamp?.toString() || "N/A";

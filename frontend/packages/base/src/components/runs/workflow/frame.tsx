@@ -87,8 +87,8 @@ function VulkanWorkflow({
             nodeTypes={nodeTypes}
             connectionLineType={ConnectionLineType.SmoothStep}
             defaultEdgeOptions={{
-                style: { stroke: '#6b7280', strokeWidth: 2 },
-                type: 'smoothstep',
+                style: { stroke: "#6b7280", strokeWidth: 2 },
+                type: "smoothstep",
             }}
             minZoom={0.1}
             maxZoom={2}
@@ -96,16 +96,8 @@ function VulkanWorkflow({
             fitView
             proOptions={{ hideAttribution: true }}
         >
-            <Background
-                    color="#e5e7eb"
-                    size={2}
-                    gap={20}
-                    variant={BackgroundVariant.Dots}
-                />
-            <Controls
-                showInteractive={false}
-                orientation="horizontal"
-            />
+            <Background color="#e5e7eb" size={2} gap={20} variant={BackgroundVariant.Dots} />
+            <Controls showInteractive={false} orientation="horizontal" />
         </ReactFlow>
     );
 }

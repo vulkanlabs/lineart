@@ -5,16 +5,14 @@ import { Loader2, AlertCircle, Workflow, FileText } from "lucide-react";
 
 // Skeleton Components
 export function SkeletonBox({ className = "" }: { className?: string }) {
-    return (
-        <div className={`bg-gray-200 animate-pulse rounded ${className}`} />
-    );
+    return <div className={`bg-gray-200 animate-pulse rounded ${className}`} />;
 }
 
-export function SkeletonText({ 
-    lines = 1, 
-    className = "" 
-}: { 
-    lines?: number; 
+export function SkeletonText({
+    lines = 1,
+    className = "",
+}: {
+    lines?: number;
     className?: string;
 }) {
     return (
@@ -23,7 +21,7 @@ export function SkeletonText({
                 <div
                     key={i}
                     className={`bg-gray-200 animate-pulse rounded h-4 ${
-                        i === lines - 1 ? 'w-3/4' : 'w-full'
+                        i === lines - 1 ? "w-3/4" : "w-full"
                     }`}
                 />
             ))}
@@ -51,11 +49,14 @@ export function SidebarSkeleton() {
             {/* Header skeleton */}
             <div>
                 <SkeletonBox className="h-6 w-32 mb-4" />
-                
+
                 {/* Cards skeleton */}
                 <div className="space-y-4">
                     {[1, 2, 3].map((i) => (
-                        <div key={i} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div
+                            key={i}
+                            className="bg-white rounded-lg p-4 shadow-sm border border-gray-200"
+                        >
                             <SkeletonBox className="h-3 w-16 mb-2" />
                             <SkeletonBox className="h-4 w-full" />
                         </div>
@@ -87,7 +88,7 @@ export function LogsTableSkeleton() {
                             <SkeletonBox key={i} className="h-3 w-20" />
                         ))}
                     </div>
-                    
+
                     {/* Rows */}
                     {Array.from({ length: 8 }, (_, i) => (
                         <div key={i} className="grid grid-cols-5 gap-4 py-2">
@@ -105,19 +106,21 @@ export function LogsTableSkeleton() {
 }
 
 // Loading Overlay
-export function LoadingOverlay({ 
+export function LoadingOverlay({
     message = "Loading...",
-    className = ""
-}: { 
+    className = "",
+}: {
     message?: string;
     className?: string;
 }) {
     return (
-        <div className={`
+        <div
+            className={`
             absolute inset-0 bg-white/90 backdrop-blur-sm 
             flex items-center justify-center z-50
             ${className}
-        `}>
+        `}
+        >
             <div className="text-center">
                 <Loader2 size={32} className="mx-auto mb-3 text-blue-600 animate-spin" />
                 <p className="text-sm text-gray-600">{message}</p>
@@ -132,17 +135,15 @@ export function EmptyWorkflow() {
         <div className="h-full bg-white flex items-center justify-center p-8">
             <div className="text-center max-w-md">
                 <Workflow size={64} className="mx-auto mb-6 text-gray-300" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No Workflow Available
-                </h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Workflow Available</h3>
                 <p className="text-gray-500 mb-6">
-                    This run doesn't have an associated workflow to display. 
-                    The workflow visualization will appear here once data is available.
+                    This run doesn't have an associated workflow to display. The workflow
+                    visualization will appear here once data is available.
                 </p>
                 <div className="bg-gray-50 rounded-lg p-4">
                     <p className="text-xs text-gray-600">
-                        <strong>Tip:</strong> Workflow nodes will show execution status, 
-                        duration, and allow you to inspect individual step details.
+                        <strong>Tip:</strong> Workflow nodes will show execution status, duration,
+                        and allow you to inspect individual step details.
                     </p>
                 </div>
             </div>
@@ -155,9 +156,7 @@ export function EmptyRunInfo() {
         <div className="h-full bg-gray-50 flex items-center justify-center p-8">
             <div className="text-center max-w-sm">
                 <FileText size={48} className="mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No Run Data
-                </h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Run Data</h3>
                 <p className="text-gray-500">
                     Run information will be displayed here once the data loads.
                 </p>
@@ -167,10 +166,10 @@ export function EmptyRunInfo() {
 }
 
 // Error States
-export function ErrorState({ 
+export function ErrorState({
     title = "Something went wrong",
     message = "An error occurred while loading data. Please try refreshing the page.",
-    onRetry
+    onRetry,
 }: {
     title?: string;
     message?: string;
@@ -180,12 +179,8 @@ export function ErrorState({
         <div className="h-full flex items-center justify-center p-8">
             <div className="text-center max-w-md">
                 <AlertCircle size={64} className="mx-auto mb-6 text-red-400" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {title}
-                </h3>
-                <p className="text-gray-500 mb-6">
-                    {message}
-                </p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
+                <p className="text-gray-500 mb-6">{message}</p>
                 {onRetry && (
                     <button
                         onClick={onRetry}
@@ -201,17 +196,24 @@ export function ErrorState({
 
 // Inline loading indicators
 export function InlineLoader({ size = 16, className = "" }: { size?: number; className?: string }) {
-    return (
-        <Loader2 size={size} className={`animate-spin text-gray-400 ${className}`} />
-    );
+    return <Loader2 size={size} className={`animate-spin text-gray-400 ${className}`} />;
 }
 
 export function LoadingDots({ className = "" }: { className?: string }) {
     return (
         <div className={`inline-flex space-x-1 ${className}`}>
-            <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div
+                className="w-1 h-1 bg-gray-400 rounded-full animate-bounce"
+                style={{ animationDelay: "0ms" }}
+            />
+            <div
+                className="w-1 h-1 bg-gray-400 rounded-full animate-bounce"
+                style={{ animationDelay: "150ms" }}
+            />
+            <div
+                className="w-1 h-1 bg-gray-400 rounded-full animate-bounce"
+                style={{ animationDelay: "300ms" }}
+            />
         </div>
     );
 }

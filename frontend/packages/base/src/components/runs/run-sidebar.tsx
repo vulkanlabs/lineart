@@ -38,20 +38,20 @@ function RunInfo({ runData }: { runData: RunData }) {
         <div className="p-6 space-y-6">
             <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Run Information</h2>
-                
+
                 <div className="space-y-4">
                     <InfoCard label="Run ID">
                         <p className="mt-1 text-sm font-mono text-gray-900 break-all">
                             {runData.run_id}
                         </p>
                     </InfoCard>
-                    
+
                     <InfoCard label="Last Updated">
                         <p className="mt-1 text-sm text-gray-900">
                             {formatDate(runData.last_updated_at)}
                         </p>
                     </InfoCard>
-                    
+
                     <InfoCard label="Status">
                         <StatusBadge status={runData.status} />
                     </InfoCard>
@@ -76,7 +76,7 @@ function NodeContent({ clickedNode }: { clickedNode: RunNodeLayout | null }) {
         <div className="p-6 space-y-6">
             <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Node Details</h2>
-                
+
                 <div className="space-y-4">
                     {/* Node Info Card */}
                     <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
@@ -149,18 +149,20 @@ function Label({ children }: { children: React.ReactNode }) {
 
 function StatusBadge({ status }: { status?: string }) {
     const statusColors = {
-        completed: 'bg-green-100 text-green-800',
-        failed: 'bg-red-100 text-red-800',
-        running: 'bg-blue-100 text-blue-800',
-        default: 'bg-gray-100 text-gray-800'
+        completed: "bg-green-100 text-green-800",
+        failed: "bg-red-100 text-red-800",
+        running: "bg-blue-100 text-blue-800",
+        default: "bg-gray-100 text-gray-800",
     };
 
     const color = statusColors[status as keyof typeof statusColors] || statusColors.default;
 
     return (
         <p className="mt-1">
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}>
-                {status || 'Unknown'}
+            <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}
+            >
+                {status || "Unknown"}
             </span>
         </p>
     );
@@ -168,17 +170,19 @@ function StatusBadge({ status }: { status?: string }) {
 
 function NodeStatusBadge({ status }: { status: string }) {
     const statusColors = {
-        error: 'bg-red-100 text-red-800 border-red-200',
-        success: 'bg-green-100 text-green-800 border-green-200',
-        skipped: 'bg-gray-100 text-gray-800 border-gray-200'
+        error: "bg-red-100 text-red-800 border-red-200",
+        success: "bg-green-100 text-green-800 border-green-200",
+        skipped: "bg-gray-100 text-gray-800 border-gray-200",
     };
 
     return (
         <p className="mt-1">
-            <span className={`
+            <span
+                className={`
                 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                 ${statusColors[status as keyof typeof statusColors]}
-            `}>
+            `}
+            >
                 {status}
             </span>
         </p>
@@ -206,13 +210,11 @@ function ErrorSection({ error }: { error: string | Error }) {
     return (
         <div className="bg-red-50 rounded-lg shadow-sm border border-red-200 overflow-hidden">
             <div className="px-4 py-3 bg-red-100 border-b border-red-200">
-                <h3 className="text-xs font-medium text-red-800 uppercase tracking-wider">
-                    Error
-                </h3>
+                <h3 className="text-xs font-medium text-red-800 uppercase tracking-wider">Error</h3>
             </div>
             <div className="p-4">
                 <p className="text-sm text-red-700">
-                    {typeof error === 'string' ? error : error.message}
+                    {typeof error === "string" ? error : error.message}
                 </p>
             </div>
         </div>
@@ -222,13 +224,13 @@ function ErrorSection({ error }: { error: string | Error }) {
 // Utility Functions
 function getNodeStatus(node: RunNodeLayout): string {
     // Input node is always considered successful if the run is executing
-    if (node.id === 'input_node' || node.data.type === 'INPUT') {
-        return 'success';
+    if (node.id === "input_node" || node.data.type === "INPUT") {
+        return "success";
     }
-    
-    if (node.data.run?.metadata?.error) return 'error';
-    if (node.data.run) return 'success';
-    return 'skipped';
+
+    if (node.data.run?.metadata?.error) return "error";
+    if (node.data.run) return "success";
+    return "skipped";
 }
 
 function formatDate(date: any): string {
@@ -243,7 +245,7 @@ function getRunDuration(metadata: StepMetadataBase): string {
     const start = new Date(metadata.start_time * 1000);
     const end = new Date(metadata.end_time * 1000);
     const duration = end.getTime() - start.getTime();
-    
+
     const milliseconds = duration % 1000;
     const seconds = Math.floor(duration / 1000);
     const minutes = Math.floor(seconds / 60);
