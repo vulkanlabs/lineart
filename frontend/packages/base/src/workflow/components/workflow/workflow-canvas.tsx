@@ -37,6 +37,7 @@ import { useWorkflowStore } from "@/workflow/store";
 import { useWorkflowApi, Workflow } from "@/workflow/api";
 import { getLayoutedNodes, type UnlayoutedVulkanNode } from "@/workflow/utils/layout";
 import type { VulkanNode, Edge } from "@/workflow/types/workflow";
+import { AutoSaveIndicator } from "@/workflow/components/auto-save-status";
 
 /**
  * Props for the workflow canvas component
@@ -110,6 +111,9 @@ export function WorkflowCanvas({
         lastSaved,
         saveError,
         autoSaveEnabled,
+        retryAttempts,
+        circuitBreakerOpen,
+        consecutiveFailures,
     } = useAutoSave({
         apiClient: api,
         workflow,
@@ -351,7 +355,8 @@ export function WorkflowCanvas({
     }, [api, workflow, getSpec, getNodes, toast, onRefresh, markSaved]);
 
     return (
-        <div className="w-full h-full">
+        <div className="w-full h-full relative">
+
             {isOpen && (
                 <div
                     ref={ref}
@@ -420,6 +425,19 @@ export function WorkflowCanvas({
                     <ControlButton onClick={copySpecToClipboard} title="Copy Specification">
                         <ToolbarIcon icon={CopyIcon} />
                     </ControlButton>
+                    <div className="flex items-center justify-center p-2">
+                        <AutoSaveIndicator
+                            compact
+                            isAutoSaving={isAutoSaving}
+                            hasUnsavedChanges={hasUnsavedChanges}
+                            lastSaved={lastSaved}
+                            saveError={saveError}
+                            autoSaveEnabled={autoSaveEnabled}
+                            retryAttempts={retryAttempts}
+                            circuitBreakerOpen={circuitBreakerOpen}
+                            consecutiveFailures={consecutiveFailures}
+                        />
+                    </div>
                 </Controls>
             </ReactFlow>
         </div>
