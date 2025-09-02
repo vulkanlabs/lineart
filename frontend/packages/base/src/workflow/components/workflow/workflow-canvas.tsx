@@ -30,6 +30,7 @@ import {
 } from "@vulkanlabs/base/ui";
 
 import { useDropdown } from "@/workflow/hooks/use-dropdown";
+import { useAutoSave } from "@/workflow/hooks/useAutoSave";
 import { nodesConfig } from "@/workflow/utils/nodes";
 import { iconMapping } from "@/workflow/icons";
 import { useWorkflowStore } from "@/workflow/store";
@@ -75,6 +76,7 @@ export function WorkflowCanvas({
         onEdgesChange,
         onConnect,
         toggleAllNodesCollapsed,
+        markSaved,
     } = useWorkflowStore(
         useShallow((state) => ({
             nodes: state.nodes,
@@ -87,8 +89,32 @@ export function WorkflowCanvas({
             onEdgesChange: state.onEdgesChange,
             onConnect: state.onConnect,
             toggleAllNodesCollapsed: state.toggleAllNodesCollapsed,
+            markSaved: state.markSaved,
         })),
     );
+
+    // Auto-save integration
+    const getUIMetadata = useCallback(() => {
+        const currentNodes = getNodes();
+        return Object.fromEntries(
+            currentNodes.map((node) => [
+                node.data.name,
+                { position: node.position, width: node.width, height: node.height },
+            ]),
+        );
+    }, [getNodes]);
+
+    const {
+        isAutoSaving,
+        hasUnsavedChanges,
+        lastSaved,
+        saveError,
+        autoSaveEnabled,
+    } = useAutoSave({
+        apiClient: api,
+        workflow,
+        getUIMetadata,
+    });
 
     const { screenToFlowPosition, fitView, setViewport } = useReactFlow();
 
@@ -302,6 +328,7 @@ export function WorkflowCanvas({
             const result = await api.saveWorkflowSpec(workflow, spec, uiMetadata, false, projectId);
 
             if (result.success) {
+                markSaved(); // Update auto-save state
                 toast("Workflow saved", {
                     description: "Workflow saved successfully.",
                     duration: 2000,
@@ -321,7 +348,7 @@ export function WorkflowCanvas({
                 duration: 5000,
             });
         }
-    }, [api, workflow, getSpec, getNodes, toast, onRefresh]);
+    }, [api, workflow, getSpec, getNodes, toast, onRefresh, markSaved]);
 
     return (
         <div className="w-full h-full">

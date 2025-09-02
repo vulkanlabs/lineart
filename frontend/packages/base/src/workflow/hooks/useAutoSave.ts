@@ -5,6 +5,7 @@ import type { WorkflowApiClient } from "../api/types";
 interface UseAutoSaveConfig {
     apiClient: WorkflowApiClient;
     workflow: any;
+    getUIMetadata?: () => { [key: string]: any };
     activityDelay?: number; // Default: 15000ms (15s)
     fallbackInterval?: number; // Default: 60000ms (60s)
 }
@@ -12,6 +13,7 @@ interface UseAutoSaveConfig {
 export function useAutoSave({
     apiClient,
     workflow,
+    getUIMetadata = () => ({}),
     activityDelay = 15000,
     fallbackInterval = 60000,
 }: UseAutoSaveConfig) {
@@ -41,7 +43,7 @@ export function useAutoSave({
             lastSaveAttemptRef.current = new Date();
 
             const spec = getSpec();
-            const uiMetadata = {}; // TODO: Get UI metadata from store
+            const uiMetadata = getUIMetadata();
 
             await apiClient.saveWorkflowSpec(workflow, spec, uiMetadata, true); // isAutoSave = true
             
@@ -51,7 +53,7 @@ export function useAutoSave({
             markSaveError(errorMessage);
             console.error("Auto-save failed:", error);
         }
-    }, [apiClient, workflow, autoSave.autoSaveEnabled, autoSave.isSaving, markSaving, markSaved, markSaveError, getSpec]);
+    }, [apiClient, workflow, autoSave.autoSaveEnabled, autoSave.isSaving, markSaving, markSaved, markSaveError, getSpec, getUIMetadata]);
 
     const scheduleActivitySave = useCallback(() => {
         // Clear existing activity timer
