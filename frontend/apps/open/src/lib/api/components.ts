@@ -1,7 +1,7 @@
-import { ComponentsApi, type Component, type ComponentUpdate } from "@vulkanlabs/client-open";
-import { apiConfig, withErrorHandling } from "./client";
+"use server";
 
-const componentsApi = new ComponentsApi(apiConfig);
+import { type Component, type ComponentUpdate } from "@vulkanlabs/client-open";
+import { componentsApi, withErrorHandling } from "./client";
 
 /**
  * Fetch all components with optional archived filter

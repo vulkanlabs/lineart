@@ -1,7 +1,7 @@
-import { RunsApi, type Run, type RunData, type RunLogs } from "@vulkanlabs/client-open";
-import { apiConfig, withErrorHandling } from "./client";
+"use server";
 
-const runsApi = new RunsApi(apiConfig);
+import { type RunData, type RunLogs } from "@vulkanlabs/client-open";
+import { runsApi, withErrorHandling } from "./client";
 
 /**
  * Get detailed run data and results

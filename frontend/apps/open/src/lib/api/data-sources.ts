@@ -1,12 +1,11 @@
+"use server";
+
 import {
-    DataSourcesApi,
     type DataSource,
     type DataSourceSpec,
     type DataSourceEnvVarBase,
 } from "@vulkanlabs/client-open";
-import { apiConfig, withErrorHandling } from "./client";
-
-const dataSourcesApi = new DataSourcesApi(apiConfig);
+import { dataSourcesApi, withErrorHandling } from "./client";
 
 /**
  * Get all available data sources

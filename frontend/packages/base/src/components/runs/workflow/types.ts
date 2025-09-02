@@ -1,3 +1,36 @@
+import { StepDetails } from "@vulkanlabs/client-open";
+
+export type RunNodeLayout = NodeLayoutConfig & {
+    draggable?: boolean;
+    data: {
+        label: string;
+        description: string;
+        type: string;
+        dependencies?: NodeDependency[];
+        run?: StepDetails;
+    };
+};
+
+type RunLogEvent = {
+    log_type?: string;
+    message: string;
+    level: string;
+};
+
+type RunLog = {
+    timestamp: string;
+    step_key?: string;
+    source: string;
+    event: RunLogEvent;
+};
+
+export type RunLogs = {
+    run_id: string;
+    status: string;
+    last_updated_at: string;
+    logs: RunLog[];
+};
+
 export type NodeDependency = {
     node: string;
     output?: string | null;
@@ -28,12 +61,12 @@ export interface NodeLayoutConfig {
         description: string;
         type: string;
         dependencies?: NodeDependency[];
+        metadata?: Record<string, any>;
     };
     width: number;
     height: number;
     type: string;
-    parentId?: string;
-    parentReference?: string;
+    draggable?: boolean;
     children?: NodeLayoutConfig[];
     layoutOptions?: Dict;
     targetPosition?: string;
@@ -46,9 +79,6 @@ export interface EdgeLayoutConfig {
     id: string;
     source: string;
     target: string;
-    isComponentIO: boolean;
-    fromComponentChild?: boolean;
-    fromComponent?: string;
-    toComponentChild?: boolean;
-    toComponent?: string;
 }
+
+export type LayoutedNode = NodeLayoutConfig & { position: { x: number; y: number } };
