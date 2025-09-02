@@ -8,10 +8,21 @@ import { apiConfig, withErrorHandling } from "./client";
 
 const dataSourcesApi = new DataSourcesApi(apiConfig);
 
+/**
+ * Get all available data sources
+ * @returns {Promise<DataSource[]>} List of configured data sources (databases, APIs, etc.)
+ */
 export const fetchDataSources = async (): Promise<DataSource[]> => {
     return withErrorHandling(dataSourcesApi.listDataSources(), "fetch data sources");
 };
 
+/**
+ * Get detailed info for a specific data source
+ * @param {string} dataSourceId - Unique identifier of the data source
+ * @returns {Promise<DataSource>} Complete data source configuration and status
+ *
+ * Connection details, credentials, usage stats, health status
+ */
 export const fetchDataSource = async (dataSourceId: string): Promise<DataSource> => {
     return withErrorHandling(
         dataSourcesApi.getDataSource({ dataSourceId }),
@@ -19,6 +30,11 @@ export const fetchDataSource = async (dataSourceId: string): Promise<DataSource>
     );
 };
 
+/**
+ * Create a new data source connection
+ * @param {DataSourceSpec} data - Data source configuration (type, connection details, credentials)
+ * @returns {Promise<DataSource>} Created data source with generated ID
+ */
 export const createDataSource = async (data: DataSourceSpec) => {
     return withErrorHandling(
         dataSourcesApi.createDataSource({ dataSourceSpec: data }),
@@ -26,6 +42,13 @@ export const createDataSource = async (data: DataSourceSpec) => {
     );
 };
 
+/**
+ * Delete/remove a data source
+ * @param {string} dataSourceId - ID of data source to remove
+ * @returns {Promise<void>} Success or throws error
+ *
+ * This will break any workflows/policies using this data source
+ */
 export const deleteDataSource = async (dataSourceId: string) => {
     return withErrorHandling(
         dataSourcesApi.deleteDataSource({ dataSourceId }),
@@ -33,6 +56,13 @@ export const deleteDataSource = async (dataSourceId: string) => {
     );
 };
 
+/**
+ * Get environment variables for a data source
+ * @param {string} dataSourceId - Target data source ID
+ * @returns {Promise<DataSourceEnvVar[]>} Array of environment variable configs
+ *
+ * Variable names, values (masked for security), types
+ */
 export const fetchDataSourceEnvVars = async (dataSourceId: string) => {
     return withErrorHandling(
         dataSourcesApi.getDataSourceEnvVariables({ dataSourceId }),
@@ -40,6 +70,12 @@ export const fetchDataSourceEnvVars = async (dataSourceId: string) => {
     );
 };
 
+/**
+ * Update environment variables for a data source
+ * @param {string} dataSourceId - Target data source ID
+ * @param {DataSourceEnvVarBase[]} variables - Array of env var objects to set
+ * @returns {Promise<void>} Success or throws error
+ */
 export const setDataSourceEnvVars = async (
     dataSourceId: string,
     variables: DataSourceEnvVarBase[],
@@ -54,6 +90,15 @@ export const setDataSourceEnvVars = async (
 };
 
 // Usage and metrics
+/**
+ * Get data source usage analytics over time period
+ * @param {string} dataSourceId - Target data source identifier
+ * @param {Date} startDate - Analytics period start
+ * @param {Date} endDate - Analytics period end
+ * @returns {Promise<any>} Usage metrics including query counts, data transferred, connection stats
+ *
+ * Total queries, avg response time, data volume, error rates
+ */
 export const fetchDataSourceUsage = async (
     dataSourceId: string,
     startDate: Date,
@@ -69,6 +114,15 @@ export const fetchDataSourceUsage = async (
     );
 };
 
+/**
+ * Get performance and health metrics for a data source
+ * @param {string} dataSourceId - Data source to analyze
+ * @param {Date} startDate - Metrics period start
+ * @param {Date} endDate - Metrics period end
+ * @returns {Promise<any>} Performance metrics and health data
+ *
+ * Response times, error rates, connection counts, throughput
+ */
 export const fetchDataSourceMetrics = async (
     dataSourceId: string,
     startDate: Date,
@@ -84,6 +138,13 @@ export const fetchDataSourceMetrics = async (
     );
 };
 
+/**
+ * Get cache performance statistics for a data source
+ * @param {string} dataSourceId - Data source to analyze
+ * @param {Date} startDate - Stats period start
+ * @param {Date} endDate - Stats period end
+ * @returns {Promise<any>} Cache metrics including hit/miss rates, cache size, evictions
+ */
 export const fetchDataSourceCacheStats = async (
     dataSourceId: string,
     startDate: Date,

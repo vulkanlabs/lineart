@@ -22,22 +22,49 @@ const policyVersionsApi = new PolicyVersionsApi(apiConfig);
 export { policiesApi, policyVersionsApi };
 
 // Policy CRUD operations
+
+/**
+ * Fetch all policies with optional archived filter
+ * @param {boolean} [includeArchived=false] - Whether to include archived policies in results
+ * @returns {Promise<Policy[]>} Array of policy objects
+ */
 export const fetchPolicies = async (includeArchived = false): Promise<Policy[]> => {
     return withErrorHandling(policiesApi.listPolicies({ includeArchived }), "fetch policies");
 };
 
+/**
+ * Fetch a single policy by ID
+ * @param {string} policyId - The unique identifier of the policy
+ * @returns {Promise<Policy>} Single policy object with all details
+ */
 export const fetchPolicy = async (policyId: string): Promise<Policy> => {
     return withErrorHandling(policiesApi.getPolicy({ policyId }), `fetch policy ${policyId}`);
 };
 
+/**
+ * Create a new policy
+ * @param {PolicyCreate} data - Policy creation data (name, description, etc.)
+ * @returns {Promise<Policy>} The newly created policy with generated ID and timestamps
+ */
 export const createPolicy = async (data: PolicyCreate): Promise<Policy> => {
     return withErrorHandling(policiesApi.createPolicy({ policyCreate: data }), "create policy");
 };
 
+/**
+ * Delete a policy (usually marks as archived)
+ * @param {string} policyId - ID of the policy to delete
+ * @returns {Promise<void>} Nothing on success
+ */
 export const deletePolicy = async (policyId: string): Promise<void> => {
     return withErrorHandling(policiesApi.deletePolicy({ policyId }), `delete policy ${policyId}`);
 };
 
+/**
+ * Update policy allocation strategy (how resources are distributed)
+ * @param {string} policyId - Target policy ID
+ * @param {PolicyAllocationStrategy} data - New allocation strategy configuration
+ * @returns {Promise<Policy>} Updated policy object
+ */
 export const updatePolicyAllocationStrategy = async (
     policyId: string,
     data: PolicyAllocationStrategy,
@@ -52,6 +79,12 @@ export const updatePolicyAllocationStrategy = async (
 };
 
 // Policy Version operations
+
+/**
+ * Create a new version of an existing policy
+ * @param {PolicyVersionBase} data - Version data including policy_id, version number, config
+ * @returns {Promise<PolicyVersion>} The newly created policy version
+ */
 export const createPolicyVersion = async (data: PolicyVersionBase): Promise<PolicyVersion> => {
     return withErrorHandling(
         policyVersionsApi.createPolicyVersion({ policyVersionBase: data }),
@@ -59,6 +92,12 @@ export const createPolicyVersion = async (data: PolicyVersionBase): Promise<Poli
     );
 };
 
+/**
+ * Update an existing policy version
+ * @param {string} policyVersionId - Version ID to update
+ * @param {PolicyVersionUpdate} data - Updated version data (config, workflow, etc.)
+ * @returns {Promise<PolicyVersion>} Updated policy version object
+ */
 export const updatePolicyVersion = async (
     policyVersionId: string,
     data: PolicyVersionUpdate,
@@ -69,6 +108,11 @@ export const updatePolicyVersion = async (
     );
 };
 
+/**
+ * Delete a policy version
+ * @param {string} policyVersionId - Version ID to delete
+ * @returns {Promise<void>} Success or throws error
+ */
 export const deletePolicyVersion = async (policyVersionId: string): Promise<void> => {
     return withErrorHandling(
         policyVersionsApi.deletePolicyVersion({ policyVersionId }),
@@ -76,6 +120,14 @@ export const deletePolicyVersion = async (policyVersionId: string): Promise<void
     );
 };
 
+/**
+ * Fetch policy versions with filtering options
+ * @param {string|null} [policyId=null] - Filter by specific policy ID, or null for all
+ * @param {boolean} [includeArchived=false] - Include archived/deleted versions
+ * @returns {Promise<PolicyVersion[]>} Array of policy versions
+ *
+ * Pass policyId to get versions for one policy, null for all versions
+ */
 export const fetchPolicyVersions = async (
     policyId: string | null = null,
     includeArchived = false,
@@ -89,6 +141,13 @@ export const fetchPolicyVersions = async (
     );
 };
 
+/**
+ * Get detailed info for a specific policy version
+ * @param {string} policyVersionId - Unique version identifier
+ * @returns {Promise<PolicyVersion>} Complete version details with workflow, config, metadata
+ *
+ * Workflow definition, deployment info, run history, configuration
+ */
 export const fetchPolicyVersion = async (policyVersionId: string): Promise<PolicyVersion> => {
     return withErrorHandling(
         policyVersionsApi.getPolicyVersion({ policyVersionId }),
@@ -220,6 +279,15 @@ export const fetchRunDurationByStatus = async (
 };
 
 // Additional wrapper functions matching api-client.ts interface (only the unique ones)
+
+/**
+ * Fetch comprehensive metrics for a policy
+ * @param {Object} params - Metrics configuration
+ * @param {string} params.policyId - Which policy you want metrics for
+ * @param {DateRange} params.dateRange - Time period with from/to dates
+ * @param {string[]} params.versions - Specific versions to include (empty = all versions)
+ * @returns {Promise<MetricsData>} Object containing run counts, error rates, duration stats
+ */
 export async function fetchPolicyMetrics({
     policyId,
     dateRange,

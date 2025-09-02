@@ -15,6 +15,16 @@ import { Component, WorkflowStatus } from "@vulkanlabs/client-open";
 import { useServiceAuth, initiateServiceAuth } from "@/auth/google-oauth";
 import { ComponentNodeMetadata } from "@/workflow/types/nodes";
 
+/**
+ * Component node - executes custom components within workflow
+ * @param {Object} props - Node properties from ReactFlow
+ * @param {string} props.id - Unique node identifier
+ * @param {VulkanNodeData} props.data - Node configuration including component selection and params
+ * @param {boolean} props.selected - Whether node is currently selected
+ * @param {number} props.height - Node height for layout
+ * @param {number} props.width - Node width for layout
+ * @returns {JSX.Element} Interactive component node with component selector and input fields
+ */
 export function ComponentNode({ id, data, selected, height, width }: VulkanNodeProps) {
     const nodeData = data as VulkanNodeData;
     const metadata = nodeData.metadata as ComponentNodeMetadata;

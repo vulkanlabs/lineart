@@ -26,6 +26,13 @@ export interface DataSourceTableConfig {
     CreateDataSourceDialog: React.ReactElement;
 }
 
+/**
+ * Data sources management table - displays and manages data source connections
+ * @param {Object} props - Component properties
+ * @param {DataSource[]} props.dataSources - Array of data source objects to display
+ * @param {DataSourceTableConfig} props.config - Table configuration including delete actions and navigation
+ * @returns {JSX.Element} Complete table with search, sorting, and management actions
+ */
 function DataSourcesTable({
     dataSources,
     config,

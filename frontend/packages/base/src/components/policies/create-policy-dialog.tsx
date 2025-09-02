@@ -43,6 +43,12 @@ export interface CreatePolicyDialogConfig {
     dialogTitle?: string;
 }
 
+/**
+ * Policy creation dialog component
+ * @param {Object} props - Component properties
+ * @param {CreatePolicyDialogConfig} props.config - Dialog configuration including create handler
+ * @returns {JSX.Element} Modal dialog with policy creation form
+ */
 export function CreatePolicyDialog({ config }: { config: CreatePolicyDialogConfig }) {
     const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
