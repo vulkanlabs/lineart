@@ -20,7 +20,7 @@ export const fetchDataSources = async (): Promise<DataSource[]> => {
  * Get detailed info for a specific data source
  * @param {string} dataSourceId - Unique identifier of the data source
  * @returns {Promise<DataSource>} Complete data source configuration and status
- * 
+ *
  * Connection details, credentials, usage stats, health status
  */
 export const fetchDataSource = async (dataSourceId: string): Promise<DataSource> => {
@@ -46,7 +46,7 @@ export const createDataSource = async (data: DataSourceSpec) => {
  * Delete/remove a data source
  * @param {string} dataSourceId - ID of data source to remove
  * @returns {Promise<void>} Success or throws error
- * 
+ *
  * This will break any workflows/policies using this data source
  */
 export const deleteDataSource = async (dataSourceId: string) => {
@@ -96,7 +96,7 @@ export const setDataSourceEnvVars = async (
  * @param {Date} startDate - Analytics period start
  * @param {Date} endDate - Analytics period end
  * @returns {Promise<any>} Usage metrics including query counts, data transferred, connection stats
- * 
+ *
  * Total queries, avg response time, data volume, error rates
  */
 export const fetchDataSourceUsage = async (
@@ -120,7 +120,7 @@ export const fetchDataSourceUsage = async (
  * @param {Date} startDate - Metrics period start
  * @param {Date} endDate - Metrics period end
  * @returns {Promise<any>} Performance metrics and health data
- * 
+ *
  * Response times, error rates, connection counts, throughput
  */
 export const fetchDataSourceMetrics = async (

@@ -53,7 +53,7 @@ export async function updateComponent(
  * Delete/archive a component
  * @param {string} componentName - Component identifier to delete
  * @returns {Promise<void>} Success or throws error
- * 
+ *
  * This is likely a soft delete - component gets archived, not permanently removed
  */
 export async function deleteComponent(componentName: string): Promise<void> {

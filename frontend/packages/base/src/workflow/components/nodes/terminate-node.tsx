@@ -42,7 +42,7 @@ function TemplateHelp() {
  * @param {boolean} props.selected - Whether this node is currently selected
  * @param {number} props.width - Node width for layout calculations
  * @returns {JSX.Element} Terminate node with metadata editor and template support
- * 
+ *
  * Final node in workflow / defines what gets returned when workflow completes
  * Template: {"result": "{{someNode.output}}", "status": "completed"}
  */

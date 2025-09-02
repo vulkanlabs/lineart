@@ -109,7 +109,7 @@ export function WorkflowCanvas({
 
     /**
      * Smart fit view algorithm - intelligently fits workflow to screen based on complexity
-     * 
+     *
      * Algorithm breakdown:
      * - Calculate workflow bounding box (total area occupied by all nodes)
      * - Compare workflow size to screen size to determine complexity
@@ -117,7 +117,7 @@ export function WorkflowCanvas({
      *   - Simple workflows: High zoom, centered view
      *   - Medium workflows: Medium zoom, some padding
      *   - Complex workflows: Focus on INPUT node (left-aligned strategy)
-     * 
+     *
      * Large workflows are hard to navigate when fully zoomed out,
      * so we focus on the starting point (INPUT node) for better UX.
      */
@@ -131,7 +131,7 @@ export function WorkflowCanvas({
                 // Each node occupies a rectangle from (x1,y1) to (x2,y2)
                 const x1 = node.position.x;
                 const y1 = node.position.y;
-                const x2 = x1 + (node.width || 450);  // Default width if not set
+                const x2 = x1 + (node.width || 450); // Default width if not set
                 const y2 = y1 + (node.height || 225); // Default height if not set
 
                 return {
@@ -145,16 +145,16 @@ export function WorkflowCanvas({
         );
 
         // Calculate workflow dimensions and screen dimensions
-        const workflowWidth = bounds.maxX - bounds.minX;   // Total width of all nodes
-        const workflowHeight = bounds.maxY - bounds.minY;  // Total height of all nodes
-        const screenWidth = window.innerWidth;             // Available screen width
-        const screenHeight = window.innerHeight;           // Available screen height
+        const workflowWidth = bounds.maxX - bounds.minX; // Total width of all nodes
+        const workflowHeight = bounds.maxY - bounds.minY; // Total height of all nodes
+        const screenWidth = window.innerWidth; // Available screen width
+        const screenHeight = window.innerHeight; // Available screen height
 
         // Classify workflow complexity based on size relative to screen
         // These thresholds determine the zoom/pan strategy:
         const isSimple = workflowWidth < screenWidth * 0.7 && workflowHeight < screenHeight * 0.7;
         // Simple: Workflow fits comfortably on screen (< 70% of screen area)
-        
+
         const isMedium = workflowWidth < screenWidth * 1.5 && workflowHeight < screenHeight * 1.5;
         // Medium: Workflow is larger but still manageable (< 150% of screen area)
 
@@ -162,17 +162,15 @@ export function WorkflowCanvas({
         if (isSimple) {
             // Simple workflows: High zoom with minimal padding for detailed view
             fitView({ padding: 0.1, maxZoom: 1.2, minZoom: 0.5 });
-            
         } else if (isMedium) {
             // Medium workflows: Moderate zoom with more padding
             fitView({ padding: 0.15, maxZoom: 1.0, minZoom: 0.3 });
-            
         } else {
             // Complex workflows: Use INPUT-left strategy for better navigation
             // Problem: Large workflows are hard to navigate when fully zoomed out
             // Solution: Focus on the starting point (INPUT node) positioned on the left
             const inputNode = nodes.find((node) => node.type === "INPUT");
-            
+
             if (inputNode) {
                 const nodeWidth = inputNode.width || 450;
                 const nodeHeight = inputNode.height || 225;
@@ -185,7 +183,7 @@ export function WorkflowCanvas({
                 // Position INPUT node on left side of screen, vertically centered
                 setViewport({
                     x: -nodeCenterX + leftMargin + nodeWidth / 2, // Move INPUT to left margin
-                    y: -nodeCenterY + window.innerHeight / 2,     // Center vertically
+                    y: -nodeCenterY + window.innerHeight / 2, // Center vertically
                     zoom: 0.6, // Moderate zoom for readability
                 });
             } else {
@@ -197,7 +195,7 @@ export function WorkflowCanvas({
 
     /**
      * Initialize workflow layout when component mounts
-     * 
+     *
      * This function handles two scenarios:
      * - New workflows: Apply ELK auto-layout algorithm to position nodes
      * - Existing workflows: Use saved positions but apply smart fit view
@@ -225,15 +223,15 @@ export function WorkflowCanvas({
                     const nodesMap = Object.fromEntries(
                         layoutedNodes.map((node) => [node.id, node]),
                     );
-                    
+
                     // Update nodes with calculated positions
                     const newNodes = nodes.map((node) => ({
                         ...node,
                         position: nodesMap[node.id].position, // Apply ELK-calculated position
                     }));
-                    
+
                     setNodes(newNodes);
-                    
+
                     // Wait for DOM updates then apply smart fit view
                     setTimeout(() => {
                         smartFitView();
@@ -251,7 +249,7 @@ export function WorkflowCanvas({
 
     /**
      * Handle connection end events for node creation dropdown
-     * 
+     *
      * This creates the "drag to create node" UX:
      * - User drags from a node handle
      * - If they drop on empty space (not on another node), show create menu
@@ -269,7 +267,7 @@ export function WorkflowCanvas({
 
                 // Store position for dropdown placement (screen coordinates, not flow coordinates)
                 setDropdownPosition({ x: clientX, y: clientY });
-                
+
                 // Show dropdown and remember which handle initiated the connection
                 toggleDropdown(connectionState.fromHandle);
             }
@@ -279,7 +277,7 @@ export function WorkflowCanvas({
 
     /**
      * Add a new node and connect it to the current connection
-     * 
+     *
      * Process:
      * - Convert screen coordinates to flow coordinates (accounts for zoom)
      * - Create new node of specified type at that position
@@ -295,17 +293,17 @@ export function WorkflowCanvas({
             x: dropdownPosition.x,
             y: dropdownPosition.y,
         });
-        
+
         // Create the new node at calculated position
         const nodeId = addNodeByType(type as any, position);
-        
+
         // Auto-connect if we have both a new node and a source handle
         if (nodeId && connectingHandle) {
             onConnect({
-                source: connectingHandle.nodeId,     // Source node that started the drag
-                target: nodeId,                      // Newly created target node
-                sourceHandle: connectingHandle.id,   // Specific output handle
-                targetHandle: null,                  // Let ReactFlow pick best input
+                source: connectingHandle.nodeId, // Source node that started the drag
+                target: nodeId, // Newly created target node
+                sourceHandle: connectingHandle.id, // Specific output handle
+                targetHandle: null, // Let ReactFlow pick best input
             });
         }
     }
@@ -342,18 +340,18 @@ export function WorkflowCanvas({
         try {
             // Run ELK layout algorithm
             const layoutedNodes = await getLayoutedNodes(unpositionedNodes, edges);
-            
+
             // Create efficient lookup map for position updates
             const nodesMap = Object.fromEntries(layoutedNodes.map((node) => [node.id, node]));
-            
+
             // Apply ELK-calculated positions to existing nodes
             const newNodes = nodes.map((node) => ({
                 ...node,
                 position: nodesMap[node.id].position, // ELK-optimized position
             }));
-            
+
             setNodes(newNodes);
-            
+
             // Give DOM time to update, then fit the reorganized workflow
             setTimeout(() => {
                 smartFitView();
@@ -388,7 +386,7 @@ export function WorkflowCanvas({
 
     /**
      * Save the current workflow state to backend
-     * 
+     *
      * - Workflow specification: Node configurations, connections, logic
      * - UI metadata: Node positions, sizes, visual state
      *
@@ -404,18 +402,18 @@ export function WorkflowCanvas({
     const saveWorkflow = useCallback(async () => {
         try {
             // Generate executable workflow specification
-            const spec = getSpec();           // Node configs + connections
-            const currentNodes = getNodes();  // Current visual state
+            const spec = getSpec(); // Node configs + connections
+            const currentNodes = getNodes(); // Current visual state
 
             // Capture UI layout state for restoration
             // Maps node names to their visual properties (position, size)
             const uiMetadata = Object.fromEntries(
                 currentNodes.map((node) => [
-                    node.data.name,              // Use node name as key (stable across saves)
-                    { 
-                        position: node.position,  // {x, y} coordinates
-                        width: node.width,        // Node width (may be auto-calculated)
-                        height: node.height      // Node height (may be auto-calculated)
+                    node.data.name, // Use node name as key (stable across saves)
+                    {
+                        position: node.position, // {x, y} coordinates
+                        width: node.width, // Node width (may be auto-calculated)
+                        height: node.height, // Node height (may be auto-calculated)
                     },
                 ]),
             );

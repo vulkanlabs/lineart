@@ -9,13 +9,13 @@ import {
 /**
  * Metrics aggregation API endpoint - get policy analytics data
  * POST /api/metrics
- * 
+ *
  * @param {NextRequest} request - HTTP request with JSON body
  * @returns {NextResponse} Aggregated metrics data or error response
- * 
+ *
  * Request body: { policyId: string, dateRange: {from: Date, to: Date}, versions: string[] }
  * Response: { runsCount, errorRate, runDurationStats, runDurationByStatus }
- * 
+ *
  * Fetches multiple metrics in parallel, calculates error rates, handles failures
  * Returns null for failed metrics instead of failing entirely
  */

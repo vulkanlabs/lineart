@@ -6,7 +6,7 @@ import type { BranchNodeMetadata, DecisionNodeMetadata } from "../types/nodes";
  * Standardize a node name for system use
  * @param {string} name - Raw node name from user input
  * @returns {string} Standardized name with underscores and lowercase
- * 
+ *
  * "My Data Node" → "my_data_node"
  */
 export function standardizeNodeName(name: string): string {
@@ -18,8 +18,8 @@ export function standardizeNodeName(name: string): string {
  * @param {VulkanNode} node - The workflow node (must be BRANCH or DECISION type)
  * @param {string|number|null} index - Which output handle to get (0, 1, 2, etc.)
  * @returns {string|null} Handle name like "success", "error", "choice_1" or null if not found
- * 
- * BRANCH nodes: Returns choice labels like "option_a", "option_b" 
+ *
+ * BRANCH nodes: Returns choice labels like "option_a", "option_b"
  * DECISION nodes: Returns condition outputs like "success", "failure"
  */
 export function findHandleNameByIndex(

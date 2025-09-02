@@ -15,7 +15,7 @@ export type UnlayoutedVulkanNode = VulkanNode;
 
 /**
  * Main entry point for node layout calculation
- * 
+ *
  * Strategy:
  * - If workflow has complex branching/decisions -> Use ELK algorithm
  * - If workflow is simple and linear -> Use custom level-based layout
@@ -23,7 +23,7 @@ export type UnlayoutedVulkanNode = VulkanNode;
  *
  * - Simple workflows: Custom algorithm is faster and produces cleaner layouts
  * - Complex workflows: ELK handles edge crossings and hierarchy better
- * 
+ *
  * @param nodes - Nodes without position data
  * @param edges - Connection data between nodes
  * @returns Nodes with calculated positions
@@ -53,7 +53,7 @@ export async function getLayoutedNodes(
 
 /**
  * Create workflow levels for left-to-right layout
- * 
+ *
  * Algorithm: Topological sort with dependency checking
  * - Start with INPUT node at level 0
  * - For each level, find all nodes whose dependencies are satisfied
@@ -62,7 +62,7 @@ export async function getLayoutedNodes(
  * - Handle orphaned nodes by placing them in the final level
  *
  * Ensures clean left-to-right flow without backward edges
- * 
+ *
  * Example:
  * INPUT -> [TRANSFORM, API] -> DECISION -> TERMINATE
  * Level 0: INPUT
@@ -89,10 +89,10 @@ function createWorkflowLevels(
         // For each node in current level, find its direct dependents
         levels[currentLevel].forEach((node) => {
             const dependents = edges
-                .filter((edge) => edge.source === node.id)      // Find outgoing edges
-                .map((edge) => edge.target)                      // Get target node IDs
+                .filter((edge) => edge.source === node.id) // Find outgoing edges
+                .map((edge) => edge.target) // Get target node IDs
                 .map((targetId) => nodes.find((n) => n.id === targetId)) // Get actual nodes
-                .filter(Boolean) as UnlayoutedVulkanNode[];      // Remove nulls
+                .filter(Boolean) as UnlayoutedVulkanNode[]; // Remove nulls
 
             // Check if each dependent is ready to be placed
             dependents.forEach((dependent) => {
@@ -100,7 +100,7 @@ function createWorkflowLevels(
                     // Get ALL dependencies of this node (not just from current level)
                     const allDeps = edges
                         .filter((edge) => edge.target === dependent.id) // All incoming edges
-                        .map((edge) => edge.source);                     // All source nodes
+                        .map((edge) => edge.source); // All source nodes
 
                     // Only place node if ALL dependencies have been visited
                     // This prevents placing nodes before their inputs are ready
@@ -130,7 +130,7 @@ function createWorkflowLevels(
 
 /**
  * Position nodes in calculated levels with proper spacing
- * 
+ *
  * - Each level gets its own column (X position)
  * - Within each column, center nodes vertically
  * - Calculate total height needed for all nodes in level
@@ -143,21 +143,21 @@ function createWorkflowLevels(
 function positionNodesInWorkflow(levels: UnlayoutedVulkanNode[][]): VulkanNode[] {
     const positionedNodes: VulkanNode[] = [];
     const HORIZONTAL_SPACING = 500; // Space between columns
-    const VERTICAL_MARGIN = 20;     // Space between nodes in same column
-    const START_X = 100;            // Left margin
-    const START_Y = 100;            // Top margin offset
+    const VERTICAL_MARGIN = 20; // Space between nodes in same column
+    const START_X = 100; // Left margin
+    const START_Y = 100; // Top margin offset
 
     levels.forEach((level, levelIndex) => {
         // Calculate X position for this column
         const levelX = START_X + levelIndex * HORIZONTAL_SPACING;
-        
+
         // Get heights of all nodes in this level for spacing calculations
         const nodeHeights = level.map((node) => getNodeHeight(node));
-        
+
         // Calculate total vertical space needed for this level
         const totalLevelHeight =
-            nodeHeights.reduce((sum, height) => sum + height, 0) +  // Sum of node heights
-            (level.length - 1) * VERTICAL_MARGIN;                   // Spacing between nodes
+            nodeHeights.reduce((sum, height) => sum + height, 0) + // Sum of node heights
+            (level.length - 1) * VERTICAL_MARGIN; // Spacing between nodes
 
         // Start from center and work vertically to create balanced layout
         let currentY = START_Y - totalLevelHeight / 2;
@@ -230,7 +230,7 @@ function calculateConnectionHeight(node: UnlayoutedVulkanNode): number {
 
 /**
  * Decide whether to use ELK algorithm or custom layout
- * 
+ *
  * ELK is needed for complex workflows with:
  * - Decision/Branch nodes (conditional logic)
  * - High fan-out (node with 3+ outputs)
@@ -239,7 +239,7 @@ function calculateConnectionHeight(node: UnlayoutedVulkanNode): number {
  * - Conditional nodes create diamond/tree patterns that need special handling
  * - High fan-out/fan-in creates complex edge crossing problems
  * - Custom algorithm assumes simple linear flow, breaks with complex patterns
- * 
+ *
  * - Custom layout: Fast, clean results for simple workflows
  * - ELK layout: Slower, but handles complexity gracefully
  */
@@ -262,7 +262,7 @@ function shouldUseElkLayout(nodes: UnlayoutedVulkanNode[], edges: Edge[]): boole
     edges.forEach((edge) => {
         targetCounts.set(edge.target, (targetCounts.get(edge.target) || 0) + 1);
     });
-    
+
     // If any node has 3+ inputs, use ELK for proper edge routing
     return Array.from(targetCounts.values()).some((count) => count >= 3);
 }

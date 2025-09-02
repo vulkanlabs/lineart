@@ -7,7 +7,7 @@ const runsApi = new RunsApi(apiConfig);
  * Get detailed run data and results
  * @param {string} runId - Unique run identifier
  * @returns {Promise<RunData>} Complete run data including inputs, outputs, metrics, status
- * 
+ *
  * Run status, input data, output results, execution metadata
  */
 export const fetchRunData = async (runId: string): Promise<RunData> => {

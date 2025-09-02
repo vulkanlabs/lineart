@@ -56,7 +56,7 @@ export function useServiceAuth(serviceName: string, projectId: string | null) {
      * Get authenticated user information from Google
      * @returns {Promise<Object>} User info with email and other profile data
      * @throws {Error} If user is not authenticated or email is missing
-     * 
+     *
      * Used by the hook to check auth status
      */
     const getUserInfo = async () => {

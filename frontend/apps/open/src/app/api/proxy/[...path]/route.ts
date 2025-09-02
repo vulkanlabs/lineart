@@ -7,7 +7,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
  * @param {NextRequest} request - Incoming HTTP request with headers, query params
  * @param {Object} params - Route parameters containing path segments
  * @returns {Promise<Response>} Proxied response from backend
- * 
+ *
  * Forwards GET requests to backend, useful for API calls that need CORS handling
  */
 export async function GET(
@@ -23,7 +23,7 @@ export async function GET(
  * @param {NextRequest} request - HTTP request with JSON body
  * @param {Object} params - Route parameters with path segments
  * @returns {Promise<Response>} Backend response
- * 
+ *
  * Creating new resources, submitting forms, API calls that need auth injection
  */
 export async function POST(
@@ -63,7 +63,7 @@ export async function PATCH(
  * @param {NextRequest} request - The incoming request with body/headers
  * @param {string[]} pathSegments - URL path parts to construct backend URL
  * @returns {Promise<Response>} Response from backend or error response
- * 
+ *
  * Forwards request body, adds auth headers, handles JSON content-type
  * Returns 500 on failure with error details
  */

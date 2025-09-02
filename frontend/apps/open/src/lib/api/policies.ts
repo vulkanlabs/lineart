@@ -125,7 +125,7 @@ export const deletePolicyVersion = async (policyVersionId: string): Promise<void
  * @param {string|null} [policyId=null] - Filter by specific policy ID, or null for all
  * @param {boolean} [includeArchived=false] - Include archived/deleted versions
  * @returns {Promise<PolicyVersion[]>} Array of policy versions
- * 
+ *
  * Pass policyId to get versions for one policy, null for all versions
  */
 export const fetchPolicyVersions = async (
@@ -145,7 +145,7 @@ export const fetchPolicyVersions = async (
  * Get detailed info for a specific policy version
  * @param {string} policyVersionId - Unique version identifier
  * @returns {Promise<PolicyVersion>} Complete version details with workflow, config, metadata
- * 
+ *
  * Workflow definition, deployment info, run history, configuration
  */
 export const fetchPolicyVersion = async (policyVersionId: string): Promise<PolicyVersion> => {
