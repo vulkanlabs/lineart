@@ -17,6 +17,7 @@ import { nodeTypes } from "./nodes";
 import { defaultElkOptions } from "./options";
 import type { RunNodeLayout, EdgeLayoutConfig, LayoutedNode } from "./types";
 import { layoutGraph } from "./graph";
+import { EmptyWorkflow } from "../loading-states";
 
 function VulkanWorkflow({
     graphNodes,
@@ -85,6 +86,10 @@ function VulkanWorkflow({
             onPaneClick={clickPane}
             nodeTypes={nodeTypes}
             connectionLineType={ConnectionLineType.SmoothStep}
+            defaultEdgeOptions={{
+                style: { stroke: '#6b7280', strokeWidth: 2 },
+                type: 'smoothstep',
+            }}
             minZoom={0.1}
             maxZoom={2}
             fitViewOptions={{ maxZoom: 1 }}
@@ -92,9 +97,9 @@ function VulkanWorkflow({
             proOptions={{ hideAttribution: true }}
         >
             <Background
-                    color="#c8c8c8"
-                    size={3}
-                    gap={30}
+                    color="#e5e7eb"
+                    size={2}
+                    gap={20}
                     variant={BackgroundVariant.Dots}
                 />
             <Controls
@@ -106,6 +111,11 @@ function VulkanWorkflow({
 }
 
 export function WorkflowFrame({ nodes, edges, onNodeClick, onPaneClick }) {
+    // Show empty state if no nodes
+    if (!nodes || nodes.length === 0) {
+        return <EmptyWorkflow />;
+    }
+
     return (
         <ReactFlowProvider>
             <VulkanWorkflow

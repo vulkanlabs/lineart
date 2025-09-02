@@ -1,26 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { Panel, PanelGroup, ImperativePanelGroupHandle } from "react-resizable-panels";
 
-import type {
-    NodeDefinitionDict,
-    PolicyVersion,
-    RunData,
-    RunLogs,
-    StepMetadataBase,
-} from "@vulkanlabs/client-open";
+import type { NodeDefinitionDict, RunData, RunLogs } from "@vulkanlabs/client-open";
+
+import { ResizeHandle } from "../resize-handle";
 
 import { WorkflowFrame } from "./workflow/frame";
 import { EdgeLayoutConfig, NodeLayoutConfig, RunNodeLayout } from "./workflow/types";
 import { makeGraphElements } from "./workflow/graph";
 
 import { LogsTable } from "./run-logs";
+import { WorkflowSidebar } from "./run-sidebar";
+import { WorkflowSkeleton, SidebarSkeleton, LogsTableSkeleton, ErrorState } from "./loading-states";
 
 export interface RunPageConfig {
     containerOverflow?: "hidden" | "scroll";
     sidebarOverflow?: "hidden" | "auto";
     tableClass?: "w-full" | "min-w-full";
     enableResponsiveColumns?: boolean;
+    isLoading?: boolean;
+    error?: string;
 }
 
 export function RunPageContent({
@@ -40,12 +41,161 @@ export function RunPageContent({
         sidebarOverflow = "auto",
         tableClass = "w-full",
         enableResponsiveColumns = true,
+        isLoading = false,
+        error,
     } = config || {};
+
+    const [runNodes, edges] = getGraphElements(nodes, runData);
 
     const containerOverflowClass =
         containerOverflow === "hidden" ? "overflow-hidden" : "overflow-scroll";
     const sidebarOverflowClass = sidebarOverflow === "hidden" ? "overflow-hidden" : "overflow-auto";
 
+    // Default panel sizes
+    const DEFAULT_VERTICAL_SIZES = [50, 50];
+    const DEFAULT_HORIZONTAL_SIZES = [70, 30];
+
+    // Initialize panel sizes from localStorage or defaults
+    const [verticalSizes, setVerticalSizes] = useState<number[]>(() => {
+        try {
+            const saved = localStorage.getItem("runPage.verticalPanelSizes");
+            return saved ? JSON.parse(saved) : DEFAULT_VERTICAL_SIZES;
+        } catch (e) {
+            console.error("Failed to parse saved vertical panel sizes");
+            return DEFAULT_VERTICAL_SIZES;
+        }
+    });
+
+    const [horizontalSizes, setHorizontalSizes] = useState<number[]>(() => {
+        try {
+            const saved = localStorage.getItem("runPage.horizontalPanelSizes");
+            return saved ? JSON.parse(saved) : DEFAULT_HORIZONTAL_SIZES;
+        } catch (e) {
+            console.error("Failed to parse saved horizontal panel sizes");
+            return DEFAULT_HORIZONTAL_SIZES;
+        }
+    });
+
+    // Refs for imperative panel control
+    const verticalPanelRef = useRef<ImperativePanelGroupHandle>(null);
+    const horizontalPanelRef = useRef<ImperativePanelGroupHandle>(null);
+
+    const handleVerticalResize = (sizes: number[]) => {
+        setVerticalSizes(sizes);
+        localStorage.setItem("runPage.verticalPanelSizes", JSON.stringify(sizes));
+    };
+
+    const handleHorizontalResize = (sizes: number[]) => {
+        setHorizontalSizes(sizes);
+        localStorage.setItem("runPage.horizontalPanelSizes", JSON.stringify(sizes));
+    };
+
+    const resetVerticalSizes = () => {
+        verticalPanelRef.current?.setLayout(DEFAULT_VERTICAL_SIZES);
+        setVerticalSizes(DEFAULT_VERTICAL_SIZES);
+        localStorage.setItem("runPage.verticalPanelSizes", JSON.stringify(DEFAULT_VERTICAL_SIZES));
+    };
+
+    const resetHorizontalSizes = () => {
+        horizontalPanelRef.current?.setLayout(DEFAULT_HORIZONTAL_SIZES);
+        setHorizontalSizes(DEFAULT_HORIZONTAL_SIZES);
+        localStorage.setItem(
+            "runPage.horizontalPanelSizes",
+            JSON.stringify(DEFAULT_HORIZONTAL_SIZES),
+        );
+    };
+
+    // Error state
+    if (error) {
+        return (
+            <div className={`h-full w-full ${containerOverflowClass} bg-gray-50`}>
+                <ErrorState
+                    title="Failed to Load Run Data"
+                    message={error}
+                    onRetry={() => window.location.reload()}
+                />
+            </div>
+        );
+    }
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className={`h-full w-full ${containerOverflowClass} bg-gray-50`}>
+                <PanelGroup direction="vertical" className="h-full w-full">
+                    <Panel defaultSize={60} minSize={30}>
+                        <PanelGroup direction="horizontal" className="h-full w-full">
+                            <Panel defaultSize={70} minSize={40}>
+                                <WorkflowSkeleton />
+                            </Panel>
+                            <div className="w-1.5 bg-gray-200" />
+                            <Panel defaultSize={30} minSize={20}>
+                                <SidebarSkeleton />
+                            </Panel>
+                        </PanelGroup>
+                    </Panel>
+                    <div className="h-1.5 bg-gray-200" />
+                    <Panel defaultSize={40} minSize={20}>
+                        <LogsTableSkeleton />
+                    </Panel>
+                </PanelGroup>
+            </div>
+        );
+    }
+
+    return (
+        <div className={`h-full w-full ${containerOverflowClass} bg-gray-50 relative`}>
+            <PanelGroup
+                ref={verticalPanelRef}
+                direction="vertical"
+                onLayout={handleVerticalResize}
+                className="h-full w-full"
+            >
+                <Panel defaultSize={verticalSizes[0]} minSize={30}>
+                    <PanelGroup
+                        ref={horizontalPanelRef}
+                        direction="horizontal"
+                        onLayout={handleHorizontalResize}
+                        className="h-full w-full"
+                    >
+                        <Panel defaultSize={horizontalSizes[0]} minSize={40}>
+                            <div className="w-full h-full bg-white">
+                                <WorkflowFrame
+                                    nodes={runNodes}
+                                    edges={edges}
+                                    onNodeClick={(_: any, node: any) => setClickedNode(node)}
+                                    onPaneClick={() => setClickedNode(null)}
+                                />
+                            </div>
+                        </Panel>
+                        <ResizeHandle direction="horizontal" onDoubleClick={resetHorizontalSizes} />
+                        <Panel defaultSize={horizontalSizes[1]} minSize={20}>
+                            <div className={`h-full ${sidebarOverflowClass}`}>
+                                <WorkflowSidebar clickedNode={clickedNode} runData={runData} />
+                            </div>
+                        </Panel>
+                    </PanelGroup>
+                </Panel>
+                <ResizeHandle direction="vertical" onDoubleClick={resetVerticalSizes} />
+                <Panel defaultSize={verticalSizes[1]} minSize={20}>
+                    <div className="h-full w-full bg-white">
+                        <LogsTable
+                            runLogs={runLogs}
+                            clickedNode={clickedNode}
+                            tableClass={tableClass}
+                            enableResponsiveColumns={enableResponsiveColumns}
+                        />
+                    </div>
+                </Panel>
+            </PanelGroup>
+        </div>
+    );
+}
+
+function getGraphElements(
+    nodes: NodeDefinitionDict[],
+    runData: RunData,
+): [RunNodeLayout[], EdgeLayoutConfig[]] {
     const inputNode: NodeDefinitionDict = {
         name: "input_node",
         node_type: "INPUT",
@@ -66,155 +216,5 @@ export function RunPageContent({
         };
         return runNode;
     });
-
-    return (
-        <div className={`grid grid-rows-2 h-full w-full ${containerOverflowClass}`}>
-            <div className="row-span-1 w-full border-b-2">
-                <div className="w-full h-full grid grid-cols-12">
-                    <div className="col-span-8">
-                        <div className="w-full h-full">
-                            <WorkflowFrame
-                                nodes={runNodes}
-                                edges={edges}
-                                onNodeClick={(_: any, node: any) => setClickedNode(node)}
-                                onPaneClick={() => setClickedNode(null)}
-                            />
-                        </div>
-                    </div>
-                    <div className={`col-span-4 border-l-2 ${sidebarOverflowClass}`}>
-                        <WorkflowSidebar clickedNode={clickedNode} runData={runData} />
-                    </div>
-                </div>
-            </div>
-            <div className="row-span-1 w-full">
-                <LogsTable
-                    runLogs={runLogs}
-                    clickedNode={clickedNode}
-                    tableClass={tableClass}
-                    enableResponsiveColumns={enableResponsiveColumns}
-                />
-            </div>
-        </div>
-    );
-}
-
-function WorkflowSidebar({
-    clickedNode,
-    runData,
-}: {
-    clickedNode: RunNodeLayout | null;
-    runData: RunData;
-}) {
-    return (
-        <div className="h-full bg-white border-l-2 overflow-auto">
-            {clickedNode === null ? (
-                <RunInfo runData={runData} />
-            ) : (
-                <NodeContent clickedNode={clickedNode} />
-            )}
-        </div>
-    );
-}
-
-function RunInfo({ runData }: { runData: RunData }) {
-    return (
-        <div className="flex flex-col px-5">
-            <div>
-                <h1 className="mt-5 text-lg font-semibold">Run ID:</h1>
-                <pre className="text-lg font-light">{runData.run_id}</pre>
-            </div>
-            <div>
-                <h1 className="mt-5 text-lg font-semibold">Last Updated:</h1>
-                <pre className="text-lg font-light">
-                    {(() => {
-                        try {
-                            return runData.last_updated_at
-                                ? new Date(runData.last_updated_at).toLocaleString()
-                                : "N/A";
-                        } catch (error) {
-                            return runData.last_updated_at?.toString() || "N/A";
-                        }
-                    })()}
-                </pre>
-            </div>
-        </div>
-    );
-}
-
-function NodeContent({ clickedNode }: { clickedNode: RunNodeLayout | null }) {
-    if (clickedNode === null) {
-        return (
-            <div className="flex flex-col px-5">
-                <h1 className="mt-5 text-lg font-semibold">No node selected</h1>
-            </div>
-        );
-    }
-
-    const content = [
-        {
-            name: "Name",
-            value: clickedNode.data.label,
-        },
-        {
-            name: "Type",
-            value: clickedNode.data.type,
-        },
-        {
-            name: "Duration",
-            value: clickedNode.data.run?.metadata
-                ? getRunDuration(clickedNode.data.run.metadata)
-                : "",
-        },
-    ];
-
-    return (
-        <div className="flex flex-col p-5 gap-4 overflow-auto">
-            <h1 className="text-lg font-semibold">Node details</h1>
-            <div className="flex flex-row gap-12">
-                <div>
-                    {content.map(({ name }) => (
-                        <div className="py-1 text-lg font-normal" key={name}>
-                            {name}
-                        </div>
-                    ))}
-                </div>
-                <div>
-                    {content.map(({ name, value }) => (
-                        <div className="py-1 text-lg font-light" key={`${name}-value`}>
-                            {value}
-                        </div>
-                    ))}
-                </div>
-            </div>
-            <h1 className="text-lg font-semibold">Output</h1>
-            <div className="bg-slate-100 rounded overflow-auto">
-                <pre className="p-5 text-xs">
-                    {JSON.stringify(clickedNode.data.run?.output, null, 2)}
-                </pre>
-            </div>
-        </div>
-    );
-}
-
-function getRunDuration(run: StepMetadataBase): string {
-    const start = new Date(run.start_time * 1000);
-    const end = new Date(run.end_time * 1000);
-    return formatDistance(end.getTime() - start.getTime());
-}
-
-function formatDistance(duration: number): string {
-    const milliseconds = duration % 1000;
-    const seconds = Math.floor(duration / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-
-    if (hours > 0) {
-        return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-    } else if (minutes > 0) {
-        return `${minutes}m ${seconds % 60}s`;
-    } else if (seconds > 0) {
-        return `${seconds}s ${milliseconds}ms`;
-    } else {
-        return `${milliseconds}ms`;
-    }
+    return [runNodes, edges];
 }
