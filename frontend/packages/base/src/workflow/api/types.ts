@@ -1,6 +1,6 @@
 import type {
     PolicyVersion,
-    PolicyDefinitionDict,
+    PolicyDefinitionDictInput,
     UIMetadata,
     Component,
 } from "@vulkanlabs/client-open";
@@ -36,8 +36,9 @@ export interface WorkflowApiClient {
      */
     saveWorkflowSpec(
         workflow: Workflow,
-        spec: PolicyDefinitionDict,
+        spec: PolicyDefinitionDictInput,
         uiMetadata: { [key: string]: UIMetadata },
+        isAutoSave?: boolean,
         projectId?: string,
     ): Promise<SaveWorkflowResult>;
 

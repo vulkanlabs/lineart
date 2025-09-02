@@ -11,7 +11,7 @@ import {
     type Edge,
 } from "@xyflow/react";
 
-import type { PolicyDefinitionDict } from "@vulkanlabs/client-open";
+import type { PolicyDefinitionDictInput } from "@vulkanlabs/client-open";
 import type { WorkflowApiClient } from "../api/types";
 import { AsNodeDefinitionDict, type VulkanNode, type WorkflowState } from "../types/workflow";
 import type { InputNodeMetadata } from "../types/nodes";
@@ -33,6 +33,14 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
         ...initialState,
 
         collapsedNodeHeights: initialState.collapsedNodeHeights || {},
+        
+        autoSave: initialState.autoSave || {
+            lastSaved: null,
+            isSaving: false,
+            hasUnsavedChanges: false,
+            saveError: null,
+            autoSaveEnabled: true,
+        },
 
         getInputSchema: () => {
             const nodes = get().nodes;
@@ -48,7 +56,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
         getSpec: () => {
             const nodes = get().nodes || [];
-            const spec: PolicyDefinitionDict = {
+            const spec: PolicyDefinitionDictInput = {
                 nodes: nodes.filter((n) => n.type !== "INPUT").map(AsNodeDefinitionDict),
                 input_schema: get().getInputSchema(),
             };
@@ -111,13 +119,18 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             });
             const nextNodes = applyNodeChanges(filteredChanges, get().nodes);
             set({ nodes: nextNodes });
+            if (filteredChanges.length > 0) get().markChanged();
         },
 
-        setNodes: (nodes) => set({ nodes }),
+        setNodes: (nodes) => {
+            set({ nodes });
+            get().markChanged();
+        },
 
         addNode: (node) => {
             const nextNodes = [...get().nodes, node];
             set({ nodes: nextNodes });
+            get().markChanged();
         },
 
         updateNodeData: (nodeId, newData) => {
@@ -134,6 +147,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                 return node;
             });
             set({ nodes: nextNodes });
+            get().markChanged();
         },
 
         removeNode: (nodeId) => {
@@ -141,6 +155,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             if (node?.type === "INPUT") return;
 
             set({ nodes: get().nodes.filter((node) => node.id !== nodeId) });
+            get().markChanged();
         },
 
         addNodeByType: (type, position) => {
@@ -155,22 +170,30 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
         getNodes: () => get().nodes,
 
-        setEdges: (edges) => set({ edges }),
+        setEdges: (edges) => {
+            set({ edges });
+            get().markChanged();
+        },
 
         getEdges: () => get().edges,
 
         addEdge: (edge) => {
             const nextEdges = addEdge(edge, get().edges);
             set({ edges: nextEdges });
+            get().markChanged();
         },
 
         removeEdge: (edgeId) => {
             set({ edges: get().edges.filter((edge) => edge.id !== edgeId) });
+            get().markChanged();
         },
 
         onEdgesChange: (changes) => {
             const nextEdges = applyEdgeChanges(changes, get().edges);
             set({ edges: nextEdges });
+            if (changes.length > 0) {
+                get().markChanged();
+            }
         },
 
         onConnect: (connection) => {
@@ -290,6 +313,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                 return node;
             });
             set({ nodes: nextNodes });
+            get().markChanged();
         },
 
         toggleAllNodesCollapsed: () => {
@@ -342,6 +366,67 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             }));
 
             state.onNodesChange(dimensionChanges);
+            get().markChanged();
+        },
+
+        // Auto-save operations
+        markChanged: () => {
+            set((state) => ({
+                autoSave: {
+                    ...state.autoSave,
+                    hasUnsavedChanges: true,
+                }
+            }));
+        },
+
+        markSaving: () => {
+            set((state) => ({
+                autoSave: {
+                    ...state.autoSave,
+                    isSaving: true,
+                    saveError: null,
+                }
+            }));
+        },
+
+        markSaved: () => {
+            set((state) => ({
+                autoSave: {
+                    ...state.autoSave,
+                    isSaving: false,
+                    hasUnsavedChanges: false,
+                    lastSaved: new Date(),
+                    saveError: null,
+                }
+            }));
+        },
+
+        markSaveError: (error: string) => {
+            set((state) => ({
+                autoSave: {
+                    ...state.autoSave,
+                    isSaving: false,
+                    saveError: error,
+                }
+            }));
+        },
+
+        clearSaveError: () => {
+            set((state) => ({
+                autoSave: {
+                    ...state.autoSave,
+                    saveError: null,
+                }
+            }));
+        },
+
+        toggleAutoSave: () => {
+            set((state) => ({
+                autoSave: {
+                    ...state.autoSave,
+                    autoSaveEnabled: !state.autoSave.autoSaveEnabled,
+                }
+            }));
         },
     }));
 }

@@ -1,5 +1,5 @@
 import type { OnConnect, OnEdgesChange, OnNodesChange, XYPosition, Edge } from "@xyflow/react";
-import type { PolicyDefinitionDict } from "@vulkanlabs/client-open";
+import type { PolicyDefinitionDictInput } from "@vulkanlabs/client-open";
 import type { VulkanNode, VulkanNodeType, WorkflowState } from "../types/workflow";
 import type { WorkflowApiClient } from "../api/types";
 
@@ -8,7 +8,7 @@ import type { WorkflowApiClient } from "../api/types";
  */
 export type WorkflowActions = {
     // Spec and schema operations
-    getSpec: () => PolicyDefinitionDict;
+    getSpec: () => PolicyDefinitionDictInput;
     getInputSchema: () => { [key: string]: string };
 
     // Node operations
@@ -35,6 +35,14 @@ export type WorkflowActions = {
     removeCollapsedNodeHeight: (nodeId: string) => void;
     toggleNodeDetails: (nodeId: string) => void;
     toggleAllNodesCollapsed: () => void;
+
+    // Auto-save operations
+    markChanged: () => void;
+    markSaving: () => void;
+    markSaved: () => void;
+    markSaveError: (error: string) => void;
+    clearSaveError: () => void;
+    toggleAutoSave: () => void;
 };
 
 /**

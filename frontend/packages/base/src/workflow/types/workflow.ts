@@ -85,12 +85,24 @@ export type GenericNodeDefinition<MetadataType> = {
 };
 
 /**
+ * Auto-save state management
+ */
+export type AutoSaveState = {
+    lastSaved: Date | null;
+    isSaving: boolean;
+    hasUnsavedChanges: boolean;
+    saveError: string | null;
+    autoSaveEnabled: boolean;
+};
+
+/**
  * Main workflow state structure
  */
 export type WorkflowState = {
     nodes: VulkanNode[];
     edges: Edge[];
     collapsedNodeHeights?: { [key: string]: number };
+    autoSave: AutoSaveState;
 };
 
 /**

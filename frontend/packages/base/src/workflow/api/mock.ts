@@ -1,6 +1,6 @@
 import type {
     PolicyVersion,
-    PolicyDefinitionDict,
+    PolicyDefinitionDictInput,
     UIMetadata,
     Component,
 } from "@vulkanlabs/client-open";
@@ -35,8 +35,9 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
      */
     async saveWorkflowSpec(
         policyVersion: PolicyVersion,
-        spec: PolicyDefinitionDict,
+        spec: PolicyDefinitionDictInput,
         uiMetadata: { [key: string]: UIMetadata },
+        isAutoSave?: boolean,
         projectId?: string,
     ): Promise<SaveWorkflowResult> {
         // Simulate network delay

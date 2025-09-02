@@ -299,7 +299,7 @@ export function WorkflowCanvas({
                 ]),
             );
 
-            const result = await api.saveWorkflowSpec(workflow, spec, uiMetadata, projectId);
+            const result = await api.saveWorkflowSpec(workflow, spec, uiMetadata, false, projectId);
 
             if (result.success) {
                 toast("Workflow saved", {

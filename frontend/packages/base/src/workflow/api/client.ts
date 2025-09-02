@@ -1,6 +1,6 @@
 import type {
     PolicyVersion,
-    PolicyDefinitionDict,
+    PolicyDefinitionDictInput,
     UIMetadata,
     Component,
 } from "@vulkanlabs/client-open";
@@ -33,8 +33,9 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
      */
     async saveWorkflowSpec(
         workflow: Workflow,
-        spec: PolicyDefinitionDict,
+        spec: PolicyDefinitionDictInput,
         uiMetadata: { [key: string]: UIMetadata },
+        isAutoSave?: boolean,
         projectId?: string,
     ): Promise<SaveWorkflowResult> {
         try {
@@ -53,7 +54,7 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
                     "Content-Type": "application/json",
                     ...this.config.headers,
                 },
-                body: JSON.stringify({ workflow, spec, uiMetadata }),
+                body: JSON.stringify({ workflow, spec, uiMetadata, isAutoSave }),
                 signal: this.createTimeoutSignal(),
             });
 
