@@ -78,6 +78,11 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
 
 /**
  * Initialize default metadata for each node type
+ * @param {VulkanNodeType} type - The type of node being created
+ * @returns {Object} Default metadata object for the node type
+ * 
+ * Each node type needs different default config
+ * Examples: TERMINATE needs return_status, BRANCH needs choices array
  */
 function initMetadata(type: VulkanNodeType) {
     switch (type) {
@@ -132,7 +137,15 @@ function initMetadata(type: VulkanNodeType) {
 }
 
 /**
- * Create a new node of the specified type with proper initialization
+ * Create a new workflow node with proper initialization and unique naming
+ * @param {Object} params - Node creation parameters
+ * @param {VulkanNodeType} params.type - Type of node to create (INPUT, DECISION, etc.)
+ * @param {XYPosition} [params.position={x:0,y:0}] - Where to place the node on canvas
+ * @param {VulkanNode[]} [params.existingNodes=[]] - Existing nodes for unique name generation
+ * @returns {VulkanNode|null} Created node or null if invalid type
+ * 
+ * Naming: "decision_node_1", "decision_node_2" etc. based on existing nodes
+ * Example: createNodeByType({ type: "DECISION", position: {x: 100, y: 200}, existingNodes })
  */
 export function createNodeByType({
     type,
