@@ -29,6 +29,7 @@ from vulkan.runners.hatchet.resources import (
 )
 from vulkan.runners.hatchet.run_config import (
     RUN_CONFIG_KEY,
+    HatchetRunConfig,
 )
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import (
@@ -386,9 +387,10 @@ class HatchetTerminate(TerminateNode, HatchetNode):
         self, context: Context, result: str, metadata: Dict[str, Any] | None = None
     ) -> bool:
         """Terminate the run by notifying the server."""
-        run_config = context.additional_metadata.get(RUN_CONFIG_KEY)
-        if not run_config:
+        run_config_dict = context.additional_metadata.get(RUN_CONFIG_KEY)
+        if not run_config_dict:
             return False
+        run_config = HatchetRunConfig(**run_config_dict)
 
         server_url = run_config.server_url
         run_id = run_config.run_id

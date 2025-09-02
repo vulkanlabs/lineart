@@ -32,8 +32,14 @@ class HatchetFlow:
             raise ValueError(f"No input node in policy {self.policy_name}")
 
         input_schema = input_node.schema
+        # Note: dynamic models cannot be pickled under these conditions.
+        # Similarly, dynamic user functions can't either!
+        # To avoid these issues, we shouldn't try to serialize objects
+        # of the HatchetFlow class directly.
+        # Instead, we use the fact that Vulkan policies can be recreated
+        # from a serializable task specification to ensure this isn't an issue.
         return create_model(
-            f"{self.policy_name}InputModel",
+            f"{self.policy_name}_InputModel",
             **input_schema,
         )
 
