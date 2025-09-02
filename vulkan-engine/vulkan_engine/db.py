@@ -158,6 +158,7 @@ class Run(TimedUpdateMixin, Base):
     policy_version_id = Column(Uuid, ForeignKey("policy_version.policy_version_id"))
     status = Column(Enum(RunStatus))
     result = Column(String, nullable=True)
+    input_data = Column(JSON, nullable=True)
     # Attribute name 'metadata' is reserved when using the Declarative API.
     run_metadata = Column(JSON, nullable=True)
     dagster_run_id = Column(String, nullable=True)
