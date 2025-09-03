@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict
+from typing import Any, Dict, Optional
 
-from typing_extensions import TypedDict
+from pydantic import model_serializer
+from typing_extensions import NotRequired, TypedDict
 
-from lineart_sdk.types import BaseModel
+from lineart_sdk.types import (
+    UNSET,
+    UNSET_SENTINEL,
+    BaseModel,
+    Nullable,
+    OptionalNullable,
+)
 
 from ._stepdetails import StepDetails, StepDetailsTypedDict
 
@@ -16,8 +23,14 @@ class RunDataTypedDict(TypedDict):
     run_id: str
     policy_version_id: str
     status: str
+    created_at: datetime
     last_updated_at: datetime
-    steps: Dict[str, StepDetailsTypedDict]
+    run_group_id: NotRequired[Nullable[str]]
+    result: NotRequired[Nullable[str]]
+    input_data: NotRequired[Nullable[Dict[str, Any]]]
+    run_metadata: NotRequired[Nullable[Dict[str, Any]]]
+    started_at: NotRequired[Nullable[datetime]]
+    steps: NotRequired[Dict[str, StepDetailsTypedDict]]
 
 
 class RunData(BaseModel):
@@ -27,6 +40,61 @@ class RunData(BaseModel):
 
     status: str
 
+    created_at: datetime
+
     last_updated_at: datetime
 
-    steps: Dict[str, StepDetails]
+    run_group_id: OptionalNullable[str] = UNSET
+
+    result: OptionalNullable[str] = UNSET
+
+    input_data: OptionalNullable[Dict[str, Any]] = UNSET
+
+    run_metadata: OptionalNullable[Dict[str, Any]] = UNSET
+
+    started_at: OptionalNullable[datetime] = UNSET
+
+    steps: Optional[Dict[str, StepDetails]] = None
+
+    @model_serializer(mode="wrap")
+    def serialize_model(self, handler):
+        optional_fields = [
+            "run_group_id",
+            "result",
+            "input_data",
+            "run_metadata",
+            "started_at",
+            "steps",
+        ]
+        nullable_fields = [
+            "run_group_id",
+            "result",
+            "input_data",
+            "run_metadata",
+            "started_at",
+        ]
+        null_default_fields = []
+
+        serialized = handler(self)
+
+        m = {}
+
+        for n, f in type(self).model_fields.items():
+            k = f.alias or n
+            val = serialized.get(k)
+            serialized.pop(k, None)
+
+            optional_nullable = k in optional_fields and k in nullable_fields
+            is_set = (
+                self.__pydantic_fields_set__.intersection({n})
+                or k in null_default_fields
+            )  # pylint: disable=no-member
+
+            if val is not None and val != UNSET_SENTINEL:
+                m[k] = val
+            elif val != UNSET_SENTINEL and (
+                not k in optional_fields or (optional_nullable and is_set)
+            ):
+                m[k] = val
+
+        return m

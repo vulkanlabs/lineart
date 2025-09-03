@@ -7,6 +7,7 @@ and shadow run triggering.
 
 import asyncio
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
@@ -327,6 +328,7 @@ class RunOrchestrationService(BaseService):
                 project_id=run.project_id,
             )
             run.status = RunStatus.STARTED
+            run.started_at = datetime.now(timezone.utc)
             run.dagster_run_id = backend_run_id  # TODO: Make this backend-agnostic
             self.db.commit()
         except Exception as e:

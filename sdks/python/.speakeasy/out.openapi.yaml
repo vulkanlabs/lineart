@@ -2831,16 +2831,16 @@ components:
           type: "string"
           format: "uuid"
           title: "Run Id"
-        "policy_version_id":
-          type: "string"
-          format: "uuid"
-          title: "Policy Version Id"
         "run_group_id":
           anyOf:
             - type: "string"
               format: "uuid"
             - type: "null"
           title: "Run Group Id"
+        "policy_version_id":
+          type: "string"
+          format: "uuid"
+          title: "Policy Version Id"
         "status":
           type: "string"
           title: "Status"
@@ -2849,6 +2849,12 @@ components:
             - type: "string"
             - type: "null"
           title: "Result"
+        "input_data":
+          anyOf:
+            - additionalProperties: true
+              type: "object"
+            - type: "null"
+          title: "Input Data"
         "run_metadata":
           anyOf:
             - additionalProperties: true
@@ -2859,6 +2865,12 @@ components:
           type: "string"
           format: "date-time"
           title: "Created At"
+        "started_at":
+          anyOf:
+            - type: "string"
+              format: "date-time"
+            - type: "null"
+          title: "Started At"
         "last_updated_at":
           type: "string"
           format: "date-time"
@@ -2892,6 +2904,12 @@ components:
           type: "string"
           format: "uuid"
           title: "Run Id"
+        "run_group_id":
+          anyOf:
+            - type: "string"
+              format: "uuid"
+            - type: "null"
+          title: "Run Group Id"
         "policy_version_id":
           type: "string"
           format: "uuid"
@@ -2899,6 +2917,33 @@ components:
         "status":
           type: "string"
           title: "Status"
+        "result":
+          anyOf:
+            - type: "string"
+            - type: "null"
+          title: "Result"
+        "input_data":
+          anyOf:
+            - additionalProperties: true
+              type: "object"
+            - type: "null"
+          title: "Input Data"
+        "run_metadata":
+          anyOf:
+            - additionalProperties: true
+              type: "object"
+            - type: "null"
+          title: "Run Metadata"
+        "created_at":
+          type: "string"
+          format: "date-time"
+          title: "Created At"
+        "started_at":
+          anyOf:
+            - type: "string"
+              format: "date-time"
+            - type: "null"
+          title: "Started At"
         "last_updated_at":
           type: "string"
           format: "date-time"
@@ -2912,8 +2957,8 @@ components:
         - "run_id"
         - "policy_version_id"
         - "status"
+        - "created_at"
         - "last_updated_at"
-        - "steps"
       title: "RunData"
     "RunGroupResult":
       properties:

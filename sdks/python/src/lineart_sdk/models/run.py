@@ -25,7 +25,9 @@ class RunTypedDict(TypedDict):
     last_updated_at: datetime
     run_group_id: NotRequired[Nullable[str]]
     result: NotRequired[Nullable[str]]
+    input_data: NotRequired[Nullable[Dict[str, Any]]]
     run_metadata: NotRequired[Nullable[Dict[str, Any]]]
+    started_at: NotRequired[Nullable[datetime]]
 
 
 class Run(BaseModel):
@@ -43,12 +45,28 @@ class Run(BaseModel):
 
     result: OptionalNullable[str] = UNSET
 
+    input_data: OptionalNullable[Dict[str, Any]] = UNSET
+
     run_metadata: OptionalNullable[Dict[str, Any]] = UNSET
+
+    started_at: OptionalNullable[datetime] = UNSET
 
     @model_serializer(mode="wrap")
     def serialize_model(self, handler):
-        optional_fields = ["run_group_id", "result", "run_metadata"]
-        nullable_fields = ["run_group_id", "result", "run_metadata"]
+        optional_fields = [
+            "run_group_id",
+            "result",
+            "input_data",
+            "run_metadata",
+            "started_at",
+        ]
+        nullable_fields = [
+            "run_group_id",
+            "result",
+            "input_data",
+            "run_metadata",
+            "started_at",
+        ]
         null_default_fields = []
 
         serialized = handler(self)
