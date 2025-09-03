@@ -11,11 +11,11 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from vulkan.core.run import RunStatus
-from vulkan_engine.dagster.launch_run import DagsterRunLauncher
 from vulkan_engine.db import Run, RunGroup, StepMetadata
 from vulkan_engine.loaders import RunLoader
 from vulkan_engine.schemas import StepMetadataBase
 from vulkan_engine.services.base import BaseService
+from vulkan_engine.services.launcher_factory import WorkerLauncher
 
 
 class RunOrchestrationService(BaseService):
@@ -24,7 +24,7 @@ class RunOrchestrationService(BaseService):
     def __init__(
         self,
         db: Session,
-        launcher: DagsterRunLauncher,
+        launcher: WorkerLauncher,
         logger=None,
     ):
         """
@@ -32,7 +32,7 @@ class RunOrchestrationService(BaseService):
 
         Args:
             db: Database session
-            launcher: Dagster run launcher for run execution
+            launcher: Worker launcher for run execution (Dagster, Hatchet, etc.)
             logger: Logger instance
         """
         super().__init__(db, logger)

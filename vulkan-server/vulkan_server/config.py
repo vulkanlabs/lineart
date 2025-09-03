@@ -7,12 +7,12 @@ import os
 
 from vulkan_engine.config import (
     AppConfig,
-    DagsterDatabaseConfig,
-    DagsterServiceConfig,
     DatabaseConfig,
     ExternalServiceConfig,
     LoggingConfig,
     VulkanEngineConfig,
+    WorkerDatabaseConfig,
+    WorkerServiceConfig,
 )
 
 
@@ -49,66 +49,6 @@ def load_database_config() -> DatabaseConfig:
     )
 
 
-def load_dagster_database_config() -> DagsterDatabaseConfig:
-    """Load Dagster database configuration from environment variables."""
-    user = os.getenv("DAGSTER_DB_USER")
-    password = os.getenv("DAGSTER_DB_PASSWORD")
-    host = os.getenv("DAGSTER_DB_HOST")
-    port = os.getenv("DAGSTER_DB_PORT")
-    database = os.getenv("DAGSTER_DB_DATABASE")
-
-    if not all([user, password, host, port, database]):
-        missing = [
-            name
-            for name, value in [
-                ("DAGSTER_DB_USER", user),
-                ("DAGSTER_DB_PASSWORD", password),
-                ("DAGSTER_DB_HOST", host),
-                ("DAGSTER_DB_PORT", port),
-                ("DAGSTER_DB_DATABASE", database),
-            ]
-            if value is None
-        ]
-        raise ValueError(
-            f"Missing required Dagster database environment variables: {', '.join(missing)}"
-        )
-
-    return DagsterDatabaseConfig(
-        user=user,
-        password=password,
-        host=host,
-        port=port,
-        database=database,
-    )
-
-
-def load_dagster_service_config() -> DagsterServiceConfig:
-    """Load Dagster service configuration from environment variables."""
-    host = os.getenv("DAGSTER_HOST")
-    port = os.getenv("DAGSTER_PORT")
-    server_port = os.getenv("DAGSTER_SERVER_PORT")
-
-    if not all([host, port, server_port]):
-        missing = [
-            name
-            for name, value in [
-                ("DAGSTER_HOST", host),
-                ("DAGSTER_PORT", port),
-                ("DAGSTER_SERVER_PORT", server_port),
-            ]
-            if value is None
-        ]
-        raise ValueError(
-            f"Missing required Dagster service environment variables: {', '.join(missing)}"
-        )
-
-    return DagsterServiceConfig(
-        host=host,
-        port=port,
-        server_port=server_port,
-    )
-
-
 def load_external_service_config() -> ExternalServiceConfig:
     """Load external service configuration from environment variables."""
     upload_service_url = os.getenv("UPLOAD_SERVICE_URL")
@@ -140,13 +80,95 @@ def load_logging_config() -> LoggingConfig:
     return LoggingConfig(gcp_project_id=gcp_project_id)
 
 
+def load_worker_database_config() -> WorkerDatabaseConfig:
+    """Load worker database configuration from environment variables."""
+    enabled = os.getenv("WORKER_DB_ENABLED", "true").lower() in (
+        "true",
+        "1",
+        "yes",
+        "on",
+    )
+
+    if not enabled:
+        return WorkerDatabaseConfig(enabled=False)
+
+    user = os.getenv("WORKER_DB_USER")
+    password = os.getenv("WORKER_DB_PASSWORD")
+    host = os.getenv("WORKER_DB_HOST")
+    port = os.getenv("WORKER_DB_PORT")
+    database = os.getenv("WORKER_DB_DATABASE")
+
+    return WorkerDatabaseConfig(
+        enabled=enabled,
+        user=user,
+        password=password,
+        host=host,
+        port=port,
+        database=database,
+    )
+
+
+def load_worker_service_config() -> WorkerServiceConfig:
+    """Load worker service configuration from environment variables."""
+    worker_type = os.getenv("WORKER_TYPE", "dagster")
+
+    if worker_type not in ("dagster", "hatchet"):
+        raise ValueError(
+            f"Invalid WORKER_TYPE: {worker_type}. Must be 'dagster' or 'hatchet'"
+        )
+
+    host = os.getenv("WORKER_HOST")
+    port = os.getenv("WORKER_PORT")
+
+    if not all([host, port]):
+        missing = [
+            name
+            for name, value in [("WORKER_HOST", host), ("WORKER_PORT", port)]
+            if value is None
+        ]
+        raise ValueError(
+            f"Missing required worker service environment variables: {', '.join(missing)}"
+        )
+
+    # Create base config
+    config = WorkerServiceConfig(
+        worker_type=worker_type,
+        host=host,
+        port=port,
+    )
+
+    if worker_type == "dagster":
+        # Dagster-specific configuration
+        server_port = os.getenv("WORKER_SERVER_PORT")
+        if not server_port:
+            raise ValueError(
+                "Missing required environment variable: WORKER_SERVER_PORT"
+            )
+        config.server_port = server_port
+
+    elif worker_type == "hatchet":
+        # Hatchet-specific configuration
+        config.home_path = os.getenv("WORKER_HOME")
+        config.scripts_path = os.getenv("WORKER_SCRIPTS_PATH")
+        config.workspaces_path = os.getenv("WORKER_WORKSPACES_PATH")
+
+        if not config.home_path:
+            raise ValueError("Missing required environment variable: WORKER_HOME")
+
+    return config
+
+
 def load_vulkan_engine_config() -> VulkanEngineConfig:
     """Load complete VulkanEngineConfig from environment variables."""
+    # Load worker configuration
+    worker_database = load_worker_database_config()
+    worker_service = load_worker_service_config()
+
     return VulkanEngineConfig(
         app=load_app_config(),
         database=load_database_config(),
-        dagster_database=load_dagster_database_config(),
-        dagster_service=load_dagster_service_config(),
         external_services=load_external_service_config(),
         logging=load_logging_config(),
+        worker_database=worker_database,
+        worker_service=worker_service,
     )

@@ -10,8 +10,11 @@ test-integration:
 
 # Development & Deployment
 .PHONY: lint
-lint:
+lint: lint-python
 	cd frontend && npm run format
+	
+.PHONY: lint-python
+lint-python:
 	uvx ruff check --force-exclude --select I --fix
 	uvx ruff format --force-exclude
 

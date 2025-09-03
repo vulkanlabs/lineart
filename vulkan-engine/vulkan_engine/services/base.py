@@ -4,11 +4,11 @@ Base service class for all Vulkan Engine services.
 Provides common functionality like database session and logging.
 """
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Any
 
+from requests import Response
 from sqlalchemy.orm import Session
-
 from vulkan_engine.config import LoggingConfig
 from vulkan_engine.logger import VulkanLogger, create_logger
 
@@ -54,3 +54,74 @@ def _create_default_logger(db: Session) -> VulkanLogger:
     """Create a default logger instance."""
     default_config = LoggingConfig(gcp_project_id=None)
     return create_logger(db, default_config)
+
+
+class WorkerServiceClient(ABC):
+    """Abstract base class for workflow engine service clients."""
+
+    @abstractmethod
+    def update_workspace(
+        self,
+        workspace_id: str,
+        spec: dict | None = None,
+        requirements: list[str] | None = None,
+    ) -> Response:
+        """Create or update a workspace.
+
+        Args:
+            workspace_id: Unique identifier for the workspace
+            spec: Workflow specification dictionary
+            requirements: List of Python package requirements
+
+        Returns:
+            HTTP response from the service
+        """
+        pass
+
+    @abstractmethod
+    def get_workspace(self, workspace_id: str) -> Response:
+        """Get information about a workspace.
+
+        Args:
+            workspace_id: Unique identifier for the workspace
+
+        Returns:
+            HTTP response with workspace information
+        """
+        pass
+
+    @abstractmethod
+    def delete_workspace(self, workspace_id: str) -> Response:
+        """Delete a workspace.
+
+        Args:
+            workspace_id: Unique identifier for the workspace
+
+        Returns:
+            HTTP response from the service
+        """
+        pass
+
+    @abstractmethod
+    def ensure_workspace_added(self, workspace_id: str) -> None:
+        """Ensure that the workspace has been successfully added.
+
+        Args:
+            workspace_id: Unique identifier for the workspace
+
+        Raises:
+            ValueError: If the workspace was not successfully added
+        """
+        pass
+
+    @abstractmethod
+    def ensure_workspace_removed(self, workspace_id: str) -> None:
+        """Ensure that the workspace has been successfully removed.
+
+        Args:
+            workspace_id: Unique identifier for the workspace
+
+        Raises:
+            ValueError: If the workspace was not successfully removed
+        """
+        pass

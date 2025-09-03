@@ -11,7 +11,7 @@ from .pyproject import get_pyproject, set_dependencies
 SPEC_FILE_NAME = "policy.json"
 
 
-class VulkanWorkspaceManager:
+class HatchetWorkspaceManager:
     def __init__(self, config: VulkanConfig, workspace_id: str) -> None:
         self.config = config
         self.workspace_path = os.path.join(config.workspaces_path, workspace_id)

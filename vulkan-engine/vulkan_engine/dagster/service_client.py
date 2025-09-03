@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from requests import Request, Response, Session
-
 from vulkan_engine.dagster.trigger_run import update_repository
 from vulkan_engine.exceptions import raise_interservice_error
 from vulkan_engine.logger import init_logger
+from vulkan_engine.services.base import WorkerServiceClient
 
 
 @dataclass
@@ -14,7 +14,7 @@ class VulkanDagsterRequestConfig:
     timeout: int | None = None
 
 
-class VulkanDagsterServiceClient:
+class VulkanDagsterServiceClient(WorkerServiceClient):
     """Client to interact with the Vulkan Dagster service."""
 
     def __init__(
@@ -34,8 +34,8 @@ class VulkanDagsterServiceClient:
     def update_workspace(
         self,
         workspace_id: str,
-        spec: dict = None,
-        requirements: list[str] = None,
+        spec: dict | None = None,
+        requirements: list[str] | None = None,
     ) -> Response:
         response = self._make_request(
             method="POST",

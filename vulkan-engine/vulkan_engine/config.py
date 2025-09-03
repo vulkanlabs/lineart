@@ -5,6 +5,7 @@ and other implementations can use and extend.
 """
 
 from dataclasses import dataclass
+from typing import Literal
 
 
 @dataclass
@@ -81,6 +82,54 @@ class AppConfig:
 
 
 @dataclass
+class WorkerDatabaseConfig:
+    """Unified database configuration for workflow engines."""
+
+    enabled: bool
+    user: str | None = None
+    password: str | None = None
+    host: str | None = None
+    port: str | None = None
+    database: str | None = None
+
+    @property
+    def connection_string(self) -> str | None:
+        """Get PostgreSQL connection string if database is enabled and configured."""
+        if not self.enabled or not all(
+            [self.user, self.password, self.host, self.port, self.database]
+        ):
+            return None
+        return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+
+
+@dataclass
+class WorkerServiceConfig:
+    """Unified service configuration for workflow engines."""
+
+    worker_type: Literal["dagster", "hatchet"]
+    host: str
+    port: str
+    server_port: str | None = None  # Dagster-specific
+
+    # Hatchet-specific fields
+    home_path: str | None = None
+    scripts_path: str | None = None
+    workspaces_path: str | None = None
+
+    @property
+    def base_url(self) -> str:
+        """Get base URL for the worker service."""
+        return f"http://{self.host}:{self.port}"
+
+    @property
+    def server_url(self) -> str:
+        """Get server URL for the worker service."""
+        if self.worker_type == "dagster" and self.server_port:
+            return f"http://{self.host}:{self.server_port}"
+        return f"http://{self.host}:{self.port}"
+
+
+@dataclass
 class LoggingConfig:
     """
     Configuration for logging services.
@@ -99,12 +148,9 @@ class VulkanEngineConfig:
 
     app: AppConfig
     database: DatabaseConfig
-    dagster_database: DagsterDatabaseConfig
-    dagster_service: DagsterServiceConfig
     external_services: ExternalServiceConfig
     logging: LoggingConfig
 
-    @property
-    def vulkan_dagster_server_url(self) -> str:
-        """Get the Dagster server URL for compatibility."""
-        return self.dagster_service.server_url
+    # Unified worker configuration
+    worker_database: WorkerDatabaseConfig
+    worker_service: WorkerServiceConfig

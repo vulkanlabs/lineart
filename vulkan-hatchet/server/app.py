@@ -6,7 +6,7 @@ from fastapi import Body, Depends, FastAPI, Response
 
 from .config import VulkanConfig, get_vulkan_config
 from .context import ExecutionContext
-from .workspace import VulkanWorkspaceManager
+from .workspace import HatchetWorkspaceManager
 
 app = FastAPI(title="Vulkan Hatchet Server")
 
@@ -22,7 +22,7 @@ def create_workspace(
     vulkan_config: VulkanConfig = Depends(get_vulkan_config),
 ):
     logger.debug(f"Creating/updating workspace: {workspace_id}")
-    vm = VulkanWorkspaceManager(vulkan_config, workspace_id)
+    vm = HatchetWorkspaceManager(vulkan_config, workspace_id)
 
     with ExecutionContext(logger) as ctx:
         if not os.path.exists(vm.workspace_path):
@@ -50,7 +50,7 @@ def get_workspace(
     workspace_id: str,
     vulkan_config: VulkanConfig = Depends(get_vulkan_config),
 ):
-    vm = VulkanWorkspaceManager(vulkan_config, workspace_id)
+    vm = HatchetWorkspaceManager(vulkan_config, workspace_id)
     if not os.path.exists(vm.workspace_path):
         return Response(status_code=404)
 
@@ -64,7 +64,7 @@ def delete_workspace(
     vulkan_config: VulkanConfig = Depends(get_vulkan_config),
 ):
     logger.info(f"Deleting workspace: {workspace_id}")
-    vm = VulkanWorkspaceManager(vulkan_config, workspace_id)
+    vm = HatchetWorkspaceManager(vulkan_config, workspace_id)
 
     with ExecutionContext(logger):
         vm.delete_resources()
