@@ -11,12 +11,16 @@ import { ColumnDef } from "@tanstack/react-table";
 import { DateRange } from "react-day-picker";
 
 // Vulkan packages
-import { Badge, Button } from "@vulkanlabs/base/ui";
-import { ShortenedID, DetailsButton, DatePickerWithRange, ResourceTable } from "@vulkanlabs/base";
 import type { Run } from "@vulkanlabs/client-open";
 
 // Local imports
 import { parseDate } from "@/lib/utils";
+import { Badge, Button } from "@/ui";
+
+import { ShortenedID } from "../shortened-id";
+import { DetailsButton } from "../details-button";
+import { DatePickerWithRange } from "../charts/date-picker";
+import { ResourceTable } from "../resource-table";
 
 type RunsLoader = ({
     resourceId,

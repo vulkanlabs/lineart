@@ -13,25 +13,63 @@ export const defaultElkOptions = {
 
 export type UnlayoutedVulkanNode = VulkanNode;
 
+/**
+ * Main entry point for node layout calculation
+ *
+ * Strategy:
+ * - If workflow has complex branching/decisions -> Use ELK algorithm
+ * - If workflow is simple and linear -> Use custom level-based layout
+ * - If no INPUT node found -> Fallback to ELK
+ *
+ * - Simple workflows: Custom algorithm is faster and produces cleaner layouts
+ * - Complex workflows: ELK handles edge crossings and hierarchy better
+ *
+ * @param nodes - Nodes without position data
+ * @param edges - Connection data between nodes
+ * @returns Nodes with calculated positions
+ */
 export async function getLayoutedNodes(
     nodes: UnlayoutedVulkanNode[],
     edges: Edge[],
 ): Promise<VulkanNode[]> {
     if (nodes.length === 0) return nodes as VulkanNode[];
 
+    // Use ELK for complex workflows (branching, decisions, multiple inputs)
     if (shouldUseElkLayout(nodes, edges)) {
         return await getElkLayoutedNodes(nodes, edges);
     }
 
+    // For simple workflows: Use faster custom algorithm
     const inputNode = nodes.find((node) => node.type === "INPUT");
     if (!inputNode) {
+        // No INPUT node = can't determine flow direction, use ELK
         return await getElkLayoutedNodes(nodes, edges);
     }
 
+    // Custom level-based layout for simple linear workflows
     const levels = createWorkflowLevels(nodes, edges, inputNode);
     return positionNodesInWorkflow(levels);
 }
 
+/**
+ * Create workflow levels for left-to-right layout
+ *
+ * Algorithm: Topological sort with dependency checking
+ * - Start with INPUT node at level 0
+ * - For each level, find all nodes whose dependencies are satisfied
+ * - Only place a node when ALL its input dependencies are in previous levels
+ * - Continue until no more nodes can be placed
+ * - Handle orphaned nodes by placing them in the final level
+ *
+ * Ensures clean left-to-right flow without backward edges
+ *
+ * Example:
+ * INPUT -> [TRANSFORM, API] -> DECISION -> TERMINATE
+ * Level 0: INPUT
+ * Level 1: TRANSFORM, API (both depend only on INPUT)
+ * Level 2: DECISION (depends on both TRANSFORM and API)
+ * Level 3: TERMINATE (depends on DECISION)
+ */
 function createWorkflowLevels(
     nodes: UnlayoutedVulkanNode[],
     edges: Edge[],
@@ -40,6 +78,7 @@ function createWorkflowLevels(
     const levels: UnlayoutedVulkanNode[][] = [];
     const visited = new Set<string>();
 
+    // Always start with INPUT node
     levels[0] = [inputNode];
     visited.add(inputNode.id);
 
@@ -47,19 +86,24 @@ function createWorkflowLevels(
     while (levels[currentLevel] && levels[currentLevel].length > 0) {
         const nextLevel: UnlayoutedVulkanNode[] = [];
 
+        // For each node in current level, find its direct dependents
         levels[currentLevel].forEach((node) => {
             const dependents = edges
-                .filter((edge) => edge.source === node.id)
-                .map((edge) => edge.target)
-                .map((targetId) => nodes.find((n) => n.id === targetId))
-                .filter(Boolean) as UnlayoutedVulkanNode[];
+                .filter((edge) => edge.source === node.id) // Find outgoing edges
+                .map((edge) => edge.target) // Get target node IDs
+                .map((targetId) => nodes.find((n) => n.id === targetId)) // Get actual nodes
+                .filter(Boolean) as UnlayoutedVulkanNode[]; // Remove nulls
 
+            // Check if each dependent is ready to be placed
             dependents.forEach((dependent) => {
                 if (!visited.has(dependent.id)) {
+                    // Get ALL dependencies of this node (not just from current level)
                     const allDeps = edges
-                        .filter((edge) => edge.target === dependent.id)
-                        .map((edge) => edge.source);
+                        .filter((edge) => edge.target === dependent.id) // All incoming edges
+                        .map((edge) => edge.source); // All source nodes
 
+                    // Only place node if ALL dependencies have been visited
+                    // This prevents placing nodes before their inputs are ready
                     if (allDeps.every((depId) => visited.has(depId))) {
                         nextLevel.push(dependent);
                         visited.add(dependent.id);
@@ -68,12 +112,14 @@ function createWorkflowLevels(
             });
         });
 
+        // Add next level if we found any nodes
         if (nextLevel.length > 0) {
             levels[currentLevel + 1] = nextLevel;
         }
         currentLevel++;
     }
 
+    // Handle orphaned nodes (nodes with no path from INPUT)
     const unplacedNodes = nodes.filter((node) => !visited.has(node.id));
     if (unplacedNodes.length > 0) {
         levels.push(unplacedNodes);
@@ -82,28 +128,48 @@ function createWorkflowLevels(
     return levels.filter((level) => level.length > 0);
 }
 
+/**
+ * Position nodes in calculated levels with proper spacing
+ *
+ * - Each level gets its own column (X position)
+ * - Within each column, center nodes vertically
+ * - Calculate total height needed for all nodes in level
+ * - Position nodes from top to bottom with even spacing
+ *
+ * - Horizontal: 500px between columns (room for connections)
+ * - Vertical: 20px between nodes + dynamic height based on node content
+ * - Centering: Start from center and work up/down for balanced layout
+ */
 function positionNodesInWorkflow(levels: UnlayoutedVulkanNode[][]): VulkanNode[] {
     const positionedNodes: VulkanNode[] = [];
-    const HORIZONTAL_SPACING = 500;
-    const VERTICAL_MARGIN = 20;
-    const START_X = 100;
-    const START_Y = 100;
+    const HORIZONTAL_SPACING = 500; // Space between columns
+    const VERTICAL_MARGIN = 20; // Space between nodes in same column
+    const START_X = 100; // Left margin
+    const START_Y = 100; // Top margin offset
 
     levels.forEach((level, levelIndex) => {
+        // Calculate X position for this column
         const levelX = START_X + levelIndex * HORIZONTAL_SPACING;
-        const nodeHeights = level.map((node) => getNodeHeight(node));
-        const totalLevelHeight =
-            nodeHeights.reduce((sum, height) => sum + height, 0) +
-            (level.length - 1) * VERTICAL_MARGIN;
 
+        // Get heights of all nodes in this level for spacing calculations
+        const nodeHeights = level.map((node) => getNodeHeight(node));
+
+        // Calculate total vertical space needed for this level
+        const totalLevelHeight =
+            nodeHeights.reduce((sum, height) => sum + height, 0) + // Sum of node heights
+            (level.length - 1) * VERTICAL_MARGIN; // Spacing between nodes
+
+        // Start from center and work vertically to create balanced layout
         let currentY = START_Y - totalLevelHeight / 2;
 
+        // Position each node in this level
         level.forEach((node, nodeIndex) => {
             positionedNodes.push({
                 ...node,
                 position: { x: levelX, y: currentY },
             } as VulkanNode);
 
+            // Move to next vertical position
             currentY += nodeHeights[nodeIndex] + VERTICAL_MARGIN;
         });
     });
@@ -162,25 +228,42 @@ function calculateConnectionHeight(node: UnlayoutedVulkanNode): number {
     return height;
 }
 
+/**
+ * Decide whether to use ELK algorithm or custom layout
+ *
+ * ELK is needed for complex workflows with:
+ * - Decision/Branch nodes (conditional logic)
+ * - High fan-out (node with 3+ outputs)
+ * - High fan-in (node with 3+ inputs)
+ *
+ * - Conditional nodes create diamond/tree patterns that need special handling
+ * - High fan-out/fan-in creates complex edge crossing problems
+ * - Custom algorithm assumes simple linear flow, breaks with complex patterns
+ *
+ * - Custom layout: Fast, clean results for simple workflows
+ * - ELK layout: Slower, but handles complexity gracefully
+ */
 function shouldUseElkLayout(nodes: UnlayoutedVulkanNode[], edges: Edge[]): boolean {
+    // Conditional logic nodes always need ELK
     const hasConditionalNodes = nodes.some(
         (node) => node.type === "DECISION" || node.type === "BRANCH",
     );
-
     if (hasConditionalNodes) return true;
 
+    // High fan-out complexity (one node connects to 3+ others)
     const hasBranchingComplexity = nodes.some((node) => {
         const outgoingEdges = edges.filter((edge) => edge.source === node.id);
-        return outgoingEdges.length >= 3;
+        return outgoingEdges.length >= 3; // Fan-out threshold
     });
-
     if (hasBranchingComplexity) return true;
 
+    // High fan-in complexity (one node receives from 3+ others)
     const targetCounts = new Map<string, number>();
     edges.forEach((edge) => {
         targetCounts.set(edge.target, (targetCounts.get(edge.target) || 0) + 1);
     });
 
+    // If any node has 3+ inputs, use ELK for proper edge routing
     return Array.from(targetCounts.values()).some((count) => count >= 3);
 }
 

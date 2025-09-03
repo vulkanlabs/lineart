@@ -35,7 +35,16 @@ function TemplateHelp() {
 }
 
 /**
- * Terminate node component - ends workflow execution
+ * Terminate node - workflow end point with custom output data
+ * @param {Object} props - Node properties from ReactFlow
+ * @param {string} props.id - Unique node identifier in the workflow
+ * @param {Object} props.data - Node configuration data
+ * @param {boolean} props.selected - Whether this node is currently selected
+ * @param {number} props.width - Node width for layout calculations
+ * @returns {JSX.Element} Terminate node with metadata editor and template support
+ *
+ * Final node in workflow / defines what gets returned when workflow completes
+ * Template: {"result": "{{someNode.output}}", "status": "completed"}
  */
 export function TerminateNode({ id, data, selected, width }: VulkanNodeProps) {
     const { updateNodeData } = useWorkflowStore(
