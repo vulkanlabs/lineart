@@ -211,7 +211,7 @@ function getGraphElements(
             ...node,
             data: {
                 ...node.data,
-                run: runData.steps[node.id] || null,
+                run: runData.steps ? runData.steps[node.id] || undefined : undefined,
             },
         };
         return runNode;
