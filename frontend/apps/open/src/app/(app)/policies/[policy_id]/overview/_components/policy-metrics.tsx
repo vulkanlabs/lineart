@@ -18,7 +18,6 @@ import {
     RunsChart,
     VersionPicker,
 } from "@vulkanlabs/base";
-import { PolicyVersion } from "@vulkanlabs/client-open";
 
 export default function PolicyMetrics({
     policyId,
@@ -28,12 +27,13 @@ export default function PolicyMetrics({
 }: {
     policyId: string;
     metricsLoader: any;
-    outcomesLoader: (params: {
-        policyId: string;
-        dateRange: DateRange;
-        versions: string[];
-    }) => Promise<{ runOutcomes: any[] }>;
-    versions: PolicyVersion[];
+    outcomesLoader: (
+        policyId: string,
+        startDate: Date,
+        endDate: Date,
+        versions: string[],
+    ) => Promise<any>;
+    versions: any[];
 }) {
     // Chart Data
     const [outcomeDistribution, setOutcomeDistribution] = useState([]);
@@ -69,9 +69,9 @@ export default function PolicyMetrics({
                 setRunDurationByStatus([]);
             });
 
-        outcomesLoader({ policyId, dateRange, versions: selectedVersions })
+        outcomesLoader(policyId, dateRange.from, dateRange.to, selectedVersions)
             .then((data: any) => {
-                setOutcomeDistribution(data.runOutcomes || []);
+                setOutcomeDistribution(data || []);
             })
             .catch((error: any) => {
                 console.error(error);
@@ -117,7 +117,7 @@ export default function PolicyMetrics({
             <div className="flex flex-col gap-4 pb-4">
                 <h1 className="text-lg font-semibold md:text-2xl">Metrics</h1>
                 <div className="flex gap-4">
-                    <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                    <DatePickerWithRange date={dateRange} setDate={setDateRange} className="" />
                     <VersionPicker
                         versions={versions}
                         selectedVersions={selectedVersions}

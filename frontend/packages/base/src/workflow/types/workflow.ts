@@ -114,8 +114,8 @@ export function AsNodeDefinitionDict(n: VulkanNode): NodeDefinitionDict {
     return {
         name: nodeDef.name,
         node_type: n.type,
-        dependencies: AsDependencies(n.data.incomingEdges),
-        metadata: nodeDef.metadata,
+        dependencies: AsDependencies(n.data?.incomingEdges),
+        metadata: nodeDef.metadata || null,
         description: nodeDef.description || null,
         hierarchy: nodeDef.hierarchy || null,
     };

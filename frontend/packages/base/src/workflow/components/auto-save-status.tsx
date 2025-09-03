@@ -29,7 +29,7 @@ export function AutoSaveStatus({
     const formatTimeAgo = (date: Date): string => {
         const now = new Date();
         const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-        
+
         if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
         if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
         return `${Math.floor(diffInSeconds / 3600)}h ago`;
@@ -41,7 +41,7 @@ export function AutoSaveStatus({
                 icon: CloudOff,
                 text: "Auto-save disabled",
                 className: "text-gray-500",
-                description: "Auto-save is currently disabled"
+                description: "Auto-save is currently disabled",
             };
         }
 
@@ -50,7 +50,7 @@ export function AutoSaveStatus({
                 icon: AlertCircle,
                 text: "Auto-save paused",
                 className: "text-orange-500",
-                description: `Service temporarily unavailable (${consecutiveFailures} failures)`
+                description: `Service temporarily unavailable (${consecutiveFailures} failures)`,
             };
         }
 
@@ -59,7 +59,7 @@ export function AutoSaveStatus({
                 icon: Clock,
                 text: retryAttempts > 0 ? `Saving (attempt ${retryAttempts + 1})...` : "Saving...",
                 className: "text-blue-500 animate-pulse",
-                description: "Saving your changes automatically"
+                description: "Saving your changes automatically",
             };
         }
 
@@ -68,7 +68,7 @@ export function AutoSaveStatus({
                 icon: AlertCircle,
                 text: "Save failed",
                 className: "text-red-500",
-                description: saveError
+                description: saveError,
             };
         }
 
@@ -77,7 +77,7 @@ export function AutoSaveStatus({
                 icon: Clock,
                 text: "Unsaved changes",
                 className: "text-orange-500",
-                description: "Changes will be saved automatically"
+                description: "Changes will be saved automatically",
             };
         }
 
@@ -86,7 +86,7 @@ export function AutoSaveStatus({
                 icon: CheckCircle,
                 text: `Saved ${formatTimeAgo(lastSaved)}`,
                 className: "text-green-500",
-                description: "All changes saved automatically"
+                description: "All changes saved automatically",
             };
         }
 
@@ -94,7 +94,7 @@ export function AutoSaveStatus({
             icon: CheckCircle,
             text: "All saved",
             className: "text-green-500",
-            description: "No changes to save"
+            description: "No changes to save",
         };
     };
 
@@ -104,9 +104,7 @@ export function AutoSaveStatus({
     return (
         <div className={`flex items-center space-x-2 ${className}`} title={statusInfo.description}>
             <StatusIcon className={`w-4 h-4 ${statusInfo.className}`} />
-            <span className={`text-sm ${statusInfo.className}`}>
-                {statusInfo.text}
-            </span>
+            <span className={`text-sm ${statusInfo.className}`}>{statusInfo.text}</span>
         </div>
     );
 }
@@ -165,7 +163,7 @@ export function AutoSaveTooltip({ children, ...statusProps }: AutoSaveTooltipPro
         autoSaveEnabled,
         retryAttempts,
         circuitBreakerOpen,
-        consecutiveFailures
+        consecutiveFailures,
     } = statusProps;
 
     const getDetailedStatus = () => {

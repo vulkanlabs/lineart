@@ -28,12 +28,13 @@ declare function toast(message: string, options?: any): void;
  */
 export function createWorkflowStore(config: WorkflowStoreConfig) {
     const { initialState } = config;
+    let markChangedTimer: NodeJS.Timeout | null = null;
 
     return createStore<WorkflowStore>()((set, get) => ({
         ...initialState,
 
         collapsedNodeHeights: initialState.collapsedNodeHeights || {},
-        
+
         autoSave: initialState.autoSave || {
             lastSaved: null,
             isSaving: false,
@@ -56,12 +57,30 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
         getSpec: () => {
             const nodes = get().nodes || [];
-            const spec: PolicyDefinitionDictInput = {
-                nodes: nodes.filter((n) => n.type !== "INPUT").map(AsNodeDefinitionDict),
-                input_schema: get().getInputSchema(),
-            };
 
-            return spec;
+            try {
+                const processedNodes = nodes
+                    .filter((n) => n.type !== "INPUT")
+                    .map((node, index) => {
+                        try {
+                            return AsNodeDefinitionDict(node);
+                        } catch (error) {
+                            console.error(`Error processing node at index ${index}:`, error);
+                            throw new Error(
+                                `Failed to process node ${node.id}: ${error instanceof Error ? error.message : "Unknown error"}`,
+                            );
+                        }
+                    });
+
+                const spec: PolicyDefinitionDictInput = {
+                    nodes: processedNodes,
+                    input_schema: get().getInputSchema(),
+                };
+
+                return spec;
+            } catch (error) {
+                throw error;
+            }
         },
 
         updateTargetDeps: (sourceNodeId) => {
@@ -371,12 +390,24 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
         // Auto-save operations
         markChanged: () => {
-            set((state) => ({
-                autoSave: {
-                    ...state.autoSave,
-                    hasUnsavedChanges: true,
+            // Debounce markChanged calls to prevent rapid-fire state updates
+            if (markChangedTimer) {
+                clearTimeout(markChangedTimer);
+            }
+
+            markChangedTimer = setTimeout(() => {
+                const currentState = get();
+                // Only mark as changed if we're not already marked as having unsaved changes
+                if (!currentState.autoSave.hasUnsavedChanges) {
+                    set((state) => ({
+                        autoSave: {
+                            ...state.autoSave,
+                            hasUnsavedChanges: true,
+                        },
+                    }));
                 }
-            }));
+                markChangedTimer = null;
+            }, 200); // Increased debounce time
         },
 
         markSaving: () => {
@@ -385,7 +416,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                     ...state.autoSave,
                     isSaving: true,
                     saveError: null,
-                }
+                },
             }));
         },
 
@@ -397,7 +428,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                     hasUnsavedChanges: false,
                     lastSaved: new Date(),
                     saveError: null,
-                }
+                },
             }));
         },
 
@@ -407,7 +438,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                     ...state.autoSave,
                     isSaving: false,
                     saveError: error,
-                }
+                },
             }));
         },
 
@@ -416,7 +447,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                 autoSave: {
                     ...state.autoSave,
                     saveError: null,
-                }
+                },
             }));
         },
 
@@ -425,7 +456,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                 autoSave: {
                     ...state.autoSave,
                     autoSaveEnabled: !state.autoSave.autoSaveEnabled,
-                }
+                },
             }));
         },
     }));

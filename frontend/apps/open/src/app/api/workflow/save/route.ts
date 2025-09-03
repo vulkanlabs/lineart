@@ -20,13 +20,27 @@ const apiResponse = {
 
 // Shared validation pattern
 function validateWorkflow(workflow: any, spec: any): string | null {
-    if (!workflow) return "Workflow is required";
-    if (!spec) return "Workflow spec is required";
+    if (!workflow || typeof workflow !== "object")
+        return "Workflow is required and must be an object";
+    if (!spec || typeof spec !== "object") return "Workflow spec is required and must be an object";
+    if (!Array.isArray(spec.nodes)) return "Workflow spec must have a 'nodes' array";
+    if (!workflow.policy_version_id && !workflow.component_id)
+        return "Workflow must have either policy_version_id or component_id";
+
     return null;
 }
 
 export async function PUT(request: Request) {
     try {
+        // Parse request body with error handling
+        let requestBody;
+        try {
+            requestBody = await request.json();
+        } catch (parseError) {
+            console.error("Failed to parse request body:", parseError);
+            return apiResponse.error("Invalid JSON in request body", 400);
+        }
+
         const {
             workflow,
             spec,
@@ -37,19 +51,17 @@ export async function PUT(request: Request) {
             spec: PolicyDefinitionDictInput;
             uiMetadata: { [key: string]: UIMetadata };
             isAutoSave?: boolean;
-        } = await request.json();
+        } = requestBody;
 
         const validationError = validateWorkflow(workflow, spec);
         if (validationError) return apiResponse.error(validationError, 400);
 
         // Handle workflow types
-        if (typeof workflow === "object" && "policy_version_id" in workflow) {
+        if (typeof workflow === "object" && "policy_version_id" in workflow)
             return savePolicyVersion(workflow as PolicyVersion, spec, uiMetadata, isAutoSave);
-        } else if (typeof workflow === "object" && "component_id" in workflow) {
+        else if (typeof workflow === "object" && "component_id" in workflow)
             return saveComponent(workflow as Component, spec, uiMetadata, isAutoSave);
-        } else {
-            return apiResponse.error("Invalid workflow type", 400);
-        }
+        else return apiResponse.error("Invalid workflow type", 400);
     } catch (error) {
         return apiResponse.error(error instanceof Error ? error.message : "Unknown error");
     }
@@ -78,9 +90,7 @@ async function saveComponent(
         return apiResponse.success(response);
     } catch (error) {
         const errorMessage = isAutoSave ? "Auto-save failed" : "Failed to save component";
-        return apiResponse.error(
-            error instanceof Error ? error.message : errorMessage,
-        );
+        return apiResponse.error(error instanceof Error ? error.message : errorMessage);
     }
 }
 
@@ -97,18 +107,21 @@ async function savePolicyVersion(
         // For auto-save, we can optimize the request
         if (isAutoSave) console.log("Auto-saving policy version:", policyVersion.policy_version_id);
 
-        const requestBody: PolicyVersionBase = {
+        const requestBody = {
             alias: policyVersion.alias || null,
-            spec: spec ?? policyVersion.workflow?.spec,
-            requirements: policyVersion.workflow?.requirements || [],
-            ui_metadata: uiMetadata ?? policyVersion.workflow?.ui_metadata,
+            workflow: {
+                spec: spec ?? policyVersion.workflow?.spec,
+                requirements: policyVersion.workflow?.requirements || [],
+                ui_metadata: uiMetadata ?? policyVersion.workflow?.ui_metadata,
+                variables: policyVersion.workflow?.variables || [],
+            },
         };
 
         const response = await fetch(
             `${serverUrl}/policy-versions/${policyVersion.policy_version_id}`,
             {
                 method: "PUT",
-                headers: { 
+                headers: {
                     "Content-Type": "application/json",
                     ...(isAutoSave && { "X-Auto-Save": "true" }), // Optional header for backend optimization
                 },
@@ -119,22 +132,17 @@ async function savePolicyVersion(
 
         if (!response.ok) {
             const error = await response.json();
-            const errorMessage = isAutoSave 
-                ? `Auto-save failed: ${error.detail || response.statusText}`
-                : `Server error ${response.status}: ${error.detail}`;
-            
-            return apiResponse.error(
-                response.status !== 500 ? errorMessage : "Internal server error",
-                response.status,
-            );
+            const errorMessage = isAutoSave
+                ? `Auto-save failed: ${error.detail || error.message || response.statusText}`
+                : `Server error ${response.status}: ${error.detail || error.message}`;
+
+            return apiResponse.error(errorMessage, response.status);
         }
 
         const data = await response.json();
         return apiResponse.success(data);
     } catch (error) {
         const errorMessage = isAutoSave ? "Auto-save failed" : "Failed to save policy version";
-        return apiResponse.error(
-            error instanceof Error ? error.message : errorMessage,
-        );
+        return apiResponse.error(error instanceof Error ? error.message : errorMessage);
     }
 }

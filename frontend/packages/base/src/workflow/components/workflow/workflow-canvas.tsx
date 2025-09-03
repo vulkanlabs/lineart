@@ -37,7 +37,6 @@ import { useWorkflowStore } from "@/workflow/store";
 import { useWorkflowApi, Workflow } from "@/workflow/api";
 import { getLayoutedNodes, type UnlayoutedVulkanNode } from "@/workflow/utils/layout";
 import type { VulkanNode, Edge } from "@/workflow/types/workflow";
-import { AutoSaveIndicator } from "@/workflow/components/auto-save-status";
 
 /**
  * Props for the workflow canvas component
@@ -103,30 +102,21 @@ export function WorkflowCanvas({
         })),
     );
 
-    // Auto-save integration
+    // Auto-save integration - use stable reference to current nodes
     const getUIMetadata = useCallback(() => {
-        const currentNodes = getNodes();
         return Object.fromEntries(
-            currentNodes.map((node) => [
+            nodes.map((node) => [
                 node.data.name,
                 { position: node.position, width: node.width, height: node.height },
             ]),
         );
-    }, [getNodes]);
+    }, [nodes]);
 
-    const {
-        isAutoSaving,
-        hasUnsavedChanges,
-        lastSaved,
-        saveError,
-        autoSaveEnabled,
-        retryAttempts,
-        circuitBreakerOpen,
-        consecutiveFailures,
-    } = useAutoSave({
+    const { isAutoSaving, hasUnsavedChanges, lastSaved, saveError, autoSaveEnabled } = useAutoSave({
         apiClient: api,
         workflow,
         getUIMetadata,
+        projectId,
     });
 
     const { screenToFlowPosition, fitView, setViewport } = useReactFlow();
@@ -449,7 +439,7 @@ export function WorkflowCanvas({
             );
 
             // Send to backend API
-            const result = await api.saveWorkflowSpec(workflow, spec, uiMetadata, projectId);
+            const result = await api.saveWorkflowSpec(workflow, spec, uiMetadata, false, projectId);
 
             // Handle response with appropriate user feedback
             if (result.success) {
@@ -478,7 +468,6 @@ export function WorkflowCanvas({
 
     return (
         <div className="w-full h-full relative">
-
             {isOpen && (
                 <div
                     ref={ref}
@@ -547,19 +536,6 @@ export function WorkflowCanvas({
                     <ControlButton onClick={copySpecToClipboard} title="Copy Specification">
                         <ToolbarIcon icon={CopyIcon} />
                     </ControlButton>
-                    <div className="flex items-center justify-center p-2">
-                        <AutoSaveIndicator
-                            compact
-                            isAutoSaving={isAutoSaving}
-                            hasUnsavedChanges={hasUnsavedChanges}
-                            lastSaved={lastSaved}
-                            saveError={saveError}
-                            autoSaveEnabled={autoSaveEnabled}
-                            retryAttempts={retryAttempts}
-                            circuitBreakerOpen={circuitBreakerOpen}
-                            consecutiveFailures={consecutiveFailures}
-                        />
-                    </div>
                 </Controls>
             </ReactFlow>
         </div>
