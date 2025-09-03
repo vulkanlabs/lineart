@@ -53,8 +53,6 @@ def get_vulkan_server_config() -> VulkanEngineConfig:
 
 
 # Infrastructure Dependencies
-
-
 def get_database_session(
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
 ) -> Iterator[Session]:
@@ -258,7 +256,9 @@ def get_workflow_service(
 
 def get_policy_version_service(
     workflow_service: Annotated[WorkflowService, Depends(get_workflow_service)],
-    launcher: DagsterRunLauncher = Depends(get_dagster_launcher),
+    run_orchestration_service: Annotated[
+        RunOrchestrationService, Depends(get_run_orchestration_service)
+    ],
     deps=Depends(get_service_dependencies),
 ) -> PolicyVersionService:
     """Get PolicyVersionService instance with dependencies."""
@@ -266,14 +266,16 @@ def get_policy_version_service(
     return PolicyVersionService(
         db=db,
         workflow_service=workflow_service,
-        launcher=launcher,
+        run_orchestrator=run_orchestration_service,
         logger=logger,
     )
 
 
 def get_allocation_service(
     db: Annotated[Session, Depends(get_database_session)],
-    launcher: Annotated[DagsterRunLauncher, Depends(get_dagster_launcher)],
+    run_orchestrator: Annotated[
+        RunOrchestrationService, Depends(get_run_orchestration_service)
+    ],
     logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> AllocationService:
     """
@@ -281,13 +283,13 @@ def get_allocation_service(
 
     Args:
         db: Database session
-        launcher: Dagster run launcher
+        run_orchestrator: Run orchestration service
         logger: Configured logger
 
     Returns:
         Configured AllocationService instance
     """
-    return AllocationService(db=db, launcher=launcher, logger=logger)
+    return AllocationService(db=db, run_orchestrator=run_orchestrator, logger=logger)
 
 
 def get_data_source_service(

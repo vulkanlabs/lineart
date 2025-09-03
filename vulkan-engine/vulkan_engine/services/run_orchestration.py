@@ -39,6 +39,23 @@ class RunOrchestrationService(BaseService):
         self.launcher = launcher
         self.run_loader = RunLoader(db)
 
+    def create_run(
+        self,
+        input_data: dict,
+        policy_version_id: str,
+        run_group_id: UUID | None = None,
+        run_config_variables: dict[str, str] | None = None,
+        project_id: UUID | None = None,
+    ) -> Run:
+        run = self.launcher.create_run(
+            input_data=input_data,
+            policy_version_id=policy_version_id,
+            run_group_id=run_group_id,
+            run_config_variables=run_config_variables,
+            project_id=project_id,
+        )
+        return run
+
     def publish_step_metadata(
         self, run_id: str, metadata: StepMetadataBase, project_id: str = None
     ) -> dict[str, str]:

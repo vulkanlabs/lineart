@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from vulkan.spec.nodes.base import NodeType
 from vulkan_engine import schemas
-from vulkan_engine.dagster.launch_run import DagsterRunLauncher, get_run_result
+from vulkan_engine.dagster.launch_run import get_run_result
 from vulkan_engine.db import (
     ConfigurationValue,
     DataSource,
@@ -31,6 +31,7 @@ from vulkan_engine.exceptions import (
 )
 from vulkan_engine.loaders import PolicyLoader, PolicyVersionLoader
 from vulkan_engine.services.base import BaseService
+from vulkan_engine.services.run_orchestration import RunOrchestrationService
 from vulkan_engine.services.workflow import WorkflowService
 from vulkan_engine.utils import validate_date_range
 
@@ -42,7 +43,7 @@ class PolicyVersionService(BaseService):
         self,
         db: Session,
         workflow_service: WorkflowService,
-        launcher: DagsterRunLauncher | None = None,
+        run_orchestrator: RunOrchestrationService,
         logger=None,
     ):
         """
@@ -55,7 +56,7 @@ class PolicyVersionService(BaseService):
             logger: Optional logger
         """
         super().__init__(db, logger)
-        self.launcher = launcher
+        self.run_orchestrator = run_orchestrator
         self.workflow_service = workflow_service
         self.policy_loader = PolicyLoader(db)
         self.policy_version_loader = PolicyVersionLoader(db)
@@ -274,10 +275,7 @@ class PolicyVersionService(BaseService):
         Returns:
             RunCreated
         """
-        if not self.launcher:
-            raise Exception("No launcher available")
-
-        run = self.launcher.create_run(
+        run = self.run_orchestrator.create_run(
             input_data=input_data,
             policy_version_id=policy_version_id,
             run_config_variables=config_variables,
@@ -310,10 +308,7 @@ class PolicyVersionService(BaseService):
         Returns:
             RunResult object
         """
-        if not self.launcher:
-            raise Exception("No launcher available")
-
-        run = self.launcher.create_run(
+        run = self.run_orchestrator.create_run(
             input_data=input_data,
             policy_version_id=policy_version_id,
             run_config_variables=config_variables,
