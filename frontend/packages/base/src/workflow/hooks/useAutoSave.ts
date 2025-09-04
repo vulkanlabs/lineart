@@ -92,7 +92,7 @@ export function useAutoSave({
                 ) {
                     performAutoSave();
                 }
-            }, 10000); // Reduced delay for better UX
+            }, autoSave.autoSaveInterval);
         }
     }, [autoSave.hasUnsavedChanges, autoSave.autoSaveEnabled, autoSave.isSaving, performAutoSave]);
 

@@ -37,17 +37,19 @@ async function saveComponent(
     isAutoSave: boolean = false,
 ) {
     try {
-        const requestBody: ComponentBase = {
+        const requestBody = {
             name: component.name,
             description: component.description || null,
             icon: component.icon || null,
-            spec: spec,
-            requirements: component.workflow?.requirements || [],
-            variables: component.workflow?.variables || [],
-            ui_metadata: uiMetadata,
+            workflow: {
+                spec: spec,
+                requirements: component.workflow?.requirements || [],
+                variables: component.workflow?.variables || [],
+                ui_metadata: uiMetadata,
+            },
         };
 
-        const response = await updateComponent(component.name, requestBody);
+        const response = await updateComponent(component.component_id, requestBody as ComponentBase);
         return apiResponse.success(response);
     } catch (error) {
         const prefix = isAutoSave ? "Auto-save failed" : "Save failed";

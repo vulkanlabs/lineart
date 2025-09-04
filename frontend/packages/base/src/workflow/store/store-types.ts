@@ -56,6 +56,7 @@ export type WorkflowStore = WorkflowState & WorkflowActions;
 export type WorkflowStoreConfig = {
     initialState: WorkflowState;
     apiClient: WorkflowApiClient;
+    autoSaveInterval?: number; // Optional auto-save interval in milliseconds, defaults to 10000 (10 seconds)
 };
 
 /**

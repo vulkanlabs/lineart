@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
-import { useState } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { Check, Loader, AlertTriangle, Clock, Save } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -241,9 +240,6 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
                     >
                         <Save className="h-3 w-3" />
                         <span className="hidden sm:inline">Save</span>
-                        <kbd className="hidden sm:inline-flex h-4 px-1 rounded text-[10px] bg-background border">
-                            ⌘S
-                        </kbd>
                     </button>
                 </>
             )}

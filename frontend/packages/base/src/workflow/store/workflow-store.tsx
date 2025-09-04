@@ -27,7 +27,7 @@ declare function toast(message: string, options?: any): void;
  * Create a Zustand store for workflow management with API client dependency injection
  */
 export function createWorkflowStore(config: WorkflowStoreConfig) {
-    const { initialState } = config;
+    const { initialState, autoSaveInterval = 10000 } = config; // Default to 10 seconds
     let markChangedTimer: NodeJS.Timeout | null = null;
 
     return createStore<WorkflowStore>()((set, get) => ({
@@ -42,7 +42,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             saveError: null,
             autoSaveEnabled: true,
             retryCount: 0,
-            autoSaveInterval: 5000, // Smart interval: starts at 5s
+            autoSaveInterval: autoSaveInterval, // Use configured interval
         },
 
         getInputSchema: () => {
@@ -390,7 +390,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             get().markChanged();
         },
 
-        // Auto-save operations with intervals and error recovery
+        // Auto-save operations with configurable intervals
         markChanged: () => {
             // Debounce markChanged calls to prevent rapid-fire state updates
             if (markChangedTimer) {
@@ -401,21 +401,11 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                 const currentState = get();
                 // Only mark as changed if we're not already marked as having unsaved changes
                 if (!currentState.autoSave.hasUnsavedChanges) {
-                    // Calculate smart interval based on workflow complexity
-                    const workflowSize = currentState.nodes?.length || 0;
-                    const baseInterval = 5000; // 5 seconds base
-                    const smartInterval =
-                        workflowSize > 20
-                            ? baseInterval * 2
-                            : workflowSize > 10
-                              ? baseInterval * 1.5
-                              : baseInterval;
-
                     set((state) => ({
                         autoSave: {
                             ...state.autoSave,
                             hasUnsavedChanges: true,
-                            autoSaveInterval: smartInterval,
+                            autoSaveInterval: autoSaveInterval, // Use configured interval
                         },
                     }));
                 }
@@ -435,16 +425,6 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
         markSaved: () => {
             set((state) => {
-                // Reset intervals and retry count on successful save
-                const workflowSize = state.nodes?.length || 0;
-                const baseInterval = 5000;
-                const smartInterval =
-                    workflowSize > 20
-                        ? baseInterval * 2
-                        : workflowSize > 10
-                          ? baseInterval * 1.5
-                          : baseInterval;
-
                 return {
                     autoSave: {
                         ...state.autoSave,
@@ -453,7 +433,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                         lastSaved: new Date(),
                         saveError: null,
                         retryCount: 0,
-                        autoSaveInterval: smartInterval,
+                        autoSaveInterval: autoSaveInterval, // Use configured interval
                     },
                 };
             });
@@ -515,6 +495,7 @@ export type WorkflowStoreProviderProps = {
     children: ReactNode;
     initialState: WorkflowState;
     apiClient: WorkflowApiClient;
+    autoSaveInterval?: number; // Optional auto-save interval in milliseconds, defaults to 10000 (10 seconds)
 };
 
 /**
@@ -524,11 +505,12 @@ export function WorkflowStoreProvider({
     children,
     initialState,
     apiClient,
+    autoSaveInterval = 10000, // Default to 10 seconds
 }: WorkflowStoreProviderProps) {
     const storeRef = useRef<WorkflowStoreApi>(null);
 
     if (!storeRef.current) {
-        storeRef.current = createWorkflowStore({ initialState, apiClient });
+        storeRef.current = createWorkflowStore({ initialState, apiClient, autoSaveInterval });
     }
 
     return <WorkflowContext.Provider value={storeRef.current}>{children}</WorkflowContext.Provider>;
