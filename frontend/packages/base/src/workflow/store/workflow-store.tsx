@@ -404,9 +404,12 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                     // Calculate smart interval based on workflow complexity
                     const workflowSize = currentState.nodes?.length || 0;
                     const baseInterval = 5000; // 5 seconds base
-                    const smartInterval = workflowSize > 20 ? baseInterval * 2 : 
-                                        workflowSize > 10 ? baseInterval * 1.5 : 
-                                        baseInterval;
+                    const smartInterval =
+                        workflowSize > 20
+                            ? baseInterval * 2
+                            : workflowSize > 10
+                              ? baseInterval * 1.5
+                              : baseInterval;
 
                     set((state) => ({
                         autoSave: {
@@ -435,9 +438,12 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                 // Reset intervals and retry count on successful save
                 const workflowSize = state.nodes?.length || 0;
                 const baseInterval = 5000;
-                const smartInterval = workflowSize > 20 ? baseInterval * 2 : 
-                                    workflowSize > 10 ? baseInterval * 1.5 : 
-                                    baseInterval;
+                const smartInterval =
+                    workflowSize > 20
+                        ? baseInterval * 2
+                        : workflowSize > 10
+                          ? baseInterval * 1.5
+                          : baseInterval;
 
                 return {
                     autoSave: {
@@ -457,17 +463,20 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             set((state) => {
                 const newRetryCount = (state.autoSave.retryCount || 0) + 1;
                 const maxRetries = 5;
-                
+
                 // Exponential backoff for retry intervals
                 const retryDelay = Math.min(1000 * Math.pow(2, newRetryCount - 1), 30000);
-                
+
                 return {
                     autoSave: {
                         ...state.autoSave,
                         isSaving: false,
                         saveError: error,
                         retryCount: newRetryCount,
-                        autoSaveInterval: newRetryCount < maxRetries ? retryDelay : state.autoSave.autoSaveInterval,
+                        autoSaveInterval:
+                            newRetryCount < maxRetries
+                                ? retryDelay
+                                : state.autoSave.autoSaveInterval,
                     },
                 };
             });

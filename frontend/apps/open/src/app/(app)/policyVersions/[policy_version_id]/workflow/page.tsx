@@ -6,10 +6,5 @@ export default async function Page(props: { params: Promise<{ policy_version_id:
     const { policy_version_id } = params;
     const policyVersion = await fetchPolicyVersion(policy_version_id);
 
-    return (
-        <AppWorkflowFrame
-            workflowData={policyVersion}
-            projectId={policyVersion.project_id}
-        />
-    );
+    return <AppWorkflowFrame workflowData={policyVersion} projectId={policyVersion.project_id} />;
 }

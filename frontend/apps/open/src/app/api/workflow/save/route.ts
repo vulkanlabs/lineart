@@ -12,7 +12,8 @@ import { updateComponent } from "@/lib/api";
 // Simplified API response helper
 const apiResponse = {
     success: (data: any) => Response.json({ success: true, data }),
-    error: (message: string, status = 500) => Response.json({ success: false, error: message }, { status }),
+    error: (message: string, status = 500) =>
+        Response.json({ success: false, error: message }, { status }),
 };
 
 export async function PUT(request: Request) {
@@ -23,8 +24,7 @@ export async function PUT(request: Request) {
             return savePolicyVersion(workflow, spec, uiMetadata, isAutoSave);
         else if (workflow?.component_id)
             return saveComponent(workflow, spec, uiMetadata, isAutoSave);
-        else
-            return apiResponse.error("Invalid workflow type", 400);
+        else return apiResponse.error("Invalid workflow type", 400);
     } catch (error) {
         return apiResponse.error(error instanceof Error ? error.message : "Save failed", 500);
     }
@@ -46,7 +46,7 @@ async function saveComponent(
             variables: component.workflow?.variables || [],
             ui_metadata: uiMetadata,
         };
-        
+
         const response = await updateComponent(component.name, requestBody);
         return apiResponse.success(response);
     } catch (error) {

@@ -472,10 +472,10 @@ export function WorkflowCanvas({
             saveWorkflow(); // Trigger the manual save function
         };
 
-        window.addEventListener('workflow:manual-save', handleManualSave);
-        
+        window.addEventListener("workflow:manual-save", handleManualSave);
+
         return () => {
-            window.removeEventListener('workflow:manual-save', handleManualSave);
+            window.removeEventListener("workflow:manual-save", handleManualSave);
         };
     }, [saveWorkflow]);
 

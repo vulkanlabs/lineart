@@ -18,7 +18,7 @@ function AutoSaveStatusIntegration() {
         useShallow((state) => ({
             autoSave: state.autoSave,
             toggleAutoSave: state.toggleAutoSave,
-        }))
+        })),
     );
 
     const [isInitialized, setIsInitialized] = useState(false);
@@ -30,8 +30,8 @@ function AutoSaveStatusIntegration() {
     // Sync workflow auto-save state to navigation bar
     useEffect(() => {
         if (!isInitialized) return;
-        
-        const event = new CustomEvent('workflow:autosave-status', {
+
+        const event = new CustomEvent("workflow:autosave-status", {
             detail: {
                 hasUnsavedChanges: autoSave.hasUnsavedChanges,
                 autoSaveEnabled: autoSave.autoSaveEnabled,
@@ -40,7 +40,7 @@ function AutoSaveStatusIntegration() {
                 saveError: autoSave.saveError,
                 retryCount: autoSave.retryCount,
                 autoSaveInterval: autoSave.autoSaveInterval,
-            }
+            },
         });
         window.dispatchEvent(event);
     }, [autoSave, isInitialized]);
@@ -52,16 +52,16 @@ function AutoSaveStatusIntegration() {
         };
 
         const handleManualSave = () => {
-            const saveEvent = new CustomEvent('workflow:manual-save');
+            const saveEvent = new CustomEvent("workflow:manual-save");
             window.dispatchEvent(saveEvent);
         };
 
-        window.addEventListener('navigation:toggle-autosave', handleToggle as EventListener);
-        window.addEventListener('navigation:manual-save', handleManualSave);
+        window.addEventListener("navigation:toggle-autosave", handleToggle as EventListener);
+        window.addEventListener("navigation:manual-save", handleManualSave);
 
         return () => {
-            window.removeEventListener('navigation:toggle-autosave', handleToggle as EventListener);
-            window.removeEventListener('navigation:manual-save', handleManualSave);
+            window.removeEventListener("navigation:toggle-autosave", handleToggle as EventListener);
+            window.removeEventListener("navigation:manual-save", handleManualSave);
         };
     }, [autoSave.autoSaveEnabled, toggleAutoSave]);
 
