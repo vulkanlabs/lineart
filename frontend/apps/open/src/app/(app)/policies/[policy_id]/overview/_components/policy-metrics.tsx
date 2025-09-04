@@ -117,7 +117,7 @@ export default function PolicyMetrics({
             <div className="flex flex-col gap-4 pb-4">
                 <h1 className="text-lg font-semibold md:text-2xl">Metrics</h1>
                 <div className="flex gap-4">
-                    <DatePickerWithRange date={dateRange} setDate={setDateRange} className="" />
+                    <DatePickerWithRange date={dateRange} setDate={setDateRange} />
                     <VersionPicker
                         versions={versions}
                         selectedVersions={selectedVersions}

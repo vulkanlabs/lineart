@@ -93,6 +93,8 @@ export type AutoSaveState = {
     hasUnsavedChanges: boolean;
     saveError: string | null;
     autoSaveEnabled: boolean;
+    retryCount?: number;
+    autoSaveInterval?: number;
 };
 
 /**

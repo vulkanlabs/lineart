@@ -9,61 +9,24 @@ import {
 } from "@vulkanlabs/client-open";
 import { updateComponent } from "@/lib/api";
 
-// Shared response pattern
+// Simplified API response helper
 const apiResponse = {
-    success: (data: any) => Response.json({ success: true, data, error: null }),
-    error: (message: string, status: number = 500) => {
-        console.error(`API Error: ${message}`);
-        return Response.json({ success: false, error: message, data: null }, { status });
-    },
+    success: (data: any) => Response.json({ success: true, data }),
+    error: (message: string, status = 500) => Response.json({ success: false, error: message }, { status }),
 };
-
-// Shared validation pattern
-function validateWorkflow(workflow: any, spec: any): string | null {
-    if (!workflow || typeof workflow !== "object")
-        return "Workflow is required and must be an object";
-    if (!spec || typeof spec !== "object") return "Workflow spec is required and must be an object";
-    if (!Array.isArray(spec.nodes)) return "Workflow spec must have a 'nodes' array";
-    if (!workflow.policy_version_id && !workflow.component_id)
-        return "Workflow must have either policy_version_id or component_id";
-
-    return null;
-}
 
 export async function PUT(request: Request) {
     try {
-        // Parse request body with error handling
-        let requestBody;
-        try {
-            requestBody = await request.json();
-        } catch (parseError) {
-            console.error("Failed to parse request body:", parseError);
-            return apiResponse.error("Invalid JSON in request body", 400);
-        }
+        const { workflow, spec, uiMetadata = {}, isAutoSave = false } = await request.json();
 
-        const {
-            workflow,
-            spec,
-            uiMetadata,
-            isAutoSave = false,
-        }: {
-            workflow: any;
-            spec: PolicyDefinitionDictInput;
-            uiMetadata: { [key: string]: UIMetadata };
-            isAutoSave?: boolean;
-        } = requestBody;
-
-        const validationError = validateWorkflow(workflow, spec);
-        if (validationError) return apiResponse.error(validationError, 400);
-
-        // Handle workflow types
-        if (typeof workflow === "object" && "policy_version_id" in workflow)
-            return savePolicyVersion(workflow as PolicyVersion, spec, uiMetadata, isAutoSave);
-        else if (typeof workflow === "object" && "component_id" in workflow)
-            return saveComponent(workflow as Component, spec, uiMetadata, isAutoSave);
-        else return apiResponse.error("Invalid workflow type", 400);
+        if (workflow?.policy_version_id)
+            return savePolicyVersion(workflow, spec, uiMetadata, isAutoSave);
+        else if (workflow?.component_id)
+            return saveComponent(workflow, spec, uiMetadata, isAutoSave);
+        else
+            return apiResponse.error("Invalid workflow type", 400);
     } catch (error) {
-        return apiResponse.error(error instanceof Error ? error.message : "Unknown error");
+        return apiResponse.error(error instanceof Error ? error.message : "Save failed", 500);
     }
 }
 
@@ -74,23 +37,22 @@ async function saveComponent(
     isAutoSave: boolean = false,
 ) {
     try {
-        // For auto-save, we can skip heavy validation or processing
-        if (isAutoSave) console.log("Auto-saving component:", component.name);
-
         const requestBody: ComponentBase = {
             name: component.name,
             description: component.description || null,
             icon: component.icon || null,
-            spec: spec ?? component.workflow?.spec,
+            spec: spec,
             requirements: component.workflow?.requirements || [],
             variables: component.workflow?.variables || [],
-            ui_metadata: uiMetadata ?? component.workflow?.ui_metadata,
+            ui_metadata: uiMetadata,
         };
+        
         const response = await updateComponent(component.name, requestBody);
         return apiResponse.success(response);
     } catch (error) {
-        const errorMessage = isAutoSave ? "Auto-save failed" : "Failed to save component";
-        return apiResponse.error(error instanceof Error ? error.message : errorMessage);
+        const prefix = isAutoSave ? "Auto-save failed" : "Save failed";
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return apiResponse.error(`${prefix}: ${message}`);
     }
 }
 
@@ -100,19 +62,16 @@ async function savePolicyVersion(
     uiMetadata: { [key: string]: UIMetadata },
     isAutoSave: boolean = false,
 ) {
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    if (!serverUrl) return apiResponse.error("Server URL is not configured");
+
     try {
-        const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-        if (!serverUrl) return apiResponse.error("Server URL is not configured");
-
-        // For auto-save, we can optimize the request
-        if (isAutoSave) console.log("Auto-saving policy version:", policyVersion.policy_version_id);
-
         const requestBody = {
             alias: policyVersion.alias || null,
             workflow: {
-                spec: spec ?? policyVersion.workflow?.spec,
+                spec: spec,
                 requirements: policyVersion.workflow?.requirements || [],
-                ui_metadata: uiMetadata ?? policyVersion.workflow?.ui_metadata,
+                ui_metadata: uiMetadata,
                 variables: policyVersion.workflow?.variables || [],
             },
         };
@@ -123,7 +82,7 @@ async function savePolicyVersion(
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    ...(isAutoSave && { "X-Auto-Save": "true" }), // Optional header for backend optimization
+                    ...(isAutoSave && { "X-Auto-Save": "true" }),
                 },
                 body: JSON.stringify(requestBody),
                 cache: "no-store",
@@ -131,18 +90,17 @@ async function savePolicyVersion(
         );
 
         if (!response.ok) {
-            const error = await response.json();
-            const errorMessage = isAutoSave
-                ? `Auto-save failed: ${error.detail || error.message || response.statusText}`
-                : `Server error ${response.status}: ${error.detail || error.message}`;
-
-            return apiResponse.error(errorMessage, response.status);
+            const error = await response.json().catch(() => ({ detail: response.statusText }));
+            const prefix = isAutoSave ? "Auto-save failed" : "Save failed";
+            const message = error.detail || error.message || response.statusText;
+            return apiResponse.error(`${prefix}: ${message}`, response.status);
         }
 
         const data = await response.json();
         return apiResponse.success(data);
     } catch (error) {
-        const errorMessage = isAutoSave ? "Auto-save failed" : "Failed to save policy version";
-        return apiResponse.error(error instanceof Error ? error.message : errorMessage);
+        const prefix = isAutoSave ? "Auto-save failed" : "Save failed";
+        const message = error instanceof Error ? error.message : "Network error";
+        return apiResponse.error(`${prefix}: ${message}`);
     }
 }

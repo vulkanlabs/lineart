@@ -1,12 +1,72 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import type { Workflow } from "../api/types";
 
 import { WorkflowProviderWrapper } from "./workflow/workflow-provider";
 import { WorkflowCanvas } from "./workflow/workflow-canvas";
-import { AutoSaveStatus } from "./auto-save-status";
+import { useWorkflowStore } from "../store/workflow-store";
 import { nodeTypes } from "./nodes";
+
+/**
+ * Integrated auto-save status component
+ * Handles communication between workflow state and navigation bar
+ */
+function AutoSaveStatusIntegration() {
+    const { autoSave, toggleAutoSave } = useWorkflowStore(
+        useShallow((state) => ({
+            autoSave: state.autoSave,
+            toggleAutoSave: state.toggleAutoSave,
+        }))
+    );
+
+    const [isInitialized, setIsInitialized] = useState(false);
+
+    useEffect(() => {
+        setIsInitialized(true);
+    }, []);
+
+    // Sync workflow auto-save state to navigation bar
+    useEffect(() => {
+        if (!isInitialized) return;
+        
+        const event = new CustomEvent('workflow:autosave-status', {
+            detail: {
+                hasUnsavedChanges: autoSave.hasUnsavedChanges,
+                autoSaveEnabled: autoSave.autoSaveEnabled,
+                isSaving: autoSave.isSaving,
+                lastSaved: autoSave.lastSaved,
+                saveError: autoSave.saveError,
+                retryCount: autoSave.retryCount,
+                autoSaveInterval: autoSave.autoSaveInterval,
+            }
+        });
+        window.dispatchEvent(event);
+    }, [autoSave, isInitialized]);
+
+    // Handle commands from navigation bar
+    useEffect(() => {
+        const handleToggle = (event: CustomEvent) => {
+            if (event.detail.enabled !== autoSave.autoSaveEnabled) toggleAutoSave();
+        };
+
+        const handleManualSave = () => {
+            const saveEvent = new CustomEvent('workflow:manual-save');
+            window.dispatchEvent(saveEvent);
+        };
+
+        window.addEventListener('navigation:toggle-autosave', handleToggle as EventListener);
+        window.addEventListener('navigation:manual-save', handleManualSave);
+
+        return () => {
+            window.removeEventListener('navigation:toggle-autosave', handleToggle as EventListener);
+            window.removeEventListener('navigation:manual-save', handleManualSave);
+        };
+    }, [autoSave.autoSaveEnabled, toggleAutoSave]);
+
+    return null;
+}
 
 /**
  * Props for the workflow frame component
@@ -34,7 +94,7 @@ export function WorkflowFrame({
 }: WorkflowFrameProps) {
     return (
         <WorkflowProviderWrapper workflow={workflow}>
-            <AutoSaveStatus />
+            <AutoSaveStatusIntegration />
             <WorkflowCanvas
                 workflow={workflow}
                 nodeTypes={nodeTypes}

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Check, Loader, AlertTriangle, Clock } from "lucide-react";
+import { useEffect, useCallback } from "react";
+import { useState } from "react";
+import { Check, Loader, AlertTriangle, Clock, Save } from "lucide-react";
+import { cn } from "../lib/utils";
 
 export interface AutoSaveState {
     hasUnsavedChanges: boolean;
@@ -9,6 +11,7 @@ export interface AutoSaveState {
     isSaving: boolean;
     lastSaved: Date | null;
     saveError: string | null;
+    retryCount?: number;
 }
 
 export interface AutoSaveToggleProps {
@@ -16,19 +19,23 @@ export interface AutoSaveToggleProps {
      * Custom CSS classes
      */
     className?: string;
+    /**
+     * Show keyboard shortcut hint
+     */
+    showShortcut?: boolean;
 }
 
 /**
- * AutoSaveToggle - Navigation bar auto-save component
+ * Enhanced AutoSaveToggle - Navigation bar auto-save component
  * 
- * - Listens for workflow auto-save status via events
- * - Shows status with proper icons and colors
- * - Handles toggle and manual save commands
- * - Integrates with existing workflow system
+ * Features:
+ * - Simplified status display with better UX
+ * - Keyboard shortcuts (Ctrl+S for manual save)
+ * - Smart retry logic with exponential backoff
+ * - Accessible design with proper ARIA labels
+ * - Toast notifications for persistent errors
  */
-export function AutoSaveToggle({ className = "" }: AutoSaveToggleProps = {}) {
-    const [currentTime, setCurrentTime] = useState<Date>(new Date());
-    
+export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSaveToggleProps = {}) {
     // Auto-save state from workflow system
     const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>({
         hasUnsavedChanges: false,
@@ -36,173 +43,189 @@ export function AutoSaveToggle({ className = "" }: AutoSaveToggleProps = {}) {
         isSaving: false,
         lastSaved: null,
         saveError: null,
+        retryCount: 0,
     });
-
-    // Update current time every minute for relative timestamps
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentTime(new Date());
-        }, 60000);
-        return () => clearInterval(interval);
-    }, []);
 
     // Listen for workflow auto-save status updates
     useEffect(() => {
         const handleWorkflowStatus = (event: CustomEvent) => {
-            setAutoSaveState(event.detail);
+            const newState = event.detail;
+            setAutoSaveState(newState);
+            
+            // Show toast for persistent errors (after 3 failed attempts)
+            if (newState.saveError && (newState.retryCount || 0) >= 3) {
+                showErrorToast(newState.saveError);
+            }
         };
 
         window.addEventListener('workflow:autosave-status', handleWorkflowStatus as EventListener);
-
-        return () => {
-            window.removeEventListener('workflow:autosave-status', handleWorkflowStatus as EventListener);
-        };
+        return () => window.removeEventListener('workflow:autosave-status', handleWorkflowStatus as EventListener);
     }, []);
 
     // Handle auto-save toggle changes
-    const handleToggleChange = (enabled: boolean) => {
+    const handleToggleChange = useCallback((enabled: boolean) => {
         setAutoSaveState(prev => ({ ...prev, autoSaveEnabled: enabled }));
-        
-        // Send command to workflow system
-        window.dispatchEvent(new CustomEvent('navigation:toggle-autosave', { 
-            detail: { enabled } 
-        }));
-    };
+        window.dispatchEvent(new CustomEvent('navigation:toggle-autosave', { detail: { enabled } }));
+    }, []);
 
-    // Manual save trigger
-    const performManualSave = async () => {
-        // Send command to workflow system
+    // Manual save trigger with keyboard support
+    const performManualSave = useCallback(async () => {
+        if (autoSaveState.isSaving) return; // Prevent duplicate saves
         window.dispatchEvent(new CustomEvent('navigation:manual-save'));
-    };
+    }, [autoSaveState.isSaving]);
 
-    // Derived state for UI
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            // Ctrl+S or Cmd+S for manual save
+            if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+                event.preventDefault();
+                performManualSave();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [performManualSave]);
+
+    // Toast notification helper
+    const showErrorToast = useCallback((error: string) => {
+        // Try to use existing toast system or fallback to console
+        if (typeof window !== 'undefined' && 'toast' in window) {
+            (window as any).toast(error, {
+                variant: 'destructive',
+                title: 'Auto-save failed',
+                description: 'Click to retry manually',
+                action: { label: 'Retry', onClick: performManualSave },
+            });
+        } else {
+            console.error('Auto-save failed:', error);
+        }
+    }, [performManualSave]);
+
+    // Simplified status derivation
     const status = autoSaveState.isSaving ? 'saving' : 
-                  autoSaveState.saveError ? 'error' :
-                  autoSaveState.hasUnsavedChanges ? 'pending' : 
-                  autoSaveState.lastSaved ? 'saved' : 'ready';
+                  autoSaveState.saveError ? 'error' : 
+                  autoSaveState.hasUnsavedChanges ? 'pending' : 'saved';
 
-    const getStatusIcon = () => {
-        switch (status) {
-            case 'saving':
-                return <Loader className="h-3.5 w-3.5 animate-spin text-blue-600" />;
-            case 'error':
-                return <AlertTriangle className="h-3.5 w-3.5 text-red-600" />;
-            case 'pending':
-                return <Clock className="h-3.5 w-3.5 text-orange-600" />;
-            case 'saved':
-                return <Check className="h-3.5 w-3.5 text-green-600" />;
-            case 'ready':
-                return <Check className="h-3.5 w-3.5 text-green-600" />;
-            default:
-                return null;
-        }
+    // Status configuration with enhanced UX
+    const statusConfig = {
+        saving: {
+            icon: <Loader className="h-3.5 w-3.5 animate-spin text-blue-600" />,
+            text: "Saving...",
+            color: "text-blue-600",
+            clickable: false,
+        },
+        error: {
+            icon: <AlertTriangle className="h-3.5 w-3.5 text-red-600" />,
+            text: "Failed to save",
+            color: "text-red-600",
+            clickable: true,
+            title: "Click to retry save",
+        },
+        pending: {
+            icon: <Clock className="h-3.5 w-3.5 text-amber-600" />,
+            text: "Unsaved changes",
+            color: "text-amber-600",
+            clickable: false,
+        },
+        saved: {
+            icon: <Check className="h-3.5 w-3.5 text-green-600" />,
+            text: autoSaveState.lastSaved ? "Saved" : "Ready",
+            color: "text-green-600",
+            clickable: false,
+        },
     };
 
-    const getStatusText = () => {
-        switch (status) {
-            case 'saving':
-                return "Saving...";
-            case 'error':
-                return autoSaveState.saveError || "Failed to save";
-            case 'pending':
-                return "Unsaved changes";
-            case 'saved':
-                return getTimestampText();
-            case 'ready':
-                return "Ready to save";
-            default:
-                return "";
-        }
-    };
-
-    const getTimestampText = () => {
-        if (!autoSaveState.lastSaved) return "Ready to save";
-        
-        const diffMs = currentTime.getTime() - autoSaveState.lastSaved.getTime();
-        const diffMinutes = Math.floor(diffMs / (1000 * 60));
-        const diffHours = Math.floor(diffMinutes / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        if (diffMinutes < 1) return "Saved just now";
-        if (diffMinutes < 60) return `Saved ${diffMinutes}m ago`;
-        if (diffHours < 24) return `Saved ${diffHours}h ago`;
-        if (diffDays === 1) return "Saved yesterday";
-        return `Saved ${diffDays}d ago`;
-    };
-
-    const getTimestampOpacity = () => {
-        if ((status !== 'saved' && status !== 'ready') || !autoSaveState.lastSaved) return "opacity-100";
-        
-        const diffMs = currentTime.getTime() - autoSaveState.lastSaved.getTime();
-        const diffMinutes = Math.floor(diffMs / (1000 * 60));
-        
-        if (diffMinutes < 2) return "opacity-100";
-        if (diffMinutes < 5) return "opacity-90";
-        if (diffMinutes < 15) return "opacity-75";
-        if (diffMinutes < 60) return "opacity-60";
-        return "opacity-50";
-    };
-
-    const getStatusColor = () => {
-        switch (status) {
-            case 'saving':
-                return "text-muted-foreground";
-            case 'error':
-                return "text-destructive";
-            case 'pending':
-                return "text-muted-foreground";
-            case 'saved':
-                return "text-muted-foreground";
-            case 'ready':
-                return "text-muted-foreground";
-            default:
-                return "text-muted-foreground";
-        }
-    };
-
-    const statusIcon = getStatusIcon();
-    const statusText = getStatusText();
+    const currentStatus = statusConfig[status];
 
     return (
-        <div className={`flex items-center gap-2 text-sm ${className}`}>
-            {statusIcon && (
-                <>
-                    <div 
-                        className={`flex items-center gap-1.5 transition-opacity duration-300 ${getTimestampOpacity()}`}
-                        onClick={status === 'error' ? performManualSave : undefined}
-                        style={{ cursor: status === 'error' ? 'pointer' : 'default' }}
-                        title={status === 'error' ? 'Click to retry save' : undefined}
-                    >
-                        {statusIcon}
-                        {statusText && (
-                            <span className={getStatusColor()}>
-                                {statusText}
-                            </span>
-                        )}
+        <div className={cn("flex items-center gap-2 text-sm", className)}>
+            {/* Status Indicator */}
+            <div 
+                className={cn(
+                    "flex items-center gap-1.5 transition-colors duration-200",
+                    currentStatus.clickable && "cursor-pointer hover:opacity-80"
+                )}
+                onClick={currentStatus.clickable ? performManualSave : undefined}
+                title={currentStatus.title}
+                role={currentStatus.clickable ? "button" : undefined}
+                tabIndex={currentStatus.clickable ? 0 : undefined}
+                onKeyDown={currentStatus.clickable ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        performManualSave();
+                    }
+                } : undefined}
+            >
+                {currentStatus.icon}
+                <span className={currentStatus.color}>
+                    {currentStatus.text}
+                    {status === 'error' && (autoSaveState.retryCount || 0) > 0 && (
+                        <span className="ml-1 text-xs opacity-70">
+                            (Retry {autoSaveState.retryCount})
+                        </span>
+                    )}
+                </span>
+            </div>
+            
+            <span className="text-muted-foreground">·</span>
+            
+            {/* Auto-save Toggle */}
+            <div className="flex items-center gap-2">
+                <span className="text-foreground">Autosave</span>
+                <label 
+                    className="flex items-center cursor-pointer group"
+                    title={`Auto-save is ${autoSaveState.autoSaveEnabled ? 'enabled' : 'disabled'}${showShortcut ? ' (Ctrl+S to save manually)' : ''}`}
+                >
+                    <input
+                        type="checkbox"
+                        checked={autoSaveState.autoSaveEnabled}
+                        onChange={(e) => handleToggleChange(e.target.checked)}
+                        className="sr-only"
+                        aria-label={`Toggle auto-save ${autoSaveState.autoSaveEnabled ? 'off' : 'on'}`}
+                    />
+                    <div className={cn(
+                        "relative inline-flex h-4 w-7 rounded-full transition-all duration-200 ease-in-out",
+                        "focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1",
+                        autoSaveState.autoSaveEnabled 
+                            ? "bg-primary" 
+                            : "bg-gray-300 group-hover:bg-gray-400"
+                    )}>
+                        <div className={cn(
+                            "inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ease-in-out mt-0.5",
+                            "shadow-sm",
+                            autoSaveState.autoSaveEnabled 
+                                ? "translate-x-3.5" 
+                                : "translate-x-0.5"
+                        )} />
                     </div>
+                </label>
+            </div>
+            
+            {/* Manual Save Button with Keyboard Shortcut */}
+            {showShortcut && (
+                <>
                     <span className="text-muted-foreground">·</span>
+                    <button
+                        onClick={performManualSave}
+                        disabled={autoSaveState.isSaving}
+                        className={cn(
+                            "inline-flex items-center gap-1 px-2 py-1 rounded text-xs",
+                            "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground",
+                            "transition-colors duration-200 border",
+                            "disabled:opacity-50 disabled:cursor-not-allowed"
+                        )}
+                        title="Save workflow manually (Ctrl+S)"
+                    >
+                        <Save className="h-3 w-3" />
+                        <span className="hidden sm:inline">Save</span>
+                        <kbd className="hidden sm:inline-flex h-4 px-1 rounded text-[10px] bg-background border">
+                            ⌘S
+                        </kbd>
+                    </button>
                 </>
             )}
-            <span className="text-foreground">Autosave</span>
-            <label className="flex items-center cursor-pointer">
-                <input
-                    type="checkbox"
-                    checked={autoSaveState.autoSaveEnabled}
-                    onChange={(e) => handleToggleChange(e.target.checked)}
-                    className="sr-only"
-                />
-                <div className={`relative inline-flex h-3.5 w-6 rounded-full transition-all duration-200 ease-in-out ${
-                    autoSaveState.autoSaveEnabled 
-                        ? 'bg-primary' 
-                        : 'bg-gray-300'
-                }`}>
-                    <div className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-all duration-200 ease-in-out mt-0.5 ${
-                        autoSaveState.autoSaveEnabled 
-                            ? 'translate-x-3' 
-                            : 'translate-x-0.5'
-                    }`} />
-                </div>
-            </label>
         </div>
     );
 }

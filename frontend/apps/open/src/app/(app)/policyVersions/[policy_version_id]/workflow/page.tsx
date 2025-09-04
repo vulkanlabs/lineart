@@ -1,5 +1,4 @@
 import { AppWorkflowFrame } from "@/components/workflow-frame";
-import { PROJECT_SCOPE_CONFIG } from "@vulkanlabs/base";
 import { fetchPolicyVersion } from "@/lib/api";
 
 export default async function Page(props: { params: Promise<{ policy_version_id: string }> }) {
@@ -11,8 +10,6 @@ export default async function Page(props: { params: Promise<{ policy_version_id:
         <AppWorkflowFrame
             workflowData={policyVersion}
             projectId={policyVersion.project_id}
-            policyId={policyVersion.policy_id}
-            config={PROJECT_SCOPE_CONFIG}
         />
     );
 }

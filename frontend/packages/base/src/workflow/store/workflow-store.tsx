@@ -41,6 +41,8 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             hasUnsavedChanges: false,
             saveError: null,
             autoSaveEnabled: true,
+            retryCount: 0,
+            autoSaveInterval: 5000, // Smart interval: starts at 5s
         },
 
         getInputSchema: () => {
@@ -388,7 +390,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             get().markChanged();
         },
 
-        // Auto-save operations
+        // Auto-save operations with intervals and error recovery
         markChanged: () => {
             // Debounce markChanged calls to prevent rapid-fire state updates
             if (markChangedTimer) {
@@ -399,15 +401,23 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                 const currentState = get();
                 // Only mark as changed if we're not already marked as having unsaved changes
                 if (!currentState.autoSave.hasUnsavedChanges) {
+                    // Calculate smart interval based on workflow complexity
+                    const workflowSize = currentState.nodes?.length || 0;
+                    const baseInterval = 5000; // 5 seconds base
+                    const smartInterval = workflowSize > 20 ? baseInterval * 2 : 
+                                        workflowSize > 10 ? baseInterval * 1.5 : 
+                                        baseInterval;
+
                     set((state) => ({
                         autoSave: {
                             ...state.autoSave,
                             hasUnsavedChanges: true,
+                            autoSaveInterval: smartInterval,
                         },
                     }));
                 }
                 markChangedTimer = null;
-            }, 200); // Increased debounce time
+            }, 200);
         },
 
         markSaving: () => {
@@ -421,25 +431,46 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
         },
 
         markSaved: () => {
-            set((state) => ({
-                autoSave: {
-                    ...state.autoSave,
-                    isSaving: false,
-                    hasUnsavedChanges: false,
-                    lastSaved: new Date(),
-                    saveError: null,
-                },
-            }));
+            set((state) => {
+                // Reset intervals and retry count on successful save
+                const workflowSize = state.nodes?.length || 0;
+                const baseInterval = 5000;
+                const smartInterval = workflowSize > 20 ? baseInterval * 2 : 
+                                    workflowSize > 10 ? baseInterval * 1.5 : 
+                                    baseInterval;
+
+                return {
+                    autoSave: {
+                        ...state.autoSave,
+                        isSaving: false,
+                        hasUnsavedChanges: false,
+                        lastSaved: new Date(),
+                        saveError: null,
+                        retryCount: 0,
+                        autoSaveInterval: smartInterval,
+                    },
+                };
+            });
         },
 
         markSaveError: (error: string) => {
-            set((state) => ({
-                autoSave: {
-                    ...state.autoSave,
-                    isSaving: false,
-                    saveError: error,
-                },
-            }));
+            set((state) => {
+                const newRetryCount = (state.autoSave.retryCount || 0) + 1;
+                const maxRetries = 5;
+                
+                // Exponential backoff for retry intervals
+                const retryDelay = Math.min(1000 * Math.pow(2, newRetryCount - 1), 30000);
+                
+                return {
+                    autoSave: {
+                        ...state.autoSave,
+                        isSaving: false,
+                        saveError: error,
+                        retryCount: newRetryCount,
+                        autoSaveInterval: newRetryCount < maxRetries ? retryDelay : state.autoSave.autoSaveInterval,
+                    },
+                };
+            });
         },
 
         clearSaveError: () => {
@@ -447,6 +478,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                 autoSave: {
                     ...state.autoSave,
                     saveError: null,
+                    retryCount: 0, // Reset retry count when manually clearing
                 },
             }));
         },

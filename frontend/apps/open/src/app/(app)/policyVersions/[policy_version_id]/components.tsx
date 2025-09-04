@@ -6,20 +6,10 @@ import { usePathname } from "next/navigation";
 
 // Local imports
 import { InnerNavbar, type InnerNavbarSectionProps, AutoSaveToggle } from "@vulkanlabs/base";
-import { PageLayout } from "@/components/page-layout";
+import { PageLayout, type SidebarSectionProps } from "@/components/page-layout";
 
 import { LauncherButton } from "./launcher/components";
 import { Policy, PolicyVersion } from "@vulkanlabs/client-open";
-
-// Define types locally to avoid import issues
-type SidebarSectionProps = {
-    name: string;
-    path: string;
-    icon?: any;
-    disabled?: boolean;
-    info?: string;
-    skipProjectParam?: boolean;
-};
 
 export function RouteLayout({
     policy,
@@ -68,17 +58,17 @@ export function RouteLayout({
             element: isOnWorkflowPage ? (
                 // Combined auto-save and launch in same section for single line layout
                 <div className="flex items-center gap-4">
-                    <AutoSaveToggle />
+                    <AutoSaveToggle showShortcut={true} />
                     <LauncherButton
                         policyVersionId={policyVersion.policy_version_id}
-                        inputSchema={{}}
+                        inputSchema={policyVersion.workflow?.input_schema || {}}
                     />
                 </div>
             ) : (
                 // Just launch button when not on workflow page
                 <LauncherButton
                     policyVersionId={policyVersion.policy_version_id}
-                    inputSchema={{}}
+                    inputSchema={policyVersion.workflow?.input_schema || {}}
                 />
             ),
         },
