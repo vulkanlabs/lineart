@@ -6,6 +6,9 @@ export { parseDate, cn } from "./lib/utils";
 // Note: Other utils from "./lib/utils" not currently used by apps
 export * from "./lib/chart";
 
+// Re-export reusable components
+export { AutoSaveToggle, type AutoSaveState, type AutoSaveToggleProps } from "./components/auto-save-toggle";
+
 // Re-export API utilities (selective exports for better tree-shaking)
 export {
     SharedResponseUtils,

@@ -5,6 +5,7 @@ import type { Workflow } from "../api/types";
 
 import { WorkflowProviderWrapper } from "./workflow/workflow-provider";
 import { WorkflowCanvas } from "./workflow/workflow-canvas";
+import { AutoSaveStatus } from "./auto-save-status";
 import { nodeTypes } from "./nodes";
 
 /**
@@ -33,6 +34,7 @@ export function WorkflowFrame({
 }: WorkflowFrameProps) {
     return (
         <WorkflowProviderWrapper workflow={workflow}>
+            <AutoSaveStatus />
             <WorkflowCanvas
                 workflow={workflow}
                 nodeTypes={nodeTypes}
