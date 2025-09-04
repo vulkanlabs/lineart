@@ -7,7 +7,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from vulkan.core.run import WorkflowStatus
+from vulkan.core.run import RunStatus, WorkflowStatus
 from vulkan.schemas import DataSourceSpec, PolicyAllocationStrategy
 from vulkan.spec.policy import PolicyDefinitionDict
 
@@ -147,17 +147,11 @@ class ConfigurationVariables(ConfigurationVariablesBase):
     last_updated_at: datetime | None = None
 
 
-class RunUpdate(BaseModel):
-    status: str
-    result: str
-    run_metadata: dict | None = None
-
-
 class Run(BaseModel):
     run_id: UUID
     run_group_id: UUID | None = None
     policy_version_id: UUID
-    status: str
+    status: RunStatus
     result: str | None = None
     input_data: dict | None = None
     run_metadata: dict | None = None
@@ -171,7 +165,7 @@ class Run(BaseModel):
 
 class RunResult(BaseModel):
     run_id: UUID
-    status: str
+    status: RunStatus
     result: str | None = None
     run_metadata: dict | None = None
 

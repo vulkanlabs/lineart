@@ -15,10 +15,12 @@ from lineart_sdk.types import (
     OptionalNullable,
 )
 
+from .runstatus import RunStatus
+
 
 class RunResultTypedDict(TypedDict):
     run_id: str
-    status: str
+    status: RunStatus
     result: NotRequired[Nullable[str]]
     run_metadata: NotRequired[Nullable[Dict[str, Any]]]
 
@@ -26,7 +28,7 @@ class RunResultTypedDict(TypedDict):
 class RunResult(BaseModel):
     run_id: str
 
-    status: str
+    status: RunStatus
 
     result: OptionalNullable[str] = UNSET
 

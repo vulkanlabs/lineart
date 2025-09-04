@@ -16,11 +16,13 @@ from lineart_sdk.types import (
     OptionalNullable,
 )
 
+from .runstatus import RunStatus
+
 
 class RunTypedDict(TypedDict):
     run_id: str
     policy_version_id: str
-    status: str
+    status: RunStatus
     created_at: datetime
     last_updated_at: datetime
     run_group_id: NotRequired[Nullable[str]]
@@ -35,7 +37,7 @@ class Run(BaseModel):
 
     policy_version_id: str
 
-    status: str
+    status: RunStatus
 
     created_at: datetime
 

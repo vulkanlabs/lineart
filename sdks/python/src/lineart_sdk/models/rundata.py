@@ -17,12 +17,13 @@ from lineart_sdk.types import (
 )
 
 from ._stepdetails import StepDetails, StepDetailsTypedDict
+from .runstatus import RunStatus
 
 
 class RunDataTypedDict(TypedDict):
     run_id: str
     policy_version_id: str
-    status: str
+    status: RunStatus
     created_at: datetime
     last_updated_at: datetime
     run_group_id: NotRequired[Nullable[str]]
@@ -38,7 +39,7 @@ class RunData(BaseModel):
 
     policy_version_id: str
 
-    status: str
+    status: RunStatus
 
     created_at: datetime
 

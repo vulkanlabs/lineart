@@ -2841,9 +2841,7 @@ components:
           type: "string"
           format: "uuid"
           title: "Policy Version Id"
-        "status":
-          type: "string"
-          title: "Status"
+        "status": {"$ref": "#/components/schemas/RunStatus"}
         "result":
           anyOf:
             - type: "string"
@@ -2914,9 +2912,7 @@ components:
           type: "string"
           format: "uuid"
           title: "Policy Version Id"
-        "status":
-          type: "string"
-          title: "Status"
+        "status": {"$ref": "#/components/schemas/RunStatus"}
         "result":
           anyOf:
             - type: "string"
@@ -3025,9 +3021,7 @@ components:
           type: "string"
           format: "uuid"
           title: "Run Id"
-        "status":
-          type: "string"
-          title: "Status"
+        "status": {"$ref": "#/components/schemas/RunStatus"}
         "result":
           anyOf:
             - type: "string"
@@ -3044,6 +3038,14 @@ components:
         - "run_id"
         - "status"
       title: "RunResult"
+    "RunStatus":
+      type: "string"
+      enum:
+        - "PENDING"
+        - "STARTED"
+        - "SUCCESS"
+        - "FAILURE"
+      title: "RunStatus"
     "RunTimeParam":
       properties:
         "param":

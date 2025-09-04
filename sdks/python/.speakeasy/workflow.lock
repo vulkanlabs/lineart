@@ -1,9 +1,9 @@
-speakeasyVersion: 1.607.1
+speakeasyVersion: 1.609.0
 sources:
     VulkanAPI:
         sourceNamespace: vulkan-api
-        sourceRevisionDigest: sha256:e88f24c930b9a9691075b14e0dfa9dff53d05681d9f92eaecd9fdb95c4c46467
-        sourceBlobDigest: sha256:7b6beeffac2f4caee05aab0c8a023e82edbc88202e8270bc32f730f66489050d
+        sourceRevisionDigest: sha256:a89417ddce6b4b59fc8fa5a6a99e6f43c5db489e3c56177b02c5989f6bcaa59f
+        sourceBlobDigest: sha256:eeebab11517848621069d37a6e6876084036a5a89c9af14a4352d56cae311bc5
         tags:
             - latest
             - 0.1.0
@@ -11,10 +11,10 @@ targets:
     lineart:
         source: VulkanAPI
         sourceNamespace: vulkan-api
-        sourceRevisionDigest: sha256:e88f24c930b9a9691075b14e0dfa9dff53d05681d9f92eaecd9fdb95c4c46467
-        sourceBlobDigest: sha256:7b6beeffac2f4caee05aab0c8a023e82edbc88202e8270bc32f730f66489050d
+        sourceRevisionDigest: sha256:a89417ddce6b4b59fc8fa5a6a99e6f43c5db489e3c56177b02c5989f6bcaa59f
+        sourceBlobDigest: sha256:eeebab11517848621069d37a6e6876084036a5a89c9af14a4352d56cae311bc5
         codeSamplesNamespace: vulkan-api-python-code-samples
-        codeSamplesRevisionDigest: sha256:943faff8121635e62a2cf90b11ceea438f4ba27a5da24f848f47e9d01c926694
+        codeSamplesRevisionDigest: sha256:6dccd21fab83b6af20d6776b244c7d703a3dd04eb1218e005f3f5e108f09b4cc
 workflow:
     workflowVersion: 1.0.0
     speakeasyVersion: latest
