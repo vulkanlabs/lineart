@@ -5,7 +5,7 @@ import { Search, Filter, X, AlertCircle, Info, AlertTriangle, Bug } from "lucide
 
 import type { RunLogs } from "@vulkanlabs/client-open";
 
-import { NodeLayoutConfig } from "./workflow/types";
+import { ReactflowNode } from "./workflow/types";
 import { LogsTableSkeleton } from "./loading-states";
 
 type LogLevel = "error" | "warning" | "info" | "debug" | string;
@@ -18,7 +18,7 @@ export function LogsTable({
     isLoading = false,
 }: {
     runLogs?: RunLogs;
-    clickedNode: NodeLayoutConfig | null;
+    clickedNode: ReactflowNode | null;
     tableClass?: "w-full" | "min-w-full";
     enableResponsiveColumns?: boolean;
     isLoading?: boolean;

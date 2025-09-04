@@ -21,7 +21,8 @@ import {
 import type { RunData, StepMetadataBase, RunStatus } from "@vulkanlabs/client-open";
 import { RunStatus as RunStatusValues } from "@vulkanlabs/client-open";
 
-import type { RunNodeLayout } from "./workflow/types";
+import type { ReactflowNode } from "./workflow/types";
+import { getNodeStatus, formatDuration } from "./workflow/utils";
 import { EmptyRunInfo, SidebarSkeleton } from "./loading-states";
 
 export function WorkflowSidebar({
@@ -29,7 +30,7 @@ export function WorkflowSidebar({
     runData,
     isLoading = false,
 }: {
-    clickedNode: RunNodeLayout | null;
+    clickedNode: ReactflowNode | null;
     runData?: RunData;
     isLoading?: boolean;
 }) {
@@ -181,7 +182,7 @@ function RunInfo({ runData }: { runData: RunData }) {
     );
 }
 
-function NodeContent({ clickedNode }: { clickedNode: RunNodeLayout | null }) {
+function NodeContent({ clickedNode }: { clickedNode: ReactflowNode | null }) {
     if (clickedNode === null) {
         return (
             <div className="flex flex-col h-full">
@@ -204,7 +205,7 @@ function NodeContent({ clickedNode }: { clickedNode: RunNodeLayout | null }) {
         );
     }
 
-    const nodeStatus = getNodeStatus(clickedNode);
+    const nodeStatus = getNodeStatus(clickedNode.data);
 
     return (
         <div className="flex flex-col h-full">
@@ -509,39 +510,11 @@ function NodeStatusBadge({ status }: { status: string }) {
 }
 
 // Utility Functions
-function getNodeStatus(node: RunNodeLayout): string {
-    // Input node is always considered successful if the run is executing
-    if (node.id === "input_node" || node.data.type === "INPUT") {
-        return "SUCCESS";
-    }
-
-    if (node.data.run?.metadata?.error) return "ERROR";
-    if (node.data.run) return "SUCCESS";
-    return "SKIPPED";
-}
-
 function formatDate(date: any): string {
     try {
         return date ? new Date(date).toLocaleString() : "N/A";
     } catch (error) {
         return date?.toString() || "N/A";
-    }
-}
-
-function formatDuration(durationMs: number): string {
-    const milliseconds = durationMs % 1000;
-    const seconds = Math.floor(durationMs / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-
-    if (hours > 0) {
-        return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-    } else if (minutes > 0) {
-        return `${minutes}m ${seconds % 60}s`;
-    } else if (seconds > 0) {
-        return `${seconds}s ${milliseconds}ms`;
-    } else {
-        return `${milliseconds}ms`;
     }
 }
 
