@@ -49,7 +49,10 @@ async function saveComponent(
             },
         };
 
-        const response = await updateComponent(component.component_id, requestBody as ComponentBase);
+        const response = await updateComponent(
+            component.component_id,
+            requestBody as ComponentBase,
+        );
         return apiResponse.success(response);
     } catch (error) {
         const prefix = isAutoSave ? "Auto-save failed" : "Save failed";
