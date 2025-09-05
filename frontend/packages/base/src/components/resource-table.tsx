@@ -67,16 +67,19 @@ export function ResourceTable<TData, TValue>({
     // try last_updated_at first, then created_at, as DESC
     const getDefaultSorting = (): SortingState => {
         if (defaultSorting) return defaultSorting;
-        
-        const columnIds = columns.map(col => {
-            // Check if the column has accessorKey property
-            if ('accessorKey' in col && typeof col.accessorKey === 'string') return col.accessorKey;
-            return col.id;
-        }).filter(Boolean);
-        
-        if (columnIds.includes('last_updated_at')) return [{ id: 'last_updated_at', desc: true }];
-        if (columnIds.includes('created_at')) return [{ id: 'created_at', desc: true }];
-        
+
+        const columnIds = columns
+            .map((col) => {
+                // Check if the column has accessorKey property
+                if ("accessorKey" in col && typeof col.accessorKey === "string")
+                    return col.accessorKey;
+                return col.id;
+            })
+            .filter(Boolean);
+
+        if (columnIds.includes("last_updated_at")) return [{ id: "last_updated_at", desc: true }];
+        if (columnIds.includes("created_at")) return [{ id: "created_at", desc: true }];
+
         return [];
     };
 
