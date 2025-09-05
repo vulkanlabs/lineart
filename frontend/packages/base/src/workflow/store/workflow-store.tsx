@@ -42,7 +42,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             saveError: null,
             autoSaveEnabled: true,
             retryCount: 0,
-            autoSaveInterval: autoSaveInterval, // Use configured interval
+            autoSaveInterval,
         },
 
         getInputSchema: () => {
@@ -393,9 +393,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
         // Auto-save operations with configurable intervals
         markChanged: () => {
             // Debounce markChanged calls to prevent rapid-fire state updates
-            if (markChangedTimer) {
-                clearTimeout(markChangedTimer);
-            }
+            if (markChangedTimer) clearTimeout(markChangedTimer);
 
             markChangedTimer = setTimeout(() => {
                 const currentState = get();
@@ -433,7 +431,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                         lastSaved: new Date(),
                         saveError: null,
                         retryCount: 0,
-                        autoSaveInterval: autoSaveInterval, // Use configured interval
+                        autoSaveInterval,
                     },
                 };
             });

@@ -1,6 +1,5 @@
 // Workflow save API - Uses direct server communication
 import {
-    PolicyVersionBase,
     PolicyDefinitionDictInput,
     UIMetadata,
     PolicyVersion,
@@ -20,10 +19,8 @@ export async function PUT(request: Request) {
     try {
         const { workflow, spec, uiMetadata = {} } = await request.json();
 
-        if (workflow?.policy_version_id)
-            return savePolicyVersion(workflow, spec, uiMetadata);
-        else if (workflow?.component_id)
-            return saveComponent(workflow, spec, uiMetadata);
+        if (workflow?.policy_version_id) return savePolicyVersion(workflow, spec, uiMetadata);
+        else if (workflow?.component_id) return saveComponent(workflow, spec, uiMetadata);
         else return apiResponse.error("Invalid workflow type", 400);
     } catch (error) {
         return apiResponse.error(error instanceof Error ? error.message : "Save failed", 500);
