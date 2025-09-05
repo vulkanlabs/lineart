@@ -51,6 +51,7 @@ export interface ResourceTableProps<TData, TValue> {
     enableColumnHiding?: boolean;
     disableFilters?: boolean;
     CreationDialog?: React.ReactNode;
+    defaultSorting?: SortingState;
 }
 
 export function ResourceTable<TData, TValue>({
@@ -61,8 +62,28 @@ export function ResourceTable<TData, TValue>({
     enableColumnHiding,
     disableFilters,
     CreationDialog,
+    defaultSorting,
 }: ResourceTableProps<TData, TValue>) {
-    const [sorting, setSorting] = React.useState<SortingState>([]);
+    // try last_updated_at first, then created_at, as DESC
+    const getDefaultSorting = (): SortingState => {
+        if (defaultSorting) return defaultSorting;
+
+        const columnIds = columns
+            .map((col) => {
+                // Check if the column has accessorKey property
+                if ("accessorKey" in col && typeof col.accessorKey === "string")
+                    return col.accessorKey;
+                return col.id;
+            })
+            .filter(Boolean);
+
+        if (columnIds.includes("last_updated_at")) return [{ id: "last_updated_at", desc: true }];
+        if (columnIds.includes("created_at")) return [{ id: "created_at", desc: true }];
+
+        return [];
+    };
+
+    const [sorting, setSorting] = React.useState<SortingState>(getDefaultSorting());
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
     const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: pageSize ?? 5 });
@@ -255,6 +276,7 @@ export function DeletableResourceTable<TData, TValue>({
     deleteOptions,
     enableColumnHiding,
     CreationDialog,
+    defaultSorting,
 }: DeletableResourceTableProps<TData, TValue>) {
     const { resourceType, resourceIdColumn, resourceNameColumn, deleteResourceFunction } =
         deleteOptions;
@@ -298,6 +320,7 @@ export function DeletableResourceTable<TData, TValue>({
                     searchOptions={searchOptions}
                     enableColumnHiding={enableColumnHiding}
                     CreationDialog={CreationDialog}
+                    defaultSorting={defaultSorting}
                 />
             </div>
 
