@@ -194,7 +194,6 @@ export function createNodeByType({
 
     // Find the next available number by checking existing names
     let nextNumber = 1;
-    const baseNamePattern = standardizeNodeName(nodeConfig.name);
 
     while (true) {
         const candidateName = standardizeNodeName(`${nodeConfig.name} ${nextNumber}`);
