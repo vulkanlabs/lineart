@@ -31,9 +31,9 @@ class ExecutionBackendFactory:
         worker_type = config.worker_service.worker_type
 
         if worker_type == "dagster":
-            return ExecutionBackendFactory._create_dagster_launcher(config)
+            return ExecutionBackendFactory._create_dagster_backend(config)
         elif worker_type == "hatchet":
-            return ExecutionBackendFactory._create_hatchet_launcher(config)
+            return ExecutionBackendFactory._create_hatchet_backend(config)
         else:
             raise ValueError(f"Unsupported worker type: {worker_type}")
 

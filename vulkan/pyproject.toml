@@ -16,6 +16,10 @@ dependencies = [
 
 [project.optional-dependencies]
 beam = ["apache-beam[dataframe,gcp]>=2.60.0"]
+dagster = [
+    "dagster>=1.11.9",
+    "dagster-postgres>=0.27.9",
+]
 hatchet = [
     "hatchet-sdk>=1.16",
 ]
@@ -36,3 +40,4 @@ dev-dependencies = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
