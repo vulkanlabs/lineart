@@ -6,9 +6,9 @@ service clients that work with different workflow engines' HTTP services.
 
 from vulkan_engine.backends.dagster.client import create_dagster_client_from_config
 from vulkan_engine.backends.dagster.service_client import DagsterServiceClient
-from vulkan_engine.config import DagsterServiceConfig, VulkanEngineConfig
-from vulkan_engine.hatchet.service_client import HatchetServiceClient
+from vulkan_engine.backends.hatchet.service_client import HatchetServiceClient
 from vulkan_engine.backends.service_client import BackendServiceClient
+from vulkan_engine.config import DagsterServiceConfig, VulkanEngineConfig
 
 
 class ServiceClientFactory:
@@ -62,7 +62,4 @@ class ServiceClientFactory:
         """Create Hatchet service client with proper configuration."""
 
         server_url = config.worker_service.server_url
-        return HatchetServiceClient(server_url=server_url)
-        server_url = config.worker_service.server_url
-        return HatchetServiceClient(server_url=server_url)
         return HatchetServiceClient(server_url=server_url)

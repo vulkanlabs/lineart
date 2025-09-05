@@ -7,6 +7,7 @@ run launchers that work with different workflow engines (Dagster, Hatchet).
 from vulkan_engine.backends.dagster.backend import DagsterBackend
 from vulkan_engine.backends.dagster.client import create_dagster_client_from_config
 from vulkan_engine.backends.execution import ExecutionBackend
+from vulkan_engine.backends.hatchet.backend import HatchetBackend
 from vulkan_engine.config import DagsterServiceConfig, VulkanEngineConfig
 
 
@@ -56,15 +57,4 @@ class ExecutionBackendFactory:
         config: VulkanEngineConfig,
     ) -> ExecutionBackend:
         """Create Hatchet launcher with proper configuration."""
-        # For now, raise NotImplementedError since Hatchet launcher doesn't exist yet
-        raise NotImplementedError("Hatchet launcher is not yet implemented")
-
-        # Future implementation would look like:
-        # try:
-        #     from vulkan_engine.hatchet.launch_run import HatchetRunLauncher
-        # except ImportError as e:
-        #     raise ImportError(f"Hatchet dependencies not available: {e}")
-        #
-        # return HatchetRunLauncher(db=db, config=config.worker_service)
-        # return HatchetRunLauncher(db=db, config=config.worker_service)
-        # return HatchetRunLauncher(db=db, config=config.worker_service)
+        return HatchetBackend(server_url=config.worker_service.server_url)

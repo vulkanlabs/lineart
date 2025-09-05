@@ -6,6 +6,7 @@ This module handles environment variable loading and creates VulkanEngineConfig 
 import os
 
 from vulkan_engine.config import (
+    SUPPORTED_BACKENDS,
     AppConfig,
     DatabaseConfig,
     ExternalServiceConfig,
@@ -105,56 +106,37 @@ def load_worker_database_config() -> WorkerDatabaseConfig:
 
 def load_worker_service_config() -> WorkerServiceConfig:
     """Load worker service configuration from environment variables."""
-    worker_type = os.getenv("WORKER_TYPE", "dagster")
-
-    if worker_type not in ("dagster", "hatchet"):
+    worker_type = os.getenv("WORKER_TYPE")
+    if worker_type not in SUPPORTED_BACKENDS:
         raise ValueError(
-            f"Invalid WORKER_TYPE: {worker_type}. Must be 'dagster' or 'hatchet'"
+            f"Invalid WORKER_TYPE: {worker_type}. Must be one of {SUPPORTED_BACKENDS}"
         )
 
-    host = os.getenv("WORKER_HOST")
-    port = os.getenv("WORKER_PORT")
+    worker_url = os.getenv("WORKER_URL")
+    if worker_url is None:
+        raise ValueError("Missing required environment variable: WORKER_URL")
 
-    if not all([host, port]):
-        missing = [
-            name
-            for name, value in [("WORKER_HOST", host), ("WORKER_PORT", port)]
-            if value is None
-        ]
-        raise ValueError(
-            f"Missing required worker service environment variables: {', '.join(missing)}"
-        )
-
-    # Create base config
     config = WorkerServiceConfig(
         worker_type=worker_type,
-        host=host,
-        port=port,
+        server_url=worker_url,
     )
-
-    if worker_type == "dagster":
-        # Dagster-specific configuration
-        server_port = os.getenv("WORKER_SERVER_PORT")
-        if not server_port:
-            raise ValueError(
-                "Missing required environment variable: WORKER_SERVER_PORT"
-            )
-        config.server_port = server_port
-
     return config
 
 
 def load_vulkan_engine_config() -> VulkanEngineConfig:
     """Load complete VulkanEngineConfig from environment variables."""
-    # Load worker configuration
+    app = load_app_config()
+    database = load_database_config()
+    external_services = load_external_service_config()
+    logging = load_logging_config()
     worker_database = load_worker_database_config()
     worker_service = load_worker_service_config()
 
     return VulkanEngineConfig(
-        app=load_app_config(),
-        database=load_database_config(),
-        external_services=load_external_service_config(),
-        logging=load_logging_config(),
+        app=app,
+        database=database,
+        external_services=external_services,
+        logging=logging,
         worker_database=worker_database,
         worker_service=worker_service,
     )

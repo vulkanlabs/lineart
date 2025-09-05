@@ -3,7 +3,7 @@
 from dataclasses import asdict
 from uuid import UUID
 
-from hatchet_sdk import TriggerWorkflowOptions
+from hatchet_sdk import Hatchet, TriggerWorkflowOptions
 from pydantic import ValidationError, create_model
 
 from vulkan.constants import POLICY_CONFIG_KEY
@@ -18,15 +18,15 @@ logger = init_logger("hatchet_backend")
 class HatchetBackend(ExecutionBackend):
     """Dagster implementation of the execution backend."""
 
-    def __init__(self, client, server_url: str):
+    def __init__(self, server_url: str):
         """
         Initialize Hatchet backend.
 
         Args:
-            client: Hatchet client
             server_url: Server URL for callbacks
         """
-        self.client = client
+        client = Hatchet()
+
         self.server_url = server_url
 
     def trigger_job(

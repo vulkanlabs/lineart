@@ -101,31 +101,15 @@ class WorkerDatabaseConfig:
         return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
 
 
+SUPPORTED_BACKENDS: set[str] = {"dagster", "hatchet"}
+
+
 @dataclass
 class WorkerServiceConfig:
     """Unified service configuration for workflow engines."""
 
     worker_type: Literal["dagster", "hatchet"]
-    host: str
-    port: str
-    server_port: str | None = None  # Dagster-specific
-
-    # Hatchet-specific fields
-    home_path: str | None = None
-    scripts_path: str | None = None
-    workspaces_path: str | None = None
-
-    @property
-    def base_url(self) -> str:
-        """Get base URL for the worker service."""
-        return f"http://{self.host}:{self.port}"
-
-    @property
-    def server_url(self) -> str:
-        """Get server URL for the worker service."""
-        if self.worker_type == "dagster" and self.server_port:
-            return f"http://{self.host}:{self.server_port}"
-        return f"http://{self.host}:{self.port}"
+    server_url: str
 
 
 @dataclass
