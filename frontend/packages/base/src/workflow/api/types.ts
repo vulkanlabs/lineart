@@ -38,7 +38,6 @@ export interface WorkflowApiClient {
         workflow: Workflow,
         spec: PolicyDefinitionDictInput,
         uiMetadata: { [key: string]: UIMetadata },
-        isAutoSave?: boolean,
         projectId?: string,
     ): Promise<SaveWorkflowResult>;
 

@@ -37,7 +37,6 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
         policyVersion: PolicyVersion,
         spec: PolicyDefinitionDictInput,
         uiMetadata: { [key: string]: UIMetadata },
-        isAutoSave?: boolean,
         projectId?: string,
     ): Promise<SaveWorkflowResult> {
         // Simulate network delay

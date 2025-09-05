@@ -56,7 +56,7 @@ export function useAutoSave({
             // Use the ref to get current UI metadata without dependency issues
             uiMetadata = getUIMetadataRef.current();
 
-            await apiClient.saveWorkflowSpec(workflow, spec, uiMetadata, true, projectId); // isAutoSave = true
+            await apiClient.saveWorkflowSpec(workflow, spec, uiMetadata, projectId);
 
             markSaved();
         } catch (error) {

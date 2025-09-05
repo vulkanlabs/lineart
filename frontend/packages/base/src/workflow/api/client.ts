@@ -35,7 +35,6 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
         workflow: Workflow,
         spec: PolicyDefinitionDictInput,
         uiMetadata: { [key: string]: UIMetadata },
-        isAutoSave?: boolean,
         projectId?: string,
     ): Promise<SaveWorkflowResult> {
         try {
@@ -54,7 +53,7 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
                     "Content-Type": "application/json",
                     ...this.config.headers,
                 },
-                body: JSON.stringify({ workflow, spec, uiMetadata, isAutoSave }),
+                body: JSON.stringify({ workflow, spec, uiMetadata }),
                 signal: this.createTimeoutSignal(),
             });
 
