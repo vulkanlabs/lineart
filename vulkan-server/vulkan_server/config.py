@@ -9,7 +9,6 @@ from vulkan_engine.config import (
     SUPPORTED_BACKENDS,
     AppConfig,
     DatabaseConfig,
-    ExternalServiceConfig,
     LoggingConfig,
     VulkanEngineConfig,
     WorkerDatabaseConfig,
@@ -47,17 +46,6 @@ def load_database_config() -> DatabaseConfig:
         host=host,
         port=port,
         database=database,
-    )
-
-
-def load_external_service_config() -> ExternalServiceConfig:
-    """Load external service configuration from environment variables."""
-    resolution_service_url = os.getenv("RESOLUTION_SERVICE_URL")
-    beam_launcher_url = os.getenv("BEAM_LAUNCHER_URL")
-
-    return ExternalServiceConfig(
-        resolution_service_url=resolution_service_url,
-        beam_launcher_url=beam_launcher_url,
     )
 
 
@@ -127,7 +115,6 @@ def load_vulkan_engine_config() -> VulkanEngineConfig:
     """Load complete VulkanEngineConfig from environment variables."""
     app = load_app_config()
     database = load_database_config()
-    external_services = load_external_service_config()
     logging = load_logging_config()
     worker_database = load_worker_database_config()
     worker_service = load_worker_service_config()
@@ -135,7 +122,6 @@ def load_vulkan_engine_config() -> VulkanEngineConfig:
     return VulkanEngineConfig(
         app=app,
         database=database,
-        external_services=external_services,
         logging=logging,
         worker_database=worker_database,
         worker_service=worker_service,

@@ -131,7 +131,6 @@ class VulkanEngineConfig:
 
     app: AppConfig
     database: DatabaseConfig
-    external_services: ExternalServiceConfig
     logging: LoggingConfig
 
     # Unified worker configuration
