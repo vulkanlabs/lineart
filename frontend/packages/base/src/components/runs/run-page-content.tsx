@@ -8,7 +8,7 @@ import type { NodeDefinitionDict, RunData, RunLogs } from "@vulkanlabs/client-op
 import { ResizeHandle } from "../resize-handle";
 
 import { WorkflowFrame } from "./workflow/frame";
-import { EdgeLayoutConfig, NodeLayoutConfig, RunNodeLayout } from "./workflow/types";
+import { ReactflowEdge, ReactflowNode } from "./workflow/types";
 import { makeGraphElements } from "./workflow/graph";
 
 import { LogsTable } from "./run-logs";
@@ -25,12 +25,12 @@ export interface RunPageConfig {
 }
 
 export function RunPageContent({
-    nodes,
+    nodeDefinitions,
     runLogs,
     runData,
     config,
 }: {
-    nodes: NodeDefinitionDict[];
+    nodeDefinitions: NodeDefinitionDict[];
     runLogs: RunLogs;
     runData: RunData;
     config?: RunPageConfig;
@@ -45,7 +45,7 @@ export function RunPageContent({
         error,
     } = config || {};
 
-    const [runNodes, edges] = getGraphElements(nodes, runData);
+    const [nodes, edges] = getGraphElements(nodeDefinitions, runData);
 
     const containerOverflowClass =
         containerOverflow === "hidden" ? "overflow-hidden" : "overflow-scroll";
@@ -161,7 +161,7 @@ export function RunPageContent({
                         <Panel defaultSize={horizontalSizes[0]} minSize={40}>
                             <div className="w-full h-full bg-white">
                                 <WorkflowFrame
-                                    nodes={runNodes}
+                                    nodes={nodes}
                                     edges={edges}
                                     onNodeClick={(_: any, node: any) => setClickedNode(node)}
                                     onPaneClick={() => setClickedNode(null)}
@@ -193,28 +193,27 @@ export function RunPageContent({
 }
 
 function getGraphElements(
-    nodes: NodeDefinitionDict[],
+    nodeDefinitions: NodeDefinitionDict[],
     runData: RunData,
-): [RunNodeLayout[], EdgeLayoutConfig[]] {
+): [ReactflowNode[], ReactflowEdge[]] {
+    // Create a dummy input node to represent the workflow input
     const inputNode: NodeDefinitionDict = {
         name: "input_node",
         node_type: "INPUT",
         dependencies: null,
         metadata: null,
     };
-    const allNodes = nodes.length > 0 ? [...nodes, inputNode] : nodes;
+    const allNodes = nodeDefinitions.length > 0 ? [...nodeDefinitions, inputNode] : nodeDefinitions;
 
-    const [nodesToLayout, edges] = makeGraphElements(allNodes);
-
-    const runNodes: RunNodeLayout[] = nodesToLayout.map((node: NodeLayoutConfig) => {
-        const runNode = {
+    let [nodes, edges] = makeGraphElements(allNodes);
+    nodes = nodes.map((node) => {
+        return {
             ...node,
             data: {
                 ...node.data,
-                run: runData.steps[node.id] || null,
+                run: runData.steps ? runData.steps[node.id] || undefined : undefined,
             },
         };
-        return runNode;
     });
-    return [runNodes, edges];
+    return [nodes, edges];
 }

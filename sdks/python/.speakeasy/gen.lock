@@ -1,17 +1,17 @@
 lockVersion: 2.0.0
 id: 88929680-bb73-487a-94bf-9600cc541817
 management:
-  docChecksum: 4c826b6a6baffd49ecc55eb2e7a4705b
+  docChecksum: 6d213771dd497f1e85bdf47ae860ff55
   docVersion: 0.1.0
-  speakeasyVersion: 1.606.8
-  generationVersion: 2.687.13
+  speakeasyVersion: 1.609.0
+  generationVersion: 2.692.0
   releaseVersion: 0.1.1
-  configChecksum: 9e9b4aa2dfaf57f98919f0a7c85f6418
+  configChecksum: 8db6cab8f1c7fad04df9164453901a13
 features:
   python:
     additionalDependencies: 1.0.0
     constsAndDefaults: 1.0.5
-    core: 5.20.1
+    core: 5.20.3
     defaultEnabledRetries: 0.2.0
     devContainers: 3.0.0
     enumUnions: 0.1.0
@@ -144,6 +144,7 @@ generatedFiles:
   - docs/models/runresult.md
   - docs/models/runsbypolicyrequest.md
   - docs/models/runsoutcomesbypolicyrequest.md
+  - docs/models/runstatus.md
   - docs/models/runtimeparam.md
   - docs/models/runversionsyncrequest.md
   - docs/models/runworkflowrequest.md
@@ -288,6 +289,7 @@ generatedFiles:
   - src/lineart_sdk/models/runresult.py
   - src/lineart_sdk/models/runs_by_policyop.py
   - src/lineart_sdk/models/runs_outcomes_by_policyop.py
+  - src/lineart_sdk/models/runstatus.py
   - src/lineart_sdk/models/runtimeparam.py
   - src/lineart_sdk/models/set_config_variablesop.py
   - src/lineart_sdk/models/set_data_source_env_variablesop.py
@@ -506,7 +508,7 @@ examples:
         application/json: {"policy_version_id": "8c0e0b71-d393-42a9-bf86-3f9f801362b3", "input_data": {"key": "<value>", "key1": "<value>", "key2": "<value>"}}
       responses:
         "200":
-          application/json: {"run_id": "36bb6b80-5dee-4054-ba01-9b049a34872e", "status": "<value>"}
+          application/json: {"run_id": "36bb6b80-5dee-4054-ba01-9b049a34872e", "status": "SUCCESS"}
         "422":
           application/json: {}
   request_data_from_broker:
@@ -539,7 +541,7 @@ examples:
         application/json: {"status": "<value>", "result": "<value>"}
       responses:
         "200":
-          application/json: {"run_id": "a488906f-6476-400a-a614-3426a298c0a4", "policy_version_id": "0280e08b-52ca-48b5-bf89-354dc996508d", "status": "<value>", "created_at": "2023-05-14T19:51:55.177Z", "last_updated_at": "2023-10-18T15:44:08.342Z"}
+          application/json: {"run_id": "a488906f-6476-400a-a614-3426a298c0a4", "policy_version_id": "0280e08b-52ca-48b5-bf89-354dc996508d", "status": "PENDING", "created_at": "2023-05-14T19:51:55.177Z", "last_updated_at": "2023-10-18T15:44:08.342Z"}
         "422":
           application/json: {}
   list_policies:
@@ -612,7 +614,7 @@ examples:
           policy_id: "<id>"
       responses:
         "200":
-          application/json: [{"run_id": "43af9101-2a9f-4728-a5f4-f66398f54a0a", "policy_version_id": "da53ed5c-e750-494c-99ed-c38bfd9daa8f", "status": "<value>", "created_at": "2025-03-03T13:46:01.609Z", "last_updated_at": "2025-04-29T22:16:23.308Z"}]
+          application/json: [{"run_id": "43af9101-2a9f-4728-a5f4-f66398f54a0a", "policy_version_id": "da53ed5c-e750-494c-99ed-c38bfd9daa8f", "status": "STARTED", "created_at": "2025-03-03T13:46:01.609Z", "last_updated_at": "2025-04-29T22:16:23.308Z"}]
         "422":
           application/json: {}
   create_run_group:
@@ -737,7 +739,7 @@ examples:
           policy_version_id: "<id>"
       responses:
         "200":
-          application/json: [{"run_id": "27f9d5f2-b814-4daf-a4b3-bd0f157d344a", "policy_version_id": "e820df81-1712-4fd9-8648-0c678befaf85", "status": "<value>", "created_at": "2024-02-20T00:44:39.959Z", "last_updated_at": "2025-10-26T17:27:01.188Z"}]
+          application/json: [{"run_id": "27f9d5f2-b814-4daf-a4b3-bd0f157d344a", "policy_version_id": "e820df81-1712-4fd9-8648-0c678befaf85", "status": "PENDING", "created_at": "2024-02-20T00:44:39.959Z", "last_updated_at": "2025-10-26T17:27:01.188Z"}]
         "422":
           application/json: {}
   run_workflow:
@@ -752,7 +754,7 @@ examples:
         application/json: {"input_data": {"key": "<value>", "key1": "<value>", "key2": "<value>"}}
       responses:
         "200":
-          application/json: {"run_id": "7054f23c-e92b-4f11-8d77-cf9cb14d013a", "status": "<value>"}
+          application/json: {"run_id": "7054f23c-e92b-4f11-8d77-cf9cb14d013a", "status": "FAILURE"}
         "422":
           application/json: {}
   list_config_variables:
@@ -794,7 +796,7 @@ examples:
           run_id: "<id>"
       responses:
         "200":
-          application/json: {"run_id": "818c9e0c-3f40-4f0d-a02e-b5387c0ac48e", "policy_version_id": "f6a069c7-c80e-4812-a7cf-9826e9ca76bd", "status": "<value>", "last_updated_at": "2023-08-11T13:01:23.294Z", "steps": {"key": {"output": "0x44f34a8F9E", "metadata": {"step_name": "<value>", "node_type": "<value>", "start_time": 4683.58, "end_time": 7049.04}}}}
+          application/json: {"run_id": "818c9e0c-3f40-4f0d-a02e-b5387c0ac48e", "policy_version_id": "f6a069c7-c80e-4812-a7cf-9826e9ca76bd", "status": "SUCCESS", "created_at": "2024-08-29T04:48:02.553Z", "last_updated_at": "2023-08-11T13:01:23.294Z"}
         "422":
           application/json: {}
   get_run_logs:
@@ -814,7 +816,7 @@ examples:
           run_id: "<id>"
       responses:
         "200":
-          application/json: {"run_id": "4b80b622-732b-43d6-ac78-a6673df49379", "policy_version_id": "430a1836-b839-404c-851a-31cf2d26b43a", "status": "<value>", "created_at": "2025-02-19T02:53:11.261Z", "last_updated_at": "2025-08-22T01:47:37.539Z"}
+          application/json: {"run_id": "4b80b622-732b-43d6-ac78-a6673df49379", "policy_version_id": "430a1836-b839-404c-851a-31cf2d26b43a", "status": "STARTED", "created_at": "2025-02-19T02:53:11.261Z", "last_updated_at": "2025-08-22T01:47:37.539Z"}
         "422":
           application/json: {}
   start_auth:

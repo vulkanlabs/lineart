@@ -1,54 +1,27 @@
 import React from "react";
 import { Handle, NodeTypes, Position } from "@xyflow/react";
-import { CheckCircle2, XCircle, Clock, Play, Zap, Terminal, ArrowRightCircle } from "lucide-react";
+import { CircleEllipsis, ArrowRightCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-interface NodeData {
-    label: string;
-    type: string;
-    clicked?: boolean;
-    run?: {
-        metadata?: {
-            error?: any;
-            start_time?: number;
-            end_time?: number;
-        };
-        output?: any;
-    };
+import { nodeConfig, nodeStatusConfig } from "./config";
+import type { NodeData } from "./types";
+import { getNodeStatus, calculateDuration, NodeStatus } from "./utils";
+
+function getStatusIcon(status: NodeStatus, size: number = 14) {
+    const config = nodeStatusConfig[status];
+    if (!config) return null;
+    const IconComponent = config.icon;
+    return <IconComponent size={size} className={config.iconClassName} />;
 }
 
-function getNodeStatus(data: NodeData): "error" | "success" | "skipped" {
-    if (!data.run) return "skipped";
-    if (data.run.metadata?.error) return "error";
-    return "success";
-}
-
-function getStatusIcon(status: string, size: number = 14) {
-    switch (status) {
-        case "success":
-            return <CheckCircle2 size={size} className="text-green-600" />;
-        case "error":
-            return <XCircle size={size} className="text-red-600" />;
-        case "skipped":
-            return <Clock size={size} className="text-gray-400" />;
-        default:
-            return null;
-    }
+function getStatusStyles(status: NodeStatus) {
+    return nodeStatusConfig[status]?.styles || "";
 }
 
 function getNodeTypeIcon(type: string, size: number = 14) {
-    switch (type?.toLowerCase()) {
-        case "action":
-            return <Zap size={size} className="text-gray-600" />;
-        case "terminal":
-        case "terminate":
-            return <Terminal size={size} className="text-gray-600" />;
-        case "input":
-            return <Play size={size} className="text-gray-600" />;
-        default:
-            return <ArrowRightCircle size={size} className="text-gray-600" />;
-    }
+    const IconComponent = nodeConfig[type]?.icon || CircleEllipsis;
+    return <IconComponent size={size} className="text-gray-600" />;
 }
 
 function NodeBase({
@@ -65,14 +38,8 @@ function NodeBase({
     const status = getNodeStatus(data);
     const duration =
         data.run?.metadata?.start_time && data.run?.metadata?.end_time
-            ? ((data.run.metadata.end_time - data.run.metadata.start_time) * 1000).toFixed(0) + "ms"
+            ? calculateDuration(data.run.metadata.start_time, data.run.metadata.end_time)
             : null;
-
-    const statusStyles = {
-        error: "bg-red-50 border-red-300 hover:border-red-400 hover:shadow-red-100",
-        success: "bg-green-50 border-green-300 hover:border-green-400 hover:shadow-green-100",
-        skipped: "bg-gray-50 border-gray-300 hover:border-gray-400 hover:shadow-gray-100",
-    };
 
     return (
         <div
@@ -80,7 +47,7 @@ function NodeBase({
             className={cn(
                 "relative rounded-lg border-2 transition-all duration-200",
                 "hover:shadow-lg cursor-pointer",
-                statusStyles[status],
+                getStatusStyles(status),
                 data.clicked && "ring-2 ring-blue-500 ring-offset-2",
             )}
         >

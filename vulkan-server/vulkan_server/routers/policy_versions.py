@@ -10,10 +10,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from vulkan_engine import schemas
-from vulkan_engine.dagster.launch_run import (
-    MAX_POLLING_TIMEOUT_MS,
-    MIN_POLLING_INTERVAL_MS,
-)
 from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
     InvalidDataSourceException,
@@ -22,6 +18,10 @@ from vulkan_engine.exceptions import (
     PolicyVersionNotFoundException,
 )
 from vulkan_engine.services import PolicyVersionService
+from vulkan_engine.services.run_orchestration import (
+    MAX_POLLING_TIMEOUT_MS,
+    MIN_POLLING_INTERVAL_MS,
+)
 
 from vulkan_server.dependencies import (
     get_policy_version_service,

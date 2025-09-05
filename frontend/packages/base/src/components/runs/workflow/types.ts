@@ -1,15 +1,6 @@
-import { StepDetails } from "@vulkanlabs/client-open";
+import type { Node, Position } from "@xyflow/react";
 
-export type RunNodeLayout = NodeLayoutConfig & {
-    draggable?: boolean;
-    data: {
-        label: string;
-        description: string;
-        type: string;
-        dependencies?: NodeDependency[];
-        run?: StepDetails;
-    };
-};
+import { StepDetails, DependencyDict } from "@vulkanlabs/client-open";
 
 type RunLogEvent = {
     log_type?: string;
@@ -31,54 +22,26 @@ export type RunLogs = {
     logs: RunLog[];
 };
 
-export type NodeDependency = {
-    node: string;
-    output?: string | null;
-    key?: string | null;
-};
-
-export type NodeDefinition = {
-    name: string;
-    node_type: string;
-    description: string;
-    hidden: boolean;
-    metadata: any;
-    dependencies?: NodeDependency[];
-};
-
-export type GraphDefinition = {
-    [key: string]: NodeDefinition;
-};
-
-export type Dict = {
-    [key: string]: string | number | boolean;
-};
-
-export interface NodeLayoutConfig {
-    id: string;
-    data: {
-        label: string;
-        description: string;
-        type: string;
-        dependencies?: NodeDependency[];
-        metadata?: Record<string, any>;
-    };
-    width: number;
-    height: number;
+export interface NodeData extends Record<string, unknown> {
+    label: string;
     type: string;
-    draggable?: boolean;
-    children?: NodeLayoutConfig[];
-    layoutOptions?: Dict;
-    targetPosition?: string;
-    sourcePosition?: string;
-    x?: number;
-    y?: number;
+    description?: string | null;
+    dependencies?: { [key: string]: DependencyDict } | null;
+    metadata?: { [key: string]: any } | null;
+    run?: StepDetails;
+    clicked?: boolean;
 }
-
-export interface EdgeLayoutConfig {
+export interface ReactflowEdge {
     id: string;
     source: string;
     target: string;
 }
 
-export type LayoutedNode = NodeLayoutConfig & { position: { x: number; y: number } };
+export type ReactflowNode = Node<NodeData>;
+
+export type ELKLayoutedNode = ReactflowNode & {
+    x?: number;
+    y?: number;
+    layoutOptions?: Record<string, string>;
+    children?: ELKLayoutedNode[];
+};

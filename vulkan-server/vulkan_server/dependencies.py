@@ -15,6 +15,8 @@ from typing import Annotated, Iterator
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
+from vulkan_engine.backends.base import ExecutionBackend
+from vulkan_engine.backends.factory import ExecutionBackendFactory
 from vulkan_engine.config import VulkanEngineConfig
 
 # Removed legacy Dagster imports - now using worker abstractions only
@@ -34,7 +36,6 @@ from vulkan_engine.services.data_client_factory import (
     DataClientFactory,
     WorkerDataClient,
 )
-from vulkan_engine.services.launcher_factory import LauncherFactory, WorkerLauncher
 from vulkan_engine.services.run_orchestration import RunOrchestrationService
 from vulkan_engine.services.run_query import RunQueryService
 from vulkan_engine.services.worker_service_client_factory import (
@@ -42,6 +43,7 @@ from vulkan_engine.services.worker_service_client_factory import (
     WorkerServiceClientFactory,
 )
 from vulkan_engine.services.workflow import WorkflowService
+
 from vulkan_server.config import load_vulkan_engine_config
 
 
@@ -106,21 +108,20 @@ def get_service_dependencies(
     return db, logger
 
 
-def get_worker_launcher(
-    db: Annotated[Session, Depends(get_database_session)],
+def get_execution_backend(
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
-) -> WorkerLauncher:
+) -> ExecutionBackend:
     """
-    Get worker launcher using factory pattern.
+    Get execution backend for running workflows.
 
     Args:
-        db: Database session
+        launcher: Worker launcher (Dagster, Hatchet, etc.)
         config: Vulkan engine configuration
 
     Returns:
-        WorkerLauncher instance (Dagster, Hatchet, etc.)
+        ExecutionBackend instance (currently DagsterBackend)
     """
-    return LauncherFactory.create_launcher(config, db)
+    return ExecutionBackendFactory.create_backend(config)
 
 
 def get_worker_data_client(
@@ -181,7 +182,7 @@ def get_run_query_service(
 
 def get_run_orchestration_service(
     db: Annotated[Session, Depends(get_database_session)],
-    launcher: Annotated[WorkerLauncher, Depends(get_worker_launcher)],
+    backend: Annotated[ExecutionBackend, Depends(get_execution_backend)],
     logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> RunOrchestrationService:
     """
@@ -189,7 +190,7 @@ def get_run_orchestration_service(
 
     Args:
         db: Database session
-        launcher: Worker launcher (Dagster, Hatchet, etc.)
+        backend: Execution backend for running workflows
         logger: Configured logger
 
     Returns:
@@ -197,7 +198,7 @@ def get_run_orchestration_service(
     """
     return RunOrchestrationService(
         db=db,
-        launcher=launcher,
+        backend=backend,
         logger=logger,
     )
 
@@ -234,7 +235,7 @@ def get_workflow_service(
 
 def get_policy_version_service(
     workflow_service: Annotated[WorkflowService, Depends(get_workflow_service)],
-    run_orchestration_service: Annotated[
+    orchestrator: Annotated[
         RunOrchestrationService, Depends(get_run_orchestration_service)
     ],
     deps=Depends(get_service_dependencies),
@@ -244,14 +245,14 @@ def get_policy_version_service(
     return PolicyVersionService(
         db=db,
         workflow_service=workflow_service,
-        run_orchestrator=run_orchestration_service,
+        orchestrator=orchestrator,
         logger=logger,
     )
 
 
 def get_allocation_service(
     db: Annotated[Session, Depends(get_database_session)],
-    run_orchestrator: Annotated[
+    orchestrator: Annotated[
         RunOrchestrationService, Depends(get_run_orchestration_service)
     ],
     logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
@@ -261,13 +262,13 @@ def get_allocation_service(
 
     Args:
         db: Database session
-        run_orchestrator: Run orchestration service
+        orchestrator: Run orchestration service
         logger: Configured logger
 
     Returns:
         Configured AllocationService instance
     """
-    return AllocationService(db=db, run_orchestrator=run_orchestrator, logger=logger)
+    return AllocationService(db=db, orchestrator=orchestrator, logger=logger)
 
 
 def get_data_source_service(

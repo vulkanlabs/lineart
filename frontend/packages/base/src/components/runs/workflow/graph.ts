@@ -1,60 +1,26 @@
-import ELK from "elkjs/lib/elk.bundled.js";
+import ELK, { ElkNode, LayoutOptions } from "elkjs/lib/elk.bundled.js";
+import { Position } from "@xyflow/react";
 
 import { NodeDefinitionDict } from "@vulkanlabs/client-open";
 
-import { NodeLayoutConfig, NodeDefinition, EdgeLayoutConfig, Dict, LayoutedNode } from "./types";
-import { defaultElkOptions } from "./options";
-
-const NodeTypeMapping: Record<string, string> = {
-    TRANSFORM: "common",
-    CONNECTION: "common",
-    DATA_INPUT: "common",
-    BRANCH: "common",
-    DECISION: "common",
-    TERMINATE: "terminate",
-    INPUT: "entry",
-};
-
-export async function layoutGraph(
-    nodes: NodeLayoutConfig[],
-    edges: EdgeLayoutConfig[],
-    options: Dict,
-): Promise<[NodeLayoutConfig[], EdgeLayoutConfig[]]> {
-    const elk = new ELK();
-
-    const [layoutedNodes, layoutedEdges] = await getLayoutedElements(nodes, edges, elk, options);
-    return [layoutedNodes, layoutedEdges];
-}
+import { ReactflowNode, ReactflowEdge, ELKLayoutedNode } from "./types";
+import { nodeConfig, defaultElkOptions } from "./config";
 
 /**
- * @param graphData - Raw data with the node definitions.
+ * Convert raw node definitions into Reactflow nodes and edges.
+ * @param nodes - Raw data with the node definitions.
  * @returns A tuple with the nodes and edges of the graph.
  */
 export function makeGraphElements(
-    graphNodes: Array<NodeDefinitionDict>,
-): [NodeLayoutConfig[], EdgeLayoutConfig[]] {
-    const nodes = structureNodes(graphNodes).map((n) => withLayoutOptions(n, defaultElkOptions));
+    nodes: Array<NodeDefinitionDict>,
+): [ReactflowNode[], ReactflowEdge[]] {
+    const rfNodes = nodes.map((node) => makeReactflowNode(node));
 
-    const nodesMap = Object.assign(
-        {},
-        ...nodes.flatMap((node: NodeLayoutConfig) => {
-            return [{ [node.id]: node }];
-        }),
-    );
-    const edges = graphNodes.flatMap((node: any) => makeEdges(node, nodesMap));
+    // Create a map of nodes for easy lookup when creating edges
+    const nodesMap = Object.assign({}, ...rfNodes.flatMap((node) => [{ [node.id]: node }]));
+    const rfEdges = nodes.flatMap((node) => makeReactflowEdges(node, nodesMap));
 
-    return [nodes, edges];
-}
-
-function structureNodes(nodes: NodeDefinitionDict[]): NodeLayoutConfig[] {
-    return nodes.map((node: any) => makeNode(node));
-}
-
-export function withLayoutOptions(n: NodeLayoutConfig, options: Dict): NodeLayoutConfig {
-    return {
-        ...n,
-        layoutOptions: options,
-    };
+    return [rfNodes, rfEdges];
 }
 
 type NodeDimensions = {
@@ -67,11 +33,20 @@ const defaultNodeDimensions: NodeDimensions = {
     height: 42,
 };
 
-export function makeNode(node: NodeDefinition, dimensions?: NodeDimensions): NodeLayoutConfig {
+/**
+ * Convert a NodeDefinitionDict to a ReactflowNode.
+ * @param node - The node definition.
+ * @param dimensions - Optional dimensions for the node.
+ * @returns A ReactflowNode object.
+ */
+export function makeReactflowNode(
+    node: NodeDefinitionDict,
+    dimensions?: NodeDimensions,
+): ReactflowNode {
     const nodeWidth = dimensions?.width || defaultNodeDimensions.width;
     const nodeHeight = dimensions?.height || defaultNodeDimensions.height;
 
-    let nodeConfig: NodeLayoutConfig = {
+    let reactflowNode: ReactflowNode = {
         id: node.name,
         data: {
             label: node.name,
@@ -85,23 +60,31 @@ export function makeNode(node: NodeDefinition, dimensions?: NodeDimensions): Nod
         // Hardcode a width and height for elk to use when layouting.
         width: nodeWidth,
         height: nodeHeight,
+
+        // Dummy positions, will be set by elk.
+        position: { x: 0, y: 0 },
     };
 
-    if (Object.keys(NodeTypeMapping).includes(node.node_type)) {
-        nodeConfig.type = NodeTypeMapping[node.node_type];
+    if (Object.keys(nodeConfig).includes(node.node_type)) {
+        reactflowNode.type = nodeConfig[node.node_type].type;
     } else {
-        nodeConfig.targetPosition = "left";
-        nodeConfig.sourcePosition = "right";
+        reactflowNode.targetPosition = Position.Left;
+        reactflowNode.sourcePosition = Position.Right;
     }
 
     if (node.metadata !== null) {
-        nodeConfig.data.metadata = node.metadata;
+        reactflowNode.data.metadata = node.metadata;
     }
 
-    return nodeConfig;
+    return reactflowNode;
 }
 
-function makeEdges(node: NodeDefinitionDict, nodesMap: any): EdgeLayoutConfig[] {
+/** Convert node dependencies to Reactflow edges.
+ * @param node - The node definition.
+ * @param nodesMap - A map of node IDs to ReactflowNode objects.
+ * @returns An array of ReactflowEdge objects.
+ */
+function makeReactflowEdges(node: NodeDefinitionDict, _nodesMap: any): ReactflowEdge[] {
     if (node.dependencies === null) {
         return [];
     }
@@ -114,7 +97,7 @@ function makeEdges(node: NodeDefinitionDict, nodesMap: any): EdgeLayoutConfig[] 
             dep = dep.node;
         }
 
-        let edge: EdgeLayoutConfig = {
+        const edge: ReactflowEdge = {
             id: `${dep}-${node.name}`,
             source: dep,
             target: node.name,
@@ -124,45 +107,69 @@ function makeEdges(node: NodeDefinitionDict, nodesMap: any): EdgeLayoutConfig[] 
     });
 }
 
-export async function getLayoutedElements(
-    nodes: NodeLayoutConfig[],
-    edges: EdgeLayoutConfig[],
-    elk: any,
-    options: Dict,
-): Promise<[NodeLayoutConfig[], EdgeLayoutConfig[]]> {
-    const graph = {
+/**
+ * Layout nodes and edges using ELK algorithm
+ * @param nodes - Array of ReactflowNode to be laid out
+ * @param edges - Array of ReactflowEdge representing connections between nodes
+ * @param elkOptions - Optional ELK layout options
+ * @returns A promise that resolves to a tuple containing the layouted nodes and edges
+ */
+export async function layoutGraph(
+    nodes: ReactflowNode[],
+    edges: ReactflowEdge[],
+    elkOptions: LayoutOptions = defaultElkOptions,
+): Promise<[ReactflowNode[], ReactflowEdge[]]> {
+    const elk = new ELK();
+
+    const elkGraph: ElkNode = {
         id: "root",
-        layoutOptions: options,
-        children: [{ id: "all", layoutOptions: options, children: nodes }],
-        edges: edges,
+        layoutOptions: elkOptions,
+        children: [
+            {
+                id: "all",
+                layoutOptions: elkOptions,
+                // ReactflowNode is compatible with ElkNode
+                children: nodes.map((n) => ({ ...n, layoutOptions: elkOptions })) as ElkNode[],
+            },
+        ],
+        edges: edges.map((edge) => ({
+            id: edge.id,
+            sources: [edge.source],
+            targets: [edge.target],
+        })),
     };
 
-    return elk
-        .layout(graph)
-        .then((layoutedGraph: any) => {
-            const format_node = (node: NodeLayoutConfig): LayoutedNode => ({
-                ...node,
-                // React Flow expects a position property on the node instead of `x`
-                // and `y` fields.
-                position: { x: node.x || 0, y: node.y || 0 },
-            });
+    try {
+        const layoutedGraph = await elk.layout(elkGraph);
 
-            const extractChildren = (node: NodeLayoutConfig): LayoutedNode[] => {
-                if (node.children) {
-                    const children = node.children.flatMap((child: NodeLayoutConfig) =>
-                        extractChildren(child),
-                    );
-                    return [format_node(node), ...children];
-                }
-                return [format_node(node)];
-            };
+        const formatNode = (node: ELKLayoutedNode): ReactflowNode => ({
+            id: node.id,
+            type: node.type,
+            data: node.data,
+            width: node.width,
+            height: node.height,
+            draggable: node.draggable,
+            sourcePosition: node.sourcePosition,
+            targetPosition: node.targetPosition,
+            position: { x: node.x || 0, y: node.y || 0 },
+        });
 
-            let nodes = layoutedGraph.children.flatMap((node: NodeLayoutConfig) =>
-                extractChildren(node),
-            );
-            nodes = nodes.filter((node: NodeLayoutConfig) => node.id !== "all");
+        // Extract all layouted nodes from the ELK result
+        const layoutedNodes: ReactflowNode[] = [];
 
-            return [nodes, edges];
-        })
-        .catch(console.error);
+        // Get nodes from the "all" container
+        const allContainer = layoutedGraph.children?.find((child) => child.id === "all");
+        if (allContainer?.children) {
+            for (const elkNode of allContainer.children) {
+                // ELK keeps the original ReactflowNode properties and adds layout info
+                const nodeWithPosition = elkNode as ELKLayoutedNode;
+                layoutedNodes.push(formatNode(nodeWithPosition));
+            }
+        }
+
+        return [layoutedNodes, edges];
+    } catch (error) {
+        console.error("ELK layout error:", error);
+        throw error;
+    }
 }
