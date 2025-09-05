@@ -5,7 +5,6 @@ data clients that work with different workflow engines' databases.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from vulkan_engine.config import VulkanEngineConfig
 from vulkan_engine.schemas import LogEntry
@@ -72,7 +71,7 @@ class DataClientFactory:
     def _create_dagster_data_client(config: VulkanEngineConfig) -> WorkerDataClient:
         """Create Dagster data client with proper configuration."""
         try:
-            from vulkan_engine.dagster.client import (
+            from vulkan_engine.backends.dagster.client import (
                 DagsterDataClient,
                 create_dagster_data_client,
             )

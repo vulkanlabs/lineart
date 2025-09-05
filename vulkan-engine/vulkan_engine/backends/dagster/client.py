@@ -4,7 +4,7 @@ from dagster_graphql import DagsterGraphQLClient
 from sqlalchemy import create_engine
 
 from vulkan_engine.config import DagsterDatabaseConfig, DagsterServiceConfig
-from vulkan_engine.dagster.trigger_run import create_dagster_client
+from vulkan_engine.backends.dagster.trigger_run import create_dagster_client
 from vulkan_engine.schemas import LogEntry
 
 

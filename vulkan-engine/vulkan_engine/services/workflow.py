@@ -6,17 +6,18 @@ to API users but are managed internally by PolicyVersionService and ComponentSer
 """
 
 from sqlalchemy.orm import Session
+
+from vulkan.core.run import WorkflowStatus
+from vulkan.spec.nodes import NodeType
+from vulkan.spec.policy import PolicyDefinitionDict
+from vulkan_engine.backends.service_client import BackendServiceClient
 from vulkan_engine.db import Workflow
 from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import WorkflowNotFoundException
 from vulkan_engine.loaders.component import ComponentLoader
 from vulkan_engine.logger import VulkanLogger
 from vulkan_engine.schemas import UIMetadata
-from vulkan_engine.services.base import BaseService, WorkerServiceClient
-
-from vulkan.core.run import WorkflowStatus
-from vulkan.spec.nodes import NodeType
-from vulkan.spec.policy import PolicyDefinitionDict
+from vulkan_engine.services.base import BaseService
 
 
 class WorkflowService(BaseService):
@@ -25,11 +26,11 @@ class WorkflowService(BaseService):
     def __init__(
         self,
         db: Session,
-        worker_service_client: WorkerServiceClient | None = None,
+        backend_service_client: BackendServiceClient | None = None,
         logger: VulkanLogger | None = None,
     ):
         super().__init__(db, logger)
-        self.worker_service_client = worker_service_client
+        self.worker_service_client = backend_service_client
         self.component_loader = ComponentLoader(db)
 
     def create_workflow(

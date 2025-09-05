@@ -7,8 +7,8 @@ from dagster_graphql import DagsterGraphQLClient
 from vulkan.constants import POLICY_CONFIG_KEY
 from vulkan.runners.dagster.policy import DEFAULT_POLICY_NAME
 from vulkan.runners.dagster.run_config import RUN_CONFIG_KEY
-from vulkan_engine.backends.base import ExecutionBackend
-from vulkan_engine.dagster import trigger_run
+from vulkan_engine.backends.execution import ExecutionBackend
+from vulkan_engine.backends.dagster import trigger_run
 from vulkan_engine.logger import init_logger
 
 logger = init_logger("dagster_backend")
@@ -33,6 +33,7 @@ class DagsterBackend(ExecutionBackend):
         run_id: UUID,
         workflow_id: str,
         input_data: dict,
+        input_schema: dict,
         config_variables: dict[str, str],
         project_id: UUID | None = None,
     ) -> str:
@@ -43,6 +44,7 @@ class DagsterBackend(ExecutionBackend):
             workflow_id: ID of the workflow to execute
             run_id: UUID of the run
             input_data: Input data for the workflow
+            input_schema: Schema for the input data
             config_variables: Configuration variables for the workflow
             project_id: Optional project UUID
 

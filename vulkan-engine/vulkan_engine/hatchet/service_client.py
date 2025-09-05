@@ -4,9 +4,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from requests import Request, Response, Session
+
+from vulkan_engine.backends.service_client import BackendServiceClient
 from vulkan_engine.exceptions import raise_interservice_error
 from vulkan_engine.logger import init_logger
-from vulkan_engine.services.base import WorkerServiceClient
 
 
 @dataclass
@@ -17,7 +18,7 @@ class HatchetRequestConfig:
     timeout: int | None = None
 
 
-class HatchetServiceClient(WorkerServiceClient):
+class HatchetServiceClient(BackendServiceClient):
     """Client to interact with the Hatchet service."""
 
     def __init__(

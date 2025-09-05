@@ -2,10 +2,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from requests import Request, Response, Session
-from vulkan_engine.dagster.trigger_run import update_repository
+
+from vulkan_engine.backends.dagster.trigger_run import update_repository
+from vulkan_engine.backends.service_client import BackendServiceClient
 from vulkan_engine.exceptions import raise_interservice_error
 from vulkan_engine.logger import init_logger
-from vulkan_engine.services.base import WorkerServiceClient
 
 
 @dataclass
@@ -14,7 +15,7 @@ class VulkanDagsterRequestConfig:
     timeout: int | None = None
 
 
-class VulkanDagsterServiceClient(WorkerServiceClient):
+class DagsterServiceClient(BackendServiceClient):
     """Client to interact with the Vulkan Dagster service."""
 
     def __init__(

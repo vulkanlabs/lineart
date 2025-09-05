@@ -1,0 +1,86 @@
+"""Dagster backend implementation for workflow execution."""
+
+from dataclasses import asdict
+from uuid import UUID
+
+from hatchet_sdk import TriggerWorkflowOptions
+from pydantic import ValidationError, create_model
+
+from vulkan.constants import POLICY_CONFIG_KEY
+from vulkan.runners.dagster.run_config import RUN_CONFIG_KEY
+from vulkan.runners.hatchet.run_config import HatchetPolicyConfig, HatchetRunConfig
+from vulkan_engine.backends.execution import ExecutionBackend
+from vulkan_engine.logger import init_logger
+
+logger = init_logger("hatchet_backend")
+
+
+class HatchetBackend(ExecutionBackend):
+    """Dagster implementation of the execution backend."""
+
+    def __init__(self, client, server_url: str):
+        """
+        Initialize Hatchet backend.
+
+        Args:
+            client: Hatchet client
+            server_url: Server URL for callbacks
+        """
+        self.client = client
+        self.server_url = server_url
+
+    def trigger_job(
+        self,
+        run_id: UUID,
+        workflow_id: str,
+        input_data: dict,
+        input_schema: dict,
+        config_variables: dict[str, str],
+        project_id: UUID | None = None,
+    ) -> str:
+        """
+        Trigger a job execution.
+
+        Args:
+            workflow_id: ID of the workflow to execute
+            run_id: UUID of the run
+            input_data: Input data for the workflow
+            input_schema: Input schema for the workflow
+            config_variables: Configuration variables for the workflow
+            project_id: Optional project UUID
+
+        Returns:
+            Dagster run ID
+
+        Raises:
+            Exception: If Dagster job triggering fails
+        """
+
+        input_type = create_model("inputType", **input_schema)
+        stub_workflow = self.client.workflow(
+            name=workflow_id, input_validator=input_type
+        )
+
+        run_cfg = HatchetRunConfig(
+            run_id=run_id,
+            server_url=self.server_url,
+            project_id=str(project_id) if project_id else None,
+            hatchet_server_url="",
+            hatchet_api_key="",
+        )
+        policy_cfg = HatchetPolicyConfig(variables=config_variables)
+
+        metadata = {
+            RUN_CONFIG_KEY: asdict(run_cfg),
+            POLICY_CONFIG_KEY: asdict(policy_cfg),
+        }
+        options = TriggerWorkflowOptions(additional_metadata=metadata)
+        logger.debug(f"Triggering job with config: {metadata}")
+
+        try:
+            run_inputs = input_type.model_validate(input_data)
+        except ValidationError as e:
+            raise ValueError(f"[workflow {workflow_id}] Invalid input data") from e
+
+        run_ref = stub_workflow.run_no_wait(run_inputs, options=options)
+        return run_ref.workflow_run_id

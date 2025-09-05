@@ -141,15 +141,6 @@ def load_worker_service_config() -> WorkerServiceConfig:
             )
         config.server_port = server_port
 
-    elif worker_type == "hatchet":
-        # Hatchet-specific configuration
-        config.home_path = os.getenv("WORKER_HOME")
-        config.scripts_path = os.getenv("WORKER_SCRIPTS_PATH")
-        config.workspaces_path = os.getenv("WORKER_WORKSPACES_PATH")
-
-        if not config.home_path:
-            raise ValueError("Missing required environment variable: WORKER_HOME")
-
     return config
 
 

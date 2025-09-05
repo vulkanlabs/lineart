@@ -13,6 +13,12 @@ class ExecutionBackend(ABC):
         run_id: UUID,
         workflow_id: str,
         input_data: dict,
+        # TODO: Hatchet requires the input schema for validation.
+        # It validates the input when starting the run, but the status 
+        # might not be too nice.
+        # This might be an opportunity for us to handle validation more
+        # explicitly in the app, before triggering runs.
+        input_schema: dict,
         config_variables: dict[str, str],
         project_id: UUID | None = None,
     ) -> str:
@@ -23,6 +29,7 @@ class ExecutionBackend(ABC):
             run_id: UUID of the run
             workflow_id: ID of the workflow to execute
             input_data: Input data for the workflow
+            input_schema: Input schema for the workflow
             config_variables: Configuration variables for the workflow
             project_id: Optional project UUID
 

@@ -9,7 +9,7 @@ import pickle
 
 from sqlalchemy.orm import Session
 
-from vulkan_engine.dagster.client import DagsterDataClient
+from vulkan_engine.backends.dagster.client import DagsterDataClient
 from vulkan_engine.db import Run, StepMetadata
 from vulkan_engine.loaders import RunLoader
 from vulkan_engine.schemas import RunData, RunLogs

@@ -15,8 +15,12 @@ from typing import Annotated, Iterator
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
-from vulkan_engine.backends.base import ExecutionBackend
-from vulkan_engine.backends.factory import ExecutionBackendFactory
+from vulkan_engine.backends.execution import ExecutionBackend
+from vulkan_engine.backends.factory.backend import ExecutionBackendFactory
+from vulkan_engine.backends.factory.service_client import (
+    BackendServiceClient,
+    ServiceClientFactory,
+)
 from vulkan_engine.config import VulkanEngineConfig
 
 # Removed legacy Dagster imports - now using worker abstractions only
@@ -38,10 +42,6 @@ from vulkan_engine.services.data_client_factory import (
 )
 from vulkan_engine.services.run_orchestration import RunOrchestrationService
 from vulkan_engine.services.run_query import RunQueryService
-from vulkan_engine.services.worker_service_client_factory import (
-    WorkerServiceClient,
-    WorkerServiceClientFactory,
-)
 from vulkan_engine.services.workflow import WorkflowService
 
 from vulkan_server.config import load_vulkan_engine_config
@@ -141,7 +141,7 @@ def get_worker_data_client(
 
 def get_worker_service_client(
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
-) -> WorkerServiceClient:
+) -> BackendServiceClient:
     """
     Get worker service client using factory pattern.
 
@@ -151,7 +151,7 @@ def get_worker_service_client(
     Returns:
         WorkerServiceClient instance (Dagster, Hatchet, etc.)
     """
-    return WorkerServiceClientFactory.create_service_client(config)
+    return ServiceClientFactory.create_service_client(config)
 
 
 # Business Service Dependencies
@@ -222,14 +222,14 @@ def get_policy_service(
 
 def get_workflow_service(
     worker_service_client: Annotated[
-        WorkerServiceClient, Depends(get_worker_service_client)
+        BackendServiceClient, Depends(get_worker_service_client)
     ],
     db: Annotated[Session, Depends(get_database_session)],
     logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> WorkflowService:
     """Get WorkflowService instance with dependencies."""
     return WorkflowService(
-        db=db, worker_service_client=worker_service_client, logger=logger
+        db=db, backend_service_client=worker_service_client, logger=logger
     )
 
 
