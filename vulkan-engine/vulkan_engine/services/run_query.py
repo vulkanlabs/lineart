@@ -71,23 +71,17 @@ class RunQueryService(BaseService):
         run = self.run_loader.get_run(run_id, project_id=project_id)
 
         # Initialize run data structure
-        run_data = {
-            "run_id": run_id,
-            "policy_version_id": run.policy_version_id,
-            "status": run.status,
-            "last_updated_at": run.last_updated_at,
-            "steps": {},
-        }
+        run_data = RunData.model_validate(run)
 
         # Get data from Dagster
         results = self.dagster_client.get_run_data(run_id)
         if not results:
-            return RunData(**run_data)
+            return run_data
 
         # Get step metadata
         steps = self.db.query(StepMetadata).filter_by(run_id=run_id).all()
         if not steps:
-            return RunData(**run_data)
+            return run_data
 
         # Process results
         results_by_name = {result[0]: (result[1], result[2]) for result in results}
@@ -121,9 +115,9 @@ class RunQueryService(BaseService):
                             f"Failed to unpickle data for {step_name}.{object_name}"
                         )
 
-            run_data["steps"][step_name] = {"output": value, "metadata": step_metadata}
+            run_data.steps[step_name] = {"output": value, "metadata": step_metadata}
 
-        return RunData(**run_data)
+        return run_data
 
     def get_run_logs(self, run_id: str, project_id: str = None) -> RunLogs:
         """

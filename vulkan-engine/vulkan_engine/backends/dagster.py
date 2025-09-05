@@ -1,0 +1,76 @@
+"""Dagster backend implementation for workflow execution."""
+
+from uuid import UUID
+
+from dagster_graphql import DagsterGraphQLClient
+
+from vulkan.constants import POLICY_CONFIG_KEY
+from vulkan.runners.dagster.policy import DEFAULT_POLICY_NAME
+from vulkan.runners.dagster.run_config import RUN_CONFIG_KEY
+from vulkan_engine.backends.base import ExecutionBackend
+from vulkan_engine.dagster import trigger_run
+from vulkan_engine.logger import init_logger
+
+logger = init_logger("dagster_backend")
+
+
+class DagsterBackend(ExecutionBackend):
+    """Dagster implementation of the execution backend."""
+
+    def __init__(self, dagster_client: DagsterGraphQLClient, server_url: str):
+        """
+        Initialize Dagster backend.
+
+        Args:
+            dagster_client: Dagster GraphQL client
+            server_url: Server URL for callbacks
+        """
+        self.dagster_client = dagster_client
+        self.server_url = server_url
+
+    def trigger_job(
+        self,
+        run_id: UUID,
+        workflow_id: str,
+        input_data: dict,
+        config_variables: dict[str, str],
+        project_id: UUID | None = None,
+    ) -> str:
+        """
+        Trigger a Dagster job execution.
+
+        Args:
+            workflow_id: ID of the workflow to execute
+            run_id: UUID of the run
+            input_data: Input data for the workflow
+            config_variables: Configuration variables for the workflow
+            project_id: Optional project UUID
+
+        Returns:
+            Dagster run ID
+
+        Raises:
+            Exception: If Dagster job triggering fails
+        """
+        execution_config = {
+            "ops": {"input_node": {"config": input_data}},
+            "resources": {
+                RUN_CONFIG_KEY: {
+                    "config": {
+                        "run_id": str(run_id),
+                        "project_id": str(project_id) if project_id else None,
+                        "server_url": self.server_url,
+                    }
+                },
+                POLICY_CONFIG_KEY: {"config": {"variables": config_variables}},
+            },
+        }
+        logger.debug(f"Triggering job with config: {execution_config}")
+
+        dagster_run_id = trigger_run.trigger_dagster_job(
+            self.dagster_client,
+            workflow_id,
+            DEFAULT_POLICY_NAME,
+            execution_config,
+        )
+        return dagster_run_id

@@ -5,9 +5,9 @@ from enum import Enum
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from vulkan.core.run import WorkflowStatus
+from vulkan.core.run import RunStatus, WorkflowStatus
 from vulkan.schemas import DataSourceSpec, PolicyAllocationStrategy
 from vulkan.spec.policy import PolicyDefinitionDict
 
@@ -147,20 +147,16 @@ class ConfigurationVariables(ConfigurationVariablesBase):
     last_updated_at: datetime | None = None
 
 
-class RunUpdate(BaseModel):
-    status: str
-    result: str
-    run_metadata: dict | None = None
-
-
 class Run(BaseModel):
     run_id: UUID
-    policy_version_id: UUID
     run_group_id: UUID | None = None
-    status: str
+    policy_version_id: UUID
+    status: RunStatus
     result: str | None = None
+    input_data: dict | None = None
     run_metadata: dict | None = None
     created_at: datetime
+    started_at: datetime | None = None
     last_updated_at: datetime
 
     class Config:
@@ -169,7 +165,7 @@ class Run(BaseModel):
 
 class RunResult(BaseModel):
     run_id: UUID
-    status: str
+    status: RunStatus
     result: str | None = None
     run_metadata: dict | None = None
 
@@ -197,12 +193,8 @@ class _StepDetails(BaseModel):
     metadata: StepMetadataBase | None
 
 
-class RunData(BaseModel):
-    run_id: UUID
-    policy_version_id: UUID
-    status: str
-    last_updated_at: datetime
-    steps: dict[str, _StepDetails]
+class RunData(Run):
+    steps: dict[str, _StepDetails] = Field(default_factory=dict)
 
     class Config:
         from_attributes = True

@@ -14,24 +14,24 @@ import {
 } from "@xyflow/react";
 
 import { nodeTypes } from "./nodes";
-import { defaultElkOptions } from "./options";
-import type { RunNodeLayout, EdgeLayoutConfig, LayoutedNode } from "./types";
+import { defaultElkOptions } from "./config";
 import { layoutGraph } from "./graph";
+import type { ReactflowNode, ReactflowEdge } from "./types";
 import { EmptyWorkflow } from "../loading-states";
 
-function VulkanWorkflow({
+function RunWorkflow({
     graphNodes,
     graphEdges,
     onNodeClick,
     onPaneClick,
 }: {
-    graphNodes: RunNodeLayout[];
-    graphEdges: EdgeLayoutConfig[];
+    graphNodes: ReactflowNode[];
+    graphEdges: ReactflowEdge[];
     onNodeClick: any;
     onPaneClick: any;
 }) {
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const [nodes, setNodes, onNodesChange] = useNodesState<ReactflowNode>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<ReactflowEdge>([]);
     const { fitView } = useReactFlow();
 
     const loadAndLayout = () => {
@@ -59,7 +59,7 @@ function VulkanWorkflow({
         setNodes(newNodes);
     };
 
-    const clickNode = (e: React.MouseEvent, node: LayoutedNode) => {
+    const clickNode = (e: React.MouseEvent, node: ReactflowNode) => {
         resetClick();
         const newNodes = nodes.map((n) => {
             if (n.id === node.id) {
@@ -102,7 +102,17 @@ function VulkanWorkflow({
     );
 }
 
-export function WorkflowFrame({ nodes, edges, onNodeClick, onPaneClick }) {
+export function WorkflowFrame({
+    nodes,
+    edges,
+    onNodeClick,
+    onPaneClick,
+}: {
+    nodes: ReactflowNode[];
+    edges: ReactflowEdge[];
+    onNodeClick: (e: React.MouseEvent, node: ReactflowNode) => void;
+    onPaneClick: (e: React.MouseEvent) => void;
+}) {
     // Show empty state if no nodes
     if (!nodes || nodes.length === 0) {
         return <EmptyWorkflow />;
@@ -110,7 +120,7 @@ export function WorkflowFrame({ nodes, edges, onNodeClick, onPaneClick }) {
 
     return (
         <ReactFlowProvider>
-            <VulkanWorkflow
+            <RunWorkflow
                 graphNodes={nodes}
                 graphEdges={edges}
                 onNodeClick={onNodeClick}

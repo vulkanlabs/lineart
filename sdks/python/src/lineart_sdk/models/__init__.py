@@ -250,6 +250,7 @@ if TYPE_CHECKING:
         RunsOutcomesByPolicyRequest,
         RunsOutcomesByPolicyRequestTypedDict,
     )
+    from .runstatus import RunStatus
     from .runtimeparam import RunTimeParam, RunTimeParamTypedDict
     from .set_config_variablesop import (
         SetConfigVariablesRequest,
@@ -498,6 +499,7 @@ __all__ = [
     "RunLogsTypedDict",
     "RunResult",
     "RunResultTypedDict",
+    "RunStatus",
     "RunTimeParam",
     "RunTimeParamTypedDict",
     "RunTypedDict",
@@ -762,6 +764,7 @@ _dynamic_imports: dict[str, str] = {
     "RunsByPolicyRequestTypedDict": ".runs_by_policyop",
     "RunsOutcomesByPolicyRequest": ".runs_outcomes_by_policyop",
     "RunsOutcomesByPolicyRequestTypedDict": ".runs_outcomes_by_policyop",
+    "RunStatus": ".runstatus",
     "RunTimeParam": ".runtimeparam",
     "RunTimeParamTypedDict": ".runtimeparam",
     "SetConfigVariablesRequest": ".set_config_variablesop",

@@ -15,12 +15,13 @@ from typing import Annotated, Iterator
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
+from vulkan_engine.backends.base import ExecutionBackend
+from vulkan_engine.backends.dagster import DagsterBackend
 from vulkan_engine.config import VulkanEngineConfig
 from vulkan_engine.dagster.client import (
     DagsterDataClient,
     create_dagster_client_from_config,
 )
-from vulkan_engine.dagster.launch_run import DagsterRunLauncher
 from vulkan_engine.dagster.service_client import VulkanDagsterServiceClient
 from vulkan_engine.db import get_db_session
 from vulkan_engine.logger import VulkanLogger, create_logger
@@ -119,24 +120,21 @@ def get_dagster_client(
     return create_dagster_client_from_config(config.dagster_service)
 
 
-def get_dagster_launcher(
-    db: Annotated[Session, Depends(get_database_session)],
+def get_execution_backend(
     dagster_client: Annotated[object, Depends(get_dagster_client)],
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
-) -> DagsterRunLauncher:
+) -> ExecutionBackend:
     """
-    Get Dagster run launcher.
+    Get execution backend for running workflows.
 
     Args:
-        db: Database session
         dagster_client: Dagster GraphQL client
         config: Vulkan engine configuration
 
     Returns:
-        DagsterRunLauncher instance
+        ExecutionBackend instance (currently DagsterBackend)
     """
-    return DagsterRunLauncher(
-        db=db,
+    return DagsterBackend(
         dagster_client=dagster_client,
         server_url=config.app.server_url,
     )
@@ -205,7 +203,7 @@ def get_run_query_service(
 
 def get_run_orchestration_service(
     db: Annotated[Session, Depends(get_database_session)],
-    launcher: Annotated[DagsterRunLauncher, Depends(get_dagster_launcher)],
+    backend: Annotated[ExecutionBackend, Depends(get_execution_backend)],
     logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> RunOrchestrationService:
     """
@@ -213,7 +211,7 @@ def get_run_orchestration_service(
 
     Args:
         db: Database session
-        launcher: Dagster run launcher
+        backend: Execution backend for running workflows
         logger: Configured logger
 
     Returns:
@@ -221,7 +219,7 @@ def get_run_orchestration_service(
     """
     return RunOrchestrationService(
         db=db,
-        launcher=launcher,
+        backend=backend,
         logger=logger,
     )
 
@@ -258,7 +256,9 @@ def get_workflow_service(
 
 def get_policy_version_service(
     workflow_service: Annotated[WorkflowService, Depends(get_workflow_service)],
-    launcher: DagsterRunLauncher = Depends(get_dagster_launcher),
+    orchestrator: Annotated[
+        RunOrchestrationService, Depends(get_run_orchestration_service)
+    ],
     deps=Depends(get_service_dependencies),
 ) -> PolicyVersionService:
     """Get PolicyVersionService instance with dependencies."""
@@ -266,14 +266,16 @@ def get_policy_version_service(
     return PolicyVersionService(
         db=db,
         workflow_service=workflow_service,
-        launcher=launcher,
+        orchestrator=orchestrator,
         logger=logger,
     )
 
 
 def get_allocation_service(
     db: Annotated[Session, Depends(get_database_session)],
-    launcher: Annotated[DagsterRunLauncher, Depends(get_dagster_launcher)],
+    orchestrator: Annotated[
+        RunOrchestrationService, Depends(get_run_orchestration_service)
+    ],
     logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> AllocationService:
     """
@@ -281,13 +283,13 @@ def get_allocation_service(
 
     Args:
         db: Database session
-        launcher: Dagster run launcher
+        orchestrator: Run orchestration service
         logger: Configured logger
 
     Returns:
         Configured AllocationService instance
     """
-    return AllocationService(db=db, launcher=launcher, logger=logger)
+    return AllocationService(db=db, orchestrator=orchestrator, logger=logger)
 
 
 def get_data_source_service(
