@@ -63,7 +63,6 @@ class DagsterServiceConfig:
 class ExternalServiceConfig:
     """Configuration for external services."""
 
-    upload_service_url: str
     resolution_service_url: str | None = None
     beam_launcher_url: str | None = None
 

@@ -51,15 +51,10 @@ def load_database_config() -> DatabaseConfig:
 
 def load_external_service_config() -> ExternalServiceConfig:
     """Load external service configuration from environment variables."""
-    upload_service_url = os.getenv("UPLOAD_SERVICE_URL")
     resolution_service_url = os.getenv("RESOLUTION_SERVICE_URL")
     beam_launcher_url = os.getenv("BEAM_LAUNCHER_URL")
 
-    if not upload_service_url:
-        raise ValueError("Missing required environment variable: UPLOAD_SERVICE_URL")
-
     return ExternalServiceConfig(
-        upload_service_url=upload_service_url,
         resolution_service_url=resolution_service_url,
         beam_launcher_url=beam_launcher_url,
     )

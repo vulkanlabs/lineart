@@ -48,6 +48,7 @@ openapi:
 # Configuration
 .PHONY: config
 config:
+	mv ./config/active ./config/active.bkp || true
 	cp -r ./config/local ./config/active
 	cp ./config/active/.env ./.env
 	cp ./config/active/.env ./frontend/apps/open/.env
