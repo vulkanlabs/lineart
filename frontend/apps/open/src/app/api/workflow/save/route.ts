@@ -1,6 +1,5 @@
 // Workflow save API - Uses direct server communication
 import {
-    PolicyVersionUpdate,
     PolicyDefinitionDict,
     UIMetadata,
     PolicyVersion,
@@ -9,47 +8,22 @@ import {
 } from "@vulkanlabs/client-open";
 import { updateComponent } from "@/lib/api";
 
-// Shared response pattern
+// Simplified API response helper
 const apiResponse = {
-    success: (data: any) => Response.json({ success: true, data, error: null }),
-    error: (message: string, status: number = 500) => {
-        console.error(`API Error: ${message}`);
-        return Response.json({ success: false, error: message, data: null }, { status });
-    },
+    success: (data: any) => Response.json({ success: true, data }),
+    error: (message: string, status = 500) =>
+        Response.json({ success: false, error: message }, { status }),
 };
-
-// Shared validation pattern
-function validateWorkflow(workflow: any, spec: any): string | null {
-    if (!workflow) return "Workflow is required";
-    if (!spec) return "Workflow spec is required";
-    return null;
-}
 
 export async function PUT(request: Request) {
     try {
-        const {
-            workflow,
-            spec,
-            uiMetadata,
-        }: {
-            workflow: any;
-            spec: PolicyDefinitionDict;
-            uiMetadata: { [key: string]: UIMetadata };
-        } = await request.json();
+        const { workflow, spec, uiMetadata = {} } = await request.json();
 
-        const validationError = validateWorkflow(workflow, spec);
-        if (validationError) return apiResponse.error(validationError, 400);
-
-        // Handle workflow types
-        if (typeof workflow === "object" && "policy_version_id" in workflow) {
-            return savePolicyVersion(workflow as PolicyVersion, spec, uiMetadata);
-        } else if (typeof workflow === "object" && "component_id" in workflow) {
-            return saveComponent(workflow as Component, spec, uiMetadata);
-        } else {
-            return apiResponse.error("Invalid workflow type", 400);
-        }
+        if (workflow?.policy_version_id) return savePolicyVersion(workflow, spec, uiMetadata);
+        else if (workflow?.component_id) return saveComponent(workflow, spec, uiMetadata);
+        else return apiResponse.error("Invalid workflow type", 400);
     } catch (error) {
-        return apiResponse.error(error instanceof Error ? error.message : "Unknown error");
+        return apiResponse.error(error instanceof Error ? error.message : "Save failed", 500);
     }
 }
 
@@ -70,12 +44,12 @@ async function saveComponent(
                 ui_metadata: uiMetadata,
             },
         };
-        const response = await updateComponent(component.name, requestBody);
+
+        const response = await updateComponent(component.component_id, requestBody);
         return apiResponse.success(response);
     } catch (error) {
-        return apiResponse.error(
-            error instanceof Error ? error.message : "Failed to save component",
-        );
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return apiResponse.error(`Save failed: ${message}`);
     }
 }
 
@@ -84,16 +58,17 @@ async function savePolicyVersion(
     spec: PolicyDefinitionDict,
     uiMetadata: { [key: string]: UIMetadata },
 ) {
-    try {
-        const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-        if (!serverUrl) return apiResponse.error("Server URL is not configured");
+    const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
+    if (!serverUrl) return apiResponse.error("Server URL is not configured");
 
-        const requestBody: PolicyVersionUpdate = {
+    try {
+        const requestBody = {
             alias: policyVersion.alias || null,
             workflow: {
-                spec: spec,
-                requirements: [],
+                spec,
+                requirements: policyVersion.workflow?.requirements || [],
                 ui_metadata: uiMetadata,
+                variables: policyVersion.workflow?.variables || [],
             },
         };
 
@@ -101,27 +76,24 @@ async function savePolicyVersion(
             `${serverUrl}/policy-versions/${policyVersion.policy_version_id}`,
             {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify(requestBody),
                 cache: "no-store",
             },
         );
 
         if (!response.ok) {
-            const error = await response.json();
-            return apiResponse.error(
-                response.status !== 500
-                    ? `Server error ${response.status}: ${error.detail}`
-                    : "Internal server error",
-                response.status,
-            );
+            const error = await response.json().catch(() => ({ detail: response.statusText }));
+            const message = error.detail || error.message || response.statusText;
+            return apiResponse.error(`Save failed: ${message}`, response.status);
         }
 
         const data = await response.json();
         return apiResponse.success(data);
     } catch (error) {
-        return apiResponse.error(
-            error instanceof Error ? error.message : "Failed to save policy version",
-        );
+        const message = error instanceof Error ? error.message : "Network error";
+        return apiResponse.error(`Save failed: ${message}`);
     }
 }

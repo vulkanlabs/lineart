@@ -35,6 +35,14 @@ export type WorkflowActions = {
     removeCollapsedNodeHeight: (nodeId: string) => void;
     toggleNodeDetails: (nodeId: string) => void;
     toggleAllNodesCollapsed: () => void;
+
+    // Auto-save operations
+    markChanged: () => void;
+    markSaving: () => void;
+    markSaved: () => void;
+    markSaveError: (error: string) => void;
+    clearSaveError: () => void;
+    toggleAutoSave: () => void;
 };
 
 /**
@@ -48,6 +56,7 @@ export type WorkflowStore = WorkflowState & WorkflowActions;
 export type WorkflowStoreConfig = {
     initialState: WorkflowState;
     apiClient: WorkflowApiClient;
+    autoSaveInterval?: number; // Optional auto-save interval in milliseconds, defaults to 10000 (10 seconds)
 };
 
 /**
