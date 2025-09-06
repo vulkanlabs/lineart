@@ -191,8 +191,22 @@ export function createNodeByType({
 
     // For all other node types, generate a unique name and create the node
     const sameTypeNodes = existingNodes.filter((n) => n.type === type);
-    const nextNumber = sameTypeNodes.length + 1;
-    const uniqueName = standardizeNodeName(`${nodeConfig.name} ${nextNumber}`);
+
+    const usedNames = new Set(
+        sameTypeNodes.flatMap((node) => [node.data.name, node.id]).filter(Boolean),
+    );
+
+    // Find the next available number by checking against the set
+    const baseNodeName = standardizeNodeName(nodeConfig.name);
+    let nextNumber = 1;
+    let candidateName: string;
+
+    do {
+        candidateName = `${baseNodeName}_${nextNumber}`;
+        nextNumber++;
+    } while (usedNames.has(candidateName));
+
+    const uniqueName = candidateName;
 
     const newNode: VulkanNode = {
         id: uniqueName,
