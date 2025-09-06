@@ -1,5 +1,5 @@
 import type { OnConnect, OnEdgesChange, OnNodesChange, XYPosition, Edge } from "@xyflow/react";
-import type { PolicyDefinitionDictInput } from "@vulkanlabs/client-open";
+import type { PolicyDefinitionDict } from "@vulkanlabs/client-open";
 import type { VulkanNode, VulkanNodeType, WorkflowState } from "../types/workflow";
 import type { WorkflowApiClient } from "../api/types";
 
@@ -8,7 +8,7 @@ import type { WorkflowApiClient } from "../api/types";
  */
 export type WorkflowActions = {
     // Spec and schema operations
-    getSpec: () => PolicyDefinitionDictInput;
+    getSpec: () => PolicyDefinitionDict;
     getInputSchema: () => { [key: string]: string };
 
     // Node operations

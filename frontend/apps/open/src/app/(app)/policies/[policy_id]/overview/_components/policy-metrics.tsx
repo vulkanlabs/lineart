@@ -18,6 +18,7 @@ import {
     RunsChart,
     VersionPicker,
 } from "@vulkanlabs/base";
+import { PolicyVersion } from "@vulkanlabs/client-open";
 
 export default function PolicyMetrics({
     policyId,
@@ -27,13 +28,12 @@ export default function PolicyMetrics({
 }: {
     policyId: string;
     metricsLoader: any;
-    outcomesLoader: (
-        policyId: string,
-        startDate: Date,
-        endDate: Date,
-        versions: string[],
-    ) => Promise<any>;
-    versions: any[];
+    outcomesLoader: (params: {
+        policyId: string;
+        dateRange: DateRange;
+        versions: string[];
+    }) => Promise<{ runOutcomes: any[] }>;
+    versions: PolicyVersion[];
 }) {
     // Chart Data
     const [outcomeDistribution, setOutcomeDistribution] = useState([]);
@@ -69,9 +69,9 @@ export default function PolicyMetrics({
                 setRunDurationByStatus([]);
             });
 
-        outcomesLoader(policyId, dateRange.from, dateRange.to, selectedVersions)
+        outcomesLoader({ policyId, dateRange, versions: selectedVersions })
             .then((data: any) => {
-                setOutcomeDistribution(data || []);
+                setOutcomeDistribution(data.runOutcomes || []);
             })
             .catch((error: any) => {
                 console.error(error);

@@ -1,10 +1,10 @@
 // Workflow save API - Uses direct server communication
 import {
-    PolicyDefinitionDictInput,
+    PolicyDefinitionDict,
     UIMetadata,
     PolicyVersion,
     Component,
-    ComponentBase,
+    ComponentUpdate,
 } from "@vulkanlabs/client-open";
 import { updateComponent } from "@/lib/api";
 
@@ -29,26 +29,23 @@ export async function PUT(request: Request) {
 
 async function saveComponent(
     component: Component,
-    spec: PolicyDefinitionDictInput,
+    spec: PolicyDefinitionDict,
     uiMetadata: { [key: string]: UIMetadata },
 ) {
     try {
-        const requestBody = {
+        const requestBody: ComponentUpdate = {
             name: component.name,
             description: component.description || null,
             icon: component.icon || null,
             workflow: {
-                spec: spec,
+                spec,
                 requirements: component.workflow?.requirements || [],
                 variables: component.workflow?.variables || [],
                 ui_metadata: uiMetadata,
             },
         };
 
-        const response = await updateComponent(
-            component.component_id,
-            requestBody as ComponentBase,
-        );
+        const response = await updateComponent(component.component_id, requestBody);
         return apiResponse.success(response);
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
@@ -58,7 +55,7 @@ async function saveComponent(
 
 async function savePolicyVersion(
     policyVersion: PolicyVersion,
-    spec: PolicyDefinitionDictInput,
+    spec: PolicyDefinitionDict,
     uiMetadata: { [key: string]: UIMetadata },
 ) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
@@ -68,7 +65,7 @@ async function savePolicyVersion(
         const requestBody = {
             alias: policyVersion.alias || null,
             workflow: {
-                spec: spec,
+                spec,
                 requirements: policyVersion.workflow?.requirements || [],
                 ui_metadata: uiMetadata,
                 variables: policyVersion.workflow?.variables || [],

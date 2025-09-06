@@ -10,8 +10,8 @@ import {
     applyNodeChanges,
     type Edge,
 } from "@xyflow/react";
+import { PolicyDefinitionDict } from "@vulkanlabs/client-open";
 
-import type { PolicyDefinitionDictInput } from "@vulkanlabs/client-open";
 import type { WorkflowApiClient } from "../api/types";
 import { AsNodeDefinitionDict, type VulkanNode, type WorkflowState } from "../types/workflow";
 import type { InputNodeMetadata } from "../types/nodes";
@@ -59,30 +59,12 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
         getSpec: () => {
             const nodes = get().nodes || [];
+            const spec: PolicyDefinitionDict = {
+                nodes: nodes.filter((n) => n.type !== "INPUT").map(AsNodeDefinitionDict),
+                input_schema: get().getInputSchema(),
+            };
 
-            try {
-                const processedNodes = nodes
-                    .filter((n) => n.type !== "INPUT")
-                    .map((node, index) => {
-                        try {
-                            return AsNodeDefinitionDict(node);
-                        } catch (error) {
-                            console.error(`Error processing node at index ${index}:`, error);
-                            throw new Error(
-                                `Failed to process node ${node.id}: ${error instanceof Error ? error.message : "Unknown error"}`,
-                            );
-                        }
-                    });
-
-                const spec: PolicyDefinitionDictInput = {
-                    nodes: processedNodes,
-                    input_schema: get().getInputSchema(),
-                };
-
-                return spec;
-            } catch (error) {
-                throw error;
-            }
+            return spec;
         },
 
         updateTargetDeps: (sourceNodeId) => {
@@ -507,9 +489,8 @@ export function WorkflowStoreProvider({
 }: WorkflowStoreProviderProps) {
     const storeRef = useRef<WorkflowStoreApi>(null);
 
-    if (!storeRef.current) {
+    if (!storeRef.current)
         storeRef.current = createWorkflowStore({ initialState, apiClient, autoSaveInterval });
-    }
 
     return <WorkflowContext.Provider value={storeRef.current}>{children}</WorkflowContext.Provider>;
 }
@@ -520,9 +501,8 @@ export function WorkflowStoreProvider({
 export function useWorkflowStore<T>(selector: (store: WorkflowStore) => T): T {
     const workflowContext = useContext(WorkflowContext);
 
-    if (!workflowContext) {
+    if (!workflowContext)
         throw new Error("useWorkflowStore must be used within a WorkflowProvider");
-    }
 
     return useStore(workflowContext, selector);
 }
@@ -548,7 +528,6 @@ function isValidConnection(connection: Connection, nodes: VulkanNode[], edges: E
 
         return false;
     };
-
     const satisfiable = (node: VulkanNode): boolean => {
         const cumulativeDependencies = (
             node: VulkanNode,

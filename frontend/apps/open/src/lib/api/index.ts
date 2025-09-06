@@ -16,10 +16,12 @@ export type {
     PolicyBase,
     PolicyCreate,
     PolicyVersionBase,
+    PolicyVersionUpdate,
     DataSource,
     DataSourceSpec,
     DataSourceEnvVarBase,
     PolicyAllocationStrategy,
     ConfigurationVariablesBase,
     Component,
+    ComponentUpdate,
 } from "@vulkanlabs/client-open";
