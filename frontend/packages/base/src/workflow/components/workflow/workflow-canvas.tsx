@@ -30,7 +30,6 @@ import {
 } from "@vulkanlabs/base/ui";
 
 import { useDropdown } from "@/workflow/hooks/use-dropdown";
-import { useAutoSave } from "@/workflow/hooks/useAutoSave";
 import { nodesConfig } from "@/workflow/utils/nodes";
 import { iconMapping } from "@/workflow/icons";
 import { useWorkflowStore } from "@/workflow/store";
@@ -101,23 +100,6 @@ export function WorkflowCanvas({
             markSaved: state.markSaved,
         })),
     );
-
-    // Auto-save integration - use stable reference to current nodes
-    const getUIMetadata = useCallback(() => {
-        return Object.fromEntries(
-            nodes.map((node) => [
-                node.data.name,
-                { position: node.position, width: node.width, height: node.height },
-            ]),
-        );
-    }, [nodes]);
-
-    const { isAutoSaving, hasUnsavedChanges, lastSaved, saveError, autoSaveEnabled } = useAutoSave({
-        apiClient: api,
-        workflow,
-        getUIMetadata,
-        projectId,
-    });
 
     const { screenToFlowPosition, fitView, setViewport } = useReactFlow();
 
@@ -439,7 +421,7 @@ export function WorkflowCanvas({
             );
 
             // Send to backend API
-            const result = await api.saveWorkflowSpec(workflow, spec, uiMetadata, false, projectId);
+            const result = await api.saveWorkflowSpec(workflow, spec, uiMetadata, projectId);
 
             // Handle response with appropriate user feedback
             if (result.success) {
