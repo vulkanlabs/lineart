@@ -86,11 +86,7 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
                         <FormLabel htmlFor={fieldName}>{titleCase(fieldName)}</FormLabel>
                         <FormControl>
                             <Input
-                                placeholder={
-                                    fieldName === "alias"
-                                        ? "e.g. v1.0, production, beta"
-                                        : formField?.default?.toString() || ""
-                                }
+                                placeholder="e.g. v1.0, production, beta"
                                 type="text"
                                 {...field}
                             />
