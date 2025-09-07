@@ -85,12 +85,26 @@ export type GenericNodeDefinition<MetadataType> = {
 };
 
 /**
+ * Auto-save state management
+ */
+export type AutoSaveState = {
+    lastSaved: Date | null;
+    isSaving: boolean;
+    hasUnsavedChanges: boolean;
+    saveError: string | null;
+    autoSaveEnabled: boolean;
+    retryCount?: number;
+    autoSaveInterval?: number;
+};
+
+/**
  * Main workflow state structure
  */
 export type WorkflowState = {
     nodes: VulkanNode[];
     edges: Edge[];
     collapsedNodeHeights?: { [key: string]: number };
+    autoSave: AutoSaveState;
 };
 
 /**
@@ -102,8 +116,8 @@ export function AsNodeDefinitionDict(n: VulkanNode): NodeDefinitionDict {
     return {
         name: nodeDef.name,
         node_type: n.type,
-        dependencies: AsDependencies(n.data.incomingEdges),
-        metadata: nodeDef.metadata,
+        dependencies: AsDependencies(n.data?.incomingEdges),
+        metadata: nodeDef.metadata || null,
         description: nodeDef.description || null,
         hierarchy: nodeDef.hierarchy || null,
     };

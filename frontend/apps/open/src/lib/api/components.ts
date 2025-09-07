@@ -17,7 +17,7 @@ export async function fetchComponents(includeArchived: boolean = false): Promise
 
 /**
  * Get a single component by name
- * @param {string} componentName - The component identifier (usually encoded for URL safety)
+ * @param {string} componentName  - The component identifier (usually encoded for URL safety)
  * @returns {Promise<Component>} Component details with config, versions, metadata
  */
 export async function fetchComponent(componentName: string): Promise<Component> {
@@ -41,7 +41,7 @@ export async function createComponent(data: ComponentUpdate): Promise<Component>
 
 export async function updateComponent(
     componentName: string,
-    data: ComponentUpdate,
+    data: ComponentUpdate | any, // Allow any to handle backend/frontend type inconsistencies
 ): Promise<Component> {
     return withErrorHandling(
         componentsApi.updateComponent({ componentName, componentUpdate: data }),
