@@ -81,12 +81,16 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
                 key={fieldName}
                 name={fieldName as keyof typeof formSchema.shape}
                 control={form.control}
-                render={({ field }) => (
+                render={({ field }: { field: any }) => (
                     <FormItem>
                         <FormLabel htmlFor={fieldName}>{titleCase(fieldName)}</FormLabel>
                         <FormControl>
                             <Input
-                                placeholder={formField?.default?.toString()}
+                                placeholder={
+                                    fieldName === "alias"
+                                        ? "e.g. v1.0, production, beta"
+                                        : formField?.default?.toString() || ""
+                                }
                                 type="text"
                                 {...field}
                             />
@@ -110,7 +114,7 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
                     <Button variant="outline">New Version</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
+                    <DialogHeader className="">
                         <DialogTitle>Create a new Policy Version</DialogTitle>
                     </DialogHeader>
                     <form
@@ -119,7 +123,7 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
                     >
                         {formFields}
 
-                        <DialogFooter>
+                        <DialogFooter className="">
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting ? <Sending /> : "Create Policy Version"}
                             </Button>
