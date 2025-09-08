@@ -1,11 +1,47 @@
+from dataclasses import dataclass
+
 import sqlalchemy
 from dagster._core.events.log import EventLogEntry
 from dagster_graphql import DagsterGraphQLClient
 from sqlalchemy import create_engine
 
-from vulkan_engine.config import DagsterDatabaseConfig, DagsterServiceConfig
 from vulkan_engine.backends.dagster.trigger_run import create_dagster_client
 from vulkan_engine.schemas import LogEntry
+
+
+@dataclass
+class DagsterDatabaseConfig:
+    """Configuration for the Dagster database."""
+
+    user: str
+    password: str
+    host: str
+    port: str
+    database: str
+
+    @property
+    def connection_string(self) -> str:
+        """Get PostgreSQL connection string for Dagster."""
+        return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+
+
+@dataclass
+class DagsterServiceConfig:
+    """Configuration for connecting to Dagster service."""
+
+    host: str
+    port: str
+    server_port: str
+
+    @property
+    def base_url(self) -> str:
+        """Get base URL for Dagster service."""
+        return f"http://{self.host}:{self.port}"
+
+    @property
+    def server_url(self) -> str:
+        """Get server URL for Dagster service."""
+        return f"http://{self.host}:{self.server_port}"
 
 
 def create_dagster_client_from_config(

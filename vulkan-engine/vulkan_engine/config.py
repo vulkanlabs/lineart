@@ -5,7 +5,46 @@ and other implementations can use and extend.
 """
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Union
+
+
+@dataclass
+class DagsterConfig:
+    """Configuration specific to Dagster backend."""
+
+    # Currently no specific fields required for Dagster
+    pass
+
+
+@dataclass
+class HatchetConfig:
+    """Configuration specific to Hatchet backend."""
+
+    hatchet_token: str
+
+
+@dataclass
+class WorkerServiceConfig:
+    """Unified service configuration for workflow engines."""
+
+    worker_type: Literal["dagster", "hatchet"]
+    server_url: str
+    service_config: Union[DagsterConfig, HatchetConfig]
+
+    def __post_init__(self):
+        """Validate that the config matches the worker type."""
+        if self.worker_type == "dagster" and not isinstance(
+            self.service_config, DagsterConfig
+        ):
+            raise ValueError(
+                "service_config must be DagsterConfig for dagster worker type"
+            )
+        elif self.worker_type == "hatchet" and not isinstance(
+            self.service_config, HatchetConfig
+        ):
+            raise ValueError(
+                "service_config must be HatchetConfig for hatchet worker type"
+            )
 
 
 @dataclass
@@ -22,41 +61,6 @@ class DatabaseConfig:
     def connection_string(self) -> str:
         """Get PostgreSQL connection string."""
         return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
-
-
-@dataclass
-class DagsterDatabaseConfig:
-    """Configuration for the Dagster database."""
-
-    user: str
-    password: str
-    host: str
-    port: str
-    database: str
-
-    @property
-    def connection_string(self) -> str:
-        """Get PostgreSQL connection string for Dagster."""
-        return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
-
-
-@dataclass
-class DagsterServiceConfig:
-    """Configuration for connecting to Dagster service."""
-
-    host: str
-    port: str
-    server_port: str
-
-    @property
-    def base_url(self) -> str:
-        """Get base URL for Dagster service."""
-        return f"http://{self.host}:{self.port}"
-
-    @property
-    def server_url(self) -> str:
-        """Get server URL for Dagster service."""
-        return f"http://{self.host}:{self.server_port}"
 
 
 @dataclass
@@ -99,17 +103,6 @@ class WorkerDatabaseConfig:
         ):
             return None
         return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
-
-
-SUPPORTED_BACKENDS: set[str] = {"dagster", "hatchet"}
-
-
-@dataclass
-class WorkerServiceConfig:
-    """Unified service configuration for workflow engines."""
-
-    worker_type: Literal["dagster", "hatchet"]
-    server_url: str
 
 
 @dataclass

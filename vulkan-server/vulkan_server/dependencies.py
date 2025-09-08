@@ -141,6 +141,7 @@ def get_worker_data_client(
 
 def get_worker_service_client(
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
+    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> BackendServiceClient:
     """
     Get worker service client using factory pattern.
@@ -151,7 +152,7 @@ def get_worker_service_client(
     Returns:
         WorkerServiceClient instance (Dagster, Hatchet, etc.)
     """
-    return ServiceClientFactory.create_service_client(config)
+    return ServiceClientFactory.create_service_client(config, base_logger=logger)
 
 
 # Business Service Dependencies

@@ -6,6 +6,10 @@ data clients that work with different workflow engines' databases.
 
 from abc import ABC, abstractmethod
 
+from vulkan_engine.backends.dagster.client import (
+    DagsterDatabaseConfig,
+    create_dagster_data_client,
+)
 from vulkan_engine.config import VulkanEngineConfig
 from vulkan_engine.schemas import LogEntry
 
@@ -53,7 +57,6 @@ class DataClientFactory:
 
         Raises:
             ValueError: If the worker type is not supported
-            ImportError: If required dependencies are not available
         """
         if not config.worker_database.enabled:
             return None
@@ -70,17 +73,8 @@ class DataClientFactory:
     @staticmethod
     def _create_dagster_data_client(config: VulkanEngineConfig) -> WorkerDataClient:
         """Create Dagster data client with proper configuration."""
-        try:
-            from vulkan_engine.backends.dagster.client import (
-                DagsterDataClient,
-                create_dagster_data_client,
-            )
-        except ImportError as e:
-            raise ImportError(f"Dagster dependencies not available: {e}")
 
         # Create equivalent DagsterDatabaseConfig from WorkerDatabaseConfig
-        from vulkan_engine.config import DagsterDatabaseConfig
-
         if not config.worker_database.connection_string:
             raise ValueError(
                 "Worker database is enabled but missing required connection parameters"

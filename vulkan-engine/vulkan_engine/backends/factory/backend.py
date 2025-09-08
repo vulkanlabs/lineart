@@ -5,10 +5,13 @@ run launchers that work with different workflow engines (Dagster, Hatchet).
 """
 
 from vulkan_engine.backends.dagster.backend import DagsterBackend
-from vulkan_engine.backends.dagster.client import create_dagster_client_from_config
+from vulkan_engine.backends.dagster.client import (
+    DagsterServiceConfig,
+    create_dagster_client_from_config,
+)
 from vulkan_engine.backends.execution import ExecutionBackend
 from vulkan_engine.backends.hatchet.backend import HatchetBackend
-from vulkan_engine.config import DagsterServiceConfig, VulkanEngineConfig
+from vulkan_engine.config import VulkanEngineConfig, WorkerServiceConfig
 
 
 class ExecutionBackendFactory:
@@ -27,7 +30,6 @@ class ExecutionBackendFactory:
 
         Raises:
             ValueError: If the worker type is not supported
-            ImportError: If required dependencies are not available
         """
         worker_type = config.worker_service.worker_type
 
@@ -40,7 +42,7 @@ class ExecutionBackendFactory:
 
     @staticmethod
     def _create_dagster_backend(
-        config: VulkanEngineConfig,
+        config: WorkerServiceConfig,
     ) -> ExecutionBackend:
         """Create Dagster launcher with proper configuration."""
         dagster_config = DagsterServiceConfig(
@@ -57,4 +59,4 @@ class ExecutionBackendFactory:
         config: VulkanEngineConfig,
     ) -> ExecutionBackend:
         """Create Hatchet launcher with proper configuration."""
-        return HatchetBackend(server_url=config.worker_service.server_url)
+        return HatchetBackend(config=config.worker_service)

@@ -1,13 +1,13 @@
 """Service client for interacting with Hatchet server."""
 
 from dataclasses import dataclass
+from logging import Logger
 from typing import Any
 
 from requests import Request, Response, Session
 
 from vulkan_engine.backends.service_client import BackendServiceClient
 from vulkan_engine.exceptions import raise_interservice_error
-from vulkan_engine.logger import init_logger
 
 
 @dataclass
@@ -24,11 +24,12 @@ class HatchetServiceClient(BackendServiceClient):
     def __init__(
         self,
         server_url: str,
+        logger: Logger,
         request_config: HatchetRequestConfig | None = None,
     ) -> None:
         self.server_url = server_url
         self.session = Session()
-        self.logger = init_logger("hatchet_service_client")
+        self.logger = logger.getChild("hatchet_service_client")
 
         if request_config is None:
             self.request_config = HatchetRequestConfig()

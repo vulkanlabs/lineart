@@ -5,8 +5,8 @@ This module handles environment variable loading and creates VulkanEngineConfig 
 
 import os
 
+from vulkan_engine.backends.factory.service_client import create_worker_service_config
 from vulkan_engine.config import (
-    SUPPORTED_BACKENDS,
     AppConfig,
     DatabaseConfig,
     LoggingConfig,
@@ -94,20 +94,7 @@ def load_worker_database_config() -> WorkerDatabaseConfig:
 
 def load_worker_service_config() -> WorkerServiceConfig:
     """Load worker service configuration from environment variables."""
-    worker_type = os.getenv("WORKER_TYPE")
-    if worker_type not in SUPPORTED_BACKENDS:
-        raise ValueError(
-            f"Invalid WORKER_TYPE: {worker_type}. Must be one of {SUPPORTED_BACKENDS}"
-        )
-
-    worker_url = os.getenv("WORKER_URL")
-    if worker_url is None:
-        raise ValueError("Missing required environment variable: WORKER_URL")
-
-    config = WorkerServiceConfig(
-        worker_type=worker_type,
-        server_url=worker_url,
-    )
+    config = create_worker_service_config()
     return config
 
 
