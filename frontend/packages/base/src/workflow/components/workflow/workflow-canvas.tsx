@@ -212,7 +212,10 @@ export function WorkflowCanvas({
             }, 0);
 
             // Check if workflow has saved UI positions
-            if (!workflow.workflow?.ui_metadata || Object.keys(workflow.workflow.ui_metadata).length === 0) {
+            if (
+                !workflow.workflow?.ui_metadata ||
+                Object.keys(workflow.workflow.ui_metadata).length === 0
+            ) {
                 // New workflow: Apply automatic layout using ELK algorithm
                 const unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => ({
                     ...node,

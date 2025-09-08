@@ -142,7 +142,10 @@ export function ConnectionNode({ id, data, selected, width }: VulkanNodeProps) {
                             {Object.entries(data).map(([key, value], index) => (
                                 <TableRow key={index}>
                                     <TableCell>
-                                        <div className="nodrag" onMouseDown={(e) => e.stopPropagation()}>
+                                        <div
+                                            className="nodrag"
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                        >
                                             <Input
                                                 value={key}
                                                 onChange={(e) =>
@@ -159,7 +162,10 @@ export function ConnectionNode({ id, data, selected, width }: VulkanNodeProps) {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="nodrag" onMouseDown={(e) => e.stopPropagation()}>
+                                        <div
+                                            className="nodrag"
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                        >
                                             <Input
                                                 value={value}
                                                 onChange={(e) =>
@@ -258,7 +264,9 @@ export function ConnectionNode({ id, data, selected, width }: VulkanNodeProps) {
                                 value={localMetadata.timeout || ""}
                                 onChange={(e) =>
                                     updateMetadata({
-                                        timeout: e.target.value ? parseInt(e.target.value) : undefined,
+                                        timeout: e.target.value
+                                            ? parseInt(e.target.value)
+                                            : undefined,
                                     })
                                 }
                                 placeholder="30"
