@@ -8,7 +8,7 @@ import Link from "next/link";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, UseFormReturn, ControllerRenderProps } from "react-hook-form";
-import { Play, Settings, CheckCircle, AlertCircle } from "lucide-react";
+import { Play, Settings, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Terminal } from "lucide-react";
 
 // Vulkan packages
 import {
@@ -45,7 +45,31 @@ export function LauncherPage({ policyVersionId, inputSchema, configVariables }: 
 
     return (
         <div className="flex flex-col p-8 gap-8">
-            <h1 className="text-2xl font-bold tracking-tight">Launcher</h1>
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold tracking-tight">Launcher</h1>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            // TODO: Add copy URL functionality
+                        }}
+                    >
+                        <LinkIcon className="h-4 w-4 mr-2" />
+                        Copy URL
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            // TODO: Add copy curl functionality
+                        }}
+                    >
+                        <Terminal className="h-4 w-4 mr-2" />
+                        Copy curl
+                    </Button>
+                </div>
+            </div>
             <div>
                 <LaunchRunForm
                     policyVersionId={policyVersionId}
