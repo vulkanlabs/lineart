@@ -8,7 +8,15 @@ import Link from "next/link";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, UseFormReturn, ControllerRenderProps } from "react-hook-form";
-import { Play, Settings, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Terminal } from "lucide-react";
+import {
+    Play,
+    Settings,
+    CheckCircle,
+    AlertCircle,
+    Copy,
+    Link as LinkIcon,
+    Terminal,
+} from "lucide-react";
 
 // Vulkan packages
 import {
@@ -43,10 +51,12 @@ export function LauncherPage({ policyVersionId, inputSchema, configVariables }: 
     const [createdRun, setCreatedRun] = useState<Run | null>(null);
     const [error, setError] = useState<Error | null>(null);
     const [copiedUrl, setCopiedUrl] = useState(false);
+    const [copiedCurl, setCopiedCurl] = useState(false);
 
     const getApiUrl = () => {
-        const baseUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL || 
-                       (typeof window !== 'undefined' ? window.location.origin : '');
+        const baseUrl =
+            process.env.NEXT_PUBLIC_VULKAN_SERVER_URL ||
+            (typeof window !== "undefined" ? window.location.origin : "");
         return `${baseUrl}/policy-versions/${policyVersionId}/runs`;
     };
 
@@ -61,28 +71,36 @@ export function LauncherPage({ policyVersionId, inputSchema, configVariables }: 
         }
     };
 
+    const handleCopyCurl = async () => {
+        try {
+            const url = getApiUrl();
+            const curlCommand = `curl -X POST "${url}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "input_data": {},
+    "config_variables": {}
+  }'`;
+
+            await navigator.clipboard.writeText(curlCommand);
+            setCopiedCurl(true);
+            setTimeout(() => setCopiedCurl(false), 2000);
+        } catch (err) {
+            console.error("Failed to copy curl command:", err);
+        }
+    };
+
     return (
         <div className="flex flex-col p-8 gap-8">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">Launcher</h1>
                 <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCopyUrl}
-                    >
+                    <Button variant="outline" size="sm" onClick={handleCopyUrl}>
                         <LinkIcon className="h-4 w-4 mr-2" />
                         {copiedUrl ? "Copied!" : "Copy URL"}
                     </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                            // TODO: Add copy curl functionality
-                        }}
-                    >
+                    <Button variant="outline" size="sm" onClick={handleCopyCurl}>
                         <Terminal className="h-4 w-4 mr-2" />
-                        Copy curl
+                        {copiedCurl ? "Copied!" : "Copy curl"}
                     </Button>
                 </div>
             </div>
