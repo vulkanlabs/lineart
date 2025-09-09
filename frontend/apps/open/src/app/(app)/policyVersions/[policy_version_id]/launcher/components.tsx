@@ -1,7 +1,7 @@
 "use client";
 
 // React and Next.js
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 // External libraries
@@ -52,6 +52,13 @@ export function LauncherPage({ policyVersionId, inputSchema, configVariables }: 
     const [error, setError] = useState<Error | null>(null);
     const [copiedUrl, setCopiedUrl] = useState(false);
     const [copiedCurl, setCopiedCurl] = useState(false);
+    const [currentFormData, setCurrentFormData] = useState<{
+        input_data: string;
+        config_variables: string;
+    }>({
+        input_data: JSON.stringify(asInputData(inputSchema), null, 2),
+        config_variables: JSON.stringify(asConfigMap(configVariables || []), null, 2),
+    });
 
     const getApiUrl = () => {
         const baseUrl =
@@ -77,8 +84,8 @@ export function LauncherPage({ policyVersionId, inputSchema, configVariables }: 
             const curlCommand = `curl -X POST "${url}" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "input_data": {},
-    "config_variables": {}
+    "input_data": ${currentFormData.input_data},
+    "config_variables": ${currentFormData.config_variables}
   }'`;
 
             await navigator.clipboard.writeText(curlCommand);
@@ -111,6 +118,7 @@ export function LauncherPage({ policyVersionId, inputSchema, configVariables }: 
                     setError={setError}
                     defaultInputData={asInputData(inputSchema)}
                     defaultConfigVariables={asConfigMap(configVariables || [])}
+                    onFormDataChange={setCurrentFormData}
                 />
             </div>
             {createdRun && (
@@ -216,6 +224,7 @@ type LaunchRunFormProps = {
     defaultConfigVariables: Object;
     setCreatedRun: (run: Run | null) => void;
     setError: (error: Error | null) => void;
+    onFormDataChange?: (data: { input_data: string; config_variables: string }) => void;
 };
 
 function LaunchRunForm({
@@ -224,6 +233,7 @@ function LaunchRunForm({
     defaultConfigVariables,
     setCreatedRun,
     setError,
+    onFormDataChange,
 }: LaunchRunFormProps) {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -232,6 +242,18 @@ function LaunchRunForm({
             config_variables: JSON.stringify(defaultConfigVariables, null, 4),
         },
     });
+
+    // Watch form changes and update parent component
+    const watchedValues = form.watch();
+    
+    useEffect(() => {
+        if (onFormDataChange) {
+            onFormDataChange({
+                input_data: watchedValues.input_data || JSON.stringify(defaultInputData, null, 2),
+                config_variables: watchedValues.config_variables || JSON.stringify(defaultConfigVariables, null, 2),
+            });
+        }
+    }, [watchedValues.input_data, watchedValues.config_variables, onFormDataChange, defaultInputData, defaultConfigVariables]);
 
     const setDefaults = () => {
         form.setValue("input_data", JSON.stringify(defaultInputData, null, 4));
