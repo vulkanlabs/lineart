@@ -42,6 +42,24 @@ type LauncherPageProps = {
 export function LauncherPage({ policyVersionId, inputSchema, configVariables }: LauncherPageProps) {
     const [createdRun, setCreatedRun] = useState<Run | null>(null);
     const [error, setError] = useState<Error | null>(null);
+    const [copiedUrl, setCopiedUrl] = useState(false);
+
+    const getApiUrl = () => {
+        const baseUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL || 
+                       (typeof window !== 'undefined' ? window.location.origin : '');
+        return `${baseUrl}/policy-versions/${policyVersionId}/runs`;
+    };
+
+    const handleCopyUrl = async () => {
+        try {
+            const url = getApiUrl();
+            await navigator.clipboard.writeText(url);
+            setCopiedUrl(true);
+            setTimeout(() => setCopiedUrl(false), 2000);
+        } catch (err) {
+            console.error("Failed to copy URL:", err);
+        }
+    };
 
     return (
         <div className="flex flex-col p-8 gap-8">
@@ -51,12 +69,10 @@ export function LauncherPage({ policyVersionId, inputSchema, configVariables }: 
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                            // TODO: Add copy URL functionality
-                        }}
+                        onClick={handleCopyUrl}
                     >
                         <LinkIcon className="h-4 w-4 mr-2" />
-                        Copy URL
+                        {copiedUrl ? "Copied!" : "Copy URL"}
                     </Button>
                     <Button
                         variant="outline"
