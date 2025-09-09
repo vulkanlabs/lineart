@@ -245,15 +245,23 @@ function LaunchRunForm({
 
     // Watch form changes and update parent component
     const watchedValues = form.watch();
-    
+
     useEffect(() => {
         if (onFormDataChange) {
             onFormDataChange({
                 input_data: watchedValues.input_data || JSON.stringify(defaultInputData, null, 2),
-                config_variables: watchedValues.config_variables || JSON.stringify(defaultConfigVariables, null, 2),
+                config_variables:
+                    watchedValues.config_variables ||
+                    JSON.stringify(defaultConfigVariables, null, 2),
             });
         }
-    }, [watchedValues.input_data, watchedValues.config_variables, onFormDataChange, defaultInputData, defaultConfigVariables]);
+    }, [
+        watchedValues.input_data,
+        watchedValues.config_variables,
+        onFormDataChange,
+        defaultInputData,
+        defaultConfigVariables,
+    ]);
 
     const setDefaults = () => {
         form.setValue("input_data", JSON.stringify(defaultInputData, null, 4));
