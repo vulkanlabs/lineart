@@ -212,7 +212,10 @@ export function WorkflowCanvas({
             }, 0);
 
             // Check if workflow has saved UI positions
-            if (!workflow.workflow?.ui_metadata) {
+            if (
+                !workflow.workflow?.ui_metadata ||
+                Object.keys(workflow.workflow.ui_metadata).length === 0
+            ) {
                 // New workflow: Apply automatic layout using ELK algorithm
                 const unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => ({
                     ...node,
@@ -331,7 +334,6 @@ export function WorkflowCanvas({
      *    - Minimal edge crossings
      *    - Reasonable spacing
      * - Apply calculated positions back to nodes
-     * - Fit view to show the newly organized workflow
      */
     const autoLayoutNodes = useCallback(async () => {
         // Prepare nodes for ELK (remove position data but keep everything else)
@@ -353,16 +355,11 @@ export function WorkflowCanvas({
             }));
 
             setNodes(newNodes);
-
-            // Give DOM time to update, then fit the reorganized workflow
-            setTimeout(() => {
-                smartFitView();
-            }, 100);
         } catch (error) {
             // Don't break the UI if layout fails - just log and continue
             console.error("Error applying auto-layout:", error);
         }
-    }, [nodes, edges, setNodes, smartFitView]);
+    }, [nodes, edges, setNodes]);
 
     /**
      * Copy workflow specification to clipboard

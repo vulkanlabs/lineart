@@ -268,26 +268,30 @@ export function InputNode({ id, data, selected, width }: VulkanNodeProps) {
                                 className="grid grid-cols-[2fr_80px_auto] gap-3 items-center"
                             >
                                 <div className="space-y-1">
-                                    <Input
-                                        type="text"
-                                        className={`h-8 ${
-                                            invalidFields[fieldName]
-                                                ? "border-red-400 focus:border-red-500"
-                                                : ""
-                                        }`}
-                                        value={
-                                            editingFields[fieldName] !== undefined
-                                                ? editingFields[fieldName]
-                                                : fieldName
-                                        }
-                                        onChange={(e) =>
-                                            handleFieldNameChange(fieldName, e.target.value)
-                                        }
-                                        onFocus={() => startEditingField(fieldName)}
-                                        onBlur={() => commitFieldNameChange(fieldName)}
-                                        placeholder="field_name"
+                                    <div
+                                        className="nodrag"
                                         onMouseDown={(e) => e.stopPropagation()}
-                                    />
+                                    >
+                                        <Input
+                                            type="text"
+                                            className={`h-8 ${
+                                                invalidFields[fieldName]
+                                                    ? "border-red-400 focus:border-red-500"
+                                                    : ""
+                                            }`}
+                                            value={
+                                                editingFields[fieldName] !== undefined
+                                                    ? editingFields[fieldName]
+                                                    : fieldName
+                                            }
+                                            onChange={(e) =>
+                                                handleFieldNameChange(fieldName, e.target.value)
+                                            }
+                                            onFocus={() => startEditingField(fieldName)}
+                                            onBlur={() => commitFieldNameChange(fieldName)}
+                                            placeholder="field_name"
+                                        />
+                                    </div>
                                     {invalidFields[fieldName] && (
                                         <div className="text-red-500 text-[10px]">
                                             {invalidFields[fieldName]}
