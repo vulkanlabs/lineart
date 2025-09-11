@@ -69,6 +69,19 @@ export function createWorkflowState(workflow: Workflow): WorkflowState {
     return {
         nodes: [inputNode, ...flowNodes],
         edges: edges,
+        autoSave: {
+            lastSaved: null,
+            isSaving: false,
+            hasUnsavedChanges: false,
+            saveError: null,
+            autoSaveEnabled: true,
+            retryCount: 0,
+        },
+        sidebar: {
+            isOpen: false,
+            selectedNodeId: null,
+            activeTab: null,
+        },
     };
 }
 
@@ -119,6 +132,19 @@ function defaultWorkflowState(inputNode: VulkanNode): WorkflowState {
     return {
         nodes: [inputNode],
         edges: [],
+        autoSave: {
+            lastSaved: null,
+            isSaving: false,
+            hasUnsavedChanges: false,
+            saveError: null,
+            autoSaveEnabled: true,
+            retryCount: 0,
+        },
+        sidebar: {
+            isOpen: false,
+            selectedNodeId: null,
+            activeTab: null,
+        },
     };
 }
 

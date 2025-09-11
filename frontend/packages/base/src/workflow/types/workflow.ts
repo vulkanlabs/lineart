@@ -98,6 +98,15 @@ export type AutoSaveState = {
 };
 
 /**
+ * Sidebar state for workflow editing
+ */
+export type SidebarState = {
+    isOpen: boolean;
+    selectedNodeId: string | null;
+    activeTab: "code-editor" | "properties" | "inputs" | null;
+};
+
+/**
  * Main workflow state structure
  */
 export type WorkflowState = {
@@ -105,6 +114,7 @@ export type WorkflowState = {
     edges: Edge[];
     collapsedNodeHeights?: { [key: string]: number };
     autoSave: AutoSaveState;
+    sidebar: SidebarState;
 };
 
 /**

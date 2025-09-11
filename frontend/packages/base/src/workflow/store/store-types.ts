@@ -43,6 +43,15 @@ export type WorkflowActions = {
     markSaveError: (error: string) => void;
     clearSaveError: () => void;
     toggleAutoSave: () => void;
+
+    // Sidebar operations
+    openSidebar: (nodeId: string, tab?: "code-editor" | "properties" | "inputs") => void;
+    closeSidebar: () => void;
+    setSidebarTab: (tab: "code-editor" | "properties" | "inputs") => void;
+    setSelectedNodeForSidebar: (
+        nodeId: string,
+        tab?: "code-editor" | "properties" | "inputs",
+    ) => void;
 };
 
 /**

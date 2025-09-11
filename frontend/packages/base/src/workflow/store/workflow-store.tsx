@@ -45,6 +45,12 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             autoSaveInterval,
         },
 
+        sidebar: initialState.sidebar || {
+            isOpen: false,
+            selectedNodeId: null,
+            activeTab: null,
+        },
+
         getInputSchema: () => {
             const nodes = get().nodes;
 
@@ -457,6 +463,47 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                 autoSave: {
                     ...state.autoSave,
                     autoSaveEnabled: !state.autoSave.autoSaveEnabled,
+                },
+            }));
+        },
+
+        // Sidebar operations
+        openSidebar: (nodeId: string, tab = "code-editor") => {
+            set((state) => ({
+                sidebar: {
+                    isOpen: true,
+                    selectedNodeId: nodeId,
+                    activeTab: tab,
+                },
+            }));
+        },
+
+        closeSidebar: () => {
+            set((state) => ({
+                sidebar: {
+                    ...state.sidebar,
+                    isOpen: false,
+                    selectedNodeId: null,
+                    activeTab: null,
+                },
+            }));
+        },
+
+        setSidebarTab: (tab) => {
+            set((state) => ({
+                sidebar: {
+                    ...state.sidebar,
+                    activeTab: tab,
+                },
+            }));
+        },
+
+        setSelectedNodeForSidebar: (nodeId: string, tab = "code-editor") => {
+            set((state) => ({
+                sidebar: {
+                    isOpen: true,
+                    selectedNodeId: nodeId,
+                    activeTab: tab,
                 },
             }));
         },

@@ -54,6 +54,7 @@ export type BaseWorkflowNodeProps = {
  */
 export type StandardWorkflowNodeProps = BaseWorkflowNodeProps & {
     showInputsToggle?: boolean;
+    customHeaderActions?: React.ReactNode;
 };
 
 /**
@@ -248,6 +249,7 @@ export function StandardWorkflowNode({
     children,
     resizable,
     showInputsToggle = true,
+    customHeaderActions,
 }: StandardWorkflowNodeProps) {
     const [showInputs, setShowInputs] = useState(false);
 
@@ -289,9 +291,12 @@ export function StandardWorkflowNode({
     };
 
     const headerActions = (
-        <NodeHeaderAction onClick={() => {}} label="Run node">
-            <Play className="stroke-blue-500 fill-blue-500" />
-        </NodeHeaderAction>
+        <>
+            <NodeHeaderAction onClick={() => {}} label="Run node">
+                <Play className="stroke-blue-500 fill-blue-500" />
+            </NodeHeaderAction>
+            {customHeaderActions}
+        </>
     );
 
     const footerContent = showInputsToggle ? (
