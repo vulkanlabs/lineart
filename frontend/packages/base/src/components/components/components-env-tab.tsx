@@ -1,11 +1,14 @@
 "use client";
-import { EnvironmentVariablesEditor } from "@vulkanlabs/base";
-import { Card, CardTitle, CardHeader, CardContent } from "@vulkanlabs/base/ui";
-import { Component, ConfigurationVariablesBase } from "@vulkanlabs/client-open";
+
 import { useState } from "react";
 import { toast } from "sonner";
 
-export function EnvTab({ component }: { component: Component }) {
+import { Component, ConfigurationVariablesBase } from "@vulkanlabs/client-open";
+
+import { EnvironmentVariablesEditor } from "../..";
+import { Card, CardTitle, CardHeader, CardContent } from "../../ui";
+
+export function ComponentsEnvTab({ component }: { component: Component }) {
     // Prepare environment variables for the editor
     const [variables, setVariables] = useState<ConfigurationVariablesBase[]>([]);
 
