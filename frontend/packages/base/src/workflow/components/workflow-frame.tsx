@@ -15,13 +15,25 @@ import { useWorkflowApi } from "@/workflow/api";
 import type { Workflow } from "@/workflow/api/types";
 
 /**
- * Custom hook for managing panel sizes with localStorage persistence
+ * Custom hook for managing panel sizes with localStorage persistence and sidebar width integration
  */
 function usePanelSizes() {
+    const { sidebar, setSidebarWidth } = useWorkflowStore(
+        useShallow((state) => ({
+            sidebar: state.sidebar,
+            setSidebarWidth: state.setSidebarWidth,
+        })),
+    );
+
     const [panelSizes, setPanelSizes] = useState<number[]>(() => {
         try {
             const saved = localStorage.getItem("workflow.panelSizes");
-            return saved ? JSON.parse(saved) : [70, 30];
+            const parsedSizes = saved ? JSON.parse(saved) : [70, 30];
+            
+            // If sidebar has a saved width, use it
+            if (sidebar.width !== undefined) return [100 - sidebar.width, sidebar.width];
+            
+            return parsedSizes;
         } catch (e) {
             return [70, 30];
         }
@@ -30,13 +42,26 @@ function usePanelSizes() {
     const handlePanelResize = useCallback((sizes: number[]) => {
         setPanelSizes(sizes);
         localStorage.setItem("workflow.panelSizes", JSON.stringify(sizes));
-    }, []);
+        
+        // Update sidebar width in store when panels are resized
+        if (sidebar.isOpen && sizes.length > 1) setSidebarWidth(sizes[1]);
+    }, [sidebar.isOpen, setSidebarWidth]);
 
     const resetPanelSizes = useCallback(() => {
         const defaultSizes = [70, 30];
         setPanelSizes(defaultSizes);
         localStorage.setItem("workflow.panelSizes", JSON.stringify(defaultSizes));
-    }, []);
+        setSidebarWidth(30); // Reset sidebar width to default
+    }, [setSidebarWidth]);
+
+    // Update panel sizes when sidebar width changes in store
+    useEffect(() => {
+        if (sidebar.width !== undefined && sidebar.isOpen) {
+            const newSizes = [100 - sidebar.width, sidebar.width];
+            setPanelSizes(newSizes);
+            localStorage.setItem("workflow.panelSizes", JSON.stringify(newSizes));
+        }
+    }, [sidebar.width, sidebar.isOpen]);
 
     return { panelSizes, handlePanelResize, resetPanelSizes };
 }

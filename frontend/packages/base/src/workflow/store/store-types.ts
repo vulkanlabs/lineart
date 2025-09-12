@@ -48,6 +48,7 @@ export type WorkflowActions = {
     openSidebar: (nodeId: string, tab?: "code-editor" | "properties" | "inputs") => void;
     closeSidebar: () => void;
     setSidebarTab: (tab: "code-editor" | "properties" | "inputs") => void;
+    setSidebarWidth: (width: number) => void;
     setSelectedNodeForSidebar: (
         nodeId: string,
         tab?: "code-editor" | "properties" | "inputs",

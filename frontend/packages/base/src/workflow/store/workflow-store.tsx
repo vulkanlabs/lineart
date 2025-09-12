@@ -45,11 +45,23 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             autoSaveInterval,
         },
 
-        sidebar: initialState.sidebar || {
-            isOpen: false,
-            selectedNodeId: null,
-            activeTab: null,
-        },
+        sidebar: initialState.sidebar || (() => {
+            // Load sidebar width from localStorage if available
+            let savedWidth = 30; // Default width
+            try {
+                const saved = localStorage.getItem("workflow.sidebar.width");
+                if (saved) savedWidth = parseFloat(saved);
+            } catch (e) {
+                // Silently handle localStorage errors
+            }
+            
+            return {
+                isOpen: false,
+                selectedNodeId: null,
+                activeTab: null,
+                width: savedWidth,
+            };
+        })(),
 
         getInputSchema: () => {
             const nodes = get().nodes;
@@ -469,13 +481,30 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
         // Sidebar operations
         openSidebar: (nodeId: string, tab = "code-editor") => {
-            set((state) => ({
-                sidebar: {
-                    isOpen: true,
-                    selectedNodeId: nodeId,
-                    activeTab: tab,
-                },
-            }));
+            set((state) => {
+                // Use saved width from localStorage if available and current width is default
+                let sidebarWidth = state.sidebar.width || 30;
+                if (sidebarWidth === 30) {
+                    try {
+                        const saved = localStorage.getItem("workflow.sidebar.width");
+                        if (saved) {
+                            const parsedWidth = parseFloat(saved);
+                            sidebarWidth = parsedWidth >= 20 && parsedWidth <= 60 ? parsedWidth : 30;
+                        }
+                    } catch (e) {
+                        // Silently handle localStorage errors
+                    }
+                }
+                
+                return {
+                    sidebar: {
+                        isOpen: true,
+                        selectedNodeId: nodeId,
+                        activeTab: tab,
+                        width: sidebarWidth,
+                    },
+                };
+            });
         },
 
         closeSidebar: () => {
@@ -498,14 +527,47 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             }));
         },
 
-        setSelectedNodeForSidebar: (nodeId: string, tab = "code-editor") => {
+        setSidebarWidth: (width: number) => {
             set((state) => ({
                 sidebar: {
-                    isOpen: true,
-                    selectedNodeId: nodeId,
-                    activeTab: tab,
+                    ...state.sidebar,
+                    width: width,
                 },
             }));
+            
+            // Persist sidebar width to localStorage
+            try {
+                localStorage.setItem("workflow.sidebar.width", width.toString());
+            } catch (e) {
+                // Silently handle localStorage errors
+            }
+        },
+
+        setSelectedNodeForSidebar: (nodeId: string, tab = "code-editor") => {
+            set((state) => {
+                // Use saved width from localStorage if available and current width is default
+                let sidebarWidth = state.sidebar.width || 30;
+                if (sidebarWidth === 30) {
+                    try {
+                        const saved = localStorage.getItem("workflow.sidebar.width");
+                        if (saved) {
+                            const parsedWidth = parseFloat(saved);
+                            sidebarWidth = parsedWidth >= 20 && parsedWidth <= 60 ? parsedWidth : 30;
+                        }
+                    } catch (e) {
+                        // Silently handle localStorage errors
+                    }
+                }
+                
+                return {
+                    sidebar: {
+                        isOpen: true,
+                        selectedNodeId: nodeId,
+                        activeTab: tab,
+                        width: sidebarWidth,
+                    },
+                };
+            });
         },
     }));
 }

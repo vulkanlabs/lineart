@@ -104,6 +104,7 @@ export type SidebarState = {
     isOpen: boolean;
     selectedNodeId: string | null;
     activeTab: "code-editor" | "properties" | "inputs" | null;
+    width?: number;
 };
 
 /**
