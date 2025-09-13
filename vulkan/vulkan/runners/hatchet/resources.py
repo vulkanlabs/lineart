@@ -60,7 +60,7 @@ class HatchetClientResource:
             # Create config with token and any explicitly provided values
             config = ClientConfig(
                 token=self.config.hatchet_api_key,
-                namespace=self.config.namespace,
+                namespace=self.config.project_id,
             )
 
             # Only set server_url if explicitly provided
