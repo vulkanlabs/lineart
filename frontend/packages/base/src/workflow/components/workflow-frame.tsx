@@ -29,23 +29,26 @@ function usePanelSizes() {
         try {
             const saved = localStorage.getItem("workflow.panelSizes");
             const parsedSizes = saved ? JSON.parse(saved) : [70, 30];
-            
+
             // If sidebar has a saved width, use it
             if (sidebar.width !== undefined) return [100 - sidebar.width, sidebar.width];
-            
+
             return parsedSizes;
         } catch (e) {
             return [70, 30];
         }
     });
 
-    const handlePanelResize = useCallback((sizes: number[]) => {
-        setPanelSizes(sizes);
-        localStorage.setItem("workflow.panelSizes", JSON.stringify(sizes));
-        
-        // Update sidebar width in store when panels are resized
-        if (sidebar.isOpen && sizes.length > 1) setSidebarWidth(sizes[1]);
-    }, [sidebar.isOpen, setSidebarWidth]);
+    const handlePanelResize = useCallback(
+        (sizes: number[]) => {
+            setPanelSizes(sizes);
+            localStorage.setItem("workflow.panelSizes", JSON.stringify(sizes));
+
+            // Update sidebar width in store when panels are resized
+            if (sidebar.isOpen && sizes.length > 1) setSidebarWidth(sizes[1]);
+        },
+        [sidebar.isOpen, setSidebarWidth],
+    );
 
     const resetPanelSizes = useCallback(() => {
         const defaultSizes = [70, 30];

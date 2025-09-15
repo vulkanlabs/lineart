@@ -293,7 +293,7 @@ export function StandardWorkflowNode({
     const headerActions = (
         <>
             <NodeHeaderAction onClick={() => {}} label="Run node">
-                <Play className="stroke-blue-500 fill-blue-500" />
+                <Play className="stroke-slate-600" size={16} />
             </NodeHeaderAction>
             {customHeaderActions}
         </>

@@ -45,23 +45,25 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             autoSaveInterval,
         },
 
-        sidebar: initialState.sidebar || (() => {
-            // Load sidebar width from localStorage if available
-            let savedWidth = 30; // Default width
-            try {
-                const saved = localStorage.getItem("workflow.sidebar.width");
-                if (saved) savedWidth = parseFloat(saved);
-            } catch (e) {
-                // Silently handle localStorage errors
-            }
-            
-            return {
-                isOpen: false,
-                selectedNodeId: null,
-                activeTab: null,
-                width: savedWidth,
-            };
-        })(),
+        sidebar:
+            initialState.sidebar ||
+            (() => {
+                // Load sidebar width from localStorage if available
+                let savedWidth = 30; // Default width
+                try {
+                    const saved = localStorage.getItem("workflow.sidebar.width");
+                    if (saved) savedWidth = parseFloat(saved);
+                } catch (e) {
+                    // Silently handle localStorage errors
+                }
+
+                return {
+                    isOpen: false,
+                    selectedNodeId: null,
+                    activeTab: null,
+                    width: savedWidth,
+                };
+            })(),
 
         getInputSchema: () => {
             const nodes = get().nodes;
@@ -489,13 +491,14 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                         const saved = localStorage.getItem("workflow.sidebar.width");
                         if (saved) {
                             const parsedWidth = parseFloat(saved);
-                            sidebarWidth = parsedWidth >= 20 && parsedWidth <= 60 ? parsedWidth : 30;
+                            sidebarWidth =
+                                parsedWidth >= 20 && parsedWidth <= 60 ? parsedWidth : 30;
                         }
                     } catch (e) {
                         // Silently handle localStorage errors
                     }
                 }
-                
+
                 return {
                     sidebar: {
                         isOpen: true,
@@ -534,7 +537,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                     width: width,
                 },
             }));
-            
+
             // Persist sidebar width to localStorage
             try {
                 localStorage.setItem("workflow.sidebar.width", width.toString());
@@ -552,13 +555,14 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                         const saved = localStorage.getItem("workflow.sidebar.width");
                         if (saved) {
                             const parsedWidth = parseFloat(saved);
-                            sidebarWidth = parsedWidth >= 20 && parsedWidth <= 60 ? parsedWidth : 30;
+                            sidebarWidth =
+                                parsedWidth >= 20 && parsedWidth <= 60 ? parsedWidth : 30;
                         }
                     } catch (e) {
                         // Silently handle localStorage errors
                     }
                 }
-                
+
                 return {
                     sidebar: {
                         isOpen: true,
