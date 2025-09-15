@@ -16,19 +16,8 @@ export function useAutoSave({
     getUIMetadata = () => ({}),
     projectId,
 }: UseAutoSaveConfig) {
-    const activityTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const getUIMetadataRef = useRef(getUIMetadata);
-    const autoSaveStateRef = useRef({
-        hasUnsavedChanges: false,
-        autoSaveEnabled: true,
-        isSaving: false,
-    });
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
     const isInitialMount = useRef(true);
-
-    // Update the ref when getUIMetadata changes
-    useEffect(() => {
-        getUIMetadataRef.current = getUIMetadata;
-    }, [getUIMetadata]);
 
     const { autoSave, markSaving, markSaved, markSaveError, getSpec } = useWorkflowStore(
         useShallow((state) => ({
@@ -40,21 +29,13 @@ export function useAutoSave({
         })),
     );
 
-    // Update the ref whenever autoSave state changes
-    useEffect(() => {
-        autoSaveStateRef.current = autoSave;
-    }, [autoSave]);
-
-    // Create stable references to avoid dependency issues
-    const performAutoSave = useCallback(async (): Promise<void> => {
-        let spec, uiMetadata; // Declare variables for error logging
-
+    // Stable save function that doesn't change on every render
+    const executeAutoSave = useCallback(async (): Promise<void> => {
         try {
             markSaving();
 
-            spec = getSpec();
-            // Use the ref to get current UI metadata without dependency issues
-            uiMetadata = getUIMetadataRef.current();
+            const spec = getSpec();
+            const uiMetadata = getUIMetadata();
 
             await apiClient.saveWorkflowSpec(workflow, spec, uiMetadata, projectId);
 
@@ -63,43 +44,47 @@ export function useAutoSave({
             const currentError = error instanceof Error ? error : new Error("Auto-save failed");
             markSaveError(currentError.message);
         }
-    }, [apiClient, workflow, projectId, markSaving, markSaved, markSaveError, getSpec]); // Add projectId to deps
+    }, [apiClient, workflow, projectId, markSaving, markSaved, markSaveError, getSpec, getUIMetadata]);
 
-    // React to changes in workflow state - only depend on the specific values we need
+    // Clear any existing timer
+    const clearTimer = useCallback(() => {
+        if (timerRef.current !== null) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+            return true;
+        }
+        return false;
+    }, []);
+
+    // Schedule a new auto-save
+    const scheduleAutoSave = useCallback(() => {
+        timerRef.current = setTimeout(() => {
+            executeAutoSave();
+            timerRef.current = null;
+        }, autoSave.autoSaveInterval);
+    }, [autoSave.autoSaveInterval, executeAutoSave]);
+
+    // Main effect that handles auto-save logic
     useEffect(() => {
-        // Skip auto-save on initial mount to prevent immediate save after page load
+        // Skip auto-save on initial mount
         if (isInitialMount.current) {
             isInitialMount.current = false;
             return;
         }
 
-        // Clear any existing timer
-        if (activityTimerRef.current) {
-            clearTimeout(activityTimerRef.current);
-            activityTimerRef.current = null;
-        }
-
-        // Only schedule auto-save if we have unsaved changes, auto-save is enabled,
-        // and we're not currently saving
-        if (autoSave.hasUnsavedChanges && autoSave.autoSaveEnabled && !autoSave.isSaving) {
-            activityTimerRef.current = setTimeout(() => {
-                // Double-check that we still need to save before executing
-                const currentState = autoSaveStateRef.current;
-                if (
-                    currentState.hasUnsavedChanges &&
-                    currentState.autoSaveEnabled &&
-                    !currentState.isSaving
-                ) {
-                    performAutoSave();
-                }
-            }, autoSave.autoSaveInterval);
-        }
-    }, [autoSave.hasUnsavedChanges, autoSave.autoSaveEnabled, autoSave.isSaving, performAutoSave]);
+        clearTimer();
+        
+        // Schedule new timer if conditions are met
+        if (autoSave.hasUnsavedChanges && autoSave.autoSaveEnabled && !autoSave.isSaving) scheduleAutoSave();
+    }, [autoSave.hasUnsavedChanges, autoSave.autoSaveEnabled, autoSave.isSaving, clearTimer, scheduleAutoSave]);
 
     // Cleanup timer on unmount
     useEffect(() => {
         return () => {
-            if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
+            }
         };
     }, []);
 
@@ -109,6 +94,6 @@ export function useAutoSave({
         lastSaved: autoSave.lastSaved,
         saveError: autoSave.saveError,
         autoSaveEnabled: autoSave.autoSaveEnabled,
-        performManualSave: () => performAutoSave(), // For manual save button
+        performManualSave: executeAutoSave, // For manual save button
     };
 }
