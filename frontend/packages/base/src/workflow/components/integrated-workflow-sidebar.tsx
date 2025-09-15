@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
     X,
@@ -22,17 +22,7 @@ import { iconMapping } from "@/workflow/icons";
 // Constants
 const SIDEBAR_STORAGE_KEY = "workflow.sidebar.expandedSections";
 const DEFAULT_EXPANDED_SECTIONS = ["basic", "connections"];
-const DEFAULT_PYTHON_TEMPLATE = `# Transform your data
-def transform(data):
-    """
-    Transform the input data.
-    
-    Args:
-        data: Input data from connected nodes
-        
-    Returns:
-        Transformed data
-    """
+const DEFAULT_PYTHON_TEMPLATE = `def transform(data):
     # Your transformation logic here
     return data`;
 
@@ -308,20 +298,11 @@ function ModernCodeEditor({ nodeId, selectedNode }: { nodeId: string; selectedNo
 
     const editorValue = sourceCode || DEFAULT_PYTHON_TEMPLATE;
 
-    const lineCount = sourceCode ? sourceCode.split("\n").length : 14;
-    const charCount = sourceCode ? sourceCode.length : editorValue.length;
-
     return (
         <div className="h-full flex flex-col">
             <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                        <h3 className="font-medium text-gray-900">Python Code</h3>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>{lineCount} lines</span>
-                            <span>{charCount} chars</span>
-                        </div>
-                    </div>
+                    <h3 className="font-medium text-gray-900">Python Code</h3>
                     <div className="flex items-center gap-2">
                         <Button
                             variant="ghost"

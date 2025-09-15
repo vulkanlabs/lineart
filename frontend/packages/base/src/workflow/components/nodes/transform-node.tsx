@@ -9,6 +9,11 @@ import { NodeHeaderAction } from "@vulkanlabs/base/ui";
 import { useWorkflowStore } from "@/workflow/store";
 import type { VulkanNodeProps } from "@/workflow/types/workflow";
 
+// Default Python template for transform nodes
+const DEFAULT_PYTHON_TEMPLATE = `def transform(data):
+    # Your transformation logic here
+    return data`;
+
 /**
  * Transform node component - processes and transforms data using integrated sidebar
  */
@@ -21,8 +26,10 @@ export function TransformNode({ id, data, selected, height, width }: VulkanNodeP
     );
 
     const sourceCode = data.metadata?.source_code || "";
-    const hasCode = sourceCode.trim().length > 0;
     const isCurrentlyEditing = sidebar.isOpen && sidebar.selectedNodeId === id;
+
+    // Show default template if no code, otherwise show actual code
+    const displayCode = sourceCode.trim() || DEFAULT_PYTHON_TEMPLATE;
 
     const handleEditCode = useCallback(() => {
         openSidebar(id, "code-editor");
@@ -36,23 +43,12 @@ export function TransformNode({ id, data, selected, height, width }: VulkanNodeP
 
     const renderCodePreview = () => (
         <div
-            className="max-h-40 overflow-y-auto bg-gray-50 border border-gray-200 rounded p-3 cursor-pointer hover:bg-gray-100 transition-colors"
+            className="bg-gray-50 border border-gray-200 rounded p-3 cursor-pointer hover:bg-gray-100 transition-colors h-full"
             onClick={handleEditCode}
         >
-            <pre className="text-sm text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">
-                {sourceCode}
+            <pre className="text-sm text-gray-700 whitespace-pre-wrap font-mono leading-relaxed h-full overflow-auto">
+                {displayCode}
             </pre>
-        </div>
-    );
-
-    const renderEmptyState = () => (
-        <div
-            className="flex flex-col items-center justify-center text-gray-500 py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
-            onClick={handleEditCode}
-        >
-            <Code2 className="w-8 h-8 mb-3 text-gray-400" />
-            <span className="text-sm font-medium text-gray-600 mb-1">Click to add code</span>
-            <span className="text-xs text-gray-400">Write your transformation logic</span>
         </div>
     );
 
@@ -65,8 +61,8 @@ export function TransformNode({ id, data, selected, height, width }: VulkanNodeP
             width={width}
             customHeaderActions={customHeaderActions}
         >
-            <div className="px-4 pt-2 pb-4">
-                {hasCode ? renderCodePreview() : renderEmptyState()}
+            <div className="px-4 pt-2 pb-4 flex flex-col h-full">
+                <div className="flex-1 min-h-0">{renderCodePreview()}</div>
             </div>
         </StandardWorkflowNode>
     );
