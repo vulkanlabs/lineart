@@ -232,8 +232,8 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
                         disabled={autoSaveState.isSaving}
                         className={cn(
                             "inline-flex items-center gap-1 px-2 py-1 rounded text-xs",
-                            "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground",
-                            "transition-colors duration-200 border",
+                            "bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900",
+                            "transition-colors duration-200 border border-gray-300",
                             "disabled:opacity-50 disabled:cursor-not-allowed",
                         )}
                         title="Save workflow manually (Ctrl+S)"
