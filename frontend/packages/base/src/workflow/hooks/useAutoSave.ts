@@ -44,7 +44,16 @@ export function useAutoSave({
             const currentError = error instanceof Error ? error : new Error("Auto-save failed");
             markSaveError(currentError.message);
         }
-    }, [apiClient, workflow, projectId, markSaving, markSaved, markSaveError, getSpec, getUIMetadata]);
+    }, [
+        apiClient,
+        workflow,
+        projectId,
+        markSaving,
+        markSaved,
+        markSaveError,
+        getSpec,
+        getUIMetadata,
+    ]);
 
     // Clear any existing timer
     const clearTimer = useCallback(() => {
@@ -73,10 +82,17 @@ export function useAutoSave({
         }
 
         clearTimer();
-        
+
         // Schedule new timer if conditions are met
-        if (autoSave.hasUnsavedChanges && autoSave.autoSaveEnabled && !autoSave.isSaving) scheduleAutoSave();
-    }, [autoSave.hasUnsavedChanges, autoSave.autoSaveEnabled, autoSave.isSaving, clearTimer, scheduleAutoSave]);
+        if (autoSave.hasUnsavedChanges && autoSave.autoSaveEnabled && !autoSave.isSaving)
+            scheduleAutoSave();
+    }, [
+        autoSave.hasUnsavedChanges,
+        autoSave.autoSaveEnabled,
+        autoSave.isSaving,
+        clearTimer,
+        scheduleAutoSave,
+    ]);
 
     // Cleanup timer on unmount
     useEffect(() => {
