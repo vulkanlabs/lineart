@@ -93,6 +93,35 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [performManualSave]);
 
+    // Browser-level warning for unsaved changes
+    useEffect(() => {
+        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+            // Only warn for truly unsaved changes, not while saving (server is handling it)
+            if (autoSaveState.hasUnsavedChanges && !autoSaveState.isSaving) {
+                const message = "You have unsaved changes that will be lost if you leave this page.";
+                event.preventDefault();
+                event.returnValue = message; // For older browsers
+                return message;
+            }
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [autoSaveState.hasUnsavedChanges, autoSaveState.isSaving]);
+
+    // Expose simple check function for NavigationGuard
+    useEffect(() => {
+        (window as any).checkUnsavedChanges = (onProceed?: () => void) => {
+            const hasUnsaved = autoSaveState.hasUnsavedChanges && !autoSaveState.isSaving;
+            if (!hasUnsaved && onProceed) onProceed();
+            return !hasUnsaved; // Return true if can proceed, false if blocked
+        };
+
+        return () => {
+            delete (window as any).checkUnsavedChanges;
+        };
+    }, [autoSaveState.hasUnsavedChanges, autoSaveState.isSaving]);
+
     // Toast notification helper
     const showErrorToast = useCallback(
         (error: string) => {

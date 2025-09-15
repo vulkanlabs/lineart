@@ -12,6 +12,7 @@ export {
     type AutoSaveState,
     type AutoSaveToggleProps,
 } from "./components/auto-save-toggle";
+export { NavigationGuard } from "./components/navigation-guard";
 
 // Re-export API utilities (selective exports for better tree-shaking)
 export {
