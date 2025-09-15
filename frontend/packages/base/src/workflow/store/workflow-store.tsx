@@ -43,6 +43,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             autoSaveEnabled: true,
             retryCount: 0,
             autoSaveInterval,
+            pendingChangesWhileSaving: false,
         },
 
         getInputSchema: () => {
@@ -379,8 +380,17 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
             markChangedTimer = setTimeout(() => {
                 const currentState = get();
-                // Only mark as changed if we're not already marked as having unsaved changes
-                if (!currentState.autoSave.hasUnsavedChanges) {
+
+                if (currentState.autoSave.isSaving) {
+                    // If saving, mark that changes occurred during save
+                    set((state) => ({
+                        autoSave: {
+                            ...state.autoSave,
+                            pendingChangesWhileSaving: true,
+                        },
+                    }));
+                } else {
+                    // mark as having unsaved changes
                     set((state) => ({
                         autoSave: {
                             ...state.autoSave,
@@ -405,15 +415,19 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
         markSaved: () => {
             set((state) => {
+                // Check if changes were made while saving
+                const hadPendingChanges = state.autoSave.pendingChangesWhileSaving;
+
                 return {
                     autoSave: {
                         ...state.autoSave,
                         isSaving: false,
-                        hasUnsavedChanges: false,
+                        hasUnsavedChanges: hadPendingChanges, // Keep unsaved changes if they occurred during save
                         lastSaved: new Date(),
                         saveError: null,
                         retryCount: 0,
                         autoSaveInterval,
+                        pendingChangesWhileSaving: false, // Reset  flag
                     },
                 };
             });
