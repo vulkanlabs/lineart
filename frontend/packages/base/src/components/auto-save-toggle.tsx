@@ -98,7 +98,8 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
             // Only warn for truly unsaved changes, not while saving (server is handling it)
             if (autoSaveState.hasUnsavedChanges && !autoSaveState.isSaving) {
-                const message = "You have unsaved changes that will be lost if you leave this page.";
+                const message =
+                    "You have unsaved changes that will be lost if you leave this page.";
                 event.preventDefault();
                 event.returnValue = message; // For older browsers
                 return message;

@@ -5,7 +5,12 @@ import { Layers, Network, FolderCog, Play } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 // Local imports
-import { InnerNavbar, type InnerNavbarSectionProps, AutoSaveToggle, NavigationGuard } from "@vulkanlabs/base";
+import {
+    InnerNavbar,
+    type InnerNavbarSectionProps,
+    AutoSaveToggle,
+    NavigationGuard,
+} from "@vulkanlabs/base";
 import { PageLayout, type SidebarSectionProps } from "@/components/page-layout";
 
 import { LauncherButton } from "./launcher/components";

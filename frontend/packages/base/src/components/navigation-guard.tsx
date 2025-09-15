@@ -28,7 +28,7 @@ export function NavigationGuard() {
         router.push = (href: string, options?: any) => {
             if (hasUnsavedChanges()) {
                 const confirmed = window.confirm(
-                    "You have unsaved changes that will be lost. Continue anyway?"
+                    "You have unsaved changes that will be lost. Continue anyway?",
                 );
                 if (!confirmed) return;
             }
@@ -38,7 +38,7 @@ export function NavigationGuard() {
         router.replace = (href: string, options?: any) => {
             if (hasUnsavedChanges()) {
                 const confirmed = window.confirm(
-                    "You have unsaved changes that will be lost. Continue anyway?"
+                    "You have unsaved changes that will be lost. Continue anyway?",
                 );
                 if (!confirmed) return;
             }
@@ -53,7 +53,7 @@ export function NavigationGuard() {
             if (link?.href && !link.target && link.href.startsWith(window.location.origin)) {
                 if (hasUnsavedChanges()) {
                     const confirmed = window.confirm(
-                        "You have unsaved changes that will be lost. Continue anyway?"
+                        "You have unsaved changes that will be lost. Continue anyway?",
                     );
                     if (!confirmed) {
                         event.preventDefault();
