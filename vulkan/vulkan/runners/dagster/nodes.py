@@ -94,18 +94,44 @@ class DagsterDataInput(DataInputNode, DagsterNode):
 
         try:
             configured_params = self._get_configured_params(inputs)
-            context.log.debug(
+            context.log.error(
                 f"Fetching data from data source {self.data_source} with "
                 f"parameters: {configured_params}"
             )
+        except ValueError as e:
+            end_time = time.time()
+            metadata = StepMetadata(
+                node_type=self.type.value,
+                start_time=start_time,
+                end_time=end_time,
+                error=error,
+                extra=extra,
+            )
+            yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+            context.log.error(f"Parameter resolution error: {str(e)}")
+            raise e
 
+        try:
             response = client.fetch_data(
                 data_source=self.data_source,
                 configured_params=configured_params,
             )
+        except requests.exceptions.RequestException as e:
+            end_time = time.time()
+            metadata = StepMetadata(
+                node_type=self.type.value,
+                start_time=start_time,
+                end_time=end_time,
+                error=error,
+                extra=extra,
+            )
+            yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+            context.log.error(f"Failed to retrieve data: {str(e)}")
+            raise e
+
+        try:
             extra.update({"status_code": response.status_code})
             response.raise_for_status()
-
             if response.status_code == 200:
                 data = response.json()
                 response_metadata = {
@@ -115,17 +141,12 @@ class DagsterDataInput(DataInputNode, DagsterNode):
                 }
                 extra.update({"response_metadata": response_metadata})
                 yield Output(data["value"])
-        except (requests.exceptions.RequestException, HTTPError) as e:
+        except HTTPError as e:
             context.log.error(
                 f"Failed request with status {response.status_code}: "
                 f"{response.json().get('detail', '')}"
             )
             error = ("\n").join(format_exception_only(type(e), e))
-            raise e
-        except ValueError as e:
-            context.log.error(f"Parameter resolution error: {str(e)}")
-            error = ("\n").join(format_exception_only(type(e), e))
-            raise e
         finally:
             end_time = time.time()
             metadata = StepMetadata(
