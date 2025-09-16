@@ -3,7 +3,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
-    SaveIcon,
     ChevronDownIcon,
     ChevronUpIcon,
     LayoutIcon,
@@ -506,9 +505,6 @@ export function WorkflowCanvas({
                     showFitView={false}
                     orientation="horizontal"
                 >
-                    <ControlButton onClick={saveWorkflow} title="Save">
-                        <ToolbarIcon icon={SaveIcon} />
-                    </ControlButton>
                     <ControlButton onClick={smartFitView} title="Smart Fit View">
                         <ToolbarIcon icon={FocusIcon} />
                     </ControlButton>
