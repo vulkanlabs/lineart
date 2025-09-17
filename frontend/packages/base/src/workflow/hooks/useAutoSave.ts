@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useWorkflowStore } from "../store/workflow-store";
 import type { WorkflowApiClient } from "../api/types";
+import { createGlobalToast } from "../../components/toast";
 
 interface UseAutoSaveConfig {
     apiClient: WorkflowApiClient;
@@ -19,6 +20,7 @@ export function useAutoSave({
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const getUIMetadataRef = useRef(getUIMetadata);
     const isInitialMount = useRef(true);
+    const toast = createGlobalToast();
 
     // Update the ref when getUIMetadata changes
     useEffect(() => {
@@ -38,7 +40,7 @@ export function useAutoSave({
         );
 
     // Stable save function that doesn't change on every render
-    const executeAutoSave = useCallback(async (): Promise<void> => {
+    const executeAutoSave = useCallback(async (isManual = false): Promise<void> => {
         try {
             markSaving();
 
@@ -50,16 +52,37 @@ export function useAutoSave({
             // Only mark as saved if the result indicates success
             if (result && result.success) {
                 markSaved();
+                // Show success toast only for manual saves, after marking as saved
+                if (isManual) {
+                    toast("Workflow saved", {
+                        description: "Workflow saved successfully.",
+                        dismissible: true,
+                    });
+                }
             } else {
                 // API client handles all error parsing, just use the error message
                 const errorMessage = result?.error || "Save failed";
                 markSaveError(errorMessage);
+                // Show error toast only for manual saves
+                if (isManual) {
+                    toast.error("Failed to save workflow", {
+                        description: errorMessage,
+                        dismissible: true,
+                    });
+                }
             }
         } catch (error) {
             const currentError = error instanceof Error ? error : new Error("Auto-save failed");
             markSaveError(currentError.message);
+            // Show error toast only for manual saves
+            if (isManual) {
+                toast.error("Failed to save workflow", {
+                    description: currentError.message,
+                    dismissible: true,
+                });
+            }
         }
-    }, [apiClient, workflow, projectId, markSaving, markSaved, markSaveError, getSpec]);
+    }, [apiClient, workflow, projectId, markSaving, markSaved, markSaveError, getSpec, toast]);
 
     // Clear any existing timer
     const clearTimer = useCallback(() => {
@@ -82,7 +105,7 @@ export function useAutoSave({
     // Handle manual save and clear error events
     useEffect(() => {
         const handleManualSave = () => {
-            executeAutoSave();
+            executeAutoSave(true); // Mark as manual save for toast notifications
         };
 
         const handleClearSaveError = () => {
@@ -135,12 +158,15 @@ export function useAutoSave({
         };
     }, []);
 
+    // Manual save function
+    const performManualSave = useCallback(() => executeAutoSave(true), [executeAutoSave]);
+
     return {
         isAutoSaving: autoSave.isSaving,
         hasUnsavedChanges: autoSave.hasUnsavedChanges,
         lastSaved: autoSave.lastSaved,
         saveError: autoSave.saveError,
         autoSaveEnabled: autoSave.autoSaveEnabled,
-        performManualSave: executeAutoSave, // For manual save button
+        performManualSave,
     };
 }

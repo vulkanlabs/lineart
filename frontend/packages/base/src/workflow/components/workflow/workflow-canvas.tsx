@@ -438,19 +438,6 @@ export function WorkflowCanvas({
         }
     }, [api, workflow, getSpec, getNodes, toast, onRefresh, markSaved]);
 
-    // Manual save event listener for external triggers (navigation bar, keyboard shortcuts, etc.)
-    useEffect(() => {
-        const handleManualSave = () => {
-            saveWorkflow(); // Trigger the manual save function
-        };
-
-        window.addEventListener("workflow:manual-save", handleManualSave);
-
-        return () => {
-            window.removeEventListener("workflow:manual-save", handleManualSave);
-        };
-    }, [saveWorkflow]);
-
     return (
         <div className="w-full h-full relative">
             {isOpen && (

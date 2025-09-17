@@ -117,23 +117,16 @@ function AutoSaveStatusIntegration({ workflow, projectId }: AutoSaveStatusIntegr
             if (event.detail.enabled !== autoSave.autoSaveEnabled) toggleAutoSave();
         };
 
-        const handleManualSave = () => {
-            const saveEvent = new CustomEvent("workflow:manual-save");
-            window.dispatchEvent(saveEvent);
-        };
-
         const handleClearSaveError = () => {
             const clearEvent = new CustomEvent("workflow:clear-save-error");
             window.dispatchEvent(clearEvent);
         };
 
         window.addEventListener("workflow:toggle-autosave", handleToggle as EventListener);
-        window.addEventListener("workflow:manual-save", handleManualSave);
         window.addEventListener("workflow:clear-save-error", handleClearSaveError);
 
         return () => {
             window.removeEventListener("workflow:toggle-autosave", handleToggle as EventListener);
-            window.removeEventListener("workflow:manual-save", handleManualSave);
             window.removeEventListener("workflow:clear-save-error", handleClearSaveError);
         };
     }, [autoSave.autoSaveEnabled, toggleAutoSave]);

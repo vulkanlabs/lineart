@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useState } from "react";
 import { Check, Loader, AlertTriangle, Clock, Save } from "lucide-react";
 import { cn } from "../lib/utils";
+import { createGlobalToast } from "./toast";
 import { Button } from "../ui";
 
 export interface AutoSaveState {
@@ -158,17 +159,11 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
     const showErrorToast = useCallback(
         (error: string) => {
             const errorMessage = getErrorMessage(error);
-            // Try to use existing toast system or fallback to console
-            if (typeof window !== "undefined" && "toast" in window) {
-                (window as any).toast({
-                    variant: "destructive",
-                    title: "Auto-save failed",
-                    description: errorMessage,
-                    action: { label: "Retry", onClick: performManualSave },
-                });
-            } else {
-                console.error("Auto-save failed:", errorMessage);
-            }
+            const toast = createGlobalToast();
+            toast.error("Auto-save failed", {
+                description: errorMessage,
+                dismissible: true,
+            });
         },
         [performManualSave],
     );
