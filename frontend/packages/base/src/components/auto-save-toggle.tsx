@@ -83,7 +83,6 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
 
             // Show toast for errors
             if (newState.saveError) showErrorToast(newState.saveError);
-
         };
 
         window.addEventListener("workflow:autosave-status", handleWorkflowStatus as EventListener);
@@ -104,7 +103,6 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
 
         window.dispatchEvent(new CustomEvent("workflow:manual-save"));
     }, [autoSaveState.isSaving, autoSaveState.saveError]);
-
 
     // Handle auto-save toggle changes
     const handleToggleChange = useCallback((enabled: boolean) => {
@@ -131,7 +129,8 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
             // Only warn for truly unsaved changes, not while saving (server is handling it)
             if (autoSaveState.hasUnsavedChanges && !autoSaveState.isSaving) {
-                const message = "You have unsaved changes that will be lost if you leave this page.";
+                const message =
+                    "You have unsaved changes that will be lost if you leave this page.";
                 event.preventDefault();
                 event.returnValue = message; // For older browsers
                 return message;
@@ -174,7 +173,6 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
         [performManualSave],
     );
 
-
     // Simple status derivation
     const status = autoSaveState.isSaving
         ? "saving"
@@ -200,9 +198,11 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
             title: `Save failed: ${getErrorMessage(autoSaveState.saveError)}. Click to retry.`,
         },
         pending: {
-            icon: autoSaveState.autoSaveEnabled
-                ? <Clock className="h-3.5 w-3.5 text-amber-600" />
-                : <AlertTriangle className="h-3.5 w-3.5 text-slate-600" />,
+            icon: autoSaveState.autoSaveEnabled ? (
+                <Clock className="h-3.5 w-3.5 text-amber-600" />
+            ) : (
+                <AlertTriangle className="h-3.5 w-3.5 text-slate-600" />
+            ),
             text: autoSaveState.autoSaveEnabled ? "Unsaved changes" : "Save manually",
             color: autoSaveState.autoSaveEnabled ? "text-amber-600" : "text-slate-600",
             clickable: false,
