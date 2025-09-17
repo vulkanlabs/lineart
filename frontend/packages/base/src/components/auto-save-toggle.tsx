@@ -94,9 +94,7 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
     // Handle auto-save toggle changes
     const handleToggleChange = useCallback((enabled: boolean) => {
         setAutoSaveState((prev) => ({ ...prev, autoSaveEnabled: enabled }));
-        window.dispatchEvent(
-            new CustomEvent("workflow:toggle-autosave", { detail: { enabled } }),
-        );
+        window.dispatchEvent(new CustomEvent("workflow:toggle-autosave", { detail: { enabled } }));
     }, []);
 
     // Manual save trigger with keyboard support
@@ -104,7 +102,8 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
         if (autoSaveState.isSaving) return; // Prevent duplicate saves
 
         // Clear any existing save error before attempting manual save
-        if (autoSaveState.saveError) window.dispatchEvent(new CustomEvent("workflow:clear-save-error"));
+        if (autoSaveState.saveError)
+            window.dispatchEvent(new CustomEvent("workflow:clear-save-error"));
 
         window.dispatchEvent(new CustomEvent("workflow:manual-save"));
     }, [autoSaveState.isSaving, autoSaveState.saveError]);

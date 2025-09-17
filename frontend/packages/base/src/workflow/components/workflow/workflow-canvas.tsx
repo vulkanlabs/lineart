@@ -2,13 +2,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
-import {
-    ChevronDownIcon,
-    ChevronUpIcon,
-    LayoutIcon,
-    CopyIcon,
-    FocusIcon,
-} from "lucide-react";
+import { ChevronDownIcon, ChevronUpIcon, LayoutIcon, CopyIcon, FocusIcon } from "lucide-react";
 import { ToolbarIcon } from "./toolbar-icon";
 import {
     ReactFlow,

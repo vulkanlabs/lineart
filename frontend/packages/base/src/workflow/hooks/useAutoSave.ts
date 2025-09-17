@@ -25,16 +25,17 @@ export function useAutoSave({
         getUIMetadataRef.current = getUIMetadata;
     }, [getUIMetadata]);
 
-    const { autoSave, markSaving, markSaved, markSaveError, clearSaveError, getSpec } = useWorkflowStore(
-        useShallow((state) => ({
-            autoSave: state.autoSave,
-            markSaving: state.markSaving,
-            markSaved: state.markSaved,
-            markSaveError: state.markSaveError,
-            clearSaveError: state.clearSaveError,
-            getSpec: state.getSpec,
-        })),
-    );
+    const { autoSave, markSaving, markSaved, markSaveError, clearSaveError, getSpec } =
+        useWorkflowStore(
+            useShallow((state) => ({
+                autoSave: state.autoSave,
+                markSaving: state.markSaving,
+                markSaved: state.markSaved,
+                markSaveError: state.markSaveError,
+                clearSaveError: state.clearSaveError,
+                getSpec: state.getSpec,
+            })),
+        );
 
     // Stable save function that doesn't change on every render
     const executeAutoSave = useCallback(async (): Promise<void> => {
@@ -58,15 +59,7 @@ export function useAutoSave({
             const currentError = error instanceof Error ? error : new Error("Auto-save failed");
             markSaveError(currentError.message);
         }
-    }, [
-        apiClient,
-        workflow,
-        projectId,
-        markSaving,
-        markSaved,
-        markSaveError,
-        getSpec,
-    ]);
+    }, [apiClient, workflow, projectId, markSaving, markSaved, markSaveError, getSpec]);
 
     // Clear any existing timer
     const clearTimer = useCallback(() => {
@@ -116,7 +109,13 @@ export function useAutoSave({
         clearTimer();
 
         // Schedule new timer if conditions are met (including no save error to prevent auto-retry)
-        if (autoSave.hasUnsavedChanges && autoSave.autoSaveEnabled && !autoSave.isSaving && !autoSave.saveError) scheduleAutoSave();
+        if (
+            autoSave.hasUnsavedChanges &&
+            autoSave.autoSaveEnabled &&
+            !autoSave.isSaving &&
+            !autoSave.saveError
+        )
+            scheduleAutoSave();
     }, [
         autoSave.hasUnsavedChanges,
         autoSave.autoSaveEnabled,

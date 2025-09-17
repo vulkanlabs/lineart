@@ -71,13 +71,21 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
 
                 if (result) {
                     // Extract error message from various possible formats
-                    if (typeof result.error === 'string') errorMessage = result.error;
-                    else if (typeof result.error === 'object' && result.error) errorMessage = result.error.message || result.error.detail || JSON.stringify(result.error);
+                    if (typeof result.error === "string") errorMessage = result.error;
+                    else if (typeof result.error === "object" && result.error)
+                        errorMessage =
+                            result.error.message ||
+                            result.error.detail ||
+                            JSON.stringify(result.error);
                     else if (result.message) errorMessage = result.message;
                     else if (result.detail) errorMessage = result.detail;
 
                     // Handle [object Object] case from server
-                    if (errorMessage === "[object Object]" || errorMessage.includes("[object Object]")) errorMessage = "Internal server error";
+                    if (
+                        errorMessage === "[object Object]" ||
+                        errorMessage.includes("[object Object]")
+                    )
+                        errorMessage = "Internal server error";
                 }
 
                 return {
@@ -92,7 +100,7 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
                 success: true,
                 error: null,
                 data: result,
-                ...result
+                ...result,
             };
         } catch (error) {
             console.error("Error saving workflow:", error);
