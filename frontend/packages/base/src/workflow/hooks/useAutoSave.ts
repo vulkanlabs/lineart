@@ -40,49 +40,57 @@ export function useAutoSave({
         );
 
     // Stable save function that doesn't change on every render
-    const executeAutoSave = useCallback(async (isManual = false): Promise<void> => {
-        try {
-            markSaving();
+    const executeAutoSave = useCallback(
+        async (isManual = false): Promise<void> => {
+            try {
+                markSaving();
 
-            const spec = getSpec();
-            const uiMetadata = getUIMetadataRef.current();
+                const spec = getSpec();
+                const uiMetadata = getUIMetadataRef.current();
 
-            const result = await apiClient.saveWorkflowSpec(workflow, spec, uiMetadata, projectId);
+                const result = await apiClient.saveWorkflowSpec(
+                    workflow,
+                    spec,
+                    uiMetadata,
+                    projectId,
+                );
 
-            // Only mark as saved if the result indicates success
-            if (result && result.success) {
-                markSaved();
-                // Show success toast only for manual saves, after marking as saved
-                if (isManual) {
-                    toast("Workflow saved", {
-                        description: "Workflow saved successfully.",
-                        dismissible: true,
-                    });
+                // Only mark as saved if the result indicates success
+                if (result && result.success) {
+                    markSaved();
+                    // Show success toast only for manual saves, after marking as saved
+                    if (isManual) {
+                        toast("Workflow saved", {
+                            description: "Workflow saved successfully.",
+                            dismissible: true,
+                        });
+                    }
+                } else {
+                    // API client handles all error parsing, just use the error message
+                    const errorMessage = result?.error || "Save failed";
+                    markSaveError(errorMessage);
+                    // Show error toast only for manual saves
+                    if (isManual) {
+                        toast.error("Failed to save workflow", {
+                            description: errorMessage,
+                            dismissible: true,
+                        });
+                    }
                 }
-            } else {
-                // API client handles all error parsing, just use the error message
-                const errorMessage = result?.error || "Save failed";
-                markSaveError(errorMessage);
+            } catch (error) {
+                const currentError = error instanceof Error ? error : new Error("Auto-save failed");
+                markSaveError(currentError.message);
                 // Show error toast only for manual saves
                 if (isManual) {
                     toast.error("Failed to save workflow", {
-                        description: errorMessage,
+                        description: currentError.message,
                         dismissible: true,
                     });
                 }
             }
-        } catch (error) {
-            const currentError = error instanceof Error ? error : new Error("Auto-save failed");
-            markSaveError(currentError.message);
-            // Show error toast only for manual saves
-            if (isManual) {
-                toast.error("Failed to save workflow", {
-                    description: currentError.message,
-                    dismissible: true,
-                });
-            }
-        }
-    }, [apiClient, workflow, projectId, markSaving, markSaved, markSaveError, getSpec, toast]);
+        },
+        [apiClient, workflow, projectId, markSaving, markSaved, markSaveError, getSpec, toast],
+    );
 
     // Clear any existing timer
     const clearTimer = useCallback(() => {

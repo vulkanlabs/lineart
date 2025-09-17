@@ -7,11 +7,14 @@ export function useToastHelpers() {
     const { addToast } = useToastContext();
 
     // Main toast function compatible with Sonner
-    const toast = (title: string, options?: {
-        description?: string;
-        duration?: number;
-        dismissible?: boolean;
-    }) => {
+    const toast = (
+        title: string,
+        options?: {
+            description?: string;
+            duration?: number;
+            dismissible?: boolean;
+        },
+    ) => {
         addToast({
             title,
             description: options?.description,
@@ -22,11 +25,14 @@ export function useToastHelpers() {
     };
 
     // Success variant
-    toast.success = (title: string, options?: {
-        description?: string;
-        duration?: number;
-        dismissible?: boolean;
-    }) => {
+    toast.success = (
+        title: string,
+        options?: {
+            description?: string;
+            duration?: number;
+            dismissible?: boolean;
+        },
+    ) => {
         addToast({
             title,
             description: options?.description,
@@ -37,11 +43,14 @@ export function useToastHelpers() {
     };
 
     // Error variant
-    toast.error = (title: string, options?: {
-        description?: string;
-        duration?: number;
-        dismissible?: boolean;
-    }) => {
+    toast.error = (
+        title: string,
+        options?: {
+            description?: string;
+            duration?: number;
+            dismissible?: boolean;
+        },
+    ) => {
         addToast({
             title,
             description: options?.description,
@@ -65,21 +74,27 @@ export function setGlobalToastRef(toastFn: (title: string, options?: any) => voi
 }
 
 export function createGlobalToast() {
-    const toast = (title: string, options?: {
-        description?: string;
-        duration?: number;
-        dismissible?: boolean;
-        variant?: "default" | "destructive" | "success";
-    }) => {
+    const toast = (
+        title: string,
+        options?: {
+            description?: string;
+            duration?: number;
+            dismissible?: boolean;
+            variant?: "default" | "destructive" | "success";
+        },
+    ) => {
         if (globalToastRef) globalToastRef(title, options);
     };
 
     // Success variant
-    toast.success = (title: string, options?: {
-        description?: string;
-        duration?: number;
-        dismissible?: boolean;
-    }) => {
+    toast.success = (
+        title: string,
+        options?: {
+            description?: string;
+            duration?: number;
+            dismissible?: boolean;
+        },
+    ) => {
         toast(title, {
             ...options,
             variant: "success",
@@ -88,11 +103,14 @@ export function createGlobalToast() {
     };
 
     // Error variant
-    toast.error = (title: string, options?: {
-        description?: string;
-        duration?: number;
-        dismissible?: boolean;
-    }) => {
+    toast.error = (
+        title: string,
+        options?: {
+            description?: string;
+            duration?: number;
+            dismissible?: boolean;
+        },
+    ) => {
         toast(title, {
             ...options,
             variant: "destructive",
