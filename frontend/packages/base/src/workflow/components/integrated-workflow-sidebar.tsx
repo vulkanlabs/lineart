@@ -18,6 +18,7 @@ import Editor from "@monaco-editor/react";
 import { useWorkflowStore } from "@/workflow/store";
 import { Button } from "@vulkanlabs/base/ui";
 import { iconMapping } from "@/workflow/icons";
+import { nodesConfig } from "@/workflow/utils/nodes";
 
 // Constants
 const SIDEBAR_STORAGE_KEY = "workflow.sidebar.expandedSections";
@@ -93,20 +94,7 @@ function formatDependencyOutput(dependency: any, sourceNodeType: string): string
  * Get node type label for display
  */
 function getNodeTypeLabel(type: string): string {
-    const labels: Record<string, string> = {
-        TRANSFORM: "Transform",
-        DATA_SOURCE: "Data Source",
-        DATA_INPUT: "Data Source",
-        OUTPUT: "Output",
-        INPUT: "Input",
-        CONNECTION: "Connection",
-        COMPONENT: "Component",
-        POLICY: "Policy",
-        BRANCH: "Branch",
-        TERMINATE: "Terminate",
-        DECISION: "Decision",
-    };
-    return labels[type] || type;
+    return nodesConfig[type as keyof typeof nodesConfig]?.name || type;
 }
 
 /**
