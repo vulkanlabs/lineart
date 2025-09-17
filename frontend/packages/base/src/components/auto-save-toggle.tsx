@@ -78,10 +78,12 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
     useEffect(() => {
         const handleWorkflowStatus = (event: CustomEvent) => {
             const newState = event.detail;
+            const prevState = autoSaveState;
             setAutoSaveState(newState);
 
             // Show toast for errors
             if (newState.saveError) showErrorToast(newState.saveError);
+
         };
 
         window.addEventListener("workflow:autosave-status", handleWorkflowStatus as EventListener);
@@ -90,13 +92,7 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
                 "workflow:autosave-status",
                 handleWorkflowStatus as EventListener,
             );
-    }, []);
-
-    // Handle auto-save toggle changes
-    const handleToggleChange = useCallback((enabled: boolean) => {
-        setAutoSaveState((prev) => ({ ...prev, autoSaveEnabled: enabled }));
-        window.dispatchEvent(new CustomEvent("workflow:toggle-autosave", { detail: { enabled } }));
-    }, []);
+    }, [autoSaveState]);
 
     // Manual save trigger with keyboard support
     const performManualSave = useCallback(async () => {
@@ -108,6 +104,13 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
 
         window.dispatchEvent(new CustomEvent("workflow:manual-save"));
     }, [autoSaveState.isSaving, autoSaveState.saveError]);
+
+
+    // Handle auto-save toggle changes
+    const handleToggleChange = useCallback((enabled: boolean) => {
+        setAutoSaveState((prev) => ({ ...prev, autoSaveEnabled: enabled }));
+        window.dispatchEvent(new CustomEvent("workflow:toggle-autosave", { detail: { enabled } }));
+    }, []);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -128,8 +131,7 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
             // Only warn for truly unsaved changes, not while saving (server is handling it)
             if (autoSaveState.hasUnsavedChanges && !autoSaveState.isSaving) {
-                const message =
-                    "You have unsaved changes that will be lost if you leave this page.";
+                const message = "You have unsaved changes that will be lost if you leave this page.";
                 event.preventDefault();
                 event.returnValue = message; // For older browsers
                 return message;
@@ -153,7 +155,7 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
         };
     }, [autoSaveState.hasUnsavedChanges, autoSaveState.isSaving]);
 
-    // Toast notification helper
+    // Toast notification helpers
     const showErrorToast = useCallback(
         (error: string) => {
             const errorMessage = getErrorMessage(error);
@@ -172,7 +174,8 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
         [performManualSave],
     );
 
-    // Simplified status derivation
+
+    // Simple status derivation
     const status = autoSaveState.isSaving
         ? "saving"
         : autoSaveState.saveError
@@ -181,7 +184,7 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
             ? "pending"
             : "saved";
 
-    // Status configuration with enhanced UX
+    // Status configuration
     const statusConfig = {
         saving: {
             icon: <Loader className="h-3.5 w-3.5 animate-spin text-blue-600" />,
@@ -197,9 +200,11 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
             title: `Save failed: ${getErrorMessage(autoSaveState.saveError)}. Click to retry.`,
         },
         pending: {
-            icon: <Clock className="h-3.5 w-3.5 text-amber-600" />,
-            text: "Unsaved changes",
-            color: "text-amber-600",
+            icon: autoSaveState.autoSaveEnabled
+                ? <Clock className="h-3.5 w-3.5 text-amber-600" />
+                : <AlertTriangle className="h-3.5 w-3.5 text-slate-600" />,
+            text: autoSaveState.autoSaveEnabled ? "Unsaved changes" : "Save manually",
+            color: autoSaveState.autoSaveEnabled ? "text-amber-600" : "text-slate-600",
             clickable: false,
         },
         saved: {
@@ -288,7 +293,7 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
                 </label>
             </div>
 
-            {/* Manual Save Button with Keyboard Shortcut */}
+            {/* Manual Save Button */}
             {showShortcut && (
                 <>
                     <span className="text-muted-foreground">·</span>
