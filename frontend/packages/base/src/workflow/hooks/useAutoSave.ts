@@ -17,14 +17,21 @@ export function useAutoSave({
     projectId,
 }: UseAutoSaveConfig) {
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const getUIMetadataRef = useRef(getUIMetadata);
     const isInitialMount = useRef(true);
 
-    const { autoSave, markSaving, markSaved, markSaveError, getSpec } = useWorkflowStore(
+    // Update the ref when getUIMetadata changes
+    useEffect(() => {
+        getUIMetadataRef.current = getUIMetadata;
+    }, [getUIMetadata]);
+
+    const { autoSave, markSaving, markSaved, markSaveError, clearSaveError, getSpec } = useWorkflowStore(
         useShallow((state) => ({
             autoSave: state.autoSave,
             markSaving: state.markSaving,
             markSaved: state.markSaved,
             markSaveError: state.markSaveError,
+            clearSaveError: state.clearSaveError,
             getSpec: state.getSpec,
         })),
     );
@@ -35,11 +42,18 @@ export function useAutoSave({
             markSaving();
 
             const spec = getSpec();
-            const uiMetadata = getUIMetadata();
+            const uiMetadata = getUIMetadataRef.current();
 
-            await apiClient.saveWorkflowSpec(workflow, spec, uiMetadata, projectId);
+            const result = await apiClient.saveWorkflowSpec(workflow, spec, uiMetadata, projectId);
 
-            markSaved();
+            // Only mark as saved if the result indicates success
+            if (result && result.success) {
+                markSaved();
+            } else {
+                // API client handles all error parsing, just use the error message
+                const errorMessage = result?.error || "Save failed";
+                markSaveError(errorMessage);
+            }
         } catch (error) {
             const currentError = error instanceof Error ? error : new Error("Auto-save failed");
             markSaveError(currentError.message);
@@ -52,7 +66,6 @@ export function useAutoSave({
         markSaved,
         markSaveError,
         getSpec,
-        getUIMetadata,
     ]);
 
     // Clear any existing timer
@@ -73,6 +86,25 @@ export function useAutoSave({
         }, autoSave.autoSaveInterval);
     }, [autoSave.autoSaveInterval, executeAutoSave]);
 
+    // Handle manual save and clear error events
+    useEffect(() => {
+        const handleManualSave = () => {
+            executeAutoSave();
+        };
+
+        const handleClearSaveError = () => {
+            clearSaveError();
+        };
+
+        window.addEventListener("workflow:manual-save", handleManualSave);
+        window.addEventListener("workflow:clear-save-error", handleClearSaveError);
+
+        return () => {
+            window.removeEventListener("workflow:manual-save", handleManualSave);
+            window.removeEventListener("workflow:clear-save-error", handleClearSaveError);
+        };
+    }, [executeAutoSave, clearSaveError]);
+
     // Main effect that handles auto-save logic
     useEffect(() => {
         // Skip auto-save on initial mount
@@ -83,13 +115,13 @@ export function useAutoSave({
 
         clearTimer();
 
-        // Schedule new timer if conditions are met
-        if (autoSave.hasUnsavedChanges && autoSave.autoSaveEnabled && !autoSave.isSaving)
-            scheduleAutoSave();
+        // Schedule new timer if conditions are met (including no save error to prevent auto-retry)
+        if (autoSave.hasUnsavedChanges && autoSave.autoSaveEnabled && !autoSave.isSaving && !autoSave.saveError) scheduleAutoSave();
     }, [
         autoSave.hasUnsavedChanges,
         autoSave.autoSaveEnabled,
         autoSave.isSaving,
+        autoSave.saveError,
         clearTimer,
         scheduleAutoSave,
     ]);

@@ -41,7 +41,6 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             hasUnsavedChanges: false,
             saveError: null,
             autoSaveEnabled: true,
-            retryCount: 0,
             autoSaveInterval,
             pendingChangesWhileSaving: false,
         },
@@ -425,35 +424,21 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                         hasUnsavedChanges: hadPendingChanges, // Keep unsaved changes if they occurred during save
                         lastSaved: new Date(),
                         saveError: null,
-                        retryCount: 0,
                         autoSaveInterval,
-                        pendingChangesWhileSaving: false, // Reset  flag
+                        pendingChangesWhileSaving: false, // Reset flag
                     },
                 };
             });
         },
 
         markSaveError: (error: string) => {
-            set((state) => {
-                const newRetryCount = (state.autoSave.retryCount || 0) + 1;
-                const maxRetries = 5;
-
-                // Exponential backoff for retry intervals
-                const retryDelay = Math.min(1000 * Math.pow(2, newRetryCount - 1), 30000);
-
-                return {
-                    autoSave: {
-                        ...state.autoSave,
-                        isSaving: false,
-                        saveError: error,
-                        retryCount: newRetryCount,
-                        autoSaveInterval:
-                            newRetryCount < maxRetries
-                                ? retryDelay
-                                : state.autoSave.autoSaveInterval,
-                    },
-                };
-            });
+            set((state) => ({
+                autoSave: {
+                    ...state.autoSave,
+                    isSaving: false,
+                    saveError: error,
+                },
+            }));
         },
 
         clearSaveError: () => {
@@ -461,7 +446,6 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                 autoSave: {
                     ...state.autoSave,
                     saveError: null,
-                    retryCount: 0, // Reset retry count when manually clearing
                 },
             }));
         },

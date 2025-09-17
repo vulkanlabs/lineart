@@ -105,7 +105,6 @@ function AutoSaveStatusIntegration({ workflow, projectId }: AutoSaveStatusIntegr
                 isSaving: autoSave.isSaving,
                 lastSaved: autoSave.lastSaved,
                 saveError: autoSave.saveError,
-                retryCount: autoSave.retryCount,
                 autoSaveInterval: autoSave.autoSaveInterval,
             },
         });
@@ -123,12 +122,19 @@ function AutoSaveStatusIntegration({ workflow, projectId }: AutoSaveStatusIntegr
             window.dispatchEvent(saveEvent);
         };
 
-        window.addEventListener("navigation:toggle-autosave", handleToggle as EventListener);
-        window.addEventListener("navigation:manual-save", handleManualSave);
+        const handleClearSaveError = () => {
+            const clearEvent = new CustomEvent("workflow:clear-save-error");
+            window.dispatchEvent(clearEvent);
+        };
+
+        window.addEventListener("workflow:toggle-autosave", handleToggle as EventListener);
+        window.addEventListener("workflow:manual-save", handleManualSave);
+        window.addEventListener("workflow:clear-save-error", handleClearSaveError);
 
         return () => {
-            window.removeEventListener("navigation:toggle-autosave", handleToggle as EventListener);
-            window.removeEventListener("navigation:manual-save", handleManualSave);
+            window.removeEventListener("workflow:toggle-autosave", handleToggle as EventListener);
+            window.removeEventListener("workflow:manual-save", handleManualSave);
+            window.removeEventListener("workflow:clear-save-error", handleClearSaveError);
         };
     }, [autoSave.autoSaveEnabled, toggleAutoSave]);
 

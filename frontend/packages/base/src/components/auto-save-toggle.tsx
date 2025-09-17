@@ -10,7 +10,6 @@ export interface AutoSaveState {
     isSaving: boolean;
     lastSaved: Date | null;
     saveError: string | null;
-    retryCount?: number;
 }
 
 export interface AutoSaveToggleProps {
@@ -35,6 +34,36 @@ export interface AutoSaveToggleProps {
  * - Toast notifications for persistent errors
  */
 export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSaveToggleProps = {}) {
+    // Helper function to extract error message from various error formats
+    const getErrorMessage = useCallback((error: string | null): string => {
+        if (!error) return "Unknown error";
+
+        // Handle [object Object] case (should be rare now that API client handles it)
+        if (error === "[object Object]") return "Save request failed";
+        if (error.includes("[object Object]")) return "Internal server error";
+
+        // Handle common error patterns
+        if (typeof error === "string") {
+            // Extract HTTP status codes
+            if (error.includes("500")) return "Internal server error";
+            if (error.includes("404")) return "Endpoint not found";
+            if (error.includes("403")) return "Permission denied";
+            if (error.includes("401")) return "Authentication required";
+            if (error.includes("Network Error")) return "Network connection failed";
+
+            try {
+                // Try to parse if it's a JSON string
+                const parsed = JSON.parse(error);
+                return parsed.message || parsed.error || parsed.detail || error;
+            } catch {
+                // Return if not JSON, but limit length
+                return error.length > 100 ? error.substring(0, 100) + "..." : error;
+            }
+        }
+
+        return String(error);
+    }, []);
+
     // Auto-save state from workflow system
     const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>({
         hasUnsavedChanges: false,
@@ -42,7 +71,6 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
         isSaving: false,
         lastSaved: null,
         saveError: null,
-        retryCount: 0,
     });
 
     // Listen for workflow auto-save status updates
@@ -51,10 +79,8 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
             const newState = event.detail;
             setAutoSaveState(newState);
 
-            // Show toast for persistent errors (after 3 failed attempts)
-            if (newState.saveError && (newState.retryCount || 0) >= 3) {
-                showErrorToast(newState.saveError);
-            }
+            // Show toast for errors
+            if (newState.saveError) showErrorToast(newState.saveError);
         };
 
         window.addEventListener("workflow:autosave-status", handleWorkflowStatus as EventListener);
@@ -69,15 +95,19 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
     const handleToggleChange = useCallback((enabled: boolean) => {
         setAutoSaveState((prev) => ({ ...prev, autoSaveEnabled: enabled }));
         window.dispatchEvent(
-            new CustomEvent("navigation:toggle-autosave", { detail: { enabled } }),
+            new CustomEvent("workflow:toggle-autosave", { detail: { enabled } }),
         );
     }, []);
 
     // Manual save trigger with keyboard support
     const performManualSave = useCallback(async () => {
         if (autoSaveState.isSaving) return; // Prevent duplicate saves
-        window.dispatchEvent(new CustomEvent("navigation:manual-save"));
-    }, [autoSaveState.isSaving]);
+
+        // Clear any existing save error before attempting manual save
+        if (autoSaveState.saveError) window.dispatchEvent(new CustomEvent("workflow:clear-save-error"));
+
+        window.dispatchEvent(new CustomEvent("workflow:manual-save"));
+    }, [autoSaveState.isSaving, autoSaveState.saveError]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -126,16 +156,17 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
     // Toast notification helper
     const showErrorToast = useCallback(
         (error: string) => {
+            const errorMessage = getErrorMessage(error);
             // Try to use existing toast system or fallback to console
             if (typeof window !== "undefined" && "toast" in window) {
-                (window as any).toast(error, {
+                (window as any).toast({
                     variant: "destructive",
                     title: "Auto-save failed",
-                    description: "Click to retry manually",
+                    description: errorMessage,
                     action: { label: "Retry", onClick: performManualSave },
                 });
             } else {
-                console.error("Auto-save failed:", error);
+                console.error("Auto-save failed:", errorMessage);
             }
         },
         [performManualSave],
@@ -163,7 +194,7 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
             text: "Failed to save",
             color: "text-red-600",
             clickable: true,
-            title: "Click to retry save",
+            title: `Save failed: ${getErrorMessage(autoSaveState.saveError)}. Click to retry.`,
         },
         pending: {
             icon: <Clock className="h-3.5 w-3.5 text-amber-600" />,
@@ -182,11 +213,11 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
     const currentStatus = statusConfig[status];
 
     return (
-        <div className={cn("flex items-center gap-2 text-sm", className)}>
+        <div className={cn("flex items-center gap-2 text-sm min-w-0", className)}>
             {/* Status Indicator */}
             <div
                 className={cn(
-                    "flex items-center gap-1.5 transition-colors duration-200",
+                    "flex items-center gap-1.5 transition-colors duration-200 min-w-0",
                     currentStatus.clickable && "cursor-pointer hover:opacity-80",
                 )}
                 onClick={currentStatus.clickable ? performManualSave : undefined}
@@ -205,14 +236,18 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
                 }
             >
                 {currentStatus.icon}
-                <span className={currentStatus.color}>
+                <span className={cn(currentStatus.color, "whitespace-nowrap")}>
                     {currentStatus.text}
-                    {status === "error" && (autoSaveState.retryCount || 0) > 0 && (
-                        <span className="ml-1 text-xs opacity-70">
-                            (Retry {autoSaveState.retryCount})
-                        </span>
-                    )}
                 </span>
+                {/* Inline error indicator for compact display */}
+                {status === "error" && autoSaveState.saveError && (
+                    <span
+                        className="text-red-600 text-xs ml-1 max-w-[120px] sm:max-w-[200px] truncate inline-block"
+                        title={getErrorMessage(autoSaveState.saveError)}
+                    >
+                        ({getErrorMessage(autoSaveState.saveError)})
+                    </span>
+                )}
             </div>
 
             <span className="text-muted-foreground">·</span>
