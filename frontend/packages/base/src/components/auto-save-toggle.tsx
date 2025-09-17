@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useState } from "react";
 import { Check, Loader, AlertTriangle, Clock, Save } from "lucide-react";
 import { cn } from "../lib/utils";
+import { Button } from "../ui";
 
 export interface AutoSaveState {
     hasUnsavedChanges: boolean;
@@ -291,20 +292,22 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
             {showShortcut && (
                 <>
                     <span className="text-muted-foreground">·</span>
-                    <button
+                    <Button
                         onClick={performManualSave}
                         disabled={autoSaveState.isSaving}
+                        variant="outline"
+                        size="sm"
                         className={cn(
-                            "inline-flex items-center gap-1 px-2 py-1 rounded text-xs",
-                            "bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900",
-                            "transition-colors duration-200 border border-gray-300",
+                            "px-2 py-1 text-xs h-auto",
+                            "border-input bg-background hover:bg-accent hover:text-accent-foreground",
+                            "transition-all duration-200 shadow-sm hover:shadow-md",
                             "disabled:opacity-50 disabled:cursor-not-allowed",
                         )}
                         title="Save workflow manually (Ctrl+S)"
                     >
-                        <Save className="h-3 w-3" />
+                        <Save className="h-3 w-3 mr-1" />
                         <span className="hidden sm:inline">Save</span>
-                    </button>
+                    </Button>
                 </>
             )}
         </div>

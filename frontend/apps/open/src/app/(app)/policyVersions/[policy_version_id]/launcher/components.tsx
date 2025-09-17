@@ -83,18 +83,19 @@ export function LauncherButton({
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <button
+                <Button
+                    variant="outline"
+                    size="sm"
                     className={
-                        "inline-flex items-center gap-1 px-2 py-1 rounded text-xs " +
-                        "bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 " +
-                        "transition-colors duration-200 border border-gray-300 " +
-                        "disabled:opacity-50 disabled:cursor-not-allowed"
+                        "px-2 py-1 text-xs h-auto " +
+                        "border-input bg-background hover:bg-accent hover:text-accent-foreground " +
+                        "transition-all duration-200 shadow-sm hover:shadow-md"
                     }
                     title="Launch a new policy run"
                 >
-                    <Play className="h-3 w-3" />
+                    <Play className="h-3 w-3 mr-1" />
                     <span>Launch Run</span>
-                </button>
+                </Button>
             </DialogTrigger>
             <DialogContent className="max-w-4xl w-[90vw] max-h-[85vh] overflow-y-auto">
                 <div className="flex items-center justify-between pb-4 border-b">
