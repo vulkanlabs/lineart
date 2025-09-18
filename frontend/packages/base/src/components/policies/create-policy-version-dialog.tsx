@@ -120,7 +120,9 @@ export function CreatePolicyVersionDialog({ config }: { config: CreatePolicyVers
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>{config.dialogTitle || "Create a new Policy Version"}</DialogTitle>
+                        <DialogTitle>
+                            {config.dialogTitle || "Create a new Policy Version"}
+                        </DialogTitle>
                     </DialogHeader>
                     <form
                         className="flex flex-col gap-4 py-4"

@@ -110,7 +110,7 @@ export interface UpdateAllocationDialogConfig {
     policyVersions: PolicyVersion[];
     updatePolicyAllocationStrategy: (
         policyId: string,
-        payload: PolicyAllocationStrategy
+        payload: PolicyAllocationStrategy,
     ) => Promise<any>;
     buttonText?: string;
     dialogTitle?: string;

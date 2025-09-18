@@ -4,7 +4,7 @@ import { Loader } from "@vulkanlabs/base";
 import { fetchPolicy, fetchPolicyVersions } from "@/lib/api";
 import { PolicyAllocationStrategy, PolicyVersion } from "@vulkanlabs/client-open";
 
-import { AllocatedVersionsTable } from "./_components/table";
+import { AllocatedVersionsTable } from "./components";
 
 export default async function Page(props: { params: Promise<{ policy_id: string }> }) {
     const params = await props.params;

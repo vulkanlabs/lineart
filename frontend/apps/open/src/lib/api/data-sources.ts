@@ -18,11 +18,15 @@ export const fetchDataSources = async (): Promise<DataSource[]> => {
 /**
  * Get detailed info for a specific data source
  * @param {string} dataSourceId - Unique identifier of the data source
+ * @param {string} [projectId] - Optional project context
  * @returns {Promise<DataSource>} Complete data source configuration and status
  *
  * Connection details, credentials, usage stats, health status
  */
-export const fetchDataSource = async (dataSourceId: string): Promise<DataSource> => {
+export const fetchDataSource = async (
+    dataSourceId: string,
+    projectId?: string,
+): Promise<DataSource> => {
     return withErrorHandling(
         dataSourcesApi.getDataSource({ dataSourceId }),
         `fetch data source ${dataSourceId}`,
@@ -32,9 +36,10 @@ export const fetchDataSource = async (dataSourceId: string): Promise<DataSource>
 /**
  * Create a new data source connection
  * @param {DataSourceSpec} data - Data source configuration (type, connection details, credentials)
+ * @param {string} [projectId] - Optional project context
  * @returns {Promise<DataSource>} Created data source with generated ID
  */
-export const createDataSource = async (data: DataSourceSpec) => {
+export const createDataSource = async (data: DataSourceSpec, projectId?: string) => {
     return withErrorHandling(
         dataSourcesApi.createDataSource({ dataSourceSpec: data }),
         "create data source",
@@ -44,11 +49,12 @@ export const createDataSource = async (data: DataSourceSpec) => {
 /**
  * Delete/remove a data source
  * @param {string} dataSourceId - ID of data source to remove
+ * @param {string} [projectId] - Optional project context
  * @returns {Promise<void>} Success or throws error
  *
  * This will break any workflows/policies using this data source
  */
-export const deleteDataSource = async (dataSourceId: string) => {
+export const deleteDataSource = async (dataSourceId: string, projectId?: string) => {
     return withErrorHandling(
         dataSourcesApi.deleteDataSource({ dataSourceId }),
         `delete data source ${dataSourceId}`,
@@ -58,11 +64,12 @@ export const deleteDataSource = async (dataSourceId: string) => {
 /**
  * Get environment variables for a data source
  * @param {string} dataSourceId - Target data source ID
+ * @param {string} [projectId] - Optional project context
  * @returns {Promise<DataSourceEnvVar[]>} Array of environment variable configs
  *
  * Variable names, values (masked for security), types
  */
-export const fetchDataSourceEnvVars = async (dataSourceId: string) => {
+export const fetchDataSourceEnvVars = async (dataSourceId: string, projectId?: string) => {
     return withErrorHandling(
         dataSourcesApi.getDataSourceEnvVariables({ dataSourceId }),
         `fetch environment variables for data source ${dataSourceId}`,
@@ -73,11 +80,13 @@ export const fetchDataSourceEnvVars = async (dataSourceId: string) => {
  * Update environment variables for a data source
  * @param {string} dataSourceId - Target data source ID
  * @param {DataSourceEnvVarBase[]} variables - Array of env var objects to set
+ * @param {string} [projectId] - Optional project context
  * @returns {Promise<void>} Success or throws error
  */
 export const setDataSourceEnvVars = async (
     dataSourceId: string,
     variables: DataSourceEnvVarBase[],
+    projectId?: string,
 ) => {
     return withErrorHandling(
         dataSourcesApi.setDataSourceEnvVariables({
@@ -94,6 +103,7 @@ export const setDataSourceEnvVars = async (
  * @param {string} dataSourceId - Target data source identifier
  * @param {Date} startDate - Analytics period start
  * @param {Date} endDate - Analytics period end
+ * @param {string} [projectId] - Optional project context
  * @returns {Promise<any>} Usage metrics including query counts, data transferred, connection stats
  *
  * Total queries, avg response time, data volume, error rates
@@ -102,6 +112,7 @@ export const fetchDataSourceUsage = async (
     dataSourceId: string,
     startDate: Date,
     endDate: Date,
+    projectId?: string,
 ): Promise<any> => {
     return withErrorHandling(
         dataSourcesApi.getDataSourceUsage({
@@ -118,6 +129,7 @@ export const fetchDataSourceUsage = async (
  * @param {string} dataSourceId - Data source to analyze
  * @param {Date} startDate - Metrics period start
  * @param {Date} endDate - Metrics period end
+ * @param {string} [projectId] - Optional project context
  * @returns {Promise<any>} Performance metrics and health data
  *
  * Response times, error rates, connection counts, throughput
@@ -126,6 +138,7 @@ export const fetchDataSourceMetrics = async (
     dataSourceId: string,
     startDate: Date,
     endDate: Date,
+    projectId?: string,
 ): Promise<any> => {
     return withErrorHandling(
         dataSourcesApi.getDataSourceMetrics({
@@ -142,12 +155,14 @@ export const fetchDataSourceMetrics = async (
  * @param {string} dataSourceId - Data source to analyze
  * @param {Date} startDate - Stats period start
  * @param {Date} endDate - Stats period end
+ * @param {string} [projectId] - Optional project context
  * @returns {Promise<any>} Cache metrics including hit/miss rates, cache size, evictions
  */
 export const fetchDataSourceCacheStats = async (
     dataSourceId: string,
     startDate: Date,
     endDate: Date,
+    projectId?: string,
 ): Promise<any> => {
     return withErrorHandling(
         dataSourcesApi.getCacheStatistics({

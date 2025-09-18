@@ -22,7 +22,11 @@ export function LauncherPage({ policyVersionId, inputSchema, configVariables }: 
     );
 }
 
-export function LauncherButton({ policyVersionId, inputSchema, configVariables }: LauncherPageProps) {
+export function LauncherButton({
+    policyVersionId,
+    inputSchema,
+    configVariables,
+}: LauncherPageProps) {
     return (
         <PolicyLauncherButton
             config={{

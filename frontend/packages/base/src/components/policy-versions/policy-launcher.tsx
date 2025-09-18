@@ -195,10 +195,11 @@ function LaunchRunForm({
         setSubmitting(true);
         setError(null);
         setCreatedRun(null);
-        config.createRunByPolicyVersion({
-            policyVersionId: config.policyVersionId,
-            bodyCreateRunByPolicyVersion: body,
-        })
+        config
+            .createRunByPolicyVersion({
+                policyVersionId: config.policyVersionId,
+                bodyCreateRunByPolicyVersion: body,
+            })
             .then((data) => {
                 setError(null);
                 setCreatedRun(data);

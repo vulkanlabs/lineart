@@ -19,7 +19,7 @@ export interface AllocatedVersionsTableConfig {
     }>;
 }
 
-export function SharedAllocatedVersionsTable({
+export function AllocatedVersionsTable({
     policy,
     policyVersions,
     allocatedAndShadowVersions,

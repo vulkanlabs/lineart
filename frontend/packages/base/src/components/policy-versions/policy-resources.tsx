@@ -13,15 +13,7 @@ import { toast } from "sonner";
 import * as z from "zod";
 
 // Vulkan packages
-import {
-    Button,
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormMessage,
-    Textarea,
-} from "../../ui";
+import { Button, Form, FormControl, FormField, FormItem, FormMessage, Textarea } from "../../ui";
 import {
     DataTable,
     EnvironmentVariablesEditor,
@@ -45,9 +37,13 @@ export interface PolicyResourcesRequirementsEditorConfig {
     updatePolicyVersion: (policyVersionId: string, updateData: any) => Promise<void>;
 }
 
-export function PolicyResourcesEnvironmentVariables({ config }: { config: PolicyResourcesEnvironmentVariablesConfig }) {
+export function PolicyResourcesEnvironmentVariables({
+    config,
+}: {
+    config: PolicyResourcesEnvironmentVariablesConfig;
+}) {
     const { policyVersion, variables, setPolicyVersionVariables } = config;
-    
+
     return (
         <EnvironmentVariablesEditor
             variables={variables}
@@ -85,9 +81,13 @@ const DataSourceTableColumns: ColumnDef<any>[] = [
     },
 ];
 
-export function PolicyResourcesDataSourcesTable({ config }: { config: PolicyResourcesDataSourcesTableConfig }) {
+export function PolicyResourcesDataSourcesTable({
+    config,
+}: {
+    config: PolicyResourcesDataSourcesTableConfig;
+}) {
     const { sources } = config;
-    
+
     return (
         <DataTable
             columns={DataSourceTableColumns}
@@ -98,7 +98,11 @@ export function PolicyResourcesDataSourcesTable({ config }: { config: PolicyReso
     );
 }
 
-export function PolicyResourcesRequirementsEditor({ config }: { config: PolicyResourcesRequirementsEditorConfig }) {
+export function PolicyResourcesRequirementsEditor({
+    config,
+}: {
+    config: PolicyResourcesRequirementsEditorConfig;
+}) {
     const { policyVersion, updatePolicyVersion } = config;
     const [isLoading, setIsLoading] = useState(false);
 
