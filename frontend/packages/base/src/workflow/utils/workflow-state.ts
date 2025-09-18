@@ -35,8 +35,12 @@ export function createWorkflowState(workflow: Workflow): WorkflowState {
 
         // Calculate minimum height for node content
         const requiredHeight = calculateNodeHeight(node.node_type, node.metadata);
-        // Use the larger saved height or required
-        const height = Math.max(nodeUIMetadata.height || requiredHeight, requiredHeight);
+
+        // If saved collapsed, preserve the collapsed height
+        const isCollapsed = nodeUIMetadata.detailsExpanded === false;
+        const height = isCollapsed
+            ? 50
+            : Math.max(nodeUIMetadata.height || requiredHeight, requiredHeight);
         const width = nodeUIMetadata.width;
 
         const incomingEdges = edges
@@ -65,8 +69,9 @@ export function createWorkflowState(workflow: Workflow): WorkflowState {
                 metadata: node.metadata || {},
                 incomingEdges: incomingEdges,
                 minWidth: width,
-                minHeight: height,
-                detailsExpanded: true,
+                // Store the required height for collapsed nodes
+                minHeight: isCollapsed ? requiredHeight : height,
+                detailsExpanded: nodeUIMetadata.detailsExpanded ?? true,
             },
             position: position,
         };
