@@ -5,8 +5,8 @@ import { Layers, Network, FolderCog, Play } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 // Local imports
-import { InnerNavbar, type InnerNavbarSectionProps } from "@vulkanlabs/base";
-import { PageLayout, SidebarSectionProps } from "@/components/page-layout";
+import { InnerNavbar, type InnerNavbarSectionProps, AutoSaveToggle } from "@vulkanlabs/base";
+import { PageLayout, type SidebarSectionProps } from "@/components/page-layout";
 
 import { LauncherButton } from "./launcher/components";
 import { Policy, PolicyVersion } from "@vulkanlabs/client-open";
@@ -55,10 +55,20 @@ export function RouteLayout({
 
     const rightSections: InnerNavbarSectionProps[] = [
         {
-            element: (
+            element: isOnWorkflowPage ? (
+                // Combined auto-save and launch in same section for single line layout
+                <div className="flex items-center gap-4">
+                    <AutoSaveToggle showShortcut={true} />
+                    <LauncherButton
+                        policyVersionId={policyVersion.policy_version_id}
+                        inputSchema={policyVersion.workflow?.input_schema || {}}
+                    />
+                </div>
+            ) : (
+                // Just launch button when not on workflow page
                 <LauncherButton
                     policyVersionId={policyVersion.policy_version_id}
-                    inputSchema={new Map()}
+                    inputSchema={policyVersion.workflow?.input_schema || {}}
                 />
             ),
         },

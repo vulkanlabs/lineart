@@ -90,12 +90,12 @@ export function CreatePolicyVersionDialog({ config }: { config: CreatePolicyVers
                 key={fieldName}
                 name={fieldName as keyof typeof formSchema.shape}
                 control={form.control}
-                render={({ field }) => (
+                render={({ field }: { field: any }) => (
                     <FormItem>
                         <FormLabel htmlFor={fieldName}>{titleCase(fieldName)}</FormLabel>
                         <FormControl>
                             <Input
-                                placeholder={formField?.default?.toString()}
+                                placeholder="e.g. v1.0, production, beta"
                                 type="text"
                                 {...field}
                             />
@@ -130,7 +130,7 @@ export function CreatePolicyVersionDialog({ config }: { config: CreatePolicyVers
                     >
                         {formFields}
 
-                        <DialogFooter>
+                        <DialogFooter className="">
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting ? <Sending /> : "Create Policy Version"}
                             </Button>

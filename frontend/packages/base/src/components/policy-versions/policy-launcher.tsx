@@ -1,16 +1,27 @@
 "use client";
 
 // React and Next.js
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 // External libraries
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, UseFormReturn, ControllerRenderProps } from "react-hook-form";
-import { Play, Settings, CheckCircle, AlertCircle } from "lucide-react";
+import {
+    Play,
+    Settings,
+    CheckCircle,
+    AlertCircle,
+    Copy,
+    Link as LinkIcon,
+    Terminal,
+} from "lucide-react";
 
 // Vulkan packages
+import { Run } from "@vulkanlabs/client-open";
+
+// Local components
 import {
     Button,
     Dialog,
@@ -49,10 +60,67 @@ export function PolicyLauncherPage({ config }: { config: PolicyLauncherPageConfi
     const { policyVersionId, inputSchema, configVariables } = config;
     const [createdRun, setCreatedRun] = useState<any | null>(null);
     const [error, setError] = useState<Error | null>(null);
+    const [copiedUrl, setCopiedUrl] = useState(false);
+    const [copiedCurl, setCopiedCurl] = useState(false);
+    const [currentFormData, setCurrentFormData] = useState<{
+        input_data: string;
+        config_variables: string;
+    }>({
+        input_data: JSON.stringify(asInputData(inputSchema), null, 2),
+        config_variables: JSON.stringify(asConfigMap(configVariables || []), null, 2),
+    });
+
+    const getApiUrl = () => {
+        const baseUrl =
+            process.env.NEXT_PUBLIC_VULKAN_SERVER_URL ||
+            (typeof window !== "undefined" ? window.location.origin : "");
+        return `${baseUrl}/policy-versions/${policyVersionId}/runs`;
+    };
+
+    const handleCopyUrl = async () => {
+        try {
+            const url = getApiUrl();
+            await navigator.clipboard.writeText(url);
+            setCopiedUrl(true);
+            setTimeout(() => setCopiedUrl(false), 2000);
+        } catch (err) {
+            console.error("Failed to copy URL:", err);
+        }
+    };
+
+    const handleCopyCurl = async () => {
+        try {
+            const url = getApiUrl();
+            const curlCommand = `curl -X POST "${url}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "input_data": ${currentFormData.input_data},
+    "config_variables": ${currentFormData.config_variables}
+  }'`;
+
+            await navigator.clipboard.writeText(curlCommand);
+            setCopiedCurl(true);
+            setTimeout(() => setCopiedCurl(false), 2000);
+        } catch (err) {
+            console.error("Failed to copy curl command:", err);
+        }
+    };
 
     return (
         <div className="flex flex-col p-8 gap-8">
-            <h1 className="text-2xl font-bold tracking-tight">Launcher</h1>
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold tracking-tight">Launcher</h1>
+                <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleCopyUrl}>
+                        <LinkIcon className="h-4 w-4 mr-2" />
+                        {copiedUrl ? "Copied!" : "Copy URL"}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleCopyCurl}>
+                        <Terminal className="h-4 w-4 mr-2" />
+                        {copiedCurl ? "Copied!" : "Copy curl"}
+                    </Button>
+                </div>
+            </div>
             <div>
                 <LaunchRunForm
                     config={config}
@@ -60,6 +128,7 @@ export function PolicyLauncherPage({ config }: { config: PolicyLauncherPageConfi
                     setError={setError}
                     defaultInputData={asInputData(inputSchema)}
                     defaultConfigVariables={asConfigMap(configVariables || [])}
+                    onFormDataChange={setCurrentFormData}
                 />
             </div>
             {createdRun && (
@@ -71,8 +140,8 @@ export function PolicyLauncherPage({ config }: { config: PolicyLauncherPageConfi
 }
 
 export function PolicyLauncherButton({ config }: { config: PolicyLauncherButtonConfig }) {
-    const { policyVersionId, inputSchema, configVariables } = config;
-    const [createdRun, setCreatedRun] = useState<any | null>(null);
+    const { inputSchema, configVariables } = config;
+    const [createdRun, setCreatedRun] = useState<Run | null>(null);
     const [error, setError] = useState<Error | null>(null);
     const [open, setOpen] = useState(false);
 
@@ -160,8 +229,9 @@ type LaunchRunFormProps = {
     config: PolicyLauncherConfig;
     defaultInputData: Object;
     defaultConfigVariables: Object;
-    setCreatedRun: (run: any | null) => void;
+    setCreatedRun: (run: Run | null) => void;
     setError: (error: Error | null) => void;
+    onFormDataChange?: (data: { input_data: string; config_variables: string }) => void;
 };
 
 function LaunchRunForm({
@@ -170,6 +240,7 @@ function LaunchRunForm({
     defaultConfigVariables,
     setCreatedRun,
     setError,
+    onFormDataChange,
 }: LaunchRunFormProps) {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -178,6 +249,26 @@ function LaunchRunForm({
             config_variables: JSON.stringify(defaultConfigVariables, null, 4),
         },
     });
+
+    // Watch form changes and update parent component
+    const watchedValues = form.watch();
+
+    useEffect(() => {
+        if (onFormDataChange) {
+            onFormDataChange({
+                input_data: watchedValues.input_data || JSON.stringify(defaultInputData, null, 2),
+                config_variables:
+                    watchedValues.config_variables ||
+                    JSON.stringify(defaultConfigVariables, null, 2),
+            });
+        }
+    }, [
+        watchedValues.input_data,
+        watchedValues.config_variables,
+        onFormDataChange,
+        defaultInputData,
+        defaultConfigVariables,
+    ]);
 
     const setDefaults = () => {
         form.setValue("input_data", JSON.stringify(defaultInputData, null, 4));
@@ -428,7 +519,7 @@ function asConfigMap(configVariables: string[]) {
     return Object.fromEntries(configVariables.map((key) => [key, ""]));
 }
 
-function RunCreatedCard({ createdRun, closeDialog }: { createdRun: any; closeDialog: () => void }) {
+function RunCreatedCard({ createdRun, closeDialog }: { createdRun: Run; closeDialog: () => void }) {
     return (
         <div className="text-center space-y-6 py-8">
             <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
