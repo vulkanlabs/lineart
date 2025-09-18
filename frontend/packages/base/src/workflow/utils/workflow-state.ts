@@ -48,6 +48,8 @@ export function createWorkflowState(workflow: Workflow): WorkflowState {
                 return acc;
             }, {});
 
+        const nodeConfig = nodesConfig[node.node_type as keyof typeof nodesConfig];
+
         return {
             id: node.name,
             type: node.node_type as any,
@@ -55,7 +57,7 @@ export function createWorkflowState(workflow: Workflow): WorkflowState {
             width: width,
             data: {
                 name: node.name,
-                icon: node.node_type,
+                icon: nodeConfig?.icon || node.node_type,
                 metadata: node.metadata || {},
                 incomingEdges: incomingEdges,
                 minWidth: width,
