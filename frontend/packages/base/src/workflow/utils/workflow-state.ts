@@ -30,7 +30,8 @@ export function createWorkflowState(workflow: Workflow): WorkflowState {
 
     // Map server nodes to ReactFlow node format
     const flowNodes: VulkanNode[] = nodes.map((node) => {
-        const nodeUIMetadata = uiMetadata[node.name] || getDefaultUIMetadata(node.node_type, node.metadata);
+        const nodeUIMetadata =
+            uiMetadata[node.name] || getDefaultUIMetadata(node.node_type, node.metadata);
         const position: XYPosition = nodeUIMetadata.position;
 
         // Calculate minimum height for node content
