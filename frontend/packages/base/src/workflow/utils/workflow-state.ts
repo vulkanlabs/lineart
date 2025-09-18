@@ -197,9 +197,9 @@ function makeEdgesFromDependencies(nodes: NodeDefinitionDict[]): Edge[] {
             const source = dep.node;
             let sourceHandle: string | null = null;
 
-            // If the output is specified, we need to find the corresponding
+            // If the output is specified (including empty strings), we need to find the corresponding
             // handle index in the node.
-            if (dep.output) {
+            if (dep.output !== undefined && dep.output !== null) {
                 const sourceNode = nodes.find((n) => n.name === dep.node);
                 if (!sourceNode) {
                     console.error(`Node ${dep.node} not found`);
