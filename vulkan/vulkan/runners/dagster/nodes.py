@@ -776,8 +776,9 @@ class DagsterDecision(DecisionNode, DagsterNode):
 def _evaluate_condition(condition: str, inputs: dict[str, Any]) -> bool:
     norm_cond = normalize_to_template(condition)
     result = resolve_template(norm_cond, inputs, env_variables={})
-    # Jinja2 evaluates to a string, so we need to compare to "True"
-    return result == "True"
+    if not isinstance(result, bool):
+        raise ValueError(f"Condition did not evaluate to a boolean: {condition}")
+    return result
 
 
 _NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
