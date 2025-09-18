@@ -7,6 +7,23 @@ import type { VulkanNode, WorkflowState } from "../types/workflow";
 import { Workflow } from "../api/types";
 
 /**
+ * Get saved sidebar width from localStorage or default
+ */
+function getSavedSidebarWidth(): number {
+    try {
+        const saved = localStorage.getItem("workflow.sidebar.width");
+        if (saved) {
+            const width = parseFloat(saved);
+            // Ensure width is within reasonable bounds
+            return width >= 20 && width <= 60 ? width : 30;
+        }
+    } catch (e) {
+        // Silently handle localStorage errors
+    }
+    return 30;
+}
+
+/**
  * Create initial workflow state from a policy version
  */
 export function createWorkflowState(workflow: Workflow): WorkflowState {
@@ -69,6 +86,20 @@ export function createWorkflowState(workflow: Workflow): WorkflowState {
     return {
         nodes: [inputNode, ...flowNodes],
         edges: edges,
+        autoSave: {
+            lastSaved: null,
+            isSaving: false,
+            hasUnsavedChanges: false,
+            saveError: null,
+            autoSaveEnabled: true,
+            retryCount: 0,
+        },
+        sidebar: {
+            isOpen: false,
+            selectedNodeId: null,
+            activeTab: null,
+            width: getSavedSidebarWidth(),
+        },
     };
 }
 
@@ -119,6 +150,20 @@ function defaultWorkflowState(inputNode: VulkanNode): WorkflowState {
     return {
         nodes: [inputNode],
         edges: [],
+        autoSave: {
+            lastSaved: null,
+            isSaving: false,
+            hasUnsavedChanges: false,
+            saveError: null,
+            autoSaveEnabled: true,
+            retryCount: 0,
+        },
+        sidebar: {
+            isOpen: false,
+            selectedNodeId: null,
+            activeTab: null,
+            width: getSavedSidebarWidth(),
+        },
     };
 }
 
