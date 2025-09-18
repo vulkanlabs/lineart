@@ -2,15 +2,72 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
+import { Panel, PanelGroup } from "react-resizable-panels";
 
 import { WorkflowProviderWrapper } from "./workflow/workflow-provider";
 import { WorkflowCanvas } from "./workflow/workflow-canvas";
+import { IntegratedWorkflowSidebar } from "./integrated-workflow-sidebar";
+import { ResizeHandle } from "../../components/resize-handle";
 import { useWorkflowStore } from "@/workflow/store/workflow-store";
 import { nodeTypes } from "@/workflow/components/nodes";
 import { useAutoSave } from "@/workflow/hooks/useAutoSave";
 import { useWorkflowApi } from "@/workflow/api";
 import type { Workflow } from "@/workflow/api/types";
 
+/**
+ * Custom hook for managing panel sizes with localStorage persistence and sidebar width integration
+ */
+function usePanelSizes() {
+    const { sidebar, setSidebarWidth } = useWorkflowStore(
+        useShallow((state) => ({
+            sidebar: state.sidebar,
+            setSidebarWidth: state.setSidebarWidth,
+        })),
+    );
+
+    const [panelSizes, setPanelSizes] = useState<number[]>(() => {
+        try {
+            const saved = localStorage.getItem("workflow.panelSizes");
+            const parsedSizes = saved ? JSON.parse(saved) : [70, 30];
+
+            // If sidebar has a saved width, use it
+            if (sidebar.width !== undefined) return [100 - sidebar.width, sidebar.width];
+
+            return parsedSizes;
+        } catch (e) {
+            return [70, 30];
+        }
+    });
+
+    const handlePanelResize = useCallback(
+        (sizes: number[]) => {
+            setPanelSizes(sizes);
+            localStorage.setItem("workflow.panelSizes", JSON.stringify(sizes));
+
+            // Update sidebar width in store when panels are resized
+            if (sidebar.isOpen && sizes.length > 1) setSidebarWidth(sizes[1]);
+        },
+        [sidebar.isOpen, setSidebarWidth],
+    );
+
+    const resetPanelSizes = useCallback(() => {
+        const defaultSizes = [70, 30];
+        setPanelSizes(defaultSizes);
+        localStorage.setItem("workflow.panelSizes", JSON.stringify(defaultSizes));
+        setSidebarWidth(30); // Reset sidebar width to default
+    }, [setSidebarWidth]);
+
+    // Update panel sizes when sidebar width changes in store
+    useEffect(() => {
+        if (sidebar.width !== undefined && sidebar.isOpen) {
+            const newSizes = [100 - sidebar.width, sidebar.width];
+            setPanelSizes(newSizes);
+            localStorage.setItem("workflow.panelSizes", JSON.stringify(newSizes));
+        }
+    }, [sidebar.width, sidebar.isOpen]);
+
+    return { panelSizes, handlePanelResize, resetPanelSizes };
+}
 /**
  * Props for the workflow frame component
  */
@@ -37,10 +94,8 @@ export function WorkflowFrame({
 }: WorkflowFrameProps) {
     return (
         <WorkflowProviderWrapper workflow={workflow}>
-            <AutoSaveStatusIntegration workflow={workflow} projectId={projectId} />
-            <WorkflowCanvas
+            <WorkflowFrameInner
                 workflow={workflow}
-                nodeTypes={nodeTypes}
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
                 toast={toast}
@@ -48,6 +103,72 @@ export function WorkflowFrame({
                 projectId={projectId}
             />
         </WorkflowProviderWrapper>
+    );
+}
+
+/**
+ * Inner workflow frame component that has access to the store
+ * This component is wrapped by the WorkflowProvider
+ */
+function WorkflowFrameInner({
+    workflow,
+    onNodeClick,
+    onPaneClick,
+    toast,
+    onRefresh,
+    projectId,
+}: WorkflowFrameProps) {
+    const { sidebar } = useWorkflowStore(
+        useShallow((state) => ({
+            sidebar: state.sidebar,
+        })),
+    );
+
+    const { panelSizes, handlePanelResize, resetPanelSizes } = usePanelSizes();
+
+    return (
+        <>
+            <AutoSaveStatusIntegration workflow={workflow} projectId={projectId} />
+            <div className="w-full h-full bg-gray-50">
+                <PanelGroup
+                    direction="horizontal"
+                    onLayout={handlePanelResize}
+                    className="h-full w-full"
+                >
+                    <Panel
+                        defaultSize={panelSizes[0]}
+                        minSize={40}
+                        key={sidebar.isOpen ? "with-sidebar" : "without-sidebar"}
+                    >
+                        <div className="w-full h-full bg-white">
+                            <WorkflowCanvas
+                                workflow={workflow}
+                                nodeTypes={nodeTypes}
+                                onNodeClick={onNodeClick}
+                                onPaneClick={onPaneClick}
+                                toast={toast}
+                                onRefresh={onRefresh}
+                                projectId={projectId}
+                            />
+                        </div>
+                    </Panel>
+
+                    {sidebar.isOpen && (
+                        <>
+                            <ResizeHandle direction="horizontal" onDoubleClick={resetPanelSizes} />
+                            <Panel
+                                defaultSize={panelSizes[1]}
+                                minSize={20}
+                                maxSize={60}
+                                key="sidebar-panel" // Stable key for sidebar panel
+                            >
+                                <IntegratedWorkflowSidebar />
+                            </Panel>
+                        </>
+                    )}
+                </PanelGroup>
+            </div>
+        </>
     );
 }
 
