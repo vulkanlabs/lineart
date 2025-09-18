@@ -30,9 +30,13 @@ export function createWorkflowState(workflow: Workflow): WorkflowState {
 
     // Map server nodes to ReactFlow node format
     const flowNodes: VulkanNode[] = nodes.map((node) => {
-        const nodeUIMetadata = uiMetadata[node.name] || getDefaultUIMetadata(node.node_type);
+        const nodeUIMetadata = uiMetadata[node.name] || getDefaultUIMetadata(node.node_type, node.metadata);
         const position: XYPosition = nodeUIMetadata.position;
-        const height = nodeUIMetadata.height;
+
+        // Calculate minimum height for node content
+        const requiredHeight = calculateNodeHeight(node.node_type, node.metadata);
+        // Use the larger saved height or required
+        const height = Math.max(nodeUIMetadata.height || requiredHeight, requiredHeight);
         const width = nodeUIMetadata.width;
 
         const incomingEdges = edges
@@ -125,14 +129,37 @@ function defaultWorkflowState(inputNode: VulkanNode): WorkflowState {
 }
 
 /**
+ * Calculate proper height for nodes with dynamic content
+ */
+function calculateNodeHeight(nodeType: string, metadata: any): number {
+    const nodeConfig = nodesConfig[nodeType as keyof typeof nodesConfig];
+    const defaultHeight = nodeConfig?.height || 200;
+
+    if (nodeType === "DECISION" && metadata?.conditions) {
+        const conditionsCount = metadata.conditions.length;
+        return 120 + conditionsCount * 94;
+    }
+
+    if (nodeType === "BRANCH" && metadata?.choices) {
+        const choicesCount = metadata.choices.length;
+        const baseHeight = 340;
+        return baseHeight + choicesCount * 80;
+    }
+
+    return defaultHeight;
+}
+
+/**
  * Get default UI metadata for a node type
  */
-function getDefaultUIMetadata(nodeType: string) {
+function getDefaultUIMetadata(nodeType: string, metadata?: any) {
     const nodeConfig = nodesConfig[nodeType as keyof typeof nodesConfig];
+    const calculatedHeight = calculateNodeHeight(nodeType, metadata);
+
     return {
         position: { x: 0, y: 0 },
         width: nodeConfig?.width || 320,
-        height: nodeConfig?.height || 200,
+        height: calculatedHeight,
     };
 }
 
