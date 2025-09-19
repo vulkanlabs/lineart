@@ -41,8 +41,8 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             hasUnsavedChanges: false,
             saveError: null,
             autoSaveEnabled: true,
-            retryCount: 0,
             autoSaveInterval,
+            pendingChangesWhileSaving: false,
         },
 
         sidebar:
@@ -399,8 +399,17 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
             markChangedTimer = setTimeout(() => {
                 const currentState = get();
-                // Only mark as changed if we're not already marked as having unsaved changes
-                if (!currentState.autoSave.hasUnsavedChanges) {
+
+                if (currentState.autoSave.isSaving) {
+                    // If saving, mark that changes occurred during save
+                    set((state) => ({
+                        autoSave: {
+                            ...state.autoSave,
+                            pendingChangesWhileSaving: true,
+                        },
+                    }));
+                } else {
+                    // mark as having unsaved changes
                     set((state) => ({
                         autoSave: {
                             ...state.autoSave,
@@ -425,41 +434,31 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
         markSaved: () => {
             set((state) => {
+                // Check if changes were made while saving
+                const hadPendingChanges = state.autoSave.pendingChangesWhileSaving;
+
                 return {
                     autoSave: {
                         ...state.autoSave,
                         isSaving: false,
-                        hasUnsavedChanges: false,
+                        hasUnsavedChanges: hadPendingChanges, // Keep unsaved changes if they occurred during save
                         lastSaved: new Date(),
                         saveError: null,
-                        retryCount: 0,
                         autoSaveInterval,
+                        pendingChangesWhileSaving: false, // Reset flag
                     },
                 };
             });
         },
 
         markSaveError: (error: string) => {
-            set((state) => {
-                const newRetryCount = (state.autoSave.retryCount || 0) + 1;
-                const maxRetries = 5;
-
-                // Exponential backoff for retry intervals
-                const retryDelay = Math.min(1000 * Math.pow(2, newRetryCount - 1), 30000);
-
-                return {
-                    autoSave: {
-                        ...state.autoSave,
-                        isSaving: false,
-                        saveError: error,
-                        retryCount: newRetryCount,
-                        autoSaveInterval:
-                            newRetryCount < maxRetries
-                                ? retryDelay
-                                : state.autoSave.autoSaveInterval,
-                    },
-                };
-            });
+            set((state) => ({
+                autoSave: {
+                    ...state.autoSave,
+                    isSaving: false,
+                    saveError: error,
+                },
+            }));
         },
 
         clearSaveError: () => {
@@ -467,7 +466,6 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                 autoSave: {
                     ...state.autoSave,
                     saveError: null,
-                    retryCount: 0, // Reset retry count when manually clearing
                 },
             }));
         },

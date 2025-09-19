@@ -7,7 +7,7 @@ import type {
 
 import type {
     WorkflowApiClient,
-    SaveWorkflowResult,
+    ApiResult,
     WorkflowApiClientConfig,
     DataSource,
     Workflow,
@@ -36,7 +36,7 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
         spec: PolicyDefinitionDict,
         uiMetadata: { [key: string]: UIMetadata },
         projectId?: string,
-    ): Promise<SaveWorkflowResult> {
+    ): Promise<ApiResult<any>> {
         try {
             const params = new URLSearchParams();
 
@@ -57,8 +57,50 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
                 signal: this.createTimeoutSignal(),
             });
 
-            const result = await response.json();
-            return result;
+            let result;
+            try {
+                result = await response.json();
+            } catch (parseError) {
+                result = null;
+            }
+
+            // Check if the HTTP response indicates an error
+            if (!response.ok) {
+                // Consolidate all error parsing logic here
+                let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+
+                if (result) {
+                    // Extract error message from various possible formats
+                    if (typeof result.error === "string") errorMessage = result.error;
+                    else if (typeof result.error === "object" && result.error)
+                        errorMessage =
+                            result.error.message ||
+                            result.error.detail ||
+                            JSON.stringify(result.error);
+                    else if (result.message) errorMessage = result.message;
+                    else if (result.detail) errorMessage = result.detail;
+
+                    // Handle [object Object] case from server
+                    if (
+                        errorMessage === "[object Object]" ||
+                        errorMessage.includes("[object Object]")
+                    )
+                        errorMessage = "Internal server error";
+                }
+
+                return {
+                    success: false,
+                    error: errorMessage,
+                    data: null,
+                };
+            }
+
+            // Return successful response
+            return {
+                success: true,
+                error: null,
+                data: result,
+            };
         } catch (error) {
             console.error("Error saving workflow:", error);
             return {
@@ -76,7 +118,7 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
         policyId?: string | null,
         includeArchived = false,
         projectId?: string,
-    ): Promise<PolicyVersion[]> {
+    ): Promise<ApiResult<PolicyVersion[]>> {
         try {
             const params = new URLSearchParams({
                 include_archived: includeArchived.toString(),
@@ -104,19 +146,25 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
             }
 
             const data: PolicyVersion[] = await response.json();
-            return data;
+            return {
+                success: true,
+                error: null,
+                data,
+            };
         } catch (error) {
             console.error("Error fetching policy versions:", error);
-            throw new Error(
-                error instanceof Error ? error.message : "Failed to fetch policy versions",
-            );
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : "Failed to fetch policy versions",
+                data: null,
+            };
         }
     }
 
     /**
      * Fetch available data sources using the API route
      */
-    async fetchDataSources(projectId?: string): Promise<DataSource[]> {
+    async fetchDataSources(projectId?: string): Promise<ApiResult<DataSource[]>> {
         try {
             const params = new URLSearchParams();
 
@@ -138,19 +186,28 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
             }
 
             const data: DataSource[] = await response.json();
-            return data;
+            return {
+                success: true,
+                error: null,
+                data,
+            };
         } catch (error) {
             console.error("Error fetching data sources:", error);
-            throw new Error(
-                error instanceof Error ? error.message : "Failed to fetch data sources",
-            );
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : "Failed to fetch data sources",
+                data: null,
+            };
         }
     }
 
     /**
      * Fetch available components using the API route
      */
-    async fetchComponents(includeArchived = false, projectId?: string): Promise<Component[]> {
+    async fetchComponents(
+        includeArchived = false,
+        projectId?: string,
+    ): Promise<ApiResult<Component[]>> {
         try {
             const params = new URLSearchParams({
                 include_archived: includeArchived.toString(),
@@ -174,10 +231,18 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
             }
 
             const data: Component[] = await response.json();
-            return data;
+            return {
+                success: true,
+                error: null,
+                data,
+            };
         } catch (error) {
             console.error("Error fetching components:", error);
-            throw new Error(error instanceof Error ? error.message : "Failed to fetch components");
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : "Failed to fetch components",
+                data: null,
+            };
         }
     }
 

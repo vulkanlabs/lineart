@@ -2,7 +2,7 @@
 
 import React, { useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { createGlobalToast } from "./toast";
 import { z } from "zod";
 
 import {
@@ -122,6 +122,7 @@ export const AppWorkflowFrame = React.memo<AppWorkflowFrameProps>(
 
         // Memoize event handlers to prevent child re-renders
         const handleRefresh = useCallback(() => router.refresh(), [router]);
+        const toast = createGlobalToast();
         const handleToast = useCallback(
             (message: string, options?: any) => toast(message, options),
             [],

@@ -12,6 +12,7 @@ export {
     type AutoSaveState,
     type AutoSaveToggleProps,
 } from "./components/auto-save-toggle";
+export { NavigationGuard } from "./components/navigation-guard";
 
 // Re-export API utilities (selective exports for better tree-shaking)
 export {
@@ -141,3 +142,7 @@ export { DataSourceUsageAnalytics } from "./components/analytics/usage-analytics
 
 // Re-export components table (selective exports for better tree-shaking)
 export { ComponentsTable } from "./components/components/components-table";
+
+// Re-export toast system
+export { ToastProvider, ToastContainer, useToast, createGlobalToast } from "./components/toast";
+export type { Toast } from "./components/toast";
