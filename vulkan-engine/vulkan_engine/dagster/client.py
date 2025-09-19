@@ -22,7 +22,7 @@ def create_dagster_client_from_config(
 
 class DagsterDataClient:
     def __init__(self, config: DagsterDatabaseConfig):
-        self.engine = create_engine(config.connection_string, echo=True)
+        self.engine = create_engine(config.connection_string, echo=False)
 
     def get_run_data(self, run_id: str) -> list[tuple[str, str, str]]:
         with self.engine.connect() as conn:

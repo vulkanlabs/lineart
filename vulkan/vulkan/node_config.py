@@ -1,4 +1,5 @@
 import ast
+from typing import Any
 
 from jinja2 import Environment, Template
 from pydantic import BaseModel
@@ -186,10 +187,18 @@ def configure_fields(
     for key, value in spec.items():
         if isinstance(value, RunTimeParam) or isinstance(value, EnvVarConfig):
             value = normalize_to_template(value)
-        if isinstance(value, str):
+
+        if _is_template_like(value):
             spec[key] = resolve_template(value, local_variables, env_variables)
 
     return spec
+
+
+def _is_template_like(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+
+    return value.startswith("{{") and value.endswith("}}")
 
 
 def resolve_template(value: str, local_variables: dict, env_variables: dict) -> str:
@@ -208,6 +217,17 @@ def resolve_template(value: str, local_variables: dict, env_variables: dict) -> 
     template = Template(value)
     context = {"env": env_variables, **local_variables}
     rendered = template.render(context)
+
+    # FIXME (antonio): this function doesn't correctly handle variable typing.
+    #
+    # IMO the best way to solve this is to give users full control of the
+    # expected types of parameter values (RuntimeParams).
+    # In that case, instead of just throwing everything at a render, we
+    # can provide a mapping of templates to typed values, including more
+    # sensible error messages in cases of incompatibility.
+    #
+    # For EnvVars, we can safely assume they'll always be strings,
+    # as this is the behavior for OS env vars.
     try:
         # Attempt to evaluate the rendered template as a Python literal.
         # This gets the *actual* variable values, not just the template strings,

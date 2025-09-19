@@ -21,7 +21,7 @@ def init_database(config: VulkanEngineConfig) -> None:
     Args:
         config: VulkanEngineConfig instance with database configuration
     """
-    engine = create_engine(config.database.connection_string, echo=True)
+    engine = create_engine(config.database.connection_string, echo=False)
     Base.metadata.create_all(bind=engine)
 
 

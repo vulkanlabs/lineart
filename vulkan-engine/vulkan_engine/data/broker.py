@@ -37,7 +37,6 @@ class DataBroker:
                     value=self._format_data(data.value),
                 )
 
-        # self.logger.info(f"Fetching data for key {key} from source {self.spec.source.url}")
         req = make_request(self.spec.source, configured_params, env_variables)
         response = requests.Session().send(req, timeout=self.spec.source.timeout)
         response.raise_for_status()
@@ -50,7 +49,6 @@ class DataBroker:
             )
             self.db.add(data)
             self.db.commit()
-            # self.logger.info(f"Stored object with id {data.data_object_id}")
 
             if self.spec.caching.enabled:
                 cache.set_cache(key, data.data_object_id)
