@@ -1,7 +1,11 @@
-import { fetchDataSources } from "@/lib/api";
+import { DataSource } from "@vulkanlabs/client-open";
+import {
+    DataSourcesTable as SharedDataSourcesTable,
+    CreateDataSourceDialog,
+} from "@vulkanlabs/base";
 import { Separator } from "@vulkanlabs/base/ui";
 
-import DataSourcesTable from "./data-sources-table";
+import { createDataSource, deleteDataSource, fetchDataSources } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -23,5 +27,23 @@ export default async function Page() {
             </div>
             <DataSourcesTable dataSources={dataSources} />
         </div>
+    );
+}
+
+function DataSourcesTable({ dataSources }: { dataSources: DataSource[] }) {
+    return (
+        <SharedDataSourcesTable
+            dataSources={dataSources}
+            config={{
+                deleteDataSource: deleteDataSource,
+                CreateDataSourceDialog: (
+                    <CreateDataSourceDialog
+                        config={{
+                            createDataSource: createDataSource,
+                        }}
+                    />
+                ),
+            }}
+        />
     );
 }

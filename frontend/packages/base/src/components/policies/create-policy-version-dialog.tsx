@@ -28,17 +28,26 @@ import {
     FormMessage,
     Input,
 } from "@vulkanlabs/base/ui";
-import { Sending } from "@vulkanlabs/base";
-import { PolicyVersionCreate } from "@vulkanlabs/client-open";
-
-// Local imports
-import { createPolicyVersion } from "@/lib/api";
+import { Sending } from "../animations";
 
 const formSchema = z.object({
     alias: z.string({ description: "Name of the Version" }).optional(),
 });
 
-export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
+export interface CreatePolicyVersionDialogConfig {
+    policyId: string;
+    createPolicyVersion: (data: { policy_id: string; alias?: string }) => Promise<any>;
+    buttonText?: string;
+    dialogTitle?: string;
+}
+
+/**
+ * Policy version creation dialog component
+ * @param {Object} props - Component properties
+ * @param {CreatePolicyVersionDialogConfig} props.config - Dialog configuration including create handler
+ * @returns {JSX.Element} Modal dialog with policy version creation form
+ */
+export function CreatePolicyVersionDialog({ config }: { config: CreatePolicyVersionDialogConfig }) {
     const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
@@ -52,13 +61,13 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
 
     const onSubmit = async (data: any) => {
         setIsSubmitting(true);
-        const requestData: PolicyVersionCreate = {
-            policy_id: policyId,
+        const requestData = {
+            policy_id: config.policyId,
             alias: data.alias,
         };
 
         try {
-            await createPolicyVersion(requestData);
+            await config.createPolicyVersion(requestData);
             setOpen(false);
             toast("Policy Version Created", {
                 description: `Policy Version ${data.alias} has been created.`,
@@ -107,11 +116,13 @@ export function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
         <Dialog open={open} onOpenChange={setOpen}>
             <Form {...form}>
                 <DialogTrigger asChild>
-                    <Button variant="outline">New Version</Button>
+                    <Button variant="outline">{config.buttonText || "New Version"}</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader className="">
-                        <DialogTitle>Create a new Policy Version</DialogTitle>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {config.dialogTitle || "Create a new Policy Version"}
+                        </DialogTitle>
                     </DialogHeader>
                     <form
                         className="flex flex-col gap-4 py-4"

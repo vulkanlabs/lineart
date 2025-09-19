@@ -30,10 +30,7 @@ import {
     Input,
     Textarea,
 } from "@vulkanlabs/base/ui";
-import { Sending } from "@vulkanlabs/base";
-
-// Local imports
-import { createComponent } from "@/lib/api";
+import { Sending } from "../animations";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required"),
@@ -57,7 +54,13 @@ const fileToBase64 = (file: File): Promise<string> => {
     });
 };
 
-export function CreateComponentDialog() {
+export interface CreateComponentDialogConfig {
+    createComponent: (data: { name: string; description: string; icon: string }) => Promise<any>;
+    buttonText?: string;
+    dialogTitle?: string;
+}
+
+export function CreateComponentDialog({ config }: { config: CreateComponentDialogConfig }) {
     const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -112,7 +115,7 @@ export function CreateComponentDialog() {
     const onSubmit = async (data: z.infer<typeof formSchema>) => {
         setIsSubmitting(true);
         try {
-            const response = await createComponent(data);
+            await config.createComponent(data);
             setOpen(false);
             form.reset();
             setSelectedFile(null);
@@ -133,11 +136,11 @@ export function CreateComponentDialog() {
         <Dialog open={open} onOpenChange={setOpen}>
             <Form {...form}>
                 <DialogTrigger asChild>
-                    <Button variant="outline">Create Component</Button>
+                    <Button variant="outline">{config.buttonText || "Create Component"}</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader className="">
-                        <DialogTitle>Create a new Component</DialogTitle>
+                    <DialogHeader>
+                        <DialogTitle>{config.dialogTitle || "Create a new Component"}</DialogTitle>
                     </DialogHeader>
                     <form
                         className="flex flex-col gap-4 py-4"
@@ -146,7 +149,7 @@ export function CreateComponentDialog() {
                         <FormField
                             name="name"
                             control={form.control}
-                            render={({ field }: { field: any }) => (
+                            render={({ field }) => (
                                 <FormItem>
                                     <FormLabel htmlFor="name">Name</FormLabel>
                                     <FormControl>
@@ -160,7 +163,7 @@ export function CreateComponentDialog() {
                         <FormField
                             name="description"
                             control={form.control}
-                            render={({ field }: { field: any }) => (
+                            render={({ field }) => (
                                 <FormItem>
                                     <FormLabel htmlFor="description">Description</FormLabel>
                                     <FormControl>
@@ -178,7 +181,7 @@ export function CreateComponentDialog() {
                         <FormField
                             name="icon"
                             control={form.control}
-                            render={({ field }: { field: any }) => (
+                            render={({ field }) => (
                                 <FormItem>
                                     <FormLabel htmlFor="icon">Icon</FormLabel>
                                     <FormControl>
@@ -253,7 +256,7 @@ export function CreateComponentDialog() {
                                 </FormItem>
                             )}
                         />
-                        <DialogFooter className="">
+                        <DialogFooter>
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting ? <Sending /> : "Create Component"}
                             </Button>
