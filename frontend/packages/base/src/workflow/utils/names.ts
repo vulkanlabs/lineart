@@ -42,10 +42,10 @@ export function findHandleNameByIndex(
 
     if (node.type === "BRANCH") {
         const metadata = node.data.metadata as BranchNodeMetadata;
-        return metadata.choices[numericIndex] || "__DEFAULT__";
+        return metadata.choices[numericIndex] ?? "__DEFAULT__";
     } else if (node.type === "DECISION") {
         const metadata = node.data.metadata as DecisionNodeMetadata;
-        return metadata.conditions[numericIndex]?.output || null;
+        return metadata.conditions[numericIndex]?.output ?? null;
     }
 
     return null;

@@ -23,7 +23,7 @@ export const nodesConfig: Record<VulkanNodeType, NodeConfig> = {
         name: "Decision Node",
         width: 400,
         height: 308,
-        icon: "BRANCH",
+        icon: "DECISION",
     },
     BRANCH: {
         id: "BRANCH",

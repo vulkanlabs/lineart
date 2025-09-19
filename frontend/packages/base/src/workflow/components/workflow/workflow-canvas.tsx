@@ -405,7 +405,7 @@ export function WorkflowCanvas({
             const currentNodes = getNodes(); // Current visual state
 
             // Capture UI layout state for restoration
-            // Maps node names to their visual properties (position, size)
+            // Maps node names to their visual properties (position, size, expanded state)
             const uiMetadata = Object.fromEntries(
                 currentNodes.map((node) => [
                     node.data.name, // Use node name as key (stable across saves)
@@ -413,6 +413,7 @@ export function WorkflowCanvas({
                         position: node.position, // {x, y} coordinates
                         width: node.width, // Node width (may be auto-calculated)
                         height: node.height, // Node height (may be auto-calculated)
+                        detailsExpanded: node.data.detailsExpanded ?? true, // Collapsed  state
                     },
                 ]),
             );

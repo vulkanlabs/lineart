@@ -47,9 +47,18 @@ export function createWorkflowState(workflow: Workflow): WorkflowState {
 
     // Map server nodes to ReactFlow node format
     const flowNodes: VulkanNode[] = nodes.map((node) => {
-        const nodeUIMetadata = uiMetadata[node.name] || getDefaultUIMetadata(node.node_type);
+        const nodeUIMetadata =
+            uiMetadata[node.name] || getDefaultUIMetadata(node.node_type, node.metadata);
         const position: XYPosition = nodeUIMetadata.position;
-        const height = nodeUIMetadata.height;
+
+        // Calculate minimum height for node content
+        const requiredHeight = calculateNodeHeight(node.node_type, node.metadata);
+
+        // If saved collapsed, preserve the collapsed height
+        const isCollapsed = nodeUIMetadata.detailsExpanded === false;
+        const height = isCollapsed
+            ? 50
+            : Math.max(nodeUIMetadata.height || requiredHeight, requiredHeight);
         const width = nodeUIMetadata.width;
 
         const incomingEdges = edges
@@ -65,6 +74,8 @@ export function createWorkflowState(workflow: Workflow): WorkflowState {
                 return acc;
             }, {});
 
+        const nodeConfig = nodesConfig[node.node_type as keyof typeof nodesConfig];
+
         return {
             id: node.name,
             type: node.node_type as any,
@@ -72,12 +83,13 @@ export function createWorkflowState(workflow: Workflow): WorkflowState {
             width: width,
             data: {
                 name: node.name,
-                icon: node.node_type,
+                icon: nodeConfig?.icon || node.node_type,
                 metadata: node.metadata || {},
                 incomingEdges: incomingEdges,
                 minWidth: width,
-                minHeight: height,
-                detailsExpanded: true,
+                // Store the required height for collapsed nodes
+                minHeight: isCollapsed ? requiredHeight : height,
+                detailsExpanded: nodeUIMetadata.detailsExpanded ?? true,
             },
             position: position,
         };
@@ -168,14 +180,37 @@ function defaultWorkflowState(inputNode: VulkanNode): WorkflowState {
 }
 
 /**
+ * Calculate proper height for nodes with dynamic content
+ */
+function calculateNodeHeight(nodeType: string, metadata: any): number {
+    const nodeConfig = nodesConfig[nodeType as keyof typeof nodesConfig];
+    const defaultHeight = nodeConfig?.height || 200;
+
+    if (nodeType === "DECISION" && metadata?.conditions) {
+        const conditionsCount = metadata.conditions.length;
+        return 120 + conditionsCount * 94;
+    }
+
+    if (nodeType === "BRANCH" && metadata?.choices) {
+        const choicesCount = metadata.choices.length;
+        const baseHeight = 340;
+        return baseHeight + choicesCount * 80;
+    }
+
+    return defaultHeight;
+}
+
+/**
  * Get default UI metadata for a node type
  */
-function getDefaultUIMetadata(nodeType: string) {
+function getDefaultUIMetadata(nodeType: string, metadata?: any) {
     const nodeConfig = nodesConfig[nodeType as keyof typeof nodesConfig];
+    const calculatedHeight = calculateNodeHeight(nodeType, metadata);
+
     return {
         position: { x: 0, y: 0 },
         width: nodeConfig?.width || 320,
-        height: nodeConfig?.height || 200,
+        height: calculatedHeight,
     };
 }
 
@@ -208,9 +243,9 @@ function makeEdgesFromDependencies(nodes: NodeDefinitionDict[]): Edge[] {
             const source = dep.node;
             let sourceHandle: string | null = null;
 
-            // If the output is specified, we need to find the corresponding
+            // If the output is specified (including empty strings), we need to find the corresponding
             // handle index in the node.
-            if (dep.output) {
+            if (dep.output !== undefined && dep.output !== null) {
                 const sourceNode = nodes.find((n) => n.name === dep.node);
                 if (!sourceNode) {
                     console.error(`Node ${dep.node} not found`);
