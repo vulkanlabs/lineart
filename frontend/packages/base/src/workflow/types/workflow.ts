@@ -85,12 +85,37 @@ export type GenericNodeDefinition<MetadataType> = {
 };
 
 /**
+ * Auto-save state management
+ */
+export type AutoSaveState = {
+    lastSaved: Date | null;
+    isSaving: boolean;
+    hasUnsavedChanges: boolean;
+    saveError: string | null;
+    autoSaveEnabled: boolean;
+    retryCount?: number;
+    autoSaveInterval?: number;
+};
+
+/**
+ * Sidebar state for workflow editing
+ */
+export type SidebarState = {
+    isOpen: boolean;
+    selectedNodeId: string | null;
+    activeTab: "code-editor" | "properties" | "inputs" | null;
+    width?: number;
+};
+
+/**
  * Main workflow state structure
  */
 export type WorkflowState = {
     nodes: VulkanNode[];
     edges: Edge[];
     collapsedNodeHeights?: { [key: string]: number };
+    autoSave: AutoSaveState;
+    sidebar: SidebarState;
 };
 
 /**
@@ -102,8 +127,8 @@ export function AsNodeDefinitionDict(n: VulkanNode): NodeDefinitionDict {
     return {
         name: nodeDef.name,
         node_type: n.type,
-        dependencies: AsDependencies(n.data.incomingEdges),
-        metadata: nodeDef.metadata,
+        dependencies: AsDependencies(n.data?.incomingEdges),
+        metadata: nodeDef.metadata || null,
         description: nodeDef.description || null,
         hierarchy: nodeDef.hierarchy || null,
     };
@@ -129,8 +154,8 @@ function AsDependencies(incomingEdges: IncomingEdges = {}): { [key: string]: Dep
 function AsDependencyDict(dependency: NodeDependency): DependencyDict {
     return {
         node: dependency.node,
-        output: dependency.output || null,
-        key: dependency.key || null,
+        output: dependency.output ?? null,
+        key: dependency.key ?? null,
         hierarchy: null,
         // expression: null, // TODO: Commented out due to CI/CD TypeScript errors - needs proper type definition
     };

@@ -10,8 +10,8 @@ import {
     applyNodeChanges,
     type Edge,
 } from "@xyflow/react";
+import { PolicyDefinitionDict } from "@vulkanlabs/client-open";
 
-import type { PolicyDefinitionDict } from "@vulkanlabs/client-open";
 import type { WorkflowApiClient } from "../api/types";
 import { AsNodeDefinitionDict, type VulkanNode, type WorkflowState } from "../types/workflow";
 import type { InputNodeMetadata } from "../types/nodes";
@@ -27,12 +27,43 @@ declare function toast(message: string, options?: any): void;
  * Create a Zustand store for workflow management with API client dependency injection
  */
 export function createWorkflowStore(config: WorkflowStoreConfig) {
-    const { initialState } = config;
+    const { initialState, autoSaveInterval = 10000 } = config; // Default to 10 seconds
+    let markChangedTimer: NodeJS.Timeout | null = null;
 
     return createStore<WorkflowStore>()((set, get) => ({
         ...initialState,
 
         collapsedNodeHeights: initialState.collapsedNodeHeights || {},
+
+        autoSave: initialState.autoSave || {
+            lastSaved: null,
+            isSaving: false,
+            hasUnsavedChanges: false,
+            saveError: null,
+            autoSaveEnabled: true,
+            retryCount: 0,
+            autoSaveInterval,
+        },
+
+        sidebar:
+            initialState.sidebar ||
+            (() => {
+                // Load sidebar width from localStorage if available
+                let savedWidth = 30; // Default width
+                try {
+                    const saved = localStorage.getItem("workflow.sidebar.width");
+                    if (saved) savedWidth = parseFloat(saved);
+                } catch (e) {
+                    // Silently handle localStorage errors
+                }
+
+                return {
+                    isOpen: false,
+                    selectedNodeId: null,
+                    activeTab: null,
+                    width: savedWidth,
+                };
+            })(),
 
         getInputSchema: () => {
             const nodes = get().nodes;
@@ -111,13 +142,18 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             });
             const nextNodes = applyNodeChanges(filteredChanges, get().nodes);
             set({ nodes: nextNodes });
+            if (filteredChanges.length > 0) get().markChanged();
         },
 
-        setNodes: (nodes) => set({ nodes }),
+        setNodes: (nodes) => {
+            set({ nodes });
+            get().markChanged();
+        },
 
         addNode: (node) => {
             const nextNodes = [...get().nodes, node];
             set({ nodes: nextNodes });
+            get().markChanged();
         },
 
         updateNodeData: (nodeId, newData) => {
@@ -134,6 +170,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                 return node;
             });
             set({ nodes: nextNodes });
+            get().markChanged();
         },
 
         removeNode: (nodeId) => {
@@ -141,6 +178,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             if (node?.type === "INPUT") return;
 
             set({ nodes: get().nodes.filter((node) => node.id !== nodeId) });
+            get().markChanged();
         },
 
         addNodeByType: (type, position) => {
@@ -155,22 +193,30 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
 
         getNodes: () => get().nodes,
 
-        setEdges: (edges) => set({ edges }),
+        setEdges: (edges) => {
+            set({ edges });
+            get().markChanged();
+        },
 
         getEdges: () => get().edges,
 
         addEdge: (edge) => {
             const nextEdges = addEdge(edge, get().edges);
             set({ edges: nextEdges });
+            get().markChanged();
         },
 
         removeEdge: (edgeId) => {
             set({ edges: get().edges.filter((edge) => edge.id !== edgeId) });
+            get().markChanged();
         },
 
         onEdgesChange: (changes) => {
             const nextEdges = applyEdgeChanges(changes, get().edges);
             set({ edges: nextEdges });
+            if (changes.length > 0) {
+                get().markChanged();
+            }
         },
 
         onConnect: (connection) => {
@@ -290,6 +336,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
                 return node;
             });
             set({ nodes: nextNodes });
+            get().markChanged();
         },
 
         toggleAllNodesCollapsed: () => {
@@ -342,6 +389,189 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
             }));
 
             state.onNodesChange(dimensionChanges);
+            get().markChanged();
+        },
+
+        // Auto-save operations with configurable intervals
+        markChanged: () => {
+            // Debounce markChanged calls to prevent rapid-fire state updates
+            if (markChangedTimer) clearTimeout(markChangedTimer);
+
+            markChangedTimer = setTimeout(() => {
+                const currentState = get();
+                // Only mark as changed if we're not already marked as having unsaved changes
+                if (!currentState.autoSave.hasUnsavedChanges) {
+                    set((state) => ({
+                        autoSave: {
+                            ...state.autoSave,
+                            hasUnsavedChanges: true,
+                            autoSaveInterval: autoSaveInterval, // Use configured interval
+                        },
+                    }));
+                }
+                markChangedTimer = null;
+            }, 200);
+        },
+
+        markSaving: () => {
+            set((state) => ({
+                autoSave: {
+                    ...state.autoSave,
+                    isSaving: true,
+                    saveError: null,
+                },
+            }));
+        },
+
+        markSaved: () => {
+            set((state) => {
+                return {
+                    autoSave: {
+                        ...state.autoSave,
+                        isSaving: false,
+                        hasUnsavedChanges: false,
+                        lastSaved: new Date(),
+                        saveError: null,
+                        retryCount: 0,
+                        autoSaveInterval,
+                    },
+                };
+            });
+        },
+
+        markSaveError: (error: string) => {
+            set((state) => {
+                const newRetryCount = (state.autoSave.retryCount || 0) + 1;
+                const maxRetries = 5;
+
+                // Exponential backoff for retry intervals
+                const retryDelay = Math.min(1000 * Math.pow(2, newRetryCount - 1), 30000);
+
+                return {
+                    autoSave: {
+                        ...state.autoSave,
+                        isSaving: false,
+                        saveError: error,
+                        retryCount: newRetryCount,
+                        autoSaveInterval:
+                            newRetryCount < maxRetries
+                                ? retryDelay
+                                : state.autoSave.autoSaveInterval,
+                    },
+                };
+            });
+        },
+
+        clearSaveError: () => {
+            set((state) => ({
+                autoSave: {
+                    ...state.autoSave,
+                    saveError: null,
+                    retryCount: 0, // Reset retry count when manually clearing
+                },
+            }));
+        },
+
+        toggleAutoSave: () => {
+            set((state) => ({
+                autoSave: {
+                    ...state.autoSave,
+                    autoSaveEnabled: !state.autoSave.autoSaveEnabled,
+                },
+            }));
+        },
+
+        // Sidebar operations
+        openSidebar: (nodeId: string, tab = "code-editor") => {
+            set((state) => {
+                // Use saved width from localStorage if available and current width is default
+                let sidebarWidth = state.sidebar.width || 30;
+                if (sidebarWidth === 30) {
+                    try {
+                        const saved = localStorage.getItem("workflow.sidebar.width");
+                        if (saved) {
+                            const parsedWidth = parseFloat(saved);
+                            sidebarWidth =
+                                parsedWidth >= 20 && parsedWidth <= 60 ? parsedWidth : 30;
+                        }
+                    } catch (e) {
+                        // Silently handle localStorage errors
+                    }
+                }
+
+                return {
+                    sidebar: {
+                        isOpen: true,
+                        selectedNodeId: nodeId,
+                        activeTab: tab,
+                        width: sidebarWidth,
+                    },
+                };
+            });
+        },
+
+        closeSidebar: () => {
+            set((state) => ({
+                sidebar: {
+                    ...state.sidebar,
+                    isOpen: false,
+                    selectedNodeId: null,
+                    activeTab: null,
+                },
+            }));
+        },
+
+        setSidebarTab: (tab) => {
+            set((state) => ({
+                sidebar: {
+                    ...state.sidebar,
+                    activeTab: tab,
+                },
+            }));
+        },
+
+        setSidebarWidth: (width: number) => {
+            set((state) => ({
+                sidebar: {
+                    ...state.sidebar,
+                    width: width,
+                },
+            }));
+
+            // Persist sidebar width to localStorage
+            try {
+                localStorage.setItem("workflow.sidebar.width", width.toString());
+            } catch (e) {
+                // Silently handle localStorage errors
+            }
+        },
+
+        setSelectedNodeForSidebar: (nodeId: string, tab = "code-editor") => {
+            set((state) => {
+                // Use saved width from localStorage if available and current width is default
+                let sidebarWidth = state.sidebar.width || 30;
+                if (sidebarWidth === 30) {
+                    try {
+                        const saved = localStorage.getItem("workflow.sidebar.width");
+                        if (saved) {
+                            const parsedWidth = parseFloat(saved);
+                            sidebarWidth =
+                                parsedWidth >= 20 && parsedWidth <= 60 ? parsedWidth : 30;
+                        }
+                    } catch (e) {
+                        // Silently handle localStorage errors
+                    }
+                }
+
+                return {
+                    sidebar: {
+                        isOpen: true,
+                        selectedNodeId: nodeId,
+                        activeTab: tab,
+                        width: sidebarWidth,
+                    },
+                };
+            });
         },
     }));
 }
@@ -358,6 +588,7 @@ export type WorkflowStoreProviderProps = {
     children: ReactNode;
     initialState: WorkflowState;
     apiClient: WorkflowApiClient;
+    autoSaveInterval?: number; // Optional auto-save interval in milliseconds, defaults to 10000 (10 seconds)
 };
 
 /**
@@ -367,12 +598,12 @@ export function WorkflowStoreProvider({
     children,
     initialState,
     apiClient,
+    autoSaveInterval = 10000, // Default to 10 seconds
 }: WorkflowStoreProviderProps) {
     const storeRef = useRef<WorkflowStoreApi>(null);
 
-    if (!storeRef.current) {
-        storeRef.current = createWorkflowStore({ initialState, apiClient });
-    }
+    if (!storeRef.current)
+        storeRef.current = createWorkflowStore({ initialState, apiClient, autoSaveInterval });
 
     return <WorkflowContext.Provider value={storeRef.current}>{children}</WorkflowContext.Provider>;
 }
@@ -383,9 +614,8 @@ export function WorkflowStoreProvider({
 export function useWorkflowStore<T>(selector: (store: WorkflowStore) => T): T {
     const workflowContext = useContext(WorkflowContext);
 
-    if (!workflowContext) {
+    if (!workflowContext)
         throw new Error("useWorkflowStore must be used within a WorkflowProvider");
-    }
 
     return useStore(workflowContext, selector);
 }
@@ -411,7 +641,6 @@ function isValidConnection(connection: Connection, nodes: VulkanNode[], edges: E
 
         return false;
     };
-
     const satisfiable = (node: VulkanNode): boolean => {
         const cumulativeDependencies = (
             node: VulkanNode,

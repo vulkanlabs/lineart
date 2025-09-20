@@ -142,36 +142,44 @@ export function ConnectionNode({ id, data, selected, width }: VulkanNodeProps) {
                             {Object.entries(data).map(([key, value], index) => (
                                 <TableRow key={index}>
                                     <TableCell>
-                                        <Input
-                                            value={key}
-                                            onChange={(e) =>
-                                                updateKeyValuePair(
-                                                    section,
-                                                    key,
-                                                    e.target.value,
-                                                    value,
-                                                )
-                                            }
-                                            placeholder="key"
-                                            className="h-8"
+                                        <div
+                                            className="nodrag"
                                             onMouseDown={(e) => e.stopPropagation()}
-                                        />
+                                        >
+                                            <Input
+                                                value={key}
+                                                onChange={(e) =>
+                                                    updateKeyValuePair(
+                                                        section,
+                                                        key,
+                                                        e.target.value,
+                                                        value,
+                                                    )
+                                                }
+                                                placeholder="key"
+                                                className="h-8"
+                                            />
+                                        </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Input
-                                            value={value}
-                                            onChange={(e) =>
-                                                updateKeyValuePair(
-                                                    section,
-                                                    key,
-                                                    key,
-                                                    e.target.value,
-                                                )
-                                            }
-                                            placeholder="value"
-                                            className="h-8"
+                                        <div
+                                            className="nodrag"
                                             onMouseDown={(e) => e.stopPropagation()}
-                                        />
+                                        >
+                                            <Input
+                                                value={value}
+                                                onChange={(e) =>
+                                                    updateKeyValuePair(
+                                                        section,
+                                                        key,
+                                                        key,
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="value"
+                                                className="h-8"
+                                            />
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         <Button
@@ -197,12 +205,13 @@ export function ConnectionNode({ id, data, selected, width }: VulkanNodeProps) {
             <div className="flex flex-col p-4 w-full h-fit space-y-4">
                 <div className="space-y-2">
                     <Label className="text-sm font-medium">URL</Label>
-                    <Input
-                        value={localMetadata.url || ""}
-                        onChange={(e) => updateMetadata({ url: e.target.value })}
-                        placeholder="https://api.example.com/endpoint"
-                        onMouseDown={(e) => e.stopPropagation()}
-                    />
+                    <div className="nodrag" onMouseDown={(e) => e.stopPropagation()}>
+                        <Input
+                            value={localMetadata.url || ""}
+                            onChange={(e) => updateMetadata({ url: e.target.value })}
+                            placeholder="https://api.example.com/endpoint"
+                        />
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -249,32 +258,36 @@ export function ConnectionNode({ id, data, selected, width }: VulkanNodeProps) {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label className="text-sm font-medium">Timeout (seconds)</Label>
-                        <Input
-                            type="number"
-                            value={localMetadata.timeout || ""}
-                            onChange={(e) =>
-                                updateMetadata({
-                                    timeout: e.target.value ? parseInt(e.target.value) : undefined,
-                                })
-                            }
-                            placeholder="30"
-                            onMouseDown={(e) => e.stopPropagation()}
-                        />
+                        <div className="nodrag" onMouseDown={(e) => e.stopPropagation()}>
+                            <Input
+                                type="number"
+                                value={localMetadata.timeout || ""}
+                                onChange={(e) =>
+                                    updateMetadata({
+                                        timeout: e.target.value
+                                            ? parseInt(e.target.value)
+                                            : undefined,
+                                    })
+                                }
+                                placeholder="30"
+                            />
+                        </div>
                     </div>
 
                     <div className="space-y-2">
                         <Label className="text-sm font-medium">Max Retries</Label>
-                        <Input
-                            type="number"
-                            value={localMetadata.retry_max_retries}
-                            onChange={(e) =>
-                                updateMetadata({
-                                    retry_max_retries: parseInt(e.target.value) || 1,
-                                })
-                            }
-                            min="0"
-                            onMouseDown={(e) => e.stopPropagation()}
-                        />
+                        <div className="nodrag" onMouseDown={(e) => e.stopPropagation()}>
+                            <Input
+                                type="number"
+                                value={localMetadata.retry_max_retries}
+                                onChange={(e) =>
+                                    updateMetadata({
+                                        retry_max_retries: parseInt(e.target.value) || 1,
+                                    })
+                                }
+                                min="0"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -303,24 +316,25 @@ export function ConnectionNode({ id, data, selected, width }: VulkanNodeProps) {
                         </span>
                     </div>
                     {!isBodyCollapsed && (
-                        <Textarea
-                            value={bodyText}
-                            onChange={(e) => {
-                                const newValue = e.target.value;
-                                setBodyText(newValue);
-                                try {
-                                    const parsed = JSON.parse(newValue);
-                                    updateMetadata({ body: parsed });
-                                    setIsBodyValid(true);
-                                } catch {
-                                    // Invalid JSON, don't update metadata but keep the text
-                                    setIsBodyValid(false);
-                                }
-                            }}
-                            placeholder="{}"
-                            className="min-h-[100px] font-mono text-xs"
-                            onMouseDown={(e) => e.stopPropagation()}
-                        />
+                        <div className="nodrag" onMouseDown={(e) => e.stopPropagation()}>
+                            <Textarea
+                                value={bodyText}
+                                onChange={(e) => {
+                                    const newValue = e.target.value;
+                                    setBodyText(newValue);
+                                    try {
+                                        const parsed = JSON.parse(newValue);
+                                        updateMetadata({ body: parsed });
+                                        setIsBodyValid(true);
+                                    } catch {
+                                        // Invalid JSON, don't update metadata but keep the text
+                                        setIsBodyValid(false);
+                                    }
+                                }}
+                                placeholder="{}"
+                                className="min-h-[100px] font-mono text-xs"
+                            />
+                        </div>
                     )}
                 </div>
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
     SaveIcon,
@@ -84,6 +84,7 @@ export function WorkflowCanvas({
         onEdgesChange,
         onConnect,
         toggleAllNodesCollapsed,
+        markSaved,
     } = useWorkflowStore(
         useShallow((state) => ({
             nodes: state.nodes,
@@ -96,6 +97,7 @@ export function WorkflowCanvas({
             onEdgesChange: state.onEdgesChange,
             onConnect: state.onConnect,
             toggleAllNodesCollapsed: state.toggleAllNodesCollapsed,
+            markSaved: state.markSaved,
         })),
     );
 
@@ -210,7 +212,10 @@ export function WorkflowCanvas({
             }, 0);
 
             // Check if workflow has saved UI positions
-            if (!workflow.workflow?.ui_metadata) {
+            if (
+                !workflow.workflow?.ui_metadata ||
+                Object.keys(workflow.workflow.ui_metadata).length === 0
+            ) {
                 // New workflow: Apply automatic layout using ELK algorithm
                 const unpositionedNodes: UnlayoutedVulkanNode[] = nodes.map((node) => ({
                     ...node,
@@ -329,7 +334,6 @@ export function WorkflowCanvas({
      *    - Minimal edge crossings
      *    - Reasonable spacing
      * - Apply calculated positions back to nodes
-     * - Fit view to show the newly organized workflow
      */
     const autoLayoutNodes = useCallback(async () => {
         // Prepare nodes for ELK (remove position data but keep everything else)
@@ -351,16 +355,11 @@ export function WorkflowCanvas({
             }));
 
             setNodes(newNodes);
-
-            // Give DOM time to update, then fit the reorganized workflow
-            setTimeout(() => {
-                smartFitView();
-            }, 100);
         } catch (error) {
             // Don't break the UI if layout fails - just log and continue
             console.error("Error applying auto-layout:", error);
         }
-    }, [nodes, edges, setNodes, smartFitView]);
+    }, [nodes, edges, setNodes]);
 
     /**
      * Copy workflow specification to clipboard
@@ -406,7 +405,7 @@ export function WorkflowCanvas({
             const currentNodes = getNodes(); // Current visual state
 
             // Capture UI layout state for restoration
-            // Maps node names to their visual properties (position, size)
+            // Maps node names to their visual properties (position, size, expanded state)
             const uiMetadata = Object.fromEntries(
                 currentNodes.map((node) => [
                     node.data.name, // Use node name as key (stable across saves)
@@ -414,6 +413,7 @@ export function WorkflowCanvas({
                         position: node.position, // {x, y} coordinates
                         width: node.width, // Node width (may be auto-calculated)
                         height: node.height, // Node height (may be auto-calculated)
+                        detailsExpanded: node.data.detailsExpanded ?? true, // Collapsed  state
                     },
                 ]),
             );
@@ -423,6 +423,7 @@ export function WorkflowCanvas({
 
             // Handle response with appropriate user feedback
             if (result.success) {
+                markSaved(); // Update auto-save state
                 toast("Workflow saved", {
                     description: "Workflow saved successfully.",
                     duration: 2000,
@@ -443,10 +444,23 @@ export function WorkflowCanvas({
                 duration: 5000,
             });
         }
-    }, [api, workflow, getSpec, getNodes, toast, onRefresh]);
+    }, [api, workflow, getSpec, getNodes, toast, onRefresh, markSaved]);
+
+    // Manual save event listener for external triggers (navigation bar, keyboard shortcuts, etc.)
+    useEffect(() => {
+        const handleManualSave = () => {
+            saveWorkflow(); // Trigger the manual save function
+        };
+
+        window.addEventListener("workflow:manual-save", handleManualSave);
+
+        return () => {
+            window.removeEventListener("workflow:manual-save", handleManualSave);
+        };
+    }, [saveWorkflow]);
 
     return (
-        <div className="w-full h-full">
+        <div className="w-full h-full relative">
             {isOpen && (
                 <div
                     ref={ref}

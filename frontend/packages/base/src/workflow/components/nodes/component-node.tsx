@@ -191,14 +191,22 @@ export function ComponentNode({ id, data, selected, height, width }: VulkanNodeP
                                             <label className="text-xs font-medium text-gray-600 w-1/3">
                                                 {fieldName}:
                                             </label>
-                                            <Input
-                                                value={fieldMappings[fieldName] || ""}
-                                                onChange={(e) => {
-                                                    updateFieldMapping(fieldName, e.target.value);
-                                                }}
-                                                placeholder={`Enter value for ${fieldName}`}
-                                                className="text-xs h-8 w-2/3"
-                                            />
+                                            <div
+                                                className="nodrag w-2/3"
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                            >
+                                                <Input
+                                                    value={fieldMappings[fieldName] || ""}
+                                                    onChange={(e) => {
+                                                        updateFieldMapping(
+                                                            fieldName,
+                                                            e.target.value,
+                                                        );
+                                                    }}
+                                                    placeholder={`Enter value for ${fieldName}`}
+                                                    className="text-xs h-8"
+                                                />
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

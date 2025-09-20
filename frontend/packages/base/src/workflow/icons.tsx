@@ -7,6 +7,7 @@ import {
     Network,
     FormInput,
     Puzzle,
+    GitBranch,
 } from "lucide-react";
 
 /**
@@ -16,7 +17,8 @@ import {
 export const iconMapping = {
     CONNECTION: Link,
     TRANSFORM: Code2,
-    BRANCH: Split,
+    BRANCH: GitBranch,
+    DECISION: Split,
     INPUT: FormInput,
     DATA_INPUT: ArrowDown01,
     TERMINATE: ArrowRightFromLine,
