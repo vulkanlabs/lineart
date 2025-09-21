@@ -44,9 +44,6 @@ import type {
     PolicyRunPartition,
 } from "@vulkanlabs/client-open";
 
-// Local imports
-import { updatePolicyAllocationStrategy } from "@/lib/api";
-
 const allocationFormSchema = z
     .object({
         choiceType: z.enum(["single", "multiple"], { required_error: "Choice type is required." }),
@@ -107,15 +104,34 @@ const allocationFormSchema = z
 
 type AllocationFormValues = z.infer<typeof allocationFormSchema>;
 
-export function UpdateAllocationsDialog({
-    policyId,
-    currentAllocation,
-    policyVersions,
-}: {
+export interface UpdateAllocationDialogConfig {
     policyId: string;
     currentAllocation: PolicyAllocationStrategy | null;
     policyVersions: PolicyVersion[];
-}) {
+    updatePolicyAllocationStrategy: (
+        policyId: string,
+        payload: PolicyAllocationStrategy,
+    ) => Promise<any>;
+    buttonText?: string;
+    dialogTitle?: string;
+}
+
+/**
+ * Update allocation strategy dialog component
+ * @param {Object} props - Component properties
+ * @param {UpdateAllocationDialogConfig} props.config - Dialog configuration including data and handlers
+ * @returns {JSX.Element} Modal dialog with allocation strategy form
+ */
+export function UpdateAllocationDialog({ config }: { config: UpdateAllocationDialogConfig }) {
+    const {
+        policyId,
+        currentAllocation,
+        policyVersions,
+        updatePolicyAllocationStrategy,
+        buttonText,
+        dialogTitle,
+    } = config;
+
     const [open, setOpen] = useState(false);
     const router = useRouter();
 
@@ -232,11 +248,11 @@ export function UpdateAllocationsDialog({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Update Allocation Strategy</Button>
+                <Button variant="outline">{buttonText || "Update Allocation Strategy"}</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Update Allocation Strategy</DialogTitle>
+                    <DialogTitle>{dialogTitle || "Update Allocation Strategy"}</DialogTitle>
                     <DialogDescription>
                         Configure how policy versions are selected for execution.
                     </DialogDescription>

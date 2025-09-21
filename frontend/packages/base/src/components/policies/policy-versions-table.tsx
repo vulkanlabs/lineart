@@ -14,21 +14,28 @@ import {
     DeletableResourceTableActions,
     SearchFilterOptions,
     DeleteResourceOptions,
-} from "@vulkanlabs/base";
-import { Policy, PolicyVersion, WorkflowStatus } from "@vulkanlabs/client-open";
+} from "../..";
+import type { Policy, PolicyVersion } from "@vulkanlabs/client-open";
+import { WorkflowStatus } from "@vulkanlabs/client-open";
 
 // Local imports
-import { parseDate } from "@vulkanlabs/base";
-import { deletePolicyVersion } from "@/lib/api";
-import { CreatePolicyVersionDialog } from "./create-version";
+import { parseDate } from "../../lib/utils";
 
-export function PolicyVersionsTable({
-    policy,
-    policyVersions,
-}: {
+export interface PolicyVersionsTableConfig {
     policy: Policy;
     policyVersions: PolicyVersion[];
-}) {
+    deletePolicyVersion: (versionId: string) => Promise<any>;
+    CreateVersionDialog: React.ComponentType<any>;
+}
+
+/**
+ * Policy versions table component
+ * @param {Object} props - Component properties
+ * @param {PolicyVersionsTableConfig} props.config - Table configuration including data and handlers
+ * @returns {JSX.Element} Table displaying policy versions with actions
+ */
+export function PolicyVersionsTable({ config }: { config: PolicyVersionsTableConfig }) {
+    const { policy, policyVersions, deletePolicyVersion, CreateVersionDialog } = config;
     const activeVersions = useMemo(() => getActiveVersions(policy), [policy]);
 
     const formattedVersions = useMemo(
@@ -70,7 +77,7 @@ export function PolicyVersionsTable({
             data={formattedVersions}
             searchOptions={searchOptions}
             deleteOptions={deleteOptions}
-            CreationDialog={<CreatePolicyVersionDialog policyId={policy.policy_id} />}
+            CreationDialog={<CreateVersionDialog policyId={policy.policy_id} />}
         />
     );
 }
