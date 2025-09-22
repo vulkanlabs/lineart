@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+from pathlib import Path
 from shutil import rmtree
 
 from vulkan.runners.hatchet.workspace import HATCHET_ENTRYPOINT
@@ -8,13 +9,17 @@ from vulkan.runners.hatchet.workspace import HATCHET_ENTRYPOINT
 from .config import VulkanConfig
 from .pyproject import get_pyproject, set_dependencies
 
-SPEC_FILE_NAME = "policy.json"
+SPEC_FILE_NAME = Path("policy.json")
+STATE_FILE_NAME = Path("state.json")
+INIT_FILE_NAME = Path("__init__.py")
 
 
 class HatchetWorkspaceManager:
     def __init__(self, config: VulkanConfig, workspace_id: str) -> None:
         self.config = config
+        self._workspace_id = workspace_id
         self.workspace_path = os.path.join(config.workspaces_path, workspace_id)
+        self.worker_task = None
 
     def create_workspace(self) -> None:
         completed_process = subprocess.run(
@@ -42,9 +47,14 @@ class HatchetWorkspaceManager:
             raise ValueError(f"Failed to add spec: {e}")
 
     def _add_init_file(self, spec_file_path: str) -> None:
-        init_path = os.path.join(self.workspace_path, "__init__.py")
+        init_path = self.workspace_path / INIT_FILE_NAME
         with open(init_path, "w") as fp:
-            fp.write(HATCHET_ENTRYPOINT.format(spec_file_path=spec_file_path))
+            fp.write(
+                HATCHET_ENTRYPOINT.format(
+                    spec_file_path=spec_file_path,
+                    workflow_id=self._workspace_id,
+                )
+            )
 
     def set_requirements(self, requirements: list[str]) -> None:
         if not os.path.exists(self.workspace_path):
@@ -83,6 +93,25 @@ class HatchetWorkspaceManager:
 
     def delete_resources(self):
         rmtree(self.workspace_path)
+
+    def start_worker(self) -> None:
+        if self.worker_task is not None:
+            self.worker_task.terminate()
+
+        task = subprocess.Popen(
+            [
+                f"{self.workspace_path}/.venv/bin/python",
+                self.workspace_path / INIT_FILE_NAME,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        self.worker_task = task
+
+        if task.returncode != 0:
+            msg = f"Failed to start worker: {task.stderr}"
+            raise Exception(msg)
 
 
 DEFAULT_DEPENDENCIES = {"vulkan[hatchet]"}

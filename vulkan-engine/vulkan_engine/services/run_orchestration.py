@@ -325,13 +325,14 @@ class RunOrchestrationService(BaseService):
 
         try:
             backend_run_id = self.backend.trigger_job(
-                run_id=run.run_id,
+                run_id=str(run.run_id),
                 workflow_id=run_config.workflow_id,
                 input_data=input_data,
                 input_schema=input_schema,
                 config_variables=run_config.variables,
-                project_id=run.project_id,
+                project_id=str(run.project_id) if run.project_id else None,
             )
+            self.logger.system.debug(f"Triggered job with run ID: {backend_run_id}")
             run.status = RunStatus.STARTED
             run.started_at = datetime.now(timezone.utc)
             run.dagster_run_id = backend_run_id  # TODO: Make this backend-agnostic

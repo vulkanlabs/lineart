@@ -189,7 +189,7 @@ class HatchetPolicyRunner:
             server_url=self.server_url,
             hatchet_server_url=self.hatchet_server_url,
             hatchet_api_key=self.hatchet_api_key,
-            namespace=self.namespace,
+            project_id=self.namespace,
         )
 
         # Create policy configuration
@@ -263,7 +263,7 @@ class HatchetPolicyRunner:
                     server_url=self.server_url,
                     hatchet_server_url=self.hatchet_server_url,
                     hatchet_api_key=self.hatchet_api_key,
-                    namespace=self.namespace,
+                    project_id=self.namespace,
                 )
             ),
         )

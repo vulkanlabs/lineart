@@ -69,7 +69,7 @@ def main():
             server_url="http://localhost:8000",
             hatchet_server_url=runner.hatchet_server_url,
             hatchet_api_key=runner.hatchet_api_key,
-            namespace=runner.namespace,
+            project_id=runner.namespace,
         )
 
         client_resource = HatchetClientResource(run_config)

@@ -1,7 +1,6 @@
 """Dagster backend implementation for workflow execution."""
 
 from dataclasses import asdict
-from uuid import UUID
 
 from hatchet_sdk import ClientConfig, Hatchet, TriggerWorkflowOptions
 from pydantic import ValidationError, create_model
@@ -33,12 +32,12 @@ class HatchetBackend(ExecutionBackend):
 
     def trigger_job(
         self,
-        run_id: UUID,
+        run_id: str,
         workflow_id: str,
         input_data: dict,
         input_schema: dict,
         config_variables: dict[str, str],
-        project_id: UUID | None = None,
+        project_id: str | None = None,
     ) -> str:
         """
         Trigger a job execution.
@@ -63,12 +62,12 @@ class HatchetBackend(ExecutionBackend):
             name=workflow_id, input_validator=input_type
         )
 
+        server_url = None  # TODO: Needs to be passed in from the backend config
         run_cfg = HatchetRunConfig(
             run_id=run_id,
-            server_url=self.server_url,
+            server_url=server_url,
             project_id=str(project_id) if project_id else None,
-            hatchet_server_url="",
-            hatchet_api_key="",
+            hatchet_api_key=self._config.service_config.hatchet_token,
         )
         policy_cfg = HatchetPolicyConfig(variables=config_variables)
 
@@ -84,5 +83,7 @@ class HatchetBackend(ExecutionBackend):
         except ValidationError as e:
             raise ValueError(f"[workflow {workflow_id}] Invalid input data") from e
 
+        logger.debug(f"Triggering job with inputs: {run_inputs}")
         run_ref = stub_workflow.run_no_wait(run_inputs, options=options)
+        logger.debug(f"Triggered job with run ID: {run_ref.workflow_run_id}")
         return run_ref.workflow_run_id

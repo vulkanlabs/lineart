@@ -1,7 +1,6 @@
 """Base interface for execution backends."""
 
 from abc import ABC, abstractmethod
-from uuid import UUID
 
 
 class ExecutionBackend(ABC):
@@ -10,17 +9,17 @@ class ExecutionBackend(ABC):
     @abstractmethod
     def trigger_job(
         self,
-        run_id: UUID,
+        run_id: str,
         workflow_id: str,
         input_data: dict,
         # TODO: Hatchet requires the input schema for validation.
-        # It validates the input when starting the run, but the status 
+        # It validates the input when starting the run, but the status
         # might not be too nice.
         # This might be an opportunity for us to handle validation more
         # explicitly in the app, before triggering runs.
         input_schema: dict,
         config_variables: dict[str, str],
-        project_id: UUID | None = None,
+        project_id: str | None = None,
     ) -> str:
         """
         Trigger a job execution in the backend system.

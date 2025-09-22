@@ -14,7 +14,7 @@ from typing import Any, Dict
 
 from vulkan.runners.hatchet.local.runner import HatchetPolicyRunner
 from vulkan.spec.dependency import INPUT_NODE, Dependency
-from vulkan.spec.nodes import InputNode, TerminateNode
+from vulkan.spec.nodes import TerminateNode
 from vulkan.spec.policy import PolicyDefinition
 
 # Set up logging
@@ -129,7 +129,7 @@ def test_hatchet_connection():
             server_url="http://localhost:8000",  # Vulkan server (not used for this test)
             hatchet_server_url=runner.hatchet_server_url,
             hatchet_api_key=runner.hatchet_api_key,
-            namespace=runner.namespace,
+            project_id=runner.namespace,
         )
 
         client_resource = HatchetClientResource(run_config)

@@ -40,6 +40,10 @@ def create_workspace(
 
         logger.info(f"Successfully installed workspace: {workspace_id}")
 
+        logger.info(f"Starting worker for workspace: {workspace_id}")
+        vm.start_worker()
+        logger.info(f"Successfully started worker for workspace: {workspace_id}")
+
     return {
         "workspace_path": vm.workspace_path,
     }

@@ -1,6 +1,6 @@
 import logging
 
-from hatchet_sdk import Hatchet, ParentCondition
+from hatchet_sdk import Hatchet, ParentCondition, Workflow
 from pydantic import create_model
 
 from vulkan.runners.hatchet.nodes import to_hatchet_nodes
@@ -43,7 +43,7 @@ class HatchetFlow:
             **input_schema,
         )
 
-    def create_workflow(self):
+    def create_workflow(self) -> Workflow:
         """Create a Hatchet workflow from Vulkan nodes."""
         workflow = self._hatchet.workflow(
             name=self.policy_name,

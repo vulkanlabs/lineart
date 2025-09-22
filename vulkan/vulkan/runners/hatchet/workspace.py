@@ -40,10 +40,13 @@ class HatchetClientConfig(BaseModel):
 class HatchetWorkspaceManager:
     """Manages Hatchet workspace, workers, and workflow execution."""
 
-    def __init__(self, config: HatchetClientConfig, spec_file_path: str):
+    def __init__(
+        self, config: HatchetClientConfig, spec_file_path: str, workflow_id: str
+    ):
         if not os.path.exists(spec_file_path):
             raise ValueError(f"Spec file does not exist: {spec_file_path}")
 
+        self.workflow_id = workflow_id
         self.config = config
         self.client = Hatchet(
             config=ClientConfig(
@@ -54,11 +57,11 @@ class HatchetWorkspaceManager:
         )
 
         policy = load_and_resolve_policy(spec_file_path)
-        hatchet_flow = HatchetFlow(policy.nodes)
+        hatchet_flow = HatchetFlow(policy.nodes, policy_name=self.workflow_id)
         self._hatchet_workflow = hatchet_flow.create_workflow()
         # For now, we're creating one worker per workflow/workspace.
         self._worker = self.client.worker(
-            "vulkan-worker",
+            f"vulkan-worker-{self.workflow_id}",
             workflows=[self._hatchet_workflow],
         )
 
@@ -98,6 +101,7 @@ config = HatchetClientConfig.from_env()
 manager = HatchetWorkspaceManager(
     config=config,
     spec_file_path="{spec_file_path}",
+    workflow_id="{workflow_id}",
 )
 
 manager.start_worker()
