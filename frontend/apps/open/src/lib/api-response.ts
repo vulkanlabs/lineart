@@ -7,21 +7,25 @@
  */
 
 /**
- * Use this for API route handlers 
+ * Use this for API route handlers
  */
 export const apiResult = {
-    success: <T>(data: T) => Response.json({
-        success: true,
-        data,
-        error: null,
-    }),
-    error: (message: string, status = 500) => Response.json({
-        success: false,
-        data: null,
-        error: message,
-    }, { status }),
+    success: <T>(data: T) =>
+        Response.json({
+            success: true,
+            data,
+            error: null,
+        }),
+    error: (message: string, status = 500) =>
+        Response.json(
+            {
+                success: false,
+                data: null,
+                error: message,
+            },
+            { status },
+        ),
 };
-
 
 export interface ApiResult<T> {
     success: boolean;

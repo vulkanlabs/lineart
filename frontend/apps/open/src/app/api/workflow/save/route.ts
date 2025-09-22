@@ -9,7 +9,6 @@ import {
 import { updateComponent } from "@/lib/api";
 import { apiResult } from "@/lib/api-response";
 
-
 export async function PUT(request: Request) {
     try {
         const { workflow, spec, uiMetadata = {} } = await request.json();
