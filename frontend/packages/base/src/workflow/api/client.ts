@@ -57,32 +57,8 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
                 signal: this.createTimeoutSignal(),
             });
 
-            let result;
-            try {
-                result = await response.json();
-            } catch (parseError) {
-                result = null;
-            }
-
-            // Check if the HTTP response indicates an error
-            if (!response.ok) {
-                const errorMessage = result?.error
-                    ? (typeof result.error === "string" ? result.error : JSON.stringify(result.error))
-                    : `HTTP ${response.status}: ${response.statusText}`;
-
-                return {
-                    success: false,
-                    error: errorMessage,
-                    data: null,
-                };
-            }
-
-            // Return successful response
-            return {
-                success: true,
-                error: null,
-                data: result,
-            };
+            const result: ApiResult<any> = await response.json();
+            return result;
         } catch (error) {
             console.error("Error saving workflow:", error);
             return {
@@ -122,22 +98,14 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
                 },
             );
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const data: PolicyVersion[] = await response.json();
-            return {
-                success: true,
-                error: null,
-                data,
-            };
+            // Server now returns ApiResult format directly
+            const result: ApiResult<PolicyVersion[]> = await response.json();
+            return result;
         } catch (error) {
             console.error("Error fetching policy versions:", error);
             return {
                 success: false,
-                error: error instanceof Error ? error.message : "Failed to fetch policy versions",
+                error: error instanceof Error ? error.message : "Network error occurred",
                 data: null,
             };
         }
@@ -162,22 +130,14 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
                 signal: this.createTimeoutSignal(),
             });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const data: DataSource[] = await response.json();
-            return {
-                success: true,
-                error: null,
-                data,
-            };
+            // Server now returns ApiResult format directly
+            const result: ApiResult<DataSource[]> = await response.json();
+            return result;
         } catch (error) {
             console.error("Error fetching data sources:", error);
             return {
                 success: false,
-                error: error instanceof Error ? error.message : "Failed to fetch data sources",
+                error: error instanceof Error ? error.message : "Network error occurred",
                 data: null,
             };
         }
@@ -207,22 +167,14 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
                 },
             );
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const data: Component[] = await response.json();
-            return {
-                success: true,
-                error: null,
-                data,
-            };
+            // Server now returns ApiResult format directly
+            const result: ApiResult<Component[]> = await response.json();
+            return result;
         } catch (error) {
             console.error("Error fetching components:", error);
             return {
                 success: false,
-                error: error instanceof Error ? error.message : "Failed to fetch components",
+                error: error instanceof Error ? error.message : "Network error occurred",
                 data: null,
             };
         }
