@@ -99,6 +99,16 @@ export type AutoSaveState = {
 };
 
 /**
+ * Sidebar state for workflow editing
+ */
+export type SidebarState = {
+    isOpen: boolean;
+    selectedNodeId: string | null;
+    activeTab: "code-editor" | "properties" | "inputs" | null;
+    width?: number;
+};
+
+/**
  * Main workflow state structure
  */
 export type WorkflowState = {
@@ -106,6 +116,7 @@ export type WorkflowState = {
     edges: Edge[];
     collapsedNodeHeights?: { [key: string]: number };
     autoSave: AutoSaveState;
+    sidebar: SidebarState;
 };
 
 /**
@@ -144,8 +155,8 @@ function AsDependencies(incomingEdges: IncomingEdges = {}): { [key: string]: Dep
 function AsDependencyDict(dependency: NodeDependency): DependencyDict {
     return {
         node: dependency.node,
-        output: dependency.output || null,
-        key: dependency.key || null,
+        output: dependency.output ?? null,
+        key: dependency.key ?? null,
         hierarchy: null,
         // expression: null, // TODO: Commented out due to CI/CD TypeScript errors - needs proper type definition
     };

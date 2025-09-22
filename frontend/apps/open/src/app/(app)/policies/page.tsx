@@ -1,6 +1,10 @@
-// Local imports
-import { fetchPolicies } from "@/lib/api";
-import { PoliciesTable } from "./policies-table";
+import { Policy } from "@vulkanlabs/client-open";
+import {
+    CreatePolicyDialog as SharedCreatePolicyDialog,
+    PoliciesTable as SharedPoliciesTable,
+} from "@vulkanlabs/base";
+
+import { createPolicy, deletePolicy, fetchPolicies } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -20,5 +24,23 @@ export default async function Page() {
                 <PoliciesTable policies={policies} />
             </div>
         </div>
+    );
+}
+
+function PoliciesTable({ policies }: { policies: Policy[] }) {
+    return (
+        <SharedPoliciesTable
+            policies={policies}
+            config={{
+                deletePolicy: deletePolicy,
+                CreatePolicyDialog: (
+                    <SharedCreatePolicyDialog
+                        config={{
+                            createPolicy: createPolicy,
+                        }}
+                    />
+                ),
+            }}
+        />
     );
 }
