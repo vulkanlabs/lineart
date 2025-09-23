@@ -15,7 +15,6 @@ from vulkan.connections import (
     format_response_data,
     make_request,
 )
-from vulkan.constants import POLICY_CONFIG_KEY
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
@@ -26,11 +25,12 @@ from vulkan.runners.dagster.io_manager import (
     PUBLISH_IO_MANAGER_KEY,
 )
 from vulkan.runners.dagster.names import normalize_dependencies, normalize_node_id
-from vulkan.runners.dagster.resources import APP_CLIENT_KEY, AppClientResource
-from vulkan.runners.dagster.run_config import (
+from vulkan.runners.dagster.resources import AppClientResource
+from vulkan.runners.dagster.run_config import VulkanPolicyConfig, VulkanRunConfig
+from vulkan.runners.shared.constants import (
+    APP_CLIENT_KEY,
+    POLICY_CONFIG_KEY,
     RUN_CONFIG_KEY,
-    VulkanPolicyConfig,
-    VulkanRunConfig,
 )
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import (

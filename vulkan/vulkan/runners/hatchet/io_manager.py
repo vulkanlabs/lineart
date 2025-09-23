@@ -1,6 +1,5 @@
-import json
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 from vulkan.core.step_metadata import StepMetadata
 
@@ -42,17 +41,3 @@ class HatchetIOManager:
             return response.status_code in {200, 201}
         except Exception:
             return False
-
-
-class HatchetPublishIOManager(HatchetIOManager):
-    """I/O manager for publishing metadata and results."""
-
-    def handle_output(self, context: Any, obj: Any) -> None:
-        """Handle output from Hatchet tasks."""
-        if isinstance(obj, StepMetadata):
-            run_id = getattr(context, "run_id", None)
-            if run_id:
-                self.store_metadata(obj, run_id)
-        else:
-            # Handle other output types as needed
-            pass

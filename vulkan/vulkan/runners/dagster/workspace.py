@@ -3,7 +3,6 @@ import os
 import yaml
 from dagster import Definitions, EnvVar, IOManagerDefinition
 
-from vulkan.constants import POLICY_CONFIG_KEY
 from vulkan.runners.dagster.io_manager import (
     DB_CONFIG_KEY,
     PUBLISH_IO_MANAGER_KEY,
@@ -12,15 +11,13 @@ from vulkan.runners.dagster.io_manager import (
     postgresql_io_manager,
 )
 from vulkan.runners.dagster.policy import DagsterFlow
-from vulkan.runners.dagster.resources import (
+from vulkan.runners.dagster.resources import AppClientResource
+from vulkan.runners.shared.constants import (
     APP_CLIENT_KEY,
-    AppClientResource,
-)
-from vulkan.runners.dagster.run_config import (
+    POLICY_CONFIG_KEY,
     RUN_CONFIG_KEY,
-    VulkanPolicyConfig,
-    VulkanRunConfig,
 )
+from vulkan.runners.shared.run_config import VulkanPolicyConfig, VulkanRunConfig
 from vulkan.spec.environment.loaders import load_and_resolve_policy
 
 

@@ -17,20 +17,18 @@ from vulkan.connections import (
     format_response_data,
     make_request,
 )
-from vulkan.constants import POLICY_CONFIG_KEY
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.exceptions import UserCodeException
 from vulkan.node_config import normalize_to_template, resolve_template
 from vulkan.runners.hatchet.io_manager import METADATA_OUTPUT_KEY
-from vulkan.runners.hatchet.resources import (
+from vulkan.runners.shared.constants import (
     DATA_CLIENT_KEY,
-)
-from vulkan.runners.hatchet.run_config import (
+    POLICY_CONFIG_KEY,
     RUN_CONFIG_KEY,
-    HatchetRunConfig,
 )
+from vulkan.runners.shared.run_config import VulkanRunConfig
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import (
     BranchNode,
@@ -390,8 +388,10 @@ class HatchetTerminate(TerminateNode, HatchetNode):
         """Terminate the run by notifying the server."""
         run_config_dict = context.additional_metadata.get(RUN_CONFIG_KEY)
         if not run_config_dict:
-            raise ValueError(f"Run configuration not found in context: {context.additional_metadata}")
-        run_config = HatchetRunConfig(**run_config_dict)
+            raise ValueError(
+                f"Run configuration not found in context: {context.additional_metadata}"
+            )
+        run_config = VulkanRunConfig(**run_config_dict)
 
         server_url = run_config.server_url
         run_id = run_config.run_id

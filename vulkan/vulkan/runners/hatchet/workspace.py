@@ -6,7 +6,6 @@ from hatchet_sdk.config import ClientConfig
 from pydantic import BaseModel
 
 from vulkan.runners.hatchet.policy import HatchetFlow
-from vulkan.runners.hatchet.resources import create_hatchet_resources
 from vulkan.spec.environment.loaders import load_and_resolve_policy
 
 logger = logging.getLogger(__name__)
@@ -67,7 +66,6 @@ class HatchetWorkspaceManager:
             workflows=[self._hatchet_workflow],
         )
 
-        self.resources = create_hatchet_resources(config)
         logger.info(
             f"Initialized Hatchet workspace for namespace: {self.config.namespace}"
         )

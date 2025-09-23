@@ -4,11 +4,10 @@ from uuid import UUID
 
 from dagster_graphql import DagsterGraphQLClient
 
-from vulkan.constants import POLICY_CONFIG_KEY
 from vulkan.runners.dagster.policy import DEFAULT_POLICY_NAME
-from vulkan.runners.dagster.run_config import RUN_CONFIG_KEY
-from vulkan_engine.backends.execution import ExecutionBackend
+from vulkan.runners.shared.constants import POLICY_CONFIG_KEY, RUN_CONFIG_KEY
 from vulkan_engine.backends.dagster import trigger_run
+from vulkan_engine.backends.execution import ExecutionBackend
 from vulkan_engine.logger import init_logger
 
 logger = init_logger("dagster_backend")

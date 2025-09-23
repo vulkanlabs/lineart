@@ -1,12 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict
 
-RUN_CONFIG_KEY = "vulkan_run_config"
-POLICY_CONFIG_KEY = "vulkan_policy_config"
-
 
 @dataclass
-class HatchetRunConfig:
+class VulkanRunConfig:
     """Configuration for Hatchet run execution."""
 
     run_id: str
@@ -16,7 +13,7 @@ class HatchetRunConfig:
 
 
 @dataclass
-class HatchetPolicyConfig:
+class VulkanPolicyConfig:
     """Configuration for Hatchet policy execution."""
 
     variables: Dict[str, Any] = field(default_factory=dict)

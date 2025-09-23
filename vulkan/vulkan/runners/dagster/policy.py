@@ -11,7 +11,8 @@ from vulkan.core.run import RunStatus
 from vulkan.runners.dagster.io_manager import DB_CONFIG_KEY, POSTGRES_IO_MANAGER_KEY
 from vulkan.runners.dagster.names import normalize_node_id
 from vulkan.runners.dagster.nodes import to_dagster_nodes
-from vulkan.runners.dagster.resources import APP_CLIENT_KEY, AppClientResource
+from vulkan.runners.dagster.resources import AppClientResource
+from vulkan.runners.shared.constants import APP_CLIENT_KEY
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import Node
 
