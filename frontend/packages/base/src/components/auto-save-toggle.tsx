@@ -3,6 +3,8 @@
 import { useEffect, useCallback, useState } from "react";
 import { Check, Loader, AlertTriangle, Clock, Save } from "lucide-react";
 import { cn } from "../lib/utils";
+import { createGlobalToast } from "./toast";
+import { Button } from "../ui";
 
 export interface AutoSaveState {
     hasUnsavedChanges: boolean;
@@ -10,7 +12,6 @@ export interface AutoSaveState {
     isSaving: boolean;
     lastSaved: Date | null;
     saveError: string | null;
-    retryCount?: number;
 }
 
 export interface AutoSaveToggleProps {
@@ -35,6 +36,36 @@ export interface AutoSaveToggleProps {
  * - Toast notifications for persistent errors
  */
 export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSaveToggleProps = {}) {
+    // Helper function to extract error message from various error formats
+    const getErrorMessage = useCallback((error: string | null): string => {
+        if (!error) return "Unknown error";
+
+        // Handle [object Object] case (should be rare now that API client handles it)
+        if (error === "[object Object]") return "Save request failed";
+        if (error.includes("[object Object]")) return "Internal server error";
+
+        // Handle common error patterns
+        if (typeof error === "string") {
+            // Extract HTTP status codes
+            if (error.includes("500")) return "Internal server error";
+            if (error.includes("404")) return "Endpoint not found";
+            if (error.includes("403")) return "Permission denied";
+            if (error.includes("401")) return "Authentication required";
+            if (error.includes("Network Error")) return "Network connection failed";
+
+            try {
+                // Try to parse if it's a JSON string
+                const parsed = JSON.parse(error);
+                return parsed.message || parsed.error || parsed.detail || error;
+            } catch {
+                // Return if not JSON, but limit length
+                return error.length > 100 ? error.substring(0, 100) + "..." : error;
+            }
+        }
+
+        return String(error);
+    }, []);
+
     // Auto-save state from workflow system
     const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>({
         hasUnsavedChanges: false,
@@ -42,19 +73,17 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
         isSaving: false,
         lastSaved: null,
         saveError: null,
-        retryCount: 0,
     });
 
     // Listen for workflow auto-save status updates
     useEffect(() => {
         const handleWorkflowStatus = (event: CustomEvent) => {
             const newState = event.detail;
+            const prevState = autoSaveState;
             setAutoSaveState(newState);
 
-            // Show toast for persistent errors (after 3 failed attempts)
-            if (newState.saveError && (newState.retryCount || 0) >= 3) {
-                showErrorToast(newState.saveError);
-            }
+            // Show toast for errors
+            if (newState.saveError) showErrorToast(newState.saveError);
         };
 
         window.addEventListener("workflow:autosave-status", handleWorkflowStatus as EventListener);
@@ -63,21 +92,24 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
                 "workflow:autosave-status",
                 handleWorkflowStatus as EventListener,
             );
-    }, []);
-
-    // Handle auto-save toggle changes
-    const handleToggleChange = useCallback((enabled: boolean) => {
-        setAutoSaveState((prev) => ({ ...prev, autoSaveEnabled: enabled }));
-        window.dispatchEvent(
-            new CustomEvent("navigation:toggle-autosave", { detail: { enabled } }),
-        );
-    }, []);
+    }, [autoSaveState]);
 
     // Manual save trigger with keyboard support
     const performManualSave = useCallback(async () => {
         if (autoSaveState.isSaving) return; // Prevent duplicate saves
-        window.dispatchEvent(new CustomEvent("navigation:manual-save"));
-    }, [autoSaveState.isSaving]);
+
+        // Clear any existing save error before attempting manual save
+        if (autoSaveState.saveError)
+            window.dispatchEvent(new CustomEvent("workflow:clear-save-error"));
+
+        window.dispatchEvent(new CustomEvent("workflow:manual-save"));
+    }, [autoSaveState.isSaving, autoSaveState.saveError]);
+
+    // Handle auto-save toggle changes
+    const handleToggleChange = useCallback((enabled: boolean) => {
+        setAutoSaveState((prev) => ({ ...prev, autoSaveEnabled: enabled }));
+        window.dispatchEvent(new CustomEvent("workflow:toggle-autosave", { detail: { enabled } }));
+    }, []);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -93,25 +125,51 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [performManualSave]);
 
-    // Toast notification helper
+    // Browser-level warning for unsaved changes
+    useEffect(() => {
+        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+            // Warn until save is complete AND successful
+            if (autoSaveState.hasUnsavedChanges) {
+                const message =
+                    "You have unsaved changes that will be lost if you leave this page.";
+                event.preventDefault();
+                event.returnValue = message; // For older browsers
+                return message;
+            }
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [autoSaveState.hasUnsavedChanges]);
+
+    // Expose simple check function for NavigationGuard
+    useEffect(() => {
+        (window as any).checkUnsavedChanges = (onProceed?: () => void) => {
+            // Check for unsaved changes
+            const hasUnsaved = autoSaveState.hasUnsavedChanges;
+            if (!hasUnsaved && onProceed) onProceed();
+            return !hasUnsaved; // Return true if can proceed, false if blocked
+        };
+
+        return () => {
+            delete (window as any).checkUnsavedChanges;
+        };
+    }, [autoSaveState.hasUnsavedChanges]);
+
+    // Toast notification helpers
     const showErrorToast = useCallback(
         (error: string) => {
-            // Try to use existing toast system or fallback to console
-            if (typeof window !== "undefined" && "toast" in window) {
-                (window as any).toast(error, {
-                    variant: "destructive",
-                    title: "Auto-save failed",
-                    description: "Click to retry manually",
-                    action: { label: "Retry", onClick: performManualSave },
-                });
-            } else {
-                console.error("Auto-save failed:", error);
-            }
+            const errorMessage = getErrorMessage(error);
+            const toast = createGlobalToast();
+            toast.error("Auto-save failed", {
+                description: errorMessage,
+                dismissible: true,
+            });
         },
         [performManualSave],
     );
 
-    // Simplified status derivation
+    // Simple status derivation
     const status = autoSaveState.isSaving
         ? "saving"
         : autoSaveState.saveError
@@ -120,7 +178,7 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
             ? "pending"
             : "saved";
 
-    // Status configuration with enhanced UX
+    // Status configuration
     const statusConfig = {
         saving: {
             icon: <Loader className="h-3.5 w-3.5 animate-spin text-blue-600" />,
@@ -133,12 +191,16 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
             text: "Failed to save",
             color: "text-red-600",
             clickable: true,
-            title: "Click to retry save",
+            title: `Save failed: ${getErrorMessage(autoSaveState.saveError)}. Click to retry.`,
         },
         pending: {
-            icon: <Clock className="h-3.5 w-3.5 text-amber-600" />,
-            text: "Unsaved changes",
-            color: "text-amber-600",
+            icon: autoSaveState.autoSaveEnabled ? (
+                <Clock className="h-3.5 w-3.5 text-amber-600" />
+            ) : (
+                <AlertTriangle className="h-3.5 w-3.5 text-slate-600" />
+            ),
+            text: autoSaveState.autoSaveEnabled ? "Unsaved changes" : "Save manually",
+            color: autoSaveState.autoSaveEnabled ? "text-amber-600" : "text-slate-600",
             clickable: false,
         },
         saved: {
@@ -152,11 +214,11 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
     const currentStatus = statusConfig[status];
 
     return (
-        <div className={cn("flex items-center gap-2 text-sm", className)}>
+        <div className={cn("flex items-center gap-2 text-sm min-w-0", className)}>
             {/* Status Indicator */}
             <div
                 className={cn(
-                    "flex items-center gap-1.5 transition-colors duration-200",
+                    "flex items-center gap-1.5 transition-colors duration-200 min-w-0",
                     currentStatus.clickable && "cursor-pointer hover:opacity-80",
                 )}
                 onClick={currentStatus.clickable ? performManualSave : undefined}
@@ -175,14 +237,18 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
                 }
             >
                 {currentStatus.icon}
-                <span className={currentStatus.color}>
+                <span className={cn(currentStatus.color, "whitespace-nowrap")}>
                     {currentStatus.text}
-                    {status === "error" && (autoSaveState.retryCount || 0) > 0 && (
-                        <span className="ml-1 text-xs opacity-70">
-                            (Retry {autoSaveState.retryCount})
-                        </span>
-                    )}
                 </span>
+                {/* Inline error indicator for compact display */}
+                {status === "error" && autoSaveState.saveError && (
+                    <span
+                        className="text-red-600 text-xs ml-1 max-w-[120px] sm:max-w-[200px] truncate inline-block"
+                        title={getErrorMessage(autoSaveState.saveError)}
+                    >
+                        ({getErrorMessage(autoSaveState.saveError)})
+                    </span>
+                )}
             </div>
 
             <span className="text-muted-foreground">·</span>
@@ -223,24 +289,26 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
                 </label>
             </div>
 
-            {/* Manual Save Button with Keyboard Shortcut */}
+            {/* Manual Save Button */}
             {showShortcut && (
                 <>
                     <span className="text-muted-foreground">·</span>
-                    <button
+                    <Button
                         onClick={performManualSave}
                         disabled={autoSaveState.isSaving}
+                        variant="outline"
+                        size="sm"
                         className={cn(
-                            "inline-flex items-center gap-1 px-2 py-1 rounded text-xs",
-                            "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground",
-                            "transition-colors duration-200 border",
+                            "px-2 py-1 text-xs h-auto",
+                            "border-input bg-background hover:bg-accent hover:text-accent-foreground",
+                            "transition-all duration-200 shadow-sm hover:shadow-md",
                             "disabled:opacity-50 disabled:cursor-not-allowed",
                         )}
                         title="Save workflow manually (Ctrl+S)"
                     >
-                        <Save className="h-3 w-3" />
+                        <Save className="h-3 w-3 mr-1" />
                         <span className="hidden sm:inline">Save</span>
-                    </button>
+                    </Button>
                 </>
             )}
         </div>

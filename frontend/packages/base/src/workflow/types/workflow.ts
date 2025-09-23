@@ -95,6 +95,7 @@ export type AutoSaveState = {
     autoSaveEnabled: boolean;
     retryCount?: number;
     autoSaveInterval?: number;
+    pendingChangesWhileSaving?: boolean;
 };
 
 /**

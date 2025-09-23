@@ -1,13 +1,15 @@
 "use client";
 
 import { ThemeProvider } from "next-themes";
-import { Toaster } from "./toaster";
+import { ToastProvider, ToastContainer } from "@vulkanlabs/base";
 
 export function Providers({ children }: { children: React.ReactNode }) {
     return (
         <ThemeProvider attribute="class" defaultTheme="light">
-            {children}
-            <Toaster />
+            <ToastProvider>
+                {children}
+                <ToastContainer />
+            </ToastProvider>
         </ThemeProvider>
     );
 }
