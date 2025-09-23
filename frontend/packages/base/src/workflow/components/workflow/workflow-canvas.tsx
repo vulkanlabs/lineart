@@ -2,14 +2,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
-import {
-    SaveIcon,
-    ChevronDownIcon,
-    ChevronUpIcon,
-    LayoutIcon,
-    CopyIcon,
-    FocusIcon,
-} from "lucide-react";
+import { ChevronDownIcon, ChevronUpIcon, LayoutIcon, CopyIcon, FocusIcon } from "lucide-react";
 import { ToolbarIcon } from "./toolbar-icon";
 import {
     ReactFlow,
@@ -447,19 +440,6 @@ export function WorkflowCanvas({
         }
     }, [api, workflow, getSpec, getNodes, toast, onRefresh, markSaved]);
 
-    // Manual save event listener for external triggers (navigation bar, keyboard shortcuts, etc.)
-    useEffect(() => {
-        const handleManualSave = () => {
-            saveWorkflow(); // Trigger the manual save function
-        };
-
-        window.addEventListener("workflow:manual-save", handleManualSave);
-
-        return () => {
-            window.removeEventListener("workflow:manual-save", handleManualSave);
-        };
-    }, [saveWorkflow]);
-
     return (
         <div className="w-full h-full relative">
             {isOpen && (
@@ -508,9 +488,6 @@ export function WorkflowCanvas({
                     showFitView={false}
                     orientation="horizontal"
                 >
-                    <ControlButton onClick={saveWorkflow} title="Save">
-                        <ToolbarIcon icon={SaveIcon} />
-                    </ControlButton>
                     <ControlButton onClick={smartFitView} title="Smart Fit View">
                         <ToolbarIcon icon={FocusIcon} />
                     </ControlButton>

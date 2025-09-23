@@ -4,8 +4,14 @@
 import { Layers, Network, FolderCog, Play } from "lucide-react";
 import { usePathname } from "next/navigation";
 
+// Vulkan packages
 import { Policy, PolicyVersion } from "@vulkanlabs/client-open";
-import { InnerNavbar, type InnerNavbarSectionProps, AutoSaveToggle } from "@vulkanlabs/base";
+import {
+    InnerNavbar,
+    type InnerNavbarSectionProps,
+    AutoSaveToggle,
+    NavigationGuard,
+} from "@vulkanlabs/base";
 
 // Local imports
 import { PageLayout, type SidebarSectionProps } from "@/components/page-layout";
@@ -75,6 +81,8 @@ export function RouteLayout({
     ];
     return (
         <div className="flex flex-col w-full h-full">
+            {/* Only on workflow pages where unsaved changes can occur */}
+            {isOnWorkflowPage && <NavigationGuard />}
             <InnerNavbar
                 backRoute={`/policies/${policy.policy_id}/overview`}
                 sections={innerNavbarSections}

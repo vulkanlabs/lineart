@@ -77,6 +77,7 @@ export {
     type AutoSaveState,
     type AutoSaveToggleProps,
 } from "./components/auto-save-toggle";
+export { NavigationGuard } from "./components/navigation-guard";
 
 // === Animations ===
 export * from "./components/animations";
@@ -106,6 +107,10 @@ export {
 } from "./workflow";
 
 export type { NodeDependency, VulkanNode, VulkanNodeData, WorkflowState } from "./workflow";
+
+// Re-export toast system
+export { ToastProvider, ToastContainer, useToast, createGlobalToast } from "./components/toast";
+export type { Toast } from "./components/toast";
 
 // === Feature-specific Components ===
 // For specific features, consumers should import from dedicated entry points:

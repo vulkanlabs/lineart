@@ -7,13 +7,7 @@ import {
     ComponentUpdate,
 } from "@vulkanlabs/client-open";
 import { updateComponent } from "@/lib/api";
-
-// Simplified API response helper
-const apiResponse = {
-    success: (data: any) => Response.json({ success: true, data }),
-    error: (message: string, status = 500) =>
-        Response.json({ success: false, error: message }, { status }),
-};
+import { apiResult } from "@/lib/api-response";
 
 export async function PUT(request: Request) {
     try {
@@ -21,9 +15,9 @@ export async function PUT(request: Request) {
 
         if (workflow?.policy_version_id) return savePolicyVersion(workflow, spec, uiMetadata);
         else if (workflow?.component_id) return saveComponent(workflow, spec, uiMetadata);
-        else return apiResponse.error("Invalid workflow type", 400);
+        else return apiResult.error("Invalid workflow type", 400);
     } catch (error) {
-        return apiResponse.error(error instanceof Error ? error.message : "Save failed", 500);
+        return apiResult.error(error instanceof Error ? error.message : "Save failed", 500);
     }
 }
 
@@ -46,10 +40,10 @@ async function saveComponent(
         };
 
         const response = await updateComponent(component.component_id, requestBody);
-        return apiResponse.success(response);
+        return apiResult.success(response);
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
-        return apiResponse.error(`Save failed: ${message}`);
+        return apiResult.error(`Save failed: ${message}`);
     }
 }
 
@@ -59,7 +53,7 @@ async function savePolicyVersion(
     uiMetadata: { [key: string]: UIMetadata },
 ) {
     const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
-    if (!serverUrl) return apiResponse.error("Server URL is not configured");
+    if (!serverUrl) return apiResult.error("Server URL is not configured");
 
     try {
         const requestBody = {
@@ -87,13 +81,13 @@ async function savePolicyVersion(
         if (!response.ok) {
             const error = await response.json().catch(() => ({ detail: response.statusText }));
             const message = error.detail || error.message || response.statusText;
-            return apiResponse.error(`Save failed: ${message}`, response.status);
+            return apiResult.error(`Save failed: ${message}`, response.status);
         }
 
         const data = await response.json();
-        return apiResponse.success(data);
+        return apiResult.success(data);
     } catch (error) {
         const message = error instanceof Error ? error.message : "Network error";
-        return apiResponse.error(`Save failed: ${message}`);
+        return apiResult.error(`Save failed: ${message}`);
     }
 }

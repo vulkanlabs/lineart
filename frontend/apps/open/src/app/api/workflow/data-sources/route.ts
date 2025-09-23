@@ -1,10 +1,11 @@
 import { DataSource } from "@vulkanlabs/client-open";
+import { apiResult } from "@/lib/api-response";
 
 export async function GET(request: Request) {
     try {
         const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
         if (!serverUrl) {
-            return Response.json({ error: "Server URL is not configured" }, { status: 500 });
+            return apiResult.error("Server URL is not configured", 500);
         }
 
         const url = `${serverUrl}/data-sources`;
@@ -14,23 +15,23 @@ export async function GET(request: Request) {
         });
 
         if (!response.ok) {
-            return Response.json(
-                { error: `Failed to fetch data sources: ${response.statusText}` },
-                { status: response.status },
+            return apiResult.error(
+                `Failed to fetch data sources: ${response.statusText}`,
+                response.status,
             );
         }
 
         if (response.status === 204) {
-            return Response.json([]);
+            return apiResult.success([]);
         }
 
         const data: DataSource[] = await response.json();
-        return Response.json(data);
+        return apiResult.success(data);
     } catch (error) {
         console.error("Error fetching data sources:", error);
-        return Response.json(
-            { error: error instanceof Error ? error.message : "Failed to fetch data sources" },
-            { status: 500 },
+        return apiResult.error(
+            error instanceof Error ? error.message : "Failed to fetch data sources",
+            500,
         );
     }
 }
