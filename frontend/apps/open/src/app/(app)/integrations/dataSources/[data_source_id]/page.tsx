@@ -1,9 +1,16 @@
 // Vulkan packages
 import type { DataSource } from "@vulkanlabs/client-open";
+import { DataSourceDetailPage } from "@vulkanlabs/base";
 
 // Local imports
-import { fetchDataSource } from "@/lib/api";
-import DataSourcePage from "./components";
+import {
+    fetchDataSource,
+    fetchDataSourceEnvVars,
+    fetchDataSourceCacheStats,
+    fetchDataSourceMetrics,
+    fetchDataSourceUsage,
+    setDataSourceEnvVars,
+} from "@/lib/api";
 
 export default async function Page(props: { params: Promise<{ data_source_id: string }> }) {
     const params = await props.params;
@@ -25,5 +32,16 @@ export default async function Page(props: { params: Promise<{ data_source_id: st
         );
     }
 
-    return <DataSourcePage dataSource={dataSource} />;
+    return (
+        <DataSourceDetailPage
+            config={{
+                dataSource,
+                fetchDataSourceEnvVars,
+                setDataSourceEnvVars,
+                fetchUsage: fetchDataSourceUsage,
+                fetchMetrics: fetchDataSourceMetrics,
+                fetchCacheStats: fetchDataSourceCacheStats,
+            }}
+        />
+    );
 }

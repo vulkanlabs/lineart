@@ -33,7 +33,7 @@ Base = declarative_base()
 
 def create_engine_from_config(database_config: DatabaseConfig) -> Engine:
     """Create database engine from configuration."""
-    return create_engine(database_config.connection_string, echo=True)
+    return create_engine(database_config.connection_string, echo=False)
 
 
 def get_db_session(database_config: DatabaseConfig) -> Iterator[Session]:

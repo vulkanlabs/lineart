@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 // Vulkan packages
+import type { DataSourceSpec } from "@vulkanlabs/client-open";
 import {
     Button,
     Dialog,
@@ -38,10 +39,6 @@ import {
     keyValuePairsFromObject,
     keyValuePairsToMap,
 } from "@vulkanlabs/base/ui";
-import type { DataSourceSpec } from "@vulkanlabs/client-open";
-
-// Local imports
-import { createDataSource } from "@/lib/api";
 
 const formSchema = z.object({
     name: z
@@ -94,17 +91,21 @@ const formSchema = z.object({
 });
 
 function parseJSON(val: string | undefined) {
-    {
-        if (!val) return undefined;
-        try {
-            return JSON.parse(val);
-        } catch (e) {
-            return {};
-        }
+    if (!val) return undefined;
+    try {
+        return JSON.parse(val);
+    } catch (e) {
+        return {};
     }
 }
 
-export function CreateDataSourceDialog() {
+export interface CreateDataSourceDialogConfig {
+    createDataSource: (spec: DataSourceSpec) => Promise<void>;
+    buttonText?: string;
+    dialogTitle?: string;
+}
+
+export function CreateDataSourceDialog({ config }: { config: CreateDataSourceDialogConfig }) {
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState(1);
     const router = useRouter();
@@ -204,34 +205,35 @@ export function CreateDataSourceDialog() {
             metadata: keyValuePairsToMap(keyValuePairsFromObject(data.metadata)),
         };
 
-        await createDataSource(dataSourceSpec)
-            .then(() => {
-                setOpen(false);
-                form.reset();
-                toast("Data Source Created", {
-                    description: `Data Source ${data.name} has been created.`,
-                    dismissible: true,
-                });
-                router.refresh();
-            })
-            .catch((error) => {
-                console.error(error);
-                toast("Error Creating Data Source", {
-                    description: error.message || "An unknown error occurred",
-                    dismissible: true,
-                });
+        try {
+            await config.createDataSource(dataSourceSpec);
+            setOpen(false);
+            form.reset();
+            toast("Data Source Created", {
+                description: `Data Source ${data.name} has been created.`,
+                dismissible: true,
             });
+            router.refresh();
+        } catch (error: any) {
+            console.error(error);
+            toast("Error Creating Data Source", {
+                description: error.message || "An unknown error occurred",
+                dismissible: true,
+            });
+        }
     };
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <Form {...form}>
                 <DialogTrigger asChild>
-                    <Button variant="outline">Create Data Source</Button>
+                    <Button variant="outline">{config.buttonText || "Create Data Source"}</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Create a new Data Source - Step {step} of 3</DialogTitle>
+                        <DialogTitle>
+                            {config.dialogTitle || `Create a new Data Source - Step ${step} of 3`}
+                        </DialogTitle>
                     </DialogHeader>
                     <form
                         className="flex flex-col gap-4 py-4"
@@ -243,7 +245,7 @@ export function CreateDataSourceDialog() {
                                 <FormField
                                     name="name"
                                     control={form.control}
-                                    render={({ field }: { field: any }) => (
+                                    render={({ field }) => (
                                         <FormItem>
                                             <FormLabel htmlFor="name">Name *</FormLabel>
                                             <FormDescription>
@@ -262,7 +264,7 @@ export function CreateDataSourceDialog() {
                                 <FormField
                                     name="description"
                                     control={form.control}
-                                    render={({ field }: { field: any }) => (
+                                    render={({ field }) => (
                                         <FormItem>
                                             <FormLabel htmlFor="description">Description</FormLabel>
                                             <FormDescription>
@@ -284,7 +286,7 @@ export function CreateDataSourceDialog() {
                                 <FormField
                                     control={form.control}
                                     name="metadata"
-                                    render={({ field }: { field: any }) => (
+                                    render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Metadata</FormLabel>
                                             <FormDescription>

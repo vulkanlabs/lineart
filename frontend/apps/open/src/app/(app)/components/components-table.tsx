@@ -1,10 +1,11 @@
 "use client";
 
-import { ComponentsTable as SharedComponentsTable } from "@vulkanlabs/base";
-import { type Component } from "@vulkanlabs/client-open";
 import { useRouter } from "next/navigation";
-import { deleteComponent } from "@/lib/api";
-import { CreateComponentDialog } from "./create-dialog";
+
+import { type Component } from "@vulkanlabs/client-open";
+import { ComponentsTable as SharedComponentsTable, CreateComponentDialog } from "@vulkanlabs/base";
+
+import { createComponent, deleteComponent } from "@/lib/api";
 
 export function ComponentsTable({ components }: { components: Component[] }) {
     const router = useRouter();
@@ -23,7 +24,13 @@ export function ComponentsTable({ components }: { components: Component[] }) {
             config={{
                 mode: "full",
                 deleteComponent: deleteComponent,
-                CreateComponentDialog: <CreateComponentDialog />,
+                CreateComponentDialog: (
+                    <CreateComponentDialog
+                        config={{
+                            createComponent,
+                        }}
+                    />
+                ),
                 onRefresh: handleRefresh,
                 onNavigate: handleNavigate,
             }}
