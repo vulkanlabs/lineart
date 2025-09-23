@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict
 
-RUN_CONFIG_KEY = "hatchet_run_config"
-POLICY_CONFIG_KEY = "hatchet_policy_config"
+RUN_CONFIG_KEY = "vulkan_run_config"
+POLICY_CONFIG_KEY = "vulkan_policy_config"
 
 
 @dataclass

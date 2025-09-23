@@ -390,7 +390,7 @@ class HatchetTerminate(TerminateNode, HatchetNode):
         """Terminate the run by notifying the server."""
         run_config_dict = context.additional_metadata.get(RUN_CONFIG_KEY)
         if not run_config_dict:
-            return False
+            raise ValueError(f"Run configuration not found in context: {context.additional_metadata}")
         run_config = HatchetRunConfig(**run_config_dict)
 
         server_url = run_config.server_url
@@ -398,7 +398,7 @@ class HatchetTerminate(TerminateNode, HatchetNode):
         context.log(f"Terminating run {run_config.run_id} with result {result}")
         context.log(f"Posting to {server_url}")
 
-        url = f"{server_url}/runs/{run_id}"
+        url = f"{server_url}/internal/runs/{run_id}"
         response = requests.put(
             url,
             json={
