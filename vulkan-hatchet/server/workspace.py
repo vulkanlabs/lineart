@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from shutil import rmtree
 
@@ -20,6 +21,7 @@ class HatchetWorkspaceManager:
         self._workspace_id = workspace_id
         self.workspace_path = os.path.join(config.workspaces_path, workspace_id)
         self.worker_task = None
+        self.pool = ProcessPoolExecutor(max_workers=1)
 
     def create_workspace(self) -> None:
         completed_process = subprocess.run(
@@ -97,8 +99,11 @@ class HatchetWorkspaceManager:
     def start_worker(self) -> None:
         if self.worker_task is not None:
             self.worker_task.terminate()
+        task = self._start_worker_process()
+        self.worker_task = task
 
-        task = subprocess.Popen(
+    def _start_worker_process(self) -> subprocess.Popen:
+        hatchet_task = subprocess.Popen(
             [
                 f"{self.workspace_path}/.venv/bin/python",
                 self.workspace_path / INIT_FILE_NAME,
@@ -107,11 +112,16 @@ class HatchetWorkspaceManager:
             stderr=subprocess.PIPE,
         )
 
-        self.worker_task = task
+        return hatchet_task
 
-        if task.returncode != 0:
-            msg = f"Failed to start worker: {task.stderr}"
-            raise Exception(msg)
+    def stop_worker(self) -> tuple[bytes | None, bytes | None]:
+        if self.worker_task is not None:
+            stdout, stderr = self.worker_task.communicate(timeout=1)
+            self.worker_task.terminate()
+            self.worker_task = None
+            return stdout, stderr
+
+        return None, None
 
 
 DEFAULT_DEPENDENCIES = {"vulkan[hatchet]"}

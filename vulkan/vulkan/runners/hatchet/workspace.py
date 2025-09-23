@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 class HatchetClientConfig(BaseModel):
-    server_url: str
     token: str
+    server_url: str | None = None
     namespace: str | None = None
 
     @classmethod
@@ -24,10 +24,7 @@ class HatchetClientConfig(BaseModel):
         if not token:
             raise ValueError("HATCHET_CLIENT_TOKEN is not set")
 
-        server_url = os.getenv("HATCHET_SERVER_URL")
-        if not server_url:
-            raise ValueError("HATCHET_SERVER_URL is not set")
-
+        server_url = os.getenv("HATCHET_SERVER_URL", None)
         namespace = os.getenv("HATCHET_NAMESPACE", "default")
 
         return cls(
@@ -48,9 +45,14 @@ class HatchetWorkspaceManager:
 
         self.workflow_id = workflow_id
         self.config = config
+        server_url = (
+            self.config.server_url
+            if self.config.server_url
+            else ClientConfig().server_url
+        )
         self.client = Hatchet(
             config=ClientConfig(
-                server_url=self.config.server_url,
+                server_url=server_url,
                 token=self.config.token,
                 namespace=self.config.namespace,
             ),
@@ -95,14 +97,15 @@ class HatchetWorkspaceManager:
 
 
 HATCHET_ENTRYPOINT = """
-from vulkan.runners.hatchet.workspace import HatchetWorkspaceManager
+from vulkan.runners.hatchet.workspace import HatchetWorkspaceManager, HatchetClientConfig
 
-config = HatchetClientConfig.from_env()
-manager = HatchetWorkspaceManager(
-    config=config,
-    spec_file_path="{spec_file_path}",
-    workflow_id="{workflow_id}",
-)
+if __name__ == "__main__":
+    config = HatchetClientConfig.from_env()
+    manager = HatchetWorkspaceManager(
+        config=config,
+        spec_file_path="{spec_file_path}",
+        workflow_id="{workflow_id}",
+    )
 
-manager.start_worker()
+    manager.start_worker()
 """

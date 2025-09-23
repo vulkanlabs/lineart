@@ -10,6 +10,7 @@ from .workspace import HatchetWorkspaceManager
 
 app = FastAPI(title="Vulkan Hatchet Server")
 
+logging.basicConfig(format="[%(name)s] %(levelname)s - %(asctime)s - %(message)s")
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
@@ -38,8 +39,11 @@ def create_workspace(
             vm.add_spec(spec)
             logger.debug(f"Added spec to workspace: {spec}")
 
-        logger.info(f"Successfully installed workspace: {workspace_id}")
-
+        stdout, stderr = vm.stop_worker()
+        if stdout:
+            logger.debug(f"[{workspace_id}] Worker stdout: {stdout.decode()}")
+        if stderr:
+            logger.error(f"[{workspace_id}] Worker stderr: {stderr.decode()}")
         logger.info(f"Starting worker for workspace: {workspace_id}")
         vm.start_worker()
         logger.info(f"Successfully started worker for workspace: {workspace_id}")

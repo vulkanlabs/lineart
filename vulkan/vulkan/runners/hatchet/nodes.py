@@ -327,9 +327,10 @@ class HatchetTerminate(TerminateNode, HatchetNode):
                     except Exception as e:
                         raise ValueError(f"Failed to resolve JSON metadata: {e}")
 
-                terminated = self._terminate(context, result, metadata)
-                if not terminated:
-                    raise ValueError("Failed to terminate run")
+                try:
+                    self._terminate(context, result, metadata)
+                except ValueError as e:
+                    raise ValueError("Failed to terminate run") from e
 
                 if self.callback is not None:
                     reported = self.callback(
@@ -394,6 +395,8 @@ class HatchetTerminate(TerminateNode, HatchetNode):
 
         server_url = run_config.server_url
         run_id = run_config.run_id
+        context.log(f"Terminating run {run_config.run_id} with result {result}")
+        context.log(f"Posting to {server_url}")
 
         url = f"{server_url}/runs/{run_id}"
         response = requests.put(
@@ -404,7 +407,10 @@ class HatchetTerminate(TerminateNode, HatchetNode):
                 "status": RunStatus.SUCCESS.value,
             },
         )
-        return response.status_code in {200, 204}
+        if response.status_code not in {200, 204}:
+            raise ValueError(
+                f"Failed to terminate run {run_id}. Status code: {response.status_code}, Response: {response.text}"
+            )
 
     @classmethod
     def from_spec(cls, node: TerminateNode):

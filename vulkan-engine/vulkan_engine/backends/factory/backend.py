@@ -59,4 +59,7 @@ class ExecutionBackendFactory:
         config: VulkanEngineConfig,
     ) -> ExecutionBackend:
         """Create Hatchet launcher with proper configuration."""
-        return HatchetBackend(config=config.worker_service)
+        return HatchetBackend(
+            worker_config=config.worker_service,
+            server_config=config.app,
+        )
