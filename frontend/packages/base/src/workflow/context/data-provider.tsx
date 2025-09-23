@@ -117,12 +117,16 @@ export function WorkflowDataProvider({
         setPoliciesError(null);
 
         try {
-            const versions = await apiClient.fetchPolicyVersions(
+            const result = await apiClient.fetchPolicyVersions(
                 policyId,
                 includeArchived,
                 projectId,
             );
-            setPolicyVersions(versions);
+            if (result.success && result.data) {
+                setPolicyVersions(result.data);
+            } else {
+                setPoliciesError(result.error || "Failed to fetch policy versions");
+            }
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : "Failed to fetch policy versions";
@@ -139,8 +143,12 @@ export function WorkflowDataProvider({
         setDataSourcesError(null);
 
         try {
-            const sources = await apiClient.fetchDataSources(projectId);
-            setDataSources(sources);
+            const result = await apiClient.fetchDataSources(projectId);
+            if (result.success && result.data) {
+                setDataSources(result.data);
+            } else {
+                setDataSourcesError(result.error || "Failed to fetch data sources");
+            }
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : "Failed to fetch data sources";
@@ -157,8 +165,12 @@ export function WorkflowDataProvider({
         setComponentsError(null);
 
         try {
-            const components = await apiClient.fetchComponents(includeArchived);
-            setComponents(components);
+            const result = await apiClient.fetchComponents(includeArchived, projectId);
+            if (result.success && result.data) {
+                setComponents(result.data);
+            } else {
+                setComponentsError(result.error || "Failed to fetch components");
+            }
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : "Failed to fetch components";

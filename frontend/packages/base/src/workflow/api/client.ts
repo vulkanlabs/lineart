@@ -6,12 +6,7 @@ import type {
     DataSource,
 } from "@vulkanlabs/client-open";
 
-import type {
-    WorkflowApiClient,
-    ApiResult,
-    WorkflowApiClientConfig,
-    Workflow,
-} from "./types";
+import type { WorkflowApiClient, ApiResult, WorkflowApiClientConfig, Workflow } from "./types";
 
 /**
  * Default implementation of WorkflowApiClient that uses API routes

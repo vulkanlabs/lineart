@@ -6,7 +6,7 @@ import type {
     DataSource,
 } from "@vulkanlabs/client-open";
 
-import type { WorkflowApiClient, SaveWorkflowResult } from "./types";
+import type { WorkflowApiClient, ApiResult } from "./types";
 
 /**
  * Mock implementation of WorkflowApiClient for testing and development
@@ -27,8 +27,26 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
         this.shouldFail = options.shouldFail ?? false;
     }
 
-    async fetchComponents(): Promise<Component[]> {
-        return [];
+    async fetchComponents(
+        includeArchived?: boolean,
+        projectId?: string,
+    ): Promise<ApiResult<Component[]>> {
+        // Simulate network delay
+        await this.simulateDelay();
+
+        if (this.shouldFail) {
+            return {
+                success: false,
+                error: "Mock API client configured to fail",
+                data: null,
+            };
+        }
+
+        return {
+            success: true,
+            data: [],
+            error: null,
+        };
     }
 
     /**
@@ -39,7 +57,7 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
         spec: PolicyDefinitionDict,
         uiMetadata: { [key: string]: UIMetadata },
         projectId?: string,
-    ): Promise<SaveWorkflowResult> {
+    ): Promise<ApiResult<any>> {
         // Simulate network delay
         await this.simulateDelay();
 
@@ -77,12 +95,16 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
         policyId?: string | null,
         includeArchived = false,
         projectId?: string,
-    ): Promise<PolicyVersion[]> {
+    ): Promise<ApiResult<PolicyVersion[]>> {
         // Simulate network delay
         await this.simulateDelay();
 
         if (this.shouldFail) {
-            throw new Error("Mock API client configured to fail");
+            return {
+                success: false,
+                error: "Mock API client configured to fail",
+                data: null,
+            };
         }
 
         console.log("Mock API: Fetching policy versions", { policyId, includeArchived, projectId });
@@ -127,18 +149,30 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
             },
         ];
 
-        return includeArchived ? mockPolicyVersions : mockPolicyVersions.filter((v) => !v.archived);
+        const filteredVersions = includeArchived
+            ? mockPolicyVersions
+            : mockPolicyVersions.filter((v) => !v.archived);
+
+        return {
+            success: true,
+            data: filteredVersions,
+            error: null,
+        };
     }
 
     /**
      * Mock fetch data sources
      */
-    async fetchDataSources(projectId?: string): Promise<DataSource[]> {
+    async fetchDataSources(projectId?: string): Promise<ApiResult<DataSource[]>> {
         // Simulate network delay
         await this.simulateDelay();
 
         if (this.shouldFail) {
-            throw new Error("Mock API client configured to fail");
+            return {
+                success: false,
+                error: "Mock API client configured to fail",
+                data: null,
+            };
         }
 
         console.log("Mock API: Fetching data sources", { projectId });
@@ -155,7 +189,11 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
             },
         ];
 
-        return mockDataSources;
+        return {
+            success: true,
+            data: mockDataSources,
+            error: null,
+        };
     }
 
     /**
