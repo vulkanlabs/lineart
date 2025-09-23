@@ -8,9 +8,10 @@ import React, {
     useMemo,
     type ReactNode,
 } from "react";
+
+import type { PolicyVersion, Component, DataSource } from "@vulkanlabs/client-open";
+
 import { useWorkflowApi } from "../api/context";
-import type { DataSource } from "../api/types";
-import type { PolicyVersion, Component } from "@vulkanlabs/client-open";
 
 /**
  * Shape of data provided by WorkflowDataProvider

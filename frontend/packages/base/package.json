@@ -10,10 +10,86 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./ui": "./dist/ui/index.js",
-    "./workflow": "./dist/workflow/index.js",
-    "./src/*": "./dist/*",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./ui": {
+      "types": "./dist/ui/index.d.ts",
+      "import": "./dist/ui/index.mjs",
+      "require": "./dist/ui/index.js"
+    },
+    "./workflow": {
+      "types": "./dist/workflow/index.d.ts",
+      "import": "./dist/workflow/index.mjs",
+      "require": "./dist/workflow/index.js"
+    },
+    "./components/data-sources": {
+      "types": "./dist/components/data-sources/index.d.ts",
+      "import": "./dist/components/data-sources/index.mjs",
+      "require": "./dist/components/data-sources/index.js"
+    },
+    "./components/policies": {
+      "types": "./dist/components/policies/index.d.ts",
+      "import": "./dist/components/policies/index.mjs",
+      "require": "./dist/components/policies/index.js"
+    },
+    "./components/runs": {
+      "types": "./dist/components/runs/index.d.ts",
+      "import": "./dist/components/runs/index.mjs",
+      "require": "./dist/components/runs/index.js"
+    },
+    "./components/ui": {
+      "types": "./dist/components/ui/index.d.ts",
+      "import": "./dist/components/ui/index.mjs",
+      "require": "./dist/components/ui/index.js"
+    },
+    "./components/analytics": {
+      "types": "./dist/components/analytics/index.d.ts",
+      "import": "./dist/components/analytics/index.mjs",
+      "require": "./dist/components/analytics/index.js"
+    },
+    "./components/animations": {
+      "types": "./dist/components/animations/index.d.ts",
+      "import": "./dist/components/animations/index.mjs",
+      "require": "./dist/components/animations/index.js"
+    },
+    "./components/charts": {
+      "types": "./dist/components/charts/index.d.ts",
+      "import": "./dist/components/charts/index.mjs",
+      "require": "./dist/components/charts/index.js"
+    },
+    "./components/components": {
+      "types": "./dist/components/components/index.d.ts",
+      "import": "./dist/components/components/index.mjs",
+      "require": "./dist/components/components/index.js"
+    },
+    "./components/navigation": {
+      "types": "./dist/components/navigation/index.d.ts",
+      "import": "./dist/components/navigation/index.mjs",
+      "require": "./dist/components/navigation/index.js"
+    },
+    "./components/policy-versions": {
+      "types": "./dist/components/policy-versions/index.d.ts",
+      "import": "./dist/components/policy-versions/index.mjs",
+      "require": "./dist/components/policy-versions/index.js"
+    },
+    "./components/reactflow": {
+      "types": "./dist/components/reactflow/index.d.ts",
+      "import": "./dist/components/reactflow/index.mjs",
+      "require": "./dist/components/reactflow/index.js"
+    },
+    "./utils": {
+      "types": "./dist/lib/utils.d.ts",
+      "import": "./dist/lib/utils.mjs",
+      "require": "./dist/lib/utils.js"
+    },
+    "./api-utils": {
+      "types": "./dist/lib/api/api-utils.d.ts",
+      "import": "./dist/lib/api/api-utils.mjs",
+      "require": "./dist/lib/api/api-utils.js"
+    },
     "./styles/*": "./dist/styles/*",
     "./tailwind.config.js": "./tailwind.config.js"
   },
@@ -41,6 +117,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.0.0",
     "eslint": "^9",
+    "glob": "^11.0.3",
     "happy-dom": "^18.0.1",
     "tsup": "^8",
     "typescript": "5.8.2",

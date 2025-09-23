@@ -7,13 +7,13 @@ export default async function Page(props: { params: Promise<{ policy_version_id:
     const policyVersion = await fetchPolicyVersion(policy_version_id);
 
     // TODO: we should redo this to use the new policy version definitions
-    const inputSchema: Map<string, string> = new Map();
+    const inputSchema: Record<string, string> = {};
 
     return (
         <LauncherPage
             policyVersionId={policy_version_id}
             inputSchema={inputSchema}
-            configVariables={policyVersion.variables || []}
+            configVariables={policyVersion.workflow?.variables || []}
         />
     );
 }

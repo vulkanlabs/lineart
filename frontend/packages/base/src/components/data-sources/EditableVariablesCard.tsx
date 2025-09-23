@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { FileIcon } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, Separator } from "@vulkanlabs/base/ui";
-import { EnvironmentVariablesEditor } from "../..";
+
 import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
+
+import { Card, CardContent, CardHeader, CardTitle, Separator } from "../ui";
+import { EnvironmentVariablesEditor } from "../..";
 
 interface EditableVariablesCardProps {
     dataSource: DataSource;

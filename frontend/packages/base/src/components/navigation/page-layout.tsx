@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { cn } from "../lib/utils";
+import { cn } from "../../lib/utils";
 import { SquareChevronLeft, SquareChevronRight } from "lucide-react";
 
 export type SidebarTitleProps = {

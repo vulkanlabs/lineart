@@ -1,6 +1,9 @@
 "use client";
 
-import { PolicyLauncherPage, PolicyLauncherButton } from "@vulkanlabs/base";
+import {
+    PolicyLauncherPage,
+    PolicyLauncherButton,
+} from "@vulkanlabs/base/components/policy-versions";
 import { policyVersionsApi } from "@/lib/api";
 
 type LauncherPageProps = {

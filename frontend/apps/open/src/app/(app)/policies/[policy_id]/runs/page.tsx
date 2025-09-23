@@ -1,4 +1,4 @@
-import { RunsPage } from "@vulkanlabs/base";
+import { RunsPage } from "@vulkanlabs/base/components/runs";
 import { fetchRunsByPolicy } from "@/lib/api";
 
 export default async function Page(props: { params: Promise<{ policy_id: string }> }) {

@@ -2,9 +2,11 @@
 
 import { LinkIcon } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
-import { Card, CardContent, CardHeader, CardTitle, ScrollArea } from "@vulkanlabs/base/ui";
-import { DataTable } from "../..";
+
 import type { ConfigurationVariablesBase, DataSource } from "@vulkanlabs/client-open";
+
+import { Card, CardContent, CardHeader, CardTitle, ScrollArea } from "../ui";
+import { DataTable } from "../..";
 
 const paramsTableColumns: ColumnDef<ConfigurationVariablesBase>[] = [
     {

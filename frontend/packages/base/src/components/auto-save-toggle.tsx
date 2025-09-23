@@ -160,7 +160,7 @@ export function AutoSaveToggle({ className = "", showShortcut = true }: AutoSave
                     currentStatus.clickable && "cursor-pointer hover:opacity-80",
                 )}
                 onClick={currentStatus.clickable ? performManualSave : undefined}
-                title={currentStatus.title}
+                title={(currentStatus as any).title}
                 role={currentStatus.clickable ? "button" : undefined}
                 tabIndex={currentStatus.clickable ? 0 : undefined}
                 onKeyDown={

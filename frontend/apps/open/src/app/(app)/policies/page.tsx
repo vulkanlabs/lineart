@@ -2,7 +2,7 @@ import { Policy } from "@vulkanlabs/client-open";
 import {
     CreatePolicyDialog as SharedCreatePolicyDialog,
     PoliciesTable as SharedPoliciesTable,
-} from "@vulkanlabs/base";
+} from "@vulkanlabs/base/components/policies";
 
 import { createPolicy, deletePolicy, fetchPolicies } from "@/lib/api";
 

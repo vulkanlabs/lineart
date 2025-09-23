@@ -3,9 +3,10 @@ import type {
     PolicyDefinitionDict,
     UIMetadata,
     Component,
+    DataSource,
 } from "@vulkanlabs/client-open";
 
-import type { WorkflowApiClient, SaveWorkflowResult, DataSource } from "./types";
+import type { WorkflowApiClient, SaveWorkflowResult } from "./types";
 
 /**
  * Mock implementation of WorkflowApiClient for testing and development
@@ -145,19 +146,12 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
         // Return mock data sources
         const mockDataSources: DataSource[] = [
             {
-                data_source_id: "mock-data-source-1",
-                name: "Mock CSV Source",
-                runtime_params: ["file_path", "delimiter"],
-            },
-            {
-                data_source_id: "mock-data-source-2",
-                name: "Mock Database Source",
-                runtime_params: ["connection_string", "query"],
-            },
-            {
-                data_source_id: "mock-data-source-3",
-                name: "Mock API Source",
-                runtime_params: ["endpoint", "api_key"],
+                name: "Mock Source 1",
+                data_source_id: "mock-source-1",
+                source: { url: "https://example.com/data", path: "", file_id: "" },
+                archived: false,
+                created_at: new Date(),
+                last_updated_at: new Date(),
             },
         ];
 

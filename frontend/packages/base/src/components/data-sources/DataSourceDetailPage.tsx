@@ -3,10 +3,12 @@
 import { Suspense } from "react";
 
 // Vulkan packages
-import { Separator, Tabs, TabsContent, TabsList, TabsTrigger } from "@vulkanlabs/base/ui";
 import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
 
 // Local components
+import { Separator, Tabs, TabsContent, TabsList, TabsTrigger } from "../ui";
+import { Loader } from "../..";
+
 import { useDataSourceUtils } from "./useDataSourceUtils";
 import { DataSourceHeader } from "./DataSourceHeader";
 import { DataSourceSummaryCard } from "./DataSourceSummaryCard";
@@ -15,7 +17,6 @@ import { RetryPolicyCard } from "./RetryPolicyCard";
 import { CachingConfigurationCard } from "./CachingConfigurationCard";
 import { EditableVariablesCard } from "./EditableVariablesCard";
 import { DataSourceUsageAnalytics, UsageAnalyticsConfig } from "./DataSourceUsageAnalytics";
-import { Loader } from "../..";
 
 export interface DataSourceDetailPageConfig {
     dataSource: DataSource;

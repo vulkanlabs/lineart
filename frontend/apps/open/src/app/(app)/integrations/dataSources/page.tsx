@@ -1,9 +1,9 @@
 import { DataSource } from "@vulkanlabs/client-open";
+import { Separator } from "@vulkanlabs/base/ui";
 import {
     DataSourcesTable as SharedDataSourcesTable,
     CreateDataSourceDialog,
-} from "@vulkanlabs/base";
-import { Separator } from "@vulkanlabs/base/ui";
+} from "@vulkanlabs/base/components/data-sources";
 
 import { createDataSource, deleteDataSource, fetchDataSources } from "@/lib/api";
 

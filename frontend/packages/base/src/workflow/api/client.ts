@@ -3,13 +3,13 @@ import type {
     PolicyDefinitionDict,
     UIMetadata,
     Component,
+    DataSource,
 } from "@vulkanlabs/client-open";
 
 import type {
     WorkflowApiClient,
     SaveWorkflowResult,
     WorkflowApiClientConfig,
-    DataSource,
     Workflow,
 } from "./types";
 

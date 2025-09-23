@@ -1,14 +1,13 @@
 "use client";
 
-// External libraries
 import { ColumnDef } from "@tanstack/react-table";
 
-// Vulkan packages
+import type { Policy, PolicyVersion, PolicyAllocationStrategy } from "@vulkanlabs/client-open";
+
 import { DetailsButton } from "../details-button";
 import { DataTable } from "../data-table";
 import { ShortenedID } from "../shortened-id";
 import { RefreshButton } from "../refresh-button";
-import type { Policy, PolicyVersion, PolicyAllocationStrategy } from "@vulkanlabs/client-open";
 
 export interface AllocatedVersionsTableConfig {
     parseDate: (date: string) => string;

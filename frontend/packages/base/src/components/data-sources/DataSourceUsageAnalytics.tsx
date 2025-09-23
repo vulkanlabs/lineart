@@ -7,7 +7,6 @@ import { useState, useEffect } from "react";
 import { DateRange } from "react-day-picker";
 import { subDays } from "date-fns";
 
-// Vulkan packages
 import {
     CacheHitRatioChart,
     ErrorRateChart,
