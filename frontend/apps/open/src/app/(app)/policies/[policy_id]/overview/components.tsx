@@ -8,16 +8,16 @@ import type { Policy, PolicyVersion } from "@vulkanlabs/client-open";
 import {
     PolicyVersionsTable as SharedPolicyVersionsTable,
     CreatePolicyVersionDialog as SharedCreatePolicyVersionDialog,
-    Loader,
     PolicyMetrics,
-} from "@vulkanlabs/base";
+} from "@vulkanlabs/base/components/policies";
+import { Loader } from "@vulkanlabs/base";
 
 // Local imports
 import {
     createPolicyVersion,
     deletePolicyVersion,
     fetchPolicyMetrics,
-    fetchRunOutcomes,
+    fetchRunOutcomesForMetrics,
 } from "@/lib/api";
 
 type PolicyOverviewPageProps = {
@@ -42,7 +42,7 @@ export function PolicyOverviewPage({
                     config={{
                         policyId,
                         metricsLoader: fetchPolicyMetrics,
-                        outcomesLoader: fetchRunOutcomes,
+                        outcomesLoader: fetchRunOutcomesForMetrics,
                         versions: policyVersionsData,
                     }}
                 />
@@ -71,11 +71,20 @@ function PolicyVersionsTable({
 }
 
 function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
+    const handleCreatePolicyVersion = async (data: { policy_id: string; alias?: string }) => {
+        // Convert to PolicyVersionBase format
+        const policyVersionData = {
+            policy_id: data.policy_id,
+            alias: data.alias || null, // Convert undefined to null
+        };
+        return createPolicyVersion(policyVersionData);
+    };
+
     return (
         <SharedCreatePolicyVersionDialog
             config={{
                 policyId,
-                createPolicyVersion,
+                createPolicyVersion: handleCreatePolicyVersion,
             }}
         />
     );

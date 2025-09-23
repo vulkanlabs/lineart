@@ -1,4 +1,4 @@
-import { DataSource } from "@vulkanlabs/base/workflow";
+import { DataSource } from "@vulkanlabs/client-open";
 import { apiResult } from "@/lib/api-response";
 
 export async function GET(request: Request) {

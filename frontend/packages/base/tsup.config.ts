@@ -1,76 +1,86 @@
 import { defineConfig } from "tsup";
 import path from "path";
-
 import fs from "fs";
+import { glob } from "glob";
 
-export default defineConfig({
-    entry: [
+export default defineConfig(async () => {
+    // Automatically discover all entry points
+    const entryPoints = [
+        // Main entry points
         "src/index.ts",
         "src/ui/index.ts",
         "src/workflow/index.ts",
-        "src/lib/api/api-utils.ts", // Separate entry for server-compatible API utils
-        // Add individual component entries for proper TypeScript declarations
-        "src/components/details-button.tsx",
-        "src/components/shortened-id.tsx",
-        "src/components/resource-table.tsx",
-        "src/components/data-table.tsx",
-        "src/components/combobox.tsx",
-        "src/components/component/index.tsx",
-        "src/components/charts/index.tsx",
-        "src/components/animations/index.tsx",
-        "src/components/environment-variables-editor.tsx",
-        "src/components/reactflow/index.tsx",
-        "src/components/logo.tsx",
+
+        // Feature-based entry points
+        "src/components/*/index.ts",
+
+        // Individual utilities that need server compatibility
+        "src/lib/api/api-utils.ts",
         "src/lib/utils.ts",
         "src/lib/chart.ts",
-    ],
-    format: ["cjs", "esm"],
-    dts: false, // Disabled due to lazy loading compatibility issues with generics
-    clean: true,
-    external: ["react", "react-dom", "next"],
-    splitting: true, // Enable code splitting for better load performance and caching
-    minify: false,
-    treeshake: true, // Remove unused code for optimal bundle size
+    ];
 
-    outDir: "dist",
-    esbuildOptions(options) {
-        options.alias = {
-            "@": path.resolve(process.cwd(), "src"),
-            "@vulkanlabs/base/ui": path.resolve(process.cwd(), "src/ui/index.ts"),
-            "@vulkanlabs/base/workflow": path.resolve(process.cwd(), "src/workflow/index.ts"),
-            "@vulkanlabs/base": path.resolve(process.cwd(), "src/index.ts"),
-        };
-        options.jsx = "transform";
-        options.jsxFactory = "React.createElement";
-        options.jsxFragment = "React.Fragment";
-        options.inject = [path.resolve(__dirname, "react-shim.js")];
-    },
-    onSuccess: async () => {
-        // Add "use client" directive to client-only built files (NOT api-utils)
-        const files = [
-            "dist/index.js",
-            "dist/index.mjs",
-            "dist/ui/index.js",
-            "dist/ui/index.mjs",
-            "dist/workflow/index.js",
-            "dist/workflow/index.mjs",
-        ];
-        for (const file of files) {
-            if (fs.existsSync(file)) {
-                const content = fs.readFileSync(file, "utf8");
-                if (!content.startsWith('"use client";')) {
-                    fs.writeFileSync(file, '"use client";\n' + content);
+    // Resolve glob patterns to actual files
+    const resolvedEntries: string[] = [];
+    for (const pattern of entryPoints) {
+        if (pattern.includes("*")) {
+            const matches = await glob(pattern, { cwd: process.cwd() });
+            resolvedEntries.push(...matches);
+        } else {
+            resolvedEntries.push(pattern);
+        }
+    }
+
+    return {
+        entry: resolvedEntries,
+        format: ["cjs", "esm"],
+        dts: true, // Enable TypeScript declarations
+        clean: true,
+        external: ["react", "react-dom", "next"],
+        splitting: true,
+        minify: false,
+        treeshake: true,
+        outDir: "dist",
+
+        esbuildOptions(options) {
+            options.alias = {
+                "@": path.resolve(process.cwd(), "src"),
+                "@vulkanlabs/base": path.resolve(process.cwd(), "src/index.ts"),
+                "@vulkanlabs/base/ui": path.resolve(process.cwd(), "src/ui/index.ts"),
+                "@vulkanlabs/base/workflow": path.resolve(process.cwd(), "src/workflow/index.ts"),
+            };
+            options.jsx = "transform";
+            options.jsxFactory = "React.createElement";
+            options.jsxFragment = "React.Fragment";
+            options.inject = [path.resolve(__dirname, "react-shim.js")];
+        },
+
+        onSuccess: async () => {
+            // Add "use client" directive to client-only files
+            const clientFiles = await glob("dist/**/index.{js,mjs}", {
+                ignore: ["**/api-utils.*", "**/utils.*", "**/chart.*"],
+            });
+
+            for (const file of clientFiles) {
+                if (fs.existsSync(file)) {
+                    const content = fs.readFileSync(file, "utf8");
+                    if (!content.startsWith('"use client";')) {
+                        fs.writeFileSync(file, '"use client";\n' + content);
+                    }
                 }
             }
-        }
 
-        // Copy styles to dist
-        const stylesDir = "dist/styles";
-        if (!fs.existsSync(stylesDir)) {
-            fs.mkdirSync(stylesDir, { recursive: true });
-        }
-        fs.copyFileSync("src/styles/globals.css", "dist/styles/globals.css");
+            // Copy styles to dist
+            const stylesDir = "dist/styles";
+            if (!fs.existsSync(stylesDir)) {
+                fs.mkdirSync(stylesDir, { recursive: true });
+            }
+            if (fs.existsSync("src/styles/globals.css")) {
+                fs.copyFileSync("src/styles/globals.css", "dist/styles/globals.css");
+            }
 
-        console.log("Build completed successfully!");
-    },
+            console.log("✅ Build completed successfully!");
+            console.log(`📦 Built ${resolvedEntries.length} entry points`);
+        },
+    };
 });

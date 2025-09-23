@@ -10,7 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-// Vulkan packages
+// Local imports
 import {
     Button,
     Dialog,
@@ -28,7 +28,7 @@ import {
     FormMessage,
     Input,
     Textarea,
-} from "@vulkanlabs/base/ui";
+} from "../ui";
 import { Sending } from "../animations";
 
 const formSchema = z.object({

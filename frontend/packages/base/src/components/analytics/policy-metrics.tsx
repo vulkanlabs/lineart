@@ -8,6 +8,9 @@ import { DateRange } from "react-day-picker";
 import { subDays } from "date-fns";
 
 // Vulkan packages
+import { PolicyVersion } from "@vulkanlabs/client-open";
+
+// Local imports
 import {
     AvgDurationByStatusChart,
     RunDurationStatsChart,
@@ -18,7 +21,6 @@ import {
 } from "../charts/policy-stats";
 import { DatePickerWithRange } from "../charts/date-picker";
 import { VersionPicker } from "../charts/version-picker";
-import { PolicyVersion } from "@vulkanlabs/client-open";
 
 export interface PolicyMetricsConfig {
     projectId?: string;

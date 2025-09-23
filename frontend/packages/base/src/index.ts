@@ -1,20 +1,11 @@
-// Performance: Import React for lazy loading
-import { lazy } from "react";
+// @vulkanlabs/base - Main entry point
+// Re-exports the most commonly used components and utilities
 
-// Re-export essential utilities (selective exports for better tree-shaking)
+// === Core Utilities ===
 export { parseDate, cn } from "./lib/utils";
-// Note: Other utils from "./lib/utils" not currently used by apps
 export * from "./lib/chart";
 
-// Re-export reusable components
-export {
-    AutoSaveToggle,
-    type AutoSaveState,
-    type AutoSaveToggleProps,
-} from "./components/auto-save-toggle";
-export { NavigationGuard } from "./components/navigation-guard";
-
-// Re-export API utilities (selective exports for better tree-shaking)
+// === API Utilities ===
 export {
     SharedResponseUtils,
     parseWorkflowRequest,
@@ -31,147 +22,99 @@ export {
     withErrorHandling,
 } from "./lib/api/api-utils";
 
-// Re-export UI components
-export { VulkanLogo, type VulkanLogoConfig } from "./components/logo";
-
-// Re-export animations (selective exports for better tree-shaking)
-export { Loader, Sending } from "./components/animations";
-
-// Re-export charts (selective exports for better tree-shaking)
-export { DatePickerWithRange } from "./components/charts/date-picker";
-export { VersionPicker } from "./components/charts/version-picker";
-
-// Re-export data source charts
+// === Essential UI Components ===
+// Most commonly used UI primitives
+export { Button } from "./components/ui/button";
 export {
-    CacheHitRatioChart,
-    ErrorRateChart,
-    LoadingChartState,
-    RequestVolumeChart,
-    ResponseTimeChart,
-} from "./components/charts/data-source-charts";
-
-// Re-export policy charts
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "./components/ui/card";
+export { Input } from "./components/ui/input";
+export { Label } from "./components/ui/label";
 export {
-    AvgDurationByStatusChart,
-    RunDurationStatsChart,
-    RunErrorRateChart,
-    RunOutcomeDistributionChart,
-    RunOutcomesChart,
-    RunsChart,
-} from "./components/charts/policy-stats";
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "./components/ui/dialog";
+export { Badge } from "./components/ui/badge";
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
 
-// Re-export reusable components (selective exports for better tree-shaking)
-// Table components - using regular imports for better stability
+// === Layout Components ===
+export * from "./components/navigation";
+
+// === Data Components ===
 export { DataTable } from "./components/data-table";
-export { ResourceTable, DeletableResourceTable } from "./components/resource-table";
-export { EnvironmentVariablesEditor } from "./components/environment-variables-editor";
-
-// Lightweight components - keep regular exports
-export { DetailsButton } from "./components/details-button";
-export { ShortenedID } from "./components/shortened-id";
-
-// Re-export types (not affected by lazy loading)
-export type { EnvironmentVariablesEditorProps } from "./components/environment-variables-editor";
+export {
+    ResourceTable,
+    DeletableResourceTable,
+    DeletableResourceTableActions,
+} from "./components/resource-table";
 export type {
     DeletableResourceTableProps,
     SearchFilterOptions,
     DeleteResourceOptions,
 } from "./components/resource-table";
-export { DeletableResourceTableActions } from "./components/resource-table";
-// Note: combobox and reactflow components not currently used by apps
 
-// Re-export layout components (selective exports for better tree-shaking)
-export { PageLayout, type PageLayoutConfig } from "./components/page-layout";
-export { InnerNavbar, type InnerNavbarSectionProps } from "./components/inner-navbar";
-export { SharedNavbar, type NavigationSection } from "./components/navigation/shared-navbar";
+// === Common Components ===
+export { VulkanLogo, type VulkanLogoConfig } from "./components/logo";
+export { DetailsButton } from "./components/details-button";
+export { ShortenedID } from "./components/shortened-id";
+export { RefreshButton } from "./components/refresh-button";
+export {
+    EnvironmentVariablesEditor,
+    type EnvironmentVariablesEditorProps,
+} from "./components/environment-variables-editor";
+export {
+    AutoSaveToggle,
+    type AutoSaveState,
+    type AutoSaveToggleProps,
+} from "./components/auto-save-toggle";
+export { NavigationGuard } from "./components/navigation-guard";
 
-// Re-export run components (selective exports for better tree-shaking)
-export { RunsPage } from "./components/runs/runs-list-page";
-export { RunPageContent, type RunPageConfig } from "./components/runs/run-page-content";
-// Note: Run-related types (BaseRunNodeLayout, BaseRunNodeData, RunLogEvent, RunLog, RunLogs)
-// not currently used by apps - RunLogs comes from @vulkanlabs/client-open instead
+// === Animations ===
+export * from "./components/animations";
 
-// Re-export workflow frame components
+// === Charts ===
+export * from "./components/charts";
+
+// === App Frame ===
 export * from "./components/app-workflow-frame";
 
-// Re-export data source components (selective exports for better tree-shaking)
-// Data source components - using regular imports to avoid lazy loading issues
-export { CreateDataSourceDialog } from "./components/data-sources/CreateDataSourceDialog";
-export { DataSourcesTable } from "./components/data-sources/DataSourcesTable";
-export { DataSourceDetailPage } from "./components/data-sources/DataSourceDetailPage";
-
-// Re-export types
-export type { CreateDataSourceDialogConfig } from "./components/data-sources/CreateDataSourceDialog";
-export type { DataSourceDetailPageConfig } from "./components/data-sources/DataSourceDetailPage";
-
-// Re-export workflow components (selective exports for better tree-shaking)
-// Heavy workflow components with lazy loading for better startup performance
+// === Workflow (Lazy Loaded) ===
+// WorkflowFrame is exported as lazy-loaded for performance
+import { lazy } from "react";
 export const WorkflowFrame = lazy(() =>
     import("./workflow").then((m) => ({ default: m.WorkflowFrame })),
 );
 
-// Lightweight API components - keep regular exports
-export { WorkflowApiProvider, WorkflowDataProvider, createWorkflowApiClient } from "./workflow";
-
-// Workflow utilities used by apps
+// Lightweight workflow components and utilities
 export {
+    WorkflowApiProvider,
+    WorkflowDataProvider,
+    createWorkflowApiClient,
     defaultElkOptions,
     getLayoutedNodes,
     standardizeNodeName,
     createWorkflowState,
 } from "./workflow";
 
-// Workflow types used by apps
-export type {
-    NodeDependency,
-    DataSource,
-    VulkanNode,
-    VulkanNodeData,
-    WorkflowState,
-} from "./workflow";
-
-// Re-export shared app components
-export { RefreshButton } from "./components/refresh-button";
-
-// Re-export policy components (selective exports for better tree-shaking)
-export { CreatePolicyDialog } from "./components/policies/create-policy-dialog";
-export { CreatePolicyVersionDialog } from "./components/policies/create-policy-version-dialog";
-export { PoliciesTable } from "./components/policies/policies-table";
-export { PolicyVersionsTable } from "./components/policies/policy-versions-table";
-export { UpdateAllocationDialog } from "./components/policies/update-allocation-dialog";
-export { AllocatedVersionsTable } from "./components/policies/allocated-versions-table";
-
-// Re-export analytics components (selective exports for better tree-shaking)
-export { DataSourceUsageAnalytics } from "./components/data-sources/DataSourceUsageAnalytics";
-// export { PolicyRunsChart, PolicyMetricsCard } from "./components/analytics/policy-metrics";
-
-// Re-export components (selective exports for better tree-shaking)
-export { ComponentsTable } from "./components/components/components-table";
-export { CreateComponentDialog } from "./components/components/create-component-dialog";
-export { ComponentsEnvTab } from "./components/components/components-env-tab";
-
-// Re-export launcher components (selective exports for better tree-shaking)
-export {
-    PolicyLauncherPage,
-    PolicyLauncherButton,
-    type PolicyLauncherConfig,
-    type PolicyLauncherPageConfig,
-    type PolicyLauncherButtonConfig,
-} from "./components/policy-versions/policy-launcher";
-
-// Re-export resources components (selective exports for better tree-shaking)
-export {
-    PolicyResourcesEnvironmentVariables,
-    PolicyResourcesDataSourcesTable,
-    PolicyResourcesRequirementsEditor,
-    type PolicyResourcesEnvironmentVariablesConfig,
-    type PolicyResourcesDataSourcesTableConfig,
-    type PolicyResourcesRequirementsEditorConfig,
-} from "./components/policy-versions/policy-resources";
-
-// Re-export policy metrics component (selective exports for better tree-shaking)
-export { PolicyMetrics, type PolicyMetricsConfig } from "./components/policies/policy-metrics";
+export type { NodeDependency, VulkanNode, VulkanNodeData, WorkflowState } from "./workflow";
 
 // Re-export toast system
 export { ToastProvider, ToastContainer, useToast, createGlobalToast } from "./components/toast";
 export type { Toast } from "./components/toast";
+
+// === Feature-specific Components ===
+// For specific features, consumers should import from dedicated entry points:
+// import { CreateDataSourceDialog } from "@vulkanlabs/base/components/data-sources"
+// import { CreatePolicyDialog } from "@vulkanlabs/base/components/policies"
+// import { Button, Card } from "@vulkanlabs/base/components/ui"
+// import { WorkflowCanvas } from "@vulkanlabs/base/workflow"

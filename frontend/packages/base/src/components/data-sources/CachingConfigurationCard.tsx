@@ -1,8 +1,9 @@
 "use client";
 
 import { Settings2Icon } from "lucide-react";
-import { Badge, Card, CardContent, CardHeader, CardTitle } from "@vulkanlabs/base/ui";
 import type { DataSource } from "@vulkanlabs/client-open";
+
+import { Badge, Card, CardContent, CardHeader, CardTitle } from "../ui";
 
 interface CachingConfigurationCardProps {
     dataSource: DataSource;

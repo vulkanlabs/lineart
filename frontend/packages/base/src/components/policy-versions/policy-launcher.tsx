@@ -342,7 +342,7 @@ function LaunchRunFormCard({
                         <FormField
                             control={form.control}
                             name="input_data"
-                            render={({ field }: { field: ControllerRenderProps }) => (
+                            render={({ field }) => (
                                 <FormItem className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <FormLabel className="text-base font-semibold">
@@ -380,7 +380,7 @@ function LaunchRunFormCard({
                         <FormField
                             control={form.control}
                             name="config_variables"
-                            render={({ field }: { field: ControllerRenderProps }) => (
+                            render={({ field }) => (
                                 <FormItem className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <FormLabel className="text-base font-semibold">

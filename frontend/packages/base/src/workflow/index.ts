@@ -40,7 +40,7 @@ export {
     DefaultWorkflowApiClient,
     createWorkflowApiClient,
 } from "./api";
-export type { WorkflowApiClient, SaveWorkflowResult, DataSource } from "./api";
+export type { WorkflowApiClient, SaveWorkflowResult } from "./api";
 
 // === Data Management ===
 export { WorkflowDataProvider, useWorkflowData } from "./context";

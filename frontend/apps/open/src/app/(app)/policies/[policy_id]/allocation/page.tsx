@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 
 import { Loader } from "@vulkanlabs/base";
-import { fetchPolicy, fetchPolicyVersions } from "@/lib/api";
 import { PolicyAllocationStrategy, PolicyVersion } from "@vulkanlabs/client-open";
 
+import { fetchPolicy, fetchPolicyVersions } from "@/lib/api";
 import { AllocatedVersionsTable } from "./components";
 
 export default async function Page(props: { params: Promise<{ policy_id: string }> }) {

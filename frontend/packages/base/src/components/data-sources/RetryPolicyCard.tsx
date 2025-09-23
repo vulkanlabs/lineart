@@ -1,7 +1,7 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@vulkanlabs/base/ui";
 import type { DataSource } from "@vulkanlabs/client-open";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui";
 
 interface RetryPolicyCardProps {
     dataSource: DataSource;

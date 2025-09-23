@@ -1,8 +1,8 @@
 "use client";
 
 import { CalendarIcon } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, ScrollArea } from "@vulkanlabs/base/ui";
 import type { DataSource } from "@vulkanlabs/client-open";
+import { Card, CardContent, CardHeader, CardTitle, ScrollArea } from "../ui";
 
 interface DataSourceSummaryCardProps {
     dataSource: DataSource;

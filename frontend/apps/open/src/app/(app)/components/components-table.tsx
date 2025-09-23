@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 
 import { type Component } from "@vulkanlabs/client-open";
-import { ComponentsTable as SharedComponentsTable, CreateComponentDialog } from "@vulkanlabs/base";
+import {
+    ComponentsTable as SharedComponentsTable,
+    CreateComponentDialog,
+} from "@vulkanlabs/base/components/components";
 
 import { createComponent, deleteComponent } from "@/lib/api";
 

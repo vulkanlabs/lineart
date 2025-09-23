@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 // Vulkan packages
-import type { DataSourceSpec } from "@vulkanlabs/client-open";
+import type { DataSourceSpec, DataSource } from "@vulkanlabs/client-open";
 import {
     Button,
     Dialog,
@@ -38,7 +38,7 @@ import {
     KeyValueTable,
     keyValuePairsFromObject,
     keyValuePairsToMap,
-} from "@vulkanlabs/base/ui";
+} from "../ui";
 
 const formSchema = z.object({
     name: z
@@ -100,7 +100,7 @@ function parseJSON(val: string | undefined) {
 }
 
 export interface CreateDataSourceDialogConfig {
-    createDataSource: (spec: DataSourceSpec) => Promise<void>;
+    createDataSource: (spec: DataSourceSpec) => Promise<DataSource>;
     buttonText?: string;
     dialogTitle?: string;
 }

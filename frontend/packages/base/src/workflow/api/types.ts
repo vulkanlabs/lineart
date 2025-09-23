@@ -3,6 +3,7 @@ import type {
     PolicyDefinitionDict,
     UIMetadata,
     Component,
+    DataSource,
 } from "@vulkanlabs/client-open";
 
 /**
@@ -22,16 +23,6 @@ export interface ApiResult<T> {
 export interface SaveWorkflowResult extends ApiResult<any> {}
 
 export type Workflow = PolicyVersion | Component;
-
-/**
- * Data source type for workflow components
- * TODO: Import from @vulkanlabs/client-open when available
- */
-export interface DataSource {
-    data_source_id: string;
-    name: string;
-    runtime_params: string[];
-}
 
 /**
  * Interface defining the workflow API client contract

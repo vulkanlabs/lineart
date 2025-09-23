@@ -29,13 +29,14 @@ import { useWorkflowStore } from "@/workflow/store";
 import { useWorkflowApi, Workflow } from "@/workflow/api";
 import { getLayoutedNodes, type UnlayoutedVulkanNode } from "@/workflow/utils/layout";
 import type { VulkanNode, Edge } from "@/workflow/types/workflow";
+import type { WorkflowStore } from "@/workflow/store/store-types";
 
 /**
  * Props for the workflow canvas component
  */
 export type WorkflowCanvasProps = {
     workflow: Workflow;
-    onNodeClick?: (e: React.MouseEvent, node: any) => void;
+    onNodeClick?: (e: React.MouseEvent, node: VulkanNode) => void;
     onPaneClick?: (e: React.MouseEvent) => void;
     nodeTypes: Record<string, React.ComponentType<any>>;
     toast?: (message: string, options?: any) => void;
@@ -79,7 +80,7 @@ export function WorkflowCanvas({
         toggleAllNodesCollapsed,
         markSaved,
     } = useWorkflowStore(
-        useShallow((state) => ({
+        useShallow((state: WorkflowStore) => ({
             nodes: state.nodes,
             edges: state.edges,
             getSpec: state.getSpec,
@@ -99,7 +100,7 @@ export function WorkflowCanvas({
     const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
     const { isOpen, connectingHandle, toggleDropdown, ref } = useDropdown();
 
-    const clickNode = (e: React.MouseEvent, node: any) => onNodeClick(e, node);
+    const clickNode = (e: React.MouseEvent, node: VulkanNode) => onNodeClick(e, node);
     const clickPane = (e: React.MouseEvent) => onPaneClick(e);
 
     /**

@@ -4,17 +4,18 @@
 import { Layers, Network, FolderCog, Play } from "lucide-react";
 import { usePathname } from "next/navigation";
 
-// Local imports
+// Vulkan packages
+import { Policy, PolicyVersion } from "@vulkanlabs/client-open";
 import {
     InnerNavbar,
     type InnerNavbarSectionProps,
     AutoSaveToggle,
     NavigationGuard,
 } from "@vulkanlabs/base";
-import { PageLayout, type SidebarSectionProps } from "@/components/page-layout";
 
+// Local imports
+import { PageLayout, type SidebarSectionProps } from "@/components/page-layout";
 import { LauncherButton } from "./launcher/components";
-import { Policy, PolicyVersion } from "@vulkanlabs/client-open";
 
 export function RouteLayout({
     policy,
@@ -66,14 +67,14 @@ export function RouteLayout({
                     <AutoSaveToggle showShortcut={true} />
                     <LauncherButton
                         policyVersionId={policyVersion.policy_version_id}
-                        inputSchema={policyVersion.workflow?.input_schema || {}}
+                        inputSchema={policyVersion.workflow?.spec.input_schema || {}}
                     />
                 </div>
             ) : (
                 // Just launch button when not on workflow page
                 <LauncherButton
                     policyVersionId={policyVersion.policy_version_id}
-                    inputSchema={policyVersion.workflow?.input_schema || {}}
+                    inputSchema={policyVersion.workflow?.spec.input_schema || {}}
                 />
             ),
         },

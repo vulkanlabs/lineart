@@ -6,7 +6,11 @@ import { ArrowUpDown } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 
 // Vulkan packages
-import { Button, Badge } from "@vulkanlabs/base/ui";
+import type { Policy, PolicyVersion } from "@vulkanlabs/client-open";
+import { WorkflowStatus } from "@vulkanlabs/client-open";
+
+// Local imports
+import { Button, Badge } from "../ui";
 import {
     DetailsButton,
     ShortenedID,
@@ -15,10 +19,6 @@ import {
     SearchFilterOptions,
     DeleteResourceOptions,
 } from "../..";
-import type { Policy, PolicyVersion } from "@vulkanlabs/client-open";
-import { WorkflowStatus } from "@vulkanlabs/client-open";
-
-// Local imports
 import { parseDate } from "../../lib/utils";
 
 export interface PolicyVersionsTableConfig {

@@ -21,10 +21,12 @@ import {
 
 export interface PolicyMetricsConfig {
     policyId: string;
+    projectId?: string;
     metricsLoader: (params: {
         policyId: string;
         dateRange: DateRange;
         versions: string[];
+        projectId?: string;
     }) => Promise<{
         runsCount?: any[];
         errorRate?: any[];
@@ -35,6 +37,7 @@ export interface PolicyMetricsConfig {
         policyId: string;
         dateRange: DateRange;
         versions: string[];
+        projectId?: string;
     }) => Promise<{ runOutcomes: any[] }>;
     versions: any[];
 }

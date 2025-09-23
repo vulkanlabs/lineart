@@ -238,6 +238,32 @@ export const fetchRunOutcomes = async (
     );
 };
 
+// Updated version for policy metrics component
+export const fetchRunOutcomesForMetrics = async ({
+    policyId,
+    dateRange,
+    versions,
+    projectId,
+}: {
+    policyId: string;
+    dateRange: DateRange;
+    versions: string[];
+    projectId?: string;
+}): Promise<{ runOutcomes: any[] }> => {
+    try {
+        // Handle potentially undefined dates
+        if (!dateRange.from || !dateRange.to) {
+            return { runOutcomes: [] };
+        }
+
+        const outcomes = await fetchRunOutcomes(policyId, dateRange.from, dateRange.to, versions);
+        return { runOutcomes: Array.isArray(outcomes) ? outcomes : [] };
+    } catch (error) {
+        console.error("Failed to load policy run outcomes:", error);
+        return { runOutcomes: [] };
+    }
+};
+
 export const fetchRunDurationStats = async (
     policyId: string,
     startDate: Date,
@@ -286,12 +312,24 @@ export async function fetchPolicyMetrics({
     policyId,
     dateRange,
     versions,
+    projectId,
 }: {
     policyId: string;
     dateRange: DateRange;
     versions: string[];
+    projectId?: string;
 }): Promise<MetricsData> {
     try {
+        // Handle potentially undefined dates
+        if (!dateRange.from || !dateRange.to) {
+            return {
+                runsCount: [],
+                errorRate: [],
+                runDurationStats: [],
+                runDurationByStatus: [],
+            };
+        }
+
         const [runsCount, errorRate, runDurationStats, runDurationByStatus] = await Promise.all([
             fetchRunsCount(policyId, dateRange.from, dateRange.to, versions),
             fetchRunOutcomes(policyId, dateRange.from, dateRange.to, versions), // Use for error rate calculation
@@ -324,6 +362,11 @@ export async function fetchRunsByPolicy({
     dateRange: DateRange;
 }): Promise<RunsResponse> {
     try {
+        // Handle potentially undefined dates
+        if (!dateRange.from || !dateRange.to) {
+            return { runs: [] };
+        }
+
         const runs = await fetchPolicyRuns(resourceId, dateRange.from, dateRange.to);
         return { runs: runs || null };
     } catch (error) {
@@ -340,6 +383,11 @@ export async function fetchRunsByPolicyVersion({
     dateRange: DateRange;
 }): Promise<RunsResponse> {
     try {
+        // Handle potentially undefined dates
+        if (!dateRange.from || !dateRange.to) {
+            return { runs: [] };
+        }
+
         const runs = await fetchPolicyVersionRuns(resourceId, dateRange.from, dateRange.to);
         return { runs: runs || null };
     } catch (error) {

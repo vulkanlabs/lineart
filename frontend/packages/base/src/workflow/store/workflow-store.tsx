@@ -435,7 +435,7 @@ export function createWorkflowStore(config: WorkflowStoreConfig) {
         markSaved: () => {
             set((state) => {
                 // Check if changes were made while saving
-                const hadPendingChanges = state.autoSave.pendingChangesWhileSaving;
+                const hadPendingChanges = state.autoSave.pendingChangesWhileSaving || false;
 
                 return {
                     autoSave: {

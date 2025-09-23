@@ -70,7 +70,7 @@ export function DataInputNode({ id, data, selected, height, width }: VulkanNodeP
             setSelectedDataSource(value);
             const selectedSource = dataSourcesLookup[value];
             if (selectedSource) {
-                const emptyParameters = selectedSource.runtime_params.reduce(
+                const emptyParameters = (selectedSource.runtime_params ?? []).reduce(
                     (acc, param) => ({
                         ...acc,
                         [param]: "",
