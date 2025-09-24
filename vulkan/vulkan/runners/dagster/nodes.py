@@ -26,12 +26,12 @@ from vulkan.runners.dagster.io_manager import (
 )
 from vulkan.runners.dagster.names import normalize_dependencies, normalize_node_id
 from vulkan.runners.dagster.resources import AppClientResource
-from vulkan.runners.dagster.run_config import VulkanPolicyConfig, VulkanRunConfig
 from vulkan.runners.shared.constants import (
     APP_CLIENT_KEY,
     POLICY_CONFIG_KEY,
     RUN_CONFIG_KEY,
 )
+from vulkan.runners.shared.run_config import VulkanPolicyConfig, VulkanRunConfig
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import (
     BranchNode,

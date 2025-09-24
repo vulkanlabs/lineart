@@ -9,9 +9,9 @@ from sqlalchemy.sql import text
 
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.runners.dagster.resources import AppClientResource
-from vulkan.runners.dagster.run_config import VulkanRunConfig
 from vulkan.runners.shared.app_client import BaseAppClient
 from vulkan.runners.shared.constants import APP_CLIENT_KEY, RUN_CONFIG_KEY
+from vulkan.runners.shared.run_config import VulkanRunConfig
 
 PUBLISH_IO_MANAGER_KEY = "publish_metadata_io_manager"
 METADATA_OUTPUT_KEY = "metadata"

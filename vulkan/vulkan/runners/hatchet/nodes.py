@@ -22,9 +22,9 @@ from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.exceptions import UserCodeException
 from vulkan.node_config import normalize_to_template, resolve_template
-from vulkan.runners.hatchet.io_manager import METADATA_OUTPUT_KEY
 from vulkan.runners.shared.constants import (
     DATA_CLIENT_KEY,
+    METADATA_OUTPUT_KEY,
     POLICY_CONFIG_KEY,
     RUN_CONFIG_KEY,
 )

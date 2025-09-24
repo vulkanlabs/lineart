@@ -8,7 +8,6 @@ class VulkanRunConfig:
 
     run_id: str
     server_url: str
-    hatchet_api_key: str
     project_id: str | None = None
 
 

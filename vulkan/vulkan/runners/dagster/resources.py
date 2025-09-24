@@ -1,7 +1,7 @@
 from dagster import ConfigurableResource, ResourceDependency
 
-from vulkan.runners.dagster.run_config import VulkanRunConfig
 from vulkan.runners.shared.app_client import BaseAppClient, create_app_client
+from vulkan.runners.shared.run_config import VulkanRunConfig
 
 
 class AppClientResource(ConfigurableResource):

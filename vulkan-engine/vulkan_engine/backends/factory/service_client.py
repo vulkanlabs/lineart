@@ -108,15 +108,8 @@ class ServiceClientFactory:
 
         server_url = config.worker_service.server_url
 
-        # Access the hatchet-specific config if using WorkerServiceConfig
-        hatchet_config = config.worker_service.service_config
-        # Pass token through request headers
-        request_config = HatchetRequestConfig(
-            headers={"Authorization": f"Bearer {hatchet_config.hatchet_token}"}
-        )
         return HatchetServiceClient(
             server_url=server_url,
-            request_config=request_config,
             logger=base_logger,
         )
 
