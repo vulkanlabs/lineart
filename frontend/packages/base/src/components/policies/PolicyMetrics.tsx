@@ -13,16 +13,18 @@ import { PolicyVersion } from "@vulkanlabs/client-open";
 // Local imports
 import {
     AvgDurationByStatusChart,
+    DatePickerWithRange,
     RunDurationStatsChart,
     RunErrorRateChart,
     RunOutcomeDistributionChart,
     RunOutcomesChart,
     RunsChart,
-} from "../charts/policy-stats";
-import { DatePickerWithRange } from "../charts/date-picker";
-import { VersionPicker } from "../charts/version-picker";
+    VersionPicker,
+} from "../charts";
 
 export interface PolicyMetricsConfig {
+    policyId: string;
+    versions: PolicyVersion[];
     projectId?: string;
     metricsLoader: (params: {
         policyId: string;
@@ -35,22 +37,17 @@ export interface PolicyMetricsConfig {
         runDurationStats: any[];
         runDurationByStatus: any[];
     }>;
-    outcomesLoader: (
-        policyId: string,
-        data: { dateRange: DateRange; versions: string[] },
-        projectId?: string,
-    ) => Promise<any[]>;
+    outcomesLoader: (params: {
+        policyId: string;
+        dateRange: DateRange;
+        versions: string[];
+        projectId?: string;
+    }) => Promise<any[]>;
 }
 
-export function PolicyMetrics({
-    policyId,
-    config,
-    versions,
-}: {
-    policyId: string;
-    config: PolicyMetricsConfig;
-    versions: PolicyVersion[];
-}) {
+export function PolicyMetrics({ config }: { config: PolicyMetricsConfig }) {
+    const { policyId, versions, metricsLoader, outcomesLoader } = config;
+
     // Chart Data
     const [outcomeDistribution, setOutcomeDistribution] = useState<any[]>([]);
     const [runsCount, setRunsCount] = useState<any[]>([]);
@@ -82,18 +79,12 @@ export function PolicyMetrics({
 
         isLoadingRef.current = true;
 
-        const metricsPromise = config.metricsLoader({
+        const metricsPromise = metricsLoader({
             policyId,
             dateRange,
             versions: selectedVersions,
-            projectId: config.projectId,
         });
-
-        const outcomesPromise = config.outcomesLoader(
-            policyId,
-            { dateRange, versions: selectedVersions },
-            config.projectId,
-        );
+        const outcomesPromise = outcomesLoader({ policyId, dateRange, versions: selectedVersions });
 
         Promise.all([metricsPromise, outcomesPromise])
             .then(([metricsData, outcomesData]) => {

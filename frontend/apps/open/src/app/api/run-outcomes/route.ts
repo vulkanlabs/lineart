@@ -7,14 +7,14 @@ export async function POST(request: NextRequest) {
 
         const runOutcomes = await fetchRunOutcomes(
             policyId,
-            dateRange.from,
-            dateRange.to,
+            new Date(dateRange.from),
+            new Date(dateRange.to),
             versions,
-        ).catch(() => null);
+        );
 
-        return NextResponse.json({ runOutcomes });
+        return NextResponse.json(runOutcomes);
     } catch (error) {
         console.error("Failed to get run outcomes:", error);
-        return NextResponse.json({ runOutcomes: null }, { status: 500 });
+        return NextResponse.json({ error: `Internal Server Error: ${error}` }, { status: 500 });
     }
 }

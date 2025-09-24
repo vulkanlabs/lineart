@@ -22,17 +22,15 @@ import { DetailsButton } from "../details-button";
 import { DatePickerWithRange } from "../charts/date-picker";
 import { ResourceTable } from "../resource-table";
 
-type RunsLoader = ({
+export function RunsPage({
     resourceId,
-    dateRange,
+    projectId,
+    fetchRuns,
 }: {
     resourceId: string;
-    dateRange: DateRange;
-}) => Promise<{
-    runs: Run[] | null;
-}>;
-
-export function RunsPage({ resourceId, fetchRuns }: { resourceId: string; fetchRuns: RunsLoader }) {
+    projectId?: string;
+    fetchRuns: (resourceId: string, dateRange: DateRange, projectId?: string) => Promise<Run[]>;
+}) {
     const [dateRange, setDateRange] = useState<DateRange>({
         from: subDays(new Date(), 7),
         to: new Date(),
@@ -45,9 +43,9 @@ export function RunsPage({ resourceId, fetchRuns }: { resourceId: string; fetchR
             return;
         }
 
-        fetchRuns({ resourceId, dateRange })
-            .then((data) => {
-                setRuns(data.runs || []);
+        fetchRuns(resourceId, dateRange, projectId)
+            .then((runs) => {
+                setRuns(runs);
             })
             .catch((error) => {
                 console.error(error);

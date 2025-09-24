@@ -1,7 +1,7 @@
 "use client";
 
 // React and Next.js
-import { Suspense } from "react";
+import { useCallback, Suspense } from "react";
 
 // Vulkan packages
 import type { Policy, PolicyVersion } from "@vulkanlabs/client-open";
@@ -13,12 +13,8 @@ import {
 import { Loader } from "@vulkanlabs/base";
 
 // Local imports
-import {
-    createPolicyVersion,
-    deletePolicyVersion,
-    fetchPolicyMetrics,
-    fetchRunOutcomesForMetrics,
-} from "@/lib/api";
+import { createPolicyVersion, deletePolicyVersion } from "@/lib/api";
+import { fetchMetricsDataClient, getRunOutcomesByPolicyClient } from "@/lib/api-client";
 
 type PolicyOverviewPageProps = {
     policyId: string;
@@ -31,6 +27,10 @@ export function PolicyOverviewPage({
     policyData,
     policyVersionsData,
 }: PolicyOverviewPageProps) {
+    // Create stable references to prevent unnecessary re-renders
+    const stableMetricsLoader = useCallback(fetchMetricsDataClient, []);
+    const stableOutcomesLoader = useCallback(getRunOutcomesByPolicyClient, []);
+
     return (
         <div className="flex flex-col gap-4 p-4 lg:p-6">
             <h1 className="text-lg font-semibold md:text-2xl">Versions</h1>
@@ -41,8 +41,8 @@ export function PolicyOverviewPage({
                 <PolicyMetrics
                     config={{
                         policyId,
-                        metricsLoader: fetchPolicyMetrics,
-                        outcomesLoader: fetchRunOutcomesForMetrics,
+                        metricsLoader: stableMetricsLoader,
+                        outcomesLoader: stableOutcomesLoader,
                         versions: policyVersionsData,
                     }}
                 />
