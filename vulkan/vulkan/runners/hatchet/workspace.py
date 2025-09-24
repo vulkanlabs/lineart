@@ -37,13 +37,16 @@ class HatchetWorkspaceManager:
     """Manages Hatchet workspace, workers, and workflow execution."""
 
     def __init__(
-        self, config: HatchetClientConfig, spec_file_path: str, workflow_id: str
+        self,
+        hatchet_client_config: HatchetClientConfig,
+        spec_file_path: str,
+        workflow_id: str,
     ):
         if not os.path.exists(spec_file_path):
             raise ValueError(f"Spec file does not exist: {spec_file_path}")
 
         self.workflow_id = workflow_id
-        self.config = config
+        self.config = hatchet_client_config
         server_url = (
             self.config.server_url
             if self.config.server_url
@@ -98,9 +101,9 @@ HATCHET_ENTRYPOINT = """
 from vulkan.runners.hatchet.workspace import HatchetWorkspaceManager, HatchetClientConfig
 
 if __name__ == "__main__":
-    config = HatchetClientConfig.from_env()
+    hatchet_client_config = HatchetClientConfig.from_env()
     manager = HatchetWorkspaceManager(
-        config=config,
+        hatchet_client_config=hatchet_client_config,
         spec_file_path="{spec_file_path}",
         workflow_id="{workflow_id}",
     )
