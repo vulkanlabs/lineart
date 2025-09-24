@@ -13,7 +13,8 @@ import {
 } from "@vulkanlabs/client-open";
 
 import { policiesApi, policyVersionsApi, withErrorHandling } from "./client";
-import type { DateRange, MetricsData, RunsResponse } from "./types";
+import type { MetricsData, RunsResponse } from "./types";
+import { DateRange } from "react-day-picker";
 
 // Policy CRUD operations
 
@@ -176,40 +177,42 @@ export const setPolicyVersionVariables = async (
     );
 };
 
-// Runs operations (from api.ts)
 export const fetchPolicyRuns = async (
     policyId: string,
-    startDate: Date,
-    endDate: Date,
+    dateRange: DateRange,
+    projectId?: string,
 ): Promise<Run[]> => {
     return withErrorHandling(
-        policiesApi.listRunsByPolicy({ policyId, startDate, endDate }),
+        policiesApi.listRunsByPolicy({
+            policyId,
+            startDate: dateRange.from || null,
+            endDate: dateRange.to || null,
+        }),
         `fetch runs for policy ${policyId}`,
     );
 };
 
 export const fetchPolicyVersionRuns = async (
     policyVersionId: string,
-    startDate: Date,
-    endDate: Date,
+    dateRange: DateRange,
+    projectId?: string,
 ): Promise<Run[]> => {
     return withErrorHandling(
         policyVersionsApi.listRunsByPolicyVersion({
             policyVersionId,
-            startDate,
-            endDate,
+            startDate: dateRange.from || null,
+            endDate: dateRange.to || null,
         }),
         `fetch runs for policy version ${policyVersionId}`,
     );
 };
 
-// Metrics operations (from api.ts)
 export const fetchRunsCount = async (
     policyId: string,
     startDate: Date,
     endDate: Date,
     versions: string[] = [],
-): Promise<any> => {
+): Promise<Array<any>> => {
     return withErrorHandling(
         policiesApi.runsByPolicy({
             policyId,
@@ -226,7 +229,7 @@ export const fetchRunOutcomes = async (
     startDate: Date,
     endDate: Date,
     versions: string[] = [],
-): Promise<any> => {
+): Promise<Array<any>> => {
     return withErrorHandling(
         policiesApi.runsOutcomesByPolicy({
             policyId,
@@ -238,38 +241,12 @@ export const fetchRunOutcomes = async (
     );
 };
 
-// Updated version for policy metrics component
-export const fetchRunOutcomesForMetrics = async ({
-    policyId,
-    dateRange,
-    versions,
-    projectId,
-}: {
-    policyId: string;
-    dateRange: DateRange;
-    versions: string[];
-    projectId?: string;
-}): Promise<{ runOutcomes: any[] }> => {
-    try {
-        // Handle potentially undefined dates
-        if (!dateRange.from || !dateRange.to) {
-            return { runOutcomes: [] };
-        }
-
-        const outcomes = await fetchRunOutcomes(policyId, dateRange.from, dateRange.to, versions);
-        return { runOutcomes: Array.isArray(outcomes) ? outcomes : [] };
-    } catch (error) {
-        console.error("Failed to load policy run outcomes:", error);
-        return { runOutcomes: [] };
-    }
-};
-
 export const fetchRunDurationStats = async (
     policyId: string,
     startDate: Date,
     endDate: Date,
     versions: string[] = [],
-): Promise<any> => {
+): Promise<Array<any>> => {
     return withErrorHandling(
         policiesApi.runDurationStatsByPolicy({
             policyId,
@@ -286,7 +263,7 @@ export const fetchRunDurationByStatus = async (
     startDate: Date,
     endDate: Date,
     versions: string[] = [],
-): Promise<any> => {
+): Promise<Array<any>> => {
     return withErrorHandling(
         policiesApi.runDurationStatsByPolicyStatus({
             policyId,
@@ -297,101 +274,3 @@ export const fetchRunDurationByStatus = async (
         `fetch run duration by status for policy ${policyId}`,
     );
 };
-
-// Additional wrapper functions matching api-client.ts interface (only the unique ones)
-
-/**
- * Fetch comprehensive metrics for a policy
- * @param {Object} params - Metrics configuration
- * @param {string} params.policyId - Which policy you want metrics for
- * @param {DateRange} params.dateRange - Time period with from/to dates
- * @param {string[]} params.versions - Specific versions to include (empty = all versions)
- * @returns {Promise<MetricsData>} Object containing run counts, error rates, duration stats
- */
-export async function fetchPolicyMetrics({
-    policyId,
-    dateRange,
-    versions,
-    projectId,
-}: {
-    policyId: string;
-    dateRange: DateRange;
-    versions: string[];
-    projectId?: string;
-}): Promise<MetricsData> {
-    try {
-        // Handle potentially undefined dates
-        if (!dateRange.from || !dateRange.to) {
-            return {
-                runsCount: [],
-                errorRate: [],
-                runDurationStats: [],
-                runDurationByStatus: [],
-            };
-        }
-
-        const [runsCount, errorRate, runDurationStats, runDurationByStatus] = await Promise.all([
-            fetchRunsCount(policyId, dateRange.from, dateRange.to, versions),
-            fetchRunOutcomes(policyId, dateRange.from, dateRange.to, versions), // Use for error rate calculation
-            fetchRunDurationStats(policyId, dateRange.from, dateRange.to, versions),
-            fetchRunDurationByStatus(policyId, dateRange.from, dateRange.to, versions),
-        ]);
-
-        return {
-            runsCount: Array.isArray(runsCount) ? runsCount : [],
-            errorRate: Array.isArray(errorRate) ? errorRate : [],
-            runDurationStats: Array.isArray(runDurationStats) ? runDurationStats : [],
-            runDurationByStatus: Array.isArray(runDurationByStatus) ? runDurationByStatus : [],
-        };
-    } catch (error) {
-        console.error("Failed to load policy metrics:", error);
-        return {
-            runsCount: [],
-            errorRate: [],
-            runDurationStats: [],
-            runDurationByStatus: [],
-        };
-    }
-}
-
-export async function fetchRunsByPolicy({
-    resourceId,
-    dateRange,
-}: {
-    resourceId: string;
-    dateRange: DateRange;
-}): Promise<RunsResponse> {
-    try {
-        // Handle potentially undefined dates
-        if (!dateRange.from || !dateRange.to) {
-            return { runs: [] };
-        }
-
-        const runs = await fetchPolicyRuns(resourceId, dateRange.from, dateRange.to);
-        return { runs: runs || null };
-    } catch (error) {
-        console.error("Failed to load policy runs:", error);
-        return { runs: null };
-    }
-}
-
-export async function fetchRunsByPolicyVersion({
-    resourceId,
-    dateRange,
-}: {
-    resourceId: string;
-    dateRange: DateRange;
-}): Promise<RunsResponse> {
-    try {
-        // Handle potentially undefined dates
-        if (!dateRange.from || !dateRange.to) {
-            return { runs: [] };
-        }
-
-        const runs = await fetchPolicyVersionRuns(resourceId, dateRange.from, dateRange.to);
-        return { runs: runs || null };
-    } catch (error) {
-        console.error("Failed to load policy version runs:", error);
-        return { runs: null };
-    }
-}

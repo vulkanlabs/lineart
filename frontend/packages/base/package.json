@@ -45,11 +45,6 @@
       "import": "./dist/components/ui/index.mjs",
       "require": "./dist/components/ui/index.js"
     },
-    "./components/analytics": {
-      "types": "./dist/components/analytics/index.d.ts",
-      "import": "./dist/components/analytics/index.mjs",
-      "require": "./dist/components/analytics/index.js"
-    },
     "./components/animations": {
       "types": "./dist/components/animations/index.d.ts",
       "import": "./dist/components/animations/index.mjs",
