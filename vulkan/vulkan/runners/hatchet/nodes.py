@@ -1,9 +1,7 @@
 import json
-import time
 from abc import ABC, abstractmethod
 from dataclasses import asdict
 from enum import Enum
-from traceback import format_exception_only
 from typing import Any, Callable, Dict
 
 import requests
@@ -52,7 +50,8 @@ def normalize_node_id(node_id: str) -> str:
 class TaskOutput(BaseModel):
     """Output of a task."""
 
-    task_name: str
+    step_name: str
+    step_type: str
     data: Any
 
 
@@ -151,8 +150,6 @@ class HatchetDataInput(DataInputNode, HatchetNode):
         def data_input_task(
             workflow_input: TWorkflowInput, context: Context
         ) -> Dict[str, Any]:
-            start_time = time.time()
-
             # Get resources from context (would need to be passed in)
             client = context.additional_metadata.get(DATA_CLIENT_KEY)
             run_config = context.additional_metadata.get(RUN_CONFIG_KEY)
@@ -162,11 +159,13 @@ class HatchetDataInput(DataInputNode, HatchetNode):
 
             inputs = self._get_parent_outputs(context)
             extra = dict(data_source=self.data_source)
-            error = None
 
             try:
                 configured_params = self._get_configured_params(inputs)
+            except ValueError as e:
+                raise e
 
+            try:
                 response = client.get_data(
                     data_source=self.data_source,
                     configured_params=configured_params,
@@ -182,28 +181,16 @@ class HatchetDataInput(DataInputNode, HatchetNode):
                         "request_key": data.get("key"),
                         "origin": data.get("origin"),
                     }
+                    # TODO: log this somewhere useful
                     extra.update({"response_metadata": response_metadata})
                     return TaskOutput(
-                        task_name=self.name,
+                        step_name=self.name,
+                        step_type=self.type.value,
                         data=data["value"],
                     )
 
             except (requests.exceptions.RequestException, HTTPError) as e:
-                error = ("\n").join(format_exception_only(type(e), e))
                 raise e
-            except ValueError as e:
-                error = ("\n").join(format_exception_only(type(e), e))
-                raise e
-            finally:
-                end_time = time.time()
-                metadata = StepMetadata(
-                    node_type=self.type.value,
-                    start_time=start_time,
-                    end_time=end_time,
-                    error=error,
-                    extra=extra,
-                )
-                publish_metadata(context, self.name, metadata)
 
         return data_input_task
 
@@ -257,30 +244,19 @@ class HatchetTransform(TransformNode, HatchetNode):
 
     def task_fn(self) -> Callable[[TWorkflowInput, Context], Any]:
         def transform_task(workflow_input: TWorkflowInput, context: Context) -> Any:
-            start_time = time.time()
             inputs = self._get_parent_outputs(context)
             configured_params = self._get_configured_params(inputs)
-            error = None
 
             try:
                 fn_params = {**inputs, **configured_params}
                 result = self._func(context, **fn_params)
                 return TaskOutput(
-                    task_name=self.name,
+                    step_name=self.name,
+                    step_type=self.type.value,
                     data=result,
                 )
             except Exception as e:
-                error = ("\n").join(format_exception_only(type(e), e))
                 raise UserCodeException(self.name) from e
-            finally:
-                end_time = time.time()
-                metadata = StepMetadata(
-                    self.type.value,
-                    start_time,
-                    end_time,
-                    error,
-                )
-                publish_metadata(context, self.name, metadata)
 
         return transform_task
 
@@ -350,9 +326,7 @@ class HatchetTerminate(TerminateNode, HatchetNode):
 
     def task_fn(self) -> Callable[[TWorkflowInput, Context], Any]:
         def terminate_task(workflow_input: TWorkflowInput, context: Context) -> str:
-            start_time = time.time()
             inputs = self._get_parent_outputs(context)
-            error = None
 
             try:
                 status = self.return_status
@@ -387,22 +361,13 @@ class HatchetTerminate(TerminateNode, HatchetNode):
                         raise ValueError("Callback function failed")
 
                 return TaskOutput(
-                    task_name=self.name,
+                    step_name=self.name,
+                    step_type=self.type.value,
                     data=result,
                 )
 
             except Exception as e:
-                error = ("\n").join(format_exception_only(type(e), e))
                 raise e
-            finally:
-                end_time = time.time()
-                metadata = StepMetadata(
-                    self.type.value,
-                    start_time,
-                    end_time,
-                    error,
-                )
-                publish_metadata(context, self.name, metadata)
 
         return terminate_task
 
@@ -496,30 +461,18 @@ class HatchetBranch(BranchNode, HatchetNode):
 
     def task_fn(self) -> Callable[[TWorkflowInput, Context], Any]:
         def branch_task(workflow_input: TWorkflowInput, context: Context) -> str:
-            start_time = time.time()
             inputs = self._get_parent_outputs(context)
-            error = None
 
             try:
                 context.log(f"Branching on {self.name} with inputs {inputs}")
                 output = self._func(context, **inputs)
                 return TaskOutput(
-                    task_name=self.name,
+                    step_name=self.name,
+                    step_type=self.type.value,
                     data=output,
                 )
             except Exception as e:
-                error = format_exception_only(type(e), e)
                 raise UserCodeException(self.name) from e
-            finally:
-                end_time = time.time()
-                metadata = StepMetadata(
-                    self.type.value,
-                    start_time,
-                    end_time,
-                    error,
-                    extra={"choices": self.choices},
-                )
-                publish_metadata(context, self.name, metadata)
 
         return branch_task
 
@@ -565,7 +518,8 @@ class HatchetInput(InputNode, HatchetNode):
         ) -> dict[str, Any]:
             # Return the workflow input data
             return TaskOutput(
-                task_name=self.name,
+                step_name=self.name,
+                step_type=self.type.value,
                 data=workflow_input.model_dump(),
             )
 
@@ -619,11 +573,8 @@ class HatchetConnection(ConnectionNode, HatchetNode):
         def connection_task(
             workflow_input: TWorkflowInput, context: Context
         ) -> TaskOutput:
-            start_time = time.time()
             env = context.additional_metadata.get(POLICY_CONFIG_KEY)
             inputs = self._get_parent_outputs(context)
-            error = None
-            extra = {}
 
             try:
                 config = HTTPConfig(
@@ -639,6 +590,7 @@ class HatchetConnection(ConnectionNode, HatchetNode):
                 req = make_request(config, inputs, env.variables if env else {})
                 response = requests.Session().send(req, timeout=self.timeout)
 
+                # TODO: how should we log this to output, including on error?
                 extra = {
                     "url": self.url,
                     "method": self.method,
@@ -650,26 +602,15 @@ class HatchetConnection(ConnectionNode, HatchetNode):
                 if response.status_code == 200:
                     result = format_response_data(response.content, self.response_type)
                     return TaskOutput(
-                        task_name=self.name,
+                        step_name=self.name,
+                        step_type=self.type.value,
                         data=result,
                     )
 
             except (requests.exceptions.RequestException, HTTPError) as e:
-                error = ("\n").join(format_exception_only(type(e), e))
                 raise e
             except Exception as e:
-                error = ("\n").join(format_exception_only(type(e), e))
                 raise e
-            finally:
-                end_time = time.time()
-                metadata = StepMetadata(
-                    node_type=self.type.value,
-                    start_time=start_time,
-                    end_time=end_time,
-                    error=error,
-                    extra=extra,
-                )
-                publish_metadata(context, self.name, metadata)
 
         return connection_task
 
@@ -715,28 +656,17 @@ class HatchetDecision(DecisionNode, HatchetNode):
         def decision_task(
             workflow_input: TWorkflowInput, context: Context
         ) -> TaskOutput:
-            start_time = time.time()
             inputs = self._get_parent_outputs(context)
-            error = None
 
             try:
                 output = self._decision_fn(context, inputs)
                 return TaskOutput(
-                    task_name=self.name,
+                    step_name=self.name,
+                    step_type=self.type.value,
                     data=output,
                 )
             except Exception as e:
-                error = format_exception_only(type(e), e)
                 raise UserCodeException(self.name) from e
-            finally:
-                end_time = time.time()
-                metadata = StepMetadata(
-                    self.type.value,
-                    start_time,
-                    end_time,
-                    error,
-                )
-                publish_metadata(context, self.name, metadata)
 
         return decision_task
 

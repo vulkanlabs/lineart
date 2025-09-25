@@ -45,6 +45,8 @@ class HatchetFlow:
 
     def create_workflow(self) -> Workflow:
         """Create a Hatchet workflow from Vulkan nodes."""
+
+        # TODO: add an on_failure handler to the workflow
         workflow = self._hatchet.workflow(
             name=self.policy_name,
             input_validator=self.input_type(),

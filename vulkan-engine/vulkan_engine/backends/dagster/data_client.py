@@ -142,8 +142,3 @@ def _process_log_entry(entry) -> LogEntry:
         "source": event_source,
         "event": event_content,
     }
-
-
-def create_dagster_data_client(config: DagsterDatabaseConfig) -> DagsterDataClient:
-    """Create DagsterDataClient from configuration."""
-    return DagsterDataClient(config)

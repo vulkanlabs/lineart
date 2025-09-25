@@ -74,7 +74,6 @@ class HatchetBackend(ExecutionBackend):
         policy_cfg = VulkanPolicyConfig(variables=config_variables)
 
         metadata = {
-            # TODO: these keys need to be general
             RUN_CONFIG_KEY: asdict(run_cfg),
             POLICY_CONFIG_KEY: asdict(policy_cfg),
         }

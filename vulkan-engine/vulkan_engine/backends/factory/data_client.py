@@ -6,9 +6,10 @@ data clients that work with different workflow engines' databases.
 
 from vulkan_engine.backends.dagster.data_client import (
     DagsterDatabaseConfig,
-    create_dagster_data_client,
+    DagsterDataClient,
 )
 from vulkan_engine.backends.data_client import BaseDataClient
+from vulkan_engine.backends.hatchet.data_client import HatchetDataClient
 from vulkan_engine.config import VulkanEngineConfig
 
 
@@ -57,18 +58,11 @@ class DataClientFactory:
             port=config.worker_database.port,
             database=config.worker_database.database,
         )
-        return create_dagster_data_client(dagster_db_config)
+        return DagsterDataClient(dagster_db_config)
 
     @staticmethod
     def _create_hatchet_data_client(config: VulkanEngineConfig) -> BaseDataClient:
         """Create Hatchet data client with proper configuration."""
-        # For now, raise NotImplementedError since Hatchet data client doesn't exist yet
-        raise NotImplementedError("Hatchet data client is not yet implemented")
-
-        # Future implementation would look like:
-        # try:
-        #     from vulkan_engine.hatchet.client import HatchetDataClient
-        # except ImportError as e:
-        #     raise ImportError(f"Hatchet dependencies not available: {e}")
-        #
-        # return HatchetDataClient(config=config.worker_database)
+        return HatchetDataClient(
+            worker_config=config.worker_service,
+        )

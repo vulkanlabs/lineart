@@ -15,9 +15,7 @@ class BaseDataClient(ABC):
     """Abstract base class for workflow engine data clients."""
 
     @abstractmethod
-    def get_run_data(
-        self, run_id: str, project_id: str | None
-    ) -> dict[str, StepDetails]:
+    def get_run_data(self, run_id: str) -> dict[str, StepDetails]:
         """Get run data for a specific run.
 
         Args:
@@ -29,7 +27,7 @@ class BaseDataClient(ABC):
         pass
 
     @abstractmethod
-    def get_run_logs(self, run_id: str, project_id: str | None) -> list[LogEntry]:
+    def get_run_logs(self, run_id: str) -> list[LogEntry]:
         """Get logs for a specific run.
 
         Args:

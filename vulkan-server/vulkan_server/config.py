@@ -12,7 +12,6 @@ from vulkan_engine.config import (
     LoggingConfig,
     VulkanEngineConfig,
     WorkerDatabaseConfig,
-    WorkerServiceConfig,
 )
 
 
@@ -92,19 +91,13 @@ def load_worker_database_config() -> WorkerDatabaseConfig:
     )
 
 
-def load_worker_service_config() -> WorkerServiceConfig:
-    """Load worker service configuration from environment variables."""
-    config = create_worker_service_config()
-    return config
-
-
 def load_vulkan_engine_config() -> VulkanEngineConfig:
     """Load complete VulkanEngineConfig from environment variables."""
     app = load_app_config()
     database = load_database_config()
     logging = load_logging_config()
     worker_database = load_worker_database_config()
-    worker_service = load_worker_service_config()
+    worker_service = create_worker_service_config()
 
     return VulkanEngineConfig(
         app=app,

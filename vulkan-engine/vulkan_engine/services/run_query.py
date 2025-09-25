@@ -72,7 +72,7 @@ class RunQueryService(BaseService):
         run_data = RunData.model_validate(run)
 
         # Get data from Dagster
-        steps = self.dagster_client.get_run_data(run_id)
+        steps = self.dagster_client.get_run_data(run.dagster_run_id)
         if not steps:
             return run_data
         run_data.steps = steps
