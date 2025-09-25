@@ -9,7 +9,7 @@ import pickle
 
 from sqlalchemy.orm import Session
 
-from vulkan_engine.backends.dagster.client import DagsterDataClient
+from vulkan_engine.backends.dagster.data_client import DagsterDataClient
 from vulkan_engine.db import Run, StepMetadata
 from vulkan_engine.loaders import RunLoader
 from vulkan_engine.schemas import RunData, RunLogs
@@ -74,6 +74,7 @@ class RunQueryService(BaseService):
         run_data = RunData.model_validate(run)
 
         # Get data from Dagster
+        # TODO: START of code we can maybe move to data client
         results = self.dagster_client.get_run_data(run_id)
         if not results:
             return run_data

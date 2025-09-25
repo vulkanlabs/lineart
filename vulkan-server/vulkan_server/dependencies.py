@@ -17,6 +17,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 from vulkan_engine.backends.execution import ExecutionBackend
 from vulkan_engine.backends.factory.backend import ExecutionBackendFactory
+from vulkan_engine.backends.factory.data_client import BaseDataClient, DataClientFactory
 from vulkan_engine.backends.factory.service_client import (
     BackendServiceClient,
     ServiceClientFactory,
@@ -36,10 +37,6 @@ from vulkan_engine.services import (
     PolicyVersionService,
 )
 from vulkan_engine.services.credential.credential import CredentialService
-from vulkan_engine.services.data_client_factory import (
-    DataClientFactory,
-    WorkerDataClient,
-)
 from vulkan_engine.services.run_orchestration import RunOrchestrationService
 from vulkan_engine.services.run_query import RunQueryService
 from vulkan_engine.services.workflow import WorkflowService
@@ -126,7 +123,7 @@ def get_execution_backend(
 
 def get_worker_data_client(
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
-) -> WorkerDataClient | None:
+) -> BaseDataClient | None:
     """
     Get worker data client using factory pattern.
 
@@ -159,7 +156,7 @@ def get_worker_service_client(
 def get_run_query_service(
     db: Annotated[Session, Depends(get_database_session)],
     worker_data_client: Annotated[
-        WorkerDataClient | None, Depends(get_worker_data_client)
+        BaseDataClient | None, Depends(get_worker_data_client)
     ],
     logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> RunQueryService:

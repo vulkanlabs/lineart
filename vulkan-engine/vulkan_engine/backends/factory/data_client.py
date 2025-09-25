@@ -4,49 +4,19 @@ This module provides abstractions and factory methods for creating
 data clients that work with different workflow engines' databases.
 """
 
-from abc import ABC, abstractmethod
-
-from vulkan_engine.backends.dagster.client import (
+from vulkan_engine.backends.dagster.data_client import (
     DagsterDatabaseConfig,
     create_dagster_data_client,
 )
+from vulkan_engine.backends.data_client import BaseDataClient
 from vulkan_engine.config import VulkanEngineConfig
-from vulkan_engine.schemas import LogEntry
-
-
-class WorkerDataClient(ABC):
-    """Abstract base class for workflow engine data clients."""
-
-    @abstractmethod
-    def get_run_data(self, run_id: str) -> list[tuple[str, str, str]]:
-        """Get run data for a specific run.
-
-        Args:
-            run_id: The run identifier
-
-        Returns:
-            List of tuples containing (step_name, object_name, value)
-        """
-        pass
-
-    @abstractmethod
-    def get_run_logs(self, run_id: str) -> list[LogEntry]:
-        """Get logs for a specific run.
-
-        Args:
-            run_id: The run identifier
-
-        Returns:
-            List of log entries
-        """
-        pass
 
 
 class DataClientFactory:
     """Factory for creating workflow engine data clients."""
 
     @staticmethod
-    def create_data_client(config: VulkanEngineConfig) -> WorkerDataClient | None:
+    def create_data_client(config: VulkanEngineConfig) -> BaseDataClient | None:
         """Create a data client based on the configuration.
 
         Args:
@@ -71,7 +41,7 @@ class DataClientFactory:
             raise ValueError(f"Unsupported worker type: {worker_type}")
 
     @staticmethod
-    def _create_dagster_data_client(config: VulkanEngineConfig) -> WorkerDataClient:
+    def _create_dagster_data_client(config: VulkanEngineConfig) -> BaseDataClient:
         """Create Dagster data client with proper configuration."""
 
         # Create equivalent DagsterDatabaseConfig from WorkerDatabaseConfig
@@ -90,7 +60,7 @@ class DataClientFactory:
         return create_dagster_data_client(dagster_db_config)
 
     @staticmethod
-    def _create_hatchet_data_client(config: VulkanEngineConfig) -> WorkerDataClient:
+    def _create_hatchet_data_client(config: VulkanEngineConfig) -> BaseDataClient:
         """Create Hatchet data client with proper configuration."""
         # For now, raise NotImplementedError since Hatchet data client doesn't exist yet
         raise NotImplementedError("Hatchet data client is not yet implemented")
