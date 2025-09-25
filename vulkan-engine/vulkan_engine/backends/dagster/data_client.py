@@ -1,3 +1,4 @@
+import pickle
 from dataclasses import dataclass
 
 import sqlalchemy
@@ -5,7 +6,8 @@ from dagster._core.events.log import EventLogEntry
 from sqlalchemy import create_engine
 
 from vulkan_engine.backends.data_client import PYTHON_LOG_LEVELS, BaseDataClient
-from vulkan_engine.schemas import LogEntry
+from vulkan_engine.db import StepMetadata
+from vulkan_engine.schemas import LogEntry, StepDetails, StepMetadataBase
 
 
 @dataclass
@@ -28,7 +30,7 @@ class DagsterDataClient(BaseDataClient):
     def __init__(self, config: DagsterDatabaseConfig):
         self.dagster_db = create_engine(config.connection_string, echo=False)
 
-    def get_run_data(self, run_id: str) -> list[tuple[str, str, str]]:
+    def get_run_data(self, run_id: str) -> dict[str, StepDetails]:
         with self.dagster_db.connect() as conn:
             q = sqlalchemy.text(
                 """
@@ -38,7 +40,44 @@ class DagsterDataClient(BaseDataClient):
             """
             )
             results = conn.execute(q, {"run_id": run_id}).fetchall()
-        return results
+        # Get step metadata
+        steps = self.db.query(StepMetadata).filter_by(run_id=run_id).all()
+
+        # Process results
+        results_by_name = {result[0]: (result[1], result[2]) for result in results}
+        metadata = {
+            step.step_name: StepMetadataBase(
+                step_name=step.step_name,
+                node_type=step.node_type,
+                start_time=step.start_time,
+                end_time=step.end_time,
+                error=step.error,
+                extra=step.extra,
+            )
+            for step in steps
+        }
+
+        step_details: dict[str, StepDetails] = {}
+        # Parse step data with metadata
+        for step_name, step_metadata in metadata.items():
+            value = None
+
+            if step_name in results_by_name:
+                object_name, value = results_by_name[step_name]
+                if object_name != "result":
+                    # Branch node output - object_name represents the path taken
+                    value = object_name
+                else:
+                    # Unpickle the actual result
+                    try:
+                        value = pickle.loads(value)
+                    except pickle.UnpicklingError:
+                        raise Exception(
+                            f"Failed to unpickle data for {step_name}.{object_name}"
+                        )
+
+            step_details[step_name] = {"output": value, "metadata": step_metadata}
+        return step_details
 
     def get_run_logs(self, run_id: str) -> list[LogEntry]:
         with self.dagster_db.connect() as conn:
@@ -106,7 +145,5 @@ def _process_log_entry(entry) -> LogEntry:
 
 
 def create_dagster_data_client(config: DagsterDatabaseConfig) -> DagsterDataClient:
-    """Create DagsterDataClient from configuration."""
-    return DagsterDataClient(config)
     """Create DagsterDataClient from configuration."""
     return DagsterDataClient(config)

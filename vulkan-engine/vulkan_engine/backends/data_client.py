@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from vulkan_engine.schemas import LogEntry, RunData
+from vulkan_engine.schemas import LogEntry, StepDetails
 
 PYTHON_LOG_LEVELS = {
     10: "DEBUG",
@@ -15,7 +15,9 @@ class BaseDataClient(ABC):
     """Abstract base class for workflow engine data clients."""
 
     @abstractmethod
-    def get_run_data(self, run_id: str, project_id: str | None) -> RunData:
+    def get_run_data(
+        self, run_id: str, project_id: str | None
+    ) -> dict[str, StepDetails]:
         """Get run data for a specific run.
 
         Args:

@@ -5,12 +5,10 @@ Handles all read operations related to runs including data retrieval,
 logs, and metadata queries.
 """
 
-import pickle
-
 from sqlalchemy.orm import Session
 
-from vulkan_engine.backends.dagster.data_client import DagsterDataClient
-from vulkan_engine.db import Run, StepMetadata
+from vulkan_engine.backends.data_client import BaseDataClient
+from vulkan_engine.db import Run
 from vulkan_engine.loaders import RunLoader
 from vulkan_engine.schemas import RunData, RunLogs
 from vulkan_engine.services.base import BaseService
@@ -22,7 +20,7 @@ class RunQueryService(BaseService):
     def __init__(
         self,
         db: Session,
-        dagster_client: DagsterDataClient,
+        dagster_client: BaseDataClient,
         logger=None,
     ):
         """
@@ -74,49 +72,10 @@ class RunQueryService(BaseService):
         run_data = RunData.model_validate(run)
 
         # Get data from Dagster
-        # TODO: START of code we can maybe move to data client
-        results = self.dagster_client.get_run_data(run_id)
-        if not results:
-            return run_data
-
-        # Get step metadata
-        steps = self.db.query(StepMetadata).filter_by(run_id=run_id).all()
+        steps = self.dagster_client.get_run_data(run_id)
         if not steps:
             return run_data
-
-        # Process results
-        results_by_name = {result[0]: (result[1], result[2]) for result in results}
-        metadata = {
-            step.step_name: {
-                "step_name": step.step_name,
-                "node_type": step.node_type,
-                "start_time": step.start_time,
-                "end_time": step.end_time,
-                "error": step.error,
-                "extra": step.extra,
-            }
-            for step in steps
-        }
-
-        # Parse step data with metadata
-        for step_name, step_metadata in metadata.items():
-            value = None
-
-            if step_name in results_by_name:
-                object_name, value = results_by_name[step_name]
-                if object_name != "result":
-                    # Branch node output - object_name represents the path taken
-                    value = object_name
-                else:
-                    # Unpickle the actual result
-                    try:
-                        value = pickle.loads(value)
-                    except pickle.UnpicklingError:
-                        raise Exception(
-                            f"Failed to unpickle data for {step_name}.{object_name}"
-                        )
-
-            run_data.steps[step_name] = {"output": value, "metadata": step_metadata}
+        run_data.steps = steps
 
         return run_data
 
