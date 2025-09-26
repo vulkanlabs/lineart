@@ -22,10 +22,11 @@ class EventMessage(BaseModel):
     metadata: dict
 
 
-class VulkanLogger:
+class VulkanLogger(logging.Logger):
     def __init__(self, db: Session, logging_config: LoggingConfig | None = None):
         self.system = get_system_logger(logging_config)
         self.user = get_user_logger(db)
+        super().__init__(name=self.system.name, level=self.system.level)
 
     def event(self, event_name: VulkanEvent, **kwargs):
         message = EventMessage(event=event_name, metadata=kwargs)

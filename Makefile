@@ -10,8 +10,11 @@ test-integration:
 
 # Development & Deployment
 .PHONY: lint
-lint:
+lint: lint-python
 	cd frontend && npm run format
+	
+.PHONY: lint-python
+lint-python:
 	uvx ruff check --force-exclude --select I --fix
 	uvx ruff format --force-exclude
 
@@ -45,6 +48,7 @@ openapi:
 # Configuration
 .PHONY: config
 config:
+	mv ./config/active ./config/active.bkp || true
 	cp -r ./config/local ./config/active
 	cp ./config/active/.env ./.env
 	cp ./config/active/.env ./frontend/apps/open/.env

@@ -235,15 +235,6 @@ def test_terminate_node_parameter_to_metadata_conversion():
 
 def test_terminate_node_dependencies_validation():
     """Test dependencies validation."""
-    # None dependencies -> error
-    with pytest.raises(ValueError, match="Dependencies not set for TERMINATE op"):
-        TerminateNode(name="test_terminate", return_status="SUCCESS", dependencies=None)
-
-    # Empty dependencies -> error
-    with pytest.raises(ValueError, match="Dependencies not set for TERMINATE op"):
-        TerminateNode(name="test_terminate", return_status="SUCCESS", dependencies={})
-
-    # Valid dependencies -> ok
     node = TerminateNode(
         name="test_terminate",
         return_status="SUCCESS",

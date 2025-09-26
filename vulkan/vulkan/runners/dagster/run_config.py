@@ -7,8 +7,5 @@ class VulkanRunConfig(ConfigurableResource):
     project_id: str | None = None
 
 
-RUN_CONFIG_KEY = "vulkan_run_config"
-
-
 class VulkanPolicyConfig(ConfigurableResource):
     variables: dict

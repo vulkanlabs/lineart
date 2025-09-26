@@ -26,6 +26,7 @@ uv.lock
 .pytest_cache/
 .ruff_cache/
 .ipynb_checkpoints/
+.crush/
 
 # local env files
 .env*
@@ -40,4 +41,5 @@ generated/
 .copilot/
 
 # We sometimes randomly run npm installs in the root by mistake
-package-lock.json
+package-lock.json 
+

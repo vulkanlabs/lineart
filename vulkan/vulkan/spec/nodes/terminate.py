@@ -62,8 +62,9 @@ class TerminateNode(Node):
         self.return_status = (
             return_status.value if isinstance(return_status, Enum) else return_status
         )
-        if dependencies is None or len(dependencies) == 0:
-            raise ValueError(f"Dependencies not set for TERMINATE op {name}")
+        if dependencies is None:
+            dependencies = {}
+
         super().__init__(
             name=name,
             description=description,
