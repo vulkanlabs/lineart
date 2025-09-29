@@ -38,9 +38,7 @@ from vulkan_engine.schemas import (
     DataSourceEnvVarBase,
 )
 from vulkan_engine.schemas import DataSource as DataSourceSchema
-from vulkan_engine.schemas import (
-    DataSourceEnvVar as DataSourceEnvVarSchema,
-)
+from vulkan_engine.schemas import DataSourceEnvVar as DataSourceEnvVarSchema
 from vulkan_engine.services.base import BaseService
 
 

@@ -1,4 +1,3 @@
-DATA_CLIENT_KEY = "vulkan_data_client"
 APP_CLIENT_KEY = "vulkan_app_client"
 METADATA_OUTPUT_KEY = "vulkan_step_metadata"
 

@@ -21,12 +21,8 @@ from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.exceptions import UserCodeException
 from vulkan.node_config import normalize_to_template, resolve_template
-from vulkan.runners.shared.app_client import BaseAppClient, SimpleAppClient
-from vulkan.runners.shared.constants import (
-    DATA_CLIENT_KEY,
-    POLICY_CONFIG_KEY,
-    RUN_CONFIG_KEY,
-)
+from vulkan.runners.shared.app_client import BaseAppClient, create_app_client
+from vulkan.runners.shared.constants import POLICY_CONFIG_KEY, RUN_CONFIG_KEY
 from vulkan.runners.shared.run_config import VulkanRunConfig
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import (
@@ -116,7 +112,7 @@ def _metadata_store(context: Context) -> BaseAppClient:
     if run_config is None:
         raise RuntimeError("Run configuration not found in context")
 
-    return SimpleAppClient(
+    return create_app_client(
         server_url=run_config.get("server_url"),
         run_id=run_config.get("run_id"),
         project_id=run_config.get("project_id"),
@@ -151,11 +147,13 @@ class HatchetDataInput(DataInputNode, HatchetNode):
             workflow_input: TWorkflowInput, context: Context
         ) -> Dict[str, Any]:
             # Get resources from context (would need to be passed in)
-            client = context.additional_metadata.get(DATA_CLIENT_KEY)
-            run_config = context.additional_metadata.get(RUN_CONFIG_KEY)
+            run_cfg = context.additional_metadata.get(RUN_CONFIG_KEY)
 
-            if not client or not run_config:
+            if not run_cfg:
                 raise RuntimeError("Required resources not available in context")
+
+            run_config = VulkanRunConfig(**run_cfg)
+            client: BaseAppClient = create_app_client(**run_cfg)
 
             inputs = self._get_parent_outputs(context)
             extra = dict(data_source=self.data_source)
@@ -166,31 +164,28 @@ class HatchetDataInput(DataInputNode, HatchetNode):
                 raise e
 
             try:
-                response = client.get_data(
+                response: requests.Response = client.fetch_data(
                     data_source=self.data_source,
                     configured_params=configured_params,
-                    run_id=run_config.run_id,
                 )
                 extra.update({"status_code": response.status_code})
                 response.raise_for_status()
-
-                if response.status_code == 200:
-                    data = response.json()
-                    response_metadata = {
-                        "data_object_id": data.get("data_object_id"),
-                        "request_key": data.get("key"),
-                        "origin": data.get("origin"),
-                    }
-                    # TODO: log this somewhere useful
-                    extra.update({"response_metadata": response_metadata})
-                    return TaskOutput(
-                        step_name=self.name,
-                        step_type=self.type.value,
-                        data=data["value"],
-                    )
-
             except (requests.exceptions.RequestException, HTTPError) as e:
                 raise e
+
+            data = response.json()
+            response_metadata = {
+                "data_object_id": data.get("data_object_id"),
+                "request_key": data.get("key"),
+                "origin": data.get("origin"),
+            }
+            # TODO: log this somewhere useful
+            extra.update({"response_metadata": response_metadata})
+            return TaskOutput(
+                step_name=self.name,
+                step_type=self.type.value,
+                data=data["value"],
+            )
 
         return data_input_task
 
