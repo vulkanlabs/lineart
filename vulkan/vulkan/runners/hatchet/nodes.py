@@ -1,6 +1,5 @@
 import json
 from abc import ABC, abstractmethod
-from dataclasses import asdict
 from enum import Enum
 from typing import Any, Callable, Dict
 
@@ -18,11 +17,11 @@ from vulkan.connections import (
 )
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
-from vulkan.core.step_metadata import StepMetadata
 from vulkan.exceptions import UserCodeException
-from vulkan.node_config import normalize_to_template, resolve_template
+from vulkan.node_config import resolve_template
 from vulkan.runners.shared.app_client import BaseAppClient, create_app_client
 from vulkan.runners.shared.constants import POLICY_CONFIG_KEY, RUN_CONFIG_KEY
+from vulkan.runners.shared.decision_fn import evaluate_condition
 from vulkan.runners.shared.run_config import VulkanRunConfig
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import (
@@ -71,7 +70,6 @@ class HatchetNode(ABC):
         }
 
         return parent_outputs
-
 
 
 class HatchetDataInput(DataInputNode, HatchetNode):
@@ -628,18 +626,12 @@ class HatchetDecision(DecisionNode, HatchetNode):
             c for c in self.conditions if c.decision_type == DecisionType.ELSE_IF
         ]
 
-        if self._evaluate_condition(if_cond.condition, inputs):
+        if evaluate_condition(if_cond.condition, inputs):
             return if_cond.output
         for elif_cond in elif_conds:
-            if self._evaluate_condition(elif_cond.condition, inputs):
+            if evaluate_condition(elif_cond.condition, inputs):
                 return elif_cond.output
         return else_cond.output
-
-    def _evaluate_condition(self, condition: str, inputs: Dict[str, Any]) -> bool:
-        """Evaluate a condition string."""
-        norm_cond = normalize_to_template(condition)
-        result = resolve_template(norm_cond, inputs, env_variables={})
-        return result == "True"
 
     @classmethod
     def from_spec(cls, node: DecisionNode):

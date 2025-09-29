@@ -1,14 +1,20 @@
 import logging
 
-from hatchet_sdk import Hatchet, ParentCondition, Workflow
+from hatchet_sdk import Context as HatchetContext
+from hatchet_sdk import Hatchet, ParentCondition, Workflow, or_
 from pydantic import create_model
 
+from vulkan.core.run import RunStatus
 from vulkan.runners.hatchet.nodes import to_hatchet_nodes
+from vulkan.runners.shared.app_client import BaseAppClient, create_app_client
+from vulkan.runners.shared.constants import RUN_CONFIG_KEY
+from vulkan.runners.shared.run_config import VulkanRunConfig
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import Node, NodeType
 
 logger = logging.getLogger(__name__)
 DEFAULT_POLICY_NAME = "default_policy"
+_NOTIFY_FAILURE = "notify_failure"
 
 
 class HatchetFlow:
@@ -45,12 +51,12 @@ class HatchetFlow:
 
     def create_workflow(self) -> Workflow:
         """Create a Hatchet workflow from Vulkan nodes."""
-
-        # TODO: add an on_failure handler to the workflow
         workflow = self._hatchet.workflow(
             name=self.policy_name,
             input_validator=self.input_type(),
         )
+
+        workflow.on_failure_task(name=_NOTIFY_FAILURE)(_notify_failure)
 
         tasks = {}
         for node in self.nodes:
@@ -60,6 +66,12 @@ class HatchetFlow:
                 for dep in self.dependencies[node.id].values():
                     task = tasks[dep.id]
                     parents.append(task)
+                    skip_conditions.append(
+                        ParentCondition(
+                            parent=task,
+                            expression="output.skipped",
+                        )
+                    )
                     if dep.output:
                         # Handle conditional dependencies
                         skip_conditions.append(
@@ -72,10 +84,36 @@ class HatchetFlow:
             task_creation_fn = workflow.task(
                 name=node.task_name,
                 parents=parents,
-                skip_if=skip_conditions,
-                # execution_timeout=node.execution_timeout,
-                # retries=node.retries,
+                skip_if=[or_(*skip_conditions)],
             )
             task = task_creation_fn(node.task_fn())
             tasks[node.id] = task
         return workflow
+
+
+def _notify_failure(wf: Workflow, context: HatchetContext) -> bool:
+    run_cfg = context.additional_metadata.get(RUN_CONFIG_KEY)
+    if not run_cfg:
+        raise RuntimeError("Required resources not available in context")
+    run_config = VulkanRunConfig(**run_cfg)
+    client: BaseAppClient = create_app_client(**run_cfg)
+
+    context.log(f"Notifying failure for Hatchet run {run_config.run_id}")
+    success = client.update_run_status(
+        status=RunStatus.FAILURE.value,
+        result="",
+    )
+
+    if not success:
+        msg = f"Failed to notify failure for Hatchet run {run_config.run_id}"
+        context.log(msg)
+        return {
+            "notified": False,
+            "message": msg,
+            "run_id": run_config.run_id,
+        }
+
+    return {
+        "notified": True,
+        "run_id": run_config.run_id,
+    }
