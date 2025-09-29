@@ -19,7 +19,7 @@ from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.core.step_metadata import StepMetadata
 from vulkan.exceptions import UserCodeException
-from vulkan.node_config import normalize_to_template, resolve_template
+from vulkan.node_config import resolve_template
 from vulkan.runners.dagster.io_manager import (
     METADATA_OUTPUT_KEY,
     PUBLISH_IO_MANAGER_KEY,
@@ -31,6 +31,7 @@ from vulkan.runners.shared.constants import (
     POLICY_CONFIG_KEY,
     RUN_CONFIG_KEY,
 )
+from vulkan.runners.shared.decision_fn import evaluate_condition
 from vulkan.runners.shared.run_config import VulkanPolicyConfig, VulkanRunConfig
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import (
@@ -719,10 +720,10 @@ class DagsterDecision(DecisionNode, DagsterNode):
         elif_conds = [
             c for c in self.conditions if c.decision_type == DecisionType.ELSE_IF
         ]
-        if _evaluate_condition(if_cond.condition, inputs):
+        if evaluate_condition(if_cond.condition, inputs):
             return if_cond.output
         for elif_cond in elif_conds:
-            if _evaluate_condition(elif_cond.condition, inputs):
+            if evaluate_condition(elif_cond.condition, inputs):
                 return elif_cond.output
         return else_cond.output
 
@@ -771,14 +772,6 @@ class DagsterDecision(DecisionNode, DagsterNode):
             conditions=node.conditions,
             dependencies=node.dependencies,
         )
-
-
-def _evaluate_condition(condition: str, inputs: dict[str, Any]) -> bool:
-    norm_cond = normalize_to_template(condition)
-    result = resolve_template(norm_cond, inputs, env_variables={})
-    if not isinstance(result, bool):
-        raise ValueError(f"Condition did not evaluate to a boolean: {condition}")
-    return result
 
 
 _NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {
