@@ -73,51 +73,6 @@ class HatchetNode(ABC):
         return parent_outputs
 
 
-# FIXME (antonio): this is a hack to publish metadata.
-#
-# It adds ~100ms per node execution, as it requires a trip to the app.
-# It also adds a bunch of pressure on the app server.
-# A better solution would be to publish metadata at the end of the run,
-# or to have a process collect and publish metadata asynchronously.
-#
-# This could maybe be achieved by using Hatchet events or modding
-# the metadata publication endpoint to ack and return immediately, then
-# process the metadata in the background.
-#
-# A third, sep issue is that the client needs to be initialized per node,
-# adding some more complexity to each node. Ideally, we'd initialize
-# the client once per run, and share it across nodes.
-def publish_metadata(context: Context, step_name: str, metadata: StepMetadata) -> None:
-    try:
-        store = _metadata_store(context)
-    except RuntimeError as e:
-        msg = f"Failed to get metadata store: {e}"
-        context.log(msg)
-        raise RuntimeError(msg) from e
-
-    try:
-        store.publish_step_metadata(
-            step_name=step_name,
-            metadata=asdict(metadata),
-        )
-    except ValueError as e:
-        msg = f"Failed to publish metadata: {e}"
-        context.log(msg)
-        raise RuntimeError(msg) from e
-
-
-def _metadata_store(context: Context) -> BaseAppClient:
-    """Return a metadata store client."""
-    run_config = context.additional_metadata.get(RUN_CONFIG_KEY)
-    if run_config is None:
-        raise RuntimeError("Run configuration not found in context")
-
-    return create_app_client(
-        server_url=run_config.get("server_url"),
-        run_id=run_config.get("run_id"),
-        project_id=run_config.get("project_id"),
-    )
-
 
 class HatchetDataInput(DataInputNode, HatchetNode):
     """Hatchet implementation of DataInputNode."""
@@ -148,11 +103,9 @@ class HatchetDataInput(DataInputNode, HatchetNode):
         ) -> Dict[str, Any]:
             # Get resources from context (would need to be passed in)
             run_cfg = context.additional_metadata.get(RUN_CONFIG_KEY)
-
             if not run_cfg:
                 raise RuntimeError("Required resources not available in context")
 
-            run_config = VulkanRunConfig(**run_cfg)
             client: BaseAppClient = create_app_client(**run_cfg)
 
             inputs = self._get_parent_outputs(context)
