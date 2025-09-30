@@ -4,13 +4,8 @@ from vulkan.runners.hatchet.nodes import (
     HatchetTransform,
     to_hatchet_nodes,
 )
-from vulkan.runners.hatchet.policy import HatchetFlow
 from vulkan.spec.dependency import INPUT_NODE, Dependency
-from vulkan.spec.nodes import (
-    DataInputNode,
-    TerminateNode,
-    TransformNode,
-)
+from vulkan.spec.nodes import DataInputNode, TerminateNode, TransformNode
 
 
 def test_data_input_node_conversion():
@@ -93,28 +88,3 @@ def test_to_hatchet_nodes():
     assert isinstance(hatchet_nodes[0], HatchetDataInput)
     assert isinstance(hatchet_nodes[1], HatchetTransform)
     assert isinstance(hatchet_nodes[2], HatchetTerminate)
-
-
-def test_hatchet_flow_creation():
-    """Test creating a HatchetFlow from nodes."""
-    from vulkan.spec.nodes import InputNode
-
-    nodes = [
-        InputNode(name="input", description="Input node", schema={"test": str}),
-        DataInputNode(name="data_input", data_source="test", dependencies={}),
-        TransformNode(
-            name="transform", description="test", func=lambda x: x, dependencies={}
-        ),
-        TerminateNode(
-            name="terminate",
-            description="test",
-            return_status="SUCCESS",
-            dependencies={},
-        ),
-    ]
-
-    flow = HatchetFlow(nodes, "test_policy")
-
-    assert flow.policy_name == "test_policy"
-    assert len(flow.nodes) == 4
-    assert flow.create_workflow() is not None

@@ -66,6 +66,8 @@ class HatchetFlow:
                 for dep in self.dependencies[node.id].values():
                     task = tasks[dep.id]
                     parents.append(task)
+
+                    # Skip if parent task was skipped
                     skip_conditions.append(
                         ParentCondition(
                             parent=task,
@@ -73,7 +75,7 @@ class HatchetFlow:
                         )
                     )
                     if dep.output:
-                        # Handle conditional dependencies
+                        # Skip if the condition is not met on the parent.
                         skip_conditions.append(
                             ParentCondition(
                                 parent=task,
