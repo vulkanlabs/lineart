@@ -90,69 +90,63 @@ class DagsterDataInput(DataInputNode, DagsterNode):
         client = app_client_resource.get_client()
         inputs = _resolved_inputs(inputs, self.dependencies)
         extra = dict(data_source=self.data_source)
-        response = None
         error = None
 
         try:
             configured_params = self._get_configured_params(inputs)
-            context.log.info(
+            context.log.error(
                 f"Fetching data from data source {self.data_source} with "
                 f"parameters: {configured_params}"
             )
+        except ValueError as e:
+            end_time = time.time()
+            metadata = StepMetadata(
+                node_type=self.type.value,
+                start_time=start_time,
+                end_time=end_time,
+                error=error,
+                extra=extra,
+            )
+            yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+            context.log.error(f"Parameter resolution error: {str(e)}")
+            raise e
 
+        try:
             response = client.fetch_data(
                 data_source=self.data_source,
                 configured_params=configured_params,
             )
-
-            response.raise_for_status()
-            extra.update({"status_code": response.status_code})
-
-            data = response.json()
-            response_metadata = {
-                "data_object_id": data.get("data_object_id"),
-                "request_key": data.get("key"),
-                "origin": data.get("origin"),
-            }
-            extra.update({"response_metadata": response_metadata})
-
-            yield Output(data["value"])
-
-        except ValueError as e:
-            context.log.error(f"Parameter resolution error: {str(e)}")
-            error = ("\n").join(format_exception_only(type(e), e))
-            raise e
-
-        except requests.exceptions.HTTPError as e:
-            error_detail = "Unknown error"
-            if hasattr(e, "response") and e.response is not None:
-                response = e.response
-                extra.update({"status_code": response.status_code})
-                try:
-                    error_detail = response.json().get("detail", str(e))
-                except Exception:
-                    error_detail = (
-                        response.text[:200] if hasattr(response, "text") else str(e)
-                    )
-                context.log.error(
-                    f"Failed request with status {response.status_code}: {error_detail}"
-                )
-            else:
-                context.log.error(f"HTTP error: {str(e)}")
-
-            error = ("\n").join(format_exception_only(type(e), e))
-            raise e
-
         except requests.exceptions.RequestException as e:
+            end_time = time.time()
+            metadata = StepMetadata(
+                node_type=self.type.value,
+                start_time=start_time,
+                end_time=end_time,
+                error=error,
+                extra=extra,
+            )
+            yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
             context.log.error(f"Failed to retrieve data: {str(e)}")
-            error = ("\n").join(format_exception_only(type(e), e))
             raise e
 
-        except Exception as e:
-            context.log.error(f"Unexpected error processing data: {str(e)}")
+        try:
+            extra.update({"status_code": response.status_code})
+            response.raise_for_status()
+            if response.status_code == 200:
+                data = response.json()
+                response_metadata = {
+                    "data_object_id": data.get("data_object_id"),
+                    "request_key": data.get("key"),
+                    "origin": data.get("origin"),
+                }
+                extra.update({"response_metadata": response_metadata})
+                yield Output(data["value"])
+        except HTTPError as e:
+            context.log.error(
+                f"Failed request with status {response.status_code}: "
+                f"{response.json().get('detail', '')}"
+            )
             error = ("\n").join(format_exception_only(type(e), e))
-            raise e
-
         finally:
             end_time = time.time()
             metadata = StepMetadata(
