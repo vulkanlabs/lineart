@@ -1,6 +1,6 @@
 import logging
 from enum import Enum
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
 import requests
@@ -12,7 +12,7 @@ from vulkan.runners.dagster.nodes import (
     to_dagster_node,
 )
 from vulkan.spec.dependency import Dependency
-from vulkan.spec.nodes import DataInputNode, NodeType, TerminateNode, TransformNode
+from vulkan.spec.nodes import NodeType, TerminateNode, TransformNode
 
 
 @pytest.fixture
