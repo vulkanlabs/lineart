@@ -68,10 +68,10 @@ class DagsterBackend(ExecutionBackend):
         }
         logger.debug(f"Triggering job with config: {execution_config}")
 
-        dagster_run_id = trigger_run.trigger_dagster_job(
+        backend_run_id = trigger_run.trigger_dagster_job(
             self.dagster_client,
             workflow_id,
             DEFAULT_POLICY_NAME,
             execution_config,
         )
-        return dagster_run_id
+        return backend_run_id

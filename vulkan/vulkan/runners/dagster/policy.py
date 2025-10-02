@@ -54,9 +54,9 @@ class DagsterFlow:
 def _notify_failure(context: HookContext) -> bool:
     app_client_resource: AppClientResource = getattr(context.resources, APP_CLIENT_KEY)
     client = app_client_resource.get_client()
-    dagster_run_id: str = context.run_id
+    backend_run_id: str = context.run_id
 
-    context.log.debug(f"Notifying failure for Dagster run {dagster_run_id}")
+    context.log.debug(f"Notifying failure for Dagster run {backend_run_id}")
 
     success = client.update_run_status(
         status=RunStatus.FAILURE.value,
@@ -64,7 +64,7 @@ def _notify_failure(context: HookContext) -> bool:
     )
 
     if not success:
-        msg = f"Failed to notify failure for Dagster run {dagster_run_id}"
+        msg = f"Failed to notify failure for Dagster run {backend_run_id}"
         context.log.error(msg)
 
     return success

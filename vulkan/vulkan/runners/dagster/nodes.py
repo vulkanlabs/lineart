@@ -449,9 +449,9 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             context.resources, APP_CLIENT_KEY
         )
         client = app_client_resource.get_client()
-        dagster_run_id: str = context.run_id
+        backend_run_id: str = context.run_id
 
-        context.log.debug(f"Returning status {result} for Dagster run {dagster_run_id}")
+        context.log.debug(f"Returning status {result} for Dagster run {backend_run_id}")
 
         success = client.update_run_status(
             status=RunStatus.SUCCESS.value,
@@ -461,7 +461,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
 
         if not success:
             context.log.error(
-                f"Failed to return status {result} for Dagster run {dagster_run_id}"
+                f"Failed to return status {result} for Dagster run {backend_run_id}"
             )
 
         return success

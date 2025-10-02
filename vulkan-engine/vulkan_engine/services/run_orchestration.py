@@ -335,7 +335,7 @@ class RunOrchestrationService(BaseService):
             self.logger.system.debug(f"Triggered job with run ID: {backend_run_id}")
             run.status = RunStatus.STARTED
             run.started_at = datetime.now(timezone.utc)
-            run.dagster_run_id = backend_run_id  # TODO: Make this backend-agnostic
+            run.backend_run_id = backend_run_id
             self.db.commit()
         except Exception as e:
             run.status = RunStatus.FAILURE

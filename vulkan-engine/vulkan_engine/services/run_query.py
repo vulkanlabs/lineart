@@ -72,7 +72,7 @@ class RunQueryService(BaseService):
         run_data = RunData.model_validate(run)
 
         # Get data from Dagster
-        steps = self.dagster_client.get_run_data(run.dagster_run_id)
+        steps = self.dagster_client.get_run_data(run.backend_run_id)
         if not steps:
             return run_data
         run_data.steps = steps
@@ -96,7 +96,7 @@ class RunQueryService(BaseService):
         run = self.run_loader.get_run(run_id, project_id=project_id)
 
         # Get logs from Dagster
-        logs = self.dagster_client.get_run_logs(run.dagster_run_id)
+        logs = self.dagster_client.get_run_logs(run.backend_run_id)
 
         return RunLogs(
             run_id=run_id,
