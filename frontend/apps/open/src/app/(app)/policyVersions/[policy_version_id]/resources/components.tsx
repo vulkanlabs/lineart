@@ -4,15 +4,8 @@ import {
     PolicyResourcesEnvironmentVariables,
     PolicyResourcesDataSourcesTable,
     PolicyResourcesRequirementsEditor,
-    type PolicyResourcesEnvironmentVariablesConfig,
-    type PolicyResourcesDataSourcesTableConfig,
-    type PolicyResourcesRequirementsEditorConfig,
-} from "@vulkanlabs/base";
-import type {
-    ConfigurationVariablesBase,
-    DataSourceReference,
-    PolicyVersion,
-} from "@vulkanlabs/client-open";
+} from "@vulkanlabs/base/components/policy-versions";
+import type { DataSourceReference, PolicyVersion } from "@vulkanlabs/client-open";
 import type { EnvironmentVariablesEditorProps } from "@vulkanlabs/base";
 
 // Local imports

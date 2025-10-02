@@ -427,7 +427,10 @@ class DataSourceService(BaseService):
 
             return data
 
-        except requests.exceptions.RequestException as e:
+        except (
+            requests.exceptions.RequestException,
+            requests.exceptions.HTTPError,
+        ) as e:
             if self.logger:
                 self.logger.system.error(str(e))
             raise DataBrokerRequestException(str(e))

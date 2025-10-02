@@ -2,14 +2,15 @@
 
 // React and Next.js
 import { useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 // External libraries
-import { Workflow, Puzzle, ArrowDownUp, Logs, Menu, FolderOpen, LucideIcon } from "lucide-react";
+import { Menu, LucideIcon } from "lucide-react";
 
 // Vulkan packages
 import { Button, Sheet, SheetContent, SheetTrigger } from "@vulkanlabs/base/ui";
+
 import { cn } from "../../lib/utils";
 
 export interface NavigationSection {

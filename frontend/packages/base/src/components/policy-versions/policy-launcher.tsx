@@ -158,12 +158,15 @@ export function PolicyLauncherButton({ config }: { config: PolicyLauncherButtonC
             <DialogTrigger asChild>
                 <Button
                     variant="outline"
+                    size="sm"
                     className={
+                        "px-2 py-1 text-xs h-auto " +
                         "border-input bg-background hover:bg-accent hover:text-accent-foreground " +
                         "transition-all duration-200 shadow-sm hover:shadow-md"
                     }
+                    title="Launch a new policy run"
                 >
-                    <Play className="h-4 w-4 mr-2" />
+                    <Play className="h-3 w-3 mr-1" />
                     <span>Launch Run</span>
                 </Button>
             </DialogTrigger>
@@ -339,7 +342,7 @@ function LaunchRunFormCard({
                         <FormField
                             control={form.control}
                             name="input_data"
-                            render={({ field }: { field: ControllerRenderProps }) => (
+                            render={({ field }) => (
                                 <FormItem className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <FormLabel className="text-base font-semibold">
@@ -377,7 +380,7 @@ function LaunchRunFormCard({
                         <FormField
                             control={form.control}
                             name="config_variables"
-                            render={({ field }: { field: ControllerRenderProps }) => (
+                            render={({ field }) => (
                                 <FormItem className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <FormLabel className="text-base font-semibold">

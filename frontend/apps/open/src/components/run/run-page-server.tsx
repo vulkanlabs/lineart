@@ -1,7 +1,7 @@
 import type { PolicyVersion, RunData, RunLogs } from "@vulkanlabs/client-open";
 import { fetchPolicyVersion, fetchRunData, fetchRunLogs } from "@/lib/api";
 
-import { RunPageContent } from "@vulkanlabs/base";
+import { RunPageContent } from "@vulkanlabs/base/components/runs";
 
 export async function RunPage({ runId }: { runId: string }) {
     const runLogs: RunLogs = await fetchRunLogs(runId);

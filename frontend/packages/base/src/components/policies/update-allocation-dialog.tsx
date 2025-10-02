@@ -12,6 +12,12 @@ import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 
 // Vulkan packages
+import type {
+    PolicyAllocationStrategy,
+    PolicyVersion,
+    PolicyRunPartition,
+} from "@vulkanlabs/client-open";
+
 import {
     Button,
     Dialog,
@@ -37,12 +43,7 @@ import {
     RadioGroup,
     RadioGroupItem,
     Checkbox,
-} from "@vulkanlabs/base/ui";
-import type {
-    PolicyAllocationStrategy,
-    PolicyVersion,
-    PolicyRunPartition,
-} from "@vulkanlabs/client-open";
+} from "../ui";
 
 const allocationFormSchema = z
     .object({

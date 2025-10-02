@@ -5,7 +5,10 @@ import { ArrowUpDown } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 
 // Vulkan packages
-import { Button } from "@vulkanlabs/base/ui";
+import { DataSource } from "@vulkanlabs/client-open";
+
+// Local imports
+import { Button } from "../ui";
 import { DetailsButton } from "../details-button";
 import { ShortenedID } from "../shortened-id";
 import {
@@ -14,9 +17,6 @@ import {
     SearchFilterOptions,
     DeleteResourceOptions,
 } from "../resource-table";
-import { DataSource } from "@vulkanlabs/client-open";
-
-// Local imports
 import { parseDate } from "../../lib/utils";
 
 export interface DataSourceTableConfig {

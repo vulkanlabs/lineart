@@ -1,6 +1,11 @@
 import type { XYPosition, Edge } from "@xyflow/react";
 import type { NodeDefinitionDict, UIMetadata } from "@vulkanlabs/client-open";
 
+// Extended UI metadata interface that includes our custom properties
+interface ExtendedUIMetadata extends UIMetadata {
+    detailsExpanded?: boolean;
+}
+
 import { createNodeByType, nodesConfig } from "./nodes";
 import { findHandleIndexByName } from "./names";
 import type { VulkanNode, WorkflowState } from "../types/workflow";
@@ -55,7 +60,7 @@ export function createWorkflowState(workflow: Workflow): WorkflowState {
         const requiredHeight = calculateNodeHeight(node.node_type, node.metadata);
 
         // If saved collapsed, preserve the collapsed height
-        const isCollapsed = nodeUIMetadata.detailsExpanded === false;
+        const isCollapsed = (nodeUIMetadata as ExtendedUIMetadata).detailsExpanded === false;
         const height = isCollapsed
             ? 50
             : Math.max(nodeUIMetadata.height || requiredHeight, requiredHeight);
@@ -89,7 +94,7 @@ export function createWorkflowState(workflow: Workflow): WorkflowState {
                 minWidth: width,
                 // Store the required height for collapsed nodes
                 minHeight: isCollapsed ? requiredHeight : height,
-                detailsExpanded: nodeUIMetadata.detailsExpanded ?? true,
+                detailsExpanded: (nodeUIMetadata as ExtendedUIMetadata).detailsExpanded ?? true,
             },
             position: position,
         };

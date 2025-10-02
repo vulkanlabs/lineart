@@ -3,32 +3,31 @@ import type {
     PolicyDefinitionDict,
     UIMetadata,
     Component,
+    DataSource,
 } from "@vulkanlabs/client-open";
 
 /**
- * Result type for save operations
+ * API result type for all API operations
+ * Provides error handling and type safety
  */
-export interface SaveWorkflowResult {
+export interface ApiResult<T> {
     success: boolean;
+    data: T | null;
     error: string | null;
-    data: any;
 }
+
+/**
+ * Result type for save operations
+ * @deprecated Use ApiResult<any>
+ */
+export interface SaveWorkflowResult extends ApiResult<any> {}
 
 export type Workflow = PolicyVersion | Component;
 
 /**
- * Data source type for workflow components
- * TODO: Import from @vulkanlabs/client-open when available
- */
-export interface DataSource {
-    data_source_id: string;
-    name: string;
-    runtime_params: string[];
-}
-
-/**
  * Interface defining the workflow API client contract
  * This abstraction allows different implementations (API routes, direct calls, mocks, etc.)
+ * All methods return ApiResult<T> for error handling
  */
 export interface WorkflowApiClient {
     /**
@@ -39,7 +38,7 @@ export interface WorkflowApiClient {
         spec: PolicyDefinitionDict,
         uiMetadata: { [key: string]: UIMetadata },
         projectId?: string,
-    ): Promise<SaveWorkflowResult>;
+    ): Promise<ApiResult<any>>;
 
     /**
      * Fetch policy versions from the server
@@ -48,17 +47,17 @@ export interface WorkflowApiClient {
         policyId?: string | null,
         includeArchived?: boolean,
         projectId?: string,
-    ): Promise<PolicyVersion[]>;
+    ): Promise<ApiResult<PolicyVersion[]>>;
 
     /**
      * Fetch available data sources from the server
      */
-    fetchDataSources(projectId?: string): Promise<DataSource[]>;
+    fetchDataSources(projectId?: string): Promise<ApiResult<DataSource[]>>;
 
     /**
      * Fetch available components from the server
      */
-    fetchComponents(includeArchived?: boolean, projectId?: string): Promise<Component[]>;
+    fetchComponents(includeArchived?: boolean, projectId?: string): Promise<ApiResult<Component[]>>;
 }
 
 /**

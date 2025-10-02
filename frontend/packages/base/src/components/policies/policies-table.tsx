@@ -10,6 +10,9 @@ import { ArrowUpDown, MoreHorizontal, Trash } from "lucide-react";
 import { toast } from "sonner";
 
 // Vulkan packages
+import { Policy } from "@vulkanlabs/client-open";
+
+// Local imports
 import {
     Button,
     Dialog,
@@ -24,13 +27,10 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from "@vulkanlabs/base/ui";
+} from "../ui";
 import { DetailsButton } from "../details-button";
 import { ShortenedID } from "../shortened-id";
 import { ResourceTable } from "../resource-table";
-import { Policy } from "@vulkanlabs/client-open";
-
-// Local imports
 import { parseDate } from "../../lib/utils";
 
 export interface PolicyTableConfig {

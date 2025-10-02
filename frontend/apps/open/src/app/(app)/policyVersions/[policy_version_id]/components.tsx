@@ -4,12 +4,18 @@
 import { Layers, Network, FolderCog, Play } from "lucide-react";
 import { usePathname } from "next/navigation";
 
-// Local imports
-import { InnerNavbar, type InnerNavbarSectionProps, AutoSaveToggle } from "@vulkanlabs/base";
-import { PageLayout, type SidebarSectionProps } from "@/components/page-layout";
-
-import { LauncherButton } from "./launcher/components";
+// Vulkan packages
 import { Policy, PolicyVersion } from "@vulkanlabs/client-open";
+import {
+    InnerNavbar,
+    type InnerNavbarSectionProps,
+    AutoSaveToggle,
+    NavigationGuard,
+} from "@vulkanlabs/base";
+
+// Local imports
+import { PageLayout, type SidebarSectionProps } from "@/components/page-layout";
+import { LauncherButton } from "./launcher/components";
 
 export function RouteLayout({
     policy,
@@ -61,20 +67,22 @@ export function RouteLayout({
                     <AutoSaveToggle showShortcut={true} />
                     <LauncherButton
                         policyVersionId={policyVersion.policy_version_id}
-                        inputSchema={policyVersion.workflow?.input_schema || {}}
+                        inputSchema={policyVersion.workflow?.spec.input_schema || {}}
                     />
                 </div>
             ) : (
                 // Just launch button when not on workflow page
                 <LauncherButton
                     policyVersionId={policyVersion.policy_version_id}
-                    inputSchema={policyVersion.workflow?.input_schema || {}}
+                    inputSchema={policyVersion.workflow?.spec.input_schema || {}}
                 />
             ),
         },
     ];
     return (
         <div className="flex flex-col w-full h-full">
+            {/* Only on workflow pages where unsaved changes can occur */}
+            {isOnWorkflowPage && <NavigationGuard />}
             <InnerNavbar
                 backRoute={`/policies/${policy.policy_id}/overview`}
                 sections={innerNavbarSections}

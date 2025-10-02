@@ -39,7 +39,10 @@ export const fetchDataSource = async (
  * @param {string} [projectId] - Optional project context
  * @returns {Promise<DataSource>} Created data source with generated ID
  */
-export const createDataSource = async (data: DataSourceSpec, projectId?: string) => {
+export const createDataSource = async (
+    data: DataSourceSpec,
+    projectId?: string,
+): Promise<DataSource> => {
     return withErrorHandling(
         dataSourcesApi.createDataSource({ dataSourceSpec: data }),
         "create data source",

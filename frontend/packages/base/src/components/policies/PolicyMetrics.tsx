@@ -1,13 +1,16 @@
 "use client";
 
 // React and Next.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 // External libraries
 import { DateRange } from "react-day-picker";
 import { subDays } from "date-fns";
 
 // Vulkan packages
+import { PolicyVersion } from "@vulkanlabs/client-open";
+
+// Local imports
 import {
     AvgDurationByStatusChart,
     DatePickerWithRange,
@@ -21,33 +24,37 @@ import {
 
 export interface PolicyMetricsConfig {
     policyId: string;
+    versions: PolicyVersion[];
+    projectId?: string;
     metricsLoader: (params: {
         policyId: string;
         dateRange: DateRange;
         versions: string[];
+        projectId?: string;
     }) => Promise<{
-        runsCount?: any[];
-        errorRate?: any[];
-        runDurationStats?: any[];
-        runDurationByStatus?: any[];
+        runsCount: any[];
+        errorRate: any[];
+        runDurationStats: any[];
+        runDurationByStatus: any[];
     }>;
     outcomesLoader: (params: {
         policyId: string;
         dateRange: DateRange;
         versions: string[];
-    }) => Promise<{ runOutcomes: any[] }>;
-    versions: any[];
+        projectId?: string;
+    }) => Promise<any[]>;
 }
 
 export function PolicyMetrics({ config }: { config: PolicyMetricsConfig }) {
-    const { policyId, metricsLoader, outcomesLoader, versions } = config;
+    const { policyId, versions, metricsLoader, outcomesLoader } = config;
 
     // Chart Data
-    const [outcomeDistribution, setOutcomeDistribution] = useState([]);
-    const [runsCount, setRunsCount] = useState([]);
-    const [errorRate, setErrorRate] = useState([]);
-    const [runDurationStats, setRunDurationStats] = useState([]);
-    const [runDurationByStatus, setRunDurationByStatus] = useState([]);
+    const [outcomeDistribution, setOutcomeDistribution] = useState<any[]>([]);
+    const [runsCount, setRunsCount] = useState<any[]>([]);
+    const [errorRate, setErrorRate] = useState<any[]>([]);
+    const [runDurationStats, setRunDurationStats] = useState<any[]>([]);
+    const [runDurationByStatus, setRunDurationByStatus] = useState<any[]>([]);
+
     // Filters & Interactions
     const [dateRange, setDateRange] = useState<DateRange>({
         from: subDays(new Date(), 7),
@@ -57,67 +64,76 @@ export function PolicyMetrics({ config }: { config: PolicyMetricsConfig }) {
         versions.map((v) => v.policy_version_id),
     );
 
+    // Track if we're already loading to prevent duplicate calls
+    const isLoadingRef = useRef(false);
+
     useEffect(() => {
         if (!dateRange || !dateRange.from || !dateRange.to) {
             return;
         }
-        metricsLoader({ policyId, dateRange, versions: selectedVersions })
-            .then((data: any) => {
-                setRunsCount(data.runsCount || []);
-                setErrorRate(data.errorRate || []);
-                setRunDurationStats(data.runDurationStats || []);
-                setRunDurationByStatus(data.runDurationByStatus || []);
-            })
-            .catch((error: any) => {
-                console.error(error);
-                setRunsCount([]);
-                setErrorRate([]);
-                setRunDurationStats([]);
-                setRunDurationByStatus([]);
-            });
 
-        outcomesLoader({ policyId, dateRange, versions: selectedVersions })
-            .then((data: any) => {
-                setOutcomeDistribution(data.runOutcomes || []);
+        // Prevent duplicate calls
+        if (isLoadingRef.current) {
+            return;
+        }
+
+        isLoadingRef.current = true;
+
+        const metricsPromise = metricsLoader({
+            policyId,
+            dateRange,
+            versions: selectedVersions,
+        });
+        const outcomesPromise = outcomesLoader({ policyId, dateRange, versions: selectedVersions });
+
+        Promise.all([metricsPromise, outcomesPromise])
+            .then(([metricsData, outcomesData]) => {
+                setRunsCount(metricsData.runsCount);
+                setErrorRate(metricsData.errorRate);
+                setRunDurationStats(metricsData.runDurationStats);
+                setRunDurationByStatus(metricsData.runDurationByStatus);
+                setOutcomeDistribution(outcomesData);
             })
             .catch((error: any) => {
-                console.error(error);
-                setOutcomeDistribution([]);
+                console.error("Error loading metrics:", error);
+            })
+            .finally(() => {
+                isLoadingRef.current = false;
             });
-    }, [dateRange, selectedVersions, metricsLoader, outcomesLoader, policyId]);
+    }, [dateRange, selectedVersions, config.projectId]);
 
     const graphDefinitions = [
         {
             name: "Policy Outcomes",
-            data: Array.isArray(outcomeDistribution) ? outcomeDistribution : [],
+            data: outcomeDistribution,
             component: RunOutcomesChart,
         },
         {
             name: "Policy Outcome Distribution (%)",
-            data: Array.isArray(outcomeDistribution) ? outcomeDistribution : [],
+            data: outcomeDistribution,
             component: RunOutcomeDistributionChart,
         },
         {
             name: "Runs",
-            data: Array.isArray(runsCount) ? runsCount : [],
+            data: runsCount,
             component: RunsChart,
         },
         {
             name: "Error Rate (%)",
-            data: Array.isArray(errorRate) ? errorRate : [],
+            data: errorRate,
             component: RunErrorRateChart,
         },
         {
             name: "Duration (seconds)",
-            data: Array.isArray(runDurationStats) ? runDurationStats : [],
+            data: runDurationStats,
             component: RunDurationStatsChart,
         },
         {
             name: "Average Duration by Status (seconds)",
-            data: Array.isArray(runDurationByStatus) ? runDurationByStatus : [],
+            data: runDurationByStatus,
             component: AvgDurationByStatusChart,
         },
-    ].filter((graph) => graph.data && Array.isArray(graph.data));
+    ];
 
     return (
         <div className="overflow-hidden flex flex-col gap-4">

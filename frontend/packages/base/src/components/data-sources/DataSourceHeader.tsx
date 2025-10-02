@@ -1,15 +1,8 @@
 "use client";
 
 import { CopyIcon, CheckIcon } from "lucide-react";
-import {
-    Badge,
-    Button,
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@vulkanlabs/base/ui";
 import type { DataSource } from "@vulkanlabs/client-open";
+import { Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui";
 
 interface DataSourceHeaderProps {
     dataSource: DataSource;

@@ -1,14 +1,13 @@
 import { Suspense } from "react";
 
+import { Loader } from "@vulkanlabs/base";
+
 import {
     fetchPolicyVersionVariables,
     fetchPolicyVersionDataSources,
     fetchPolicyVersion,
 } from "@/lib/api";
-
-import { Loader } from "@vulkanlabs/base";
-import { EnvironmentVariables } from "./components";
-import { DataSourcesTable, RequirementsEditor } from "./components";
+import { EnvironmentVariables, DataSourcesTable, RequirementsEditor } from "./components";
 
 export default async function Page(props: { params: Promise<{ policy_version_id: string }> }) {
     const params = await props.params;

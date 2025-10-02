@@ -1,6 +1,6 @@
 // Vulkan packages
 import type { DataSource } from "@vulkanlabs/client-open";
-import { DataSourceDetailPage } from "@vulkanlabs/base";
+import { DataSourceDetailPage } from "@vulkanlabs/base/components/data-sources";
 
 // Local imports
 import {

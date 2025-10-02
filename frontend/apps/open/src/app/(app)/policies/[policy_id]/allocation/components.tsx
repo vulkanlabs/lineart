@@ -5,8 +5,8 @@ import type { Policy, PolicyVersion, PolicyAllocationStrategy } from "@vulkanlab
 import {
     AllocatedVersionsTable as SharedAllocatedVersionsTable,
     UpdateAllocationDialog as SharedUpdateAllocationDialog,
-    parseDate,
-} from "@vulkanlabs/base";
+} from "@vulkanlabs/base/components/policies";
+import { parseDate } from "@vulkanlabs/base";
 
 // Local imports
 import { updatePolicyAllocationStrategy } from "@/lib/api";

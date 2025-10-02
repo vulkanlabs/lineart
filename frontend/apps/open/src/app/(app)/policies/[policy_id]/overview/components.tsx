@@ -1,24 +1,20 @@
 "use client";
 
 // React and Next.js
-import { Suspense } from "react";
+import { useCallback, Suspense } from "react";
 
 // Vulkan packages
 import type { Policy, PolicyVersion } from "@vulkanlabs/client-open";
 import {
     PolicyVersionsTable as SharedPolicyVersionsTable,
     CreatePolicyVersionDialog as SharedCreatePolicyVersionDialog,
-    Loader,
     PolicyMetrics,
-} from "@vulkanlabs/base";
+} from "@vulkanlabs/base/components/policies";
+import { Loader } from "@vulkanlabs/base";
 
 // Local imports
-import {
-    createPolicyVersion,
-    deletePolicyVersion,
-    fetchPolicyMetrics,
-    fetchRunOutcomes,
-} from "@/lib/api";
+import { createPolicyVersion, deletePolicyVersion } from "@/lib/api";
+import { fetchMetricsDataClient, getRunOutcomesByPolicyClient } from "@/lib/api-client";
 
 type PolicyOverviewPageProps = {
     policyId: string;
@@ -31,6 +27,10 @@ export function PolicyOverviewPage({
     policyData,
     policyVersionsData,
 }: PolicyOverviewPageProps) {
+    // Create stable references to prevent unnecessary re-renders
+    const stableMetricsLoader = useCallback(fetchMetricsDataClient, []);
+    const stableOutcomesLoader = useCallback(getRunOutcomesByPolicyClient, []);
+
     return (
         <div className="flex flex-col gap-4 p-4 lg:p-6">
             <h1 className="text-lg font-semibold md:text-2xl">Versions</h1>
@@ -41,8 +41,8 @@ export function PolicyOverviewPage({
                 <PolicyMetrics
                     config={{
                         policyId,
-                        metricsLoader: fetchPolicyMetrics,
-                        outcomesLoader: fetchRunOutcomes,
+                        metricsLoader: stableMetricsLoader,
+                        outcomesLoader: stableOutcomesLoader,
                         versions: policyVersionsData,
                     }}
                 />
@@ -71,11 +71,20 @@ function PolicyVersionsTable({
 }
 
 function CreatePolicyVersionDialog({ policyId }: { policyId: string }) {
+    const handleCreatePolicyVersion = async (data: { policy_id: string; alias?: string }) => {
+        // Convert to PolicyVersionBase format
+        const policyVersionData = {
+            policy_id: data.policy_id,
+            alias: data.alias || null, // Convert undefined to null
+        };
+        return createPolicyVersion(policyVersionData);
+    };
+
     return (
         <SharedCreatePolicyVersionDialog
             config={{
                 policyId,
-                createPolicyVersion,
+                createPolicyVersion: handleCreatePolicyVersion,
             }}
         />
     );

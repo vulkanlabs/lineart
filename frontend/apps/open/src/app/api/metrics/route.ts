@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-    fetchRunsCount,
-    fetchRunDurationStats,
-    fetchRunDurationByStatus,
-    fetchRunOutcomes,
-} from "@/lib/api";
+import { fetchRunsCount, fetchRunDurationStats, fetchRunDurationByStatus } from "@/lib/api";
 
 /**
  * Metrics aggregation API endpoint - get policy analytics data
@@ -23,14 +18,20 @@ export async function POST(request: NextRequest) {
     try {
         const { policyId, dateRange, versions } = await request.json();
 
+        if (!policyId || !dateRange || !dateRange.from || !dateRange.to) {
+            return NextResponse.json(
+                { error: "Bad Request: Missing required parameters" },
+                { status: 400 },
+            );
+        }
+
+        const startDate = new Date(dateRange.from);
+        const endDate = new Date(dateRange.to);
+
         const [runsCount, runDurationStats, runDurationByStatus] = await Promise.all([
-            fetchRunsCount(policyId, dateRange.from, dateRange.to, versions).catch(() => null),
-            fetchRunDurationStats(policyId, dateRange.from, dateRange.to, versions).catch(
-                () => null,
-            ),
-            fetchRunDurationByStatus(policyId, dateRange.from, dateRange.to, versions).catch(
-                () => null,
-            ),
+            fetchRunsCount(policyId, startDate, endDate, versions),
+            fetchRunDurationStats(policyId, startDate, endDate, versions),
+            fetchRunDurationByStatus(policyId, startDate, endDate, versions),
         ]);
 
         // Calculate error rate from runs data if available
@@ -50,14 +51,6 @@ export async function POST(request: NextRequest) {
         });
     } catch (error) {
         console.error("Failed to fetch metrics data:", error);
-        return NextResponse.json(
-            {
-                runsCount: null,
-                errorRate: null,
-                runDurationStats: null,
-                runDurationByStatus: null,
-            },
-            { status: 500 },
-        );
+        return NextResponse.json({ error: `Internal Server Error: ${error}` }, { status: 500 });
     }
 }

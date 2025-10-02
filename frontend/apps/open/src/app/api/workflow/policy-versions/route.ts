@@ -1,4 +1,5 @@
 import { PolicyVersion } from "@vulkanlabs/client-open";
+import { apiResult } from "@/lib/api-response";
 
 export async function GET(request: Request) {
     try {
@@ -8,7 +9,7 @@ export async function GET(request: Request) {
 
         const serverUrl = process.env.NEXT_PUBLIC_VULKAN_SERVER_URL;
         if (!serverUrl) {
-            return Response.json({ error: "Server URL is not configured" }, { status: 500 });
+            return apiResult.error("Server URL is not configured", 500);
         }
 
         // Build query parameters matching the original server action
@@ -27,23 +28,23 @@ export async function GET(request: Request) {
         });
 
         if (!response.ok) {
-            return Response.json(
-                { error: `Failed to fetch policy versions: ${response.statusText}` },
-                { status: response.status },
+            return apiResult.error(
+                `Failed to fetch policy versions: ${response.statusText}`,
+                response.status,
             );
         }
 
         if (response.status === 204) {
-            return Response.json([]);
+            return apiResult.success([]);
         }
 
         const data: PolicyVersion[] = await response.json();
-        return Response.json(data);
+        return apiResult.success(data);
     } catch (error) {
         console.error("Error fetching policy versions:", error);
-        return Response.json(
-            { error: error instanceof Error ? error.message : "Failed to fetch policy versions" },
-            { status: 500 },
+        return apiResult.error(
+            error instanceof Error ? error.message : "Failed to fetch policy versions",
+            500,
         );
     }
 }

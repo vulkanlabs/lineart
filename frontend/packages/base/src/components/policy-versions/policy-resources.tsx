@@ -13,6 +13,9 @@ import { toast } from "sonner";
 import * as z from "zod";
 
 // Vulkan packages
+import type { PolicyVersion } from "@vulkanlabs/client-open";
+
+// Local imports
 import { Button, Form, FormControl, FormField, FormItem, FormMessage, Textarea } from "../../ui";
 import {
     DataTable,
@@ -34,7 +37,7 @@ export interface PolicyResourcesDataSourcesTableConfig {
 
 export interface PolicyResourcesRequirementsEditorConfig {
     policyVersion: any;
-    updatePolicyVersion: (policyVersionId: string, updateData: any) => Promise<void>;
+    updatePolicyVersion: (policyVersionId: string, updateData: any) => Promise<PolicyVersion>;
 }
 
 export function PolicyResourcesEnvironmentVariables({

@@ -1,6 +1,7 @@
-import { fetchComponent } from "@/lib/api";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@vulkanlabs/base/ui";
-import { ComponentsEnvTab } from "@vulkanlabs/base";
+import { ComponentsEnvTab } from "@vulkanlabs/base/components/components";
+
+import { fetchComponent } from "@/lib/api";
 import { AppWorkflowFrame } from "@/components/workflow-frame";
 
 export default async function Page(props: { params: Promise<{ component_name: string }> }) {
