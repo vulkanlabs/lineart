@@ -116,6 +116,7 @@ class DagsterDataInput(DataInputNode, DagsterNode):
                 "origin": data.get("origin"),
             }
             extra.update({"response_metadata": response_metadata})
+            context.log.info(f"Data: {data}")
 
             yield Output(data["value"])
 
