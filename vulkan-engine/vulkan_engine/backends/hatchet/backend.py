@@ -86,5 +86,9 @@ class HatchetBackend(ExecutionBackend):
         except ValidationError as e:
             raise ValueError(f"[workflow {workflow_id}] Invalid input data") from e
 
-        run_ref = stub_workflow.run_no_wait(run_inputs, options=options)
+        try:
+            run_ref = stub_workflow.run_no_wait(run_inputs, options=options)
+        except Exception as e:
+            logger.error(f"Failed to trigger workflow {workflow_id}: {e}")
+            raise RuntimeError(f"[workflow {workflow_id}] Failed to trigger") from e
         return run_ref.workflow_run_id
