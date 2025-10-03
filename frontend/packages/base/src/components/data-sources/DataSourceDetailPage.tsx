@@ -18,6 +18,7 @@ import { RetryPolicyCard } from "./RetryPolicyCard";
 import { CachingConfigurationCard } from "./CachingConfigurationCard";
 import { EditableVariablesCard } from "./EditableVariablesCard";
 import { DataSourceUsageAnalytics, UsageAnalyticsConfig } from "./DataSourceUsageAnalytics";
+import { TestDataSourcePanel } from "./TestDataSourcePanel";
 
 export interface DataSourceDetailPageConfig {
     dataSource: DataSource;
@@ -54,6 +55,22 @@ export interface DataSourceDetailPageConfig {
         projectId?: string,
     ) => Promise<{
         cache_hit_ratio_by_date: any[];
+    }>;
+    testDataSource?: (
+        dataSourceId: string,
+        testRequest: {
+            configured_params: any;
+            override_env_vars?: any;
+        },
+        projectId?: string,
+    ) => Promise<{
+        status_code: number;
+        response_body: any;
+        response_time_ms: number;
+        cache_hit: boolean;
+        headers: Record<string, string>;
+        request_url: string;
+        error_message?: string;
     }>;
     projectId?: string;
 }
@@ -150,8 +167,11 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
                 </TabsContent>
 
                 <TabsContent value="test">
-                    {/* TODO: Add TestDataSourcePanel component here */}
-                    <div className="text-muted-foreground">Test panel - Coming soon</div>
+                    <TestDataSourcePanel
+                        dataSource={dataSource}
+                        testDataSource={config.testDataSource}
+                        projectId={config.projectId}
+                    />
                 </TabsContent>
             </Tabs>
         </>
