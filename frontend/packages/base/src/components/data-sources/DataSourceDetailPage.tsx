@@ -11,6 +11,7 @@ import { Loader } from "../..";
 
 import { useDataSourceUtils } from "./useDataSourceUtils";
 import { DataSourceHeader } from "./DataSourceHeader";
+import { DataSourceStatusBanner } from "./DataSourceStatusBanner";
 import { DataSourceSummaryCard } from "./DataSourceSummaryCard";
 import { SourceConfigurationCard } from "./SourceConfigurationCard";
 import { RetryPolicyCard } from "./RetryPolicyCard";
@@ -58,12 +59,9 @@ export interface DataSourceDetailPageConfig {
 }
 
 export function DataSourceDetailPage({ config }: { config: DataSourceDetailPageConfig }) {
-    const { dataSource } = config;
-
     return (
         <div className="flex flex-col gap-6 p-6">
             <DataSourceDetails config={config} />
-            <UsageAnalyticsSection dataSourceId={dataSource.data_source_id} config={config} />
         </div>
     );
 }
@@ -111,43 +109,49 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
             <Separator />
 
             {/* Main content */}
-            <Tabs defaultValue="general" className="w-full">
-                <TabsList className="mb-4">
-                    <TabsTrigger value="general">General</TabsTrigger>
-                    <TabsTrigger value="source">Source</TabsTrigger>
-                    <TabsTrigger value="caching">Caching</TabsTrigger>
+            <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="mb-4 w-fit">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="test">Test</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="general">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <DataSourceSummaryCard
-                            dataSource={dataSource}
-                            formatDate={formatDate}
-                            formatJson={formatJson}
-                        />
-
-                        <EditableVariablesCard
-                            dataSource={dataSource}
-                            projectId={config.projectId}
-                            fetchDataSourceEnvVars={fetchDataSourceEnvVars}
-                            setDataSourceEnvVars={setDataSourceEnvVars}
-                        />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="source">
+                <TabsContent value="overview">
                     <div className="grid gap-4">
+                        <DataSourceStatusBanner dataSource={dataSource} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DataSourceSummaryCard
+                                dataSource={dataSource}
+                                formatDate={formatDate}
+                                formatJson={formatJson}
+                            />
+
+                            <EditableVariablesCard
+                                dataSource={dataSource}
+                                projectId={config.projectId}
+                                fetchDataSourceEnvVars={fetchDataSourceEnvVars}
+                                setDataSourceEnvVars={setDataSourceEnvVars}
+                            />
+                        </div>
+
                         <SourceConfigurationCard dataSource={dataSource} formatJson={formatJson} />
 
                         <RetryPolicyCard dataSource={dataSource} />
+
+                        <CachingConfigurationCard
+                            dataSource={dataSource}
+                            formatTimeFromSeconds={formatTimeFromSeconds}
+                        />
+
+                        <UsageAnalyticsSection
+                            dataSourceId={dataSource.data_source_id}
+                            config={config}
+                        />
                     </div>
                 </TabsContent>
 
-                <TabsContent value="caching">
-                    <CachingConfigurationCard
-                        dataSource={dataSource}
-                        formatTimeFromSeconds={formatTimeFromSeconds}
-                    />
+                <TabsContent value="test">
+                    {/* TODO: Add TestDataSourcePanel component here */}
+                    <div className="text-muted-foreground">Test panel - Coming soon</div>
                 </TabsContent>
             </Tabs>
         </>
