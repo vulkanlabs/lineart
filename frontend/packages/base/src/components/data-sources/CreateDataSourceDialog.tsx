@@ -122,7 +122,9 @@ export function CreateDataSourceDialog({ config }: { config: CreateDataSourceDia
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>{config.dialogTitle || "Create a new Data Source"}</DialogTitle>
+                        <DialogTitle>
+                            {config.dialogTitle || "Create a new Data Source"}
+                        </DialogTitle>
                     </DialogHeader>
                     <form
                         className="flex flex-col gap-4 py-4"
@@ -135,7 +137,11 @@ export function CreateDataSourceDialog({ config }: { config: CreateDataSourceDia
                                 <FormItem>
                                     <FormLabel htmlFor="name">Name</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="New Data Source" type="text" {...field} />
+                                        <Input
+                                            placeholder="New Data Source"
+                                            type="text"
+                                            {...field}
+                                        />
                                     </FormControl>
                                     <FormDescription>Name of the new Data Source</FormDescription>
                                     <FormMessage>{form.formState.errors.name?.message}</FormMessage>

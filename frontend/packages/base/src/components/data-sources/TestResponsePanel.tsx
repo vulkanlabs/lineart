@@ -83,9 +83,7 @@ export function TestResponsePanel({ response, isLoading }: TestResponsePanelProp
                     <div className="space-y-1">
                         <div className="text-sm font-medium text-muted-foreground">Status Code</div>
                         <div className="text-lg font-semibold">
-                            {response.status_code === 0
-                                ? "Network Error"
-                                : response.status_code}
+                            {response.status_code === 0 ? "Network Error" : response.status_code}
                         </div>
                     </div>
                     <div className="space-y-1">

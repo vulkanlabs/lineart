@@ -44,11 +44,7 @@ export function TestDataSourcePanel({
 
         setIsLoading(true);
         try {
-            const result = await testDataSource(
-                dataSource.data_source_id,
-                config,
-                projectId,
-            );
+            const result = await testDataSource(dataSource.data_source_id, config, projectId);
             setResponse(result);
         } catch (error: any) {
             // Handle error by creating error response

@@ -49,7 +49,7 @@ export function DataSourceStatusBanner({ dataSource }: DataSourceStatusBannerPro
             </Alert>
         );
 
-    if (status === "ready") 
+    if (status === "ready")
         return (
             <Alert variant="default" className="border-yellow-500 text-yellow-700">
                 <AlertCircle className="h-4 w-4" />
