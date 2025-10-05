@@ -11,13 +11,16 @@ from vulkan.runners.dagster.io_manager import (
     postgresql_io_manager,
 )
 from vulkan.runners.dagster.policy import DagsterFlow
-from vulkan.runners.dagster.resources import AppClientResource
+from vulkan.runners.dagster.resources import (
+    AppClientResource,
+    VulkanPolicyConfig,
+    VulkanRunConfig,
+)
 from vulkan.runners.shared.constants import (
     APP_CLIENT_KEY,
     POLICY_CONFIG_KEY,
     RUN_CONFIG_KEY,
 )
-from vulkan.runners.shared.run_config import VulkanPolicyConfig, VulkanRunConfig
 from vulkan.spec.environment.loaders import load_and_resolve_policy
 
 
@@ -30,7 +33,7 @@ def make_workspace_definition(spec_file_path: str) -> Definitions:
         # Run DB
         DB_CONFIG_KEY: DBConfig(
             host=EnvVar("VULKAN_DB_HOST"),
-            port=EnvVar("VULKAN_DB_PORT"),
+            port=EnvVar.int("VULKAN_DB_PORT"),
             user=EnvVar("VULKAN_DB_USER"),
             password=EnvVar("VULKAN_DB_PASSWORD"),
             database=EnvVar("VULKAN_DB_DATABASE"),
@@ -128,6 +131,6 @@ class DagsterWorkspaceManager:
 
 DAGSTER_ENTRYPOINT = """
 from vulkan.runners.dagster.workspace import make_workspace_definition
-                
+
 definitions = make_workspace_definition("{spec_file_path}")
 """

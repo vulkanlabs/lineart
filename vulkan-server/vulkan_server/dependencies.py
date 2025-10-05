@@ -123,17 +123,20 @@ def get_execution_backend(
 
 def get_worker_data_client(
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
+    db_session: Annotated[Session, Depends(get_db_session)],
 ) -> BaseDataClient | None:
     """
     Get worker data client using factory pattern.
 
     Args:
         config: Vulkan engine configuration
+        db_session: App database session
 
     Returns:
         WorkerDataClient instance or None if database is disabled
     """
-    return DataClientFactory.create_data_client(config)
+    factory = DataClientFactory(db_session)
+    return factory.create_data_client(config)
 
 
 def get_worker_service_client(
@@ -171,6 +174,8 @@ def get_run_query_service(
     Returns:
         Configured RunQueryService instance
     """
+    if worker_data_client is None:
+        raise ValueError("Worker data client is required")
     return RunQueryService(
         db=db,
         dagster_client=worker_data_client,  # Keep parameter name for compatibility

@@ -8,12 +8,10 @@ import os
 from logging import Logger
 
 from vulkan_engine.backends.dagster.client import (
-    DagsterServiceConfig,
-    create_dagster_client_from_config,
+    create_dagster_client_from_url,
 )
 from vulkan_engine.backends.dagster.service_client import DagsterServiceClient
 from vulkan_engine.backends.hatchet.service_client import (
-    HatchetRequestConfig,
     HatchetServiceClient,
 )
 from vulkan_engine.backends.service_client import BackendServiceClient
@@ -65,38 +63,21 @@ class ServiceClientFactory:
     ) -> DagsterServiceClient:
         """Create Dagster service client with proper configuration."""
 
-        # Check if using new WorkerServiceConfig structure
-        if hasattr(config.worker_service, "service_config") and isinstance(
-            config.worker_service.service_config, DagsterConfig
-        ):
-            # For now, DagsterConfig has no fields, but structure is ready for future extensions
-            server_url = config.worker_service.server_url
-            # Parse host and port from server_url for backward compatibility
-            from urllib.parse import urlparse
-
-            parsed = urlparse(server_url)
-
-            dagster_config = DagsterServiceConfig(
-                host=parsed.hostname or "localhost",
-                port=parsed.port or 3000,
-                server_port=parsed.port or 3000,
-            )
-        else:
-            # Fallback for old config structure
-            dagster_config = DagsterServiceConfig(
-                host=config.worker_service.host,
-                port=config.worker_service.port,
-                server_port=config.worker_service.server_port
-                or config.worker_service.port,
+        if not isinstance(config.worker_service.service_config, DagsterConfig):
+            raise ValueError(
+                f"Invalid worker service configuration: {config.worker_service.service_config}"
             )
 
-        dagster_client = create_dagster_client_from_config(dagster_config)
-        server_url = dagster_config.server_url
+        try:
+            url = config.worker_service.service_config.worker_url
+            dagster_client = create_dagster_client_from_url(url)
+        except Exception as e:
+            raise ValueError("Failed to create Dagster client") from e
 
         return DagsterServiceClient(
-            server_url=server_url,
+            server_url=config.worker_service.server_url,
             dagster_client=dagster_client,
-            base_logger=base_logger,
+            logger=base_logger,
         )
 
     @staticmethod
@@ -107,7 +88,6 @@ class ServiceClientFactory:
         """Create Hatchet service client with proper configuration."""
 
         server_url = config.worker_service.server_url
-
         return HatchetServiceClient(
             server_url=server_url,
             logger=base_logger,
@@ -124,20 +104,28 @@ def create_worker_service_config() -> WorkerServiceConfig:
             f"Invalid WORKER_TYPE: {worker_type}. Must be one of {SUPPORTED_BACKENDS}"
         )
 
-    worker_url = os.getenv("WORKER_URL")
-    if worker_url is None:
-        raise ValueError("Missing required environment variable: WORKER_URL")
+    server_url = os.getenv("BACKEND_SERVER_URL")
+    if server_url is None:
+        msg = "Missing required environment variable: BACKEND_SERVER_URL"
+        raise ValueError(msg)
 
     if worker_type == "hatchet":
         hatchet_token = os.getenv("HATCHET_TOKEN")
         if hatchet_token is None:
-            raise ValueError("Missing required environment variable: HATCHET_TOKEN")
+            msg = "Missing required environment variable: HATCHET_TOKEN"
+            raise ValueError(msg)
         service_config = HatchetConfig(hatchet_token=hatchet_token)
     elif worker_type == "dagster":
-        service_config = DagsterConfig()
+        worker_url = os.getenv("DAGSTER_WORKER_URL")
+        if worker_url is None:
+            msg = "Missing required environment variable: DAGSTER_WORKER_URL"
+            raise ValueError(msg)
+        service_config = DagsterConfig(worker_url=worker_url)
+    else:
+        raise ValueError(f"Invalid WORKER_TYPE: {worker_type}")
 
     return WorkerServiceConfig(
         worker_type=worker_type,
-        server_url=worker_url,
+        server_url=server_url,
         service_config=service_config,
     )

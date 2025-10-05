@@ -12,8 +12,7 @@ from typing import Literal, Union
 class DagsterConfig:
     """Configuration specific to Dagster backend."""
 
-    # Currently no specific fields required for Dagster
-    pass
+    worker_url: str
 
 
 @dataclass

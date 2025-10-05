@@ -6,12 +6,11 @@ run launchers that work with different workflow engines (Dagster, Hatchet).
 
 from vulkan_engine.backends.dagster.backend import DagsterBackend
 from vulkan_engine.backends.dagster.client import (
-    DagsterServiceConfig,
-    create_dagster_client_from_config,
+    create_dagster_client_from_url,
 )
 from vulkan_engine.backends.execution import ExecutionBackend
 from vulkan_engine.backends.hatchet.backend import HatchetBackend
-from vulkan_engine.config import VulkanEngineConfig, WorkerServiceConfig
+from vulkan_engine.config import DagsterConfig, VulkanEngineConfig
 
 
 class ExecutionBackendFactory:
@@ -41,23 +40,20 @@ class ExecutionBackendFactory:
             raise ValueError(f"Unsupported worker type: {worker_type}")
 
     @staticmethod
-    def _create_dagster_backend(
-        config: WorkerServiceConfig,
-    ) -> ExecutionBackend:
+    def _create_dagster_backend(config: VulkanEngineConfig) -> ExecutionBackend:
         """Create Dagster launcher with proper configuration."""
-        dagster_config = DagsterServiceConfig(
-            host=config.worker_service.host,
-            port=config.worker_service.port,
-            server_port=config.worker_service.server_port or config.worker_service.port,
-        )
-        dagster_client = create_dagster_client_from_config(dagster_config)
+        worker_config = config.worker_service
+        if not isinstance(worker_config.service_config, DagsterConfig):
+            msg = f"Invalid Dagster configuration: {worker_config.service_config}"
+            raise ValueError(msg)
 
-        return DagsterBackend(dagster_client, config.worker_service.server_url)
+        dagster_client = create_dagster_client_from_url(
+            url=worker_config.service_config.worker_url,
+        )
+        return DagsterBackend(dagster_client, worker_config.server_url)
 
     @staticmethod
-    def _create_hatchet_backend(
-        config: VulkanEngineConfig,
-    ) -> ExecutionBackend:
+    def _create_hatchet_backend(config: VulkanEngineConfig) -> ExecutionBackend:
         """Create Hatchet launcher with proper configuration."""
         return HatchetBackend(
             worker_config=config.worker_service,

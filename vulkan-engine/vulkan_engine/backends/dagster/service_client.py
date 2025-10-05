@@ -21,7 +21,7 @@ class DagsterServiceClient(BackendServiceClient):
     def __init__(
         self,
         server_url: str,
-        dagster_client: str,
+        dagster_client: Any,
         logger: Logger,
         request_config: VulkanDagsterRequestConfig | None = None,
     ) -> None:
@@ -55,6 +55,7 @@ class DagsterServiceClient(BackendServiceClient):
             method="GET",
             url=f"/workspaces/{workspace_id}",
             on_error="Failed to get workspace",
+            json=None,
         )
         return response
 

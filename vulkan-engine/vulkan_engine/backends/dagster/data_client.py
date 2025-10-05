@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import sqlalchemy
 from dagster._core.events.log import EventLogEntry
 from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 from vulkan_engine.backends.data_client import PYTHON_LOG_LEVELS, BaseDataClient
 from vulkan_engine.db import StepMetadata
@@ -27,8 +28,9 @@ class DagsterDatabaseConfig:
 
 
 class DagsterDataClient(BaseDataClient):
-    def __init__(self, config: DagsterDatabaseConfig):
+    def __init__(self, config: DagsterDatabaseConfig, app_db: Session):
         self.dagster_db = create_engine(config.connection_string, echo=False)
+        self.app_db = app_db
 
     def get_run_data(self, run_id: str) -> dict[str, StepDetails]:
         with self.dagster_db.connect() as conn:
@@ -41,20 +43,12 @@ class DagsterDataClient(BaseDataClient):
             )
             results = conn.execute(q, {"run_id": run_id}).fetchall()
         # Get step metadata
-        steps = self.db.query(StepMetadata).filter_by(run_id=run_id).all()
+        steps = self.app_db.query(StepMetadata).filter_by(run_id=run_id).all()
 
         # Process results
         results_by_name = {result[0]: (result[1], result[2]) for result in results}
         metadata = {
-            step.step_name: StepMetadataBase(
-                step_name=step.step_name,
-                node_type=step.node_type,
-                start_time=step.start_time,
-                end_time=step.end_time,
-                error=step.error,
-                extra=step.extra,
-            )
-            for step in steps
+            step.step_name: StepMetadataBase.model_validate(step) for step in steps
         }
 
         step_details: dict[str, StepDetails] = {}
@@ -136,9 +130,9 @@ def _process_log_entry(entry) -> LogEntry:
     else:
         raise ValueError(f"Unknown event source: {event_source}")
 
-    return {
-        "timestamp": timestamp,
-        "step_key": step_key,
-        "source": event_source,
-        "event": event_content,
-    }
+    return LogEntry(
+        timestamp=timestamp,
+        step_key=step_key,
+        source=event_source,
+        event=event_content,
+    )
