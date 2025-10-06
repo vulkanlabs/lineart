@@ -16,8 +16,8 @@ from lineart_sdk.types import (
     OptionalNullable,
 )
 
-from ._stepdetails import StepDetails, StepDetailsTypedDict
 from .runstatus import RunStatus
+from .stepdetails import StepDetails, StepDetailsTypedDict
 
 
 class RunDataTypedDict(TypedDict):
