@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { FileIcon } from "lucide-react";
+import { Braces } from "lucide-react";
 
 import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
 
@@ -50,7 +50,7 @@ export function EditableVariablesCard({
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
-                        <FileIcon className="h-5 w-5" />
+                        <Braces className="h-5 w-5" />
                         Variables
                     </CardTitle>
                 </div>

@@ -11,17 +11,18 @@ import { Loader } from "../..";
 
 import { useDataSourceUtils } from "./useDataSourceUtils";
 import { DataSourceHeader } from "./DataSourceHeader";
- // import { DataSourceStatusBanner } from "./DataSourceStatusBanner"; // TODO: Requires Alert component
-import { DataSourceSummaryCard } from "./DataSourceSummaryCard";
-import { SourceConfigurationCard } from "./SourceConfigurationCard";
-import { RetryPolicyCard } from "./RetryPolicyCard";
-import { CachingConfigurationCard } from "./CachingConfigurationCard";
 import { EditableVariablesCard } from "./EditableVariablesCard";
 import { DataSourceUsageAnalytics, UsageAnalyticsConfig } from "./DataSourceUsageAnalytics";
 import { TestDataSourcePanel } from "./TestDataSourcePanel";
+import { EditDataSourcePanel } from "./EditDataSourcePanel";
 
 export interface DataSourceDetailPageConfig {
     dataSource: DataSource;
+    updateDataSource: (
+        dataSourceId: string,
+        updates: Partial<DataSource>,
+        projectId?: string,
+    ) => Promise<DataSource>;
     fetchDataSourceEnvVars: (
         dataSourceId: string,
         projectId?: string,
@@ -105,14 +106,7 @@ function UsageAnalyticsSection({ dataSourceId, config }: UsageAnalyticsSectionPr
 function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
     const { dataSource, fetchDataSourceEnvVars, setDataSourceEnvVars } = config;
 
-    const {
-        copiedField,
-        copyToClipboard,
-        getFullDataSourceJson,
-        formatDate,
-        formatTimeFromSeconds,
-        formatJson,
-    } = useDataSourceUtils();
+    const { copiedField, copyToClipboard, getFullDataSourceJson } = useDataSourceUtils();
 
     return (
         <>
@@ -126,44 +120,26 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
             <Separator />
 
             {/* Main content */}
-            <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="mb-4 w-fit">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
+            <Tabs defaultValue="general" className="w-full">
+                <TabsList className="mb-4">
+                    <TabsTrigger value="general">General</TabsTrigger>
                     <TabsTrigger value="test">Test</TabsTrigger>
+                    <TabsTrigger value="usage">Usage</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="overview">
-                    <div className="grid gap-4">
-                        {/* TODO: Add DataSourceStatusBanner when Alert component is available */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <DataSourceSummaryCard
-                                dataSource={dataSource}
-                                formatDate={formatDate}
-                                formatJson={formatJson}
-                            />
+                <TabsContent value="general" className="space-y-8">
+                    <EditDataSourcePanel
+                        dataSource={dataSource}
+                        updateDataSource={config.updateDataSource}
+                        projectId={config.projectId}
+                    />
 
-                            <EditableVariablesCard
-                                dataSource={dataSource}
-                                projectId={config.projectId}
-                                fetchDataSourceEnvVars={fetchDataSourceEnvVars}
-                                setDataSourceEnvVars={setDataSourceEnvVars}
-                            />
-                        </div>
-
-                        <SourceConfigurationCard dataSource={dataSource} formatJson={formatJson} />
-
-                        <RetryPolicyCard dataSource={dataSource} />
-
-                        <CachingConfigurationCard
-                            dataSource={dataSource}
-                            formatTimeFromSeconds={formatTimeFromSeconds}
-                        />
-
-                        <UsageAnalyticsSection
-                            dataSourceId={dataSource.data_source_id}
-                            config={config}
-                        />
-                    </div>
+                    <EditableVariablesCard
+                        dataSource={dataSource}
+                        projectId={config.projectId}
+                        fetchDataSourceEnvVars={fetchDataSourceEnvVars}
+                        setDataSourceEnvVars={setDataSourceEnvVars}
+                    />
                 </TabsContent>
 
                 <TabsContent value="test">
@@ -171,6 +147,13 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
                         dataSource={dataSource}
                         testDataSource={config.testDataSource}
                         projectId={config.projectId}
+                    />
+                </TabsContent>
+
+                <TabsContent value="usage">
+                    <UsageAnalyticsSection
+                        dataSourceId={dataSource.data_source_id}
+                        config={config}
                     />
                 </TabsContent>
             </Tabs>
