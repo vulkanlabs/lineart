@@ -5,14 +5,15 @@ Handles HTTP endpoints for run operations. All business logic
 is delegated to RunService.
 """
 
+from logging import Logger
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
 from vulkan_engine import schemas
 from vulkan_engine.exceptions import RunNotFoundException
 from vulkan_engine.services.run_query import RunQueryService
 
-from vulkan_server.dependencies import (
-    get_run_query_service,
-)
+from vulkan_server.dependencies import get_configured_logger, get_run_query_service
 
 router = APIRouter(
     prefix="/runs",
@@ -24,10 +25,13 @@ router = APIRouter(
 @router.get("/{run_id}/data", response_model=schemas.RunData)
 def get_run_data(
     run_id: str,
-    service: RunQueryService = Depends(get_run_query_service),
+    service: Annotated[RunQueryService, Depends(get_run_query_service)],
+    logger: Annotated[Logger, Depends(get_configured_logger)],
 ):
     """Get run data including step outputs and metadata."""
+    logger.info(f"Fetching run data for run ID: {run_id}")
     try:
+        logger.info(f"Fetching run data for run ID from service: {run_id}")
         return service.get_run_data(run_id)
     except RunNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -39,7 +43,7 @@ def get_run_data(
 @router.get("/{run_id}/logs", response_model=schemas.RunLogs)
 def get_run_logs(
     run_id: str,
-    service: RunQueryService = Depends(get_run_query_service),
+    service: Annotated[RunQueryService, Depends(get_run_query_service)],
 ):
     """Get logs for a run."""
     try:
@@ -51,7 +55,7 @@ def get_run_logs(
 @router.get("/{run_id}", response_model=schemas.Run)
 def get_run(
     run_id: str,
-    service: RunQueryService = Depends(get_run_query_service),
+    service: Annotated[RunQueryService, Depends(get_run_query_service)],
 ):
     """Get run details."""
     try:

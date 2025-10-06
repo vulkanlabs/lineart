@@ -1,10 +1,5 @@
 from dagster_graphql import DagsterGraphQLClient
 
-
-def create_dagster_client(url: str, port: int) -> DagsterGraphQLClient:
-    return DagsterGraphQLClient(url, port_number=port)
-
-
 _DEFAULT_REPOSITORY_NAME = "__repository__"
 
 

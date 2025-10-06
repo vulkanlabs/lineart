@@ -1,7 +1,5 @@
 """Dagster backend implementation for workflow execution."""
 
-from uuid import UUID
-
 from dagster_graphql import DagsterGraphQLClient
 
 from vulkan.runners.dagster.policy import DEFAULT_POLICY_NAME
@@ -16,7 +14,7 @@ logger = init_logger("dagster_backend")
 class DagsterBackend(ExecutionBackend):
     """Dagster implementation of the execution backend."""
 
-    def __init__(self, dagster_client: DagsterGraphQLClient, server_url: str):
+    def __init__(self, dagster_client: DagsterGraphQLClient, app_server_url: str):
         """
         Initialize Dagster backend.
 
@@ -25,16 +23,16 @@ class DagsterBackend(ExecutionBackend):
             server_url: Server URL for callbacks
         """
         self.dagster_client = dagster_client
-        self.server_url = server_url
+        self.server_url = app_server_url
 
     def trigger_job(
         self,
-        run_id: UUID,
+        run_id: str,
         workflow_id: str,
         input_data: dict,
         input_schema: dict,
         config_variables: dict[str, str],
-        project_id: UUID | None = None,
+        project_id: str | None = None,
     ) -> str:
         """
         Trigger a Dagster job execution.

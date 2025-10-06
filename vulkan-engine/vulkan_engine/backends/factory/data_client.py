@@ -61,7 +61,7 @@ class DataClientFactory:
             port=config.worker_database.port,
             database=config.worker_database.database,
         )
-        return DagsterDataClient(dagster_db_config, self.app_db)
+        return DagsterDataClient(dagster_db_config)
 
     def _create_hatchet_data_client(self, config: VulkanEngineConfig) -> BaseDataClient:
         """Create Hatchet data client with proper configuration."""

@@ -5,9 +5,7 @@ from dagster import Definitions, EnvVar, IOManagerDefinition
 
 from vulkan.runners.dagster.io_manager import (
     DB_CONFIG_KEY,
-    PUBLISH_IO_MANAGER_KEY,
     DBConfig,
-    metadata_io_manager,
     postgresql_io_manager,
 )
 from vulkan.runners.dagster.policy import DagsterFlow
@@ -45,10 +43,6 @@ def make_workspace_definition(spec_file_path: str) -> Definitions:
         "io_manager": IOManagerDefinition(
             resource_fn=postgresql_io_manager,
             required_resource_keys={RUN_CONFIG_KEY, DB_CONFIG_KEY},
-        ),
-        PUBLISH_IO_MANAGER_KEY: IOManagerDefinition(
-            resource_fn=metadata_io_manager,
-            required_resource_keys={APP_CLIENT_KEY},
         ),
     }
 

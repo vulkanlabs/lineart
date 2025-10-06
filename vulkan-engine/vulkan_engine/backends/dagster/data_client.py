@@ -4,10 +4,8 @@ from dataclasses import dataclass
 import sqlalchemy
 from dagster._core.events.log import EventLogEntry
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
 
 from vulkan_engine.backends.data_client import PYTHON_LOG_LEVELS, BaseDataClient
-from vulkan_engine.db import StepMetadata
 from vulkan_engine.schemas import LogEntry, StepDetails, StepMetadataBase
 
 
@@ -28,11 +26,11 @@ class DagsterDatabaseConfig:
 
 
 class DagsterDataClient(BaseDataClient):
-    def __init__(self, config: DagsterDatabaseConfig, app_db: Session):
+    def __init__(self, config: DagsterDatabaseConfig):
         self.dagster_db = create_engine(config.connection_string, echo=False)
-        self.app_db = app_db
 
     def get_run_data(self, run_id: str) -> dict[str, StepDetails]:
+        # Get step outputs from Dagster database
         with self.dagster_db.connect() as conn:
             q = sqlalchemy.text(
                 """
@@ -42,36 +40,103 @@ class DagsterDataClient(BaseDataClient):
             """
             )
             results = conn.execute(q, {"run_id": run_id}).fetchall()
-        # Get step metadata
-        steps = self.app_db.query(StepMetadata).filter_by(run_id=run_id).all()
 
-        # Process results
+        # Get event logs to compute metadata
+        with self.dagster_db.connect() as conn:
+            q = sqlalchemy.text(
+                """
+            SELECT step_key, event
+              FROM event_logs
+             WHERE run_id = :run_id
+               AND step_key IS NOT NULL
+            """
+            )
+            event_logs = conn.execute(q, {"run_id": run_id}).fetchall()
+
+        # Process outputs
         results_by_name = {result[0]: (result[1], result[2]) for result in results}
-        metadata = {
-            step.step_name: StepMetadataBase.model_validate(step) for step in steps
-        }
+
+        # Compute metadata from event logs
+        metadata = self._compute_metadata_from_events(event_logs)
 
         step_details: dict[str, StepDetails] = {}
-        # Parse step data with metadata
-        for step_name, step_metadata in metadata.items():
+
+        # Combine outputs with metadata
+        all_step_names = set(results_by_name.keys()) | set(metadata.keys())
+
+        for step_name in all_step_names:
             value = None
 
             if step_name in results_by_name:
-                object_name, value = results_by_name[step_name]
+                object_name, raw_value = results_by_name[step_name]
                 if object_name != "result":
                     # Branch node output - object_name represents the path taken
                     value = object_name
                 else:
                     # Unpickle the actual result
                     try:
-                        value = pickle.loads(value)
+                        value = pickle.loads(raw_value)
                     except pickle.UnpicklingError:
                         raise Exception(
                             f"Failed to unpickle data for {step_name}.{object_name}"
                         )
 
+            step_metadata = metadata.get(step_name)
             step_details[step_name] = {"output": value, "metadata": step_metadata}
+
         return step_details
+
+    def _compute_metadata_from_events(
+        self, event_logs: list
+    ) -> dict[str, StepMetadataBase]:
+        """Compute step metadata from Dagster event logs."""
+        step_events = {}
+
+        for step_key, event_json in event_logs:
+            parsed_event = EventLogEntry.from_json(event_json)
+
+            if not parsed_event.is_dagster_event:
+                continue
+
+            event_type = parsed_event.dagster_event_type
+
+            if step_key not in step_events:
+                step_events[step_key] = {
+                    "start_time": None,
+                    "end_time": None,
+                    "node_type": "",
+                    "error": None,
+                }
+
+            # Track step start
+            if event_type == "STEP_START":
+                step_events[step_key]["start_time"] = parsed_event.timestamp
+
+            # Track step completion
+            elif event_type == "STEP_SUCCESS":
+                step_events[step_key]["end_time"] = parsed_event.timestamp
+
+            # Track step failure
+            elif event_type == "STEP_FAILURE":
+                step_events[step_key]["end_time"] = parsed_event.timestamp
+                if parsed_event.dagster_event:
+                    step_events[step_key]["error"] = str(
+                        parsed_event.dagster_event.event_specific_data
+                    )
+
+        # Convert to StepMetadataBase objects
+        metadata = {}
+        for step_name, events in step_events.items():
+            if events["start_time"] is not None and events["end_time"] is not None:
+                metadata[step_name] = StepMetadataBase(
+                    step_name=step_name,
+                    node_type=events["node_type"],
+                    start_time=events["start_time"],
+                    end_time=events["end_time"],
+                    error=events["error"],
+                )
+
+        return metadata
 
     def get_run_logs(self, run_id: str) -> list[LogEntry]:
         with self.dagster_db.connect() as conn:

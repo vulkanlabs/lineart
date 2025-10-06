@@ -2,8 +2,6 @@ from urllib.parse import urlparse
 
 from dagster_graphql import DagsterGraphQLClient
 
-from vulkan_engine.backends.dagster.trigger_run import create_dagster_client
-
 
 def create_dagster_client_from_url(
     url: str,
@@ -14,4 +12,4 @@ def create_dagster_client_from_url(
         raise ValueError(f"Invalid worker URL: {url}")
     if parsed.port is None:
         raise ValueError(f"Invalid worker URL: {url}")
-    return create_dagster_client(parsed.hostname, parsed.port)
+    return DagsterGraphQLClient(parsed.hostname, port_number=parsed.port)
