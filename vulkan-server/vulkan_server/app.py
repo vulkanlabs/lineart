@@ -59,17 +59,6 @@ class ErrorResponse(BaseModel):
     message: str
 
 
-@app.middleware("http")
-async def log_request_parameters(request: Request, call_next):
-    logger.info(f"Request: {request.method} {request.url}")
-    logger.info(f"Headers: {request.headers}")
-    logger.info(f"Query Params: {request.query_params}")
-    logger.info(f"Path Params: {request.path_params}")
-    logger.info(f"Body: {await request.body()}")
-
-    return await call_next(request)
-
-
 @app.exception_handler(exceptions.VulkanServerException)
 async def vulkan_server_exception_handler(
     request: Request,
