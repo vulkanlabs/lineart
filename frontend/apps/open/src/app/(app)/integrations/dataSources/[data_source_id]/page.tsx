@@ -10,6 +10,7 @@ import {
     fetchDataSourceMetrics,
     fetchDataSourceUsage,
     setDataSourceEnvVars,
+    testDataSource,
 } from "@/lib/api";
 
 export default async function Page(props: { params: Promise<{ data_source_id: string }> }) {
@@ -41,6 +42,7 @@ export default async function Page(props: { params: Promise<{ data_source_id: st
                 fetchUsage: fetchDataSourceUsage,
                 fetchMetrics: fetchDataSourceMetrics,
                 fetchCacheStats: fetchDataSourceCacheStats,
+                testDataSource,
             }}
         />
     );

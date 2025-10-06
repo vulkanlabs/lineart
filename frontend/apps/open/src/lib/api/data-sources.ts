@@ -176,3 +176,58 @@ export const fetchDataSourceCacheStats = async (
         `fetch cache statistics for data source ${dataSourceId}`,
     );
 };
+
+/**
+ * Update an existing data source configuration
+ * @param {string} dataSourceId - ID of data source to update
+ * @param {DataSourceSpec} data - Updated data source configuration
+ * @param {string} [projectId] - Optional project context
+ * @returns {Promise<DataSource>} Updated data source
+ */
+export const updateDataSource = async (
+    dataSourceId: string,
+    data: DataSourceSpec,
+    projectId?: string,
+): Promise<DataSource> => {
+    return withErrorHandling(
+        dataSourcesApi.updateDataSource({
+            dataSourceId,
+            dataSourceSpec: data,
+        }),
+        `update data source ${dataSourceId}`,
+    );
+};
+
+/**
+ * Test a data source without persisting to database
+ * @param {string} dataSourceId - ID of data source to test
+ * @param {object} testRequest - Test configuration
+ * @param {any} testRequest.configured_params - Runtime parameters for the test
+ * @param {any} [testRequest.override_env_vars] - Optional environment variables to override
+ * @param {string} [projectId] - Optional project context
+ * @returns {Promise<any>} Test response with status, body, timing, and cache info
+ */
+export const testDataSource = async (
+    dataSourceId: string,
+    testRequest: {
+        configured_params: any;
+        override_env_vars?: any;
+    },
+    projectId?: string,
+): Promise<{
+    status_code: number;
+    response_body: any;
+    response_time_ms: number;
+    cache_hit: boolean;
+    headers: Record<string, string>;
+    request_url: string;
+    error_message?: string;
+}> => {
+    return withErrorHandling(
+        dataSourcesApi.testDataSource({
+            dataSourceId,
+            dataSourceTestRequest: testRequest,
+        }),
+        `test data source ${dataSourceId}`,
+    );
+};
