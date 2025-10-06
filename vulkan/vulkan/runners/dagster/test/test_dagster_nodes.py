@@ -45,8 +45,7 @@ class TestTransformNode:
         assert len(dagster_op.ins) == 1
         assert set(dagster_op.outs.keys()) == {
             "result",
-            "metadata",
-        }, "Should have two outputs 'result' and 'metadata'"
+        }, "Should only a 'result' key"
 
 
 class TestTerminateNode:
@@ -341,19 +340,11 @@ class TestDagsterDataInput:
         # Execute and collect outputs
         outputs = list(data_input_node.run(mock_op_context, {}))
 
-        # Should yield 2 outputs: result and metadata
-        assert len(outputs) == 2
+        assert len(outputs) == 1
 
         # Check result output
         result_output = outputs[0]
         assert result_output.value == {"result": "success"}
-
-        # Check metadata output - error should be None
-        metadata_output = outputs[1]
-        assert metadata_output.output_name == "metadata"
-        assert metadata_output.value.error is None
-        assert metadata_output.value.node_type == "DATA_INPUT"
-        assert metadata_output.value.extra["status_code"] == 200
 
     def test_http_error_with_json_detail(self, data_input_node):
         """Test HTTP error with JSON detail is properly extracted and propagated."""
