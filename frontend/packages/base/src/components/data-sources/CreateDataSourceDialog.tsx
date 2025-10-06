@@ -89,7 +89,9 @@ export function CreateDataSourceDialog({ config }: { config: CreateDataSourceDia
                 description: null,
                 caching: {
                     enabled: false,
-                    ttl: 0,
+                    ttl: {
+                        seconds: 0,
+                    },
                 },
                 metadata: {},
             };
@@ -102,7 +104,7 @@ export function CreateDataSourceDialog({ config }: { config: CreateDataSourceDia
                 dismissible: true,
                 action: {
                     label: "Configure Now →",
-                    onClick: () => router.push(`/data-sources/${createdDataSource.id}`),
+                    onClick: () => router.push(`/data-sources/${createdDataSource.data_source_id}`),
                 },
             });
             router.refresh();

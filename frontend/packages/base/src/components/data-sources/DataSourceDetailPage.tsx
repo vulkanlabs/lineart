@@ -11,7 +11,7 @@ import { Loader } from "../..";
 
 import { useDataSourceUtils } from "./useDataSourceUtils";
 import { DataSourceHeader } from "./DataSourceHeader";
-import { DataSourceStatusBanner } from "./DataSourceStatusBanner";
+ // import { DataSourceStatusBanner } from "./DataSourceStatusBanner"; // TODO: Requires Alert component
 import { DataSourceSummaryCard } from "./DataSourceSummaryCard";
 import { SourceConfigurationCard } from "./SourceConfigurationCard";
 import { RetryPolicyCard } from "./RetryPolicyCard";
@@ -134,7 +134,7 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
 
                 <TabsContent value="overview">
                     <div className="grid gap-4">
-                        <DataSourceStatusBanner dataSource={dataSource} />
+                        {/* TODO: Add DataSourceStatusBanner when Alert component is available */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <DataSourceSummaryCard
                                 dataSource={dataSource}

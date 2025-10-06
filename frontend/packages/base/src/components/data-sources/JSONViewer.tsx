@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "../ui";
+import { cn } from "../../lib/utils";
 
 interface JSONViewerProps {
     data: any;
