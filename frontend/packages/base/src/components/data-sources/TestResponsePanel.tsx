@@ -55,7 +55,7 @@ export function TestResponsePanel({ response, isLoading }: TestResponsePanelProp
         );
 
     const isSuccess = response.status_code >= 200 && response.status_code < 300;
-    const isError = response.status_code >= 400 || response.status_code === 0;
+    const isError = response.status_code >= 400;
 
     return (
         <Card className="h-full">
@@ -72,7 +72,7 @@ export function TestResponsePanel({ response, isLoading }: TestResponsePanelProp
                         {isError && (
                             <Badge variant="destructive">
                                 <XCircle className="h-3 w-3 mr-1" />
-                                {response.status_code === 0 ? "Network Error" : "Error"}
+                                Error
                             </Badge>
                         )}
                     </div>
@@ -82,9 +82,7 @@ export function TestResponsePanel({ response, isLoading }: TestResponsePanelProp
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                         <div className="text-sm font-medium text-muted-foreground">Status Code</div>
-                        <div className="text-lg font-semibold">
-                            {response.status_code === 0 ? "Network Error" : response.status_code}
-                        </div>
+                        <div className="text-lg font-semibold">{response.status_code}</div>
                     </div>
                     <div className="space-y-1">
                         <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">

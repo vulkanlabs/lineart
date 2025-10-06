@@ -270,7 +270,7 @@ class DataSourceService(BaseService):
         missing_vars = set(spec.variables or []) - set(env_variables.keys())
         if missing_vars:
             return {
-                "status_code": 0,
+                "status_code": 400,
                 "response_body": None,
                 "response_time_ms": 0,
                 "cache_hit": False,
@@ -335,7 +335,7 @@ class DataSourceService(BaseService):
 
         except requests.exceptions.Timeout:
             return {
-                "status_code": 0,
+                "status_code": 504,
                 "response_body": None,
                 "response_time_ms": 0,
                 "cache_hit": False,
@@ -345,7 +345,7 @@ class DataSourceService(BaseService):
             }
         except requests.exceptions.ConnectionError as e:
             return {
-                "status_code": 0,
+                "status_code": 503,
                 "response_body": None,
                 "response_time_ms": 0,
                 "cache_hit": False,
@@ -355,7 +355,7 @@ class DataSourceService(BaseService):
             }
         except requests.exceptions.RequestException as e:
             return {
-                "status_code": 0,
+                "status_code": 502,
                 "response_body": None,
                 "response_time_ms": 0,
                 "cache_hit": False,
@@ -365,7 +365,7 @@ class DataSourceService(BaseService):
             }
         except Exception as e:
             return {
-                "status_code": 0,
+                "status_code": 500,
                 "response_body": None,
                 "response_time_ms": 0,
                 "cache_hit": False,

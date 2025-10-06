@@ -49,7 +49,7 @@ export function TestDataSourcePanel({
         } catch (error: any) {
             // Handle error by creating error response
             setResponse({
-                status_code: 0,
+                status_code: 500,
                 response_body: null,
                 response_time_ms: 0,
                 cache_hit: false,
