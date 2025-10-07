@@ -79,43 +79,6 @@ def delete_data_source(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.put("/{data_source_id}", response_model=schemas.DataSource)
-def update_data_source(
-    data_source_id: str,
-    spec: DataSourceSpec,
-    service: DataSourceService = Depends(get_data_source_service),
-):
-    """Update a data source."""
-    try:
-        return service.update_data_source(data_source_id, spec)
-    except DataSourceNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except DataSourceAlreadyExistsException as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except InvalidDataSourceException as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@router.post("/{data_source_id}/test", response_model=schemas.DataSourceTestResponse)
-def test_data_source(
-    data_source_id: str,
-    request: schemas.DataSourceTestRequest,
-    service: DataSourceService = Depends(get_data_source_service),
-):
-    """Test a data source without persisting to database."""
-    try:
-        result = service.test_data_source(
-            data_source_id,
-            request.configured_params,
-            request.override_env_vars,
-        )
-        return schemas.DataSourceTestResponse(**result)
-    except DataSourceNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except InvalidDataSourceException as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
 @router.put("/{data_source_id}/variables")
 def set_data_source_env_variables(
     data_source_id: str,

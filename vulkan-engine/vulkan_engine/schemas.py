@@ -266,25 +266,6 @@ class DataSourceReference(BaseModel):
     created_at: datetime
 
 
-class DataSourceTestRequest(BaseModel):
-    """Request schema for testing a data source"""
-
-    configured_params: dict = {}
-    override_env_vars: dict | None = None
-
-
-class DataSourceTestResponse(BaseModel):
-    """Response schema for data source test results"""
-
-    status_code: int
-    response_body: Any
-    response_time_ms: float
-    cache_hit: bool
-    headers: dict
-    request_url: str
-    error_message: str | None = None
-
-
 class DataObjectMetadata(BaseModel):
     data_object_id: UUID
     data_source_id: UUID
