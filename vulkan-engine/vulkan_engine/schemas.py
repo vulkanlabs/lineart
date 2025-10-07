@@ -276,7 +276,7 @@ class DataSourceTestRequest(BaseModel):
 class DataSourceTestResponse(BaseModel):
     """Response schema for data source test results"""
 
-    status_code: int  # HTTP status code (400=bad config, 500=server error, 502=request error, 503=connection error, 504=timeout)
+    status_code: int
     response_body: Any
     response_time_ms: float
     cache_hit: bool
