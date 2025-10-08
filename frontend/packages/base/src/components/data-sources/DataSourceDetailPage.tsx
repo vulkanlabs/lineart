@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 
 // Vulkan packages
 import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
@@ -15,6 +15,13 @@ import { EditableVariablesCard } from "./EditableVariablesCard";
 import { DataSourceUsageAnalytics, UsageAnalyticsConfig } from "./DataSourceUsageAnalytics";
 import { TestDataSourcePanel } from "./TestDataSourcePanel";
 import { EditDataSourcePanel } from "./EditDataSourcePanel";
+
+interface TestConfig {
+    configuredParams: Record<string, string>;
+    overrideEnvVars: Record<string, string>;
+    customParams: Array<{ key: string; value: string }>;
+    customEnvVars: Array<{ key: string; value: string }>;
+}
 
 export interface DataSourceDetailPageConfig {
     dataSource: DataSource;
@@ -108,6 +115,14 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
 
     const { copiedField, copyToClipboard, getFullDataSourceJson } = useDataSourceUtils();
 
+    // State for test configuration persists across tab changes
+    const [testConfig, setTestConfig] = useState<TestConfig>({
+        configuredParams: {},
+        overrideEnvVars: {},
+        customParams: [],
+        customEnvVars: [],
+    });
+
     return (
         <>
             <DataSourceHeader
@@ -147,6 +162,8 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
                         dataSource={dataSource}
                         testDataSource={config.testDataSource}
                         projectId={config.projectId}
+                        testConfig={testConfig}
+                        onTestConfigChange={setTestConfig}
                     />
                 </TabsContent>
 
