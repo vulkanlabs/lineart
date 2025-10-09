@@ -15,39 +15,63 @@ interface EditDataSourcePanelProps {
         projectId?: string,
     ) => Promise<DataSource>;
     projectId?: string;
+    disabled?: boolean;
 }
 
 export function EditDataSourcePanel({
     dataSource,
     updateDataSource,
     projectId,
+    disabled = false,
 }: EditDataSourcePanelProps) {
     const router = useRouter();
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
+    const formatJsonForDisplay = (obj: any): string => {
+        if (!obj || Object.keys(obj).length === 0) return "";
+        return JSON.stringify(obj, null, 2);
+    };
+
+    const isEmptyOrPlaceholderUrl = (url: string | undefined): boolean => {
+        if (!url) return true;
+        return url.includes("placeholder") || url.includes("example.com");
+    };
+
     // Source configuration
-    const [url, setUrl] = useState(dataSource.source.url || "");
+    const [url, setUrl] = useState(
+        isEmptyOrPlaceholderUrl(dataSource.source.url) ? "" : dataSource.source.url
+    );
     const [method, setMethod] = useState<"GET" | "POST" | "PUT" | "DELETE" | "PATCH">(
         dataSource.source.method || "GET",
     );
-    const [headers, setHeaders] = useState(
-        JSON.stringify(dataSource.source.headers || {}, null, 2),
-    );
-    const [params, setParams] = useState(JSON.stringify(dataSource.source.params || {}, null, 2));
+    const [headers, setHeaders] = useState(formatJsonForDisplay(dataSource.source.headers));
+    const [params, setParams] = useState(formatJsonForDisplay(dataSource.source.params));
 
     // Retry configuration
     const [maxRetries, setMaxRetries] = useState(
-        dataSource.source.retry?.max_retries?.toString() || "3",
+        dataSource.source.retry?.max_retries !== undefined &&
+        dataSource.source.retry?.max_retries !== null &&
+        dataSource.source.retry?.max_retries !== 3
+            ? dataSource.source.retry.max_retries.toString()
+            : "",
     );
     const [backoffFactor, setBackoffFactor] = useState(
-        dataSource.source.retry?.backoff_factor?.toString() || "1",
+        dataSource.source.retry?.backoff_factor !== undefined &&
+        dataSource.source.retry?.backoff_factor !== null &&
+        dataSource.source.retry?.backoff_factor !== 2
+            ? dataSource.source.retry.backoff_factor.toString()
+            : "",
     );
 
     // Caching configuration
     const [cachingEnabled, setCachingEnabled] = useState(dataSource.caching?.enabled || false);
     const [ttlSeconds, setTtlSeconds] = useState(
-        dataSource.caching?.ttl?.seconds?.toString() || "300",
+        dataSource.caching?.ttl?.seconds !== undefined &&
+        dataSource.caching?.ttl?.seconds !== null &&
+        dataSource.caching?.ttl?.seconds !== 300
+            ? dataSource.caching.ttl.seconds.toString()
+            : "",
     );
 
     const handleSave = async () => {
@@ -56,20 +80,26 @@ export function EditDataSourcePanel({
             let parsedHeaders = {};
             let parsedParams = {};
 
-            try {
-                parsedHeaders = JSON.parse(headers);
-            } catch (e) {
-                toast.error("Invalid JSON format in headers");
-                setIsSaving(false);
-                return;
+            // Parse headers
+            if (headers.trim()) {
+                try {
+                    parsedHeaders = JSON.parse(headers);
+                } catch (e) {
+                    toast.error("Invalid JSON format in headers");
+                    setIsSaving(false);
+                    return;
+                }
             }
 
-            try {
-                parsedParams = JSON.parse(params);
-            } catch (e) {
-                toast.error("Invalid JSON format in params");
-                setIsSaving(false);
-                return;
+            // Parse params
+            if (params.trim()) {
+                try {
+                    parsedParams = JSON.parse(params);
+                } catch (e) {
+                    toast.error("Invalid JSON format in params");
+                    setIsSaving(false);
+                    return;
+                }
             }
 
             const updates: Partial<DataSource> = {
@@ -80,15 +110,15 @@ export function EditDataSourcePanel({
                     headers: parsedHeaders,
                     params: parsedParams,
                     retry: {
-                        max_retries: parseInt(maxRetries, 10),
-                        backoff_factor: parseFloat(backoffFactor),
+                        max_retries: maxRetries ? parseInt(maxRetries, 10) : 3,
+                        backoff_factor: backoffFactor ? parseFloat(backoffFactor) : 2,
                         status_forcelist: dataSource.source.retry?.status_forcelist || [],
                     },
                 },
                 caching: {
                     enabled: cachingEnabled,
                     ttl: {
-                        seconds: parseInt(ttlSeconds, 10),
+                        seconds: ttlSeconds ? parseInt(ttlSeconds, 10) : 300,
                     },
                 },
             };
@@ -109,12 +139,30 @@ export function EditDataSourcePanel({
     const handleCancel = () => {
         setUrl(dataSource.source.url || "");
         setMethod(dataSource.source.method || "GET");
-        setHeaders(JSON.stringify(dataSource.source.headers || {}, null, 2));
-        setParams(JSON.stringify(dataSource.source.params || {}, null, 2));
-        setMaxRetries(dataSource.source.retry?.max_retries?.toString() || "3");
-        setBackoffFactor(dataSource.source.retry?.backoff_factor?.toString() || "1");
+        setHeaders(formatJsonForDisplay(dataSource.source.headers));
+        setParams(formatJsonForDisplay(dataSource.source.params));
+        setMaxRetries(
+            dataSource.source.retry?.max_retries !== undefined &&
+            dataSource.source.retry?.max_retries !== null &&
+            dataSource.source.retry?.max_retries !== 3
+                ? dataSource.source.retry.max_retries.toString()
+                : "",
+        );
+        setBackoffFactor(
+            dataSource.source.retry?.backoff_factor !== undefined &&
+            dataSource.source.retry?.backoff_factor !== null &&
+            dataSource.source.retry?.backoff_factor !== 2
+                ? dataSource.source.retry.backoff_factor.toString()
+                : "",
+        );
         setCachingEnabled(dataSource.caching?.enabled || false);
-        setTtlSeconds(dataSource.caching?.ttl?.seconds?.toString() || "300");
+        setTtlSeconds(
+            dataSource.caching?.ttl?.seconds !== undefined &&
+            dataSource.caching?.ttl?.seconds !== null &&
+            dataSource.caching?.ttl?.seconds !== 300
+                ? dataSource.caching.ttl.seconds.toString()
+                : "",
+        );
         setIsEditing(false);
     };
 
@@ -125,10 +173,11 @@ export function EditDataSourcePanel({
                     <h2 className="text-lg font-semibold md:text-2xl">Configuration</h2>
                     <p className="text-sm text-muted-foreground mt-1">
                         Configure HTTP endpoint, retry policy, and caching
+                        {disabled && " (Read-only)"}
                     </p>
                 </div>
                 {!isEditing ? (
-                    <Button onClick={() => setIsEditing(true)}>
+                    <Button onClick={() => setIsEditing(true)} disabled={disabled}>
                         <Settings2 className="h-4 w-4 mr-2" />
                         Edit
                     </Button>
@@ -194,7 +243,7 @@ export function EditDataSourcePanel({
                             disabled={!isEditing}
                             rows={6}
                             className="mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono resize-none"
-                            placeholder='{\n  "Content-Type": "application/json"\n}'
+                            placeholder={'{\n  "Content-Type": "application/json",\n  "Authorization": "Bearer token"\n}'}
                         />
                     </div>
 
@@ -207,7 +256,7 @@ export function EditDataSourcePanel({
                             disabled={!isEditing}
                             rows={6}
                             className="mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono resize-none"
-                            placeholder='{\n  "key": "value"\n}'
+                            placeholder={'{\n  "page": "1",\n  "limit": "10"\n}'}
                         />
                     </div>
                 </div>
@@ -226,6 +275,7 @@ export function EditDataSourcePanel({
                                 value={maxRetries}
                                 onChange={(e) => setMaxRetries(e.target.value)}
                                 disabled={!isEditing}
+                                placeholder="3"
                                 className="mt-1.5"
                             />
                             <p className="text-xs text-muted-foreground mt-1">
@@ -243,6 +293,7 @@ export function EditDataSourcePanel({
                                 value={backoffFactor}
                                 onChange={(e) => setBackoffFactor(e.target.value)}
                                 disabled={!isEditing}
+                                placeholder="2"
                                 className="mt-1.5"
                             />
                             <p className="text-xs text-muted-foreground mt-1">
@@ -284,6 +335,7 @@ export function EditDataSourcePanel({
                                     value={ttlSeconds}
                                     onChange={(e) => setTtlSeconds(e.target.value)}
                                     disabled={!isEditing}
+                                    placeholder="300"
                                     className="mt-1.5"
                                 />
                                 <p className="text-xs text-muted-foreground mt-1">

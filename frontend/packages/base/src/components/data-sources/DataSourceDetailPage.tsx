@@ -6,8 +6,9 @@ import { Suspense, useState } from "react";
 import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
 
 // Local components
-import { Separator, Tabs, TabsContent, TabsList, TabsTrigger } from "../ui";
+import { Separator, Tabs, TabsContent, TabsList, TabsTrigger, Card, CardHeader, CardTitle, CardDescription } from "../ui";
 import { Loader } from "../..";
+import { Lock, AlertCircle } from "lucide-react";
 
 import { useDataSourceUtils } from "./useDataSourceUtils";
 import { DataSourceHeader } from "./DataSourceHeader";
@@ -80,6 +81,7 @@ export interface DataSourceDetailPageConfig {
         request_url: string;
         error_message?: string;
     }>;
+    publishDataSource?: (dataSourceId: string) => Promise<void>;
     projectId?: string;
 }
 
@@ -111,9 +113,13 @@ function UsageAnalyticsSection({ dataSourceId, config }: UsageAnalyticsSectionPr
 }
 
 function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
-    const { dataSource, fetchDataSourceEnvVars, setDataSourceEnvVars } = config;
+    const { dataSource, fetchDataSourceEnvVars, setDataSourceEnvVars, publishDataSource } = config;
 
     const { copiedField, copyToClipboard, getFullDataSourceJson } = useDataSourceUtils();
+
+    // Mock status until backend is ready - TODO: remove when backend implements status field
+    const status = (dataSource as any).status || "draft";
+    const isPublished = status === "published";
 
     // State for test configuration persists across tab changes
     const [testConfig, setTestConfig] = useState<TestConfig>({
@@ -130,6 +136,7 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
                 copiedField={copiedField}
                 onCopyToClipboard={copyToClipboard}
                 onGetFullDataSourceJson={getFullDataSourceJson}
+                onPublish={publishDataSource}
             />
 
             <Separator />
@@ -143,10 +150,27 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
                 </TabsList>
 
                 <TabsContent value="general" className="space-y-8">
+                    {isPublished && (
+                        <Card className="border-blue-500 bg-blue-50 dark:bg-blue-950">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                                    <Lock className="h-5 w-5" />
+                                    Read-Only Mode
+                                </CardTitle>
+                                <CardDescription className="text-blue-600 dark:text-blue-400">
+                                    This data source is published and cannot be edited. Published
+                                    data sources are available in workflows but their configuration
+                                    is locked.
+                                </CardDescription>
+                            </CardHeader>
+                        </Card>
+                    )}
+
                     <EditDataSourcePanel
                         dataSource={dataSource}
                         updateDataSource={config.updateDataSource}
                         projectId={config.projectId}
+                        disabled={isPublished}
                     />
 
                     <EditableVariablesCard
@@ -158,13 +182,29 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
                 </TabsContent>
 
                 <TabsContent value="test">
-                    <TestDataSourcePanel
-                        dataSource={dataSource}
-                        testDataSource={config.testDataSource}
-                        projectId={config.projectId}
-                        testConfig={testConfig}
-                        onTestConfigChange={setTestConfig}
-                    />
+                    {isPublished ? (
+                        <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
+                                    <AlertCircle className="h-5 w-5" />
+                                    Testing Disabled
+                                </CardTitle>
+                                <CardDescription className="text-yellow-600 dark:text-yellow-400">
+                                    Testing is not available for published data sources. Published
+                                    data sources have a locked configuration and cannot be
+                                    modified or tested.
+                                </CardDescription>
+                            </CardHeader>
+                        </Card>
+                    ) : (
+                        <TestDataSourcePanel
+                            dataSource={dataSource}
+                            testDataSource={config.testDataSource}
+                            projectId={config.projectId}
+                            testConfig={testConfig}
+                            onTestConfigChange={setTestConfig}
+                        />
+                    )}
                 </TabsContent>
 
                 <TabsContent value="usage">

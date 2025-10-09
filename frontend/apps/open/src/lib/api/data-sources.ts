@@ -231,3 +231,29 @@ export const testDataSource = async (
         `test data source ${dataSourceId}`,
     );
 };
+
+/**
+ * Publish a data source (change status from draft to published)
+ * Once published, a data source becomes read-only and available in workflows
+ * @param {string} dataSourceId - ID of data source to publish
+ * @param {string} [projectId] - Optional project context
+ * @returns {Promise<void>}
+ */
+export const publishDataSource = async (
+    dataSourceId: string,
+    projectId?: string,
+): Promise<void> => {
+    // TODO: Replace with actual API call when backend implements status field
+    // For now this is a mock implementation
+    return withErrorHandling(
+        Promise.resolve().then(() => {
+            console.log(`Publishing data source ${dataSourceId} (mock)`);
+            // When backend is ready:
+            // return dataSourcesApi.updateDataSource({
+            //     dataSourceId,
+            //     dataSourceSpec: { status: "published" } as any,
+            // });
+        }),
+        `publish data source ${dataSourceId}`,
+    );
+};

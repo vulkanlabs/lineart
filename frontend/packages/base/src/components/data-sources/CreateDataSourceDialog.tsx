@@ -71,7 +71,7 @@ export function CreateDataSourceDialog({ config }: { config: CreateDataSourceDia
             const dataSourceSpec: DataSourceSpec = {
                 name: data.name,
                 source: {
-                    url: "https://placeholder.example.com",
+                    url: "",
                     method: "GET",
                     response_type: "JSON",
                     headers: {},
