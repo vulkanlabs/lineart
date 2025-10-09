@@ -8,7 +8,7 @@ import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
 // Local components
 import { Separator, Tabs, TabsContent, TabsList, TabsTrigger, Card, CardHeader, CardTitle, CardDescription } from "../ui";
 import { Loader } from "../..";
-import { Lock, AlertCircle } from "lucide-react";
+import { Lock } from "lucide-react";
 
 import { useDataSourceUtils } from "./useDataSourceUtils";
 import { DataSourceHeader } from "./DataSourceHeader";
@@ -182,29 +182,13 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
                 </TabsContent>
 
                 <TabsContent value="test">
-                    {isPublished ? (
-                        <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
-                                    <AlertCircle className="h-5 w-5" />
-                                    Testing Disabled
-                                </CardTitle>
-                                <CardDescription className="text-yellow-600 dark:text-yellow-400">
-                                    Testing is not available for published data sources. Published
-                                    data sources have a locked configuration and cannot be
-                                    modified or tested.
-                                </CardDescription>
-                            </CardHeader>
-                        </Card>
-                    ) : (
-                        <TestDataSourcePanel
-                            dataSource={dataSource}
-                            testDataSource={config.testDataSource}
-                            projectId={config.projectId}
-                            testConfig={testConfig}
-                            onTestConfigChange={setTestConfig}
-                        />
-                    )}
+                    <TestDataSourcePanel
+                        dataSource={dataSource}
+                        testDataSource={config.testDataSource}
+                        projectId={config.projectId}
+                        testConfig={testConfig}
+                        onTestConfigChange={setTestConfig}
+                    />
                 </TabsContent>
 
                 <TabsContent value="usage">

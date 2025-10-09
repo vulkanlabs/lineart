@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, AlertTriangle } from "lucide-react";
+import { Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
     Button,
@@ -66,28 +66,24 @@ export function PublishDataSourceDialog({
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                        Publish Data Source?
-                    </DialogTitle>
+                    <DialogTitle>Publish Data Source</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
-                    <p className="text-sm text-muted-foreground">
-                        You are about to publish{" "}
-                        <strong className="text-foreground">{dataSourceName}</strong>.
+                    <p className="text-sm">
+                        Publishing <strong>{dataSourceName}</strong> will make it available for use in workflows.
                     </p>
                     <div className="space-y-2">
-                        <p className="text-sm font-medium text-foreground">Once published:</p>
-                        <ul className="list-disc list-inside space-y-1.5 text-sm text-muted-foreground">
-                            <li>The data source will be available in workflows</li>
-                            <li>Configuration cannot be edited</li>
-                            <li>Testing will be disabled</li>
-                            <li className="font-medium text-foreground">
-                                This action cannot be undone
-                            </li>
+                        <p className="text-sm font-medium">After publishing:</p>
+                        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                            <li>URL, headers, parameters and body cannot be changed</li>
+                            <li>Retry policy, timeout and cache TTL can still be adjusted</li>
+                            <li>Testing remains available for validation</li>
                         </ul>
                     </div>
+                    <p className="text-sm text-muted-foreground">
+                        This action cannot be undone.
+                    </p>
                 </div>
 
                 <DialogFooter>

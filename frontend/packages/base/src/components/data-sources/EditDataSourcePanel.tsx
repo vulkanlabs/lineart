@@ -48,6 +48,15 @@ export function EditDataSourcePanel({
     const [headers, setHeaders] = useState(formatJsonForDisplay(dataSource.source.headers));
     const [params, setParams] = useState(formatJsonForDisplay(dataSource.source.params));
 
+    // Timeout configuration
+    const [timeout, setTimeout] = useState(
+        dataSource.source.timeout !== undefined &&
+        dataSource.source.timeout !== null &&
+        dataSource.source.timeout !== 5000
+            ? dataSource.source.timeout.toString()
+            : "",
+    );
+
     // Retry configuration
     const [maxRetries, setMaxRetries] = useState(
         dataSource.source.retry?.max_retries !== undefined &&
@@ -109,6 +118,7 @@ export function EditDataSourcePanel({
                     method: method as "GET" | "POST" | "PUT" | "DELETE",
                     headers: parsedHeaders,
                     params: parsedParams,
+                    timeout: timeout ? parseInt(timeout, 10) : 5000,
                     retry: {
                         max_retries: maxRetries ? parseInt(maxRetries, 10) : 3,
                         backoff_factor: backoffFactor ? parseFloat(backoffFactor) : 2,
@@ -137,10 +147,17 @@ export function EditDataSourcePanel({
     };
 
     const handleCancel = () => {
-        setUrl(dataSource.source.url || "");
+        setUrl(isEmptyOrPlaceholderUrl(dataSource.source.url) ? "" : dataSource.source.url);
         setMethod(dataSource.source.method || "GET");
         setHeaders(formatJsonForDisplay(dataSource.source.headers));
         setParams(formatJsonForDisplay(dataSource.source.params));
+        setTimeout(
+            dataSource.source.timeout !== undefined &&
+            dataSource.source.timeout !== null &&
+            dataSource.source.timeout !== 5000
+                ? dataSource.source.timeout.toString()
+                : "",
+        );
         setMaxRetries(
             dataSource.source.retry?.max_retries !== undefined &&
             dataSource.source.retry?.max_retries !== null &&
@@ -172,12 +189,14 @@ export function EditDataSourcePanel({
                 <div>
                     <h2 className="text-lg font-semibold md:text-2xl">Configuration</h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Configure HTTP endpoint, retry policy, and caching
-                        {disabled && " (Read-only)"}
+                        {disabled
+                            ? "Configure retry policy, timeout and caching"
+                            : "Configure HTTP endpoint, retry policy, and caching"
+                        }
                     </p>
                 </div>
                 {!isEditing ? (
-                    <Button onClick={() => setIsEditing(true)} disabled={disabled}>
+                    <Button onClick={() => setIsEditing(true)}>
                         <Settings2 className="h-4 w-4 mr-2" />
                         Edit
                     </Button>
@@ -209,7 +228,7 @@ export function EditDataSourcePanel({
                                     e.target.value as "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
                                 )
                             }
-                            disabled={!isEditing}
+                            disabled={!isEditing || disabled}
                             className="mt-1.5 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <option value="GET">GET</option>
@@ -226,7 +245,7 @@ export function EditDataSourcePanel({
                             id="url"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
-                            disabled={!isEditing}
+                            disabled={!isEditing || disabled}
                             placeholder="https://api.example.com/endpoint"
                             className="mt-1.5 font-mono text-sm"
                         />
@@ -240,7 +259,7 @@ export function EditDataSourcePanel({
                             id="headers"
                             value={headers}
                             onChange={(e) => setHeaders(e.target.value)}
-                            disabled={!isEditing}
+                            disabled={!isEditing || disabled}
                             rows={6}
                             className="mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono resize-none"
                             placeholder={'{\n  "Content-Type": "application/json",\n  "Authorization": "Bearer token"\n}'}
@@ -253,7 +272,7 @@ export function EditDataSourcePanel({
                             id="params"
                             value={params}
                             onChange={(e) => setParams(e.target.value)}
-                            disabled={!isEditing}
+                            disabled={!isEditing || disabled}
                             rows={6}
                             className="mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono resize-none"
                             placeholder={'{\n  "page": "1",\n  "limit": "10"\n}'}
@@ -264,8 +283,25 @@ export function EditDataSourcePanel({
                 <Separator />
 
                 <div>
-                    <h3 className="text-base font-semibold mb-4">Retry Policy</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md">
+                    <h3 className="text-base font-semibold mb-4">Retry Policy & Timeout</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl">
+                        <div>
+                            <Label htmlFor="timeout">Timeout (ms)</Label>
+                            <Input
+                                id="timeout"
+                                type="number"
+                                min="0"
+                                value={timeout}
+                                onChange={(e) => setTimeout(e.target.value)}
+                                disabled={!isEditing}
+                                placeholder="5000"
+                                className="mt-1.5"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Request timeout
+                            </p>
+                        </div>
+
                         <div>
                             <Label htmlFor="maxRetries">Max Retries</Label>
                             <Input
@@ -279,7 +315,7 @@ export function EditDataSourcePanel({
                                 className="mt-1.5"
                             />
                             <p className="text-xs text-muted-foreground mt-1">
-                                Number of retry attempts
+                                Retry attempts
                             </p>
                         </div>
 
@@ -297,7 +333,7 @@ export function EditDataSourcePanel({
                                 className="mt-1.5"
                             />
                             <p className="text-xs text-muted-foreground mt-1">
-                                Exponential backoff multiplier
+                                Backoff multiplier
                             </p>
                         </div>
                     </div>
