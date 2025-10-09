@@ -349,7 +349,7 @@ export function EditDataSourcePanel({
                                 id="cachingEnabled"
                                 checked={cachingEnabled}
                                 onCheckedChange={setCachingEnabled}
-                                disabled={!isEditing}
+                                disabled={!isEditing || disabled}
                             />
                             <div className="flex-1">
                                 <Label htmlFor="cachingEnabled" className="text-sm font-medium cursor-pointer">
