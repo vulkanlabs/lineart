@@ -10,6 +10,7 @@ import {
     fetchDataSourceMetrics,
     fetchDataSourceUsage,
     setDataSourceEnvVars,
+    updateDataSource,
     testDataSource,
     publishDataSource,
 } from "@/lib/api";
@@ -38,6 +39,7 @@ export default async function Page(props: { params: Promise<{ data_source_id: st
         <DataSourceDetailPage
             config={{
                 dataSource,
+                updateDataSource,
                 fetchDataSourceEnvVars,
                 setDataSourceEnvVars,
                 fetchUsage: fetchDataSourceUsage,
