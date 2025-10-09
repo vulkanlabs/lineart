@@ -45,8 +45,7 @@ export function DataSourceHeader({
             <div className="flex gap-2">
                 {isDraft && onPublish && (
                     <PublishDataSourceDialog
-                        dataSourceId={dataSource.data_source_id}
-                        dataSourceName={dataSource.name}
+                        dataSource={dataSource}
                         onPublish={onPublish}
                     />
                 )}

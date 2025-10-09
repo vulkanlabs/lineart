@@ -84,12 +84,62 @@ export function TestDataSourcePanel({
         }
     };
 
+    // Check if theres enough information to run the test
+    const validateTestConfig = () => {
+        const errors: string[] = [];
+
+        // Check if the data source has a valid URL configured
+        if (!dataSource.source?.url || dataSource.source.url.trim() === "")             errors.push("URL is not configured");
+
+        // Check if there are any filled runtime params
+        const hasFilledParams = Object.values(testConfig.configuredParams).some(
+            (value) => value.trim() !== ""
+        );
+
+        // Check custom params
+        const hasFilledCustomParams = testConfig.customParams.some(
+            (param) => param.key.trim() !== "" && param.value.trim() !== ""
+        );
+
+        // Check if there are any filled env vars
+        const hasFilledEnvVars = Object.values(testConfig.overrideEnvVars).some(
+            (value) => value.trim() !== ""
+        );
+
+        // Check custom env vars
+        const hasFilledCustomEnvVars = testConfig.customEnvVars.some(
+            (envVar) => envVar.key.trim() !== "" && envVar.value.trim() !== ""
+        );
+
+        const hasAnyConfiguredValues =
+            hasFilledParams || hasFilledCustomParams || hasFilledEnvVars || hasFilledCustomEnvVars;
+
+        if (!hasAnyConfiguredValues) errors.push("At least one parameter or environment variable is required");
+
+        return {
+            isValid: errors.length === 0,
+            errors,
+        };
+    };
+
     const handleRunTest = () => {
+        const validation = validateTestConfig();
+
+        if (!validation.isValid) {
+            // button should be disabled
+            const errorMessage = validation.errors.join(". ");
+            console.warn("Test validation failed:", errorMessage);
+            return;
+        }
+
         const submitBtn = document.getElementById("test-submit-btn");
         if (submitBtn) {
             submitBtn.click();
         }
     };
+
+    const validation = validateTestConfig();
+    const isTestDisabled = isLoading || !validation.isValid;
 
     return (
         <div className="space-y-6">
@@ -100,7 +150,7 @@ export function TestDataSourcePanel({
                         Test your data source with custom parameters and environment variables
                     </p>
                 </div>
-                <Button onClick={handleRunTest} disabled={isLoading}>
+                <Button onClick={handleRunTest} disabled={isTestDisabled}>
                     <Play className="h-4 w-4 mr-2" />
                     {isLoading ? "Running..." : "Run Test"}
                 </Button>
