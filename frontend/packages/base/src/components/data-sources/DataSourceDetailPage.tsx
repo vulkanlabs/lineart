@@ -5,6 +5,9 @@ import { Suspense, useState } from "react";
 // Vulkan packages
 import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
 
+// Type extensions
+import "../../types/data-source";
+
 // Local components
 import { Separator, Tabs, TabsContent, TabsList, TabsTrigger, Card, CardHeader, CardTitle, CardDescription } from "../ui";
 import { Loader } from "../..";
@@ -117,8 +120,9 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
 
     const { copiedField, copyToClipboard, getFullDataSourceJson } = useDataSourceUtils();
 
-    // Mock status until backend is ready - TODO: remove when backend implements status field
-    const status = (dataSource as any).status || "draft";
+    // Status field using type extension until backend implements
+    // frontend/packages/base/src/types/data-source.ts
+    const status = dataSource.status || "draft";
     const isPublished = status === "published";
 
     // State for test configuration persists across tab changes
