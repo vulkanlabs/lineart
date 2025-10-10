@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 @dataclass
 class VulkanRunConfig:
-    """Configuration for Hatchet run execution."""
+    """Configuration for Vulkan run execution."""
 
     run_id: str
     server_url: str
@@ -13,6 +13,6 @@ class VulkanRunConfig:
 
 @dataclass
 class VulkanPolicyConfig:
-    """Configuration for Hatchet policy execution."""
+    """Configuration for Vulkan policy execution."""
 
     variables: Dict[str, Any] = field(default_factory=dict)

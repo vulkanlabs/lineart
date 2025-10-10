@@ -71,7 +71,7 @@ class RunQueryService(BaseService):
         # Initialize run data structure
         run_data = RunData.model_validate(run)
 
-        # Get data from Dagster
+        # Get data from execution backend
         steps = self.data_client.get_run_data(run.backend_run_id)
         if not steps:
             return run_data

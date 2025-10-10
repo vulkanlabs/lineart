@@ -63,14 +63,6 @@ class DatabaseConfig:
 
 
 @dataclass
-class ExternalServiceConfig:
-    """Configuration for external services."""
-
-    resolution_service_url: str | None = None
-    beam_launcher_url: str | None = None
-
-
-@dataclass
 class AppConfig:
     """Configuration for the application server."""
 
