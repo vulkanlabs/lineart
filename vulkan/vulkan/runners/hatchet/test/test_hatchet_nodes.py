@@ -1,11 +1,19 @@
+from unittest.mock import MagicMock
+
+import pytest
+from hatchet_sdk import Hatchet
+
+from vulkan.core.policy import Policy
 from vulkan.runners.hatchet.nodes import (
     HatchetDataInput,
     HatchetTerminate,
     HatchetTransform,
     to_hatchet_nodes,
 )
+from vulkan.runners.hatchet.policy import HatchetFlow
 from vulkan.spec.dependency import INPUT_NODE, Dependency
-from vulkan.spec.nodes import DataInputNode, TerminateNode, TransformNode
+from vulkan.spec.nodes import BranchNode, DataInputNode, TerminateNode, TransformNode
+from vulkan.spec.policy import PolicyDefinition
 
 
 def test_data_input_node_conversion():
@@ -88,3 +96,45 @@ def test_to_hatchet_nodes():
     assert isinstance(hatchet_nodes[0], HatchetDataInput)
     assert isinstance(hatchet_nodes[1], HatchetTransform)
     assert isinstance(hatchet_nodes[2], HatchetTerminate)
+
+
+def test_regression_hatchet_flow_with_unsorted_node_list():
+    def is_even_fn(input_node):
+        if input_node["number"] % 2 == 0:
+            return "even"
+        return "odd"
+
+    branch_node_1 = BranchNode(
+        name="branch_node_1",
+        func=is_even_fn,
+        choices=["even", "odd"],
+        dependencies={INPUT_NODE: Dependency(INPUT_NODE)},
+    )
+
+    is_even = TerminateNode(
+        name="is_even",
+        return_status="Great",
+        dependencies={"condition": Dependency("branch_node_1", "even")},
+    )
+
+    is_odd = TerminateNode(
+        name="is_odd",
+        return_status="Too_Bad",
+        dependencies={"condition": Dependency("branch_node_1", "odd")},
+    )
+
+    policy_def = PolicyDefinition(
+        nodes=[
+            is_even,
+            is_odd,
+            branch_node_1,
+        ],
+        input_schema={"number": "int"},
+    )
+    policy = Policy.from_definition(policy_def)
+
+    flow = HatchetFlow(
+        nodes=policy.nodes,
+        hatchet=Hatchet(client=MagicMock(), config=MagicMock()),
+    )
+    workflow = flow.create_workflow()

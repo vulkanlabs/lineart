@@ -10,6 +10,7 @@ from vulkan.runners.shared.app_client import BaseAppClient, create_app_client
 from vulkan.runners.shared.constants import RUN_CONFIG_KEY
 from vulkan.runners.shared.run_config import VulkanRunConfig
 from vulkan.spec.dependency import Dependency
+from vulkan.spec.graph import sort_nodes
 from vulkan.spec.nodes import Node, NodeType
 
 logger = logging.getLogger(__name__)
@@ -20,11 +21,19 @@ _NOTIFY_FAILURE = "notify_failure"
 class HatchetFlow:
     """Converts Vulkan policies to Hatchet workflows."""
 
-    def __init__(self, nodes: list[Node], policy_name: str = DEFAULT_POLICY_NAME):
+    def __init__(
+        self,
+        nodes: list[Node],
+        policy_name: str = DEFAULT_POLICY_NAME,
+        hatchet: Hatchet = None,
+    ):
         self.policy_name = policy_name
-        self.nodes = to_hatchet_nodes(nodes)
         self.dependencies = self._extract_dependencies(nodes)
-        self._hatchet = Hatchet()
+        sorted_nodes = sort_nodes(nodes, self.dependencies)
+        self.nodes = to_hatchet_nodes(sorted_nodes)
+        if hatchet is None:
+            hatchet = Hatchet()
+        self._hatchet = hatchet
 
     def _extract_dependencies(
         self, nodes: list[Node]
