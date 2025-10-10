@@ -26,7 +26,9 @@ class HatchetBackend(ExecutionBackend):
         Initialize Hatchet backend.
 
         Args:
-            server_url: Server URL for callbacks
+            worker_config: WorkerServiceConfig
+            server_config: AppConfig, configuration related to Vulkan App server.
+
         """
         self._worker_config = worker_config
         self._server_config = server_config

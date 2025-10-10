@@ -182,7 +182,7 @@ class HatchetTransform(TransformNode, HatchetNode):
             dependencies=dependencies,
             parameters=parameters,
         )
-        self._func = self._with_vulkan_context(self.func)
+        self._func = _with_vulkan_context(self.func)
 
     @property
     def task_name(self) -> str:
@@ -206,21 +206,6 @@ class HatchetTransform(TransformNode, HatchetNode):
 
         return transform_task
 
-    def _with_vulkan_context(self, func: Callable) -> Callable:
-        """Wrap function with Vulkan context."""
-
-        def fn(context: Context, **kwargs):
-            if func.__code__.co_varnames[0] == "context":
-                env = context.additional_metadata.get(POLICY_CONFIG_KEY)
-                ctx = VulkanExecutionContext(
-                    logger=context.logger if hasattr(context, "logger") else None,
-                    env=env.variables if env else {},
-                )
-                return func(ctx, **kwargs)
-            return func(**kwargs)
-
-        return fn
-
     def _get_configured_params(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Get configured parameters with template resolution."""
         if self.parameters is None:
@@ -229,7 +214,7 @@ class HatchetTransform(TransformNode, HatchetNode):
         configured_params = {}
         for k, v in self.parameters.items():
             try:
-                configured_params[k] = resolve_template(v, inputs, env_variables={})
+                configured_params[k] = resolve_value(v, inputs, env_variables={})
             except Exception:
                 raise ValueError(f"Invalid parameter configuration: {v}")
         return configured_params
@@ -274,46 +259,42 @@ class HatchetTerminate(TerminateNode, HatchetNode):
         def terminate_task(workflow_input: TWorkflowInput, context: Context) -> str:
             inputs = self._get_parent_outputs(context)
 
-            try:
-                status = self.return_status
-                result = status.value if isinstance(status, Enum) else status
-                run_config = context.additional_metadata.get(RUN_CONFIG_KEY)
+            status = self.return_status
+            result = status.value if isinstance(status, Enum) else status
+            run_config = context.additional_metadata.get(RUN_CONFIG_KEY)
 
-                metadata = None
-                if self.return_metadata is not None:
-                    try:
-                        template_metadata = json.loads(self.return_metadata)
-                        metadata = self._resolve_json_metadata(
-                            template_metadata, inputs, context
-                        )
-                    except json.JSONDecodeError as e:
-                        raise ValueError(f"Invalid JSON in return_metadata: {e}")
-                    except Exception as e:
-                        raise ValueError(f"Failed to resolve JSON metadata: {e}")
-
+            metadata = None
+            if self.return_metadata is not None:
                 try:
-                    self._terminate(context, result, metadata)
-                except ValueError as e:
-                    raise ValueError("Failed to terminate run") from e
-
-                if self.callback is not None:
-                    reported = self.callback(
-                        context=context,
-                        run_id=run_config.run_id if run_config else None,
-                        return_status=status,
-                        **inputs,
+                    template_metadata = json.loads(self.return_metadata)
+                    metadata = self._resolve_json_metadata(
+                        template_metadata, inputs, context
                     )
-                    if not reported:
-                        raise ValueError("Callback function failed")
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Invalid JSON in return_metadata: {e}")
+                except Exception as e:
+                    raise ValueError(f"Failed to resolve JSON metadata: {e}")
 
-                return TaskOutput(
-                    step_name=self.name,
-                    step_type=self.type.value,
-                    data=result,
+            try:
+                self._terminate(context, result, metadata)
+            except ValueError as e:
+                raise ValueError("Failed to terminate run") from e
+
+            if self.callback is not None:
+                reported = self.callback(
+                    context=context,
+                    run_id=run_config.run_id if run_config else None,
+                    return_status=status,
+                    **inputs,
                 )
+                if not reported:
+                    raise ValueError("Callback function failed")
 
-            except Exception as e:
-                raise e
+            return TaskOutput(
+                step_name=self.name,
+                step_type=self.type.value,
+                data=result,
+            )
 
         return terminate_task
 
@@ -349,25 +330,15 @@ class HatchetTerminate(TerminateNode, HatchetNode):
                 f"Run configuration not found in context: {context.additional_metadata}"
             )
         run_config = VulkanRunConfig(**run_config_dict)
+        client: BaseAppClient = create_app_client(**run_config_dict)
 
-        server_url = run_config.server_url
-        run_id = run_config.run_id
-        context.log(f"Terminating run {run_config.run_id} with result {result}")
-        context.log(f"Posting to {server_url}")
-
-        url = f"{server_url}/internal/runs/{run_id}"
-        response = requests.put(
-            url,
-            json={
-                "result": result,
-                "metadata": metadata,
-                "status": RunStatus.SUCCESS.value,
-            },
+        success = client.update_run_status(
+            status=RunStatus.SUCCESS.value,
+            result=result,
+            metadata=metadata,
         )
-        if response.status_code not in {200, 204}:
-            raise ValueError(
-                f"Failed to terminate run {run_id}. Status code: {response.status_code}, Response: {response.text}"
-            )
+        if not success:
+            raise ValueError(f"Failed to terminate run {run_config.run_id}")
 
     @classmethod
     def from_spec(cls, node: TerminateNode):
@@ -399,7 +370,7 @@ class HatchetBranch(BranchNode, HatchetNode):
             choices=choices,
             dependencies=dependencies,
         )
-        self._func = self._with_vulkan_context(self.func)
+        self._func = _with_vulkan_context(self.func)
 
     @property
     def task_name(self) -> str:
@@ -421,21 +392,6 @@ class HatchetBranch(BranchNode, HatchetNode):
                 raise UserCodeException(self.name) from e
 
         return branch_task
-
-    def _with_vulkan_context(self, func: Callable) -> Callable:
-        """Wrap function with Vulkan context."""
-
-        def fn(context: Context, **kwargs):
-            if func.__code__.co_varnames[0] == "context":
-                env = context.additional_metadata.get(POLICY_CONFIG_KEY)
-                ctx = VulkanExecutionContext(
-                    logger=context.logger if hasattr(context, "logger") else None,
-                    env=env.variables if env else {},
-                )
-                return func(ctx, **kwargs)
-            return func(**kwargs)
-
-        return fn
 
     @classmethod
     def from_spec(cls, node: BranchNode):
@@ -669,3 +625,19 @@ def to_hatchet_node(node: Node) -> HatchetNode:
         raise ValueError(msg)
 
     return impl_type.from_spec(node)
+
+
+def _with_vulkan_context(func: Callable) -> Callable:
+    """Wrap function with Vulkan context."""
+
+    def fn(context: Context, **kwargs):
+        if func.__code__.co_varnames[0] == "context":
+            env = context.additional_metadata.get(POLICY_CONFIG_KEY)
+            ctx = VulkanExecutionContext(
+                logger=context.logger if hasattr(context, "logger") else None,
+                env=env.variables if env else {},
+            )
+            return func(ctx, **kwargs)
+        return func(**kwargs)
+
+    return fn

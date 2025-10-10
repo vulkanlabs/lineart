@@ -26,6 +26,7 @@ hatchet = [
 all = [
     "vulkan[beam]",
     "vulkan[hatchet]",
+    "vulkan[dagster]"
 ]
 
 

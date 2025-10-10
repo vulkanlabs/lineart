@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "google-cloud-aiplatform>=1.85.0",
-    "vulkan[beam,hatchet]",
+    "vulkan[all]",
     "vulkan-engine",
     "vulkan-server",
     "lineart",
