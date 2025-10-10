@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, forwardRef, useImperativeHandle, useRef } from "react";
 import { Info, Plus, X } from "lucide-react";
 import { Button, Label, Input, Separator } from "../ui";
 import type { DataSource } from "@vulkanlabs/client-open";
@@ -28,21 +28,33 @@ interface TestConfigPanelProps {
     }) => void;
 }
 
+export interface TestConfigPanelRef {
+    submit: () => void;
+}
+
 /**
  * Panel for configuring test parameters
  * Allows users to provide runtime params and override environment variables
  */
-export function TestConfigPanel({
+export const TestConfigPanel = forwardRef<TestConfigPanelRef, TestConfigPanelProps>(({
     dataSource,
     onTest,
     isLoading,
     initialConfig,
     onConfigChange,
-}: TestConfigPanelProps) {
+}, ref) => {
+    const formRef = useRef<HTMLFormElement>(null);
     const [testError, setTestError] = useState<string | null>(null);
 
     const runtimeParams = dataSource.runtime_params || [];
     const requiredVariables = dataSource.variables || [];
+
+    // Expose submit method to parent component
+    useImperativeHandle(ref, () => ({
+        submit: () => {
+            formRef.current?.requestSubmit();
+        },
+    }));
 
     // Create default values from runtime params
     const defaultParams = useMemo(() => {
@@ -191,7 +203,7 @@ export function TestConfigPanel({
         <div className="space-y-6">
             <h3 className="text-base font-semibold">Test Configuration</h3>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
                 <div>
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -364,9 +376,9 @@ export function TestConfigPanel({
                         <div className="text-sm text-destructive">{testError}</div>
                     </div>
                 )}
-
-                <button type="submit" id="test-submit-btn" className="hidden" />
             </form>
         </div>
     );
-}
+});
+
+TestConfigPanel.displayName = "TestConfigPanel";

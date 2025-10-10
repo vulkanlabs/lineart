@@ -34,46 +34,30 @@ export function EditDataSourcePanel({
     };
 
     // Source configuration
-    const [url, setUrl] = useState(dataSource.source.url || "");
+    const [url, setUrl] = useState(dataSource.source?.url || "");
     const [method, setMethod] = useState<"GET" | "POST" | "PUT" | "DELETE" | "PATCH">(
-        dataSource.source.method || "GET",
+        (dataSource.source?.method as "GET" | "POST" | "PUT" | "DELETE" | "PATCH") || "GET",
     );
-    const [headers, setHeaders] = useState(formatJsonForDisplay(dataSource.source.headers));
-    const [params, setParams] = useState(formatJsonForDisplay(dataSource.source.params));
+    const [headers, setHeaders] = useState(formatJsonForDisplay(dataSource.source?.headers));
+    const [params, setParams] = useState(formatJsonForDisplay(dataSource.source?.params));
 
     // Timeout configuration
     const [timeout, setTimeout] = useState(
-        dataSource.source.timeout !== undefined &&
-        dataSource.source.timeout !== null &&
-        dataSource.source.timeout !== 5000
-            ? dataSource.source.timeout.toString()
-            : "",
+        dataSource.source?.timeout?.toString() ?? "",
     );
 
     // Retry configuration
     const [maxRetries, setMaxRetries] = useState(
-        dataSource.source.retry?.max_retries !== undefined &&
-        dataSource.source.retry?.max_retries !== null &&
-        dataSource.source.retry?.max_retries !== 3
-            ? dataSource.source.retry.max_retries.toString()
-            : "",
+        dataSource.source?.retry?.max_retries?.toString() ?? "",
     );
     const [backoffFactor, setBackoffFactor] = useState(
-        dataSource.source.retry?.backoff_factor !== undefined &&
-        dataSource.source.retry?.backoff_factor !== null &&
-        dataSource.source.retry?.backoff_factor !== 2
-            ? dataSource.source.retry.backoff_factor.toString()
-            : "",
+        dataSource.source?.retry?.backoff_factor?.toString() ?? "",
     );
 
     // Caching configuration
-    const [cachingEnabled, setCachingEnabled] = useState(dataSource.caching?.enabled || false);
+    const [cachingEnabled, setCachingEnabled] = useState(dataSource.caching?.enabled ?? false);
     const [ttlSeconds, setTtlSeconds] = useState(
-        dataSource.caching?.ttl?.seconds !== undefined &&
-        dataSource.caching?.ttl?.seconds !== null &&
-        dataSource.caching?.ttl?.seconds !== 300
-            ? dataSource.caching.ttl.seconds.toString()
-            : "",
+        dataSource.caching?.ttl?.seconds?.toString() ?? "",
     );
 
     const handleSave = async () => {
@@ -140,39 +124,15 @@ export function EditDataSourcePanel({
     };
 
     const handleCancel = () => {
-        setUrl(dataSource.source.url || "");
-        setMethod(dataSource.source.method || "GET");
-        setHeaders(formatJsonForDisplay(dataSource.source.headers));
-        setParams(formatJsonForDisplay(dataSource.source.params));
-        setTimeout(
-            dataSource.source.timeout !== undefined &&
-            dataSource.source.timeout !== null &&
-            dataSource.source.timeout !== 5000
-                ? dataSource.source.timeout.toString()
-                : "",
-        );
-        setMaxRetries(
-            dataSource.source.retry?.max_retries !== undefined &&
-            dataSource.source.retry?.max_retries !== null &&
-            dataSource.source.retry?.max_retries !== 3
-                ? dataSource.source.retry.max_retries.toString()
-                : "",
-        );
-        setBackoffFactor(
-            dataSource.source.retry?.backoff_factor !== undefined &&
-            dataSource.source.retry?.backoff_factor !== null &&
-            dataSource.source.retry?.backoff_factor !== 2
-                ? dataSource.source.retry.backoff_factor.toString()
-                : "",
-        );
-        setCachingEnabled(dataSource.caching?.enabled || false);
-        setTtlSeconds(
-            dataSource.caching?.ttl?.seconds !== undefined &&
-            dataSource.caching?.ttl?.seconds !== null &&
-            dataSource.caching?.ttl?.seconds !== 300
-                ? dataSource.caching.ttl.seconds.toString()
-                : "",
-        );
+        setUrl(dataSource.source?.url || "");
+        setMethod((dataSource.source?.method as "GET" | "POST" | "PUT" | "DELETE" | "PATCH") || "GET");
+        setHeaders(formatJsonForDisplay(dataSource.source?.headers));
+        setParams(formatJsonForDisplay(dataSource.source?.params));
+        setTimeout(dataSource.source?.timeout?.toString() ?? "");
+        setMaxRetries(dataSource.source?.retry?.max_retries?.toString() ?? "");
+        setBackoffFactor(dataSource.source?.retry?.backoff_factor?.toString() ?? "");
+        setCachingEnabled(dataSource.caching?.enabled ?? false);
+        setTtlSeconds(dataSource.caching?.ttl?.seconds?.toString() ?? "");
         setIsEditing(false);
     };
 

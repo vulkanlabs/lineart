@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { DataSource } from "@vulkanlabs/client-open";
-import { TestConfigPanel } from "./TestConfigPanel";
+import { TestConfigPanel, type TestConfigPanelRef } from "./TestConfigPanel";
 import { TestResponsePanel } from "./TestResponsePanel";
 import { Button, Separator } from "../ui";
 import { Play } from "lucide-react";
@@ -47,6 +47,7 @@ export function TestDataSourcePanel({
     testConfig: externalTestConfig,
     onTestConfigChange,
 }: TestDataSourcePanelProps) {
+    const testConfigPanelRef = useRef<TestConfigPanelRef>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [response, setResponse] = useState<any>(null);
 
@@ -138,10 +139,7 @@ export function TestDataSourcePanel({
             return;
         }
 
-        const submitBtn = document.getElementById("test-submit-btn");
-        if (submitBtn) {
-            submitBtn.click();
-        }
+        testConfigPanelRef.current?.submit();
     };
 
     const validation = validateTestConfig();
@@ -167,6 +165,7 @@ export function TestDataSourcePanel({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="border border-border rounded-lg p-6 bg-card">
                     <TestConfigPanel
+                        ref={testConfigPanelRef}
                         dataSource={dataSource}
                         onTest={handleTest}
                         isLoading={isLoading}

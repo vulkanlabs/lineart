@@ -38,7 +38,7 @@ export function EditableVariablesCard({
             console.error("Failed to fetch environment variables:", error);
             setVariables([]);
         }
-    }, [dataSource.data_source_id, fetchDataSourceEnvVars]);
+    }, [dataSource.data_source_id, projectId, fetchDataSourceEnvVars]);
 
     useEffect(() => {
         fetchVariables();
