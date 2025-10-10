@@ -137,6 +137,56 @@ class DataSourceService(BaseService):
         )
         return DataSourceSchema.from_orm(data_source)
 
+    def update_data_source(
+        self, data_source_id: str, spec: DataSourceSpec, project_id: str = None
+    ) -> DataSourceSchema:
+        """
+        Update an existing data source.
+
+        Args:
+            data_source_id: Data source UUID
+            spec: Updated data source specification
+            project_id: Optional project UUID to filter by
+
+        Returns:
+            Updated DataSource object
+
+        Raises:
+            DataSourceNotFoundException: If data source doesn't exist
+            InvalidDataSourceException: If data source configuration is invalid
+        """
+        # Get existing data source
+        data_source = self.data_source_loader.get_data_source(
+            data_source_id=data_source_id, project_id=project_id, include_archived=False
+        )
+
+        # Validate data source type
+        if spec.source.source_type == DataSourceType.LOCAL_FILE:
+            raise InvalidDataSourceException(
+                "Local file data sources are not supported for remote execution"
+            )
+
+        # Update fields from spec
+        data_source.name = spec.name
+        data_source.description = spec.description
+        data_source.source = spec.source.model_dump()
+        data_source.caching_enabled = spec.caching.enabled if spec.caching else False
+        data_source.caching_ttl = spec.caching.ttl if spec.caching else None
+        data_source.config_metadata = spec.metadata
+
+        # Update extracted fields
+        variables = spec.extract_env_vars()
+        runtime_params = spec.extract_runtime_params()
+        data_source.variables = variables if variables else None
+        data_source.runtime_params = runtime_params if runtime_params else None
+
+        self.db.commit()
+
+        if self.logger:
+            self.logger.system.info(f"Updated data source {data_source_id}")
+
+        return DataSourceSchema.from_orm(data_source)
+
     def delete_data_source(
         self, data_source_id: str, project_id: str = None
     ) -> dict[str, str]:
@@ -440,3 +490,52 @@ class DataSourceService(BaseService):
             if self.logger:
                 self.logger.system.error(str(e))
             raise DataBrokerException(str(e))
+
+    def publish_data_source(
+        self, data_source_id: str, project_id: str = None
+    ) -> DataSourceSchema:
+        """
+        Publish a data source.
+
+        Args:
+            data_source_id: Data source UUID
+            project_id: Optional project UUID to filter by
+
+        Returns:
+            DataSource object
+
+        Raises:
+            DataSourceNotFoundException: If data source doesn't exist
+            InvalidDataSourceException: If data source configuration is invalid
+        """
+        # Get data source
+        data_source = self.data_source_loader.get_data_source(
+            data_source_id=data_source_id, project_id=project_id, include_archived=False
+        )
+
+        # Check if already published (idempotency)
+        if data_source.is_published():
+            return DataSourceSchema.from_orm(data_source)
+
+        # Validate required fields
+        if not data_source.source:
+            raise InvalidDataSourceException(
+                "Data source must have a valid source configuration"
+            )
+
+        # Validate URL exists for HTTP sources
+        source_data = data_source.source
+        if isinstance(source_data, dict) and source_data.get("source_type") == "http":
+            if not source_data.get("url"):
+                raise InvalidDataSourceException(
+                    "HTTP data source must have a valid URL"
+                )
+
+        # Publish
+        data_source.status = "published"
+        self.db.commit()
+
+        if self.logger:
+            self.logger.system.info(f"Published data source {data_source_id}")
+
+        return DataSourceSchema.from_orm(data_source)

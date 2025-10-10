@@ -15,12 +15,17 @@ from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
     InvalidDataSourceException,
 )
-from vulkan_engine.services import DataSourceAnalyticsService, DataSourceService
+from vulkan_engine.services import (
+    DataSourceAnalyticsService,
+    DataSourceService,
+    DataSourceTestService,
+)
 
 from vulkan.schemas import DataSourceSpec
 from vulkan_server.dependencies import (
     get_data_source_analytics_service,
     get_data_source_service,
+    get_data_source_test_service,
 )
 
 router = APIRouter(
@@ -63,6 +68,21 @@ def get_data_source(
         return service.get_data_source(data_source_id)
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.put("/{data_source_id}", response_model=schemas.DataSource)
+def update_data_source(
+    data_source_id: str,
+    spec: DataSourceSpec,
+    service: DataSourceService = Depends(get_data_source_service),
+):
+    """Update a data source."""
+    try:
+        return service.update_data_source(data_source_id, spec)
+    except DataSourceNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except InvalidDataSourceException as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/{data_source_id}")
@@ -168,3 +188,29 @@ def get_cache_statistics(
 ):
     """Get cache statistics for a data source."""
     return service.get_cache_statistics(data_source_id, start_date, end_date)
+
+
+@router.post("/{data_source_id}/publish", response_model=schemas.DataSource)
+def publish_data_source(
+    data_source_id: str,
+    service: DataSourceService = Depends(get_data_source_service),
+):
+    """Publish a data source."""
+    try:
+        return service.publish_data_source(data_source_id)
+    except DataSourceNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except InvalidDataSourceException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/test", response_model=schemas.DataSourceTestResponse)
+async def test_data_source(
+    test_request: schemas.DataSourceTestRequest,
+    service: DataSourceTestService = Depends(get_data_source_test_service),
+):
+    """Test a data source configuration."""
+    try:
+        return await service.execute_test(test_request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Test execution failed: {str(e)}")

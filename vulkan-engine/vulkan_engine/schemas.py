@@ -232,6 +232,7 @@ class DataSource(DataSourceSpec):
     last_updated_at: datetime
     variables: list[str] | None = None
     runtime_params: list[str] | None = None
+    status: str = "draft"
 
     @classmethod
     def from_orm(cls, data) -> "DataSource":
@@ -243,6 +244,7 @@ class DataSource(DataSourceSpec):
             last_updated_at=data.last_updated_at,
             variables=data.variables,
             runtime_params=data.runtime_params,
+            status=data.status,
             **spec.model_dump(),
         )
 
@@ -317,3 +319,21 @@ class RunCreated(BaseModel):
 class ConfigurationVariablesSetResult(BaseModel):
     policy_version_id: UUID
     variables: list[ConfigurationVariables]
+
+
+class DataSourceTestRequest(BaseModel):
+    url: str
+    method: str = "GET"
+    headers: dict[str, str] | None = None
+    body: Any | None = None
+    params: dict[str, Any] | None = None
+    env_vars: dict[str, str] | None = None
+
+
+class DataSourceTestResponse(BaseModel):
+    test_id: UUID
+    status_code: int
+    response_time_ms: float
+    response_body: Any | None = None
+    response_headers: dict[str, str] | None = None
+    error: str | None = None

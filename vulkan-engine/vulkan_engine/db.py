@@ -202,6 +202,7 @@ class DataSource(TimedUpdateMixin, Base):
     runtime_params = Column(ARRAY(String), nullable=True)
     variables = Column(ARRAY(String), nullable=True)
     archived = Column(Boolean, default=False)
+    status = Column(String(20), nullable=False, server_default="draft")
 
     # Project association for multi-tenant deployments
     project_id = Column(Uuid, nullable=True)
@@ -215,6 +216,10 @@ class DataSource(TimedUpdateMixin, Base):
             postgresql_where=(archived == False),  # noqa: E712
         ),
         Index("idx_data_source_project_id", "project_id"),
+        Index("idx_data_source_status", "status", postgresql_where=(archived == False)),  # noqa: E712
+        CheckConstraint(
+            "status IN ('draft', 'published')", name="ck_data_source_status"
+        ),
     )
 
     @classmethod
@@ -244,6 +249,10 @@ class DataSource(TimedUpdateMixin, Base):
             description=self.description,
             metadata=self.config_metadata,
         )
+
+    def is_published(self) -> bool:
+        """Check if data source is published."""
+        return self.status == "published"
 
 
 class DataSourceEnvVar(TimedUpdateMixin, Base):
@@ -312,6 +321,15 @@ class RunDataRequest(Base):
     data_object_id = Column(Uuid, ForeignKey("data_object.data_object_id"))
     data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
     data_origin = Column(Enum(DataObjectOrigin), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class DataSourceTestResult(Base):
+    __tablename__ = "data_source_test_result"
+
+    test_id = Column(Uuid, primary_key=True, server_default=func.gen_random_uuid())
+    request = Column(JSON, nullable=False)
+    response = Column(JSON, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

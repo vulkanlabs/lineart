@@ -10,6 +10,7 @@ from vulkan_engine.services.base import BaseService
 from vulkan_engine.services.component import ComponentService
 from vulkan_engine.services.data_source import DataSourceService
 from vulkan_engine.services.data_source_analytics import DataSourceAnalyticsService
+from vulkan_engine.services.data_source_test import DataSourceTestService
 from vulkan_engine.services.policy import PolicyService
 from vulkan_engine.services.policy_analytics import PolicyAnalyticsService
 from vulkan_engine.services.policy_version import PolicyVersionService
@@ -22,6 +23,7 @@ __all__ = [
     "BaseService",
     "DataSourceAnalyticsService",
     "DataSourceService",
+    "DataSourceTestService",
     "PolicyAnalyticsService",
     "PolicyService",
     "PolicyVersionService",
