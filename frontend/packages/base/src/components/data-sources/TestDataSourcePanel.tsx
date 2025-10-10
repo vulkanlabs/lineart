@@ -58,8 +58,8 @@ export function TestDataSourcePanel({
         customEnvVars: [],
     });
 
-    const testConfig = externalTestConfig || localTestConfig;
-    const setTestConfig = onTestConfigChange || setLocalTestConfig;
+    const testConfig = externalTestConfig ?? localTestConfig;
+    const setTestConfig = onTestConfigChange ?? setLocalTestConfig;
 
     const handleTest = async (config: { configured_params: any; override_env_vars?: any }) => {
         if (!testDataSource) throw new Error("Test function not provided");
@@ -69,15 +69,26 @@ export function TestDataSourcePanel({
             const result = await testDataSource(dataSource.data_source_id, config, projectId);
             setResponse(result);
         } catch (error: any) {
+            // Extract status code from error if available
+            const statusCode = error.response?.status || error.status || 500;
+
+            // Determine error message based on error type
+            let errorMessage = error.message || "An unknown error occurred";
+
+            if (error.name === 'TypeError' && error.message.includes('fetch'))
+                errorMessage = "Network error: Unable to connect to the data source";
+            else if (error.name === 'AbortError' || error.message.includes('timeout'))
+                errorMessage = "Request timeout: The data source took too long to respond";
+
             // Handle error by creating error response
             setResponse({
-                status_code: 500,
-                response_body: null,
+                status_code: statusCode,
+                response_body: error.response?.data || null,
                 response_time_ms: 0,
                 cache_hit: false,
-                headers: {},
+                headers: error.response?.headers || {},
                 request_url: dataSource.source?.url || "",
-                error_message: error.message || "An unknown error occurred",
+                error_message: errorMessage,
             });
         } finally {
             setIsLoading(false);
@@ -89,32 +100,27 @@ export function TestDataSourcePanel({
         const errors: string[] = [];
 
         // Check if the data source has a valid URL configured
-        if (!dataSource.source?.url || dataSource.source.url.trim() === "")             errors.push("URL is not configured");
+        if (!dataSource.source?.url || dataSource.source.url.trim() === "")
+            errors.push("URL is not configured");
 
-        // Check if there are any filled runtime params
-        const hasFilledParams = Object.values(testConfig.configuredParams).some(
-            (value) => value.trim() !== ""
-        );
+        // Collect all non-empty values
+        const allValues: string[] = [
+            // Configured runtime params values
+            ...Object.values(testConfig.configuredParams).filter(v => v && v.trim() !== ""),
+            // Custom params values
+            ...testConfig.customParams
+                .filter(p => p.key.trim() !== "" && p.value.trim() !== "")
+                .map(p => p.value),
+            // Override env vars values
+            ...Object.values(testConfig.overrideEnvVars).filter(v => v && v.trim() !== ""),
+            // Custom env vars values
+            ...testConfig.customEnvVars
+                .filter(e => e.key.trim() !== "" && e.value.trim() !== "")
+                .map(e => e.value),
+        ];
 
-        // Check custom params
-        const hasFilledCustomParams = testConfig.customParams.some(
-            (param) => param.key.trim() !== "" && param.value.trim() !== ""
-        );
-
-        // Check if there are any filled env vars
-        const hasFilledEnvVars = Object.values(testConfig.overrideEnvVars).some(
-            (value) => value.trim() !== ""
-        );
-
-        // Check custom env vars
-        const hasFilledCustomEnvVars = testConfig.customEnvVars.some(
-            (envVar) => envVar.key.trim() !== "" && envVar.value.trim() !== ""
-        );
-
-        const hasAnyConfiguredValues =
-            hasFilledParams || hasFilledCustomParams || hasFilledEnvVars || hasFilledCustomEnvVars;
-
-        if (!hasAnyConfiguredValues) errors.push("At least one parameter or environment variable is required");
+        // Check if at least one non empty value exists
+        if (allValues.length === 0) errors.push("At least one parameter or environment variable value is required");
 
         return {
             isValid: errors.length === 0,

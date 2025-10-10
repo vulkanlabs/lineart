@@ -33,15 +33,8 @@ export function EditDataSourcePanel({
         return JSON.stringify(obj, null, 2);
     };
 
-    const isEmptyOrPlaceholderUrl = (url: string | undefined): boolean => {
-        if (!url) return true;
-        return url.includes("placeholder") || url.includes("example.com");
-    };
-
     // Source configuration
-    const [url, setUrl] = useState(
-        isEmptyOrPlaceholderUrl(dataSource.source.url) ? "" : dataSource.source.url
-    );
+    const [url, setUrl] = useState(dataSource.source.url || "");
     const [method, setMethod] = useState<"GET" | "POST" | "PUT" | "DELETE" | "PATCH">(
         dataSource.source.method || "GET",
     );
@@ -147,7 +140,7 @@ export function EditDataSourcePanel({
     };
 
     const handleCancel = () => {
-        setUrl(isEmptyOrPlaceholderUrl(dataSource.source.url) ? "" : dataSource.source.url);
+        setUrl(dataSource.source.url || "");
         setMethod(dataSource.source.method || "GET");
         setHeaders(formatJsonForDisplay(dataSource.source.headers));
         setParams(formatJsonForDisplay(dataSource.source.params));
