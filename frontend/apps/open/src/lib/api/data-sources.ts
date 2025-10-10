@@ -180,23 +180,37 @@ export const fetchDataSourceCacheStats = async (
 /**
  * Update an existing data source configuration
  * @param {string} dataSourceId - ID of data source to update
- * @param {DataSourceSpec} data - Updated data source configuration
+ * @param {Partial<DataSource>} updates - Partial updates to apply
  * @param {string} [projectId] - Optional project context
  * @returns {Promise<DataSource>} Updated data source
  */
-export const updateDataSource = async (
+export async function updateDataSource(
     dataSourceId: string,
-    data: DataSourceSpec,
+    updates: Partial<DataSource>,
     projectId?: string,
-): Promise<DataSource> => {
+): Promise<DataSource> {
+    "use server";
+
+    // First, fetch the current data source to get all fields
+    const currentDataSource = await fetchDataSource(dataSourceId, projectId);
+
+    // Merge updates with current data to create complete DataSourceSpec
+    const completeSpec: DataSourceSpec = {
+        name: updates.name ?? currentDataSource.name,
+        description: updates.description ?? currentDataSource.description,
+        source: updates.source ?? currentDataSource.source,
+        caching: updates.caching ?? currentDataSource.caching,
+        metadata: updates.metadata ?? currentDataSource.metadata,
+    };
+
     return withErrorHandling(
         dataSourcesApi.updateDataSource({
             dataSourceId,
-            dataSourceSpec: data,
+            dataSourceSpec: completeSpec,
         }),
         `update data source ${dataSourceId}`,
     );
-};
+}
 
 /**
  * Test a data source without persisting to database
@@ -223,10 +237,22 @@ export const testDataSource = async (
     request_url: string;
     error_message?: string;
 }> => {
+    // First, fetch the data source to get its configuration
+    const dataSource = await fetchDataSource(dataSourceId, projectId);
+
+    // Build the complete test request with data source configuration
+    const completeTestRequest = {
+        url: dataSource.source.url,
+        method: dataSource.source.method || "GET",
+        headers: dataSource.source.headers || {},
+        body: dataSource.source.body || null,
+        params: { ...(dataSource.source.params || {}), ...(testRequest.configured_params || {}) },
+        env_vars: testRequest.override_env_vars || {},
+    };
+
     return withErrorHandling(
         dataSourcesApi.testDataSource({
-            dataSourceId,
-            dataSourceTestRequest: testRequest,
+            dataSourceTestRequest: completeTestRequest,
         }),
         `test data source ${dataSourceId}`,
     );
