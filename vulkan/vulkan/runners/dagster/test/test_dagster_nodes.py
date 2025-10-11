@@ -1,10 +1,16 @@
 import logging
 from enum import Enum
+from unittest.mock import Mock
 
 import pytest
+import requests
 
 from vulkan.core.context import VulkanExecutionContext
-from vulkan.runners.dagster.nodes import DagsterTerminate, to_dagster_node
+from vulkan.runners.dagster.nodes import (
+    DagsterDataInput,
+    DagsterTerminate,
+    to_dagster_node,
+)
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import NodeType, TerminateNode, TransformNode
 
@@ -277,3 +283,169 @@ class TestNodeTypeDefinitions:
 
         assert transform.node_definition().node_type == NodeType.TRANSFORM.value
         assert terminate.node_definition().node_type == NodeType.TERMINATE.value
+
+
+class TestDagsterDataInput:
+    """Test suite for DagsterDataInput error propagation and handling."""
+
+    @pytest.fixture
+    def mock_op_context(self):
+        """Create mock OpExecutionContext for testing."""
+        context = Mock()
+        context.log = Mock()
+        context.log.info = Mock()
+        context.log.error = Mock()
+
+        # Mock app client resource
+        app_client = Mock()
+        context.resources = Mock()
+        context.resources.app_client = app_client
+
+        return context
+
+    @pytest.fixture
+    def data_input_node(self):
+        """Create a DagsterDataInput instance for testing."""
+        return DagsterDataInput(
+            name="test_data_input",
+            data_source="test_source",
+            description="Test data input node",
+            parameters={"param1": "value1"},
+            dependencies={},
+        )
+
+    def test_successful_data_fetch_no_error(self, mock_op_context, data_input_node):
+        """Test successful data fetch sets error=None in metadata."""
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "value": {"result": "success"},
+            "data_object_id": "obj123",
+            "key": "key123",
+            "origin": "test",
+        }
+
+        mock_client = Mock()
+        mock_client.fetch_data.return_value = mock_response
+        mock_op_context.resources.app_client.get_client.return_value = mock_client
+
+        # Execute and collect outputs
+        outputs = list(data_input_node.run(mock_op_context, {}))
+
+        # Should yield 2 outputs: result and metadata
+        assert len(outputs) == 2
+
+        # Check result output
+        result_output = outputs[0]
+        assert result_output.value == {"result": "success"}
+
+        # Check metadata output - error should be None
+        metadata_output = outputs[1]
+        assert metadata_output.output_name == "metadata"
+        assert metadata_output.value.error is None
+        assert metadata_output.value.node_type == "DATA_INPUT"
+        assert metadata_output.value.extra["status_code"] == 200
+
+    def test_http_error_with_json_detail(self, mock_op_context, data_input_node):
+        """Test HTTP error with JSON detail is properly extracted and propagated."""
+        # Mock error response
+        mock_response = Mock()
+        mock_response.status_code = 400
+        mock_response.json.return_value = {"detail": "Invalid parameters provided"}
+        mock_response.text = '{"detail": "Invalid parameters provided"}'
+
+        http_error = requests.exceptions.HTTPError(response=mock_response)
+        http_error.response = mock_response
+
+        mock_client = Mock()
+        mock_response.raise_for_status.side_effect = http_error
+        mock_client.fetch_data.return_value = mock_response
+        mock_op_context.resources.app_client.get_client.return_value = mock_client
+
+        # Execute and expect HTTPError to be raised
+        with pytest.raises(requests.exceptions.HTTPError):
+            list(data_input_node.run(mock_op_context, {}))
+
+        # Verify error was logged with detail
+        mock_op_context.log.error.assert_called_once()
+        error_call = mock_op_context.log.error.call_args[0][0]
+        assert "Failed request with status 400" in error_call
+        assert "Invalid parameters provided" in error_call
+
+    def test_http_error_with_text_fallback(self, mock_op_context, data_input_node):
+        """Test HTTP error falls back to response.text when JSON parsing fails."""
+        # Mock error response with invalid JSON
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.json.side_effect = ValueError("Invalid JSON")
+        mock_response.text = "Internal Server Error: Database connection failed"
+
+        http_error = requests.exceptions.HTTPError(response=mock_response)
+        http_error.response = mock_response
+
+        mock_client = Mock()
+        mock_response.raise_for_status.side_effect = http_error
+        mock_client.fetch_data.return_value = mock_response
+        mock_op_context.resources.app_client.get_client.return_value = mock_client
+
+        # Execute and expect HTTPError to be raised
+        with pytest.raises(requests.exceptions.HTTPError):
+            list(data_input_node.run(mock_op_context, {}))
+
+        # Verify error was logged with text (truncated to 200 chars)
+        mock_op_context.log.error.assert_called_once()
+        error_call = mock_op_context.log.error.call_args[0][0]
+        assert "Failed request with status 500" in error_call
+        assert "Internal Server Error" in error_call
+
+    def test_http_error_without_response(self, mock_op_context, data_input_node):
+        """Test HTTP error without response object is handled."""
+        # Mock error without response
+        http_error = requests.exceptions.HTTPError("Connection failed")
+        http_error.response = None
+
+        mock_client = Mock()
+        mock_client.fetch_data.side_effect = http_error
+        mock_op_context.resources.app_client.get_client.return_value = mock_client
+
+        # Execute and expect HTTPError to be raised
+        with pytest.raises(requests.exceptions.HTTPError):
+            list(data_input_node.run(mock_op_context, {}))
+
+        # Verify generic error was logged
+        mock_op_context.log.error.assert_called_once()
+        error_call = mock_op_context.log.error.call_args[0][0]
+        assert "HTTP error" in error_call
+
+    def test_request_exception_propagated(self, mock_op_context, data_input_node):
+        """Test RequestException is properly logged and propagated."""
+        mock_client = Mock()
+        mock_client.fetch_data.side_effect = requests.exceptions.RequestException(
+            "Network timeout"
+        )
+        mock_op_context.resources.app_client.get_client.return_value = mock_client
+
+        # Execute and expect RequestException to be raised
+        with pytest.raises(requests.exceptions.RequestException):
+            list(data_input_node.run(mock_op_context, {}))
+
+        # Verify error was logged
+        mock_op_context.log.error.assert_called_once()
+        error_call = mock_op_context.log.error.call_args[0][0]
+        assert "Failed to retrieve data" in error_call
+
+    def test_unexpected_exception_handled(self, mock_op_context, data_input_node):
+        """Test unexpected exceptions are caught and logged."""
+        mock_client = Mock()
+        mock_client.fetch_data.side_effect = RuntimeError("Unexpected error")
+        mock_op_context.resources.app_client.get_client.return_value = mock_client
+
+        # Execute and expect exception to be raised
+        with pytest.raises(RuntimeError):
+            list(data_input_node.run(mock_op_context, {}))
+
+        # Verify error was logged
+        mock_op_context.log.error.assert_called_once()
+        error_call = mock_op_context.log.error.call_args[0][0]
+        assert "Unexpected error processing data" in error_call

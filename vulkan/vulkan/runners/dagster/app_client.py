@@ -64,6 +64,7 @@ class BaseAppClient(ABC):
         try:
             kwargs["timeout"] = timeout
             response = self.session.request(method, url, **kwargs)
+            response.raise_for_status()
             elapsed = time.time() - start_time
 
             logger.debug(
@@ -77,22 +78,49 @@ class BaseAppClient(ABC):
 
             return response
 
-        except requests.exceptions.Timeout:
+        except requests.exceptions.Timeout as e:
             elapsed = time.time() - start_time
+            error_msg = f"Request timeout after {elapsed:.2f}s"
+
             logger.error(
-                f"{method} {endpoint} -> Timeout after {elapsed:.2f}s",
+                f"{method} {endpoint} -> {error_msg}",
                 extra={**log_context, "elapsed_seconds": elapsed},
             )
-            raise
+            raise requests.exceptions.RequestException(
+                f"{error_msg} for {method} {endpoint}"
+            ) from e
 
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.HTTPError as e:
             elapsed = time.time() - start_time
+            status_code = (
+                e.response.status_code if e.response is not None else "unknown"
+            )
+            response_text = e.response.text if e.response is not None else ""
+            error_msg = f"HTTP {status_code}: {response_text}"
+
             logger.error(
-                f"{method} {endpoint} -> Request failed after {elapsed:.2f}s: {str(e)}",
+                f"{method} {endpoint} -> {error_msg} (elapsed: {elapsed:.2f}s)",
                 extra={
                     **log_context,
                     "elapsed_seconds": elapsed,
-                    "error": str(e),
+                    "status_code": status_code,
+                    "response_text": response_text,
+                },
+            )
+            raise requests.exceptions.RequestException(
+                f"{error_msg} for {method} {endpoint}"
+            ) from e
+
+        except requests.exceptions.RequestException as e:
+            elapsed = time.time() - start_time
+            error_msg = str(e)
+
+            logger.error(
+                f"{method} {endpoint} -> Request failed: {error_msg} (elapsed: {elapsed:.2f}s)",
+                extra={
+                    **log_context,
+                    "elapsed_seconds": elapsed,
+                    "error": error_msg,
                 },
             )
             raise
