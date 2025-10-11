@@ -296,6 +296,9 @@ class DataBrokerResponse(BaseModel):
     origin: DataObjectOrigin
     key: str
     value: Any
+    start_time: float | None = None
+    end_time: float | None = None
+    error: dict | str | None = None
 
 
 class RunGroupRuns(BaseModel):

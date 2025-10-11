@@ -415,12 +415,15 @@ class DataSourceService(BaseService):
             # Get data through broker
             data = broker.get_data(request.configured_params, env_variables)
 
-            # Record the request
+            # Record the request with timing information
             request_obj = RunDataRequest(
                 run_id=request.run_id,
                 data_object_id=data.data_object_id,
                 data_source_id=spec.data_source_id,
                 data_origin=data.origin,
+                start_time=data.start_time,
+                end_time=data.end_time,
+                error=data.error,
             )
             self.db.add(request_obj)
             self.db.commit()

@@ -13,12 +13,10 @@ import pandas as pd
 from sqlalchemy import case, select
 from sqlalchemy import func as F
 
-from vulkan.spec.nodes import NodeType
+from vulkan_engine.backends.data_client import BaseDataClient
 from vulkan_engine.db import (
     DataObjectOrigin,
-    Run,
     RunDataRequest,
-    StepMetadata,
 )
 from vulkan_engine.loaders import DataSourceLoader
 from vulkan_engine.services.base import BaseService
@@ -111,36 +109,31 @@ class DataSourceAnalyticsService(BaseService):
 
         start_date, end_date = validate_date_range(start_date, end_date)
 
-        # Get data for response time and error metrics from StepMetadata
-        # TODO: this query is not optimal, and it should be a point of attention.
-        # Key things of note:
-        # 1. There aren't any indices on the created_at column of StepMetadata
-        # 2. The run_id columns are also not indexed in all tables
-        # 3. It might be worth considering using a materialized view for this query
+        # Get data for response time and error metrics from RunDataRequest
+        # Query RunDataRequest directly with timing data captured at broker level
         metrics_query = (
             select(
-                F.DATE(StepMetadata.created_at).label("date"),
-                F.avg((StepMetadata.end_time - StepMetadata.start_time)).label(
-                    "avg_duration_ms"
-                ),
+                F.DATE(RunDataRequest.created_at).label("date"),
+                F.avg(
+                    (RunDataRequest.end_time - RunDataRequest.start_time) * 1000
+                ).label("avg_duration_ms"),
                 F.avg(
                     case(
-                        {True: 0.0, False: 1.0},
-                        value=StepMetadata.error.is_(None),
+                        {True: 1.0, False: 0.0},
+                        value=RunDataRequest.error.is_not(None),
                         else_=0.0,
                     )
                 ).label("error_rate"),
             )
             .where(
-                (StepMetadata.created_at >= start_date)
-                & (F.DATE(StepMetadata.created_at) <= end_date)
-                & (StepMetadata.node_type == NodeType.DATA_INPUT.value)
-                & (RunDataRequest.data_source_id == data_source_id)
+                (RunDataRequest.data_source_id == data_source_id)
+                & (RunDataRequest.created_at >= start_date)
+                & (F.DATE(RunDataRequest.created_at) <= end_date)
+                & (RunDataRequest.start_time.is_not(None))
+                & (RunDataRequest.end_time.is_not(None))
             )
-            .join(Run, Run.run_id == StepMetadata.run_id)
-            .join(RunDataRequest, RunDataRequest.run_id == Run.run_id)
-            .group_by(F.DATE(StepMetadata.created_at))
-            .order_by(F.DATE(StepMetadata.created_at))
+            .group_by(F.DATE(RunDataRequest.created_at))
+            .order_by(F.DATE(RunDataRequest.created_at))
         )
 
         sql_start = time.time()

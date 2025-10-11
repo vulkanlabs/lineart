@@ -313,6 +313,9 @@ class RunDataRequest(Base):
     data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
     data_origin = Column(Enum(DataObjectOrigin), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    start_time = Column(Float, nullable=True)
+    end_time = Column(Float, nullable=True)
+    error = Column(JSON, nullable=True)
 
 
 class Component(TimedUpdateMixin, ArchivableMixin, Base):
