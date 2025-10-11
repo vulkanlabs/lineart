@@ -5,6 +5,45 @@ and other implementations can use and extend.
 """
 
 from dataclasses import dataclass
+from typing import Literal, Union
+
+
+@dataclass
+class DagsterConfig:
+    """Configuration specific to Dagster backend."""
+
+    worker_url: str
+
+
+@dataclass
+class HatchetConfig:
+    """Configuration specific to Hatchet backend."""
+
+    hatchet_token: str
+
+
+@dataclass
+class WorkerServiceConfig:
+    """Unified service configuration for workflow engines."""
+
+    worker_type: Literal["dagster", "hatchet"]
+    server_url: str
+    service_config: Union[DagsterConfig, HatchetConfig]
+
+    def __post_init__(self):
+        """Validate that the config matches the worker type."""
+        if self.worker_type == "dagster" and not isinstance(
+            self.service_config, DagsterConfig
+        ):
+            raise ValueError(
+                "service_config must be DagsterConfig for dagster worker type"
+            )
+        elif self.worker_type == "hatchet" and not isinstance(
+            self.service_config, HatchetConfig
+        ):
+            raise ValueError(
+                "service_config must be HatchetConfig for hatchet worker type"
+            )
 
 
 @dataclass
@@ -24,50 +63,6 @@ class DatabaseConfig:
 
 
 @dataclass
-class DagsterDatabaseConfig:
-    """Configuration for the Dagster database."""
-
-    user: str
-    password: str
-    host: str
-    port: str
-    database: str
-
-    @property
-    def connection_string(self) -> str:
-        """Get PostgreSQL connection string for Dagster."""
-        return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
-
-
-@dataclass
-class DagsterServiceConfig:
-    """Configuration for connecting to Dagster service."""
-
-    host: str
-    port: str
-    server_port: str
-
-    @property
-    def base_url(self) -> str:
-        """Get base URL for Dagster service."""
-        return f"http://{self.host}:{self.port}"
-
-    @property
-    def server_url(self) -> str:
-        """Get server URL for Dagster service."""
-        return f"http://{self.host}:{self.server_port}"
-
-
-@dataclass
-class ExternalServiceConfig:
-    """Configuration for external services."""
-
-    upload_service_url: str
-    resolution_service_url: str | None = None
-    beam_launcher_url: str | None = None
-
-
-@dataclass
 class AppConfig:
     """Configuration for the application server."""
 
@@ -78,6 +73,27 @@ class AppConfig:
     def server_url(self) -> str:
         """Get the server URL."""
         return f"http://{self.host}:{self.port}"
+
+
+@dataclass
+class WorkerDatabaseConfig:
+    """Unified database configuration for workflow engines."""
+
+    enabled: bool
+    user: str | None = None
+    password: str | None = None
+    host: str | None = None
+    port: str | None = None
+    database: str | None = None
+
+    @property
+    def connection_string(self) -> str | None:
+        """Get PostgreSQL connection string if database is enabled and configured."""
+        if not self.enabled or not all(
+            [self.user, self.password, self.host, self.port, self.database]
+        ):
+            return None
+        return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
 
 
 @dataclass
@@ -99,12 +115,8 @@ class VulkanEngineConfig:
 
     app: AppConfig
     database: DatabaseConfig
-    dagster_database: DagsterDatabaseConfig
-    dagster_service: DagsterServiceConfig
-    external_services: ExternalServiceConfig
     logging: LoggingConfig
 
-    @property
-    def vulkan_dagster_server_url(self) -> str:
-        """Get the Dagster server URL for compatibility."""
-        return self.dagster_service.server_url
+    # Unified worker configuration
+    worker_database: WorkerDatabaseConfig
+    worker_service: WorkerServiceConfig

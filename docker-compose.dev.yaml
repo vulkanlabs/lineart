@@ -9,7 +9,6 @@ services:
     env_file:
       - config/active/app.env
       - config/active/.env
-      - config/active/gcp.env
     ports:
       - "6001:6001"
     depends_on:
@@ -46,7 +45,6 @@ services:
     init: true
     ports:
       - "3000:3000"
-      - "3001:3001"
     env_file:
       - config/active/dagster.env
       - config/active/.env
@@ -75,15 +73,30 @@ services:
       retries: 10
     volumes:
       - postgres_data_dagster_db:/var/lib/postgresql/data
-  vulkan-web-app:
+  hatchet:
     build:
       context: .
-      dockerfile: images/vulkan-web-app.Dockerfile
+      dockerfile: images/hatchet.Dockerfile
       args:
         PYTHON_VERSION: "3.12"
-        NEXT_PUBLIC_VULKAN_SERVER_URL: "http://app:6001"
-    ports:
-      - "3003:3000"
+        VULKAN_HOME: /opt/vulkan
+        VULKAN_SERVER_PATH: /opt/server
+        VULKAN_SCRIPTS_PATH: /opt/scripts
+        VULKAN_PORT: 3000
+    init: true
+    env_file:
+      - config/active/hatchet.env
+    volumes:
+      - hatchet_vulkan_home:/opt/vulkan
+  # vulkan-web-app:
+  #   build:
+  #     context: .
+  #     dockerfile: images/vulkan-web-app.Dockerfile
+  #     args:
+  #       PYTHON_VERSION: "3.12"
+  #       NEXT_PUBLIC_VULKAN_SERVER_URL: "http://app:6001"
+  #   ports:
+  #     - "3003:3000"
   # Mock services
   testdata:
     build:
@@ -98,3 +111,4 @@ volumes:
   postgres_data_app_db:
   postgres_data_dagster_db:
   dagster_vulkan_home:
+  hatchet_vulkan_home:

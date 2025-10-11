@@ -3,23 +3,21 @@ import os
 import yaml
 from dagster import Definitions, EnvVar, IOManagerDefinition
 
-from vulkan.constants import POLICY_CONFIG_KEY
 from vulkan.runners.dagster.io_manager import (
     DB_CONFIG_KEY,
-    PUBLISH_IO_MANAGER_KEY,
     DBConfig,
-    metadata_io_manager,
     postgresql_io_manager,
 )
 from vulkan.runners.dagster.policy import DagsterFlow
 from vulkan.runners.dagster.resources import (
-    APP_CLIENT_KEY,
     AppClientResource,
-)
-from vulkan.runners.dagster.run_config import (
-    RUN_CONFIG_KEY,
     VulkanPolicyConfig,
     VulkanRunConfig,
+)
+from vulkan.runners.shared.constants import (
+    APP_CLIENT_KEY,
+    POLICY_CONFIG_KEY,
+    RUN_CONFIG_KEY,
 )
 from vulkan.spec.environment.loaders import load_and_resolve_policy
 
@@ -33,7 +31,7 @@ def make_workspace_definition(spec_file_path: str) -> Definitions:
         # Run DB
         DB_CONFIG_KEY: DBConfig(
             host=EnvVar("VULKAN_DB_HOST"),
-            port=EnvVar("VULKAN_DB_PORT"),
+            port=EnvVar.int("VULKAN_DB_PORT"),
             user=EnvVar("VULKAN_DB_USER"),
             password=EnvVar("VULKAN_DB_PASSWORD"),
             database=EnvVar("VULKAN_DB_DATABASE"),
@@ -45,10 +43,6 @@ def make_workspace_definition(spec_file_path: str) -> Definitions:
         "io_manager": IOManagerDefinition(
             resource_fn=postgresql_io_manager,
             required_resource_keys={RUN_CONFIG_KEY, DB_CONFIG_KEY},
-        ),
-        PUBLISH_IO_MANAGER_KEY: IOManagerDefinition(
-            resource_fn=metadata_io_manager,
-            required_resource_keys={APP_CLIENT_KEY},
         ),
     }
 
@@ -131,6 +125,6 @@ class DagsterWorkspaceManager:
 
 DAGSTER_ENTRYPOINT = """
 from vulkan.runners.dagster.workspace import make_workspace_definition
-                
+
 definitions = make_workspace_definition("{spec_file_path}")
 """

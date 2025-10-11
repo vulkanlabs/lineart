@@ -44,7 +44,7 @@ async def run_version_sync(
     """Execute a workflow and wait for results."""
     try:
         return await service.run_workflow(
-            policy_version_id,
+            str(policy_version_id),
             input_data,
             config_variables,
             polling_interval_ms,

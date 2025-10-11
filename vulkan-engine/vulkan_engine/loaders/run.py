@@ -12,7 +12,7 @@ from vulkan_engine.loaders.base import BaseLoader
 class RunLoader(BaseLoader):
     """Loader for run data access operations."""
 
-    def get_run(self, run_id: str, project_id: str = None) -> Run:
+    def get_run(self, run_id: str, project_id: str | None = None) -> Run:
         """
         Get a run by ID, optionally filtered by project.
 

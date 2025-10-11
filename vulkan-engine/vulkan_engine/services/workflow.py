@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from vulkan.core.run import WorkflowStatus
 from vulkan.spec.nodes import NodeType
 from vulkan.spec.policy import PolicyDefinitionDict
-from vulkan_engine.dagster.service_client import VulkanDagsterServiceClient
+from vulkan_engine.backends.service_client import BackendServiceClient
 from vulkan_engine.db import Workflow
 from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import WorkflowNotFoundException
@@ -26,11 +26,11 @@ class WorkflowService(BaseService):
     def __init__(
         self,
         db: Session,
-        dagster_service_client: VulkanDagsterServiceClient | None = None,
+        backend_service_client: BackendServiceClient | None = None,
         logger: VulkanLogger | None = None,
     ):
         super().__init__(db, logger)
-        self.dagster_service_client = dagster_service_client
+        self.worker_service_client = backend_service_client
         self.component_loader = ComponentLoader(db)
 
     def create_workflow(
@@ -142,7 +142,7 @@ class WorkflowService(BaseService):
         self.db.refresh(workflow)
 
         # Ensure the workspace is created or updated with the new spec and requirements
-        self._update_dagster_workspace(workflow)
+        self._update_worker_workspace(workflow)
         workflow.status = WorkflowStatus.VALID
         self.db.commit()
         self.db.refresh(workflow)
@@ -164,27 +164,29 @@ class WorkflowService(BaseService):
         self.db.delete(workflow)
         self.db.commit()
 
-        # Remove from Dagster
+        # Remove from worker service
         name = str(workflow_id)
         try:
-            self.dagster_service_client.delete_workspace(name)
-            self.dagster_service_client.ensure_workspace_removed(name)
+            if self.worker_service_client:
+                self.worker_service_client.delete_workspace(name)
+                self.worker_service_client.ensure_workspace_removed(name)
         except Exception as e:
             raise Exception(f"Error deleting workflow {workflow_id}: {str(e)}")
 
         self._log_event(VulkanEvent.WORKFLOW_DELETED, workflow_id=workflow_id)
 
-    def _update_dagster_workspace(
+    def _update_worker_workspace(
         self,
         workflow: Workflow,
     ) -> None:
-        """Update Dagster workspace for the policy version."""
+        """Update worker service workspace for the policy version."""
         try:
-            self.dagster_service_client.update_workspace(
-                workspace_id=workflow.workflow_id,
-                spec=workflow.spec,
-                requirements=workflow.requirements,
-            )
+            if self.worker_service_client:
+                self.worker_service_client.update_workspace(
+                    workspace_id=workflow.workflow_id,
+                    spec=workflow.spec,
+                    requirements=workflow.requirements,
+                )
         except ValueError as e:
             if self.logger:
                 self.logger.system.error(
@@ -196,9 +198,10 @@ class WorkflowService(BaseService):
             )
 
         try:
-            self.dagster_service_client.ensure_workspace_added(
-                str(workflow.workflow_id)
-            )
+            if self.worker_service_client:
+                self.worker_service_client.ensure_workspace_added(
+                    str(workflow.workflow_id)
+                )
             workflow.status = WorkflowStatus.VALID
         except ValueError as e:
             if self.logger:
