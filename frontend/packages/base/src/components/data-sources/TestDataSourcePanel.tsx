@@ -76,9 +76,9 @@ export function TestDataSourcePanel({
             // Determine error message based on error type
             let errorMessage = error.message || "An unknown error occurred";
 
-            if (error.name === 'TypeError' && error.message.includes('fetch'))
+            if (error.name === "TypeError" && error.message.includes("fetch"))
                 errorMessage = "Network error: Unable to connect to the data source";
-            else if (error.name === 'AbortError' || error.message.includes('timeout'))
+            else if (error.name === "AbortError" || error.message.includes("timeout"))
                 errorMessage = "Request timeout: The data source took too long to respond";
 
             // Handle error by creating error response
@@ -103,25 +103,6 @@ export function TestDataSourcePanel({
         // Check if the data source has a valid URL configured
         if (!dataSource.source?.url || dataSource.source.url.trim() === "")
             errors.push("URL is not configured");
-
-        // Collect all non-empty values
-        const allValues: string[] = [
-            // Configured runtime params values
-            ...Object.values(testConfig.configuredParams).filter(v => v && v.trim() !== ""),
-            // Custom params values
-            ...testConfig.customParams
-                .filter(p => p.key.trim() !== "" && p.value.trim() !== "")
-                .map(p => p.value),
-            // Override env vars values
-            ...Object.values(testConfig.overrideEnvVars).filter(v => v && v.trim() !== ""),
-            // Custom env vars values
-            ...testConfig.customEnvVars
-                .filter(e => e.key.trim() !== "" && e.value.trim() !== "")
-                .map(e => e.value),
-        ];
-
-        // Check if at least one non empty value exists
-        if (allValues.length === 0) errors.push("At least one parameter or environment variable value is required");
 
         return {
             isValid: errors.length === 0,

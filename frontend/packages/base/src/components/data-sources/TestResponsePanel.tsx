@@ -79,7 +79,9 @@ export function TestResponsePanel({ response, isLoading }: TestResponsePanelProp
                         <Clock className="h-3 w-3" />
                         Response Time
                     </Label>
-                    <div className="mt-1.5 text-lg font-semibold">{response.response_time_ms}ms</div>
+                    <div className="mt-1.5 text-lg font-semibold">
+                        {response.response_time_ms}ms
+                    </div>
                 </div>
             </div>
 
