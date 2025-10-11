@@ -9,21 +9,20 @@ import { DataSource } from "@vulkanlabs/client-open";
 
 // Local imports
 import { Button } from "../ui";
-import { DetailsButton } from "../details-button";
 import { ShortenedID } from "../shortened-id";
 import {
     DeletableResourceTable,
-    DeletableResourceTableActions,
     SearchFilterOptions,
     DeleteResourceOptions,
+    ResourceReference,
 } from "../resource-table";
 import { parseDate } from "../../lib/utils";
 
 export interface DataSourceTableConfig {
     projectId?: string;
-    withProject?: (path: string, projectId?: string) => string;
     deleteDataSource: (id: string, projectId?: string) => Promise<void>;
     CreateDataSourceDialog: React.ReactElement;
+    resourcePathTemplate: string;
 }
 
 /**
@@ -33,22 +32,21 @@ export interface DataSourceTableConfig {
  * @param {DataSourceTableConfig} props.config - Table configuration including delete actions and navigation
  * @returns {JSX.Element} Complete table with search, sorting, and management actions
  */
-function DataSourcesTable({
+export function DataSourcesTable({
     dataSources,
     config,
 }: {
     dataSources: DataSource[];
     config: DataSourceTableConfig;
 }) {
-    const searchOptions: SearchFilterOptions = {
-        column: "name",
-        label: "Name",
+    const resourceRef: ResourceReference = {
+        type: "Data Source",
+        idColumn: "data_source_id",
+        nameColumn: "name",
+        pathTemplate: config.resourcePathTemplate,
     };
 
     const deleteOptions: DeleteResourceOptions = {
-        resourceType: "Data Source",
-        resourceIdColumn: "data_source_id",
-        resourceNameColumn: "name",
         deleteResourceFunction: (id: string) => config.deleteDataSource(id, config.projectId),
     };
 
@@ -56,30 +54,19 @@ function DataSourcesTable({
 
     return (
         <DeletableResourceTable
-            columns={columns}
             data={dataSources}
-            searchOptions={searchOptions}
-            deleteOptions={deleteOptions}
+            columns={columns}
+            resourceRef={resourceRef}
+            searchOptions={{ column: "name", label: "Name" }}
+            defaultSorting={[{ id: "last_updated_at", desc: true }]}
             CreationDialog={config.CreateDataSourceDialog}
+            deleteOptions={deleteOptions}
         />
     );
 }
 
 function getDataSourceTableColumns(config: DataSourceTableConfig): ColumnDef<DataSource>[] {
-    const buildHref = (dataSourceId: string): string => {
-        const basePath = `/integrations/dataSources/${dataSourceId}`;
-        if (config.projectId && config.withProject) {
-            return config.withProject(basePath, config.projectId);
-        }
-        return basePath;
-    };
-
     return [
-        {
-            accessorKey: "link",
-            header: "",
-            cell: ({ row }) => <DetailsButton href={buildHref(row.getValue("data_source_id"))} />,
-        },
         {
             header: "ID",
             accessorKey: "data_source_id",
@@ -141,23 +128,5 @@ function getDataSourceTableColumns(config: DataSourceTableConfig): ColumnDef<Dat
             },
             cell: ({ row }) => parseDate(row.getValue("last_updated_at")),
         },
-        {
-            id: "actions",
-            enableHiding: false,
-            cell: ({ row }) => {
-                const policyVersionId = row.original.data_source_id;
-                const pageLink = buildHref(row.getValue("data_source_id"));
-                return (
-                    <DeletableResourceTableActions
-                        row={row}
-                        resourceId={policyVersionId}
-                        resourcePageLink={pageLink}
-                    />
-                );
-            },
-        },
     ];
 }
-
-export default DataSourcesTable;
-export { DataSourcesTable };

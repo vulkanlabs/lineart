@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation";
 
 // External libraries
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Trash } from "lucide-react";
-import { toast } from "sonner";
+import { ArrowUpDown, Trash } from "lucide-react";
 
 // Vulkan packages
 import { Policy } from "@vulkanlabs/client-open";
@@ -21,23 +20,19 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
 } from "../ui";
-import { DetailsButton } from "../details-button";
 import { ShortenedID } from "../shortened-id";
-import { ResourceTable } from "../resource-table";
+import { ResourceReference, ResourceTable } from "../resource-table";
 import { parseDate } from "../../lib/utils";
+import { createGlobalToast } from "../toast";
+
+const toast = createGlobalToast();
 
 export interface PolicyTableConfig {
     projectId?: string;
-    withProject?: (path: string, projectId: string) => string;
     deletePolicy: (policyId: string, projectId?: string) => Promise<void>;
     CreatePolicyDialog: React.ReactElement;
+    resourcePathTemplate: string;
 }
 
 // Create a context for policy deletion
@@ -93,16 +88,23 @@ export function PoliciesTable({
 
     const policiesTableColumns: ColumnDef<Policy>[] = getTableColumns(config);
 
+    const resourceRef: ResourceReference = {
+        type: "Policy",
+        idColumn: "policy_id",
+        nameColumn: "name",
+        pathTemplate: config.resourcePathTemplate,
+    };
+
     return (
         <DeletePolicyContext.Provider value={{ openDeleteDialog }}>
-            <div>
-                <ResourceTable
-                    columns={policiesTableColumns}
-                    data={policies}
-                    searchOptions={{ column: "name", label: "Name" }}
-                    CreationDialog={config.CreatePolicyDialog}
-                />
-            </div>
+            <ResourceTable
+                data={policies}
+                columns={policiesTableColumns}
+                resourceRef={resourceRef}
+                searchOptions={{ column: "name", label: "Name" }}
+                defaultSorting={[{ id: "last_updated_at", desc: true }]}
+                CreationDialog={config.CreatePolicyDialog}
+            />
 
             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <DialogContent>
@@ -129,20 +131,7 @@ export function PoliciesTable({
 }
 
 function getTableColumns(config: PolicyTableConfig): ColumnDef<Policy>[] {
-    const buildHref = (policyId: string): string => {
-        const basePath = `/policies/${policyId}/overview`;
-        if (config.projectId && config.withProject) {
-            return config.withProject(basePath, config.projectId);
-        }
-        return basePath;
-    };
-
     return [
-        {
-            id: "link",
-            enableHiding: false,
-            cell: ({ row }) => <DetailsButton href={buildHref(row.getValue("policy_id"))} />,
-        },
         {
             header: "ID",
             accessorKey: "policy_id",
@@ -208,13 +197,6 @@ function getTableColumns(config: PolicyTableConfig): ColumnDef<Policy>[] {
                 return <DeletePolicyButton policy={row.original} />;
             },
         },
-        {
-            id: "actions",
-            enableHiding: false,
-            cell: ({ row }) => {
-                return <PoliciesTableActions row={row} config={config} />;
-            },
-        },
     ];
 }
 
@@ -233,39 +215,5 @@ function DeletePolicyButton({ policy }: { policy: Policy }) {
             <span className="sr-only">Delete</span>
             <Trash className="h-5 w-5" />
         </Button>
-    );
-}
-
-function PoliciesTableActions({ row, config }: { row: any; config: PolicyTableConfig }) {
-    const policy = row.original;
-    const router = useRouter();
-
-    const buildHref = (policyId: string): string => {
-        const basePath = `/policies/${policyId}/overview`;
-        if (config.projectId && config.withProject) {
-            return config.withProject(basePath, config.projectId);
-        }
-        return basePath;
-    };
-
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => navigator.clipboard.writeText(policy.policy_id)}>
-                    Copy Policy ID
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push(buildHref(policy.policy_id))}>
-                    View Policy
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
     );
 }

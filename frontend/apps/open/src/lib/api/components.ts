@@ -1,6 +1,6 @@
 "use server";
 
-import { type Component, type ComponentUpdate } from "@vulkanlabs/client-open";
+import { type Component, type ComponentUpdate, type ComponentBase } from "@vulkanlabs/client-open";
 import { componentsApi, withErrorHandling } from "./client";
 
 /**
@@ -29,12 +29,12 @@ export async function fetchComponent(componentName: string): Promise<Component> 
 
 /**
  * Create a new component
- * @param {ComponentUpdate} data - Component definition with name, description, config
+ * @param {ComponentBase} data - Component definition with name, description, config
  * @returns {Promise<Component>} Newly created component with generated metadata
  */
-export async function createComponent(data: ComponentUpdate): Promise<Component> {
+export async function createComponent(data: ComponentBase): Promise<Component> {
     return withErrorHandling(
-        componentsApi.createComponent({ componentUpdate: data }),
+        componentsApi.createComponent({ componentBase: data }),
         `create component`,
     );
 }

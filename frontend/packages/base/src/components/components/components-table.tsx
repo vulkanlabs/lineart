@@ -3,11 +3,11 @@
 // React
 import * as React from "react";
 import { Suspense } from "react";
+import { useRouter } from "next/navigation";
 
 // External libraries
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Trash } from "lucide-react";
-import { toast } from "sonner";
+import { ArrowUpDown, Trash } from "lucide-react";
 
 // Vulkan packages
 import { type Component } from "@vulkanlabs/client-open";
@@ -21,27 +21,20 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
 } from "../ui";
-import { DetailsButton } from "../details-button";
 import { ShortenedID } from "../shortened-id";
 import { ResourceTable } from "../resource-table";
-import { DataTable } from "../data-table";
 import { parseDate } from "../../lib/utils";
+import { createGlobalToast } from "../toast";
+import { ResourceReference, DisplayOptions } from "../resource-table";
+
+const toast = createGlobalToast();
 
 export interface ComponentsTableConfig {
     projectId?: string;
-    withProject?: (path: string, projectId: string) => string;
-    deleteComponent?: (componentName: string, projectId?: string) => Promise<void>;
-    CreateComponentDialog?: React.ReactElement;
-    mode?: "full" | "simple"; // full = complete table, simple = minimal table
-    onRefresh?: () => void;
-    onNavigate?: (path: string) => void;
+    deleteComponent: (componentName: string, projectId?: string) => Promise<void>;
+    CreateComponentDialog: React.ReactElement;
+    resourcePathTemplate: string;
 }
 
 // Create a context for component deletion
@@ -62,6 +55,7 @@ export function ComponentsTable({
 }) {
     const [componentToDelete, setComponentToDelete] = React.useState<Component | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+    const router = useRouter();
 
     const openDeleteDialog = React.useCallback((component: Component) => {
         setComponentToDelete(component);
@@ -82,7 +76,7 @@ export function ComponentsTable({
                 dismissible: true,
             });
             closeDeleteDialog();
-            config.onRefresh?.();
+            router.refresh();
         } catch (error: any) {
             closeDeleteDialog();
             toast.error(`${error.cause || error.message || "An unknown error occurred"}`);
@@ -91,103 +85,57 @@ export function ComponentsTable({
 
     const columns = getComponentsTableColumns(config);
 
-    // Use simple DataTable for minimal mode, full ResourceTable for complete mode
-    if (config.mode === "simple") {
-        return (
-            <div>
-                <Button onClick={() => config.onRefresh?.()}>Refresh</Button>
-                <div className="mt-4">
-                    <Suspense fallback={<div>Loading...</div>}>
-                        <DataTable
-                            columns={columns}
-                            data={components}
-                            emptyMessage="Create a component to start using it in your workflows."
-                        />
-                    </Suspense>
-                </div>
-            </div>
-        );
-    }
+    const resourceRef: ResourceReference = {
+        type: "Component",
+        idColumn: "name",
+        nameColumn: "name",
+        pathTemplate: config.resourcePathTemplate,
+    };
 
-    // Full table with deletion dialog
+    const displayOptions: DisplayOptions = {
+        pageSize: 10,
+    };
+
     return (
         <DeleteComponentContext.Provider value={{ openDeleteDialog }}>
-            <div>
-                <Suspense fallback={<div>Loading...</div>}>
-                    <ResourceTable
-                        columns={columns}
-                        data={components}
-                        searchOptions={{ column: "name", label: "Name" }}
-                        CreationDialog={config.CreateComponentDialog}
-                        pageSize={10}
-                        enableColumnHiding={false}
-                        disableFilters={false}
-                    />
-                </Suspense>
-            </div>
+            <Suspense fallback={<div>Loading...</div>}>
+                <ResourceTable
+                    data={components}
+                    columns={columns}
+                    resourceRef={resourceRef}
+                    displayOptions={{ pageSize: 10 }}
+                    searchOptions={{ column: "name", label: "Name" }}
+                    defaultSorting={[{ id: "last_updated_at", desc: true }]}
+                    CreationDialog={config.CreateComponentDialog}
+                />
+            </Suspense>
 
-            {config.deleteComponent && (
-                <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                    <DialogContent>
-                        <DialogHeader className="">
-                            <DialogTitle>Delete Component</DialogTitle>
-                            <DialogDescription>
-                                {componentToDelete &&
-                                    `Are you sure you want to delete component "${componentToDelete.name}"?` +
-                                        "This action cannot be undone."}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter className="">
-                            <Button variant="outline" onClick={closeDeleteDialog}>
-                                Cancel
-                            </Button>
-                            <Button variant="destructive" onClick={onDelete}>
-                                Delete
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            )}
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader className="">
+                        <DialogTitle>Delete Component</DialogTitle>
+                        <DialogDescription>
+                            {componentToDelete &&
+                                `Are you sure you want to delete component "${componentToDelete.name}"?` +
+                                    "This action cannot be undone."}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="">
+                        <Button variant="outline" onClick={closeDeleteDialog}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={onDelete}>
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DeleteComponentContext.Provider>
     );
 }
 
 function getComponentsTableColumns(config: ComponentsTableConfig): ColumnDef<Component>[] {
-    const buildHref = (componentName: string): string => {
-        const basePath = `/components/${componentName}`;
-        if (config.projectId && config.withProject) {
-            return config.withProject(basePath, config.projectId);
-        }
-        return basePath;
-    };
-
-    // Simple columns for minimal mode
-    if (config.mode === "simple") {
-        return [
-            {
-                accessorKey: "link",
-                header: "",
-                cell: ({ row }) => <DetailsButton href={buildHref(row.getValue("name"))} />,
-            },
-            {
-                accessorKey: "component_id",
-                header: "ID",
-                cell: ({ row }) => <ShortenedID id={row.getValue("component_id")} />,
-            },
-            {
-                accessorKey: "name",
-                header: "Name",
-            },
-        ];
-    }
-
-    // Full columns for complete mode
     return [
-        {
-            id: "link",
-            enableHiding: false,
-            cell: ({ row }) => <DetailsButton href={buildHref(row.getValue("name"))} />,
-        },
         {
             header: "ID",
             accessorKey: "component_id",
@@ -270,22 +218,11 @@ function getComponentsTableColumns(config: ComponentsTableConfig): ColumnDef<Com
             },
             cell: ({ row }) => parseDate(row.getValue("last_updated_at")),
         },
-        ...(config.deleteComponent
-            ? [
-                  {
-                      id: "delete" as const,
-                      enableHiding: false,
-                      cell: ({ row }: any) => {
-                          return <DeleteComponentButton component={row.original} />;
-                      },
-                  },
-              ]
-            : []),
         {
-            id: "actions",
+            id: "delete",
             enableHiding: false,
             cell: ({ row }: any) => {
-                return <ComponentsTableActions row={row} config={config} />;
+                return <DeleteComponentButton component={row.original} />;
             },
         },
     ];
@@ -308,40 +245,5 @@ function DeleteComponentButton({ component }: { component: Component }) {
             <span className="sr-only">Delete</span>
             <Trash className="h-5 w-5" />
         </Button>
-    );
-}
-
-function ComponentsTableActions({ row, config }: { row: any; config: ComponentsTableConfig }) {
-    const component = row.original;
-
-    const buildHref = (componentName: string): string => {
-        const basePath = `/components/${componentName}`;
-        if (config.projectId && config.withProject) {
-            return config.withProject(basePath, config.projectId);
-        }
-        return basePath;
-    };
-
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem
-                    onClick={() => navigator.clipboard.writeText(component.component_id)}
-                >
-                    Copy Component ID
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => config.onNavigate?.(buildHref(component.name))}>
-                    View Component
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
     );
 }
