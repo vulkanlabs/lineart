@@ -28,18 +28,15 @@ export default async function Page() {
 }
 
 function PoliciesTable({ policies }: { policies: Policy[] }) {
+    const creationDialog = <SharedCreatePolicyDialog config={{ createPolicy }} />;
+
     return (
         <SharedPoliciesTable
             policies={policies}
             config={{
                 deletePolicy: deletePolicy,
-                CreatePolicyDialog: (
-                    <SharedCreatePolicyDialog
-                        config={{
-                            createPolicy: createPolicy,
-                        }}
-                    />
-                ),
+                CreatePolicyDialog: creationDialog,
+                resourcePathTemplate: "/policies/{resourceId}/overview",
             }}
         />
     );

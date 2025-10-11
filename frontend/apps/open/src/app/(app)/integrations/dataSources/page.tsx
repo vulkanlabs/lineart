@@ -31,18 +31,15 @@ export default async function Page() {
 }
 
 function DataSourcesTable({ dataSources }: { dataSources: DataSource[] }) {
+    const creationDialog = <CreateDataSourceDialog config={{ createDataSource }} />;
+
     return (
         <SharedDataSourcesTable
             dataSources={dataSources}
             config={{
                 deleteDataSource: deleteDataSource,
-                CreateDataSourceDialog: (
-                    <CreateDataSourceDialog
-                        config={{
-                            createDataSource: createDataSource,
-                        }}
-                    />
-                ),
+                CreateDataSourceDialog: creationDialog,
+                resourcePathTemplate: "/integrations/dataSources/{resourceId}",
             }}
         />
     );

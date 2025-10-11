@@ -65,6 +65,7 @@ function PolicyVersionsTable({
                 policyVersions,
                 deletePolicyVersion,
                 CreateVersionDialog: CreatePolicyVersionDialog,
+                resourcePathTemplate: "/policyVersions/{resourceId}/workflow",
             }}
         />
     );
