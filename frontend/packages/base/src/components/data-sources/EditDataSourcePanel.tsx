@@ -42,9 +42,7 @@ export function EditDataSourcePanel({
     const [params, setParams] = useState(formatJsonForDisplay(dataSource.source?.params));
 
     // Timeout configuration
-    const [timeout, setTimeout] = useState(
-        dataSource.source?.timeout?.toString() ?? "",
-    );
+    const [timeout, setTimeout] = useState(dataSource.source?.timeout?.toString() ?? "");
 
     // Retry configuration
     const [maxRetries, setMaxRetries] = useState(
@@ -125,7 +123,9 @@ export function EditDataSourcePanel({
 
     const handleCancel = () => {
         setUrl(dataSource.source?.url || "");
-        setMethod((dataSource.source?.method as "GET" | "POST" | "PUT" | "DELETE" | "PATCH") || "GET");
+        setMethod(
+            (dataSource.source?.method as "GET" | "POST" | "PUT" | "DELETE" | "PATCH") || "GET",
+        );
         setHeaders(formatJsonForDisplay(dataSource.source?.headers));
         setParams(formatJsonForDisplay(dataSource.source?.params));
         setTimeout(dataSource.source?.timeout?.toString() ?? "");
@@ -144,8 +144,7 @@ export function EditDataSourcePanel({
                     <p className="text-sm text-muted-foreground mt-1">
                         {disabled
                             ? "Configure retry policy, timeout and caching"
-                            : "Configure HTTP endpoint, retry policy, and caching"
-                        }
+                            : "Configure HTTP endpoint, retry policy, and caching"}
                     </p>
                 </div>
                 {!isEditing ? (
@@ -215,7 +214,9 @@ export function EditDataSourcePanel({
                             disabled={!isEditing || disabled}
                             rows={6}
                             className="mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono resize-none"
-                            placeholder={'{\n  "Content-Type": "application/json",\n  "Authorization": "Bearer token"\n}'}
+                            placeholder={
+                                '{\n  "Content-Type": "application/json",\n  "Authorization": "Bearer token"\n}'
+                            }
                         />
                     </div>
 
@@ -250,9 +251,7 @@ export function EditDataSourcePanel({
                                 placeholder="5000"
                                 className="mt-1.5"
                             />
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Request timeout
-                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">Request timeout</p>
                         </div>
 
                         <div>
@@ -267,9 +266,7 @@ export function EditDataSourcePanel({
                                 placeholder="3"
                                 className="mt-1.5"
                             />
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Retry attempts
-                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">Retry attempts</p>
                         </div>
 
                         <div>
@@ -285,9 +282,7 @@ export function EditDataSourcePanel({
                                 placeholder="2"
                                 className="mt-1.5"
                             />
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Backoff multiplier
-                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">Backoff multiplier</p>
                         </div>
                     </div>
                 </div>
@@ -305,7 +300,10 @@ export function EditDataSourcePanel({
                                 disabled={!isEditing || disabled}
                             />
                             <div className="flex-1">
-                                <Label htmlFor="cachingEnabled" className="text-sm font-medium cursor-pointer">
+                                <Label
+                                    htmlFor="cachingEnabled"
+                                    className="text-sm font-medium cursor-pointer"
+                                >
                                     Enable response caching
                                 </Label>
                                 <p className="text-xs text-muted-foreground mt-1">

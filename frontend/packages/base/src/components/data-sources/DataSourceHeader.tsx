@@ -49,10 +49,7 @@ export function DataSourceHeader({
             </div>
             <div className="flex gap-2">
                 {isDraft && onPublish && (
-                    <PublishDataSourceDialog
-                        dataSource={dataSource}
-                        onPublish={onPublish}
-                    />
+                    <PublishDataSourceDialog dataSource={dataSource} onPublish={onPublish} />
                 )}
 
                 <TooltipProvider>

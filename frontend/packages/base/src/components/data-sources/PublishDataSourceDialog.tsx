@@ -4,14 +4,7 @@ import { useState, useCallback } from "react";
 import { Upload, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { DataSource } from "@vulkanlabs/client-open";
-import {
-    Button,
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from "../ui";
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui";
 import { toast } from "sonner";
 
 interface PublishDataSourceDialogProps {
@@ -22,7 +15,10 @@ interface PublishDataSourceDialogProps {
 /**
  * Validates if a data source has the minimum required configuration to be published
  */
-function validateDataSourceForPublish(dataSource: DataSource): { isValid: boolean; errors: string[] } {
+function validateDataSourceForPublish(dataSource: DataSource): {
+    isValid: boolean;
+    errors: string[];
+} {
     const errors: string[] = [];
 
     // Check if URL is configured
@@ -101,8 +97,8 @@ export function PublishDataSourceDialog({ dataSource, onPublish }: PublishDataSo
 
                     <div className="space-y-4 py-4">
                         <p className="text-sm">
-                            Publishing <strong>{dataSource.name}</strong> will make it available for use in
-                            workflows.
+                            Publishing <strong>{dataSource.name}</strong> will make it available for
+                            use in workflows.
                         </p>
                         <div className="space-y-2">
                             <p className="text-sm font-medium">After publishing:</p>
@@ -112,11 +108,17 @@ export function PublishDataSourceDialog({ dataSource, onPublish }: PublishDataSo
                                 <li>Testing remains available for validation</li>
                             </ul>
                         </div>
-                        <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
+                        <p className="text-sm text-muted-foreground">
+                            This action cannot be undone.
+                        </p>
                     </div>
 
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setOpen(false)} disabled={isPublishing}>
+                        <Button
+                            variant="outline"
+                            onClick={() => setOpen(false)}
+                            disabled={isPublishing}
+                        >
                             Cancel
                         </Button>
                         <Button onClick={handlePublish} disabled={isPublishing}>

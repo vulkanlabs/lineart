@@ -9,7 +9,17 @@ import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
 import "../../types/data-source";
 
 // Local components
-import { Separator, Tabs, TabsContent, TabsList, TabsTrigger, Card, CardHeader, CardTitle, CardDescription } from "../ui";
+import {
+    Separator,
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+} from "../ui";
 import { Loader } from "../..";
 import { Lock } from "lucide-react";
 
