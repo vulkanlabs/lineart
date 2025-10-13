@@ -26,7 +26,7 @@ import { useDropdown } from "@/workflow/hooks/use-dropdown";
 import { nodesConfig } from "@/workflow/utils/nodes";
 import { iconMapping } from "@/workflow/icons";
 import { useWorkflowStore } from "@/workflow/store";
-import { Workflow } from "@/workflow/api";
+import { useWorkflowApi, Workflow } from "@/workflow/api";
 import { getLayoutedNodes, type UnlayoutedVulkanNode } from "@/workflow/utils/layout";
 import type { VulkanNode, Edge } from "@/workflow/types/workflow";
 import type { WorkflowStore } from "@/workflow/store/store-types";
@@ -41,6 +41,7 @@ export type WorkflowCanvasProps = {
     nodeTypes: Record<string, React.ComponentType<any>>;
     toast?: (message: string, options?: any) => void;
     onRefresh?: () => void;
+    projectId?: string;
 };
 
 /**
@@ -62,31 +63,37 @@ export function WorkflowCanvas({
     nodeTypes,
     toast = console.log,
     onRefresh = () => {},
+    projectId,
 }: WorkflowCanvasProps) {
+    const api = useWorkflowApi();
+
     const {
         nodes,
         edges,
         getSpec,
         addNodeByType,
+        getNodes,
         setNodes,
         onNodesChange,
         onEdgesChange,
         onConnect,
         toggleAllNodesCollapsed,
+        markSaved,
     } = useWorkflowStore(
         useShallow((state: WorkflowStore) => ({
             nodes: state.nodes,
             edges: state.edges,
             getSpec: state.getSpec,
             addNodeByType: state.addNodeByType,
+            getNodes: state.getNodes,
             setNodes: state.setNodes,
             onNodesChange: state.onNodesChange,
             onEdgesChange: state.onEdgesChange,
             onConnect: state.onConnect,
             toggleAllNodesCollapsed: state.toggleAllNodesCollapsed,
+            markSaved: state.markSaved,
         })),
     );
-    console.log("nodes", nodes);
 
     const { screenToFlowPosition, fitView, setViewport } = useReactFlow();
 
@@ -369,6 +376,69 @@ export function WorkflowCanvas({
             });
         }
     }, [getSpec, toast]);
+
+    /**
+     * Save the current workflow state to backend
+     *
+     * - Workflow specification: Node configurations, connections, logic
+     * - UI metadata: Node positions, sizes, visual state
+     *
+     * - Generate workflow spec from current node configurations
+     * - Capture UI state (positions, dimensions) for restoration
+     * - Send both to backend API
+     * - Handle success/failure with user feedback
+     * - Refresh parent component on success to sync state
+     *
+     * Format: { nodeName: { position: {x, y}, width: number, height: number } }
+     * This preserves the visual layout users have arranged
+     */
+    const saveWorkflow = useCallback(async () => {
+        try {
+            // Generate executable workflow specification
+            const spec = getSpec(); // Node configs + connections
+            const currentNodes = getNodes(); // Current visual state
+
+            // Capture UI layout state for restoration
+            // Maps node names to their visual properties (position, size, expanded state)
+            const uiMetadata = Object.fromEntries(
+                currentNodes.map((node) => [
+                    node.data.name, // Use node name as key (stable across saves)
+                    {
+                        position: node.position, // {x, y} coordinates
+                        width: node.width, // Node width (may be auto-calculated)
+                        height: node.height, // Node height (may be auto-calculated)
+                        detailsExpanded: node.data.detailsExpanded ?? true, // Collapsed  state
+                    },
+                ]),
+            );
+
+            // Send to backend API
+            const result = await api.saveWorkflowSpec(workflow, spec, uiMetadata, projectId);
+
+            // Handle response with appropriate user feedback
+            if (result.success) {
+                markSaved(); // Update auto-save state
+                toast("Workflow saved", {
+                    description: "Workflow saved successfully.",
+                    duration: 2000,
+                    dismissible: true,
+                });
+                onRefresh(); // Refresh parent to sync any server-side changes
+            } else {
+                toast("Failed to save workflow", {
+                    description: result.error,
+                    duration: 5000,
+                });
+            }
+        } catch (error) {
+            // Handle unexpected errors gracefully
+            console.error("Error saving workflow:", error);
+            toast("Failed to save workflow", {
+                description: error instanceof Error ? error.message : "Unknown error",
+                duration: 5000,
+            });
+        }
+    }, [api, workflow, getSpec, getNodes, toast, onRefresh, markSaved]);
 
     return (
         <div className="w-full h-full relative">

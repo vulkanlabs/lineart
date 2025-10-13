@@ -118,20 +118,55 @@ function WorkflowFrameInner({
     onRefresh,
     projectId,
 }: WorkflowFrameProps) {
+    const { sidebar } = useWorkflowStore(
+        useShallow((state) => ({
+            sidebar: state.sidebar,
+        })),
+    );
+
+    const { panelSizes, handlePanelResize, resetPanelSizes } = usePanelSizes();
+
     return (
         <>
             <AutoSaveStatusIntegration workflow={workflow} projectId={projectId} />
             <div className="w-full h-full bg-gray-50">
-                <div className="w-full h-full bg-white">
-                    <WorkflowCanvas
-                        workflow={workflow}
-                        nodeTypes={nodeTypes}
-                        onNodeClick={onNodeClick}
-                        onPaneClick={onPaneClick}
-                        toast={toast}
-                        onRefresh={onRefresh}
-                    />
-                </div>
+                <PanelGroup
+                    direction="horizontal"
+                    onLayout={handlePanelResize}
+                    className="h-full w-full"
+                >
+                    <Panel
+                        defaultSize={panelSizes[0]}
+                        minSize={40}
+                        key={sidebar.isOpen ? "with-sidebar" : "without-sidebar"}
+                    >
+                        <div className="w-full h-full bg-white">
+                            <WorkflowCanvas
+                                workflow={workflow}
+                                nodeTypes={nodeTypes}
+                                onNodeClick={onNodeClick}
+                                onPaneClick={onPaneClick}
+                                toast={toast}
+                                onRefresh={onRefresh}
+                            />
+                        </div>
+                    </Panel>
+
+                    {/* TODO: This should slide in on top of the canvas, not besides it. */}
+                    {sidebar.isOpen && (
+                        <>
+                            <ResizeHandle direction="horizontal" onDoubleClick={resetPanelSizes} />
+                            <Panel
+                                defaultSize={panelSizes[1]}
+                                minSize={20}
+                                maxSize={60}
+                                key="sidebar-panel" // Stable key for sidebar panel
+                            >
+                                <IntegratedWorkflowSidebar />
+                            </Panel>
+                        </>
+                    )}
+                </PanelGroup>
             </div>
         </>
     );
@@ -147,11 +182,6 @@ type AutoSaveStatusIntegrationProps = {
  * Handles communication between workflow state and navigation bar
  */
 function AutoSaveStatusIntegration({ workflow, projectId }: AutoSaveStatusIntegrationProps) {
-    console.log(
-        "Rendering AutoSaveStatusIntegration for workflow",
-        workflow.workflow?.workflow_id,
-        projectId,
-    );
     const { nodes, autoSave, toggleAutoSave } = useWorkflowStore(
         useShallow((state) => ({
             nodes: state.nodes,

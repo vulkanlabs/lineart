@@ -29,7 +29,6 @@ export function WorkflowProviderWrapper({ children, workflow }: WorkflowProvider
     const initialState: WorkflowState = useMemo(() => {
         return createWorkflowState(workflow);
     }, [workflow]);
-    console.log("WorkflowProviderWrapper: initialState", initialState);
 
     return (
         <ReactFlowProvider>
