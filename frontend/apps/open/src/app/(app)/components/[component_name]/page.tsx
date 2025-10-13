@@ -7,7 +7,6 @@ import { AppWorkflowFrame } from "@/components/workflow-frame";
 export default async function Page(props: { params: Promise<{ component_name: string }> }) {
     const params = await props.params;
     const { component_name } = params;
-    console.log("component_name", component_name);
     const component = await fetchComponent(component_name);
 
     if (!component) {
