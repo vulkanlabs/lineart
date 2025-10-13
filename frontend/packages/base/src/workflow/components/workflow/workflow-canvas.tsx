@@ -26,7 +26,7 @@ import { useDropdown } from "@/workflow/hooks/use-dropdown";
 import { nodesConfig } from "@/workflow/utils/nodes";
 import { iconMapping } from "@/workflow/icons";
 import { useWorkflowStore } from "@/workflow/store";
-import { useWorkflowApi, Workflow } from "@/workflow/api";
+import { Workflow } from "@/workflow/api";
 import { getLayoutedNodes, type UnlayoutedVulkanNode } from "@/workflow/utils/layout";
 import type { VulkanNode, Edge } from "@/workflow/types/workflow";
 import type { WorkflowStore } from "@/workflow/store/store-types";
@@ -63,33 +63,27 @@ export function WorkflowCanvas({
     toast = console.log,
     onRefresh = () => {},
 }: WorkflowCanvasProps) {
-    const api = useWorkflowApi();
-
     const {
         nodes,
         edges,
         getSpec,
         addNodeByType,
-        getNodes,
         setNodes,
         onNodesChange,
         onEdgesChange,
         onConnect,
         toggleAllNodesCollapsed,
-        markSaved,
     } = useWorkflowStore(
         useShallow((state: WorkflowStore) => ({
             nodes: state.nodes,
             edges: state.edges,
             getSpec: state.getSpec,
             addNodeByType: state.addNodeByType,
-            getNodes: state.getNodes,
             setNodes: state.setNodes,
             onNodesChange: state.onNodesChange,
             onEdgesChange: state.onEdgesChange,
             onConnect: state.onConnect,
             toggleAllNodesCollapsed: state.toggleAllNodesCollapsed,
-            markSaved: state.markSaved,
         })),
     );
     console.log("nodes", nodes);

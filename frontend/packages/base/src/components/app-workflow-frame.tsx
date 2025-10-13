@@ -13,54 +13,12 @@ import {
     type Workflow,
 } from "../workflow";
 
-/**
- * Configuration schema for runtime validation with enhanced performance
- */
-const AppWorkflowFrameConfigSchema = z.object({
-    /** Whether policyId is required for multi-tenant environments */
-    requirePolicyId: z.boolean().optional().default(false),
-    /** Whether to pass projectId to WorkflowFrame component */
-    passProjectIdToFrame: z.boolean().optional().default(false),
-});
-
-/**
- * Default empty configuration object - frozen for performance
- */
-const DEFAULT_CONFIG: AppWorkflowFrameConfig = Object.freeze({});
-
-/**
- * Global scope configuration - no policy isolation required
- */
-export const GLOBAL_SCOPE_CONFIG: AppWorkflowFrameConfig = Object.freeze({
-    requirePolicyId: false,
-    passProjectIdToFrame: true,
-});
-
-/**
- * Project scope configuration - requires policy isolation
- */
-export const PROJECT_SCOPE_CONFIG: AppWorkflowFrameConfig = Object.freeze({
-    requirePolicyId: true,
-    passProjectIdToFrame: true,
-});
-
-/**
- * Configuration for app-specific workflow frame behavior
- */
-export interface AppWorkflowFrameConfig {
-    /** Whether policyId is required for multi-tenant environments */
-    requirePolicyId?: boolean;
-    /** Whether to pass projectId to WorkflowFrame component */
-    passProjectIdToFrame?: boolean;
-}
-
 export type AppWorkflowFrameProps = {
     workflowData: Workflow;
     onNodeClick?: (e: React.MouseEvent, node: any) => void;
     onPaneClick?: (e: React.MouseEvent) => void;
     projectId?: string;
-}
-
+};
 
 /**
  * Configurable application workflow frame that adapts to different deployment modes.
@@ -73,11 +31,7 @@ export type AppWorkflowFrameProps = {
  */
 export const AppWorkflowFrame = React.memo<AppWorkflowFrameProps>(
     function AppWorkflowFrame(props: AppWorkflowFrameProps) {
-        const {
-            workflowData,
-            onNodeClick = () => {},
-            onPaneClick = () => {},
-        } = props;
+        const { workflowData, onNodeClick = () => {}, onPaneClick = () => {} } = props;
 
         const router = useRouter();
 
@@ -94,7 +48,6 @@ export const AppWorkflowFrame = React.memo<AppWorkflowFrameProps>(
 
         // Extract projectId and policyId based on props type
         const projectId = "projectId" in props ? props.projectId : undefined;
-
 
         return (
             <WorkflowApiProvider client={apiClient} config={{}}>
