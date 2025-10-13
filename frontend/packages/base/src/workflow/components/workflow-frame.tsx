@@ -148,6 +148,7 @@ function WorkflowFrameInner({
                                 onPaneClick={onPaneClick}
                                 toast={toast}
                                 onRefresh={onRefresh}
+                                projectId={projectId}
                             />
                         </div>
                     </Panel>
