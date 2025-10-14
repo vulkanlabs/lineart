@@ -1,9 +1,16 @@
 from dagster import ConfigurableResource, ResourceDependency
 
-from vulkan.runners.dagster.app_client import BaseAppClient, create_app_client
-from vulkan.runners.dagster.run_config import VulkanRunConfig
+from vulkan.runners.shared.app_client import BaseAppClient, create_app_client
 
-APP_CLIENT_KEY = "app_client"
+
+class VulkanRunConfig(ConfigurableResource):
+    run_id: str
+    server_url: str
+    project_id: str | None = None
+
+
+class VulkanPolicyConfig(ConfigurableResource):
+    variables: dict
 
 
 class AppClientResource(ConfigurableResource):

@@ -161,7 +161,7 @@ class Run(TimedUpdateMixin, Base):
     input_data = Column(JSON, nullable=True)
     # Attribute name 'metadata' is reserved when using the Declarative API.
     run_metadata = Column(JSON, nullable=True)
-    dagster_run_id = Column(String, nullable=True)
+    backend_run_id = Column(String, nullable=True)
     started_at = Column(DateTime(timezone=True), nullable=True)
 
     # Project association for multi-tenant deployments (denormalized for performance)
@@ -322,6 +322,9 @@ class RunDataRequest(Base):
     data_source_id = Column(Uuid, ForeignKey("data_source.data_source_id"))
     data_origin = Column(Enum(DataObjectOrigin), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    start_time = Column(Float, nullable=True)
+    end_time = Column(Float, nullable=True)
+    error = Column(JSON, nullable=True)
 
 
 class DataSourceTestResult(Base):

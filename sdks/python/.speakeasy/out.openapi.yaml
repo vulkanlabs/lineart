@@ -2945,7 +2945,7 @@ components:
           format: "date-time"
           title: "Last Updated At"
         "steps":
-          additionalProperties: {"$ref": "#/components/schemas/_StepDetails"}
+          additionalProperties: {"$ref": "#/components/schemas/StepDetails"}
           type: "object"
           title: "Steps"
       type: "object"
@@ -3055,6 +3055,30 @@ components:
       required:
         - "param"
       title: "RunTimeParam"
+    "StepDetails":
+      properties:
+        "output":
+          anyOf:
+            - type: "string"
+              format: "binary"
+            - type: "string"
+            - additionalProperties: true
+              type: "object"
+            - items: {}
+              type: "array"
+            - type: "integer"
+            - type: "number"
+            - type: "null"
+          title: "Output"
+        "metadata":
+          anyOf:
+            - {"$ref": "#/components/schemas/StepMetadataBase"}
+            - type: "null"
+      type: "object"
+      required:
+        - "output"
+        - "metadata"
+      title: "StepDetails"
     "StepMetadataBase":
       properties:
         "step_name":
@@ -3221,27 +3245,3 @@ components:
         - "VALID"
         - "INVALID"
       title: "WorkflowStatus"
-    "_StepDetails":
-      properties:
-        "output":
-          anyOf:
-            - type: "string"
-              format: "binary"
-            - type: "string"
-            - additionalProperties: true
-              type: "object"
-            - items: {}
-              type: "array"
-            - type: "integer"
-            - type: "number"
-            - type: "null"
-          title: "Output"
-        "metadata":
-          anyOf:
-            - {"$ref": "#/components/schemas/StepMetadataBase"}
-            - type: "null"
-      type: "object"
-      required:
-        - "output"
-        - "metadata"
-      title: "_StepDetails"

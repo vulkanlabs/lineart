@@ -15,14 +15,16 @@ from typing import Annotated, Iterator
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
-from vulkan_engine.backends.base import ExecutionBackend
-from vulkan_engine.backends.dagster import DagsterBackend
-from vulkan_engine.config import VulkanEngineConfig
-from vulkan_engine.dagster.client import (
-    DagsterDataClient,
-    create_dagster_client_from_config,
+from vulkan_engine.backends.execution import ExecutionBackend
+from vulkan_engine.backends.factory.backend import ExecutionBackendFactory
+from vulkan_engine.backends.factory.data_client import BaseDataClient, DataClientFactory
+from vulkan_engine.backends.factory.service_client import (
+    BackendServiceClient,
+    ServiceClientFactory,
 )
-from vulkan_engine.dagster.service_client import VulkanDagsterServiceClient
+from vulkan_engine.config import VulkanEngineConfig
+
+# Removed legacy Dagster imports - now using worker abstractions only
 from vulkan_engine.db import get_db_session
 from vulkan_engine.logger import VulkanLogger, create_logger
 from vulkan_engine.services import (
@@ -55,8 +57,6 @@ def get_vulkan_server_config() -> VulkanEngineConfig:
 
 
 # Infrastructure Dependencies
-
-
 def get_database_session(
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
 ) -> Iterator[Session]:
@@ -106,82 +106,62 @@ def get_service_dependencies(
     return db, logger
 
 
-def get_dagster_client(
-    config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
-):
-    """
-    Get Dagster client using configuration.
-
-    Args:
-        config: Vulkan engine configuration
-
-    Returns:
-        Dagster GraphQL client
-    """
-    return create_dagster_client_from_config(config.dagster_service)
-
-
 def get_execution_backend(
-    dagster_client: Annotated[object, Depends(get_dagster_client)],
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
 ) -> ExecutionBackend:
     """
     Get execution backend for running workflows.
 
     Args:
-        dagster_client: Dagster GraphQL client
+        launcher: Worker launcher (Dagster, Hatchet, etc.)
         config: Vulkan engine configuration
 
     Returns:
         ExecutionBackend instance (currently DagsterBackend)
     """
-    return DagsterBackend(
-        dagster_client=dagster_client,
-        server_url=config.app.server_url,
-    )
+    return ExecutionBackendFactory.create_backend(config)
 
 
-def get_dagster_service_client(
+def get_worker_data_client(
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
-    dagster_client: Annotated[object, Depends(get_dagster_client)],
-) -> VulkanDagsterServiceClient:
+    db_session: Annotated[Session, Depends(get_database_session)],
+) -> BaseDataClient | None:
     """
-    Get Dagster service client.
+    Get worker data client using factory pattern.
 
     Args:
         config: Vulkan engine configuration
-        dagster_client: Dagster GraphQL client
+        db_session: App database session
 
     Returns:
-        VulkanDagsterServiceClient instance
+        WorkerDataClient instance or None if database is disabled
     """
-    return VulkanDagsterServiceClient(
-        server_url=config.vulkan_dagster_server_url,
-        dagster_client=dagster_client,
-    )
+    factory = DataClientFactory(db_session)
+    return factory.create_data_client(config)
 
 
-def get_dagster_data_client(
+def get_worker_service_client(
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
-) -> DagsterDataClient:
+    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
+) -> BackendServiceClient:
     """
-    Get Dagster data client.
+    Get worker service client using factory pattern.
 
     Args:
         config: Vulkan engine configuration
 
     Returns:
-        DagsterDataClient instance
+        WorkerServiceClient instance (Dagster, Hatchet, etc.)
     """
-    return DagsterDataClient(config.dagster_database)
+    return ServiceClientFactory.create_service_client(config, base_logger=logger)
 
 
 # Business Service Dependencies
-
-
 def get_run_query_service(
     db: Annotated[Session, Depends(get_database_session)],
-    dagster_data_client: Annotated[DagsterDataClient, Depends(get_dagster_data_client)],
+    worker_data_client: Annotated[
+        BaseDataClient | None, Depends(get_worker_data_client)
+    ],
     logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> RunQueryService:
     """
@@ -189,15 +169,17 @@ def get_run_query_service(
 
     Args:
         db: Database session
-        dagster_data_client: Dagster data client
+        worker_data_client: Worker data client (may be None if database disabled)
         logger: Configured logger
 
     Returns:
         Configured RunQueryService instance
     """
+    if worker_data_client is None:
+        raise ValueError("Worker data client is required")
     return RunQueryService(
         db=db,
-        dagster_client=dagster_data_client,
+        data_client=worker_data_client,
         logger=logger,
     )
 
@@ -243,15 +225,15 @@ def get_policy_service(
 
 
 def get_workflow_service(
-    dagster_service_client: Annotated[
-        VulkanDagsterServiceClient, Depends(get_dagster_service_client)
+    worker_service_client: Annotated[
+        BackendServiceClient, Depends(get_worker_service_client)
     ],
     db: Annotated[Session, Depends(get_database_session)],
     logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> WorkflowService:
     """Get WorkflowService instance with dependencies."""
     return WorkflowService(
-        db=db, dagster_service_client=dagster_service_client, logger=logger
+        db=db, backend_service_client=worker_service_client, logger=logger
     )
 
 

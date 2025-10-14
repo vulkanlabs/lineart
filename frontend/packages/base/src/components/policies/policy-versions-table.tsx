@@ -12,13 +12,12 @@ import { WorkflowStatus } from "@vulkanlabs/client-open";
 // Local imports
 import { Button, Badge } from "../ui";
 import {
-    DetailsButton,
     ShortenedID,
     DeletableResourceTable,
-    DeletableResourceTableActions,
     SearchFilterOptions,
     DeleteResourceOptions,
 } from "../..";
+import { ResourceReference } from "../resource-table";
 import { parseDate } from "../../lib/utils";
 
 export interface PolicyVersionsTableConfig {
@@ -26,6 +25,7 @@ export interface PolicyVersionsTableConfig {
     policyVersions: PolicyVersion[];
     deletePolicyVersion: (versionId: string) => Promise<any>;
     CreateVersionDialog: React.ComponentType<any>;
+    resourcePathTemplate: string;
 }
 
 /**
@@ -35,7 +35,13 @@ export interface PolicyVersionsTableConfig {
  * @returns {JSX.Element} Table displaying policy versions with actions
  */
 export function PolicyVersionsTable({ config }: { config: PolicyVersionsTableConfig }) {
-    const { policy, policyVersions, deletePolicyVersion, CreateVersionDialog } = config;
+    const {
+        policy,
+        policyVersions,
+        deletePolicyVersion,
+        CreateVersionDialog,
+        resourcePathTemplate,
+    } = config;
     const activeVersions = useMemo(() => getActiveVersions(policy), [policy]);
 
     const formattedVersions = useMemo(
@@ -59,130 +65,114 @@ export function PolicyVersionsTable({ config }: { config: PolicyVersionsTableCon
         [policyVersions, activeVersions],
     );
 
-    const searchOptions: SearchFilterOptions = {
-        column: "alias",
-        label: "Tag",
+    const resourceRef: ResourceReference = {
+        type: "Policy Version",
+        idColumn: "policy_version_id",
+        nameColumn: "alias",
+        pathTemplate: resourcePathTemplate,
     };
 
     const deleteOptions: DeleteResourceOptions = {
-        resourceType: "Policy Version",
-        resourceIdColumn: "policy_version_id",
-        resourceNameColumn: "alias",
         deleteResourceFunction: deletePolicyVersion,
     };
 
+    const policyVersionsTableColumns = getTableColumns(config);
+
     return (
         <DeletableResourceTable
-            columns={policyVersionsTableColumns}
             data={formattedVersions}
-            searchOptions={searchOptions}
-            deleteOptions={deleteOptions}
+            columns={policyVersionsTableColumns}
+            resourceRef={resourceRef}
+            searchOptions={{ column: "alias", label: "Alias" }}
+            defaultSorting={[{ id: "last_updated_at", desc: true }]}
             CreationDialog={<CreateVersionDialog policyId={policy.policy_id} />}
+            deleteOptions={deleteOptions}
         />
     );
 }
 
-const policyVersionsTableColumns: ColumnDef<ExtendedPolicyVersion>[] = [
-    {
-        id: "link",
-        enableHiding: false,
-        cell: ({ row }) => (
-            <DetailsButton href={`/policyVersions/${row.getValue("policy_version_id")}/workflow`} />
-        ),
-    },
-    {
-        header: "ID",
-        accessorKey: "policy_version_id",
-        cell: ({ row }) => <ShortenedID id={row.getValue("policy_version_id")} />,
-    },
-    {
-        accessorKey: "alias",
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    className="p-0"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                >
-                    <span className="mr-2">Tag</span>
-                    <ArrowUpDown className="w-5 h-5" />
-                </Button>
-            );
+function getTableColumns(config: PolicyVersionsTableConfig): ColumnDef<ExtendedPolicyVersion>[] {
+    return [
+        {
+            header: "ID",
+            accessorKey: "policy_version_id",
+            cell: ({ row }) => <ShortenedID id={row.getValue("policy_version_id")} />,
         },
-        cell: ({ row }) => <div>{row.getValue("alias")}</div>,
-    },
-    {
-        header: "Active",
-        accessorKey: "activeStatus",
-        cell: ({ row }) => {
-            const status = row.getValue("activeStatus") as string;
-            const variant =
-                ACTIVE_STATUS_VARIANT[status as keyof typeof ACTIVE_STATUS_VARIANT] || "outline";
+        {
+            accessorKey: "alias",
+            header: ({ column }) => {
+                return (
+                    <Button
+                        variant="ghost"
+                        className="p-0"
+                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    >
+                        <span className="mr-2">Alias</span>
+                        <ArrowUpDown className="w-5 h-5" />
+                    </Button>
+                );
+            },
+            cell: ({ row }) => <div>{row.getValue("alias")}</div>,
+        },
+        {
+            header: "Active",
+            accessorKey: "activeStatus",
+            cell: ({ row }) => {
+                const status = row.getValue("activeStatus") as string;
+                const variant =
+                    ACTIVE_STATUS_VARIANT[status as keyof typeof ACTIVE_STATUS_VARIANT] ||
+                    "outline";
 
-            return <Badge variant={variant as any}>{status}</Badge>;
+                return <Badge variant={variant as any}>{status}</Badge>;
+            },
         },
-    },
-    {
-        header: "Valid",
-        accessorKey: "validationStatus",
-        cell: ({ row }) => {
-            const status = row.getValue("validationStatus") as WorkflowStatus;
+        {
+            header: "Valid",
+            accessorKey: "validationStatus",
+            cell: ({ row }) => {
+                const status = row.getValue("validationStatus") as WorkflowStatus;
 
-            return (
-                <Badge variant={status === WorkflowStatus.Valid ? "default" : "destructive"}>
-                    {status}
-                </Badge>
-            );
+                return (
+                    <Badge variant={status === WorkflowStatus.Valid ? "default" : "destructive"}>
+                        {status}
+                    </Badge>
+                );
+            },
         },
-    },
-    {
-        accessorKey: "created_at",
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    className="p-0"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                >
-                    <span className="mr-2">Created At</span>
-                    <ArrowUpDown className="w-5 h-5" />
-                </Button>
-            );
+        {
+            accessorKey: "created_at",
+            header: ({ column }) => {
+                return (
+                    <Button
+                        variant="ghost"
+                        className="p-0"
+                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    >
+                        <span className="mr-2">Created At</span>
+                        <ArrowUpDown className="w-5 h-5" />
+                    </Button>
+                );
+            },
+            cell: ({ row }) => parseDate(row.getValue("created_at")),
         },
-        cell: ({ row }) => parseDate(row.getValue("created_at")),
-    },
-    {
-        accessorKey: "last_updated_at",
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    className="p-0"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                >
-                    <span className="mr-2">Last Updated At</span>
-                    <ArrowUpDown className="w-5 h-5" />
-                </Button>
-            );
+        {
+            accessorKey: "last_updated_at",
+            header: ({ column }) => {
+                return (
+                    <Button
+                        variant="ghost"
+                        className="p-0"
+                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    >
+                        <span className="mr-2">Last Updated At</span>
+                        <ArrowUpDown className="w-5 h-5" />
+                    </Button>
+                );
+            },
+            cell: ({ row }) => parseDate(row.getValue("last_updated_at")),
         },
-        cell: ({ row }) => parseDate(row.getValue("last_updated_at")),
-    },
-    {
-        id: "actions",
-        enableHiding: false,
-        cell: ({ row }) => {
-            const policyVersionId = row.original.policy_version_id;
-            const pageLink = `/policyVersions/${policyVersionId}/workflow`;
-            return (
-                <DeletableResourceTableActions
-                    row={row}
-                    resourceId={policyVersionId}
-                    resourcePageLink={pageLink}
-                />
-            );
-        },
-    },
-];
+    ];
+}
 
 function getActiveVersions(policyData: Policy): string[] {
     if (policyData.allocation_strategy == null) {

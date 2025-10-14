@@ -153,6 +153,7 @@ function WorkflowFrameInner({
                         </div>
                     </Panel>
 
+                    {/* TODO: This should slide in on top of the canvas, not besides it. */}
                     {sidebar.isOpen && (
                         <>
                             <ResizeHandle direction="horizontal" onDoubleClick={resetPanelSizes} />

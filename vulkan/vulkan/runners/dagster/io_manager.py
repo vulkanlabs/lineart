@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pickle import dumps, loads
 from typing import Any
 
@@ -7,13 +7,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.sql import text
 
-from vulkan.core.step_metadata import StepMetadata
-from vulkan.runners.dagster.app_client import BaseAppClient
-from vulkan.runners.dagster.resources import APP_CLIENT_KEY, AppClientResource
-from vulkan.runners.dagster.run_config import RUN_CONFIG_KEY, VulkanRunConfig
-
-PUBLISH_IO_MANAGER_KEY = "publish_metadata_io_manager"
-METADATA_OUTPUT_KEY = "metadata"
+from vulkan.runners.shared.constants import RUN_CONFIG_KEY
+from vulkan.runners.shared.run_config import VulkanRunConfig
 
 
 class PostgreSQLIOManager(IOManager):
@@ -115,33 +110,3 @@ def postgresql_io_manager(context) -> PostgreSQLIOManager:
         table=db_config.object_table.get_value(),
         run_id=run_config.run_id,
     )
-
-
-class PublishMetadataIOManager(IOManager):
-    def __init__(self, client: BaseAppClient):
-        self._client = client
-
-    def handle_output(self, context: OutputContext, obj):
-        if context.name != "metadata":
-            raise NotImplementedError("Currently only supports metadata")
-
-        if not isinstance(obj, StepMetadata):
-            raise TypeError(f"Expected StepMetadata, got {type(obj)}")
-
-        try:
-            self._client.publish_step_metadata(
-                step_name=context.step_key,
-                metadata=asdict(obj),
-            )
-        except Exception as e:
-            msg = f"Failed to publish metadata for step {context.get_identifier()}"
-            raise ValueError(msg) from e
-
-    def load_input(self, context: InputContext):
-        raise NotImplementedError("Currently only supports metadata output")
-
-
-def metadata_io_manager(context) -> PublishMetadataIOManager:
-    app_client_resource: AppClientResource = getattr(context.resources, APP_CLIENT_KEY)
-    client = app_client_resource.get_client()
-    return PublishMetadataIOManager(client=client)

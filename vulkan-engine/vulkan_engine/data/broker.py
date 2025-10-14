@@ -2,6 +2,7 @@ import csv
 import hashlib
 import io
 import json
+import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from logging import Logger
@@ -35,11 +36,16 @@ class DataBroker:
                     origin=schemas.DataObjectOrigin.CACHE,
                     key=key,
                     value=self._format_data(data.value),
+                    start_time=None,
+                    end_time=None,
+                    error=None,
                 )
 
+        start_time = time.time()
         req = make_request(self.spec.source, configured_params, env_variables)
         response = requests.Session().send(req, timeout=self.spec.source.timeout)
         response.raise_for_status()
+        end_time = time.time()
 
         if response.status_code == 200:
             data = DataObject(
@@ -58,6 +64,9 @@ class DataBroker:
                 origin=schemas.DataObjectOrigin.REQUEST,
                 key=key,
                 value=self._format_data(data.value),
+                start_time=start_time,
+                end_time=end_time,
+                error=None,
             )
 
     def _format_data(self, value: bytes):

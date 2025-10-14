@@ -15,7 +15,6 @@ import {
     useReactTable,
 } from "@tanstack/react-table";
 import { ChevronDown, Copy, ExternalLink, MoreHorizontal, RefreshCcw, Trash } from "lucide-react";
-import { toast } from "sonner";
 
 import { Button } from "./ui/button";
 import {
@@ -37,33 +36,59 @@ import {
     DialogHeader,
     DialogTitle,
 } from "./ui/dialog";
+import { DetailsButton } from "./details-button";
+import { createGlobalToast } from "./toast";
+
+const toast = createGlobalToast();
 
 export interface SearchFilterOptions {
     column: string;
     label: string;
 }
 
+export interface ResourceReference {
+    type: string;
+    idColumn: string;
+    nameColumn: string;
+    pathTemplate: string;
+}
+
+export interface DisplayOptions {
+    pageSize?: number;
+    enableColumnHiding?: boolean;
+    disableActions?: boolean;
+    disableFilters?: boolean;
+}
+
+export interface ResourceAction {
+    label: string;
+    icon: React.ComponentType<any>;
+    onClick: (resource: any) => void;
+}
+
 export interface ResourceTableProps<TData, TValue> {
     data: TData[];
     columns: ColumnDef<TData, TValue>[];
-    pageSize?: number;
-    searchOptions?: SearchFilterOptions;
-    enableColumnHiding?: boolean;
-    disableFilters?: boolean;
+    resourceRef: ResourceReference;
     CreationDialog?: React.ReactNode;
+    displayOptions?: DisplayOptions;
+    searchOptions?: SearchFilterOptions;
     defaultSorting?: SortingState;
+    extraActions?: ResourceAction[];
 }
 
 export function ResourceTable<TData, TValue>({
     data,
     columns,
-    pageSize,
-    searchOptions,
-    enableColumnHiding,
-    disableFilters,
+    resourceRef,
     CreationDialog,
+    displayOptions,
+    searchOptions,
     defaultSorting,
+    extraActions,
 }: ResourceTableProps<TData, TValue>) {
+    const { pageSize, enableColumnHiding, disableFilters, disableActions } = displayOptions || {};
+
     // try last_updated_at first, then created_at, as DESC
     const getDefaultSorting = (): SortingState => {
         if (defaultSorting) return defaultSorting;
@@ -91,9 +116,38 @@ export function ResourceTable<TData, TValue>({
 
     const router = useRouter();
 
+    let tableColumns = React.useMemo(() => [...columns], [columns]);
+    // Always add link column at the start
+    tableColumns.unshift({
+        id: "link",
+        enableHiding: false,
+        cell: ({ row }) => (
+            <DetailsButton
+                href={renderResourcePath(
+                    resourceRef.pathTemplate,
+                    row.getValue(resourceRef.idColumn),
+                )}
+            />
+        ),
+    });
+
+    if (!disableActions) {
+        tableColumns.push({
+            id: "actions",
+            enableHiding: false,
+            cell: ({ row }) => (
+                <BaseResourceTableActions
+                    row={row}
+                    resourceRef={resourceRef}
+                    extraActions={extraActions}
+                />
+            ),
+        });
+    }
+
     const table = useReactTable({
         data,
-        columns,
+        columns: tableColumns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
@@ -209,7 +263,10 @@ export function ResourceTable<TData, TValue>({
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={columns.length} className="h-24 text-center">
+                                <TableCell
+                                    colSpan={tableColumns.length}
+                                    className="h-24 text-center"
+                                >
                                     No results.
                                 </TableCell>
                             </TableRow>
@@ -250,9 +307,6 @@ export function ResourceTable<TData, TValue>({
 }
 
 export interface DeleteResourceOptions {
-    resourceType: string;
-    resourceIdColumn: string;
-    resourceNameColumn: string;
     deleteResourceFunction: (resourceId: string) => Promise<void>;
 }
 export interface DeletableResourceTableProps<TData, TValue>
@@ -271,15 +325,15 @@ export const DeleteResourceContext = React.createContext<DeleteResourceContextTy
 export function DeletableResourceTable<TData, TValue>({
     data,
     columns,
-    pageSize,
-    searchOptions,
-    deleteOptions,
-    enableColumnHiding,
+    resourceRef,
     CreationDialog,
+    displayOptions,
+    searchOptions,
     defaultSorting,
+    extraActions,
+    deleteOptions,
 }: DeletableResourceTableProps<TData, TValue>) {
-    const { resourceType, resourceIdColumn, resourceNameColumn, deleteResourceFunction } =
-        deleteOptions;
+    const { deleteResourceFunction } = deleteOptions;
     const [resourceToDelete, setResourceToDelete] = React.useState(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const router = useRouter();
@@ -297,40 +351,51 @@ export function DeletableResourceTable<TData, TValue>({
         if (!resourceToDelete) return;
 
         try {
-            await deleteResourceFunction(resourceToDelete[resourceIdColumn]);
-            toast(`${resourceType} deleted`, {
-                description: `${resourceType} ${resourceToDelete[resourceNameColumn]} has been deleted.`,
+            await deleteResourceFunction(resourceToDelete[resourceRef.idColumn]);
+            toast(`${resourceRef.type} deleted`, {
+                description: `${resourceRef.type} ${resourceToDelete[resourceRef.nameColumn]} has been deleted.`,
                 dismissible: true,
             });
             closeDeleteDialog();
             router.refresh();
         } catch (error) {
             closeDeleteDialog();
-            toast.error(`${(error as Error)?.message || "An error occurred"}`);
+            toast.error(`${(error as Error)?.message || "An unknown error occurred"}`);
         }
     };
 
+    const deleteAction: ResourceAction = {
+        onClick: async (resource) => {
+            await sleep(100);
+            openDeleteDialog(resource);
+        },
+        label: "Delete",
+        icon: Trash,
+    };
+
+    extraActions = extraActions ? [deleteAction, ...extraActions] : [deleteAction];
+
     return (
         <DeleteResourceContext.Provider value={{ openDeleteDialog }}>
-            <div>
-                <ResourceTable
-                    data={data}
-                    columns={columns}
-                    pageSize={pageSize}
-                    searchOptions={searchOptions}
-                    enableColumnHiding={enableColumnHiding}
-                    CreationDialog={CreationDialog}
-                    defaultSorting={defaultSorting}
-                />
-            </div>
+            <ResourceTable
+                data={data}
+                columns={columns}
+                resourceRef={resourceRef}
+                CreationDialog={CreationDialog}
+                displayOptions={displayOptions}
+                searchOptions={searchOptions}
+                extraActions={extraActions}
+                defaultSorting={defaultSorting}
+            />
 
             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Delete {resourceType}</DialogTitle>
+                        <DialogTitle>Delete {resourceRef.type}</DialogTitle>
                         <DialogDescription>
                             {resourceToDelete &&
-                                `Are you sure you want to delete ${resourceType} "${resourceToDelete[resourceNameColumn]}"? This action cannot be undone.`}
+                                `Are you sure you want to delete ${resourceRef.type} "${resourceToDelete[resourceRef.nameColumn]}"? ` +
+                                    "This action cannot be undone."}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -347,14 +412,72 @@ export function DeletableResourceTable<TData, TValue>({
     );
 }
 
+export function BaseResourceTableActions({
+    row,
+    resourceRef,
+    extraActions,
+}: {
+    row: any;
+    resourceRef: ResourceReference;
+    extraActions?: ResourceAction[];
+}) {
+    const router = useRouter();
+    const resource = row.original;
+    const resourceId = row.original[resourceRef.idColumn];
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => navigator.clipboard.writeText(resourceId)}>
+                    <div className="flex items-center gap-2">
+                        <Copy className="h-5 w-5" />
+                        <span>Copy ID</span>
+                    </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                    onClick={() =>
+                        router.push(renderResourcePath(resourceRef.pathTemplate, resourceId))
+                    }
+                >
+                    <div className="flex items-center gap-2">
+                        <ExternalLink className="h-5 w-5" />
+                        <span>View</span>
+                    </div>
+                </DropdownMenuItem>
+                {extraActions &&
+                    extraActions.map((action) => (
+                        <DropdownMenuItem
+                            onClick={async () => {
+                                await action.onClick(resource);
+                            }}
+                        >
+                            <div className="flex items-center gap-2">
+                                <action.icon className="h-5 w-5" />
+                                <span>{action.label}</span>
+                            </div>
+                        </DropdownMenuItem>
+                    ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
 export function DeletableResourceTableActions({
     row,
     resourceId,
-    resourcePageLink,
+    resourcePagePath,
 }: {
     row: any;
     resourceId: string;
-    resourcePageLink: string;
+    resourcePagePath: string;
 }) {
     const deleteContext = React.useContext(DeleteResourceContext);
     const resource = row.original;
@@ -377,7 +500,7 @@ export function DeletableResourceTableActions({
                     </div>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push(resourcePageLink)}>
+                <DropdownMenuItem onClick={() => router.push(resourcePagePath)}>
                     <div className="flex items-center gap-2">
                         <ExternalLink className="h-5 w-5" />
                         <span>View</span>
@@ -419,4 +542,8 @@ export function DeleteResourceButton({ resource }: { resource: any }) {
             <Trash className="h-5 w-5" />
         </Button>
     );
+}
+
+export function renderResourcePath(resourcePathTemplate: string, resourceId: string) {
+    return resourcePathTemplate.replace("{resourceId}", resourceId);
 }

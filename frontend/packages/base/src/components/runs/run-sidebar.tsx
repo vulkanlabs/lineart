@@ -292,7 +292,11 @@ function NodeContent({ clickedNode }: { clickedNode: ReactflowNode | null }) {
                                 <p className="text-sm text-red-700">
                                     {typeof clickedNode.data.run.metadata.error === "string"
                                         ? clickedNode.data.run.metadata.error
-                                        : clickedNode.data.run.metadata.error.message}
+                                        : JSON.stringify(
+                                              clickedNode.data.run.metadata.error,
+                                              null,
+                                              2,
+                                          )}
                                 </p>
                             </div>
                         </section>

@@ -45,9 +45,7 @@ class ComponentService(BaseService):
         )
         return components
 
-    def get_component(
-        self, component_name: str, project_id: str = None
-    ) -> schemas.Component:
+    def get_component(self, component_name: str, project_id: str = None) -> Component:
         """Get a component by name."""
         component = self.component_loader.get_component(
             name=component_name,
@@ -57,25 +55,18 @@ class ComponentService(BaseService):
 
     def create_component(
         self,
-        config: schemas.ComponentUpdate,
+        config: schemas.ComponentBase,
         project_id: str | None = None,
     ) -> schemas.Component:
         """Create a new component."""
 
-        # Fill in defaults for non-nullable fields
-        requirements = config.workflow.requirements or []
-        variables = config.workflow.variables or []
-        spec = self._convert_pydantic_to_dict(config.workflow.spec) or {
-            "nodes": [],
-            "input_schema": {},
-        }
-
         # Create workflow for the component
         workflow = self.workflow_service.create_workflow(
-            spec=spec,
-            requirements=requirements,
-            variables=variables,
-            ui_metadata=config.workflow.ui_metadata or {},
+            spec={"nodes": [], "input_schema": {}},
+            requirements=[],
+            variables=[],
+            ui_metadata={},
+            project_id=project_id,
         )
 
         component = Component(
@@ -117,14 +108,18 @@ class ComponentService(BaseService):
         self.db.commit()
         self.db.refresh(component)
 
-        workflow = self.workflow_service.update_workflow(
-            workflow_id=component.workflow_id,
-            spec=config.workflow.spec,
-            requirements=config.workflow.requirements,
-            variables=config.workflow.variables,
-            ui_metadata=config.workflow.ui_metadata,
-            project_id=project_id,
-        )
+        workflow = component.workflow
+
+        # Update the underlying workflow if provided
+        if config.workflow is not None:
+            workflow = self.workflow_service.update_workflow(
+                workflow_id=component.workflow_id,
+                spec=config.workflow.spec,
+                requirements=config.workflow.requirements,
+                variables=config.workflow.variables,
+                ui_metadata=config.workflow.ui_metadata,
+                project_id=project_id,
+            )
 
         self._log_event(
             VulkanEvent.COMPONENT_UPDATED, component_id=component.component_id

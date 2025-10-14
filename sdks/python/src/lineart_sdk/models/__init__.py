@@ -6,7 +6,6 @@ from importlib import import_module
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ._stepdetails import Output, OutputTypedDict, StepDetails, StepDetailsTypedDict
     from .auth_callbackop import AuthCallbackRequest, AuthCallbackRequestTypedDict
     from .authdisconnectresponse import (
         AuthDisconnectResponse,
@@ -261,6 +260,7 @@ if TYPE_CHECKING:
         SetDataSourceEnvVariablesRequestTypedDict,
     )
     from .start_authop import StartAuthRequest, StartAuthRequestTypedDict
+    from .stepdetails import Output, OutputTypedDict, StepDetails, StepDetailsTypedDict
     from .stepmetadatabase import (
         Error,
         ErrorTypedDict,
@@ -547,10 +547,6 @@ __all__ = [
 ]
 
 _dynamic_imports: dict[str, str] = {
-    "Output": "._stepdetails",
-    "OutputTypedDict": "._stepdetails",
-    "StepDetails": "._stepdetails",
-    "StepDetailsTypedDict": "._stepdetails",
     "AuthCallbackRequest": ".auth_callbackop",
     "AuthCallbackRequestTypedDict": ".auth_callbackop",
     "AuthDisconnectResponse": ".authdisconnectresponse",
@@ -773,6 +769,10 @@ _dynamic_imports: dict[str, str] = {
     "SetDataSourceEnvVariablesRequestTypedDict": ".set_data_source_env_variablesop",
     "StartAuthRequest": ".start_authop",
     "StartAuthRequestTypedDict": ".start_authop",
+    "Output": ".stepdetails",
+    "OutputTypedDict": ".stepdetails",
+    "StepDetails": ".stepdetails",
+    "StepDetailsTypedDict": ".stepdetails",
     "Error": ".stepmetadatabase",
     "ErrorTypedDict": ".stepmetadatabase",
     "StepMetadataBase": ".stepmetadatabase",

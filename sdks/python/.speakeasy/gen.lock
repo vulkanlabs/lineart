@@ -1,17 +1,17 @@
 lockVersion: 2.0.0
 id: 88929680-bb73-487a-94bf-9600cc541817
 management:
-  docChecksum: 6d213771dd497f1e85bdf47ae860ff55
+  docChecksum: 42f4044e53483ed5583c309c70a20c63
   docVersion: 0.1.0
-  speakeasyVersion: 1.609.0
-  generationVersion: 2.692.0
+  speakeasyVersion: 1.634.2
+  generationVersion: 2.721.3
   releaseVersion: 0.1.1
-  configChecksum: 8db6cab8f1c7fad04df9164453901a13
+  configChecksum: 50d2c29cb55a5d273110d4bb86860907
 features:
   python:
     additionalDependencies: 1.0.0
     constsAndDefaults: 1.0.5
-    core: 5.20.3
+    core: 5.22.1
     defaultEnabledRetries: 0.2.0
     devContainers: 3.0.0
     enumUnions: 0.1.0
@@ -27,7 +27,7 @@ features:
     responseFormat: 1.0.1
     retries: 3.0.2
     sdkHooks: 1.1.0
-    unions: 3.0.4
+    unions: 3.1.0
 generatedFiles:
   - .devcontainer/README.md
   - .devcontainer/devcontainer.json
@@ -196,7 +196,6 @@ generatedFiles:
   - src/lineart_sdk/httpclient.py
   - src/lineart_sdk/internal.py
   - src/lineart_sdk/models/__init__.py
-  - src/lineart_sdk/models/_stepdetails.py
   - src/lineart_sdk/models/auth_callbackop.py
   - src/lineart_sdk/models/authdisconnectresponse.py
   - src/lineart_sdk/models/authstartresponse.py
@@ -294,6 +293,7 @@ generatedFiles:
   - src/lineart_sdk/models/set_config_variablesop.py
   - src/lineart_sdk/models/set_data_source_env_variablesop.py
   - src/lineart_sdk/models/start_authop.py
+  - src/lineart_sdk/models/stepdetails.py
   - src/lineart_sdk/models/stepmetadatabase.py
   - src/lineart_sdk/models/uimetadata.py
   - src/lineart_sdk/models/uinodeposition.py
@@ -794,6 +794,8 @@ examples:
       parameters:
         path:
           run_id: "<id>"
+      requestBody:
+        application/json: {"user": "Kay62", "password": "l7q0xeA3QOjhVuF", "host": "roasted-advancement.info", "port": "<value>", "database": "<value>"}
       responses:
         "200":
           application/json: {"run_id": "818c9e0c-3f40-4f0d-a02e-b5387c0ac48e", "policy_version_id": "f6a069c7-c80e-4812-a7cf-9826e9ca76bd", "status": "SUCCESS", "created_at": "2024-08-29T04:48:02.553Z", "last_updated_at": "2023-08-11T13:01:23.294Z"}
@@ -804,6 +806,8 @@ examples:
       parameters:
         path:
           run_id: "<id>"
+      requestBody:
+        application/json: {"user": "Myra85", "password": "3zzQtIRxCm9cudN", "host": "understated-permafrost.biz", "port": "<value>", "database": "<value>"}
       responses:
         "200":
           application/json: {"run_id": "b015df34-4ff8-422e-968e-a54c4b109e1b", "status": "<value>", "last_updated_at": "2025-08-25T03:26:06.464Z", "logs": [{"timestamp": "2023-09-05T06:05:41.161Z", "step_key": "<value>", "source": "<value>", "event": {"log_type": "<value>", "message": "<value>"}}]}
@@ -814,6 +818,8 @@ examples:
       parameters:
         path:
           run_id: "<id>"
+      requestBody:
+        application/json: {"user": "Else.Lind", "password": "20N82g8pEiORDEK", "host": "equatorial-stir-fry.org", "port": "<value>", "database": "<value>"}
       responses:
         "200":
           application/json: {"run_id": "4b80b622-732b-43d6-ac78-a6673df49379", "policy_version_id": "430a1836-b839-404c-851a-31cf2d26b43a", "status": "STARTED", "created_at": "2025-02-19T02:53:11.261Z", "last_updated_at": "2025-08-22T01:47:37.539Z"}

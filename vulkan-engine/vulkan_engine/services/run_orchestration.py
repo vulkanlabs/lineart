@@ -15,9 +15,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from vulkan.core.run import RunStatus
-from vulkan_engine.backends.base import ExecutionBackend
+from vulkan.spec.policy import PolicyDefinitionDict
+from vulkan_engine.backends.execution import ExecutionBackend
 from vulkan_engine.config_variables import resolve_config_variables_from_id
-from vulkan_engine.db import Run, RunGroup, StepMetadata
+from vulkan_engine.db import Run, RunGroup, StepMetadata, Workflow
 from vulkan_engine.exceptions import (
     NotFoundException,
     RunPollingTimeoutException,
@@ -319,17 +320,22 @@ class RunOrchestrationService(BaseService):
         Raises:
             UnhandledException: If execution triggering fails
         """
+
+        input_schema = self._get_input_schema(run_config.workflow_id)
+
         try:
             backend_run_id = self.backend.trigger_job(
-                run_id=run.run_id,
+                run_id=str(run.run_id),
                 workflow_id=run_config.workflow_id,
                 input_data=input_data,
+                input_schema=input_schema,
                 config_variables=run_config.variables,
-                project_id=run.project_id,
+                project_id=str(run.project_id) if run.project_id else None,
             )
+            self.logger.system.debug(f"Triggered job with run ID: {backend_run_id}")
             run.status = RunStatus.STARTED
             run.started_at = datetime.now(timezone.utc)
-            run.dagster_run_id = backend_run_id  # TODO: Make this backend-agnostic
+            run.backend_run_id = backend_run_id
             self.db.commit()
         except Exception as e:
             run.status = RunStatus.FAILURE
@@ -337,6 +343,17 @@ class RunOrchestrationService(BaseService):
             raise UnhandledException(f"Failed to launch run: {str(e)}")
 
         return run
+
+    def _get_input_schema(self, workflow_id: str) -> dict[str, str]:
+        workflow_def_json = (
+            self.db.query(Workflow.spec)
+            .where(Workflow.workflow_id == workflow_id)
+            .scalar()
+        )
+        # While this can technically raise a validation error, it would
+        # have occurred in the workflow creation.
+        workflow_def = PolicyDefinitionDict.model_validate(workflow_def_json)
+        return workflow_def.input_schema
 
 
 MIN_POLLING_INTERVAL_MS = 500

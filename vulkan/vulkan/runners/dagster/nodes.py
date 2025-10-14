@@ -1,8 +1,6 @@
 import json
-import time
 from abc import ABC, abstractmethod
 from enum import Enum
-from traceback import format_exception_only
 from typing import Any, Callable
 
 import requests
@@ -15,23 +13,19 @@ from vulkan.connections import (
     format_response_data,
     make_request,
 )
-from vulkan.constants import POLICY_CONFIG_KEY
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
-from vulkan.core.step_metadata import StepMetadata
 from vulkan.exceptions import UserCodeException
-from vulkan.node_config import normalize_to_template, resolve_template
-from vulkan.runners.dagster.io_manager import (
-    METADATA_OUTPUT_KEY,
-    PUBLISH_IO_MANAGER_KEY,
-)
+from vulkan.node_config import resolve_template
 from vulkan.runners.dagster.names import normalize_dependencies, normalize_node_id
-from vulkan.runners.dagster.resources import APP_CLIENT_KEY, AppClientResource
-from vulkan.runners.dagster.run_config import (
+from vulkan.runners.dagster.resources import AppClientResource
+from vulkan.runners.shared.constants import (
+    APP_CLIENT_KEY,
+    POLICY_CONFIG_KEY,
     RUN_CONFIG_KEY,
-    VulkanPolicyConfig,
-    VulkanRunConfig,
 )
+from vulkan.runners.shared.decision_fn import evaluate_condition
+from vulkan.runners.shared.run_config import VulkanPolicyConfig, VulkanRunConfig
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import (
     BranchNode,
@@ -77,21 +71,16 @@ class DagsterDataInput(DataInputNode, DagsterNode):
             ins={k: In() for k in self.dependencies.keys()},
             outs={
                 "result": Out(),
-                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
             },
             required_resource_keys={APP_CLIENT_KEY, POLICY_CONFIG_KEY, RUN_CONFIG_KEY},
         )
 
     def run(self, context: OpExecutionContext, inputs: dict[str, Any]):
-        start_time = time.time()
         app_client_resource: AppClientResource = getattr(
             context.resources, APP_CLIENT_KEY
         )
         client = app_client_resource.get_client()
         inputs = _resolved_inputs(inputs, self.dependencies)
-        extra = dict(data_source=self.data_source)
-        response = None
-        error = None
 
         try:
             configured_params = self._get_configured_params(inputs)
@@ -106,28 +95,20 @@ class DagsterDataInput(DataInputNode, DagsterNode):
             )
 
             response.raise_for_status()
-            extra.update({"status_code": response.status_code})
 
             data = response.json()
-            response_metadata = {
-                "data_object_id": data.get("data_object_id"),
-                "request_key": data.get("key"),
-                "origin": data.get("origin"),
-            }
-            extra.update({"response_metadata": response_metadata})
+            context.log.info(f"Data: {data}")
 
             yield Output(data["value"])
 
         except ValueError as e:
             context.log.error(f"Parameter resolution error: {str(e)}")
-            error = ("\n").join(format_exception_only(type(e), e))
             raise e
 
         except requests.exceptions.HTTPError as e:
             error_detail = "Unknown error"
             if hasattr(e, "response") and e.response is not None:
                 response = e.response
-                extra.update({"status_code": response.status_code})
                 try:
                     error_detail = response.json().get("detail", str(e))
                 except Exception:
@@ -140,29 +121,15 @@ class DagsterDataInput(DataInputNode, DagsterNode):
             else:
                 context.log.error(f"HTTP error: {str(e)}")
 
-            error = ("\n").join(format_exception_only(type(e), e))
             raise e
 
         except requests.exceptions.RequestException as e:
             context.log.error(f"Failed to retrieve data: {str(e)}")
-            error = ("\n").join(format_exception_only(type(e), e))
             raise e
 
         except Exception as e:
             context.log.error(f"Unexpected error processing data: {str(e)}")
-            error = ("\n").join(format_exception_only(type(e), e))
             raise e
-
-        finally:
-            end_time = time.time()
-            metadata = StepMetadata(
-                node_type=self.type.value,
-                start_time=start_time,
-                end_time=end_time,
-                error=error,
-                extra=extra,
-            )
-            yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 
     def _get_configured_params(self, inputs):
         if self.parameters is None:
@@ -207,13 +174,11 @@ class DagsterPolicy(PolicyDefinitionNode, DagsterNode):
             ins={k: In() for k in self.dependencies.keys()},
             outs={
                 "result": Out(),
-                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
             },
             required_resource_keys={APP_CLIENT_KEY, POLICY_CONFIG_KEY, RUN_CONFIG_KEY},
         )
 
     def run(self, context: OpExecutionContext, inputs: dict[str, Any]):
-        start_time = time.time()
         app_client_resource: AppClientResource = getattr(
             context.resources, APP_CLIENT_KEY
         )
@@ -224,34 +189,15 @@ class DagsterPolicy(PolicyDefinitionNode, DagsterNode):
         input_data = inputs.get("body", None)
         body = {"input_data": input_data}
 
-        error = None
-        extra = dict()
         try:
             result = client.run_version_sync(
                 policy_version_id=self.policy_id,
                 data=body,
             )
-            response_metadata = {
-                "policy_version_id": self.policy_id,
-                "run_id": result.get("run_id"),
-                "success": result.get("status") == "SUCCESS",
-            }
-            extra.update({"response_metadata": response_metadata})
             yield Output(result)
         except ValueError as e:
             context.log.error(f"Failed op {self.name}: {e}")
-            error = ("\n").join(format_exception_only(type(e), e))
             raise e
-        finally:
-            end_time = time.time()
-            metadata = StepMetadata(
-                node_type=self.type.value,
-                start_time=start_time,
-                end_time=end_time,
-                error=error,
-                extra=extra,
-            )
-            yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 
     @classmethod
     def from_spec(cls, node: PolicyDefinitionNode):
@@ -265,27 +211,14 @@ class DagsterPolicy(PolicyDefinitionNode, DagsterNode):
 class DagsterTransformNodeMixin(DagsterNode):
     def op(self) -> OpDefinition:
         def fn(context, inputs):
-            start_time = time.time()
             inputs = _resolved_inputs(inputs, self.dependencies)
             configured_params = self._get_configured_params(inputs)
-            error = None
             try:
                 fn_params = {**inputs, **configured_params}
                 result = self._func(context, **fn_params)
-            except Exception as e:
-                error = ("\n").join(format_exception_only(type(e), e))
-                raise UserCodeException(self.name) from e
-            else:
                 yield Output(result, output_name="result")
-            finally:
-                end_time = time.time()
-                metadata = StepMetadata(
-                    self.type.value,
-                    start_time,
-                    end_time,
-                    error,
-                )
-                yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+            except Exception as e:
+                raise UserCodeException(self.name) from e
 
         node_op = OpDefinition(
             compute_fn=fn,
@@ -293,7 +226,6 @@ class DagsterTransformNodeMixin(DagsterNode):
             ins={k: In() for k in self.dependencies.keys()},
             outs={
                 "result": Out(),
-                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
             },
             # We expose the configuration in transform nodes
             # to allow the callback function in terminate nodes to
@@ -454,9 +386,9 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             context.resources, APP_CLIENT_KEY
         )
         client = app_client_resource.get_client()
-        dagster_run_id: str = context.run_id
+        backend_run_id: str = context.run_id
 
-        context.log.debug(f"Returning status {result} for Dagster run {dagster_run_id}")
+        context.log.debug(f"Returning status {result} for Dagster run {backend_run_id}")
 
         success = client.update_run_status(
             status=RunStatus.SUCCESS.value,
@@ -466,7 +398,7 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
 
         if not success:
             context.log.error(
-                f"Failed to return status {result} for Dagster run {dagster_run_id}"
+                f"Failed to return status {result} for Dagster run {backend_run_id}"
             )
 
         return success
@@ -522,26 +454,12 @@ class DagsterBranch(BranchNode, DagsterNode):
 
     def op(self) -> OpDefinition:
         def fn(context, inputs):
-            start_time = time.time()
             inputs = _resolved_inputs(inputs, self.dependencies)
-            error = None
             try:
                 output = self._func(context, **inputs)
-            except Exception as e:
-                error = format_exception_only(type(e), e)
-                raise UserCodeException(self.name) from e
-            else:
                 yield Output(None, output)
-            finally:
-                end_time = time.time()
-                metadata = StepMetadata(
-                    self.type.value,
-                    start_time,
-                    end_time,
-                    error,
-                    extra={"choices": self.choices},
-                )
-                yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+            except Exception as e:
+                raise UserCodeException(self.name) from e
 
         branch_paths = {out: Out(is_required=False) for out in self.choices}
         node_op = OpDefinition(
@@ -549,7 +467,6 @@ class DagsterBranch(BranchNode, DagsterNode):
             name=self.name,
             ins={k: In() for k in self.dependencies.keys()},
             outs={
-                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
                 **branch_paths,
             },
             required_resource_keys={POLICY_CONFIG_KEY},
@@ -629,17 +546,13 @@ class DagsterConnection(ConnectionNode, DagsterNode):
             ins={k: In() for k in self.dependencies.keys()},
             outs={
                 "result": Out(),
-                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
             },
             required_resource_keys={RUN_CONFIG_KEY, POLICY_CONFIG_KEY},
         )
 
     def run(self, context, inputs):
-        start_time = time.time()
         env: VulkanPolicyConfig = getattr(context.resources, POLICY_CONFIG_KEY)
         inputs = _resolved_inputs(inputs, self.dependencies)
-        error = None
-        extra = {}
 
         try:
             config = HTTPConfig(
@@ -655,12 +568,6 @@ class DagsterConnection(ConnectionNode, DagsterNode):
             req = make_request(config, inputs, env.variables)
             response = requests.Session().send(req, timeout=self.timeout)
 
-            extra = {
-                "url": self.url,
-                "method": self.method,
-                "status_code": response.status_code,
-                "response_headers": dict(response.headers),
-            }
             response.raise_for_status()
 
             if response.status_code == 200:
@@ -668,22 +575,10 @@ class DagsterConnection(ConnectionNode, DagsterNode):
                 yield Output(result)
         except (requests.exceptions.RequestException, HTTPError) as e:
             context.log.error(f"Failed HTTP request: {str(e)}")
-            error = ("\n").join(format_exception_only(type(e), e))
             raise e
         except Exception as e:
             context.log.error(str(e))
-            error = ("\n").join(format_exception_only(type(e), e))
             raise e
-        finally:
-            end_time = time.time()
-            metadata = StepMetadata(
-                node_type=self.type.value,
-                start_time=start_time,
-                end_time=end_time,
-                error=error,
-                extra=extra,
-            )
-            yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
 
     @classmethod
     def from_spec(cls, node: ConnectionNode):
@@ -725,34 +620,21 @@ class DagsterDecision(DecisionNode, DagsterNode):
         elif_conds = [
             c for c in self.conditions if c.decision_type == DecisionType.ELSE_IF
         ]
-        if _evaluate_condition(if_cond.condition, inputs):
+        if evaluate_condition(if_cond.condition, inputs):
             return if_cond.output
         for elif_cond in elif_conds:
-            if _evaluate_condition(elif_cond.condition, inputs):
+            if evaluate_condition(elif_cond.condition, inputs):
                 return elif_cond.output
         return else_cond.output
 
     def op(self) -> OpDefinition:
         def fn(context, inputs):
-            start_time = time.time()
             inputs = _resolved_inputs(inputs, self.dependencies)
-            error = None
             try:
                 output = self._decision_fn(context, inputs)
-            except Exception as e:
-                error = format_exception_only(type(e), e)
-                raise UserCodeException(self.name) from e
-            else:
                 yield Output(None, output)
-            finally:
-                end_time = time.time()
-                metadata = StepMetadata(
-                    self.type.value,
-                    start_time,
-                    end_time,
-                    error,
-                )
-                yield Output(metadata, output_name=METADATA_OUTPUT_KEY)
+            except Exception as e:
+                raise UserCodeException(self.name) from e
 
         branch_paths = {
             condition.output: Out(is_required=False) for condition in self.conditions
@@ -762,7 +644,6 @@ class DagsterDecision(DecisionNode, DagsterNode):
             name=self.name,
             ins={k: In() for k in self.dependencies.keys()},
             outs={
-                METADATA_OUTPUT_KEY: Out(io_manager_key=PUBLISH_IO_MANAGER_KEY),
                 **branch_paths,
             },
             required_resource_keys={POLICY_CONFIG_KEY},
@@ -777,14 +658,6 @@ class DagsterDecision(DecisionNode, DagsterNode):
             conditions=node.conditions,
             dependencies=node.dependencies,
         )
-
-
-def _evaluate_condition(condition: str, inputs: dict[str, Any]) -> bool:
-    norm_cond = normalize_to_template(condition)
-    result = resolve_template(norm_cond, inputs, env_variables={})
-    if not isinstance(result, bool):
-        raise ValueError(f"Condition did not evaluate to a boolean: {condition}")
-    return result
 
 
 _NODE_TYPE_MAP: dict[type[Node], type[DagsterNode]] = {

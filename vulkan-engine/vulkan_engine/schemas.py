@@ -188,13 +188,13 @@ class StepMetadata(StepMetadataBase):
         from_attributes = True
 
 
-class _StepDetails(BaseModel):
+class StepDetails(BaseModel):
     output: bytes | str | dict | list | int | float | None
     metadata: StepMetadataBase | None
 
 
 class RunData(Run):
-    steps: dict[str, _StepDetails] = Field(default_factory=dict)
+    steps: dict[str, StepDetails] = Field(default_factory=dict)
 
     class Config:
         from_attributes = True
@@ -298,6 +298,9 @@ class DataBrokerResponse(BaseModel):
     origin: DataObjectOrigin
     key: str
     value: Any
+    start_time: float | None = None
+    end_time: float | None = None
+    error: dict | str | None = None
 
 
 class RunGroupRuns(BaseModel):

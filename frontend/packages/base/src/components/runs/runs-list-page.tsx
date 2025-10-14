@@ -18,17 +18,18 @@ import { parseDate } from "@/lib/utils";
 import { Badge, Button } from "@/ui";
 
 import { ShortenedID } from "../shortened-id";
-import { DetailsButton } from "../details-button";
 import { DatePickerWithRange } from "../charts/date-picker";
-import { ResourceTable } from "../resource-table";
+import { ResourceTable, ResourceReference } from "../resource-table";
 
 export function RunsPage({
     resourceId,
     projectId,
+    resourcePathTemplate,
     fetchRuns,
 }: {
     resourceId: string;
     projectId?: string;
+    resourcePathTemplate: string;
     fetchRuns: (resourceId: string, dateRange: DateRange, projectId?: string) => Promise<Run[]>;
 }) {
     const [dateRange, setDateRange] = useState<DateRange>({
@@ -52,6 +53,13 @@ export function RunsPage({
             });
     }, [dateRange]);
 
+    const resourceRef: ResourceReference = {
+        type: "Run",
+        idColumn: "run_id",
+        nameColumn: "run_id",
+        pathTemplate: resourcePathTemplate,
+    };
+
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
             <h1 className="text-lg font-semibold md:text-2xl">Runs</h1>
@@ -62,18 +70,19 @@ export function RunsPage({
                 </Button>
             </div>
             <div className="flex flex-col gap-4">
-                <ResourceTable columns={RunsTableColumns} data={runs} disableFilters />
+                <ResourceTable
+                    data={runs}
+                    columns={RunsTableColumns}
+                    resourceRef={resourceRef}
+                    displayOptions={{ disableActions: true, disableFilters: true }}
+                    defaultSorting={[{ id: "created_at", desc: true }]}
+                />
             </div>
         </div>
     );
 }
 
 const RunsTableColumns: ColumnDef<Run>[] = [
-    {
-        accessorKey: "link",
-        header: "",
-        cell: ({ row }) => <DetailsButton href={`runs/${row.getValue("run_id")}`} />,
-    },
     {
         accessorKey: "run_id",
         header: "ID",

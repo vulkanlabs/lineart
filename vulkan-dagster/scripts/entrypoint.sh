@@ -5,4 +5,5 @@ fastapi dev "${VULKAN_SERVER_PATH}/vulkan-dagster/server/app.py" --host 0.0.0.0 
 
 # Start dagster webserver
 cd ${DAGSTER_HOME}; dagster-webserver -h 0.0.0.0 -p ${DAGSTER_PORT} -w ${VULKAN_HOME}/workspace.yaml &
+cd ${DAGSTER_HOME}; dagster-daemon run -w ${VULKAN_HOME}/workspace.yaml &
 wait

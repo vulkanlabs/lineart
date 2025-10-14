@@ -61,6 +61,8 @@ export type {
     DeletableResourceTableProps,
     SearchFilterOptions,
     DeleteResourceOptions,
+    ResourceReference,
+    DisplayOptions,
 } from "./components/resource-table";
 
 // === Common Components ===
