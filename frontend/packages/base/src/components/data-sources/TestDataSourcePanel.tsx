@@ -35,6 +35,8 @@ interface TestDataSourcePanelProps {
     projectId?: string;
     testConfig?: TestConfig;
     onTestConfigChange?: (config: TestConfig) => void;
+    testResponse?: any;
+    onTestResponseChange?: (response: any) => void;
 }
 
 /**
@@ -46,10 +48,16 @@ export function TestDataSourcePanel({
     projectId,
     testConfig: externalTestConfig,
     onTestConfigChange,
+    testResponse: externalTestResponse,
+    onTestResponseChange,
 }: TestDataSourcePanelProps) {
     const testConfigPanelRef = useRef<TestConfigPanelRef>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [response, setResponse] = useState<any>(null);
+
+    // Use external response if provided, or use local state
+    const [localResponse, setLocalResponse] = useState<any>(null);
+    const response = externalTestResponse ?? localResponse;
+    const setResponse = onTestResponseChange ?? setLocalResponse;
 
     // Use external config if provided, or use local state
     const [localTestConfig, setLocalTestConfig] = useState<TestConfig>({

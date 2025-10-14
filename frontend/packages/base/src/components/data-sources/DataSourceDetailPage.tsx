@@ -132,13 +132,15 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
     const status = dataSource.status || "draft";
     const isPublished = status === "published";
 
-    // State for test configuration persists across tab changes
+    // State for test configuration and response persists across tab changes
     const [testConfig, setTestConfig] = useState<TestConfig>({
         configuredParams: {},
         overrideEnvVars: {},
         customParams: [],
         customEnvVars: [],
     });
+
+    const [testResponse, setTestResponse] = useState<any>(null);
 
     return (
         <>
@@ -199,6 +201,8 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
                         projectId={config.projectId}
                         testConfig={testConfig}
                         onTestConfigChange={setTestConfig}
+                        testResponse={testResponse}
+                        onTestResponseChange={setTestResponse}
                     />
                 </TabsContent>
 
