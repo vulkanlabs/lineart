@@ -222,21 +222,32 @@ class DataSource(TimedUpdateMixin, Base):
         ),
     )
 
-    @classmethod
-    def from_spec(cls, spec: DataSourceSpec):
+    @staticmethod
+    def _extract_spec_values(spec: DataSourceSpec) -> dict:
+        """Extract all field values from a spec into a dictionary."""
         variables = spec.extract_env_vars()
         runtime_params = spec.extract_runtime_params()
 
-        return cls(
-            name=spec.name,
-            description=spec.description,
-            source=spec.source.model_dump(),
-            caching_enabled=spec.caching.enabled,
-            caching_ttl=spec.caching.calculate_ttl(),
-            config_metadata=spec.metadata,
-            runtime_params=runtime_params,
-            variables=variables,
-        )
+        return {
+            "name": spec.name,
+            "description": spec.description,
+            "source": spec.source.model_dump(),
+            "caching_enabled": spec.caching.enabled,
+            "caching_ttl": spec.caching.calculate_ttl(),
+            "config_metadata": spec.metadata,
+            "runtime_params": runtime_params,
+            "variables": variables,
+        }
+
+    @classmethod
+    def from_spec(cls, spec: DataSourceSpec):
+        """Create a new DataSource instance from a spec."""
+        return cls(**cls._extract_spec_values(spec))
+
+    def update_from_spec(self, spec: DataSourceSpec):
+        """Update this data source instance from a spec (in-place)."""
+        for key, value in self._extract_spec_values(spec).items():
+            setattr(self, key, value)
 
     def to_spec(self) -> DataSourceSpec:
         return DataSourceSpec(

@@ -165,19 +165,8 @@ class DataSourceService(BaseService):
                 "Local file data sources are not supported for remote execution"
             )
 
-        # Update fields from spec
-        data_source.name = spec.name
-        data_source.description = spec.description
-        data_source.source = spec.source.model_dump()
-        data_source.caching_enabled = spec.caching.enabled if spec.caching else False
-        data_source.caching_ttl = spec.caching.ttl if spec.caching else None
-        data_source.config_metadata = spec.metadata
-
-        # Update extracted fields
-        variables = spec.extract_env_vars()
-        runtime_params = spec.extract_runtime_params()
-        data_source.variables = variables if variables else None
-        data_source.runtime_params = runtime_params if runtime_params else None
+        # Update data source from spec
+        data_source.update_from_spec(spec)
 
         self.db.commit()
 
