@@ -3,9 +3,6 @@
 import { CopyIcon, CheckIcon } from "lucide-react";
 import type { DataSource } from "@vulkanlabs/client-open";
 
-// Type extensions
-import "../../types/data-source";
-
 import { Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui";
 import { PublishDataSourceDialog } from "./PublishDataSourceDialog";
 
@@ -24,8 +21,7 @@ export function DataSourceHeader({
     onGetFullDataSourceJson,
     onPublish,
 }: DataSourceHeaderProps) {
-    // Status field, using type extension until backend implements
-    // frontend/packages/base/src/types/data-source.ts
+    // Status field default "draft"
     const status = dataSource.status || "draft";
     const isDraft = status === "draft";
     const isPublished = status === "published";

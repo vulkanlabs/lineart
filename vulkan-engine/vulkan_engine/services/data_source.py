@@ -26,6 +26,7 @@ from vulkan_engine.db import (
 from vulkan_engine.exceptions import (
     DataBrokerException,
     DataBrokerRequestException,
+    DataObjectNotFoundException,
     DataSourceAlreadyExistsException,
     DataSourceNotFoundException,
     InvalidDataSourceException,
@@ -414,7 +415,9 @@ class DataSourceService(BaseService):
         )
 
         if not data_object:
-            raise DataSourceNotFoundException("Data object not found")
+            raise DataObjectNotFoundException(
+                f"Data object {data_object_id} not found in data source {data_source_id}"
+            )
 
         return data_object
 
