@@ -516,14 +516,6 @@ class DataSourceService(BaseService):
                 "Data source must have a valid source configuration"
             )
 
-        # Validate URL exists for HTTP sources
-        source_data = data_source.source
-        if isinstance(source_data, dict) and source_data.get("source_type") == "http":
-            if not source_data.get("url"):
-                raise InvalidDataSourceException(
-                    "HTTP data source must have a valid URL"
-                )
-
         # Publish
         data_source.status = "published"
         self.db.commit()
