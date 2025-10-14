@@ -10,6 +10,7 @@ from typing import Any
 import requests
 from sqlalchemy import select
 
+from vulkan.core.run import DataSourceStatus
 from vulkan.data_source import DataSourceType
 from vulkan.schemas import DataSourceSpec
 from vulkan_engine.data.broker import DataBroker
@@ -517,7 +518,7 @@ class DataSourceService(BaseService):
             )
 
         # Publish
-        data_source.status = "published"
+        data_source.status = DataSourceStatus.PUBLISHED
         self.db.commit()
 
         if self.logger:

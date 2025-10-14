@@ -22,7 +22,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 from sqlalchemy.sql import func
 
-from vulkan.core.run import RunStatus, WorkflowStatus
+from vulkan.core.run import DataSourceStatus, RunStatus, WorkflowStatus
 from vulkan.schemas import CachingOptions, DataSourceSpec
 from vulkan.spec.nodes.base import NodeType
 from vulkan_engine.config import DatabaseConfig
@@ -202,7 +202,7 @@ class DataSource(TimedUpdateMixin, Base):
     runtime_params = Column(ARRAY(String), nullable=True)
     variables = Column(ARRAY(String), nullable=True)
     archived = Column(Boolean, default=False)
-    status = Column(String(20), nullable=False, server_default="draft")
+    status = Column(Enum(DataSourceStatus), nullable=False, server_default="DRAFT")
 
     # Project association for multi-tenant deployments
     project_id = Column(Uuid, nullable=True)
@@ -217,9 +217,6 @@ class DataSource(TimedUpdateMixin, Base):
         ),
         Index("idx_data_source_project_id", "project_id"),
         Index("idx_data_source_status", "status", postgresql_where=(archived == False)),  # noqa: E712
-        CheckConstraint(
-            "status IN ('draft', 'published')", name="ck_data_source_status"
-        ),
     )
 
     @staticmethod
@@ -263,7 +260,7 @@ class DataSource(TimedUpdateMixin, Base):
 
     def is_published(self) -> bool:
         """Check if data source is published."""
-        return self.status == "published"
+        return self.status == DataSourceStatus.PUBLISHED
 
 
 class DataSourceEnvVar(TimedUpdateMixin, Base):

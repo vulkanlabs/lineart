@@ -7,7 +7,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from vulkan.core.run import RunStatus, WorkflowStatus
+from vulkan.core.run import DataSourceStatus, RunStatus, WorkflowStatus
 from vulkan.schemas import DataSourceSpec, PolicyAllocationStrategy
 from vulkan.spec.policy import PolicyDefinitionDict
 
@@ -232,7 +232,7 @@ class DataSource(DataSourceSpec):
     last_updated_at: datetime
     variables: list[str] | None = None
     runtime_params: list[str] | None = None
-    status: str = "draft"
+    status: DataSourceStatus = DataSourceStatus.DRAFT
 
     @classmethod
     def from_orm(cls, data) -> "DataSource":
