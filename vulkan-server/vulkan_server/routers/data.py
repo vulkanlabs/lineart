@@ -210,7 +210,43 @@ async def test_data_source(
     service: DataSourceTestService = Depends(get_data_source_test_service),
 ):
     """Test a data source configuration."""
+    import ipaddress
+    import logging
+    from urllib.parse import urlparse
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        parsed = urlparse(test_request.url)
+
+        if parsed.scheme not in ["http", "https"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid URL scheme: {parsed.scheme}. Only http/https allowed",
+            )
+
+        if test_request.body:
+            body_size = len(str(test_request.body))
+            if body_size > 1_000_000:  # 1MB limit
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Request body too large: {body_size} bytes (max 1MB)",
+                )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"URL validation error: {e}")
+        raise HTTPException(status_code=400, detail="Invalid URL format")
+
     try:
         return await service.execute_test(test_request)
+    except ValueError as e:
+        logger.warning(f"Test validation error: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid request: {str(e)}")
+    except TimeoutError as e:
+        logger.warning(f"Test timeout: {e}")
+        raise HTTPException(status_code=408, detail="Request timeout")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Test execution failed: {str(e)}")
+        logger.error(f"Test execution error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
