@@ -180,33 +180,20 @@ export const fetchDataSourceCacheStats = async (
 /**
  * Update an existing data source configuration
  * @param {string} dataSourceId - ID of data source to update
- * @param {Partial<DataSource>} updates - Partial updates to apply
+ * @param {Partial<DataSourceSpec>} updates - Partial updates to apply
  * @param {string} [projectId] - Optional project context
  * @returns {Promise<DataSource>} Updated data source
  */
 export async function updateDataSource(
     dataSourceId: string,
-    updates: Partial<DataSource>,
+    updates: Partial<DataSourceSpec>,
     projectId?: string,
 ): Promise<DataSource> {
     "use server";
-
-    // First, fetch the current data source to get all fields
-    const currentDataSource = await fetchDataSource(dataSourceId, projectId);
-
-    // Merge updates with current data to create complete DataSourceSpec
-    const completeSpec: DataSourceSpec = {
-        name: updates.name ?? currentDataSource.name,
-        description: updates.description ?? currentDataSource.description,
-        source: updates.source ?? currentDataSource.source,
-        caching: updates.caching ?? currentDataSource.caching,
-        metadata: updates.metadata ?? currentDataSource.metadata,
-    };
-
     return withErrorHandling(
         dataSourcesApi.updateDataSource({
             dataSourceId,
-            dataSourceSpec: completeSpec,
+            dataSourceSpec: updates as DataSourceSpec,
         }),
         `update data source ${dataSourceId}`,
     );
