@@ -155,19 +155,23 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If data source configuration is invalid
         """
-        # Get existing data source
         data_source = self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=False
         )
 
-        # Validate data source type
         if spec.source.source_type == DataSourceType.LOCAL_FILE:
             raise InvalidDataSourceException(
                 "Local file data sources are not supported for remote execution"
             )
 
-        # Update data source from spec
-        data_source.update_from_spec(spec)
+        # Published data sources can only update metadata and caching
+        if data_source.is_published():
+            data_source.description = spec.description
+            data_source.config_metadata = spec.metadata
+            data_source.caching_enabled = spec.caching.enabled
+            data_source.caching_ttl = spec.caching.calculate_ttl()
+        else:
+            data_source.update_from_spec(spec)
 
         self.db.commit()
 
