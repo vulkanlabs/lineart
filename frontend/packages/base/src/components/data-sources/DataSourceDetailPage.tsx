@@ -5,9 +5,6 @@ import { Suspense, useState } from "react";
 // Vulkan packages
 import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
 
-// Type extensions
-import "../../types/data-source";
-
 // Local components
 import {
     Separator,
