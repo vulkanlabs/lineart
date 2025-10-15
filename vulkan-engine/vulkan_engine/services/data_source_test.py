@@ -8,6 +8,7 @@ import time
 
 import httpx
 
+from vulkan.node_config import configure_fields
 from vulkan_engine.db import DataSourceTestResult
 from vulkan_engine.schemas import DataSourceTestRequest, DataSourceTestResponse
 from vulkan_engine.services.base import BaseService
@@ -38,23 +39,29 @@ class DataSourceTestService(BaseService):
         Returns:
             DataSourceTestResponse with test results
         """
-        # Use headers and params directly from the request
-        headers = test_request.headers or {}
-        params = test_request.params or {}
+        # Get env vars and configured params for template resolution
+        env_vars = test_request.env_vars or {}
+        local_vars = test_request.params or {}
+
+        headers = configure_fields(test_request.headers or {}, local_vars, env_vars)
+        params = configure_fields(test_request.params or {}, local_vars, env_vars)
+        body = (
+            configure_fields(test_request.body or {}, local_vars, env_vars)
+            if test_request.body
+            else None
+        )
 
         # Prepare request data
         request_data = {
             "url": test_request.url,
             "method": test_request.method,
-            "headers": headers,
-            "params": params,
+            "headers": test_request.headers,
+            "params": test_request.params,
             "body": test_request.body,
-            "env_vars": {
-                k: "***" for k in (test_request.env_vars or {}).keys()
-            },  # Sanitize
+            "env_vars": {k: "***" for k in env_vars.keys()},  # Sanitize
         }
 
-        # Execute HTTP request
+        # Execute HTTP request with resolved templates
         start_time = time.perf_counter()
         response_data = None
         error = None
@@ -68,7 +75,7 @@ class DataSourceTestService(BaseService):
                     url=test_request.url,
                     headers=headers,
                     params=params,
-                    json=test_request.body if test_request.body else None,
+                    json=body if body else None,
                 )
                 status_code = response.status_code
                 response_headers = dict(response.headers)

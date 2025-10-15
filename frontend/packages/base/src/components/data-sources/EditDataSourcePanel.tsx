@@ -40,6 +40,7 @@ export function EditDataSourcePanel({
     );
     const [headers, setHeaders] = useState(formatJsonForDisplay(dataSource.source?.headers));
     const [params, setParams] = useState(formatJsonForDisplay(dataSource.source?.params));
+    const [body, setBody] = useState(formatJsonForDisplay(dataSource.source?.body));
 
     // Timeout configuration
     const [timeout, setTimeout] = useState(dataSource.source?.timeout?.toString() ?? "");
@@ -63,6 +64,7 @@ export function EditDataSourcePanel({
         try {
             let parsedHeaders = {};
             let parsedParams = {};
+            let parsedBody = {};
 
             // Parse headers
             if (headers.trim()) {
@@ -86,6 +88,17 @@ export function EditDataSourcePanel({
                 }
             }
 
+            // Parse body
+            if (body.trim()) {
+                try {
+                    parsedBody = JSON.parse(body);
+                } catch (e) {
+                    toast.error("Invalid JSON format in body");
+                    setIsSaving(false);
+                    return;
+                }
+            }
+
             const updates: Partial<DataSource> = {
                 source: {
                     ...dataSource.source,
@@ -93,6 +106,7 @@ export function EditDataSourcePanel({
                     method: method as "GET" | "POST" | "PUT" | "DELETE",
                     headers: parsedHeaders,
                     params: parsedParams,
+                    body: parsedBody,
                     timeout: timeout ? parseInt(timeout, 10) : 5000,
                     retry: {
                         max_retries: maxRetries ? parseInt(maxRetries, 10) : 3,
@@ -128,6 +142,7 @@ export function EditDataSourcePanel({
         );
         setHeaders(formatJsonForDisplay(dataSource.source?.headers));
         setParams(formatJsonForDisplay(dataSource.source?.params));
+        setBody(formatJsonForDisplay(dataSource.source?.body));
         setTimeout(dataSource.source?.timeout?.toString() ?? "");
         setMaxRetries(dataSource.source?.retry?.max_retries?.toString() ?? "");
         setBackoffFactor(dataSource.source?.retry?.backoff_factor?.toString() ?? "");
@@ -232,6 +247,23 @@ export function EditDataSourcePanel({
                             placeholder={'{\n  "page": "1",\n  "limit": "10"\n}'}
                         />
                     </div>
+                </div>
+
+                <div>
+                    <Label htmlFor="body">Body Template (JSON)</Label>
+                    <textarea
+                        id="body"
+                        value={body}
+                        onChange={(e) => setBody(e.target.value)}
+                        disabled={!isEditing || disabled}
+                        rows={8}
+                        className="mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono resize-none"
+                        placeholder={'{\n  "user_id": {"param": "id"},\n  "api_key": {"env": "API_KEY"}\n}'}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Use {`{"param": "name"}`} for runtime parameters or {`{"env": "VAR"}`} for
+                        environment variables
+                    </p>
                 </div>
 
                 <Separator />
