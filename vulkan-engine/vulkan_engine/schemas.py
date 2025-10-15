@@ -335,7 +335,7 @@ class DataSourceTestRequest(BaseModel):
 
 class DataSourceTestResponse(BaseModel):
     test_id: UUID
-    status_code: int
+    status_code: int | None
     response_time_ms: float
     response_body: Any | None = None
     response_headers: dict[str, str] | None = None

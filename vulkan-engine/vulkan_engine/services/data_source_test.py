@@ -64,7 +64,7 @@ class DataSourceTestService(BaseService):
         start_time = time.perf_counter()
         response_data = None
         error = None
-        status_code = 0
+        status_code = None
         response_headers = {}
 
         try:
@@ -90,7 +90,6 @@ class DataSourceTestService(BaseService):
             status_code = 408
         except httpx.RequestError as e:
             error = f"Request failed: {str(e)}"
-            status_code = 0
         except Exception as e:
             error = f"Unexpected error: {str(e)}"
             status_code = 500
