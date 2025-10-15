@@ -5,8 +5,6 @@ Handles execution and persistence of data source tests.
 """
 
 import time
-from typing import Any
-from uuid import UUID
 
 import httpx
 
@@ -40,13 +38,9 @@ class DataSourceTestService(BaseService):
         Returns:
             DataSourceTestResponse with test results
         """
-        # Interpolate environment variables in headers and params
-        headers = self._interpolate_env_vars(
-            test_request.headers or {}, test_request.env_vars or {}
-        )
-        params = self._interpolate_env_vars(
-            test_request.params or {}, test_request.env_vars or {}
-        )
+        # Use headers and params directly from the request
+        headers = test_request.headers or {}
+        params = test_request.params or {}
 
         # Prepare request data
         request_data = {
@@ -128,29 +122,3 @@ class DataSourceTestService(BaseService):
             response_headers=response_headers,
             error=error,
         )
-
-    def _interpolate_env_vars(
-        self, data: dict[str, Any], env_vars: dict[str, str]
-    ) -> dict[str, Any]:
-        """
-        Interpolate environment variables in data.
-
-        Args:
-            data: Dictionary with potential variable references
-            env_vars: Environment variables to interpolate
-
-        Returns:
-            Dictionary with interpolated values
-        """
-        if not data or not env_vars:
-            return data
-
-        result = {}
-        for key, value in data.items():
-            if isinstance(value, str):
-                # Replace {{VAR_NAME}} with environment variable value
-                for env_key, env_value in env_vars.items():
-                    value = value.replace(f"{{{{{env_key}}}}}", str(env_value))
-            result[key] = value
-
-        return result
