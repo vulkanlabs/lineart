@@ -7,8 +7,9 @@ Handles execution and persistence of data source tests.
 import time
 
 import httpx
+from jinja2 import TemplateSyntaxError, UndefinedError
 
-from vulkan.node_config import configure_fields
+from vulkan.node_config import configure_fields, resolve_template
 from vulkan_engine.db import DataSourceTestResult
 from vulkan_engine.schemas import DataSourceTestRequest, DataSourceTestResponse
 from vulkan_engine.services.base import BaseService
@@ -43,15 +44,7 @@ class DataSourceTestService(BaseService):
         env_vars = test_request.env_vars or {}
         local_vars = test_request.params or {}
 
-        headers = configure_fields(test_request.headers or {}, local_vars, env_vars)
-        params = configure_fields(test_request.params or {}, local_vars, env_vars)
-        body = (
-            configure_fields(test_request.body or {}, local_vars, env_vars)
-            if test_request.body
-            else None
-        )
-
-        # Prepare request data
+        # Prepare request data for audit
         request_data = {
             "url": test_request.url,
             "method": test_request.method,
@@ -69,10 +62,22 @@ class DataSourceTestService(BaseService):
         response_headers = {}
 
         try:
+            # Resolve URL template
+            url = resolve_template(test_request.url, local_vars, env_vars)
+
+            # Resolve template fields
+            headers = configure_fields(test_request.headers or {}, local_vars, env_vars)
+            params = configure_fields(test_request.params or {}, local_vars, env_vars)
+            body = (
+                configure_fields(test_request.body or {}, local_vars, env_vars)
+                if test_request.body
+                else None
+            )
+
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.request(
                     method=test_request.method,
-                    url=test_request.url,
+                    url=url,
                     headers=headers,
                     params=params,
                     json=body if body else None,
@@ -86,11 +91,18 @@ class DataSourceTestService(BaseService):
                 except Exception:
                     response_data = response.text
 
+        except (TemplateSyntaxError, UndefinedError) as e:
+            error = f"Template resolution error: {str(e)}"
+            status_code = 400
         except httpx.TimeoutException:
             error = "Request timed out after 30 seconds"
             status_code = 408
         except httpx.RequestError as e:
             error = f"Request failed: {str(e)}"
+            status_code = 500
+        except ValueError as e:
+            error = f"Configuration error: {str(e)}"
+            status_code = 400
         except Exception as e:
             error = f"Unexpected error: {str(e)}"
             status_code = 500

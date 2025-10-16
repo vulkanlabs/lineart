@@ -180,18 +180,35 @@ def configure_fields(
     This function replaces any RunTimeParam or EnvVarConfig instances with their
     corresponding template strings, and resolves any string templates using
     the provided node and environment variables.
+
+    Recursively handles nested dictionaries and arrays.
     """
     if spec is None:
-        spec = {}
+        return {}
 
+    result = {}
     for key, value in spec.items():
+        # Handle object notation (RunTimeParam, EnvVarConfig)
         if isinstance(value, RunTimeParam) or isinstance(value, EnvVarConfig):
             value = normalize_to_template(value)
 
-        if _is_template_like(value):
-            spec[key] = resolve_template(value, local_variables, env_variables)
+        if isinstance(value, dict):
+            result[key] = configure_fields(value, local_variables, env_variables)
+        elif isinstance(value, list):
+            result[key] = [
+                configure_fields(item, local_variables, env_variables)
+                if isinstance(item, dict)
+                else resolve_template(item, local_variables, env_variables)
+                if _is_template_like(item)
+                else item
+                for item in value
+            ]
+        elif _is_template_like(value):
+            result[key] = resolve_template(value, local_variables, env_variables)
+        else:
+            result[key] = value
 
-    return spec
+    return result
 
 
 def _is_template_like(value: Any) -> bool:

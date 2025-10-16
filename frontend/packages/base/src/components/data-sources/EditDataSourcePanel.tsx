@@ -258,11 +258,11 @@ export function EditDataSourcePanel({
                         disabled={!isEditing || disabled}
                         rows={8}
                         className="mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono resize-none"
-                        placeholder={'{\n  "user_id": {"param": "id"},\n  "api_key": {"env": "API_KEY"}\n}'}
+                        placeholder={'{\n  "tax_id": "{{tax_id}}",\n  "product_id": "123",\n  "Auth": "{{env.secret_key}}"\n}'}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                        Use {`{"param": "name"}`} for runtime parameters or {`{"env": "VAR"}`} for
-                        environment variables
+                        Use {`"{{variable}}"`} for runtime parameters, {`"{{env.VAR}}"`} for
+                        environment variables, or static values
                     </p>
                 </div>
 
