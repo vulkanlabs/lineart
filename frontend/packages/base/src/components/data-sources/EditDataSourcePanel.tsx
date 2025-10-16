@@ -196,7 +196,7 @@ export function EditDataSourcePanel({
                                 )
                             }
                             disabled={!isEditing || disabled}
-                            className="mt-1.5 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className={`mt-1.5 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed ${!isEditing ? '!text-foreground !opacity-100' : ''}`}
                         >
                             <option value="GET">GET</option>
                             <option value="POST">POST</option>
@@ -214,7 +214,7 @@ export function EditDataSourcePanel({
                             onChange={(e) => setUrl(e.target.value)}
                             disabled={!isEditing || disabled}
                             placeholder="https://api.example.com/endpoint"
-                            className="mt-1.5 font-mono text-sm"
+                            className={`mt-1.5 font-mono text-sm placeholder:!text-foreground ${!isEditing ? '!text-foreground !opacity-100 placeholder:!opacity-70' : 'placeholder:!opacity-60'}`}
                         />
                     </div>
                 </div>
@@ -228,7 +228,7 @@ export function EditDataSourcePanel({
                             onChange={(e) => setHeaders(e.target.value)}
                             disabled={!isEditing || disabled}
                             rows={6}
-                            className="mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono resize-none"
+                            className={`mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed font-mono resize-none placeholder:!text-foreground ${!isEditing ? '!text-foreground !opacity-100 placeholder:!opacity-70' : 'placeholder:!opacity-60 disabled:opacity-50'}`}
                             placeholder={
                                 '{\n  "Content-Type": "application/json",\n  "Authorization": "Bearer token"\n}'
                             }
@@ -243,7 +243,7 @@ export function EditDataSourcePanel({
                             onChange={(e) => setParams(e.target.value)}
                             disabled={!isEditing || disabled}
                             rows={6}
-                            className="mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono resize-none"
+                            className={`mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed font-mono resize-none placeholder:!text-foreground ${!isEditing ? '!text-foreground !opacity-100 placeholder:!opacity-70' : 'placeholder:!opacity-60 disabled:opacity-50'}`}
                             placeholder={'{\n  "page": "1",\n  "limit": "10"\n}'}
                         />
                     </div>
@@ -257,7 +257,7 @@ export function EditDataSourcePanel({
                         onChange={(e) => setBody(e.target.value)}
                         disabled={!isEditing || disabled}
                         rows={8}
-                        className="mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono resize-none"
+                        className={`mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed font-mono resize-none placeholder:!text-foreground ${!isEditing ? '!text-foreground !opacity-100 placeholder:!opacity-70' : 'placeholder:!opacity-60 disabled:opacity-50'}`}
                         placeholder={'{\n  "tax_id": "{{tax_id}}",\n  "product_id": "123",\n  "Auth": "{{env.secret_key}}"\n}'}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
@@ -281,7 +281,7 @@ export function EditDataSourcePanel({
                                 onChange={(e) => setTimeout(e.target.value)}
                                 disabled={!isEditing}
                                 placeholder="5000"
-                                className="mt-1.5"
+                                className={`mt-1.5 placeholder:!text-foreground ${!isEditing ? '!text-foreground !opacity-100 placeholder:!opacity-70' : 'placeholder:!opacity-60'}`}
                             />
                             <p className="text-xs text-muted-foreground mt-1">Request timeout</p>
                         </div>
@@ -296,7 +296,7 @@ export function EditDataSourcePanel({
                                 onChange={(e) => setMaxRetries(e.target.value)}
                                 disabled={!isEditing}
                                 placeholder="3"
-                                className="mt-1.5"
+                                className={`mt-1.5 placeholder:!text-foreground ${!isEditing ? '!text-foreground !opacity-100 placeholder:!opacity-70' : 'placeholder:!opacity-60'}`}
                             />
                             <p className="text-xs text-muted-foreground mt-1">Retry attempts</p>
                         </div>
@@ -312,7 +312,7 @@ export function EditDataSourcePanel({
                                 onChange={(e) => setBackoffFactor(e.target.value)}
                                 disabled={!isEditing}
                                 placeholder="2"
-                                className="mt-1.5"
+                                className={`mt-1.5 placeholder:!text-foreground ${!isEditing ? '!text-foreground !opacity-100 placeholder:!opacity-70' : 'placeholder:!opacity-60'}`}
                             />
                             <p className="text-xs text-muted-foreground mt-1">Backoff multiplier</p>
                         </div>
@@ -355,7 +355,7 @@ export function EditDataSourcePanel({
                                     onChange={(e) => setTtlSeconds(e.target.value)}
                                     disabled={!isEditing}
                                     placeholder="300"
-                                    className="mt-1.5"
+                                    className={`mt-1.5 placeholder:!text-foreground ${!isEditing ? '!text-foreground !opacity-100 placeholder:!opacity-70' : 'placeholder:!opacity-60'}`}
                                 />
                                 <p className="text-xs text-muted-foreground mt-1">
                                     How long to cache responses
