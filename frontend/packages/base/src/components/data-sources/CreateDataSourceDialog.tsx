@@ -38,6 +38,7 @@ const formSchema = z.object({
         .regex(/^[a-zA-Z0-9-_]+$/, {
             message: "Name must only contain letters, numbers, dashes, and underscores",
         }),
+    description: z.string().optional(),
 });
 
 export interface CreateDataSourceDialogConfig {
@@ -61,6 +62,7 @@ export function CreateDataSourceDialog({ config }: { config: CreateDataSourceDia
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: "",
+            description: "",
         },
     });
 
@@ -86,7 +88,7 @@ export function CreateDataSourceDialog({ config }: { config: CreateDataSourceDia
                     path: "",
                     file_id: "",
                 },
-                description: null,
+                description: data.description || null,
                 caching: {
                     enabled: false,
                     ttl: {
@@ -147,6 +149,24 @@ export function CreateDataSourceDialog({ config }: { config: CreateDataSourceDia
                                     </FormControl>
                                     <FormDescription>Name of the new Data Source</FormDescription>
                                     <FormMessage>{form.formState.errors.name?.message}</FormMessage>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            name="description"
+                            control={form.control}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel htmlFor="description">Description (Optional)</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            placeholder="A brief description of this data source"
+                                            type="text"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormDescription>Brief description of the data source</FormDescription>
+                                    <FormMessage>{form.formState.errors.description?.message}</FormMessage>
                                 </FormItem>
                             )}
                         />

@@ -190,10 +190,20 @@ export async function updateDataSource(
     projectId?: string,
 ): Promise<DataSource> {
     "use server";
+    const currentDataSource = await fetchDataSource(dataSourceId, projectId);
+
+    const updatedSpec: DataSourceSpec = {
+        name: updates.name ?? currentDataSource.name,
+        source: updates.source ?? currentDataSource.source,
+        description: updates.description ?? currentDataSource.description ?? null,
+        caching: updates.caching ?? currentDataSource.caching,
+        metadata: updates.metadata ?? currentDataSource.metadata ?? null,
+    };
+
     return withErrorHandling(
         dataSourcesApi.updateDataSource({
             dataSourceId,
-            dataSourceSpec: updates as DataSourceSpec,
+            dataSourceSpec: updatedSpec,
         }),
         `update data source ${dataSourceId}`,
     );

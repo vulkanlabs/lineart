@@ -1,6 +1,7 @@
 // Vulkan packages
 import type { DataSource } from "@vulkanlabs/client-open";
 import { DataSourceDetailPage } from "@vulkanlabs/base/components/data-sources";
+import { revalidatePath } from "next/cache";
 
 // Local imports
 import {
@@ -35,11 +36,22 @@ export default async function Page(props: { params: Promise<{ data_source_id: st
         );
     }
 
+    async function updateDataSourceWithRevalidation(
+        dataSourceId: string,
+        updates: Partial<DataSource>,
+        projectId?: string
+    ) {
+        "use server";
+        const result = await updateDataSource(dataSourceId, updates, projectId);
+        revalidatePath(`/integrations/dataSources/${dataSourceId}`);
+        return result;
+    }
+
     return (
         <DataSourceDetailPage
             config={{
                 dataSource,
-                updateDataSource,
+                updateDataSource: updateDataSourceWithRevalidation,
                 fetchDataSourceEnvVars,
                 setDataSourceEnvVars,
                 fetchUsage: fetchDataSourceUsage,

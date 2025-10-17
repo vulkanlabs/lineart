@@ -129,8 +129,8 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
 
     // Status field using type extension until backend implements
     // frontend/packages/base/src/types/data-source.ts
-    const status = dataSource.status || "draft";
-    const isPublished = status === "published";
+    const status = dataSource.status || "DRAFT";
+    const isPublished = status === "PUBLISHED";
 
     // State for test configuration and response persists across tab changes
     const [testConfig, setTestConfig] = useState<TestConfig>({
@@ -150,6 +150,8 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
                 onCopyToClipboard={copyToClipboard}
                 onGetFullDataSourceJson={getFullDataSourceJson}
                 onPublish={publishDataSource}
+                onUpdateDataSource={config.updateDataSource}
+                projectId={config.projectId}
             />
 
             <Separator />
