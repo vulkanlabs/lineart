@@ -9,7 +9,8 @@ import { toast } from "sonner";
 
 interface PublishDataSourceDialogProps {
     dataSource: DataSource;
-    onPublish: (dataSourceId: string) => Promise<void>;
+    onPublish: (dataSourceId: string) => Promise<DataSource>;
+    isPublished?: boolean;
 }
 
 /**
@@ -36,23 +37,25 @@ function validateDataSourceForPublish(dataSource: DataSource): {
  * Dialog to confirm publishing a data source from draft to published status
  * Once published, data sources become read-only and available in workflows
  */
-export function PublishDataSourceDialog({ dataSource, onPublish }: PublishDataSourceDialogProps) {
+export function PublishDataSourceDialog({ dataSource, onPublish, isPublished = false }: PublishDataSourceDialogProps) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
 
     const validation = validateDataSourceForPublish(dataSource);
-    const isPublishDisabled = !validation.isValid;
+    const isPublishDisabled = !validation.isValid || isPublished;
 
     const handleButtonClick = useCallback(() => {
-        if (isPublishDisabled) {
+        if (isPublished) return;
+        
+        if (!validation.isValid) {
             toast.error("Cannot publish data source", {
                 description: validation.errors.join(", "),
             });
             return;
         }
         setOpen(true);
-    }, [isPublishDisabled, validation.errors]);
+    }, [isPublished, validation]);
 
     const handlePublish = async () => {
         // Double-check validation before publishing
@@ -84,9 +87,15 @@ export function PublishDataSourceDialog({ dataSource, onPublish }: PublishDataSo
 
     return (
         <>
-            <Button variant="default" size="sm" onClick={handleButtonClick}>
+            <Button
+                variant={isPublished ? "secondary" : "default"}
+                size="sm"
+                onClick={handleButtonClick}
+                disabled={isPublishDisabled}
+                className={isPublished ? "cursor-not-allowed" : ""}
+            >
                 <Upload className="h-4 w-4 mr-2" />
-                Publish
+                {isPublished ? "Published" : "Publish"}
             </Button>
 
             <Dialog open={open} onOpenChange={setOpen}>

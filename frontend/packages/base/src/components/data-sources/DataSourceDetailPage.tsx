@@ -12,13 +12,8 @@ import {
     TabsContent,
     TabsList,
     TabsTrigger,
-    Card,
-    CardHeader,
-    CardTitle,
-    CardDescription,
 } from "../ui";
 import { Loader } from "../..";
-import { Lock } from "lucide-react";
 
 import { useDataSourceUtils } from "./useDataSourceUtils";
 import { DataSourceHeader } from "./DataSourceHeader";
@@ -91,7 +86,7 @@ export interface DataSourceDetailPageConfig {
         request_url: string;
         error_message?: string;
     }>;
-    publishDataSource?: (dataSourceId: string) => Promise<void>;
+    publishDataSource?: (dataSourceId: string) => Promise<DataSource>;
     projectId?: string;
 }
 
@@ -165,22 +160,6 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
                 </TabsList>
 
                 <TabsContent value="general" className="space-y-8">
-                    {isPublished && (
-                        <Card className="border-blue-500 bg-blue-50 dark:bg-blue-950">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                                    <Lock className="h-5 w-5" />
-                                    Read-Only Mode
-                                </CardTitle>
-                                <CardDescription className="text-blue-600 dark:text-blue-400">
-                                    This data source is published and cannot be edited. Published
-                                    data sources are available in workflows but their configuration
-                                    is locked.
-                                </CardDescription>
-                            </CardHeader>
-                        </Card>
-                    )}
-
                     <EditDataSourcePanel
                         dataSource={dataSource}
                         updateDataSource={config.updateDataSource}

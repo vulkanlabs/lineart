@@ -14,7 +14,7 @@ interface DataSourceHeaderProps {
     copiedField: string | null;
     onCopyToClipboard: (text: string, field: string) => void;
     onGetFullDataSourceJson: (dataSource: DataSource) => string;
-    onPublish?: (dataSourceId: string) => Promise<void>;
+    onPublish?: (dataSourceId: string) => Promise<DataSource>;
     onUpdateDataSource?: (
         dataSourceId: string,
         updates: Partial<DataSource>,
@@ -79,11 +79,6 @@ export function DataSourceHeader({
                 <div className="flex items-center gap-2">
                     <h1 className="text-3xl font-bold tracking-tight">{dataSource.name}</h1>
                     {dataSource.archived && <Badge variant="destructive">Archived</Badge>}
-                    {isPublished && (
-                        <Badge variant="default" className="bg-green-600">
-                            Published
-                        </Badge>
-                    )}
                     {isDraft && <Badge variant="secondary">Draft</Badge>}
                 </div>
 
@@ -144,8 +139,12 @@ export function DataSourceHeader({
                 )}
             </div>
             <div className="flex gap-2">
-                {isDraft && onPublish && (
-                    <PublishDataSourceDialog dataSource={dataSource} onPublish={onPublish} />
+                {onPublish && (
+                    <PublishDataSourceDialog
+                        dataSource={dataSource}
+                        onPublish={onPublish}
+                        isPublished={isPublished}
+                    />
                 )}
 
                 <TooltipProvider>

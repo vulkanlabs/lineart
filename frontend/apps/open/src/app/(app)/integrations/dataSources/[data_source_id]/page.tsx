@@ -36,29 +36,27 @@ export default async function Page(props: { params: Promise<{ data_source_id: st
         );
     }
 
-    async function updateDataSourceWithRevalidation(
-        dataSourceId: string,
-        updates: Partial<DataSource>,
-        projectId?: string
-    ) {
-        "use server";
-        const result = await updateDataSource(dataSourceId, updates, projectId);
-        revalidatePath(`/integrations/dataSources/${dataSourceId}`);
-        return result;
-    }
+    const withRevalidation = <T,>(fn: (...args: any[]) => Promise<T>) => {
+        return async (...args: any[]): Promise<T> => {
+            "use server";
+            const result = await fn(...args);
+            revalidatePath(`/integrations/dataSources/${data_source_id}`);
+            return result;
+        };
+    };
 
     return (
         <DataSourceDetailPage
             config={{
                 dataSource,
-                updateDataSource: updateDataSourceWithRevalidation,
+                updateDataSource: withRevalidation(updateDataSource),
                 fetchDataSourceEnvVars,
                 setDataSourceEnvVars,
                 fetchUsage: fetchDataSourceUsage,
                 fetchMetrics: fetchDataSourceMetrics,
                 fetchCacheStats: fetchDataSourceCacheStats,
                 testDataSource,
-                publishDataSource,
+                publishDataSource: withRevalidation(publishDataSource),
             }}
         />
     );
