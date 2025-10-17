@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Save, X, Settings2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { DataSource } from "@vulkanlabs/client-open";
@@ -33,6 +33,18 @@ export function EditDataSourcePanel({
         return JSON.stringify(obj, null, 2);
     };
 
+    const cleanEmptyObjects = (obj: any): any => {
+        if (!obj || typeof obj !== 'object') return obj;
+
+        const cleaned: any = {};
+        for (const [key, value] of Object.entries(obj)) {
+            if (value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0)
+                continue;
+            cleaned[key] = value;
+        }
+        return cleaned;
+    };
+
     // Source configuration
     const [url, setUrl] = useState(dataSource.source?.url || "");
     const [method, setMethod] = useState<"GET" | "POST" | "PUT" | "DELETE" | "PATCH">(
@@ -58,6 +70,20 @@ export function EditDataSourcePanel({
     const [ttlSeconds, setTtlSeconds] = useState(
         dataSource.caching?.ttl?.seconds?.toString() ?? "",
     );
+
+    // Sync state when dataSource prop changes (after save/refresh)
+    useEffect(() => {
+        setUrl(dataSource.source?.url || "");
+        setMethod((dataSource.source?.method as "GET" | "POST" | "PUT" | "DELETE" | "PATCH") || "GET");
+        setHeaders(formatJsonForDisplay(dataSource.source?.headers));
+        setParams(formatJsonForDisplay(dataSource.source?.params));
+        setBody(formatJsonForDisplay(dataSource.source?.body));
+        setTimeout(dataSource.source?.timeout?.toString() ?? "");
+        setMaxRetries(dataSource.source?.retry?.max_retries?.toString() ?? "");
+        setBackoffFactor(dataSource.source?.retry?.backoff_factor?.toString() ?? "");
+        setCachingEnabled(dataSource.caching?.enabled ?? false);
+        setTtlSeconds(dataSource.caching?.ttl?.seconds?.toString() ?? "");
+    }, [dataSource]);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -99,15 +125,21 @@ export function EditDataSourcePanel({
                 }
             }
 
+            // Clean empty objects from parsed JSON to avoid validation errors
+            const cleanedHeaders = cleanEmptyObjects(parsedHeaders);
+            const cleanedParams = cleanEmptyObjects(parsedParams);
+            const cleanedBody = cleanEmptyObjects(parsedBody);
+
             const updates: Partial<DataSource> = {
                 source: {
-                    ...dataSource.source,
+                    // Build source from scratch to avoid spreading old empty objects
+                    type: dataSource.source.type,
                     url,
                     method: method as "GET" | "POST" | "PUT" | "DELETE",
-                    headers: parsedHeaders,
-                    params: parsedParams,
-                    body: parsedBody,
-                    timeout: timeout ? parseInt(timeout, 10) : 5000,
+                    headers: Object.keys(cleanedHeaders).length > 0 ? cleanedHeaders : undefined,
+                    params: Object.keys(cleanedParams).length > 0 ? cleanedParams : undefined,
+                    body: Object.keys(cleanedBody).length > 0 ? cleanedBody : undefined,
+                    timeout: timeout ? parseInt(timeout, 10) : undefined,
                     retry: {
                         max_retries: maxRetries ? parseInt(maxRetries, 10) : 3,
                         backoff_factor: backoffFactor ? parseFloat(backoffFactor) : 2,
@@ -329,7 +361,7 @@ export function EditDataSourcePanel({
                                 id="cachingEnabled"
                                 checked={cachingEnabled}
                                 onCheckedChange={setCachingEnabled}
-                                disabled={!isEditing || disabled}
+                                disabled={!isEditing}
                             />
                             <div className="flex-1">
                                 <Label

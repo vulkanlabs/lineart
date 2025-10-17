@@ -192,13 +192,31 @@ export async function updateDataSource(
     "use server";
     const currentDataSource = await fetchDataSource(dataSourceId, projectId);
 
-    const updatedSpec: DataSourceSpec = {
-        name: updates.name ?? currentDataSource.name,
-        source: updates.source ?? currentDataSource.source,
-        description: updates.description ?? currentDataSource.description ?? null,
-        caching: updates.caching ?? currentDataSource.caching,
-        metadata: updates.metadata ?? currentDataSource.metadata ?? null,
-    };
+    const isPublished = currentDataSource.status === "PUBLISHED";
+
+    let updatedSpec: DataSourceSpec;
+
+    if (isPublished) {
+        updatedSpec = {
+            name: currentDataSource.name,
+            source: {
+                ...currentDataSource.source,
+                timeout: updates.source?.timeout ?? currentDataSource.source.timeout,
+                retry: updates.source?.retry ?? currentDataSource.source.retry,
+            },
+            description: updates.description ?? currentDataSource.description ?? null,
+            caching: updates.caching ?? currentDataSource.caching,
+            metadata: updates.metadata ?? currentDataSource.metadata ?? null,
+        };
+    } else {
+        updatedSpec = {
+            name: updates.name ?? currentDataSource.name,
+            source: updates.source ?? currentDataSource.source,
+            description: updates.description ?? currentDataSource.description ?? null,
+            caching: updates.caching ?? currentDataSource.caching,
+            metadata: updates.metadata ?? currentDataSource.metadata ?? null,
+        };
+    }
 
     return withErrorHandling(
         dataSourcesApi.updateDataSource({

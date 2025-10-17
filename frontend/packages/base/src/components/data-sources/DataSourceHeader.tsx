@@ -87,7 +87,7 @@ export function DataSourceHeader({
                         <p className="text-muted-foreground text-sm">
                             {dataSource.description || "Add a description..."}
                         </p>
-                        {!isPublished && onUpdateDataSource && (
+                        {onUpdateDataSource && (
                             <Button
                                 variant="ghost"
                                 size="sm"

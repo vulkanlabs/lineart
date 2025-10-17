@@ -164,12 +164,16 @@ class DataSourceService(BaseService):
                 "Local file data sources are not supported for remote execution"
             )
 
-        # Published data sources can only update metadata and caching
+        # Published data sources can only update metadata, caching, timeout, and retry policy
         if data_source.is_published():
             data_source.description = spec.description
             data_source.config_metadata = spec.metadata
             data_source.caching_enabled = spec.caching.enabled
             data_source.caching_ttl = spec.caching.calculate_ttl()
+            if spec.source and spec.source.timeout is not None:
+                data_source.source.timeout = spec.source.timeout
+            if spec.source and spec.source.retry:
+                data_source.source.retry = spec.source.retry
         else:
             data_source.update_from_spec(spec)
 
