@@ -1,10 +1,14 @@
 import ast
-from typing import Any
+from typing import Any, Literal
 
 from jinja2 import Environment, Template
 from pydantic import BaseModel
 
 BaseType = str | int | float | bool
+ListType = list[BaseType]
+ShallowDictType = dict[str, BaseType | ListType]
+ValueType = BaseType | ListType | ShallowDictType
+DictType = dict[str, ValueType]
 
 
 class EnvVarConfig(BaseModel):
@@ -13,9 +17,10 @@ class EnvVarConfig(BaseModel):
 
 class RunTimeParam(BaseModel):
     param: str
+    value_type: Literal["str", "int", "float", "bool", "auto"] = "auto"
 
 
-ParameterType = BaseType | list[BaseType] | EnvVarConfig | RunTimeParam
+ParameterType = BaseType | ListType | DictType | EnvVarConfig | RunTimeParam
 ConfigurableDict = dict[str, ParameterType]
 
 
@@ -180,16 +185,30 @@ def configure_fields(
     This function replaces any RunTimeParam or EnvVarConfig instances with their
     corresponding template strings, and resolves any string templates using
     the provided node and environment variables.
+
+    Type handling:
+    - RunTimeParam: Uses the value_type field to determine expected type
+    - EnvVarConfig: Always returns strings (matching OS environment variable semantics)
+    - Plain templates: Uses "auto" type inference
     """
     if spec is None:
         spec = {}
 
     for key, value in spec.items():
-        if isinstance(value, RunTimeParam) or isinstance(value, EnvVarConfig):
+        expected_type = "auto"  # Default type inference
+
+        if isinstance(value, RunTimeParam):
+            expected_type = value.value_type
+            value = normalize_to_template(value)
+        elif isinstance(value, EnvVarConfig):
+            # Environment variables are always strings (OS semantics)
+            expected_type = "str"
             value = normalize_to_template(value)
 
         if _is_template_like(value):
-            spec[key] = resolve_template(value, local_variables, env_variables)
+            spec[key] = resolve_template(
+                value, local_variables, env_variables, expected_type
+            )
 
     return spec
 
@@ -201,10 +220,58 @@ def _is_template_like(value: Any) -> bool:
     return value.startswith("{{") and value.endswith("}}")
 
 
-def resolve_template(value: str, local_variables: dict, env_variables: dict) -> str:
+def _convert_to_type(value: str, target_type: str) -> int | float | bool:
+    """
+    Convert a string value to the specified type with clear error messages.
+
+    Args:
+        value: The string value to convert
+        target_type: One of "int", "float"
+
+    Returns:
+        The converted value
+
+    Raises:
+        ValueError: If the conversion fails
+    """
+    if target_type not in ("int", "float"):
+        raise ValueError(f"Unsupported target type for conversion: {target_type}")
+
+    try:
+        if target_type == "int":
+            return int(value)
+        elif target_type == "float":
+            return float(value)
+    except (ValueError, TypeError, AttributeError) as e:
+        raise ValueError(
+            f"Cannot convert template result '{value}' to {target_type}: {e}"
+        )
+
+
+def resolve_template(
+    value: str,
+    local_variables: dict,
+    env_variables: dict,
+    expected_type: str = "auto",
+) -> ValueType:
     """
     Resolve a Jinja2 template string using provided local and environment variables.
-    This function uses Jinja2 to render the template with the given context.
+
+    Args:
+        value: The template string to resolve (e.g., "{{variable}}")
+        local_variables: Dictionary of runtime variables
+        env_variables: Dictionary of environment variables
+        expected_type: Expected type of the result. One of:
+            - "str": Always return a string (no type conversion)
+            - "int": Convert to integer
+            - "float": Convert to float
+            - "auto": Attempt to infer type using ast.literal_eval (default)
+
+    Returns:
+        The resolved value with the appropriate type
+
+    Raises:
+        ValueError: If template is invalid or type conversion fails
     """
     if not isinstance(value, str):
         raise ValueError(
@@ -218,20 +285,18 @@ def resolve_template(value: str, local_variables: dict, env_variables: dict) -> 
     context = {"env": env_variables, **local_variables}
     rendered = template.render(context)
 
-    # FIXME (antonio): this function doesn't correctly handle variable typing.
-    #
-    # IMO the best way to solve this is to give users full control of the
-    # expected types of parameter values (RuntimeParams).
-    # In that case, instead of just throwing everything at a render, we
-    # can provide a mapping of templates to typed values, including more
-    # sensible error messages in cases of incompatibility.
-    #
-    # For EnvVars, we can safely assume they'll always be strings,
-    # as this is the behavior for OS env vars.
+    # Explicit string type - no conversion needed
+    if expected_type == "str":
+        return rendered
+
+    # Explicit typed conversion
+    if expected_type in ("int", "float"):
+        return _convert_to_type(rendered, expected_type)
+
+    # Auto - infer type using ast.literal_eval
+    # This attempts to evaluate the rendered template as a Python literal.
+    # If it looks like a bool, list, dict, etc, it will be converted.
     try:
-        # Attempt to evaluate the rendered template as a Python literal.
-        # This gets the *actual* variable values, not just the template strings,
-        # if the template is a valid literal.
         return ast.literal_eval(rendered)
     except (ValueError, SyntaxError):
         return rendered
