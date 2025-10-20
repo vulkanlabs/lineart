@@ -34,10 +34,7 @@ import { Sending } from "../animations";
 const formSchema = z.object({
     name: z
         .string()
-        .min(1, "Name is required")
-        .regex(/^[a-zA-Z0-9-_]+$/, {
-            message: "Name must only contain letters, numbers, dashes, and underscores",
-        }),
+        .min(1, "Name is required"),
     description: z.string().optional(),
 });
 
