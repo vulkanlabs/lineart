@@ -1,14 +1,14 @@
 import ast
 from typing import Any, Literal
 
-from jinja2 import Environment, Template
-from pydantic import BaseModel
+from jinja2 import Environment, Template, nodes
+from pydantic import BaseModel, ValidationError
 
-BaseType = str | int | float | bool
-ListType = list[BaseType]
-ShallowDictType = dict[str, BaseType | ListType]
-ValueType = BaseType | ListType | ShallowDictType
-DictType = dict[str, ValueType]
+_BaseType = str | int | float | bool
+_ListType = list[_BaseType]
+_ShallowDictType = dict[str, _BaseType | _ListType]
+_ValueType = _BaseType | _ListType | _ShallowDictType
+_DictType = dict[str, _ValueType]
 
 
 class EnvVarConfig(BaseModel):
@@ -17,11 +17,11 @@ class EnvVarConfig(BaseModel):
 
 class RunTimeParam(BaseModel):
     param: str
-    value_type: Literal["str", "int", "float", "bool", "auto"] = "auto"
+    value_type: Literal["str", "int", "float", "auto"] = "auto"
 
 
-ParameterType = BaseType | ListType | DictType | EnvVarConfig | RunTimeParam
-ConfigurableDict = dict[str, ParameterType]
+_ParameterType = _BaseType | _ListType | _DictType | EnvVarConfig | RunTimeParam
+ConfigurableDict = dict[str, _ParameterType]
 
 
 def _visit_nodes(node, visitor_func):
@@ -32,23 +32,37 @@ def _visit_nodes(node, visitor_func):
 
 
 def _create_env_var_visitor(vars_list: list):
-    """Creates a visitor function to extract environment variables."""
+    """Creates a visitor function to extract environment variables.
+
+    Extracts environment variable names from Jinja2 templates (e.g., {{env.VAR}}).
+    Only matches attribute access on the 'env' object (Getattr nodes).
+    """
 
     def visitor(node):
-        if hasattr(node, "node") and hasattr(node, "attr"):
-            if hasattr(node.node, "name") and node.node.name == "env":
+        # Only extract Getattr nodes where the base object is the 'env' Name node
+        # This matches patterns like {{env.MY_VAR}}
+        if isinstance(node, nodes.Getattr):
+            if isinstance(node.node, nodes.Name) and node.node.name == "env":
                 vars_list.append(node.attr)
 
     return visitor
 
 
 def _create_runtime_param_visitor(vars_list: list):
-    """Creates a visitor function to extract runtime parameters."""
+    """Creates a visitor function to extract runtime parameters.
+
+    Extracts simple variable names from Jinja2 templates (e.g., {{variable}}).
+    Excludes environment variables ({{env.VAR}}) and the 'env' object itself.
+
+    This visitor handles RunTimeParam instances which may have different value_type
+    specifications (str, int, float, auto), but at the template level we only
+    extract the variable names - type information is preserved in the RunTimeParam
+    object itself, not in the template string.
+    """
 
     def visitor(node):
-        if hasattr(node, "name") and not hasattr(node, "attr"):
-            if node.name != "env":
-                vars_list.append(node.name)
+        if isinstance(node, nodes.Name) and node.name != "env":
+            vars_list.append(node.name)
 
     return visitor
 
@@ -186,6 +200,11 @@ def configure_fields(
     corresponding template strings, and resolves any string templates using
     the provided node and environment variables.
 
+    Dictionary casting:
+    - Dicts with "param" key are automatically converted to RunTimeParam
+    - Dicts with "env" key are automatically converted to EnvVarConfig
+    - This enables seamless handling of both object and serialized representations
+
     Type handling:
     - RunTimeParam: Uses the value_type field to determine expected type
     - EnvVarConfig: Always returns strings (matching OS environment variable semantics)
@@ -195,7 +214,10 @@ def configure_fields(
         spec = {}
 
     for key, value in spec.items():
-        expected_type = "auto"  # Default type inference
+        expected_type = "auto"
+
+        # Try to convert dict to RunTimeParam or EnvVarConfig if applicable
+        value = _try_cast_to_config_object(value)
 
         if isinstance(value, RunTimeParam):
             expected_type = value.value_type
@@ -211,6 +233,38 @@ def configure_fields(
             )
 
     return spec
+
+
+def _try_cast_to_config_object(value: Any) -> RunTimeParam | EnvVarConfig | Any:
+    """
+    Try to convert a dict to RunTimeParam or EnvVarConfig if applicable.
+
+    Args:
+        value: The value to potentially convert
+
+    Returns:
+        RunTimeParam if dict has "param" key and is valid
+        EnvVarConfig if dict has "env" key and is valid
+        Original value otherwise
+    """
+    if not isinstance(value, dict):
+        return value
+
+    # Try to convert to RunTimeParam
+    if "param" in value:
+        try:
+            return RunTimeParam(**value)
+        except ValidationError:
+            pass
+
+    # Try to convert to EnvVarConfig
+    if "env" in value:
+        try:
+            return EnvVarConfig(**value)
+        except ValidationError:
+            pass
+
+    return value
 
 
 def _is_template_like(value: Any) -> bool:
@@ -253,7 +307,7 @@ def resolve_template(
     local_variables: dict,
     env_variables: dict,
     expected_type: str = "auto",
-) -> ValueType:
+) -> _ValueType:
     """
     Resolve a Jinja2 template string using provided local and environment variables.
 
@@ -302,7 +356,7 @@ def resolve_template(
         return rendered
 
 
-def normalize_to_template(value: ParameterType) -> str:
+def normalize_to_template(value: _ParameterType) -> str:
     """
     Normalize both object-based and template-based configurations to template format.
 

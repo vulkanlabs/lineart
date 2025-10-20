@@ -21,7 +21,6 @@ def test_transform_node():
     assert node.node_dependencies() == [Dependency("input_node")]
 
     node_definition = node.node_definition()
-    print(node.node_definition())
 
     assert isinstance(node_definition.metadata, TransformNodeMetadata)
 
@@ -68,7 +67,6 @@ def test_branch_node():
     assert node.node_dependencies() == [Dependency("model_a")]
 
     node_definition = node.node_definition()
-    print(node.node_definition())
 
     assert isinstance(node_definition.metadata, BranchNodeMetadata)
 
