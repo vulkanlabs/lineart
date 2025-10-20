@@ -111,14 +111,11 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
      */
     async fetchDataSources(projectId?: string): Promise<ApiResult<DataSource[]>> {
         try {
-            const params = new URLSearchParams();
-
-            if (projectId) {
-                params.append("project_id", projectId);
-            }
-
             // Only fetch published data sources for workflows
-            params.append("status", "PUBLISHED");
+            const params = new URLSearchParams({
+                status: "PUBLISHED",
+                ...(projectId && { project_id: projectId }),
+            });
 
             const queryString = params.toString();
             const url = `${this.config.baseUrl}/api/workflow/data-sources${queryString ? `?${queryString}` : ""}`;

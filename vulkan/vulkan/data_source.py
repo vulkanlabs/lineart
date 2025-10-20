@@ -18,6 +18,12 @@ class DataSourceType(Enum):
     REGISTERED_FILE = "registered_file"
 
 
+class DataSourceStatus(Enum):
+    DRAFT = "DRAFT"
+    PUBLISHED = "PUBLISHED"
+    ARCHIVED = "ARCHIVED"
+
+
 class SourceSpecBase(ABC):
     @abstractmethod
     def extract_env_vars(self) -> list[str]:

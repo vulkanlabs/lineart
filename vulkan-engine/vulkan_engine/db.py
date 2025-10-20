@@ -22,7 +22,8 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 from sqlalchemy.sql import func
 
-from vulkan.core.run import DataSourceStatus, RunStatus, WorkflowStatus
+from vulkan.core.run import RunStatus, WorkflowStatus
+from vulkan.data_source import DataSourceStatus
 from vulkan.schemas import CachingOptions, DataSourceSpec
 from vulkan.spec.nodes.base import NodeType
 from vulkan_engine.config import DatabaseConfig
@@ -201,7 +202,6 @@ class DataSource(TimedUpdateMixin, Base):
     config_metadata = Column(JSON, nullable=True)
     runtime_params = Column(ARRAY(String), nullable=True)
     variables = Column(ARRAY(String), nullable=True)
-    archived = Column(Boolean, default=False)
     status = Column(Enum(DataSourceStatus), nullable=False, server_default="DRAFT")
 
     # Project association for multi-tenant deployments
@@ -211,12 +211,15 @@ class DataSource(TimedUpdateMixin, Base):
         Index(
             "unique_data_source_name",
             "name",
-            "archived",
             unique=True,
-            postgresql_where=(archived == False),  # noqa: E712
+            postgresql_where=(status != DataSourceStatus.ARCHIVED),
         ),
         Index("idx_data_source_project_id", "project_id"),
-        Index("idx_data_source_status", "status", postgresql_where=(archived == False)),  # noqa: E712
+        Index(
+            "idx_data_source_status",
+            "status",
+            postgresql_where=(status != DataSourceStatus.ARCHIVED),
+        ),
     )
 
     @staticmethod

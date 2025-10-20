@@ -17,8 +17,3 @@ class JobStatus(Enum):
 class WorkflowStatus(Enum):
     VALID = "VALID"
     INVALID = "INVALID"
-
-
-class DataSourceStatus(Enum):
-    DRAFT = "DRAFT"
-    PUBLISHED = "PUBLISHED"

@@ -15,6 +15,7 @@ from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
     InvalidDataSourceException,
 )
+from vulkan_engine.logger import VulkanLogger
 from vulkan_engine.services import (
     DataSourceAnalyticsService,
     DataSourceService,
@@ -23,6 +24,7 @@ from vulkan_engine.services import (
 
 from vulkan.schemas import DataSourceSpec
 from vulkan_server.dependencies import (
+    get_configured_logger,
     get_data_source_analytics_service,
     get_data_source_service,
     get_data_source_test_service,
@@ -209,42 +211,45 @@ def publish_data_source(
 async def test_data_source(
     test_request: schemas.DataSourceTestRequest,
     service: DataSourceTestService = Depends(get_data_source_test_service),
+    logger: Annotated[VulkanLogger, Depends(get_configured_logger)] = None,
 ):
     """Test a data source configuration."""
-    import ipaddress
-    import logging
-    from urllib.parse import urlparse
-
-    logger = logging.getLogger(__name__)
-
-    try:
-        parsed = urlparse(test_request.url)
-
-        if parsed.scheme not in ["http", "https"]:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid URL scheme: {parsed.scheme}. Only http/https allowed",
-            )
-
-        if test_request.body:
-            body_size = len(str(test_request.body))
-            if body_size > 1_000_000:  # 1MB limit
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Request body too large: {body_size} bytes (max 1MB)",
-                )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"URL validation error: {e}")
-        raise HTTPException(status_code=400, detail="Invalid URL format")
-
     try:
         return await service.execute_test(test_request)
-    except ValueError as e:
+    except InvalidDataSourceException as e:
         logger.warning(f"Test validation error: {e}")
-        raise HTTPException(status_code=400, detail=f"Invalid request: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except TimeoutError as e:
+        logger.warning(f"Test timeout: {e}")
+        raise HTTPException(status_code=408, detail="Request timeout")
+    except Exception as e:
+        logger.error(f"Test execution error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/{data_source_id}/test", response_model=schemas.DataSourceTestResponse)
+async def test_data_source_by_id(
+    data_source_id: str,
+    test_request: schemas.DataSourceTestRequestById,
+    service: DataSourceTestService = Depends(get_data_source_test_service),
+    logger: Annotated[VulkanLogger, Depends(get_configured_logger)] = None,
+):
+    """
+    Test an existing data source with optional runtime parameters.
+
+    Backend fetches the data source configuration and merges with runtime parameters
+    and environment variables before executing the test.
+    """
+    test_request.data_source_id = data_source_id
+
+    try:
+        return await service.execute_test_by_id(test_request)
+    except DataSourceNotFoundException as e:
+        logger.warning(f"Data source not found: {e}")
+        raise HTTPException(status_code=404, detail=str(e))
+    except InvalidDataSourceException as e:
+        logger.warning(f"Test validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
     except TimeoutError as e:
         logger.warning(f"Test timeout: {e}")
         raise HTTPException(status_code=408, detail="Request timeout")

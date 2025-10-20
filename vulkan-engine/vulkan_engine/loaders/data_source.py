@@ -4,6 +4,9 @@ Data source loader for data access layer.
 
 from typing import List
 
+from sqlalchemy.orm import Query
+
+from vulkan.data_source import DataSourceStatus
 from vulkan_engine.db import DataSource
 from vulkan_engine.exceptions import DataSourceNotFoundException
 from vulkan_engine.loaders.base import BaseLoader
@@ -11,6 +14,27 @@ from vulkan_engine.loaders.base import BaseLoader
 
 class DataSourceLoader(BaseLoader):
     """Loader for DataSource resources."""
+
+    def _apply_status_filter(
+        self, query: Query, include_archived: bool = False
+    ) -> Query:
+        """
+        Apply status filter to exclude ARCHIVED data sources.
+
+        DataSource uses a status enum (DRAFT, PUBLISHED, ARCHIVED) instead of
+        a boolean archived field. This method filters out ARCHIVED status unless
+        explicitly requested.
+
+        Args:
+            query: SQLAlchemy query object
+            include_archived: Whether to include ARCHIVED status data sources
+
+        Returns:
+            Query with status filter applied
+        """
+        if not include_archived:
+            return query.filter(DataSource.status != DataSourceStatus.ARCHIVED)
+        return query
 
     def get_data_source(
         self, data_source_id: str, project_id: str = None, include_archived: bool = True
@@ -34,8 +58,8 @@ class DataSourceLoader(BaseLoader):
             DataSource.project_id == project_id,
         )
 
-        # Apply archived filter if needed
-        query = self._apply_archived_filter(query, include_archived)
+        # Apply status filter to exclude ARCHIVED data sources if needed
+        query = self._apply_status_filter(query, include_archived)
 
         data_source = query.first()
         if not data_source:
@@ -65,8 +89,8 @@ class DataSourceLoader(BaseLoader):
             DataSource.project_id == project_id,
         )
 
-        # Apply archived filter if needed
-        query = self._apply_archived_filter(query, include_archived)
+        # Apply status filter to exclude ARCHIVED data sources if needed
+        query = self._apply_status_filter(query, include_archived)
 
         data_source = query.first()
         if not data_source:
@@ -75,7 +99,10 @@ class DataSourceLoader(BaseLoader):
         return data_source
 
     def list_data_sources(
-        self, project_id: str = None, include_archived: bool = False, status: str = None
+        self,
+        project_id: str = None,
+        include_archived: bool = False,
+        status: DataSourceStatus | None = None,
     ) -> List[DataSource]:
         """
         List data sources with optional filtering.
@@ -83,26 +110,18 @@ class DataSourceLoader(BaseLoader):
         Args:
             project_id: Optional project UUID to filter by
             include_archived: Whether to include archived data sources
-            status: Optional status to filter by (e.g., 'PUBLISHED', 'DRAFT')
+            status: Optional status enum to filter by (e.g., DataSourceStatus.PUBLISHED)
 
         Returns:
             List of DataSource objects
         """
-        from vulkan.core.run import DataSourceStatus
-
         query = self.db.query(DataSource).filter(DataSource.project_id == project_id)
-        query = self._apply_archived_filter(query, include_archived)
+        query = self._apply_status_filter(query, include_archived)
 
         if status:
-            try:
-                status_enum = DataSourceStatus[status.upper()]
-                query = query.filter(DataSource.status == status_enum)
-            except (KeyError, AttributeError) as e:
-                # If status is invalid, return empty list
-                return []
+            query = query.filter(DataSource.status == status)
 
-        results = query.all()
-        return results
+        return query.all()
 
     def data_source_exists(
         self, data_source_id: str = None, name: str = None, project_id: str = None
@@ -129,6 +148,6 @@ class DataSourceLoader(BaseLoader):
             query = query.filter(DataSource.name == name)
 
         # Only check non-archived data sources for existence
-        query = self._apply_archived_filter(query, include_archived=False)
+        query = self._apply_status_filter(query, include_archived=False)
 
         return query.first() is not None

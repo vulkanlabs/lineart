@@ -5,13 +5,23 @@ Handles execution and persistence of data source tests.
 """
 
 import time
+from urllib.parse import urlparse
 
 import httpx
 from jinja2 import TemplateSyntaxError, UndefinedError
 
 from vulkan.node_config import configure_fields, resolve_template
 from vulkan_engine.db import DataSourceTestResult
-from vulkan_engine.schemas import DataSourceTestRequest, DataSourceTestResponse
+from vulkan_engine.exceptions import (
+    DataSourceNotFoundException,
+    InvalidDataSourceException,
+)
+from vulkan_engine.loaders.data_source import DataSourceLoader
+from vulkan_engine.schemas import (
+    DataSourceTestRequest,
+    DataSourceTestRequestById,
+    DataSourceTestResponse,
+)
 from vulkan_engine.services.base import BaseService
 
 
@@ -28,6 +38,85 @@ class DataSourceTestService(BaseService):
         """
         super().__init__(db, logger)
 
+    def _validate_test_request(self, test_request: DataSourceTestRequest) -> None:
+        """
+        Validate test request configuration.
+
+        Args:
+            test_request: Test request to validate
+
+        Raises:
+            InvalidDataSourceException: If request is invalid
+        """
+        # Validate URL scheme
+        try:
+            parsed = urlparse(test_request.url)
+            if parsed.scheme not in ["http", "https"]:
+                raise InvalidDataSourceException(
+                    f"Invalid URL scheme: {parsed.scheme}. Only http/https allowed"
+                )
+        except Exception as e:
+            if isinstance(e, InvalidDataSourceException):
+                raise
+            raise InvalidDataSourceException(f"Invalid URL format: {str(e)}")
+
+        # Validate body size (1MB limit)
+        if test_request.body:
+            body_size = len(str(test_request.body))
+            if body_size > 1_000_000:
+                raise InvalidDataSourceException(
+                    f"Request body too large: {body_size} bytes (max 1MB)"
+                )
+
+    async def execute_test_by_id(
+        self, test_request: DataSourceTestRequestById
+    ) -> DataSourceTestResponse:
+        """
+        Execute a data source test for an existing data source by ID.
+
+        Fetches the data source configuration and merges with runtime parameters
+        and environment variables before executing the test.
+
+        Args:
+            test_request: Simplified test request with data_source_id and runtime overrides
+
+        Returns:
+            DataSourceTestResponse with test results
+
+        Raises:
+            DataSourceNotFoundException: If data source doesn't exist
+            InvalidDataSourceException: If request or configuration is invalid
+        """
+        # Load data source configuration
+        loader = DataSourceLoader(self.db)
+        try:
+            data_source = loader.get_data_source(
+                test_request.data_source_id, include_archived=True
+            )
+        except DataSourceNotFoundException:
+            raise DataSourceNotFoundException(
+                f"Data source {test_request.data_source_id} not found"
+            )
+
+        # Build full test request by merging data source config with runtime params
+        source_config = data_source.source
+        full_request = DataSourceTestRequest(
+            url=source_config.get("url", ""),
+            method=source_config.get("method", "GET"),
+            headers=source_config.get("headers"),
+            body=source_config.get("body"),
+            # Merge params: data source base + runtime overrides
+            params={
+                **(source_config.get("params") or {}),
+                **(test_request.params or {}),
+            },
+            # Use provided env_vars for template resolution
+            env_vars=test_request.env_vars,
+        )
+
+        # Execute using the standard test method
+        return await self.execute_test(full_request)
+
     async def execute_test(
         self, test_request: DataSourceTestRequest
     ) -> DataSourceTestResponse:
@@ -39,7 +128,13 @@ class DataSourceTestService(BaseService):
 
         Returns:
             DataSourceTestResponse with test results
+
+        Raises:
+            InvalidDataSourceException: If request is invalid
         """
+        # Validate request before execution
+        self._validate_test_request(test_request)
+
         # Get env vars and configured params for template resolution
         env_vars = test_request.env_vars or {}
         local_vars = test_request.params or {}

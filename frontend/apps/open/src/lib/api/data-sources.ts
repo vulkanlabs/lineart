@@ -9,10 +9,18 @@ import { dataSourcesApi, withErrorHandling } from "./client";
 
 /**
  * Get all available data sources
+ * @param {boolean} [includeArchived=false] - Include archived data sources
+ * @param {string} [status] - Filter by status (e.g., 'PUBLISHED', 'DRAFT', 'ARCHIVED')
  * @returns {Promise<DataSource[]>} List of configured data sources (databases, APIs, etc.)
  */
-export const fetchDataSources = async (): Promise<DataSource[]> => {
-    return withErrorHandling(dataSourcesApi.listDataSources(), "fetch data sources");
+export const fetchDataSources = async (
+    includeArchived: boolean = false,
+    status?: string,
+): Promise<DataSource[]> => {
+    return withErrorHandling(
+        dataSourcesApi.listDataSources({ includeArchived, status }),
+        "fetch data sources",
+    );
 };
 
 /**
@@ -179,6 +187,11 @@ export const fetchDataSourceCacheStats = async (
 
 /**
  * Update an existing data source configuration
+ *
+ * The backend enforces update restrictions for published data sources.
+ * This function simply sends the requested updates and lets the backend
+ * decide what changes are allowed based on the data source status.
+ *
  * @param {string} dataSourceId - ID of data source to update
  * @param {Partial<DataSourceSpec>} updates - Partial updates to apply
  * @param {string} [projectId] - Optional project context
@@ -190,38 +203,10 @@ export async function updateDataSource(
     projectId?: string,
 ): Promise<DataSource> {
     "use server";
-    const currentDataSource = await fetchDataSource(dataSourceId, projectId);
-
-    const isPublished = currentDataSource.status === "PUBLISHED";
-
-    let updatedSpec: DataSourceSpec;
-
-    if (isPublished) {
-        updatedSpec = {
-            name: currentDataSource.name,
-            source: {
-                ...currentDataSource.source,
-                timeout: updates.source?.timeout ?? currentDataSource.source.timeout,
-                retry: updates.source?.retry ?? currentDataSource.source.retry,
-            },
-            description: updates.description ?? currentDataSource.description ?? null,
-            caching: updates.caching ?? currentDataSource.caching,
-            metadata: updates.metadata ?? currentDataSource.metadata ?? null,
-        };
-    } else {
-        updatedSpec = {
-            name: updates.name ?? currentDataSource.name,
-            source: updates.source ?? currentDataSource.source,
-            description: updates.description ?? currentDataSource.description ?? null,
-            caching: updates.caching ?? currentDataSource.caching,
-            metadata: updates.metadata ?? currentDataSource.metadata ?? null,
-        };
-    }
-
     return withErrorHandling(
         dataSourcesApi.updateDataSource({
             dataSourceId,
-            dataSourceSpec: updatedSpec,
+            dataSourceSpec: updates as DataSourceSpec,
         }),
         `update data source ${dataSourceId}`,
     );
@@ -229,12 +214,16 @@ export async function updateDataSource(
 
 /**
  * Test a data source without persisting to database
+ *
+ * The backend handles fetching the data source configuration and merging
+ * with runtime parameters and environment variables.
+ *
  * @param {string} dataSourceId - ID of data source to test
  * @param {object} testRequest - Test configuration
  * @param {any} testRequest.configured_params - Runtime parameters for the test
  * @param {any} [testRequest.override_env_vars] - Optional environment variables to override
  * @param {string} [projectId] - Optional project context
- * @returns {Promise<any>} Test response with status, body, timing, and cache info
+ * @returns {Promise<any>} Test response with status, body, timing
  */
 export const testDataSource = async (
     dataSourceId: string,
@@ -244,33 +233,33 @@ export const testDataSource = async (
     },
     projectId?: string,
 ): Promise<{
+    test_id: string;
     status_code: number;
     response_body: any;
     response_time_ms: number;
-    cache_hit: boolean;
-    headers: Record<string, string>;
-    request_url: string;
-    error_message?: string;
+    response_headers: Record<string, string>;
+    error?: string;
 }> => {
-    // First, fetch the data source to get its configuration
-    const dataSource = await fetchDataSource(dataSourceId, projectId);
-
-    // Build the complete test request with data source configuration
-    const completeTestRequest = {
-        url: dataSource.source.url,
-        method: dataSource.source.method || "GET",
-        headers: dataSource.source.headers || {},
-        body: dataSource.source.body || null,
-        params: { ...(dataSource.source.params || {}), ...(testRequest.configured_params || {}) },
-        env_vars: testRequest.override_env_vars || {},
-    };
-
-    return withErrorHandling(
-        dataSourcesApi.testDataSource({
-            dataSourceTestRequest: completeTestRequest,
-        }),
-        `test data source ${dataSourceId}`,
+    const response = await fetch(
+        `${process.env.VULKAN_SERVER_URL}/data-sources/${dataSourceId}/test`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                params: testRequest.configured_params || {},
+                env_vars: testRequest.override_env_vars || {},
+            }),
+        },
     );
+
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to test data source ${dataSourceId}: ${error}`);
+    }
+
+    return response.json();
 };
 
 /**

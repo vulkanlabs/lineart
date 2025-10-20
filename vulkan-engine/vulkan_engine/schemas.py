@@ -7,7 +7,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from vulkan.core.run import DataSourceStatus, RunStatus, WorkflowStatus
+from vulkan.core.run import RunStatus, WorkflowStatus
+from vulkan.data_source import DataSourceStatus
 from vulkan.schemas import DataSourceSpec, PolicyAllocationStrategy
 from vulkan.spec.policy import PolicyDefinitionDict
 
@@ -227,7 +228,6 @@ class RunLogs(BaseModel):
 
 class DataSource(DataSourceSpec):
     data_source_id: UUID
-    archived: bool
     created_at: datetime
     last_updated_at: datetime
     variables: list[str] | None = None
@@ -239,7 +239,6 @@ class DataSource(DataSourceSpec):
         spec = data.to_spec()
         return cls(
             data_source_id=data.data_source_id,
-            archived=data.archived,
             created_at=data.created_at,
             last_updated_at=data.last_updated_at,
             variables=data.variables,
@@ -325,10 +324,23 @@ class ConfigurationVariablesSetResult(BaseModel):
 
 
 class DataSourceTestRequest(BaseModel):
+    """Full test request with all configuration (used for testing without existing data source)."""
+
     url: str
     method: str = "GET"
     headers: dict[str, str] | None = None
     body: dict[str, Any] | str | None = None
+    params: dict[str, Any] | None = None
+    env_vars: dict[str, str] | None = None
+
+
+class DataSourceTestRequestById(BaseModel):
+    """
+    Simplified test request for existing data sources.
+    Backend will fetch data source and merge configuration.
+    """
+
+    data_source_id: str
     params: dict[str, Any] | None = None
     env_vars: dict[str, str] | None = None
 
