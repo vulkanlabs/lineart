@@ -28,14 +28,45 @@ class Method(str, Enum):
     DELETE = "DELETE"
 
 
+Headers3TypedDict = TypeAliasType("Headers3TypedDict", Union[str, int, float, bool])
+
+
+Headers3 = TypeAliasType("Headers3", Union[str, int, float, bool])
+
+
+Headers4TypedDict = TypeAliasType(
+    "Headers4TypedDict", Union[str, int, float, bool, List[Headers3TypedDict]]
+)
+
+
+Headers4 = TypeAliasType("Headers4", Union[str, int, float, bool, List[Headers3]])
+
+
+Headers2TypedDict = TypeAliasType("Headers2TypedDict", Union[str, int, float, bool])
+
+
+Headers2 = TypeAliasType("Headers2", Union[str, int, float, bool])
+
+
+Headers5TypedDict = TypeAliasType(
+    "Headers5TypedDict",
+    Union[str, int, float, bool, List[Headers2TypedDict], Dict[str, Headers4TypedDict]],
+)
+
+
+Headers5 = TypeAliasType(
+    "Headers5", Union[str, int, float, bool, List[Headers2], Dict[str, Headers4]]
+)
+
+
 Headers1TypedDict = TypeAliasType("Headers1TypedDict", Union[str, int, float, bool])
 
 
 Headers1 = TypeAliasType("Headers1", Union[str, int, float, bool])
 
 
-Headers2TypedDict = TypeAliasType(
-    "Headers2TypedDict",
+Headers6TypedDict = TypeAliasType(
+    "Headers6TypedDict",
     Union[
         EnvVarConfigTypedDict,
         RunTimeParamTypedDict,
@@ -44,12 +75,54 @@ Headers2TypedDict = TypeAliasType(
         float,
         bool,
         List[Headers1TypedDict],
+        Dict[str, Headers5TypedDict],
     ],
 )
 
 
-Headers2 = TypeAliasType(
-    "Headers2", Union[EnvVarConfig, RunTimeParam, str, int, float, bool, List[Headers1]]
+Headers6 = TypeAliasType(
+    "Headers6",
+    Union[
+        EnvVarConfig,
+        RunTimeParam,
+        str,
+        int,
+        float,
+        bool,
+        List[Headers1],
+        Dict[str, Headers5],
+    ],
+)
+
+
+Params3TypedDict = TypeAliasType("Params3TypedDict", Union[str, int, float, bool])
+
+
+Params3 = TypeAliasType("Params3", Union[str, int, float, bool])
+
+
+Params4TypedDict = TypeAliasType(
+    "Params4TypedDict", Union[str, int, float, bool, List[Params3TypedDict]]
+)
+
+
+Params4 = TypeAliasType("Params4", Union[str, int, float, bool, List[Params3]])
+
+
+Params2TypedDict = TypeAliasType("Params2TypedDict", Union[str, int, float, bool])
+
+
+Params2 = TypeAliasType("Params2", Union[str, int, float, bool])
+
+
+Params5TypedDict = TypeAliasType(
+    "Params5TypedDict",
+    Union[str, int, float, bool, List[Params2TypedDict], Dict[str, Params4TypedDict]],
+)
+
+
+Params5 = TypeAliasType(
+    "Params5", Union[str, int, float, bool, List[Params2], Dict[str, Params4]]
 )
 
 
@@ -59,8 +132,8 @@ Params1TypedDict = TypeAliasType("Params1TypedDict", Union[str, int, float, bool
 Params1 = TypeAliasType("Params1", Union[str, int, float, bool])
 
 
-Params2TypedDict = TypeAliasType(
-    "Params2TypedDict",
+Params6TypedDict = TypeAliasType(
+    "Params6TypedDict",
     Union[
         EnvVarConfigTypedDict,
         RunTimeParamTypedDict,
@@ -69,12 +142,54 @@ Params2TypedDict = TypeAliasType(
         float,
         bool,
         List[Params1TypedDict],
+        Dict[str, Params5TypedDict],
     ],
 )
 
 
-Params2 = TypeAliasType(
-    "Params2", Union[EnvVarConfig, RunTimeParam, str, int, float, bool, List[Params1]]
+Params6 = TypeAliasType(
+    "Params6",
+    Union[
+        EnvVarConfig,
+        RunTimeParam,
+        str,
+        int,
+        float,
+        bool,
+        List[Params1],
+        Dict[str, Params5],
+    ],
+)
+
+
+Body3TypedDict = TypeAliasType("Body3TypedDict", Union[str, int, float, bool])
+
+
+Body3 = TypeAliasType("Body3", Union[str, int, float, bool])
+
+
+Body4TypedDict = TypeAliasType(
+    "Body4TypedDict", Union[str, int, float, bool, List[Body3TypedDict]]
+)
+
+
+Body4 = TypeAliasType("Body4", Union[str, int, float, bool, List[Body3]])
+
+
+Body2TypedDict = TypeAliasType("Body2TypedDict", Union[str, int, float, bool])
+
+
+Body2 = TypeAliasType("Body2", Union[str, int, float, bool])
+
+
+Body5TypedDict = TypeAliasType(
+    "Body5TypedDict",
+    Union[str, int, float, bool, List[Body2TypedDict], Dict[str, Body4TypedDict]],
+)
+
+
+Body5 = TypeAliasType(
+    "Body5", Union[str, int, float, bool, List[Body2], Dict[str, Body4]]
 )
 
 
@@ -84,8 +199,8 @@ Body1TypedDict = TypeAliasType("Body1TypedDict", Union[str, int, float, bool])
 Body1 = TypeAliasType("Body1", Union[str, int, float, bool])
 
 
-Body2TypedDict = TypeAliasType(
-    "Body2TypedDict",
+Body6TypedDict = TypeAliasType(
+    "Body6TypedDict",
     Union[
         EnvVarConfigTypedDict,
         RunTimeParamTypedDict,
@@ -94,12 +209,16 @@ Body2TypedDict = TypeAliasType(
         float,
         bool,
         List[Body1TypedDict],
+        Dict[str, Body5TypedDict],
     ],
 )
 
 
-Body2 = TypeAliasType(
-    "Body2", Union[EnvVarConfig, RunTimeParam, str, int, float, bool, List[Body1]]
+Body6 = TypeAliasType(
+    "Body6",
+    Union[
+        EnvVarConfig, RunTimeParam, str, int, float, bool, List[Body1], Dict[str, Body5]
+    ],
 )
 
 
@@ -113,9 +232,9 @@ class ResponseType(str, Enum):
 class HTTPSourceTypedDict(TypedDict):
     url: str
     method: NotRequired[Method]
-    headers: NotRequired[Dict[str, Headers2TypedDict]]
-    params: NotRequired[Dict[str, Params2TypedDict]]
-    body: NotRequired[Dict[str, Body2TypedDict]]
+    headers: NotRequired[Dict[str, Headers6TypedDict]]
+    params: NotRequired[Dict[str, Params6TypedDict]]
+    body: NotRequired[Dict[str, Body6TypedDict]]
     timeout: NotRequired[Nullable[int]]
     retry: NotRequired[RetryPolicyTypedDict]
     response_type: NotRequired[ResponseType]
@@ -126,11 +245,11 @@ class HTTPSource(BaseModel):
 
     method: Optional[Method] = Method.GET
 
-    headers: Optional[Dict[str, Headers2]] = None
+    headers: Optional[Dict[str, Headers6]] = None
 
-    params: Optional[Dict[str, Params2]] = None
+    params: Optional[Dict[str, Params6]] = None
 
-    body: Optional[Dict[str, Body2]] = None
+    body: Optional[Dict[str, Body6]] = None
 
     timeout: OptionalNullable[int] = UNSET
 

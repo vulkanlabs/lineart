@@ -75,7 +75,7 @@ class Components(BaseSDK):
                 config=self.sdk_configuration,
                 base_url=base_url or "",
                 operation_id="list_components",
-                oauth2_scopes=[],
+                oauth2_scopes=None,
                 security_source=None,
             ),
             request=req,
@@ -168,7 +168,7 @@ class Components(BaseSDK):
                 config=self.sdk_configuration,
                 base_url=base_url or "",
                 operation_id="list_components",
-                oauth2_scopes=[],
+                oauth2_scopes=None,
                 security_source=None,
             ),
             request=req,
@@ -204,9 +204,6 @@ class Components(BaseSDK):
         project_id: OptionalNullable[str] = UNSET,
         description: OptionalNullable[str] = UNSET,
         icon: OptionalNullable[str] = UNSET,
-        workflow: OptionalNullable[
-            Union[models.WorkflowBase, models.WorkflowBaseTypedDict]
-        ] = UNSET,
         retries: OptionalNullable[utils.RetryConfig] = UNSET,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -220,7 +217,6 @@ class Components(BaseSDK):
         :param project_id:
         :param description:
         :param icon:
-        :param workflow:
         :param retries: Override the default retry configuration for this method
         :param server_url: Override the default server URL for this method
         :param timeout_ms: Override the default request timeout configuration for this method in milliseconds
@@ -238,13 +234,10 @@ class Components(BaseSDK):
 
         request = models.CreateComponentRequest(
             project_id=project_id,
-            component_update=models.ComponentUpdate(
+            component_base=models.ComponentBase(
                 name=name,
                 description=description,
                 icon=icon,
-                workflow=utils.get_pydantic_model(
-                    workflow, OptionalNullable[models.WorkflowBase]
-                ),
             ),
         )
 
@@ -261,7 +254,7 @@ class Components(BaseSDK):
             accept_header_value="application/json",
             http_headers=http_headers,
             get_serialized_body=lambda: utils.serialize_request_body(
-                request.component_update, False, False, "json", models.ComponentUpdate
+                request.component_base, False, False, "json", models.ComponentBase
             ),
             timeout_ms=timeout_ms,
         )
@@ -279,7 +272,7 @@ class Components(BaseSDK):
                 config=self.sdk_configuration,
                 base_url=base_url or "",
                 operation_id="create_component",
-                oauth2_scopes=[],
+                oauth2_scopes=None,
                 security_source=None,
             ),
             request=req,
@@ -315,9 +308,6 @@ class Components(BaseSDK):
         project_id: OptionalNullable[str] = UNSET,
         description: OptionalNullable[str] = UNSET,
         icon: OptionalNullable[str] = UNSET,
-        workflow: OptionalNullable[
-            Union[models.WorkflowBase, models.WorkflowBaseTypedDict]
-        ] = UNSET,
         retries: OptionalNullable[utils.RetryConfig] = UNSET,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -331,7 +321,6 @@ class Components(BaseSDK):
         :param project_id:
         :param description:
         :param icon:
-        :param workflow:
         :param retries: Override the default retry configuration for this method
         :param server_url: Override the default server URL for this method
         :param timeout_ms: Override the default request timeout configuration for this method in milliseconds
@@ -349,13 +338,10 @@ class Components(BaseSDK):
 
         request = models.CreateComponentRequest(
             project_id=project_id,
-            component_update=models.ComponentUpdate(
+            component_base=models.ComponentBase(
                 name=name,
                 description=description,
                 icon=icon,
-                workflow=utils.get_pydantic_model(
-                    workflow, OptionalNullable[models.WorkflowBase]
-                ),
             ),
         )
 
@@ -372,7 +358,7 @@ class Components(BaseSDK):
             accept_header_value="application/json",
             http_headers=http_headers,
             get_serialized_body=lambda: utils.serialize_request_body(
-                request.component_update, False, False, "json", models.ComponentUpdate
+                request.component_base, False, False, "json", models.ComponentBase
             ),
             timeout_ms=timeout_ms,
         )
@@ -390,7 +376,7 @@ class Components(BaseSDK):
                 config=self.sdk_configuration,
                 base_url=base_url or "",
                 operation_id="create_component",
-                oauth2_scopes=[],
+                oauth2_scopes=None,
                 security_source=None,
             ),
             request=req,
@@ -483,7 +469,7 @@ class Components(BaseSDK):
                 config=self.sdk_configuration,
                 base_url=base_url or "",
                 operation_id="get_component",
-                oauth2_scopes=[],
+                oauth2_scopes=None,
                 security_source=None,
             ),
             request=req,
@@ -576,7 +562,7 @@ class Components(BaseSDK):
                 config=self.sdk_configuration,
                 base_url=base_url or "",
                 operation_id="get_component",
-                oauth2_scopes=[],
+                oauth2_scopes=None,
                 security_source=None,
             ),
             request=req,
@@ -690,7 +676,7 @@ class Components(BaseSDK):
                 config=self.sdk_configuration,
                 base_url=base_url or "",
                 operation_id="update_component",
-                oauth2_scopes=[],
+                oauth2_scopes=None,
                 security_source=None,
             ),
             request=req,
@@ -804,7 +790,7 @@ class Components(BaseSDK):
                 config=self.sdk_configuration,
                 base_url=base_url or "",
                 operation_id="update_component",
-                oauth2_scopes=[],
+                oauth2_scopes=None,
                 security_source=None,
             ),
             request=req,
@@ -897,7 +883,7 @@ class Components(BaseSDK):
                 config=self.sdk_configuration,
                 base_url=base_url or "",
                 operation_id="delete_component",
-                oauth2_scopes=[],
+                oauth2_scopes=None,
                 security_source=None,
             ),
             request=req,
@@ -990,7 +976,7 @@ class Components(BaseSDK):
                 config=self.sdk_configuration,
                 base_url=base_url or "",
                 operation_id="delete_component",
-                oauth2_scopes=[],
+                oauth2_scopes=None,
                 security_source=None,
             ),
             request=req,

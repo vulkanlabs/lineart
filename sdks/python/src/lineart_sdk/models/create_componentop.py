@@ -14,17 +14,17 @@ from lineart_sdk.types import (
 )
 from lineart_sdk.utils import FieldMetadata, QueryParamMetadata, RequestMetadata
 
-from .componentupdate import ComponentUpdate, ComponentUpdateTypedDict
+from .componentbase import ComponentBase, ComponentBaseTypedDict
 
 
 class CreateComponentRequestTypedDict(TypedDict):
-    component_update: ComponentUpdateTypedDict
+    component_base: ComponentBaseTypedDict
     project_id: NotRequired[Nullable[str]]
 
 
 class CreateComponentRequest(BaseModel):
-    component_update: Annotated[
-        ComponentUpdate,
+    component_base: Annotated[
+        ComponentBase,
         FieldMetadata(request=RequestMetadata(media_type="application/json")),
     ]
 

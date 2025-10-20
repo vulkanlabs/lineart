@@ -6,7 +6,7 @@ from typing import Optional
 import httpx
 
 
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True)
 class LineartError(Exception):
     """The base class for all HTTP error responses."""
 

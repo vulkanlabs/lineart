@@ -15,10 +15,12 @@ from lineart_sdk.types import (
     OptionalNullable,
 )
 
-ErrorTypedDict = TypeAliasType("ErrorTypedDict", Union[str, List[str]])
+StepMetadataBaseErrorTypedDict = TypeAliasType(
+    "StepMetadataBaseErrorTypedDict", Union[str, List[str]]
+)
 
 
-Error = TypeAliasType("Error", Union[str, List[str]])
+StepMetadataBaseError = TypeAliasType("StepMetadataBaseError", Union[str, List[str]])
 
 
 class StepMetadataBaseTypedDict(TypedDict):
@@ -26,7 +28,7 @@ class StepMetadataBaseTypedDict(TypedDict):
     node_type: str
     start_time: float
     end_time: float
-    error: NotRequired[Nullable[ErrorTypedDict]]
+    error: NotRequired[Nullable[StepMetadataBaseErrorTypedDict]]
     extra: NotRequired[Nullable[Dict[str, Any]]]
 
 
@@ -39,7 +41,7 @@ class StepMetadataBase(BaseModel):
 
     end_time: float
 
-    error: OptionalNullable[Error] = UNSET
+    error: OptionalNullable[StepMetadataBaseError] = UNSET
 
     extra: OptionalNullable[Dict[str, Any]] = UNSET
 
