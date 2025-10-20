@@ -75,7 +75,7 @@ class DataSourceLoader(BaseLoader):
         return data_source
 
     def list_data_sources(
-        self, project_id: str = None, include_archived: bool = False
+        self, project_id: str = None, include_archived: bool = False, status: str = None
     ) -> List[DataSource]:
         """
         List data sources with optional filtering.
@@ -83,14 +83,26 @@ class DataSourceLoader(BaseLoader):
         Args:
             project_id: Optional project UUID to filter by
             include_archived: Whether to include archived data sources
+            status: Optional status to filter by (e.g., 'PUBLISHED', 'DRAFT')
 
         Returns:
             List of DataSource objects
         """
+        from vulkan.core.run import DataSourceStatus
+
         query = self.db.query(DataSource).filter(DataSource.project_id == project_id)
         query = self._apply_archived_filter(query, include_archived)
 
-        return query.all()
+        if status:
+            try:
+                status_enum = DataSourceStatus[status.upper()]
+                query = query.filter(DataSource.status == status_enum)
+            except (KeyError, AttributeError) as e:
+                # If status is invalid, return empty list
+                return []
+
+        results = query.all()
+        return results
 
     def data_source_exists(
         self, data_source_id: str = None, name: str = None, project_id: str = None

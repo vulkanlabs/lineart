@@ -38,10 +38,11 @@ router = APIRouter(
 @router.get("/", response_model=list[schemas.DataSource])
 def list_data_sources(
     include_archived: bool = False,
+    status: str | None = None,
     service: DataSourceService = Depends(get_data_source_service),
 ):
-    """List all data sources."""
-    return service.list_data_sources(include_archived=include_archived)
+    """List all data sources. Optionally filter by status (e.g., 'PUBLISHED', 'DRAFT')."""
+    return service.list_data_sources(include_archived=include_archived, status=status)
 
 
 @router.post("/", response_model=schemas.DataSource)

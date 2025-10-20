@@ -8,7 +8,17 @@ export async function GET(request: Request) {
             return apiResult.error("Server URL is not configured", 500);
         }
 
-        const url = `${serverUrl}/data-sources`;
+        // Parse query parameters from the request URL
+        const { searchParams } = new URL(request.url);
+        const status = searchParams.get("status");
+        const projectId = searchParams.get("project_id");
+
+        const backendParams = new URLSearchParams();
+        if (status) backendParams.append("status", status);
+        if (projectId) backendParams.append("project_id", projectId);
+
+        const queryString = backendParams.toString();
+        const url = `${serverUrl}/data-sources${queryString ? `?${queryString}` : ""}`;
 
         const response = await fetch(url, {
             cache: "no-store",

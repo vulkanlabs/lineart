@@ -117,6 +117,9 @@ export class DefaultWorkflowApiClient implements WorkflowApiClient {
                 params.append("project_id", projectId);
             }
 
+            // Only fetch published data sources for workflows
+            params.append("status", "PUBLISHED");
+
             const queryString = params.toString();
             const url = `${this.config.baseUrl}/api/workflow/data-sources${queryString ? `?${queryString}` : ""}`;
 

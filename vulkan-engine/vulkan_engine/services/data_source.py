@@ -59,20 +59,21 @@ class DataSourceService(BaseService):
         self.data_source_loader = DataSourceLoader(db)
 
     def list_data_sources(
-        self, include_archived: bool = False, project_id: str = None
+        self, include_archived: bool = False, project_id: str = None, status: str = None
     ) -> list[DataSourceSchema]:
         """
-        List data sources, optionally filtered by project.
+        List data sources, optionally filtered by project and status.
 
         Args:
             include_archived: Whether to include archived data sources
             project_id: Optional project UUID to filter by
+            status: Optional status to filter by (e.g., 'PUBLISHED', 'DRAFT')
 
         Returns:
             List of DataSource objects
         """
         data_sources = self.data_source_loader.list_data_sources(
-            project_id=project_id, include_archived=include_archived
+            project_id=project_id, include_archived=include_archived, status=status
         )
         return [DataSourceSchema.from_orm(ds) for ds in data_sources]
 
