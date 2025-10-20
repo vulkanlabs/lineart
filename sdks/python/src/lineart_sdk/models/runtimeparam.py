@@ -2,14 +2,27 @@
 
 from __future__ import annotations
 
-from typing_extensions import TypedDict
+from enum import Enum
+from typing import Optional
+
+from typing_extensions import NotRequired, TypedDict
 
 from lineart_sdk.types import BaseModel
 
 
+class ValueType(str, Enum):
+    STR = "str"
+    INT = "int"
+    FLOAT = "float"
+    AUTO = "auto"
+
+
 class RunTimeParamTypedDict(TypedDict):
     param: str
+    value_type: NotRequired[ValueType]
 
 
 class RunTimeParam(BaseModel):
     param: str
+
+    value_type: Optional[ValueType] = ValueType.AUTO

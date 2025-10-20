@@ -76,14 +76,13 @@ with Lineart(
 
 ### Parameters
 
-| Parameter                                                             | Type                                                                  | Required                                                              | Description                                                           |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `name`                                                                | *str*                                                                 | :heavy_check_mark:                                                    | N/A                                                                   |
-| `project_id`                                                          | *OptionalNullable[str]*                                               | :heavy_minus_sign:                                                    | N/A                                                                   |
-| `description`                                                         | *OptionalNullable[str]*                                               | :heavy_minus_sign:                                                    | N/A                                                                   |
-| `icon`                                                                | *OptionalNullable[str]*                                               | :heavy_minus_sign:                                                    | N/A                                                                   |
-| `workflow`                                                            | [OptionalNullable[models.WorkflowBase]](../../models/workflowbase.md) | :heavy_minus_sign:                                                    | N/A                                                                   |
-| `retries`                                                             | [Optional[utils.RetryConfig]](../../models/utils/retryconfig.md)      | :heavy_minus_sign:                                                    | Configuration to override the default retry behavior of the client.   |
+| Parameter                                                           | Type                                                                | Required                                                            | Description                                                         |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `name`                                                              | *str*                                                               | :heavy_check_mark:                                                  | N/A                                                                 |
+| `project_id`                                                        | *OptionalNullable[str]*                                             | :heavy_minus_sign:                                                  | N/A                                                                 |
+| `description`                                                       | *OptionalNullable[str]*                                             | :heavy_minus_sign:                                                  | N/A                                                                 |
+| `icon`                                                              | *OptionalNullable[str]*                                             | :heavy_minus_sign:                                                  | N/A                                                                 |
+| `retries`                                                           | [Optional[utils.RetryConfig]](../../models/utils/retryconfig.md)    | :heavy_minus_sign:                                                  | Configuration to override the default retry behavior of the client. |
 
 ### Response
 

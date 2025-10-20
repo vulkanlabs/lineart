@@ -8,7 +8,7 @@ import httpx
 from lineart_sdk.errors import LineartError
 
 
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True)
 class ResponseValidationError(LineartError):
     """Error raised when there is a type mismatch between the response data and the expected Pydantic model."""
 

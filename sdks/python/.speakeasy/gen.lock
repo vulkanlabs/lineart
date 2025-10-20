@@ -1,17 +1,17 @@
 lockVersion: 2.0.0
 id: 88929680-bb73-487a-94bf-9600cc541817
 management:
-  docChecksum: 42f4044e53483ed5583c309c70a20c63
+  docChecksum: f5c6994ebac7d428ab09fcb3eb36f60f
   docVersion: 0.1.0
-  speakeasyVersion: 1.634.2
-  generationVersion: 2.721.3
+  speakeasyVersion: 1.637.0
+  generationVersion: 2.727.4
   releaseVersion: 0.1.1
-  configChecksum: 50d2c29cb55a5d273110d4bb86860907
+  configChecksum: 73898a7de081ea6e7a217383aa5b582d
 features:
   python:
     additionalDependencies: 1.0.0
     constsAndDefaults: 1.0.5
-    core: 5.22.1
+    core: 5.23.0
     defaultEnabledRetries: 0.2.0
     devContainers: 3.0.0
     enumUnions: 0.1.0
@@ -20,7 +20,7 @@ features:
     flattening: 3.1.1
     globalSecurityCallbacks: 1.0.0
     globalServerURLs: 3.1.1
-    groups: 3.0.0
+    groups: 3.0.1
     methodArguments: 1.0.2
     nameOverrides: 3.0.1
     nullables: 1.0.1
@@ -42,6 +42,10 @@ generatedFiles:
   - docs/models/authuserinforesponse.md
   - docs/models/body1.md
   - docs/models/body2.md
+  - docs/models/body3.md
+  - docs/models/body4.md
+  - docs/models/body5.md
+  - docs/models/body6.md
   - docs/models/bodycreaterunbypolicyversion.md
   - docs/models/bodycreaterungroup.md
   - docs/models/bodyrundurationstatsbypolicy.md
@@ -54,6 +58,7 @@ generatedFiles:
   - docs/models/cachingoptions.md
   - docs/models/cachingttl.md
   - docs/models/component.md
+  - docs/models/componentbase.md
   - docs/models/componentupdate.md
   - docs/models/configurationvariables.md
   - docs/models/configurationvariablesbase.md
@@ -65,6 +70,7 @@ generatedFiles:
   - docs/models/dagsterlogdetails.md
   - docs/models/databrokerrequest.md
   - docs/models/databrokerresponse.md
+  - docs/models/databrokerresponseerror.md
   - docs/models/dataobject.md
   - docs/models/dataobjectmetadata.md
   - docs/models/dataobjectorigin.md
@@ -84,7 +90,6 @@ generatedFiles:
   - docs/models/dependencydict.md
   - docs/models/disconnectrequest.md
   - docs/models/envvarconfig.md
-  - docs/models/error.md
   - docs/models/event.md
   - docs/models/getcachestatisticsrequest.md
   - docs/models/getcomponentrequest.md
@@ -101,6 +106,10 @@ generatedFiles:
   - docs/models/getuserinforequest.md
   - docs/models/headers1.md
   - docs/models/headers2.md
+  - docs/models/headers3.md
+  - docs/models/headers4.md
+  - docs/models/headers5.md
+  - docs/models/headers6.md
   - docs/models/httpsource.md
   - docs/models/listcomponentsrequest.md
   - docs/models/listconfigvariablesrequest.md
@@ -120,6 +129,10 @@ generatedFiles:
   - docs/models/output.md
   - docs/models/params1.md
   - docs/models/params2.md
+  - docs/models/params3.md
+  - docs/models/params4.md
+  - docs/models/params5.md
+  - docs/models/params6.md
   - docs/models/policy.md
   - docs/models/policyallocationstrategy.md
   - docs/models/policybase.md
@@ -153,6 +166,7 @@ generatedFiles:
   - docs/models/startauthrequest.md
   - docs/models/stepdetails.md
   - docs/models/stepmetadatabase.md
+  - docs/models/stepmetadatabaseerror.md
   - docs/models/ttl.md
   - docs/models/uimetadata.md
   - docs/models/uinodeposition.md
@@ -163,6 +177,7 @@ generatedFiles:
   - docs/models/userlogdetails.md
   - docs/models/utils/retryconfig.md
   - docs/models/validationerror.md
+  - docs/models/valuetype.md
   - docs/models/workflow.md
   - docs/models/workflowbase.md
   - docs/models/workflowstatus.md
@@ -170,7 +185,6 @@ generatedFiles:
   - docs/sdks/components/README.md
   - docs/sdks/datasources/README.md
   - docs/sdks/internal/README.md
-  - docs/sdks/lineart/README.md
   - docs/sdks/policies/README.md
   - docs/sdks/policyversions/README.md
   - docs/sdks/runs/README.md
@@ -212,6 +226,7 @@ generatedFiles:
   - src/lineart_sdk/models/cachingoptions.py
   - src/lineart_sdk/models/cachingttl.py
   - src/lineart_sdk/models/component.py
+  - src/lineart_sdk/models/componentbase.py
   - src/lineart_sdk/models/componentupdate.py
   - src/lineart_sdk/models/configurationvariables.py
   - src/lineart_sdk/models/configurationvariablesbase.py

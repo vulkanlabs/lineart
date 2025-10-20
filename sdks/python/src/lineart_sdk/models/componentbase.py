@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Union
-
 from pydantic import model_serializer
-from typing_extensions import NotRequired, TypeAliasType, TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from lineart_sdk.types import (
     UNSET,
@@ -15,47 +13,24 @@ from lineart_sdk.types import (
     OptionalNullable,
 )
 
-from .dataobjectorigin import DataObjectOrigin
 
-DataBrokerResponseErrorTypedDict = TypeAliasType(
-    "DataBrokerResponseErrorTypedDict", Union[Dict[str, Any], str]
-)
-
-
-DataBrokerResponseError = TypeAliasType(
-    "DataBrokerResponseError", Union[Dict[str, Any], str]
-)
+class ComponentBaseTypedDict(TypedDict):
+    name: str
+    description: NotRequired[Nullable[str]]
+    icon: NotRequired[Nullable[str]]
 
 
-class DataBrokerResponseTypedDict(TypedDict):
-    data_object_id: str
-    origin: DataObjectOrigin
-    key: str
-    value: Any
-    start_time: NotRequired[Nullable[float]]
-    end_time: NotRequired[Nullable[float]]
-    error: NotRequired[Nullable[DataBrokerResponseErrorTypedDict]]
+class ComponentBase(BaseModel):
+    name: str
 
+    description: OptionalNullable[str] = UNSET
 
-class DataBrokerResponse(BaseModel):
-    data_object_id: str
-
-    origin: DataObjectOrigin
-
-    key: str
-
-    value: Any
-
-    start_time: OptionalNullable[float] = UNSET
-
-    end_time: OptionalNullable[float] = UNSET
-
-    error: OptionalNullable[DataBrokerResponseError] = UNSET
+    icon: OptionalNullable[str] = UNSET
 
     @model_serializer(mode="wrap")
     def serialize_model(self, handler):
-        optional_fields = ["start_time", "end_time", "error"]
-        nullable_fields = ["start_time", "end_time", "error"]
+        optional_fields = ["description", "icon"]
+        nullable_fields = ["description", "icon"]
         null_default_fields = []
 
         serialized = handler(self)
