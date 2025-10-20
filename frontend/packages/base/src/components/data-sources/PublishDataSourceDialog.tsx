@@ -37,7 +37,11 @@ function validateDataSourceForPublish(dataSource: DataSource): {
  * Dialog to confirm publishing a data source from draft to published status
  * Once published, data sources become read-only and available in workflows
  */
-export function PublishDataSourceDialog({ dataSource, onPublish, isPublished = false }: PublishDataSourceDialogProps) {
+export function PublishDataSourceDialog({
+    dataSource,
+    onPublish,
+    isPublished = false,
+}: PublishDataSourceDialogProps) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
@@ -47,7 +51,7 @@ export function PublishDataSourceDialog({ dataSource, onPublish, isPublished = f
 
     const handleButtonClick = useCallback(() => {
         if (isPublished) return;
-        
+
         if (!validation.isValid) {
             toast.error("Cannot publish data source", {
                 description: validation.errors.join(", "),

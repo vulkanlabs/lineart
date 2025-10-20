@@ -6,7 +6,15 @@ import { CopyIcon, CheckIcon, Pencil, Save, X } from "lucide-react";
 import type { DataSource } from "@vulkanlabs/client-open";
 import { toast } from "sonner";
 
-import { Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Input } from "../ui";
+import {
+    Badge,
+    Button,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+    Input,
+} from "../ui";
 import { PublishDataSourceDialog } from "./PublishDataSourceDialog";
 
 interface DataSourceHeaderProps {
@@ -55,7 +63,7 @@ export function DataSourceHeader({
             await onUpdateDataSource(
                 dataSource.data_source_id,
                 { description: descriptionValue || null },
-                projectId
+                projectId,
             );
             setIsEditingDescription(false);
             toast.success("Description updated successfully");

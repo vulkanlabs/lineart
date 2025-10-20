@@ -32,9 +32,7 @@ import {
 import { Sending } from "../animations";
 
 const formSchema = z.object({
-    name: z
-        .string()
-        .min(1, "Name is required"),
+    name: z.string().min(1, "Name is required"),
     description: z.string().optional(),
 });
 
@@ -154,7 +152,9 @@ export function CreateDataSourceDialog({ config }: { config: CreateDataSourceDia
                             control={form.control}
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel htmlFor="description">Description (Optional)</FormLabel>
+                                    <FormLabel htmlFor="description">
+                                        Description (Optional)
+                                    </FormLabel>
                                     <FormControl>
                                         <Input
                                             placeholder="A brief description of this data source"
@@ -162,8 +162,12 @@ export function CreateDataSourceDialog({ config }: { config: CreateDataSourceDia
                                             {...field}
                                         />
                                     </FormControl>
-                                    <FormDescription>Brief description of the data source</FormDescription>
-                                    <FormMessage>{form.formState.errors.description?.message}</FormMessage>
+                                    <FormDescription>
+                                        Brief description of the data source
+                                    </FormDescription>
+                                    <FormMessage>
+                                        {form.formState.errors.description?.message}
+                                    </FormMessage>
                                 </FormItem>
                             )}
                         />

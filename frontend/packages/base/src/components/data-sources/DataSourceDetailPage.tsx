@@ -6,13 +6,7 @@ import { Suspense, useState } from "react";
 import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
 
 // Local components
-import {
-    Separator,
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from "../ui";
+import { Separator, Tabs, TabsContent, TabsList, TabsTrigger } from "../ui";
 import { Loader } from "../..";
 
 import { useDataSourceUtils } from "./useDataSourceUtils";
