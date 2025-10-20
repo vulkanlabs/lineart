@@ -16,7 +16,7 @@ class HTTPValidationErrorData(BaseModel):
     detail: Optional[List[models_validationerror.ValidationError]] = None
 
 
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True)
 class HTTPValidationError(LineartError):
     data: HTTPValidationErrorData = field(hash=False)
 

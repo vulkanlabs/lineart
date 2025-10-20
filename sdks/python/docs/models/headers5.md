@@ -1,4 +1,4 @@
-# Headers2
+# Headers5
 
 
 ## Supported Types
@@ -25,5 +25,17 @@ value: float = /* values here */
 
 ```python
 value: bool = /* values here */
+```
+
+### `List[models.Headers2]`
+
+```python
+value: List[models.Headers2] = /* values here */
+```
+
+### `Dict[str, models.Headers4]`
+
+```python
+value: Dict[str, models.Headers4] = /* values here */
 ```
 

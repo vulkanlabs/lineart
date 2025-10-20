@@ -29,6 +29,7 @@ class BaseAppClient(ABC):
         retry_strategy = Retry(
             total=2,
             backoff_factor=0.3,
+            # TODO: add jitter, consider adding 429
             status_forcelist=[502, 503, 504],  # Only retry on gateway errors
             allowed_methods=["GET", "POST", "PUT", "DELETE"],
         )

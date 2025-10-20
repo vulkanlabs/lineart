@@ -1,4 +1,4 @@
-# Headers2
+# Body4
 
 
 ## Supported Types
@@ -25,5 +25,11 @@ value: float = /* values here */
 
 ```python
 value: bool = /* values here */
+```
+
+### `List[models.Body3]`
+
+```python
+value: List[models.Body3] = /* values here */
 ```
 

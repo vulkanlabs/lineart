@@ -62,7 +62,7 @@ paths:
         required: true
         content:
           "application/json":
-            schema: {"$ref": "#/components/schemas/ComponentUpdate"}
+            schema: {"$ref": "#/components/schemas/ComponentBase"}
       responses:
         "200":
           description: "Successful Response"
@@ -2055,6 +2055,25 @@ components:
         - "created_at"
         - "last_updated_at"
       title: "Component"
+    "ComponentBase":
+      properties:
+        "name":
+          type: "string"
+          title: "Name"
+        "description":
+          anyOf:
+            - type: "string"
+            - type: "null"
+          title: "Description"
+        "icon":
+          anyOf:
+            - type: "string"
+            - type: "null"
+          title: "Icon"
+      type: "object"
+      required:
+        - "name"
+      title: "ComponentBase"
     "ComponentUpdate":
       properties:
         "name":
@@ -2167,6 +2186,23 @@ components:
           title: "Key"
         "value":
           title: "Value"
+        "start_time":
+          anyOf:
+            - type: "number"
+            - type: "null"
+          title: "Start Time"
+        "end_time":
+          anyOf:
+            - type: "number"
+            - type: "null"
+          title: "End Time"
+        "error":
+          anyOf:
+            - additionalProperties: true
+              type: "object"
+            - type: "string"
+            - type: "null"
+          title: "Error"
       type: "object"
       required:
         - "data_object_id"
@@ -2452,6 +2488,34 @@ components:
                     - type: "number"
                     - type: "boolean"
                 type: "array"
+              - additionalProperties:
+                  anyOf:
+                    - type: "string"
+                    - type: "integer"
+                    - type: "number"
+                    - type: "boolean"
+                    - items:
+                        anyOf:
+                          - type: "string"
+                          - type: "integer"
+                          - type: "number"
+                          - type: "boolean"
+                      type: "array"
+                    - additionalProperties:
+                        anyOf:
+                          - type: "string"
+                          - type: "integer"
+                          - type: "number"
+                          - type: "boolean"
+                          - items:
+                              anyOf:
+                                - type: "string"
+                                - type: "integer"
+                                - type: "number"
+                                - type: "boolean"
+                            type: "array"
+                      type: "object"
+                type: "object"
               - {"$ref": "#/components/schemas/EnvVarConfig"}
               - {"$ref": "#/components/schemas/RunTimeParam"}
           type: "object"
@@ -2470,6 +2534,34 @@ components:
                     - type: "number"
                     - type: "boolean"
                 type: "array"
+              - additionalProperties:
+                  anyOf:
+                    - type: "string"
+                    - type: "integer"
+                    - type: "number"
+                    - type: "boolean"
+                    - items:
+                        anyOf:
+                          - type: "string"
+                          - type: "integer"
+                          - type: "number"
+                          - type: "boolean"
+                      type: "array"
+                    - additionalProperties:
+                        anyOf:
+                          - type: "string"
+                          - type: "integer"
+                          - type: "number"
+                          - type: "boolean"
+                          - items:
+                              anyOf:
+                                - type: "string"
+                                - type: "integer"
+                                - type: "number"
+                                - type: "boolean"
+                            type: "array"
+                      type: "object"
+                type: "object"
               - {"$ref": "#/components/schemas/EnvVarConfig"}
               - {"$ref": "#/components/schemas/RunTimeParam"}
           type: "object"
@@ -2488,6 +2580,34 @@ components:
                     - type: "number"
                     - type: "boolean"
                 type: "array"
+              - additionalProperties:
+                  anyOf:
+                    - type: "string"
+                    - type: "integer"
+                    - type: "number"
+                    - type: "boolean"
+                    - items:
+                        anyOf:
+                          - type: "string"
+                          - type: "integer"
+                          - type: "number"
+                          - type: "boolean"
+                      type: "array"
+                    - additionalProperties:
+                        anyOf:
+                          - type: "string"
+                          - type: "integer"
+                          - type: "number"
+                          - type: "boolean"
+                          - items:
+                              anyOf:
+                                - type: "string"
+                                - type: "integer"
+                                - type: "number"
+                                - type: "boolean"
+                            type: "array"
+                      type: "object"
+                type: "object"
               - {"$ref": "#/components/schemas/EnvVarConfig"}
               - {"$ref": "#/components/schemas/RunTimeParam"}
           type: "object"
@@ -3051,6 +3171,15 @@ components:
         "param":
           type: "string"
           title: "Param"
+        "value_type":
+          type: "string"
+          enum:
+            - "str"
+            - "int"
+            - "float"
+            - "auto"
+          title: "Value Type"
+          default: "auto"
       type: "object"
       required:
         - "param"

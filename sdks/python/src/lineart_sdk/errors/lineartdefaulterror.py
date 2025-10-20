@@ -10,7 +10,7 @@ from lineart_sdk.errors import LineartError
 MAX_MESSAGE_LEN = 10_000
 
 
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True)
 class LineartDefaultError(LineartError):
     """The fallback error class if no more specific error class is matched."""
 

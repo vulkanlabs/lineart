@@ -27,21 +27,3 @@ value: float = /* values here */
 value: bool = /* values here */
 ```
 
-### `List[models.Body1]`
-
-```python
-value: List[models.Body1] = /* values here */
-```
-
-### `models.EnvVarConfig`
-
-```python
-value: models.EnvVarConfig = /* values here */
-```
-
-### `models.RunTimeParam`
-
-```python
-value: models.RunTimeParam = /* values here */
-```
-
