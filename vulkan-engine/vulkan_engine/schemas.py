@@ -328,7 +328,7 @@ class DataSourceTestRequest(BaseModel):
     url: str
     method: str = "GET"
     headers: dict[str, str] | None = None
-    body: Any | None = None
+    body: dict[str, Any] | str | None = None
     params: dict[str, Any] | None = None
     env_vars: dict[str, str] | None = None
 
@@ -337,6 +337,6 @@ class DataSourceTestResponse(BaseModel):
     test_id: UUID
     status_code: int | None
     response_time_ms: float
-    response_body: Any | None = None
+    response_body: dict[str, Any] | str | None = None
     response_headers: dict[str, str] | None = None
     error: str | None = None
