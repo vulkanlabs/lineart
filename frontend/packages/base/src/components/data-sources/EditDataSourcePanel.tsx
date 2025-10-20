@@ -27,6 +27,7 @@ export function EditDataSourcePanel({
     const router = useRouter();
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const isPublished = dataSource.status === "PUBLISHED";
 
     const formatJsonForDisplay = (obj: any): string => {
         if (!obj || Object.keys(obj).length === 0) return "";
@@ -361,7 +362,7 @@ export function EditDataSourcePanel({
                                 id="cachingEnabled"
                                 checked={cachingEnabled}
                                 onCheckedChange={setCachingEnabled}
-                                disabled={!isEditing}
+                                disabled={!isEditing || isPublished}
                             />
                             <div className="flex-1">
                                 <Label
@@ -371,7 +372,9 @@ export function EditDataSourcePanel({
                                     Enable response caching
                                 </Label>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Cache responses to improve performance
+                                    {isPublished && isEditing
+                                        ? "Cannot change caching status for published data sources"
+                                        : "Cache responses to improve performance"}
                                 </p>
                             </div>
                         </div>
