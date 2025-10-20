@@ -42,8 +42,7 @@ export function DataSourceHeader({
 }: DataSourceHeaderProps) {
     const router = useRouter();
 
-    // Status field default "draft"
-    const status = dataSource.status || "DRAFT";
+    const status = dataSource.status ?? "DRAFT";
     const isDraft = status === "DRAFT";
     const isPublished = status === "PUBLISHED";
 

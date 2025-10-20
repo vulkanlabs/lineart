@@ -116,9 +116,7 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
 
     const { copiedField, copyToClipboard, getFullDataSourceJson } = useDataSourceUtils();
 
-    // Status field using type extension until backend implements
-    // frontend/packages/base/src/types/data-source.ts
-    const status = dataSource.status || "DRAFT";
+    const status = dataSource.status ?? "DRAFT";
     const isPublished = status === "PUBLISHED";
 
     // State for test configuration and response persists across tab changes
