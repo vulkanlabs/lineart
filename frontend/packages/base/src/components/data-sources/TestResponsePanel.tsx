@@ -102,7 +102,9 @@ export function TestResponsePanel({ response, isLoading }: TestResponsePanelProp
                             <p>
                                 The request failed with status code {response.status_code}.
                                 {response.status_code >= 500 && " This indicates a server error."}
-                                {response.status_code >= 400 && response.status_code < 500 && " This indicates a client error."}
+                                {response.status_code >= 400 &&
+                                    response.status_code < 500 &&
+                                    " This indicates a client error."}
                             </p>
                         </div>
                     )}
@@ -118,7 +120,9 @@ export function TestResponsePanel({ response, isLoading }: TestResponsePanelProp
 
             {response.request_headers && Object.keys(response.request_headers).length > 0 && (
                 <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">Request Headers</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                        Request Headers
+                    </p>
                     <div className="bg-muted/50 p-3 rounded-md border">
                         <JSONViewer data={response.request_headers} className="max-h-32" />
                     </div>
@@ -127,7 +131,9 @@ export function TestResponsePanel({ response, isLoading }: TestResponsePanelProp
 
             {response.response_headers && Object.keys(response.response_headers).length > 0 && (
                 <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">Response Headers</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                        Response Headers
+                    </p>
                     <div className="bg-muted/50 p-3 rounded-md border">
                         <JSONViewer data={response.response_headers} className="max-h-32" />
                     </div>
