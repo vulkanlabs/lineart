@@ -234,12 +234,34 @@ class DataSourceService(BaseService):
 
         # Hard delete for DRAFT data sources
         if data_source.status == DataSourceStatus.DRAFT:
+            # Delete all related records in cascade to avoid foreign key violations
+
+            # environment variables
+            self.db.query(DataSourceEnvVar).filter_by(
+                data_source_id=data_source_id
+            ).delete()
+
+            # workflow dependencies
+            from vulkan_engine.db import WorkflowDataDependency
+
+            self.db.query(WorkflowDataDependency).filter_by(
+                data_source_id=data_source_id
+            ).delete()
+
+            # data objects
+            self.db.query(DataObject).filter_by(data_source_id=data_source_id).delete()
+
+            # run data requests
+            self.db.query(RunDataRequest).filter_by(
+                data_source_id=data_source_id
+            ).delete()
+
             self.db.delete(data_source)
             self.db.commit()
 
             if self.logger:
                 self.logger.system.info(
-                    f"Hard deleted DRAFT data source {data_source_id}"
+                    f"Hard deleted DRAFT data source {data_source_id} and all related records"
                 )
 
             return {"data_source_id": data_source_id}
