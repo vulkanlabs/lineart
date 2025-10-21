@@ -85,7 +85,7 @@ export function DataSourceHeader({
             <div className="flex-1 mr-4">
                 <div className="flex items-center gap-2">
                     <h1 className="text-3xl font-bold tracking-tight">{dataSource.name}</h1>
-                    {dataSource.archived && <Badge variant="destructive">Archived</Badge>}
+                    {dataSource.status === "ARCHIVED" && <Badge variant="destructive">Archived</Badge>}
                     {isDraft && <Badge variant="secondary">Draft</Badge>}
                 </div>
 

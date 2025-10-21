@@ -33,7 +33,11 @@ class DataSourceLoader(BaseLoader):
             Query with status filter applied
         """
         if not include_archived:
-            return query.filter(DataSource.status != DataSourceStatus.ARCHIVED)
+            return query.filter(
+                DataSource.status.in_(
+                    [DataSourceStatus.DRAFT, DataSourceStatus.PUBLISHED]
+                )
+            )
         return query
 
     def get_data_source(
@@ -116,10 +120,17 @@ class DataSourceLoader(BaseLoader):
             List of DataSource objects
         """
         query = self.db.query(DataSource).filter(DataSource.project_id == project_id)
-        query = self._apply_status_filter(query, include_archived)
 
+        # If specific status requested, use it directly (uses composite index)
         if status:
             query = query.filter(DataSource.status == status)
+        # Otherwise, apply archived filter
+        elif not include_archived:
+            query = query.filter(
+                DataSource.status.in_(
+                    [DataSourceStatus.DRAFT, DataSourceStatus.PUBLISHED]
+                )
+            )
 
         return query.all()
 

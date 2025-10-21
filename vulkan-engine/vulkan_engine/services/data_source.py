@@ -8,20 +8,15 @@ environment variables, data objects, and data broker operations.
 from typing import Any
 
 import requests
-from sqlalchemy import select
 
 from vulkan.data_source import DataSourceStatus, DataSourceType
 from vulkan.schemas import DataSourceSpec
 from vulkan_engine.data.broker import DataBroker
 from vulkan_engine.db import (
-    Component,
     DataObject,
     DataSource,
     DataSourceEnvVar,
-    PolicyVersion,
     RunDataRequest,
-    Workflow,
-    WorkflowDataDependency,
 )
 from vulkan_engine.exceptions import (
     DataBrokerException,
@@ -212,10 +207,8 @@ class DataSourceService(BaseService):
         self, data_source_id: str, project_id: str = None
     ) -> dict[str, str]:
         """
-        Delete (archive) a data source.
+        Delete or archive a data source based on its status.
 
-        Only DRAFT data sources can be deleted. Published data sources must
-        remain available to prevent breaking production dependencies.
 
         Args:
             data_source_id: Data source UUID
@@ -226,7 +219,6 @@ class DataSourceService(BaseService):
 
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
-            InvalidDataSourceException: If data source is not DRAFT or is in use
         """
         # Get non-archived data source
         try:
@@ -240,63 +232,26 @@ class DataSourceService(BaseService):
                 f"Tried to delete non-existent data source {data_source_id}"
             )
 
-        # Only allow deletion of DRAFT data sources
-        if data_source.status != DataSourceStatus.DRAFT:
-            raise InvalidDataSourceException(
-                f"Cannot delete data source {data_source_id}: only DRAFT data sources can be deleted. "
-                f"Current status: {data_source.status.value}"
-            )
+        # Hard delete for DRAFT data sources
+        if data_source.status == DataSourceStatus.DRAFT:
+            self.db.delete(data_source)
+            self.db.commit()
 
-        # Check if data source is in use by policy versions
-        stmt = (
-            select(PolicyVersion)
-            .select_from(WorkflowDataDependency)
-            .join(Workflow)
-            .join(PolicyVersion)
-            .where(
-                (WorkflowDataDependency.data_source_id == data_source_id)
-                & (PolicyVersion.archived.is_(False))
-            )
-        )
-        policy_uses = self.db.execute(stmt).all()
+            if self.logger:
+                self.logger.system.info(
+                    f"Hard deleted DRAFT data source {data_source_id}"
+                )
 
-        if policy_uses:
-            raise InvalidDataSourceException(
-                f"Data source {data_source_id} is used by one or more policy versions"
-            )
+            return {"data_source_id": data_source_id}
 
-        # Check if data source is in use by components
-        stmt_component = (
-            select(Component)
-            .select_from(WorkflowDataDependency)
-            .join(Workflow)
-            .join(Component)
-            .where(
-                (WorkflowDataDependency.data_source_id == data_source_id)
-                & (Component.archived.is_(False))
-            )
-        )
-        component_uses = self.db.execute(stmt_component).all()
-
-        if component_uses:
-            raise InvalidDataSourceException(
-                f"Data source {data_source_id} is used by one or more components"
-            )
-
-        # Check if data source has associated data objects
-        objects = (
-            self.db.query(DataObject).filter_by(data_source_id=data_source_id).all()
-        )
-        if objects:
-            raise InvalidDataSourceException(
-                f"Data source {data_source_id} has associated data objects"
-            )
-
+        # Archive for PUBLISHED data sources (regardless of usage)
         data_source.status = DataSourceStatus.ARCHIVED
         self.db.commit()
 
         if self.logger:
-            self.logger.system.info(f"Archived data source {data_source_id}")
+            self.logger.system.info(
+                f"Archived {data_source.status.value} data source {data_source_id}"
+            )
 
         return {"data_source_id": data_source_id}
 

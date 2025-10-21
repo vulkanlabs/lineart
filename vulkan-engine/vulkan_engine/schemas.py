@@ -334,10 +334,19 @@ class DataSourceTestRequest(BaseModel):
     env_vars: dict[str, str] | None = None
 
 
+class DataSourceTestParams(BaseModel):
+    """
+    Parameters for testing an existing data source.
+    Data source ID comes from URL path.
+    """
+
+    params: dict[str, Any] | None = None
+    env_vars: dict[str, str] | None = None
+
+
 class DataSourceTestRequestById(BaseModel):
     """
-    Simplified test request for existing data sources.
-    Backend will fetch data source and merge configuration.
+    Internal model with data source ID for service layer.
     """
 
     data_source_id: str

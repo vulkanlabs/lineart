@@ -208,18 +208,16 @@ class DataSource(TimedUpdateMixin, Base):
     project_id = Column(Uuid, nullable=True)
 
     __table_args__ = (
+        # Unique constraint for active data sources only (DRAFT + PUBLISHED)
+        # Allows reusing names after archival
         Index(
             "unique_data_source_name",
             "name",
             unique=True,
             postgresql_where=(status != DataSourceStatus.ARCHIVED),
         ),
-        Index("idx_data_source_project_id", "project_id"),
-        Index(
-            "idx_data_source_status",
-            "status",
-            postgresql_where=(status != DataSourceStatus.ARCHIVED),
-        ),
+        Index("idx_data_source_status", "status"),
+        Index("idx_data_source_project_status", "project_id", "status"),
     )
 
     @staticmethod

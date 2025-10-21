@@ -230,7 +230,7 @@ async def test_data_source(
 @router.post("/{data_source_id}/test", response_model=schemas.DataSourceTestResponse)
 async def test_data_source_by_id(
     data_source_id: str,
-    test_request: schemas.DataSourceTestRequestById,
+    test_params: schemas.DataSourceTestParams,
     service: DataSourceTestService = Depends(get_data_source_test_service),
     logger: Annotated[VulkanLogger, Depends(get_configured_logger)] = None,
 ):
@@ -240,7 +240,11 @@ async def test_data_source_by_id(
     Backend fetches the data source configuration and merges with runtime parameters
     and environment variables before executing the test.
     """
-    test_request.data_source_id = data_source_id
+    test_request = schemas.DataSourceTestRequestById(
+        data_source_id=data_source_id,
+        params=test_params.params,
+        env_vars=test_params.env_vars,
+    )
 
     try:
         return await service.execute_test_by_id(test_request)
