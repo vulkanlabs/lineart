@@ -8,15 +8,19 @@ environment variables, data objects, and data broker operations.
 from typing import Any
 
 import requests
+from sqlalchemy import select
 
 from vulkan.data_source import DataSourceStatus, DataSourceType
 from vulkan.schemas import DataSourceSpec
 from vulkan_engine.data.broker import DataBroker
 from vulkan_engine.db import (
+    Component,
     DataObject,
     DataSource,
     DataSourceEnvVar,
+    PolicyVersion,
     RunDataRequest,
+    Workflow,
     WorkflowDataDependency,
 )
 from vulkan_engine.exceptions import (
@@ -264,7 +268,52 @@ class DataSourceService(BaseService):
 
             return {"data_source_id": data_source_id}
 
-        # Archive for PUBLISHED data sources (regardless of usage)
+        # Archive for PUBLISHED data sources, check if in use first
+        # used in policy versions
+        stmt = (
+            select(PolicyVersion)
+            .select_from(WorkflowDataDependency)
+            .join(Workflow)
+            .join(PolicyVersion)
+            .where(
+                (WorkflowDataDependency.data_source_id == data_source_id)
+                & (PolicyVersion.archived.is_(False))
+            )
+        )
+        policy_uses = self.db.execute(stmt).all()
+
+        if policy_uses:
+            raise InvalidDataSourceException(
+                f"Data source {data_source_id} is used by one or more policy versions"
+            )
+
+        # used in components
+        stmt_component = (
+            select(Component)
+            .select_from(WorkflowDataDependency)
+            .join(Workflow)
+            .join(Component)
+            .where(
+                (WorkflowDataDependency.data_source_id == data_source_id)
+                & (Component.archived.is_(False))
+            )
+        )
+        component_uses = self.db.execute(stmt_component).all()
+
+        if component_uses:
+            raise InvalidDataSourceException(
+                f"Data source {data_source_id} is used by one or more components"
+            )
+
+        # has associated data objects
+        objects = (
+            self.db.query(DataObject).filter_by(data_source_id=data_source_id).all()
+        )
+        if objects:
+            raise InvalidDataSourceException(
+                f"Data source {data_source_id} has associated data objects"
+            )
+
         data_source.status = DataSourceStatus.ARCHIVED
         self.db.commit()
 
