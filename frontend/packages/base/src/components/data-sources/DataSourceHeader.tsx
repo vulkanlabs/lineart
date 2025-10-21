@@ -22,7 +22,7 @@ interface DataSourceHeaderProps {
     copiedField: string | null;
     onCopyToClipboard: (text: string, field: string) => void;
     onGetFullDataSourceJson: (dataSource: DataSource) => string;
-    onPublish?: (dataSourceId: string) => Promise<DataSource>;
+    onPublish?: (dataSourceId: string, projectId?: string) => Promise<DataSource>;
     onUpdateDataSource?: (
         dataSourceId: string,
         updates: Partial<DataSource>,
@@ -151,6 +151,7 @@ export function DataSourceHeader({
                         dataSource={dataSource}
                         onPublish={onPublish}
                         isPublished={isPublished}
+                        projectId={projectId}
                     />
                 )}
 

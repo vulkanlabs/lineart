@@ -9,8 +9,9 @@ import { toast } from "sonner";
 
 interface PublishDataSourceDialogProps {
     dataSource: DataSource;
-    onPublish: (dataSourceId: string) => Promise<DataSource>;
+    onPublish: (dataSourceId: string, projectId?: string) => Promise<DataSource>;
     isPublished?: boolean;
+    projectId?: string;
 }
 
 /**
@@ -41,6 +42,7 @@ export function PublishDataSourceDialog({
     dataSource,
     onPublish,
     isPublished = false,
+    projectId,
 }: PublishDataSourceDialogProps) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
@@ -73,7 +75,7 @@ export function PublishDataSourceDialog({
 
         setIsPublishing(true);
         try {
-            await onPublish(dataSource.data_source_id);
+            await onPublish(dataSource.data_source_id, projectId);
             toast.success("Data source published successfully", {
                 description: `${dataSource.name} is now available in workflows`,
             });

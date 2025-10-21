@@ -80,7 +80,7 @@ export interface DataSourceDetailPageConfig {
         request_url: string;
         error_message?: string;
     }>;
-    publishDataSource?: (dataSourceId: string) => Promise<DataSource>;
+    publishDataSource?: (dataSourceId: string, projectId?: string) => Promise<DataSource>;
     projectId?: string;
 }
 
