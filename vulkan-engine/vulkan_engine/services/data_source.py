@@ -189,10 +189,10 @@ class DataSourceService(BaseService):
             data_source.config_metadata = spec.metadata
             data_source.caching_enabled = spec.caching.enabled
             data_source.caching_ttl = spec.caching.calculate_ttl()
-            if spec.source.timeout is not None:
-                data_source.source["timeout"] = spec.source.timeout
-            if spec.source.retry is not None:
-                data_source.source["retry"] = spec.source.retry
+            if spec.source.get("timeout") is not None:
+                data_source.source["timeout"] = spec.source.get("timeout")
+            if spec.source.get("retry") is not None:
+                data_source.source["retry"] = spec.source.get("retry")
         else:
             data_source.update_from_spec(spec)
 

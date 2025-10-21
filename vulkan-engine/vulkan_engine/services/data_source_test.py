@@ -155,13 +155,17 @@ class DataSourceTestService(BaseService):
         error = None
         status_code = None
         response_headers = {}
+        resolved_url = None
+        resolved_headers = {}
 
         try:
             # Resolve URL template
             url = resolve_template(test_request.url, local_vars, env_vars)
+            resolved_url = url
 
             # Resolve template fields
             headers = configure_fields(test_request.headers or {}, local_vars, env_vars)
+            resolved_headers = headers
             params = configure_fields(test_request.params or {}, local_vars, env_vars)
             body = (
                 configure_fields(test_request.body or {}, local_vars, env_vars)
@@ -230,6 +234,8 @@ class DataSourceTestService(BaseService):
         # Return response
         return DataSourceTestResponse(
             test_id=test_result.test_id,
+            request_url=resolved_url,
+            request_headers=resolved_headers,
             status_code=status_code,
             response_time_ms=elapsed_ms,
             response_body=response_data,

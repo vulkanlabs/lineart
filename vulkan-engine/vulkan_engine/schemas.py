@@ -356,6 +356,8 @@ class DataSourceTestRequestById(BaseModel):
 
 class DataSourceTestResponse(BaseModel):
     test_id: UUID
+    request_url: str | None = None
+    request_headers: dict[str, str] | None = None
     status_code: int | None
     response_time_ms: float
     response_body: dict[str, Any] | str | None = None

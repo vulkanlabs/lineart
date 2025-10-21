@@ -138,22 +138,24 @@ export function EditDataSourcePanel({
             const cleanedParams = cleanEmptyObjects(parsedParams);
             const cleanedBody = cleanEmptyObjects(parsedBody);
 
-            const updates: Partial<DataSource> = {
-                source: {
-                    // Build source from scratch to avoid spreading old empty objects
-                    type: dataSource.source.type,
-                    url,
-                    method: method as "GET" | "POST" | "PUT" | "DELETE",
-                    headers: Object.keys(cleanedHeaders).length > 0 ? cleanedHeaders : undefined,
-                    params: Object.keys(cleanedParams).length > 0 ? cleanedParams : undefined,
-                    body: Object.keys(cleanedBody).length > 0 ? cleanedBody : undefined,
-                    timeout: timeout ? parseInt(timeout, 10) : undefined,
-                    retry: {
-                        max_retries: maxRetries ? parseInt(maxRetries, 10) : 3,
-                        backoff_factor: backoffFactor ? parseFloat(backoffFactor) : 2,
-                        status_forcelist: dataSource.source.retry?.status_forcelist || [],
-                    },
+            const source: any = {
+                url,
+                method: method as "GET" | "POST" | "PUT" | "DELETE",
+                retry: {
+                    max_retries: maxRetries ? parseInt(maxRetries, 10) : 3,
+                    backoff_factor: backoffFactor ? parseFloat(backoffFactor) : 2,
+                    status_forcelist: dataSource.source.retry?.status_forcelist || [],
                 },
+            };
+
+            if (Object.keys(cleanedHeaders).length > 0) source.headers = cleanedHeaders;
+            if (Object.keys(cleanedParams).length > 0) source.params = cleanedParams;
+            if (Object.keys(cleanedBody).length > 0) source.body = cleanedBody;
+            if (timeout) source.timeout = parseInt(timeout, 10);
+
+            const updates: Partial<DataSource> = {
+                name: dataSource.name,
+                source,
                 caching: {
                     enabled: cachingEnabled,
                     ttl: {
