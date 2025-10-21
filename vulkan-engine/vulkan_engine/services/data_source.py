@@ -17,6 +17,7 @@ from vulkan_engine.db import (
     DataSource,
     DataSourceEnvVar,
     RunDataRequest,
+    WorkflowDataDependency,
 )
 from vulkan_engine.exceptions import (
     DataBrokerException,
@@ -240,9 +241,6 @@ class DataSourceService(BaseService):
             self.db.query(DataSourceEnvVar).filter_by(
                 data_source_id=data_source_id
             ).delete()
-
-            # workflow dependencies
-            from vulkan_engine.db import WorkflowDataDependency
 
             self.db.query(WorkflowDataDependency).filter_by(
                 data_source_id=data_source_id

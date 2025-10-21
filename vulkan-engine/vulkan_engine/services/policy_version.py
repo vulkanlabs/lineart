@@ -533,7 +533,7 @@ class PolicyVersionService(BaseService):
         """Add data source dependencies for a policy version."""
         query = select(DataSource).where(
             DataSource.name.in_(data_sources),
-            DataSource.status.in_([DataSourceStatus.DRAFT, DataSourceStatus.PUBLISHED]),
+            DataSource.status == DataSourceStatus.PUBLISHED,
         )
         matched = self.db.execute(query).scalars().all()
 
