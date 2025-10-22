@@ -11,6 +11,7 @@ from sqlalchemy import func as F
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from vulkan.data_source import DataSourceStatus
 from vulkan.spec.nodes.base import NodeType
 from vulkan_engine import schemas
 from vulkan_engine.db import (
@@ -532,7 +533,7 @@ class PolicyVersionService(BaseService):
         """Add data source dependencies for a policy version."""
         query = select(DataSource).where(
             DataSource.name.in_(data_sources),
-            DataSource.archived.is_(False),
+            DataSource.status == DataSourceStatus.PUBLISHED,
         )
         matched = self.db.execute(query).scalars().all()
 

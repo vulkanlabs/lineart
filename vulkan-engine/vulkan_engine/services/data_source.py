@@ -10,7 +10,7 @@ from typing import Any
 import requests
 from sqlalchemy import select
 
-from vulkan.data_source import DataSourceType
+from vulkan.data_source import DataSourceStatus, DataSourceType
 from vulkan.schemas import DataSourceSpec
 from vulkan_engine.data.broker import DataBroker
 from vulkan_engine.db import (
@@ -26,6 +26,7 @@ from vulkan_engine.db import (
 from vulkan_engine.exceptions import (
     DataBrokerException,
     DataBrokerRequestException,
+    DataObjectNotFoundException,
     DataSourceAlreadyExistsException,
     DataSourceNotFoundException,
     InvalidDataSourceException,
@@ -56,21 +57,46 @@ class DataSourceService(BaseService):
         super().__init__(db, logger)
         self.data_source_loader = DataSourceLoader(db)
 
+    def _validate_data_source_type(self, spec: DataSourceSpec) -> None:
+        """
+        Validate that the data source type is supported for remote execution.
+
+        Args:
+            spec: Data source specification
+
+        Raises:
+            InvalidDataSourceException: If data source type is LOCAL_FILE
+        """
+        if spec.source.source_type == DataSourceType.LOCAL_FILE:
+            raise InvalidDataSourceException(
+                "Local file data sources are not supported for remote execution"
+            )
+
     def list_data_sources(
-        self, include_archived: bool = False, project_id: str = None
+        self, include_archived: bool = False, project_id: str = None, status: str = None
     ) -> list[DataSourceSchema]:
         """
-        List data sources, optionally filtered by project.
+        List data sources, optionally filtered by project and status.
 
         Args:
             include_archived: Whether to include archived data sources
             project_id: Optional project UUID to filter by
+            status: Optional status to filter by (e.g., 'PUBLISHED', 'DRAFT')
 
         Returns:
             List of DataSource objects
         """
+        # Convert string status to enum if provided
+        status_enum = None
+        if status:
+            try:
+                status_enum = DataSourceStatus[status.upper()]
+            except (KeyError, AttributeError):
+                # If status is invalid, return empty list
+                return []
+
         data_sources = self.data_source_loader.list_data_sources(
-            project_id=project_id, include_archived=include_archived
+            project_id=project_id, include_archived=include_archived, status=status_enum
         )
         return [DataSourceSchema.from_orm(ds) for ds in data_sources]
 
@@ -100,10 +126,7 @@ class DataSourceService(BaseService):
             )
 
         # Validate data source type
-        if spec.source.source_type == DataSourceType.LOCAL_FILE:
-            raise InvalidDataSourceException(
-                "Local file data sources are not supported for remote execution"
-            )
+        self._validate_data_source_type(spec)
 
         # Create data source
         data_source = DataSource.from_spec(spec)
@@ -135,11 +158,62 @@ class DataSourceService(BaseService):
         )
         return DataSourceSchema.from_orm(data_source)
 
+    def update_data_source(
+        self, data_source_id: str, spec: DataSourceSpec, project_id: str = None
+    ) -> DataSourceSchema:
+        """
+        Update an existing data source.
+
+        Published data sources have restricted update capabilities to prevent
+        breaking changes in production. Only metadata, caching config, timeout,
+        and retry policy can be modified for published data sources.
+
+        Args:
+            data_source_id: Data source UUID
+            spec: Updated data source specification
+            project_id: Optional project UUID to filter by
+
+        Returns:
+            Updated DataSource object
+
+        Raises:
+            DataSourceNotFoundException: If data source doesn't exist
+            InvalidDataSourceException: If data source configuration is invalid
+        """
+        data_source = self.data_source_loader.get_data_source(
+            data_source_id=data_source_id, project_id=project_id, include_archived=False
+        )
+
+        # Validate data source type
+        self._validate_data_source_type(spec)
+
+        # Published data sources can only update metadata, caching, timeout, and retry policy
+        # This prevents breaking changes to data sources that are in production use
+        if data_source.is_published():
+            data_source.description = spec.description
+            data_source.config_metadata = spec.metadata
+            data_source.caching_enabled = spec.caching.enabled
+            data_source.caching_ttl = spec.caching.calculate_ttl()
+            if spec.source.get("timeout") is not None:
+                data_source.source["timeout"] = spec.source.get("timeout")
+            if spec.source.get("retry") is not None:
+                data_source.source["retry"] = spec.source.get("retry")
+        else:
+            data_source.update_from_spec(spec)
+
+        self.db.commit()
+
+        if self.logger:
+            self.logger.system.info(f"Updated data source {data_source_id}")
+
+        return DataSourceSchema.from_orm(data_source)
+
     def delete_data_source(
         self, data_source_id: str, project_id: str = None
     ) -> dict[str, str]:
         """
-        Delete (archive) a data source.
+        Delete or archive a data source based on its status.
+
 
         Args:
             data_source_id: Data source UUID
@@ -150,7 +224,6 @@ class DataSourceService(BaseService):
 
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
-            InvalidDataSourceException: If data source is in use
         """
         # Get non-archived data source
         try:
@@ -164,7 +237,20 @@ class DataSourceService(BaseService):
                 f"Tried to delete non-existent data source {data_source_id}"
             )
 
-        # Check if data source is in use by policy versions
+        # Hard delete for DRAFT data sources
+        if data_source.status == DataSourceStatus.DRAFT:
+            self.db.delete(data_source)
+            self.db.commit()
+
+            if self.logger:
+                self.logger.system.info(
+                    f"Hard deleted DRAFT data source {data_source_id}"
+                )
+
+            return {"data_source_id": data_source_id}
+
+        # Archive for PUBLISHED data sources, check if in use first
+        # used in policy versions
         stmt = (
             select(PolicyVersion)
             .select_from(WorkflowDataDependency)
@@ -182,7 +268,7 @@ class DataSourceService(BaseService):
                 f"Data source {data_source_id} is used by one or more policy versions"
             )
 
-        # Check if data source is in use by components
+        # used in components
         stmt_component = (
             select(Component)
             .select_from(WorkflowDataDependency)
@@ -200,7 +286,7 @@ class DataSourceService(BaseService):
                 f"Data source {data_source_id} is used by one or more components"
             )
 
-        # Check if data source has associated data objects
+        # has associated data objects
         objects = (
             self.db.query(DataObject).filter_by(data_source_id=data_source_id).all()
         )
@@ -209,11 +295,13 @@ class DataSourceService(BaseService):
                 f"Data source {data_source_id} has associated data objects"
             )
 
-        data_source.archived = True
+        data_source.status = DataSourceStatus.ARCHIVED
         self.db.commit()
 
         if self.logger:
-            self.logger.system.info(f"Archived data source {data_source_id}")
+            self.logger.system.info(
+                f"Archived {data_source.status.value} data source {data_source_id}"
+            )
 
         return {"data_source_id": data_source_id}
 
@@ -364,7 +452,9 @@ class DataSourceService(BaseService):
         )
 
         if not data_object:
-            raise DataSourceNotFoundException("Data object not found")
+            raise DataObjectNotFoundException(
+                f"Data object {data_object_id} not found in data source {data_source_id}"
+            )
 
         return data_object
 
@@ -441,3 +531,41 @@ class DataSourceService(BaseService):
             if self.logger:
                 self.logger.system.error(str(e))
             raise DataBrokerException(str(e))
+
+    def publish_data_source(
+        self, data_source_id: str, project_id: str = None
+    ) -> DataSourceSchema:
+        """
+        Publish a data source.
+
+        Publishing marks a data source as ready for production use. Published
+        data sources have restricted update capabilities to prevent breaking
+        changes.
+
+        Args:
+            data_source_id: Data source UUID
+            project_id: Optional project UUID to filter by
+
+        Returns:
+            DataSource object
+
+        Raises:
+            DataSourceNotFoundException: If data source doesn't exist
+        """
+        # Get data source
+        data_source = self.data_source_loader.get_data_source(
+            data_source_id=data_source_id, project_id=project_id, include_archived=False
+        )
+
+        # Check if already published (idempotency)
+        if data_source.is_published():
+            return DataSourceSchema.from_orm(data_source)
+
+        # Publish, validation is handled by DB constraints and schema validation
+        data_source.status = DataSourceStatus.PUBLISHED
+        self.db.commit()
+
+        if self.logger:
+            self.logger.system.info(f"Published data source {data_source_id}")
+
+        return DataSourceSchema.from_orm(data_source)

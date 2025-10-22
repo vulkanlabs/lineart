@@ -9,10 +9,18 @@ import { dataSourcesApi, withErrorHandling } from "./client";
 
 /**
  * Get all available data sources
+ * @param {boolean} [includeArchived=false] - Include archived data sources
+ * @param {string} [status] - Filter by status (e.g., 'PUBLISHED', 'DRAFT', 'ARCHIVED')
  * @returns {Promise<DataSource[]>} List of configured data sources (databases, APIs, etc.)
  */
-export const fetchDataSources = async (): Promise<DataSource[]> => {
-    return withErrorHandling(dataSourcesApi.listDataSources(), "fetch data sources");
+export const fetchDataSources = async (
+    includeArchived: boolean = false,
+    status?: string,
+): Promise<DataSource[]> => {
+    return withErrorHandling(
+        dataSourcesApi.listDataSources({ includeArchived, status }),
+        "fetch data sources",
+    );
 };
 
 /**
@@ -174,5 +182,99 @@ export const fetchDataSourceCacheStats = async (
             endDate,
         }),
         `fetch cache statistics for data source ${dataSourceId}`,
+    );
+};
+
+/**
+ * Update an existing data source configuration
+ *
+ * The backend enforces update restrictions for published data sources.
+ * This function simply sends the requested updates and lets the backend
+ * decide what changes are allowed based on the data source status.
+ *
+ * @param {string} dataSourceId - ID of data source to update
+ * @param {Partial<DataSourceSpec>} updates - Partial updates to apply
+ * @param {string} [projectId] - Optional project context
+ * @returns {Promise<DataSource>} Updated data source
+ */
+export async function updateDataSource(
+    dataSourceId: string,
+    updates: Partial<DataSourceSpec>,
+    projectId?: string,
+): Promise<DataSource> {
+    "use server";
+    return withErrorHandling(
+        dataSourcesApi.updateDataSource({
+            dataSourceId,
+            dataSourceSpec: updates as DataSourceSpec,
+        }),
+        `update data source ${dataSourceId}`,
+    );
+}
+
+/**
+ * Test a data source without persisting to database
+ *
+ * The backend handles fetching the data source configuration and merging
+ * with runtime parameters and environment variables.
+ *
+ * @param {string} dataSourceId - ID of data source to test
+ * @param {object} testRequest - Test configuration
+ * @param {any} testRequest.configured_params - Runtime parameters for the test
+ * @param {any} [testRequest.override_env_vars] - Optional environment variables to override
+ * @param {string} [projectId] - Optional project context
+ * @returns {Promise<any>} Test response with status, body, timing
+ */
+export const testDataSource = async (
+    dataSourceId: string,
+    testRequest: {
+        configured_params: any;
+        override_env_vars?: any;
+    },
+    projectId?: string,
+): Promise<{
+    test_id: string;
+    status_code: number;
+    response_body: any;
+    response_time_ms: number;
+    response_headers: Record<string, string>;
+    error?: string;
+}> => {
+    const response = await fetch(
+        `${process.env.VULKAN_SERVER_URL}/data-sources/${dataSourceId}/test`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                params: testRequest.configured_params || {},
+                env_vars: testRequest.override_env_vars || {},
+            }),
+        },
+    );
+
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to test data source ${dataSourceId}: ${error}`);
+    }
+
+    return response.json();
+};
+
+/**
+ * Publish a data source (change status from draft to published)
+ * Once published, a data source becomes read-only and available in workflows
+ * @param {string} dataSourceId - ID of data source to publish
+ * @param {string} [projectId] - Optional project context
+ * @returns {Promise<DataSource>}
+ */
+export const publishDataSource = async (
+    dataSourceId: string,
+    projectId?: string,
+): Promise<DataSource> => {
+    return withErrorHandling(
+        dataSourcesApi.publishDataSource({ dataSourceId }),
+        `publish data source ${dataSourceId}`,
     );
 };

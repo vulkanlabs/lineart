@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { FileIcon } from "lucide-react";
 
 import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
 
-import { Card, CardContent, CardHeader, CardTitle, Separator } from "../ui";
+import { Separator } from "../ui";
 import { EnvironmentVariablesEditor } from "../..";
 
 interface EditableVariablesCardProps {
@@ -39,49 +38,42 @@ export function EditableVariablesCard({
             console.error("Failed to fetch environment variables:", error);
             setVariables([]);
         }
-    }, [dataSource.data_source_id, fetchDataSourceEnvVars]);
+    }, [dataSource.data_source_id, projectId, fetchDataSourceEnvVars]);
 
     useEffect(() => {
         fetchVariables();
     }, [fetchVariables]);
 
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                        <FileIcon className="h-5 w-5" />
-                        Variables
-                    </CardTitle>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div>
-                    <h4 className="text-sm font-medium mb-3">Runtime Parameters</h4>
-                    <p className="text-xs text-muted-foreground mb-3">
-                        These parameters are configured in the workflows that use the data source.
+        <div className="space-y-6">
+            <div>
+                <h3 className="text-base font-semibold mb-3">Runtime Parameters</h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                    These parameters are configured in the workflows that use the data source.
+                </p>
+                {runtimeParams.length > 0 ? (
+                    <div className="space-y-2">
+                        {runtimeParams.map((param, index) => (
+                            <div
+                                key={index}
+                                className="flex items-center justify-between p-2 bg-muted/30 rounded
+                                    border-l-2 border-blue-500"
+                            >
+                                <span className="text-sm font-medium">{param}</span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-sm text-muted-foreground">
+                        No runtime parameters configured.
                     </p>
-                    {runtimeParams.length > 0 ? (
-                        <div className="space-y-2">
-                            {runtimeParams.map((param, index) => (
-                                <div
-                                    key={index}
-                                    className="flex items-center justify-between p-2 bg-muted/30 rounded 
-                                        border-l-2 border-blue-500"
-                                >
-                                    <span className="text-sm font-medium">{param}</span>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-sm text-muted-foreground">
-                            No runtime parameters configured.
-                        </p>
-                    )}
-                </div>
+                )}
+            </div>
 
-                <Separator />
+            <Separator />
 
+            <div>
+                <h3 className="text-base font-semibold mb-3">Environment Variables</h3>
                 <EnvironmentVariablesEditor
                     variables={variables}
                     requiredVariableNames={dataSource.variables || []}
@@ -93,7 +85,7 @@ export function EditableVariablesCard({
                         );
                     }}
                 />
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }

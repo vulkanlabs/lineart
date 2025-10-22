@@ -1,6 +1,7 @@
 // Vulkan packages
 import type { DataSource } from "@vulkanlabs/client-open";
 import { DataSourceDetailPage } from "@vulkanlabs/base/components/data-sources";
+import { revalidatePath } from "next/cache";
 
 // Local imports
 import {
@@ -10,6 +11,9 @@ import {
     fetchDataSourceMetrics,
     fetchDataSourceUsage,
     setDataSourceEnvVars,
+    updateDataSource,
+    testDataSource,
+    publishDataSource,
 } from "@/lib/api";
 
 export default async function Page(props: { params: Promise<{ data_source_id: string }> }) {
@@ -32,15 +36,27 @@ export default async function Page(props: { params: Promise<{ data_source_id: st
         );
     }
 
+    const withRevalidation = <T,>(fn: (...args: any[]) => Promise<T>) => {
+        return async (...args: any[]): Promise<T> => {
+            "use server";
+            const result = await fn(...args);
+            revalidatePath(`/integrations/dataSources/${data_source_id}`);
+            return result;
+        };
+    };
+
     return (
         <DataSourceDetailPage
             config={{
                 dataSource,
+                updateDataSource: withRevalidation(updateDataSource),
                 fetchDataSourceEnvVars,
                 setDataSourceEnvVars,
                 fetchUsage: fetchDataSourceUsage,
                 fetchMetrics: fetchDataSourceMetrics,
                 fetchCacheStats: fetchDataSourceCacheStats,
+                testDataSource,
+                publishDataSource: withRevalidation(publishDataSource),
             }}
         />
     );

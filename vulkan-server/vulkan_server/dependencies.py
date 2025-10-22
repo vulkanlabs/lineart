@@ -32,6 +32,7 @@ from vulkan_engine.services import (
     ComponentService,
     DataSourceAnalyticsService,
     DataSourceService,
+    DataSourceTestService,
     PolicyAnalyticsService,
     PolicyService,
     PolicyVersionService,
@@ -358,3 +359,20 @@ def get_credential_service(
         Configured CredentialService instance
     """
     return CredentialService(db=db, logger=logger)
+
+
+def get_data_source_test_service(
+    db: Annotated[Session, Depends(get_database_session)],
+    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
+) -> DataSourceTestService:
+    """
+    Get DataSourceTestService for testing data sources.
+
+    Args:
+        db: Database session
+        logger: Configured logger
+
+    Returns:
+        Configured DataSourceTestService instance
+    """
+    return DataSourceTestService(db=db, logger=logger)

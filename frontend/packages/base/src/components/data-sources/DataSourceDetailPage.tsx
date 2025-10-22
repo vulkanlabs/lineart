@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 
 // Vulkan packages
 import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
@@ -11,15 +11,25 @@ import { Loader } from "../..";
 
 import { useDataSourceUtils } from "./useDataSourceUtils";
 import { DataSourceHeader } from "./DataSourceHeader";
-import { DataSourceSummaryCard } from "./DataSourceSummaryCard";
-import { SourceConfigurationCard } from "./SourceConfigurationCard";
-import { RetryPolicyCard } from "./RetryPolicyCard";
-import { CachingConfigurationCard } from "./CachingConfigurationCard";
 import { EditableVariablesCard } from "./EditableVariablesCard";
 import { DataSourceUsageAnalytics, UsageAnalyticsConfig } from "./DataSourceUsageAnalytics";
+import { TestDataSourcePanel } from "./TestDataSourcePanel";
+import { EditDataSourcePanel } from "./EditDataSourcePanel";
+
+interface TestConfig {
+    configuredParams: Record<string, string>;
+    overrideEnvVars: Record<string, string>;
+    customParams: Array<{ key: string; value: string }>;
+    customEnvVars: Array<{ key: string; value: string }>;
+}
 
 export interface DataSourceDetailPageConfig {
     dataSource: DataSource;
+    updateDataSource: (
+        dataSourceId: string,
+        updates: Partial<DataSource>,
+        projectId?: string,
+    ) => Promise<DataSource>;
     fetchDataSourceEnvVars: (
         dataSourceId: string,
         projectId?: string,
@@ -54,16 +64,30 @@ export interface DataSourceDetailPageConfig {
     ) => Promise<{
         cache_hit_ratio_by_date: any[];
     }>;
+    testDataSource?: (
+        dataSourceId: string,
+        testRequest: {
+            configured_params: any;
+            override_env_vars?: any;
+        },
+        projectId?: string,
+    ) => Promise<{
+        status_code: number;
+        response_body: any;
+        response_time_ms: number;
+        cache_hit: boolean;
+        headers: Record<string, string>;
+        request_url: string;
+        error_message?: string;
+    }>;
+    publishDataSource?: (dataSourceId: string, projectId?: string) => Promise<DataSource>;
     projectId?: string;
 }
 
 export function DataSourceDetailPage({ config }: { config: DataSourceDetailPageConfig }) {
-    const { dataSource } = config;
-
     return (
         <div className="flex flex-col gap-6 p-6">
             <DataSourceDetails config={config} />
-            <UsageAnalyticsSection dataSourceId={dataSource.data_source_id} config={config} />
         </div>
     );
 }
@@ -88,16 +112,22 @@ function UsageAnalyticsSection({ dataSourceId, config }: UsageAnalyticsSectionPr
 }
 
 function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
-    const { dataSource, fetchDataSourceEnvVars, setDataSourceEnvVars } = config;
+    const { dataSource, fetchDataSourceEnvVars, setDataSourceEnvVars, publishDataSource } = config;
 
-    const {
-        copiedField,
-        copyToClipboard,
-        getFullDataSourceJson,
-        formatDate,
-        formatTimeFromSeconds,
-        formatJson,
-    } = useDataSourceUtils();
+    const { copiedField, copyToClipboard, getFullDataSourceJson } = useDataSourceUtils();
+
+    const status = dataSource.status ?? "DRAFT";
+    const isPublished = status === "PUBLISHED";
+
+    // State for test configuration and response persists across tab changes
+    const [testConfig, setTestConfig] = useState<TestConfig>({
+        configuredParams: {},
+        overrideEnvVars: {},
+        customParams: [],
+        customEnvVars: [],
+    });
+
+    const [testResponse, setTestResponse] = useState<any>(null);
 
     return (
         <>
@@ -106,6 +136,9 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
                 copiedField={copiedField}
                 onCopyToClipboard={copyToClipboard}
                 onGetFullDataSourceJson={getFullDataSourceJson}
+                onPublish={publishDataSource}
+                onUpdateDataSource={config.updateDataSource}
+                projectId={config.projectId}
             />
 
             <Separator />
@@ -114,39 +147,42 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
             <Tabs defaultValue="general" className="w-full">
                 <TabsList className="mb-4">
                     <TabsTrigger value="general">General</TabsTrigger>
-                    <TabsTrigger value="source">Source</TabsTrigger>
-                    <TabsTrigger value="caching">Caching</TabsTrigger>
+                    <TabsTrigger value="test">Test</TabsTrigger>
+                    <TabsTrigger value="usage">Usage</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="general">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <DataSourceSummaryCard
-                            dataSource={dataSource}
-                            formatDate={formatDate}
-                            formatJson={formatJson}
-                        />
-
-                        <EditableVariablesCard
-                            dataSource={dataSource}
-                            projectId={config.projectId}
-                            fetchDataSourceEnvVars={fetchDataSourceEnvVars}
-                            setDataSourceEnvVars={setDataSourceEnvVars}
-                        />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="source">
-                    <div className="grid gap-4">
-                        <SourceConfigurationCard dataSource={dataSource} formatJson={formatJson} />
-
-                        <RetryPolicyCard dataSource={dataSource} />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="caching">
-                    <CachingConfigurationCard
+                <TabsContent value="general" className="space-y-8">
+                    <EditDataSourcePanel
                         dataSource={dataSource}
-                        formatTimeFromSeconds={formatTimeFromSeconds}
+                        updateDataSource={config.updateDataSource}
+                        projectId={config.projectId}
+                        disabled={isPublished}
+                    />
+
+                    <EditableVariablesCard
+                        dataSource={dataSource}
+                        projectId={config.projectId}
+                        fetchDataSourceEnvVars={fetchDataSourceEnvVars}
+                        setDataSourceEnvVars={setDataSourceEnvVars}
+                    />
+                </TabsContent>
+
+                <TabsContent value="test">
+                    <TestDataSourcePanel
+                        dataSource={dataSource}
+                        testDataSource={config.testDataSource}
+                        projectId={config.projectId}
+                        testConfig={testConfig}
+                        onTestConfigChange={setTestConfig}
+                        testResponse={testResponse}
+                        onTestResponseChange={setTestResponse}
+                    />
+                </TabsContent>
+
+                <TabsContent value="usage">
+                    <UsageAnalyticsSection
+                        dataSourceId={dataSource.data_source_id}
+                        config={config}
                     />
                 </TabsContent>
             </Tabs>

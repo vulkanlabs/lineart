@@ -8,7 +8,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { DataSource } from "@vulkanlabs/client-open";
 
 // Local imports
-import { Button } from "../ui";
+import { Button, Badge } from "../ui";
 import { ShortenedID } from "../shortened-id";
 import {
     DeletableResourceTable,
@@ -94,6 +94,20 @@ function getDataSourceTableColumns(config: DataSourceTableConfig): ColumnDef<Dat
             cell: ({ row }) => {
                 const description: string = row.getValue("description");
                 return description?.length > 0 ? description : "-";
+            },
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ row }) => {
+                const status = row.getValue("status");
+                const isPublished = status === "PUBLISHED";
+
+                return (
+                    <Badge variant={isPublished ? "default" : "outline"}>
+                        {isPublished ? "Published" : "Draft"}
+                    </Badge>
+                );
             },
         },
         {

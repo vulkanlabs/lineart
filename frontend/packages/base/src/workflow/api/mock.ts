@@ -183,7 +183,7 @@ export class MockWorkflowApiClient implements WorkflowApiClient {
                 name: "Mock Source 1",
                 data_source_id: "mock-source-1",
                 source: { url: "https://example.com/data", path: "", file_id: "" },
-                archived: false,
+                status: "PUBLISHED",
                 created_at: new Date(),
                 last_updated_at: new Date(),
             },

@@ -134,8 +134,8 @@ export function SourceConfigurationCard({ dataSource, formatJson }: SourceConfig
                     </div>
                 ) : (
                     <div className="mt-6">
-                        <p className="text-sm font-medium mb-2">Body Schema</p>
-                        <p className="text-sm text-muted-foreground">No body schema provided.</p>
+                        <p className="text-sm font-medium mb-2">Body Template</p>
+                        <p className="text-sm text-muted-foreground">No body template provided.</p>
                     </div>
                 )}
             </CardContent>

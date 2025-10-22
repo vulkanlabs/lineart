@@ -8,6 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from vulkan.core.run import RunStatus, WorkflowStatus
+from vulkan.data_source import DataSourceStatus
 from vulkan.schemas import DataSourceSpec, PolicyAllocationStrategy
 from vulkan.spec.policy import PolicyDefinitionDict
 
@@ -227,22 +228,22 @@ class RunLogs(BaseModel):
 
 class DataSource(DataSourceSpec):
     data_source_id: UUID
-    archived: bool
     created_at: datetime
     last_updated_at: datetime
     variables: list[str] | None = None
     runtime_params: list[str] | None = None
+    status: DataSourceStatus = DataSourceStatus.DRAFT
 
     @classmethod
     def from_orm(cls, data) -> "DataSource":
         spec = data.to_spec()
         return cls(
             data_source_id=data.data_source_id,
-            archived=data.archived,
             created_at=data.created_at,
             last_updated_at=data.last_updated_at,
             variables=data.variables,
             runtime_params=data.runtime_params,
+            status=data.status,
             **spec.model_dump(),
         )
 
@@ -320,3 +321,45 @@ class RunCreated(BaseModel):
 class ConfigurationVariablesSetResult(BaseModel):
     policy_version_id: UUID
     variables: list[ConfigurationVariables]
+
+
+class DataSourceTestRequest(BaseModel):
+    """Full test request with all configuration (used for testing without existing data source)."""
+
+    url: str
+    method: str = "GET"
+    headers: dict[str, str] | None = None
+    body: dict[str, Any] | str | None = None
+    params: dict[str, Any] | None = None
+    env_vars: dict[str, str] | None = None
+
+
+class DataSourceTestParams(BaseModel):
+    """
+    Parameters for testing an existing data source.
+    Data source ID comes from URL path.
+    """
+
+    params: dict[str, Any] | None = None
+    env_vars: dict[str, str] | None = None
+
+
+class DataSourceTestRequestById(BaseModel):
+    """
+    Internal model with data source ID for service layer.
+    """
+
+    data_source_id: str
+    params: dict[str, Any] | None = None
+    env_vars: dict[str, str] | None = None
+
+
+class DataSourceTestResponse(BaseModel):
+    test_id: UUID
+    request_url: str | None = None
+    request_headers: dict[str, str] | None = None
+    status_code: int | None
+    response_time_ms: float
+    response_body: dict[str, Any] | str | None = None
+    response_headers: dict[str, str] | None = None
+    error: str | None = None

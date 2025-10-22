@@ -77,6 +77,11 @@ class DataSourceNotFoundException(VulkanServerException):
         super().__init__(msg, 404, "DATA_SOURCE_NOT_FOUND")
 
 
+class DataObjectNotFoundException(VulkanServerException):
+    def __init__(self, msg: str):
+        super().__init__(msg, 404, "DATA_OBJECT_NOT_FOUND")
+
+
 # 5xx
 class UnhandledException(VulkanServerException):
     def __init__(self, msg: str):

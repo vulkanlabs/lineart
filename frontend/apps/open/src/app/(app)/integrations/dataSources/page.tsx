@@ -13,7 +13,8 @@ export default async function Page() {
     let dataSources: any[] = [];
 
     try {
-        dataSources = await fetchDataSources();
+        // Fetch all non-archived data sources (DRAFT + PUBLISHED)
+        dataSources = await fetchDataSources(false);
     } catch (error) {
         console.error("Failed to fetch data sources:", error);
         dataSources = [];
