@@ -7,12 +7,15 @@ Handles authentication for HTTP requests to external APIs:
 """
 
 import base64
+import logging
 from typing import Dict
 
 import redis
 import requests
 
 from vulkan.auth import Auth, AuthMethod
+
+logger = logging.getLogger(__name__)
 
 
 class AuthHandler:
@@ -112,22 +115,17 @@ class AuthHandler:
             {"Authorization": "Bearer <access_token>"}
 
         Raises:
-            ValueError: If Redis cache is not available for Bearer auth
             requests.HTTPError: If token request fails
         """
-        if not self.cache:
-            raise ValueError(
-                "Redis cache is required for Bearer authentication but was not provided"
-            )
-
         # Redis cache key (unique per DataSource)
         cache_key = f"auth_token:{self.data_source_id}"
 
-        # Check cache
-        cached_token = self.cache.get(cache_key)
-        if cached_token:
-            token = cached_token.decode("utf-8")
-            return {"Authorization": f"Bearer {token}"}
+        # Check cache if available
+        if self.cache:
+            cached_token = self.cache.get(cache_key)
+            if cached_token:
+                token = cached_token.decode("utf-8")
+                return {"Authorization": f"Bearer {token}"}
 
         access_token = self._fetch_token()
 
