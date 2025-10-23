@@ -22,7 +22,11 @@ class DataBroker:
         self.spec = spec
 
     def get_data(
-        self, configured_params: dict, env_variables: dict
+        self,
+        configured_params: dict,
+        env_variables: dict,
+        auth_headers: dict | None = None,
+        auth_params: dict | None = None,
     ) -> schemas.DataBrokerResponse:
         cache = CacheManager(self.db, self.logger, self.spec)
         key = make_cache_key(self.spec, configured_params)
@@ -42,7 +46,16 @@ class DataBroker:
                 )
 
         start_time = time.time()
-        req = make_request(self.spec.source, configured_params, env_variables)
+
+        # Create request with authentication
+        req = make_request(
+            self.spec.source,
+            configured_params,
+            env_variables,
+            extra_headers=auth_headers,
+            extra_params=auth_params,
+        )
+
         response = requests.Session().send(req, timeout=self.spec.source.timeout)
         response.raise_for_status()
         end_time = time.time()

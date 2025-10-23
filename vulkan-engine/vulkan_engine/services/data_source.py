@@ -40,6 +40,13 @@ from vulkan_engine.schemas import (
 )
 from vulkan_engine.schemas import DataSource as DataSourceSchema
 from vulkan_engine.schemas import DataSourceEnvVar as DataSourceEnvVarSchema
+from vulkan_engine.security import (
+    DecryptionError,
+    EncryptionError,
+    decrypt_secret,
+    encrypt_secret,
+)
+from vulkan_engine.services.auth_handler import AuthHandler
 from vulkan_engine.services.base import BaseService
 
 
@@ -70,6 +77,36 @@ class DataSourceService(BaseService):
         if spec.source.source_type == DataSourceType.LOCAL_FILE:
             raise InvalidDataSourceException(
                 "Local file data sources are not supported for remote execution"
+            )
+
+    def _validate_reserved_credentials(self, spec: DataSourceSpec) -> None:
+        """
+        Validate that reserved credential names (CLIENT_ID, CLIENT_SECRET)
+        are not used in templates.
+
+        Args:
+            spec: Data source specification
+
+        Raises:
+            InvalidDataSourceException: If reserved names are used in templates
+        """
+        # Only validate HTTPSource with auth configured
+        if spec.source.source_type != DataSourceType.HTTP:
+            return
+
+        if not hasattr(spec.source, "auth") or spec.source.auth is None:
+            return
+
+        # Extract all environment variables from templates
+        env_vars = spec.source.extract_env_vars()
+        reserved_names = {"CLIENT_ID", "CLIENT_SECRET"}
+        conflicts = reserved_names.intersection(env_vars)
+
+        if conflicts:
+            raise InvalidDataSourceException(
+                f"Reserved credential names cannot be used in templates: {', '.join(conflicts)}. "
+                f"CLIENT_ID and CLIENT_SECRET are reserved for authentication only and "
+                f"must be configured separately via environment variables."
             )
 
     def list_data_sources(
@@ -127,6 +164,9 @@ class DataSourceService(BaseService):
 
         # Validate data source type
         self._validate_data_source_type(spec)
+
+        # Validate reserved credential names not used in templates
+        self._validate_reserved_credentials(spec)
 
         # Create data source
         data_source = DataSource.from_spec(spec)
@@ -186,6 +226,9 @@ class DataSourceService(BaseService):
 
         # Validate data source type
         self._validate_data_source_type(spec)
+
+        # Validate reserved credential names not used in templates
+        self._validate_reserved_credentials(spec)
 
         # Published data sources can only update metadata, caching, timeout, and retry policy
         # This prevents breaking changes to data sources that are in production use
@@ -327,9 +370,26 @@ class DataSourceService(BaseService):
             InvalidDataSourceException: If variables are not supported
         """
         # Validate data source exists and is not archived
-        self.data_source_loader.get_data_source(
+        data_source = self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=False
         )
+
+        # Check if any desired variable uses reserved names
+        reserved_names = {"CLIENT_ID", "CLIENT_SECRET"}
+        variable_names = {v.name for v in desired_variables}
+        reserved_in_request = reserved_names.intersection(variable_names)
+
+        # If reserved names are used, verify auth is configured
+        if reserved_in_request:
+            spec = DataSourceSchema.model_validate(data_source)
+            has_auth = hasattr(spec.source, "auth") and spec.source.auth is not None
+
+            if not has_auth:
+                raise InvalidDataSourceException(
+                    f"Cannot set reserved credential variables {reserved_in_request} "
+                    f"without authentication configured on the data source. "
+                    f"Please configure auth on the HTTPSource first."
+                )
 
         # Get existing variables
         existing_variables = (
@@ -346,16 +406,26 @@ class DataSourceService(BaseService):
         # Update or create variables
         existing_map = {v.name: v for v in existing_variables}
         for v in desired_variables:
+            # Encrypt CLIENT_SECRET before storing
+            value_to_store = v.value
+            if v.name == "CLIENT_SECRET":
+                try:
+                    value_to_store = encrypt_secret(v.value)
+                except EncryptionError as e:
+                    raise InvalidDataSourceException(
+                        f"Failed to encrypt CLIENT_SECRET: {e}"
+                    )
+
             env_var = existing_map.get(v.name)
             if not env_var:
                 env_var = DataSourceEnvVar(
                     data_source_id=data_source_id,
                     name=v.name,
-                    value=v.value,
+                    value=value_to_store,
                 )
                 self.db.add(env_var)
             else:
-                env_var.value = v.value
+                env_var.value = value_to_store
 
         self.db.commit()
         return {"data_source_id": data_source_id, "variables": desired_variables}
@@ -371,7 +441,7 @@ class DataSourceService(BaseService):
             project_id: Optional project UUID to filter by
 
         Returns:
-            List of DataSourceEnvVar objects
+            List of DataSourceEnvVar objects with CLIENT_SECRET masked
 
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
@@ -381,11 +451,22 @@ class DataSourceService(BaseService):
             data_source_id=data_source_id, project_id=project_id, include_archived=False
         )
 
-        return (
+        env_vars = (
             self.db.query(DataSourceEnvVar)
             .filter_by(data_source_id=data_source_id)
             .all()
         )
+
+        filtered_vars = []
+        for var in env_vars:
+            if var.name == "CLIENT_SECRET":
+                # Create a copy with masked value
+                masked_var = DataSourceEnvVarSchema(name=var.name, value="********")
+                filtered_vars.append(masked_var)
+            else:
+                filtered_vars.append(DataSourceEnvVarSchema.model_validate(var))
+
+        return filtered_vars
 
     def list_data_objects(
         self, data_source_id: str, project_id: str = None
@@ -492,7 +573,19 @@ class DataSourceService(BaseService):
             .filter_by(data_source_id=spec.data_source_id)
             .all()
         )
-        env_variables = {ev.name: ev.value for ev in env_vars} if env_vars else {}
+        env_variables = {}
+        if env_vars:
+            for ev in env_vars:
+                # Decrypt CLIENT_SECRET before using
+                if ev.name == "CLIENT_SECRET":
+                    try:
+                        env_variables[ev.name] = decrypt_secret(ev.value)
+                    except DecryptionError as e:
+                        raise InvalidDataSourceException(
+                            f"Failed to decrypt CLIENT_SECRET: {e}"
+                        )
+                else:
+                    env_variables[ev.name] = ev.value
 
         # Check for missing variables
         missing_vars = set(spec.variables or []) - set(env_variables.keys())
@@ -501,9 +594,27 @@ class DataSourceService(BaseService):
                 f"Missing environment variables: {', '.join(missing_vars)}"
             )
 
+        # Handle authentication if configured
+        auth_headers = None
+        auth_params = None
+
+        if hasattr(spec.source, "auth") and spec.source.auth:
+            auth_handler = AuthHandler(
+                auth_config=spec.source.auth,
+                data_source_id=spec.data_source_id,
+                env_variables=env_variables,
+                cache=getattr(self, "redis_cache", None),
+            )
+            auth_headers = auth_handler.get_auth_headers()
+
         try:
             # Get data through broker
-            data = broker.get_data(request.configured_params, env_variables)
+            data = broker.get_data(
+                request.configured_params,
+                env_variables,
+                auth_headers=auth_headers,
+                auth_params=auth_params,
+            )
 
             # Record the request with timing information
             request_obj = RunDataRequest(
