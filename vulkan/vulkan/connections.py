@@ -62,8 +62,33 @@ class HTTPConfig(BaseModel):
 
 
 def make_request(
-    config: HTTPConfig, local_variables: dict, env_variables: dict
+    config: HTTPConfig,
+    local_variables: dict,
+    env_variables: dict,
+    extra_headers: dict | None = None,
+    extra_params: dict | None = None,
 ) -> requests.PreparedRequest:
+    """
+    Creates a PreparedRequest from HTTPConfig.
+
+    Args:
+        config: HTTP configuration (url, method, headers, params, body, etc)
+        local_variables: Runtime parameters for template resolution
+        env_variables: Environment variables for template resolution
+        extra_headers: Additional  (e.g., authentication headers).
+        extra_params: Additional query parameters (e.g., API keys).
+
+    Returns:
+        PreparedRequest ready to be sent
+
+    Example:
+        # Without auth
+        req = make_request(config, {}, {})
+
+        # With auth headers
+        auth_headers = {"Authorization": "Bearer token123"}
+        req = make_request(config, {}, {}, extra_headers=auth_headers)
+    """
     retry = Retry(
         total=config.retry.max_retries,
         backoff_factor=config.retry.backoff_factor,
@@ -77,10 +102,19 @@ def make_request(
     # Resolve URL with template variables
     url = resolve_template(config.url, local_variables, env_variables)
 
+    # Configure base headers, params, body from config
     headers = configure_fields(config.headers, local_variables, env_variables)
     params = configure_fields(config.params, local_variables, env_variables)
     body = configure_fields(config.body, local_variables, env_variables)
 
+    # auth comes first, config can override
+    if extra_headers:
+        headers = {**extra_headers, **headers}
+
+    if extra_params:
+        params = {**extra_params, **params}
+
+    # Determine payload format
     if headers.get("Content-Type") == "application/json":
         json_payload = body
         data_payload = None
@@ -88,6 +122,7 @@ def make_request(
         json_payload = None
         data_payload = body
 
+    # Create PreparedRequest
     req = requests.Request(
         url=url,
         method=config.method,
