@@ -184,11 +184,27 @@ class DataSourceTestService(BaseService):
                 status_code = response.status_code
                 response_headers = dict(response.headers)
 
-                # Try to parse as JSON, fallback to text
+                # Try to parse as JSON, fallback to text, fallback to raw content info
                 try:
                     response_data = response.json()
                 except Exception:
-                    response_data = response.text
+                    try:
+                        response_data = response.text
+                    except Exception:
+                        response_data = (
+                            f"<Binary content, {len(response.content)} bytes>"
+                        )
+
+                # Set error message for HTTP error status codes
+                if status_code >= 400:
+                    if isinstance(response_data, dict):
+                        error = (
+                            response_data.get("detail")
+                            or response_data.get("error")
+                            or f"HTTP {status_code}"
+                        )
+                    else:
+                        error = f"HTTP {status_code}"
 
         except (TemplateSyntaxError, UndefinedError) as e:
             error = f"Template resolution error: {str(e)}"
