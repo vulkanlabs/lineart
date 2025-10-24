@@ -53,16 +53,18 @@ from vulkan_engine.services.base import BaseService
 class DataSourceService(BaseService):
     """Service for managing data sources and data operations."""
 
-    def __init__(self, db, logger=None):
+    def __init__(self, db, logger=None, redis_cache=None):
         """
         Initialize data source service.
 
         Args:
             db: Database session
             logger: Optional logger
+            redis_cache: Optional Redis client for OAuth token caching
         """
         super().__init__(db, logger)
         self.data_source_loader = DataSourceLoader(db)
+        self.redis_cache = redis_cache
 
     def _validate_data_source_type(self, spec: DataSourceSpec) -> None:
         """
@@ -603,7 +605,7 @@ class DataSourceService(BaseService):
                 auth_config=spec.source.auth,
                 data_source_id=spec.data_source_id,
                 env_variables=env_variables,
-                cache=getattr(self, "redis_cache", None),
+                cache=self.redis_cache,
             )
             auth_headers = auth_handler.get_auth_headers()
 
