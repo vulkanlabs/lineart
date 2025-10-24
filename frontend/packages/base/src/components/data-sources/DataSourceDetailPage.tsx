@@ -15,6 +15,7 @@ import { EditableVariablesCard } from "./EditableVariablesCard";
 import { DataSourceUsageAnalytics, UsageAnalyticsConfig } from "./DataSourceUsageAnalytics";
 import { TestDataSourcePanel } from "./TestDataSourcePanel";
 import { EditDataSourcePanel } from "./EditDataSourcePanel";
+import { AuthenticationConfigCard } from "./AuthenticationConfigCard";
 
 interface TestConfig {
     configuredParams: Record<string, string>;
@@ -156,6 +157,15 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
                         dataSource={dataSource}
                         updateDataSource={config.updateDataSource}
                         projectId={config.projectId}
+                        disabled={isPublished}
+                    />
+
+                    <AuthenticationConfigCard
+                        dataSource={dataSource}
+                        projectId={config.projectId}
+                        updateDataSource={config.updateDataSource}
+                        fetchDataSourceEnvVars={fetchDataSourceEnvVars}
+                        setDataSourceEnvVars={setDataSourceEnvVars}
                         disabled={isPublished}
                     />
 
