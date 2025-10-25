@@ -1,0 +1,15 @@
+# DataSourceTestResponse
+
+
+## Fields
+
+| Field                                                              | Type                                                               | Required                                                           | Description                                                        |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `test_id`                                                          | *str*                                                              | :heavy_check_mark:                                                 | N/A                                                                |
+| `request_url`                                                      | *OptionalNullable[str]*                                            | :heavy_minus_sign:                                                 | N/A                                                                |
+| `request_headers`                                                  | Dict[str, *str*]                                                   | :heavy_minus_sign:                                                 | N/A                                                                |
+| `status_code`                                                      | *Nullable[int]*                                                    | :heavy_check_mark:                                                 | N/A                                                                |
+| `response_time_ms`                                                 | *float*                                                            | :heavy_check_mark:                                                 | N/A                                                                |
+| `response_body`                                                    | [OptionalNullable[models.ResponseBody]](../models/responsebody.md) | :heavy_minus_sign:                                                 | N/A                                                                |
+| `response_headers`                                                 | Dict[str, *str*]                                                   | :heavy_minus_sign:                                                 | N/A                                                                |
+| `error`                                                            | *OptionalNullable[str]*                                            | :heavy_minus_sign:                                                 | N/A                                                                |

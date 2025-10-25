@@ -208,7 +208,7 @@ def publish_data_source(
 
 
 @router.post("/{data_source_id}/test", response_model=schemas.DataSourceTestResponse)
-async def test_data_source_by_id(
+async def data_source_test_by_id(
     data_source_id: str,
     test_params: schemas.DataSourceTestParams,
     service: DataSourceTestService = Depends(get_data_source_test_service),

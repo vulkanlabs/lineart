@@ -17,6 +17,7 @@ from lineart_sdk.types import (
 )
 
 from .cachingoptions import CachingOptions, CachingOptionsTypedDict
+from .datasourcestatus import DataSourceStatus
 from .httpsource import HTTPSource, HTTPSourceTypedDict
 from .localfilesource import LocalFileSource, LocalFileSourceTypedDict
 from .registeredfilesource import RegisteredFileSource, RegisteredFileSourceTypedDict
@@ -36,7 +37,6 @@ class DataSourceTypedDict(TypedDict):
     name: str
     source: DataSourceSourceTypedDict
     data_source_id: str
-    archived: bool
     created_at: datetime
     last_updated_at: datetime
     caching: NotRequired[CachingOptionsTypedDict]
@@ -44,6 +44,7 @@ class DataSourceTypedDict(TypedDict):
     metadata: NotRequired[Nullable[Dict[str, Any]]]
     variables: NotRequired[Nullable[List[str]]]
     runtime_params: NotRequired[Nullable[List[str]]]
+    status: NotRequired[DataSourceStatus]
 
 
 class DataSource(BaseModel):
@@ -52,8 +53,6 @@ class DataSource(BaseModel):
     source: DataSourceSource
 
     data_source_id: str
-
-    archived: bool
 
     created_at: datetime
 
@@ -69,6 +68,8 @@ class DataSource(BaseModel):
 
     runtime_params: OptionalNullable[List[str]] = UNSET
 
+    status: Optional[DataSourceStatus] = None
+
     @model_serializer(mode="wrap")
     def serialize_model(self, handler):
         optional_fields = [
@@ -77,6 +78,7 @@ class DataSource(BaseModel):
             "metadata",
             "variables",
             "runtime_params",
+            "status",
         ]
         nullable_fields = ["description", "metadata", "variables", "runtime_params"]
         null_default_fields = []
