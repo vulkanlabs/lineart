@@ -99,6 +99,9 @@ def extract_env_vars(spec: ConfigurableDict) -> list[str]:
     env_vars = []
 
     for key, value in spec.items():
+        # Try to convert dict to RunTimeParam or EnvVarConfig if applicable
+        value = _try_cast_to_config_object(value)
+
         if isinstance(value, EnvVarConfig):
             env_vars.append(value.env)
         elif isinstance(value, str):
@@ -129,6 +132,9 @@ def extract_runtime_params(spec: ConfigurableDict) -> list[str]:
     runtime_params = []
 
     for key, value in spec.items():
+        # Try to convert dict to RunTimeParam or EnvVarConfig if applicable
+        value = _try_cast_to_config_object(value)
+
         if isinstance(value, RunTimeParam):
             runtime_params.append(value.param)
         elif isinstance(value, str):
