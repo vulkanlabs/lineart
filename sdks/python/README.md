@@ -194,9 +194,13 @@ asyncio.run(main())
 * [get_object](docs/sdks/datasources/README.md#get_object) - Get Data Object
 * [get_metrics](docs/sdks/datasources/README.md#get_metrics) - Get Data Source Metrics
 * [get_cache_statistics](docs/sdks/datasources/README.md#get_cache_statistics) - Get Cache Statistics
+* [update_data_source](docs/sdks/datasources/README.md#update_data_source) - Update Data Source
 * [get_env_variables](docs/sdks/datasources/README.md#get_env_variables) - Get Data Source Env Variables
 * [list_data_objects](docs/sdks/datasources/README.md#list_data_objects) - List Data Objects
 * [get_usage](docs/sdks/datasources/README.md#get_usage) - Get Data Source Usage
+* [publish_data_source](docs/sdks/datasources/README.md#publish_data_source) - Publish Data Source
+* [test_data_source](docs/sdks/datasources/README.md#test_data_source) - Test Data Source
+* [test_data_source_by_id](docs/sdks/datasources/README.md#test_data_source_by_id) - Test Data Source By Id
 
 ### [internal](docs/sdks/internal/README.md)
 

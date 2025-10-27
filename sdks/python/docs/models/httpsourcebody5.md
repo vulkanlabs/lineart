@@ -1,4 +1,4 @@
-# Body4
+# HTTPSourceBody5
 
 
 ## Supported Types
@@ -27,9 +27,15 @@ value: float = /* values here */
 value: bool = /* values here */
 ```
 
-### `List[models.Body3]`
+### `List[models.HTTPSourceBody2]`
 
 ```python
-value: List[models.Body3] = /* values here */
+value: List[models.HTTPSourceBody2] = /* values here */
+```
+
+### `Dict[str, models.HTTPSourceBody4]`
+
+```python
+value: Dict[str, models.HTTPSourceBody4] = /* values here */
 ```
 

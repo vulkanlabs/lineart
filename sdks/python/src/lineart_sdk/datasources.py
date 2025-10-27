@@ -16,6 +16,7 @@ class DataSources(BaseSDK):
         self,
         *,
         include_archived: Optional[bool] = False,
+        status: OptionalNullable[str] = UNSET,
         retries: OptionalNullable[utils.RetryConfig] = UNSET,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -23,9 +24,10 @@ class DataSources(BaseSDK):
     ) -> List[models.DataSource]:
         r"""List Data Sources
 
-        List all data sources.
+        List all data sources. Optionally filter by status (e.g., 'PUBLISHED', 'DRAFT').
 
         :param include_archived:
+        :param status:
         :param retries: Override the default retry configuration for this method
         :param server_url: Override the default server URL for this method
         :param timeout_ms: Override the default request timeout configuration for this method in milliseconds
@@ -43,6 +45,7 @@ class DataSources(BaseSDK):
 
         request = models.ListDataSourcesRequest(
             include_archived=include_archived,
+            status=status,
         )
 
         req = self._build_request(
@@ -106,6 +109,7 @@ class DataSources(BaseSDK):
         self,
         *,
         include_archived: Optional[bool] = False,
+        status: OptionalNullable[str] = UNSET,
         retries: OptionalNullable[utils.RetryConfig] = UNSET,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -113,9 +117,10 @@ class DataSources(BaseSDK):
     ) -> List[models.DataSource]:
         r"""List Data Sources
 
-        List all data sources.
+        List all data sources. Optionally filter by status (e.g., 'PUBLISHED', 'DRAFT').
 
         :param include_archived:
+        :param status:
         :param retries: Override the default retry configuration for this method
         :param server_url: Override the default server URL for this method
         :param timeout_ms: Override the default request timeout configuration for this method in milliseconds
@@ -133,6 +138,7 @@ class DataSources(BaseSDK):
 
         request = models.ListDataSourcesRequest(
             include_archived=include_archived,
+            status=status,
         )
 
         req = self._build_request_async(
@@ -1550,6 +1556,238 @@ class DataSources(BaseSDK):
 
         raise errors.LineartDefaultError("Unexpected response received", http_res)
 
+    def update_data_source(
+        self,
+        *,
+        data_source_id: str,
+        name: str,
+        source: Union[
+            models.DataSourceSpecSource, models.DataSourceSpecSourceTypedDict
+        ],
+        caching: Optional[
+            Union[models.CachingOptions, models.CachingOptionsTypedDict]
+        ] = None,
+        description: OptionalNullable[str] = UNSET,
+        metadata: OptionalNullable[Dict[str, Any]] = UNSET,
+        retries: OptionalNullable[utils.RetryConfig] = UNSET,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> models.DataSource:
+        r"""Update Data Source
+
+        Update a data source.
+
+        :param data_source_id:
+        :param name:
+        :param source:
+        :param caching:
+        :param description:
+        :param metadata:
+        :param retries: Override the default retry configuration for this method
+        :param server_url: Override the default server URL for this method
+        :param timeout_ms: Override the default request timeout configuration for this method in milliseconds
+        :param http_headers: Additional headers to set or replace on requests.
+        """
+        base_url = None
+        url_variables = None
+        if timeout_ms is None:
+            timeout_ms = self.sdk_configuration.timeout_ms
+
+        if server_url is not None:
+            base_url = server_url
+        else:
+            base_url = self._get_url(base_url, url_variables)
+
+        request = models.UpdateDataSourceRequest(
+            data_source_id=data_source_id,
+            data_source_spec=models.DataSourceSpec(
+                name=name,
+                source=utils.get_pydantic_model(source, models.DataSourceSpecSource),
+                caching=utils.get_pydantic_model(
+                    caching, Optional[models.CachingOptions]
+                ),
+                description=description,
+                metadata=metadata,
+            ),
+        )
+
+        req = self._build_request(
+            method="PUT",
+            path="/data-sources/{data_source_id}",
+            base_url=base_url,
+            url_variables=url_variables,
+            request=request,
+            request_body_required=True,
+            request_has_path_params=True,
+            request_has_query_params=False,
+            user_agent_header="user-agent",
+            accept_header_value="application/json",
+            http_headers=http_headers,
+            get_serialized_body=lambda: utils.serialize_request_body(
+                request.data_source_spec, False, False, "json", models.DataSourceSpec
+            ),
+            timeout_ms=timeout_ms,
+        )
+
+        if retries == UNSET:
+            if self.sdk_configuration.retry_config is not UNSET:
+                retries = self.sdk_configuration.retry_config
+
+        retry_config = None
+        if isinstance(retries, utils.RetryConfig):
+            retry_config = (retries, ["429", "500", "502", "503", "504"])
+
+        http_res = self.do_request(
+            hook_ctx=HookContext(
+                config=self.sdk_configuration,
+                base_url=base_url or "",
+                operation_id="update_data_source",
+                oauth2_scopes=None,
+                security_source=None,
+            ),
+            request=req,
+            error_status_codes=["404", "422", "4XX", "5XX"],
+            retry_config=retry_config,
+        )
+
+        response_data: Any = None
+        if utils.match_response(http_res, "200", "application/json"):
+            return unmarshal_json_response(models.DataSource, http_res)
+        if utils.match_response(http_res, "422", "application/json"):
+            response_data = unmarshal_json_response(
+                errors.HTTPValidationErrorData, http_res
+            )
+            raise errors.HTTPValidationError(response_data, http_res)
+        if utils.match_response(http_res, ["404", "4XX"], "*"):
+            http_res_text = utils.stream_to_text(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+        if utils.match_response(http_res, "5XX", "*"):
+            http_res_text = utils.stream_to_text(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+
+        raise errors.LineartDefaultError("Unexpected response received", http_res)
+
+    async def update_data_source_async(
+        self,
+        *,
+        data_source_id: str,
+        name: str,
+        source: Union[
+            models.DataSourceSpecSource, models.DataSourceSpecSourceTypedDict
+        ],
+        caching: Optional[
+            Union[models.CachingOptions, models.CachingOptionsTypedDict]
+        ] = None,
+        description: OptionalNullable[str] = UNSET,
+        metadata: OptionalNullable[Dict[str, Any]] = UNSET,
+        retries: OptionalNullable[utils.RetryConfig] = UNSET,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> models.DataSource:
+        r"""Update Data Source
+
+        Update a data source.
+
+        :param data_source_id:
+        :param name:
+        :param source:
+        :param caching:
+        :param description:
+        :param metadata:
+        :param retries: Override the default retry configuration for this method
+        :param server_url: Override the default server URL for this method
+        :param timeout_ms: Override the default request timeout configuration for this method in milliseconds
+        :param http_headers: Additional headers to set or replace on requests.
+        """
+        base_url = None
+        url_variables = None
+        if timeout_ms is None:
+            timeout_ms = self.sdk_configuration.timeout_ms
+
+        if server_url is not None:
+            base_url = server_url
+        else:
+            base_url = self._get_url(base_url, url_variables)
+
+        request = models.UpdateDataSourceRequest(
+            data_source_id=data_source_id,
+            data_source_spec=models.DataSourceSpec(
+                name=name,
+                source=utils.get_pydantic_model(source, models.DataSourceSpecSource),
+                caching=utils.get_pydantic_model(
+                    caching, Optional[models.CachingOptions]
+                ),
+                description=description,
+                metadata=metadata,
+            ),
+        )
+
+        req = self._build_request_async(
+            method="PUT",
+            path="/data-sources/{data_source_id}",
+            base_url=base_url,
+            url_variables=url_variables,
+            request=request,
+            request_body_required=True,
+            request_has_path_params=True,
+            request_has_query_params=False,
+            user_agent_header="user-agent",
+            accept_header_value="application/json",
+            http_headers=http_headers,
+            get_serialized_body=lambda: utils.serialize_request_body(
+                request.data_source_spec, False, False, "json", models.DataSourceSpec
+            ),
+            timeout_ms=timeout_ms,
+        )
+
+        if retries == UNSET:
+            if self.sdk_configuration.retry_config is not UNSET:
+                retries = self.sdk_configuration.retry_config
+
+        retry_config = None
+        if isinstance(retries, utils.RetryConfig):
+            retry_config = (retries, ["429", "500", "502", "503", "504"])
+
+        http_res = await self.do_request_async(
+            hook_ctx=HookContext(
+                config=self.sdk_configuration,
+                base_url=base_url or "",
+                operation_id="update_data_source",
+                oauth2_scopes=None,
+                security_source=None,
+            ),
+            request=req,
+            error_status_codes=["404", "422", "4XX", "5XX"],
+            retry_config=retry_config,
+        )
+
+        response_data: Any = None
+        if utils.match_response(http_res, "200", "application/json"):
+            return unmarshal_json_response(models.DataSource, http_res)
+        if utils.match_response(http_res, "422", "application/json"):
+            response_data = unmarshal_json_response(
+                errors.HTTPValidationErrorData, http_res
+            )
+            raise errors.HTTPValidationError(response_data, http_res)
+        if utils.match_response(http_res, ["404", "4XX"], "*"):
+            http_res_text = await utils.stream_to_text_async(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+        if utils.match_response(http_res, "5XX", "*"):
+            http_res_text = await utils.stream_to_text_async(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+
+        raise errors.LineartDefaultError("Unexpected response received", http_res)
+
     def get_env_variables(
         self,
         *,
@@ -2084,6 +2322,628 @@ class DataSources(BaseSDK):
         response_data: Any = None
         if utils.match_response(http_res, "200", "application/json"):
             return unmarshal_json_response(Dict[str, Any], http_res)
+        if utils.match_response(http_res, "422", "application/json"):
+            response_data = unmarshal_json_response(
+                errors.HTTPValidationErrorData, http_res
+            )
+            raise errors.HTTPValidationError(response_data, http_res)
+        if utils.match_response(http_res, ["404", "4XX"], "*"):
+            http_res_text = await utils.stream_to_text_async(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+        if utils.match_response(http_res, "5XX", "*"):
+            http_res_text = await utils.stream_to_text_async(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+
+        raise errors.LineartDefaultError("Unexpected response received", http_res)
+
+    def publish_data_source(
+        self,
+        *,
+        data_source_id: str,
+        retries: OptionalNullable[utils.RetryConfig] = UNSET,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> models.DataSource:
+        r"""Publish Data Source
+
+        Publish a data source.
+
+        :param data_source_id:
+        :param retries: Override the default retry configuration for this method
+        :param server_url: Override the default server URL for this method
+        :param timeout_ms: Override the default request timeout configuration for this method in milliseconds
+        :param http_headers: Additional headers to set or replace on requests.
+        """
+        base_url = None
+        url_variables = None
+        if timeout_ms is None:
+            timeout_ms = self.sdk_configuration.timeout_ms
+
+        if server_url is not None:
+            base_url = server_url
+        else:
+            base_url = self._get_url(base_url, url_variables)
+
+        request = models.PublishDataSourceRequest(
+            data_source_id=data_source_id,
+        )
+
+        req = self._build_request(
+            method="POST",
+            path="/data-sources/{data_source_id}/publish",
+            base_url=base_url,
+            url_variables=url_variables,
+            request=request,
+            request_body_required=False,
+            request_has_path_params=True,
+            request_has_query_params=False,
+            user_agent_header="user-agent",
+            accept_header_value="application/json",
+            http_headers=http_headers,
+            timeout_ms=timeout_ms,
+        )
+
+        if retries == UNSET:
+            if self.sdk_configuration.retry_config is not UNSET:
+                retries = self.sdk_configuration.retry_config
+
+        retry_config = None
+        if isinstance(retries, utils.RetryConfig):
+            retry_config = (retries, ["429", "500", "502", "503", "504"])
+
+        http_res = self.do_request(
+            hook_ctx=HookContext(
+                config=self.sdk_configuration,
+                base_url=base_url or "",
+                operation_id="publish_data_source",
+                oauth2_scopes=None,
+                security_source=None,
+            ),
+            request=req,
+            error_status_codes=["404", "422", "4XX", "5XX"],
+            retry_config=retry_config,
+        )
+
+        response_data: Any = None
+        if utils.match_response(http_res, "200", "application/json"):
+            return unmarshal_json_response(models.DataSource, http_res)
+        if utils.match_response(http_res, "422", "application/json"):
+            response_data = unmarshal_json_response(
+                errors.HTTPValidationErrorData, http_res
+            )
+            raise errors.HTTPValidationError(response_data, http_res)
+        if utils.match_response(http_res, ["404", "4XX"], "*"):
+            http_res_text = utils.stream_to_text(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+        if utils.match_response(http_res, "5XX", "*"):
+            http_res_text = utils.stream_to_text(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+
+        raise errors.LineartDefaultError("Unexpected response received", http_res)
+
+    async def publish_data_source_async(
+        self,
+        *,
+        data_source_id: str,
+        retries: OptionalNullable[utils.RetryConfig] = UNSET,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> models.DataSource:
+        r"""Publish Data Source
+
+        Publish a data source.
+
+        :param data_source_id:
+        :param retries: Override the default retry configuration for this method
+        :param server_url: Override the default server URL for this method
+        :param timeout_ms: Override the default request timeout configuration for this method in milliseconds
+        :param http_headers: Additional headers to set or replace on requests.
+        """
+        base_url = None
+        url_variables = None
+        if timeout_ms is None:
+            timeout_ms = self.sdk_configuration.timeout_ms
+
+        if server_url is not None:
+            base_url = server_url
+        else:
+            base_url = self._get_url(base_url, url_variables)
+
+        request = models.PublishDataSourceRequest(
+            data_source_id=data_source_id,
+        )
+
+        req = self._build_request_async(
+            method="POST",
+            path="/data-sources/{data_source_id}/publish",
+            base_url=base_url,
+            url_variables=url_variables,
+            request=request,
+            request_body_required=False,
+            request_has_path_params=True,
+            request_has_query_params=False,
+            user_agent_header="user-agent",
+            accept_header_value="application/json",
+            http_headers=http_headers,
+            timeout_ms=timeout_ms,
+        )
+
+        if retries == UNSET:
+            if self.sdk_configuration.retry_config is not UNSET:
+                retries = self.sdk_configuration.retry_config
+
+        retry_config = None
+        if isinstance(retries, utils.RetryConfig):
+            retry_config = (retries, ["429", "500", "502", "503", "504"])
+
+        http_res = await self.do_request_async(
+            hook_ctx=HookContext(
+                config=self.sdk_configuration,
+                base_url=base_url or "",
+                operation_id="publish_data_source",
+                oauth2_scopes=None,
+                security_source=None,
+            ),
+            request=req,
+            error_status_codes=["404", "422", "4XX", "5XX"],
+            retry_config=retry_config,
+        )
+
+        response_data: Any = None
+        if utils.match_response(http_res, "200", "application/json"):
+            return unmarshal_json_response(models.DataSource, http_res)
+        if utils.match_response(http_res, "422", "application/json"):
+            response_data = unmarshal_json_response(
+                errors.HTTPValidationErrorData, http_res
+            )
+            raise errors.HTTPValidationError(response_data, http_res)
+        if utils.match_response(http_res, ["404", "4XX"], "*"):
+            http_res_text = await utils.stream_to_text_async(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+        if utils.match_response(http_res, "5XX", "*"):
+            http_res_text = await utils.stream_to_text_async(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+
+        raise errors.LineartDefaultError("Unexpected response received", http_res)
+
+    def test_data_source(
+        self,
+        *,
+        url: str,
+        method: Optional[str] = "GET",
+        headers: OptionalNullable[Dict[str, str]] = UNSET,
+        body: OptionalNullable[
+            Union[
+                models.DataSourceTestRequestBody,
+                models.DataSourceTestRequestBodyTypedDict,
+            ]
+        ] = UNSET,
+        params: OptionalNullable[Dict[str, Any]] = UNSET,
+        env_vars: OptionalNullable[Dict[str, str]] = UNSET,
+        retries: OptionalNullable[utils.RetryConfig] = UNSET,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> models.DataSourceTestResponse:
+        r"""Test Data Source
+
+        Test a data source configuration.
+
+        :param url:
+        :param method:
+        :param headers:
+        :param body:
+        :param params:
+        :param env_vars:
+        :param retries: Override the default retry configuration for this method
+        :param server_url: Override the default server URL for this method
+        :param timeout_ms: Override the default request timeout configuration for this method in milliseconds
+        :param http_headers: Additional headers to set or replace on requests.
+        """
+        base_url = None
+        url_variables = None
+        if timeout_ms is None:
+            timeout_ms = self.sdk_configuration.timeout_ms
+
+        if server_url is not None:
+            base_url = server_url
+        else:
+            base_url = self._get_url(base_url, url_variables)
+
+        request = models.DataSourceTestRequest(
+            url=url,
+            method=method,
+            headers=headers,
+            body=body,
+            params=params,
+            env_vars=env_vars,
+        )
+
+        req = self._build_request(
+            method="POST",
+            path="/data-sources/test",
+            base_url=base_url,
+            url_variables=url_variables,
+            request=request,
+            request_body_required=True,
+            request_has_path_params=False,
+            request_has_query_params=False,
+            user_agent_header="user-agent",
+            accept_header_value="application/json",
+            http_headers=http_headers,
+            get_serialized_body=lambda: utils.serialize_request_body(
+                request, False, False, "json", models.DataSourceTestRequest
+            ),
+            timeout_ms=timeout_ms,
+        )
+
+        if retries == UNSET:
+            if self.sdk_configuration.retry_config is not UNSET:
+                retries = self.sdk_configuration.retry_config
+
+        retry_config = None
+        if isinstance(retries, utils.RetryConfig):
+            retry_config = (retries, ["429", "500", "502", "503", "504"])
+
+        http_res = self.do_request(
+            hook_ctx=HookContext(
+                config=self.sdk_configuration,
+                base_url=base_url or "",
+                operation_id="test_data_source",
+                oauth2_scopes=None,
+                security_source=None,
+            ),
+            request=req,
+            error_status_codes=["404", "422", "4XX", "5XX"],
+            retry_config=retry_config,
+        )
+
+        response_data: Any = None
+        if utils.match_response(http_res, "200", "application/json"):
+            return unmarshal_json_response(models.DataSourceTestResponse, http_res)
+        if utils.match_response(http_res, "422", "application/json"):
+            response_data = unmarshal_json_response(
+                errors.HTTPValidationErrorData, http_res
+            )
+            raise errors.HTTPValidationError(response_data, http_res)
+        if utils.match_response(http_res, ["404", "4XX"], "*"):
+            http_res_text = utils.stream_to_text(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+        if utils.match_response(http_res, "5XX", "*"):
+            http_res_text = utils.stream_to_text(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+
+        raise errors.LineartDefaultError("Unexpected response received", http_res)
+
+    async def test_data_source_async(
+        self,
+        *,
+        url: str,
+        method: Optional[str] = "GET",
+        headers: OptionalNullable[Dict[str, str]] = UNSET,
+        body: OptionalNullable[
+            Union[
+                models.DataSourceTestRequestBody,
+                models.DataSourceTestRequestBodyTypedDict,
+            ]
+        ] = UNSET,
+        params: OptionalNullable[Dict[str, Any]] = UNSET,
+        env_vars: OptionalNullable[Dict[str, str]] = UNSET,
+        retries: OptionalNullable[utils.RetryConfig] = UNSET,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> models.DataSourceTestResponse:
+        r"""Test Data Source
+
+        Test a data source configuration.
+
+        :param url:
+        :param method:
+        :param headers:
+        :param body:
+        :param params:
+        :param env_vars:
+        :param retries: Override the default retry configuration for this method
+        :param server_url: Override the default server URL for this method
+        :param timeout_ms: Override the default request timeout configuration for this method in milliseconds
+        :param http_headers: Additional headers to set or replace on requests.
+        """
+        base_url = None
+        url_variables = None
+        if timeout_ms is None:
+            timeout_ms = self.sdk_configuration.timeout_ms
+
+        if server_url is not None:
+            base_url = server_url
+        else:
+            base_url = self._get_url(base_url, url_variables)
+
+        request = models.DataSourceTestRequest(
+            url=url,
+            method=method,
+            headers=headers,
+            body=body,
+            params=params,
+            env_vars=env_vars,
+        )
+
+        req = self._build_request_async(
+            method="POST",
+            path="/data-sources/test",
+            base_url=base_url,
+            url_variables=url_variables,
+            request=request,
+            request_body_required=True,
+            request_has_path_params=False,
+            request_has_query_params=False,
+            user_agent_header="user-agent",
+            accept_header_value="application/json",
+            http_headers=http_headers,
+            get_serialized_body=lambda: utils.serialize_request_body(
+                request, False, False, "json", models.DataSourceTestRequest
+            ),
+            timeout_ms=timeout_ms,
+        )
+
+        if retries == UNSET:
+            if self.sdk_configuration.retry_config is not UNSET:
+                retries = self.sdk_configuration.retry_config
+
+        retry_config = None
+        if isinstance(retries, utils.RetryConfig):
+            retry_config = (retries, ["429", "500", "502", "503", "504"])
+
+        http_res = await self.do_request_async(
+            hook_ctx=HookContext(
+                config=self.sdk_configuration,
+                base_url=base_url or "",
+                operation_id="test_data_source",
+                oauth2_scopes=None,
+                security_source=None,
+            ),
+            request=req,
+            error_status_codes=["404", "422", "4XX", "5XX"],
+            retry_config=retry_config,
+        )
+
+        response_data: Any = None
+        if utils.match_response(http_res, "200", "application/json"):
+            return unmarshal_json_response(models.DataSourceTestResponse, http_res)
+        if utils.match_response(http_res, "422", "application/json"):
+            response_data = unmarshal_json_response(
+                errors.HTTPValidationErrorData, http_res
+            )
+            raise errors.HTTPValidationError(response_data, http_res)
+        if utils.match_response(http_res, ["404", "4XX"], "*"):
+            http_res_text = await utils.stream_to_text_async(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+        if utils.match_response(http_res, "5XX", "*"):
+            http_res_text = await utils.stream_to_text_async(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+
+        raise errors.LineartDefaultError("Unexpected response received", http_res)
+
+    def test_data_source_by_id(
+        self,
+        *,
+        data_source_id: str,
+        params: OptionalNullable[Dict[str, Any]] = UNSET,
+        env_vars: OptionalNullable[Dict[str, str]] = UNSET,
+        retries: OptionalNullable[utils.RetryConfig] = UNSET,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> models.DataSourceTestResponse:
+        r"""Test Data Source By Id
+
+        Test an existing data source with optional runtime parameters.
+
+        Backend fetches the data source configuration and merges with runtime parameters
+        and environment variables before executing the test.
+
+        :param data_source_id:
+        :param params:
+        :param env_vars:
+        :param retries: Override the default retry configuration for this method
+        :param server_url: Override the default server URL for this method
+        :param timeout_ms: Override the default request timeout configuration for this method in milliseconds
+        :param http_headers: Additional headers to set or replace on requests.
+        """
+        base_url = None
+        url_variables = None
+        if timeout_ms is None:
+            timeout_ms = self.sdk_configuration.timeout_ms
+
+        if server_url is not None:
+            base_url = server_url
+        else:
+            base_url = self._get_url(base_url, url_variables)
+
+        request = models.TestDataSourceByIDRequest(
+            data_source_id=data_source_id,
+            data_source_test_params=models.DataSourceTestParams(
+                params=params,
+                env_vars=env_vars,
+            ),
+        )
+
+        req = self._build_request(
+            method="POST",
+            path="/data-sources/{data_source_id}/test",
+            base_url=base_url,
+            url_variables=url_variables,
+            request=request,
+            request_body_required=True,
+            request_has_path_params=True,
+            request_has_query_params=False,
+            user_agent_header="user-agent",
+            accept_header_value="application/json",
+            http_headers=http_headers,
+            get_serialized_body=lambda: utils.serialize_request_body(
+                request.data_source_test_params,
+                False,
+                False,
+                "json",
+                models.DataSourceTestParams,
+            ),
+            timeout_ms=timeout_ms,
+        )
+
+        if retries == UNSET:
+            if self.sdk_configuration.retry_config is not UNSET:
+                retries = self.sdk_configuration.retry_config
+
+        retry_config = None
+        if isinstance(retries, utils.RetryConfig):
+            retry_config = (retries, ["429", "500", "502", "503", "504"])
+
+        http_res = self.do_request(
+            hook_ctx=HookContext(
+                config=self.sdk_configuration,
+                base_url=base_url or "",
+                operation_id="test_data_source_by_id",
+                oauth2_scopes=None,
+                security_source=None,
+            ),
+            request=req,
+            error_status_codes=["404", "422", "4XX", "5XX"],
+            retry_config=retry_config,
+        )
+
+        response_data: Any = None
+        if utils.match_response(http_res, "200", "application/json"):
+            return unmarshal_json_response(models.DataSourceTestResponse, http_res)
+        if utils.match_response(http_res, "422", "application/json"):
+            response_data = unmarshal_json_response(
+                errors.HTTPValidationErrorData, http_res
+            )
+            raise errors.HTTPValidationError(response_data, http_res)
+        if utils.match_response(http_res, ["404", "4XX"], "*"):
+            http_res_text = utils.stream_to_text(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+        if utils.match_response(http_res, "5XX", "*"):
+            http_res_text = utils.stream_to_text(http_res)
+            raise errors.LineartDefaultError(
+                "API error occurred", http_res, http_res_text
+            )
+
+        raise errors.LineartDefaultError("Unexpected response received", http_res)
+
+    async def test_data_source_by_id_async(
+        self,
+        *,
+        data_source_id: str,
+        params: OptionalNullable[Dict[str, Any]] = UNSET,
+        env_vars: OptionalNullable[Dict[str, str]] = UNSET,
+        retries: OptionalNullable[utils.RetryConfig] = UNSET,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> models.DataSourceTestResponse:
+        r"""Test Data Source By Id
+
+        Test an existing data source with optional runtime parameters.
+
+        Backend fetches the data source configuration and merges with runtime parameters
+        and environment variables before executing the test.
+
+        :param data_source_id:
+        :param params:
+        :param env_vars:
+        :param retries: Override the default retry configuration for this method
+        :param server_url: Override the default server URL for this method
+        :param timeout_ms: Override the default request timeout configuration for this method in milliseconds
+        :param http_headers: Additional headers to set or replace on requests.
+        """
+        base_url = None
+        url_variables = None
+        if timeout_ms is None:
+            timeout_ms = self.sdk_configuration.timeout_ms
+
+        if server_url is not None:
+            base_url = server_url
+        else:
+            base_url = self._get_url(base_url, url_variables)
+
+        request = models.TestDataSourceByIDRequest(
+            data_source_id=data_source_id,
+            data_source_test_params=models.DataSourceTestParams(
+                params=params,
+                env_vars=env_vars,
+            ),
+        )
+
+        req = self._build_request_async(
+            method="POST",
+            path="/data-sources/{data_source_id}/test",
+            base_url=base_url,
+            url_variables=url_variables,
+            request=request,
+            request_body_required=True,
+            request_has_path_params=True,
+            request_has_query_params=False,
+            user_agent_header="user-agent",
+            accept_header_value="application/json",
+            http_headers=http_headers,
+            get_serialized_body=lambda: utils.serialize_request_body(
+                request.data_source_test_params,
+                False,
+                False,
+                "json",
+                models.DataSourceTestParams,
+            ),
+            timeout_ms=timeout_ms,
+        )
+
+        if retries == UNSET:
+            if self.sdk_configuration.retry_config is not UNSET:
+                retries = self.sdk_configuration.retry_config
+
+        retry_config = None
+        if isinstance(retries, utils.RetryConfig):
+            retry_config = (retries, ["429", "500", "502", "503", "504"])
+
+        http_res = await self.do_request_async(
+            hook_ctx=HookContext(
+                config=self.sdk_configuration,
+                base_url=base_url or "",
+                operation_id="test_data_source_by_id",
+                oauth2_scopes=None,
+                security_source=None,
+            ),
+            request=req,
+            error_status_codes=["404", "422", "4XX", "5XX"],
+            retry_config=retry_config,
+        )
+
+        response_data: Any = None
+        if utils.match_response(http_res, "200", "application/json"):
+            return unmarshal_json_response(models.DataSourceTestResponse, http_res)
         if utils.match_response(http_res, "422", "application/json"):
             response_data = unmarshal_json_response(
                 errors.HTTPValidationErrorData, http_res
