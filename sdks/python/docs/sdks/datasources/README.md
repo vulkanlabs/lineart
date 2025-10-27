@@ -13,13 +13,16 @@
 * [get_object](#get_object) - Get Data Object
 * [get_metrics](#get_metrics) - Get Data Source Metrics
 * [get_cache_statistics](#get_cache_statistics) - Get Cache Statistics
+* [update_data_source](#update_data_source) - Update Data Source
 * [get_env_variables](#get_env_variables) - Get Data Source Env Variables
 * [list_data_objects](#list_data_objects) - List Data Objects
 * [get_usage](#get_usage) - Get Data Source Usage
+* [publish_data_source](#publish_data_source) - Publish Data Source
+* [data_source_test_by_id](#data_source_test_by_id) - Data Source Test By Id
 
 ## list
 
-List all data sources.
+List all data sources. Optionally filter by status (e.g., 'PUBLISHED', 'DRAFT').
 
 ### Example Usage
 
@@ -44,6 +47,7 @@ with Lineart(
 | Parameter                                                           | Type                                                                | Required                                                            | Description                                                         |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
 | `include_archived`                                                  | *Optional[bool]*                                                    | :heavy_minus_sign:                                                  | N/A                                                                 |
+| `status`                                                            | *OptionalNullable[str]*                                             | :heavy_minus_sign:                                                  | N/A                                                                 |
 | `retries`                                                           | [Optional[utils.RetryConfig]](../../models/utils/retryconfig.md)    | :heavy_minus_sign:                                                  | Configuration to override the default retry behavior of the client. |
 
 ### Response
@@ -353,6 +357,55 @@ with Lineart(
 | errors.HTTPValidationError | 422                        | application/json           |
 | errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
 
+## update_data_source
+
+Update a data source.
+
+### Example Usage
+
+<!-- UsageSnippet language="python" operationID="update_data_source" method="put" path="/data-sources/{data_source_id}" -->
+```python
+from lineart_sdk import Lineart, models
+
+
+with Lineart(
+    server_url="https://api.example.com",
+) as lineart:
+
+    res = lineart.data_sources.update_data_source(data_source_id="<id>", name="<value>", source={
+        "url": "https://fond-widow.net/",
+        "method": models.Method.GET,
+        "response_type": models.ResponseType.PLAIN_TEXT,
+    })
+
+    # Handle response
+    print(res)
+
+```
+
+### Parameters
+
+| Parameter                                                           | Type                                                                | Required                                                            | Description                                                         |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `data_source_id`                                                    | *str*                                                               | :heavy_check_mark:                                                  | N/A                                                                 |
+| `name`                                                              | *str*                                                               | :heavy_check_mark:                                                  | N/A                                                                 |
+| `source`                                                            | [models.DataSourceSpecSource](../../models/datasourcespecsource.md) | :heavy_check_mark:                                                  | N/A                                                                 |
+| `caching`                                                           | [Optional[models.CachingOptions]](../../models/cachingoptions.md)   | :heavy_minus_sign:                                                  | N/A                                                                 |
+| `description`                                                       | *OptionalNullable[str]*                                             | :heavy_minus_sign:                                                  | N/A                                                                 |
+| `metadata`                                                          | Dict[str, *Any*]                                                    | :heavy_minus_sign:                                                  | N/A                                                                 |
+| `retries`                                                           | [Optional[utils.RetryConfig]](../../models/utils/retryconfig.md)    | :heavy_minus_sign:                                                  | Configuration to override the default retry behavior of the client. |
+
+### Response
+
+**[models.DataSource](../../models/datasource.md)**
+
+### Errors
+
+| Error Type                 | Status Code                | Content Type               |
+| -------------------------- | -------------------------- | -------------------------- |
+| errors.HTTPValidationError | 422                        | application/json           |
+| errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
+
 ## get_env_variables
 
 Get environment variables for a data source.
@@ -467,6 +520,91 @@ with Lineart(
 ### Response
 
 **[Dict[str, Any]](../../models/.md)**
+
+### Errors
+
+| Error Type                 | Status Code                | Content Type               |
+| -------------------------- | -------------------------- | -------------------------- |
+| errors.HTTPValidationError | 422                        | application/json           |
+| errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
+
+## publish_data_source
+
+Publish a data source.
+
+### Example Usage
+
+<!-- UsageSnippet language="python" operationID="publish_data_source" method="post" path="/data-sources/{data_source_id}/publish" -->
+```python
+from lineart_sdk import Lineart
+
+
+with Lineart(
+    server_url="https://api.example.com",
+) as lineart:
+
+    res = lineart.data_sources.publish_data_source(data_source_id="<id>")
+
+    # Handle response
+    print(res)
+
+```
+
+### Parameters
+
+| Parameter                                                           | Type                                                                | Required                                                            | Description                                                         |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `data_source_id`                                                    | *str*                                                               | :heavy_check_mark:                                                  | N/A                                                                 |
+| `retries`                                                           | [Optional[utils.RetryConfig]](../../models/utils/retryconfig.md)    | :heavy_minus_sign:                                                  | Configuration to override the default retry behavior of the client. |
+
+### Response
+
+**[models.DataSource](../../models/datasource.md)**
+
+### Errors
+
+| Error Type                 | Status Code                | Content Type               |
+| -------------------------- | -------------------------- | -------------------------- |
+| errors.HTTPValidationError | 422                        | application/json           |
+| errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
+
+## data_source_test_by_id
+
+Test an existing data source with optional runtime parameters.
+
+Backend fetches the data source configuration and merges with runtime parameters
+and environment variables before executing the test.
+
+### Example Usage
+
+<!-- UsageSnippet language="python" operationID="data_source_test_by_id" method="post" path="/data-sources/{data_source_id}/test" -->
+```python
+from lineart_sdk import Lineart
+
+
+with Lineart(
+    server_url="https://api.example.com",
+) as lineart:
+
+    res = lineart.data_sources.data_source_test_by_id(data_source_id="<id>")
+
+    # Handle response
+    print(res)
+
+```
+
+### Parameters
+
+| Parameter                                                           | Type                                                                | Required                                                            | Description                                                         |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `data_source_id`                                                    | *str*                                                               | :heavy_check_mark:                                                  | N/A                                                                 |
+| `params`                                                            | Dict[str, *Any*]                                                    | :heavy_minus_sign:                                                  | N/A                                                                 |
+| `env_vars`                                                          | Dict[str, *str*]                                                    | :heavy_minus_sign:                                                  | N/A                                                                 |
+| `retries`                                                           | [Optional[utils.RetryConfig]](../../models/utils/retryconfig.md)    | :heavy_minus_sign:                                                  | Configuration to override the default retry behavior of the client. |
+
+### Response
+
+**[models.DataSourceTestResponse](../../models/datasourcetestresponse.md)**
 
 ### Errors
 

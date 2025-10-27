@@ -142,6 +142,15 @@ def extract_runtime_params(spec: ConfigurableDict) -> list[str]:
                 raise ValueError(
                     f"Invalid Jinja2 template in field '{key}': {value}"
                 ) from e
+        elif isinstance(value, dict):
+            # Handle dicts that may represent RunTimeParam
+            if "param" in value:
+                try:
+                    rtp = RunTimeParam(**value)
+                    runtime_params.append(rtp.param)
+                    continue
+                except ValidationError:
+                    pass
 
     return list(set(runtime_params))
 

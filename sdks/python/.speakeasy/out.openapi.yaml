@@ -190,7 +190,7 @@ paths:
       tags:
         - "data-sources"
       summary: "List Data Sources"
-      description: "List all data sources."
+      description: "List all data sources. Optionally filter by status (e.g., 'PUBLISHED', 'DRAFT')."
       operationId: "list_data_sources"
       parameters:
         - name: "include_archived"
@@ -200,6 +200,14 @@ paths:
             type: "boolean"
             default: false
             title: "Include Archived"
+        - name: "status"
+          in: "query"
+          required: false
+          schema:
+            anyOf:
+              - type: "string"
+              - type: "null"
+            title: "Status"
       responses:
         "200":
           description: "Successful Response"
@@ -273,6 +281,37 @@ paths:
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
       x-speakeasy-group: "dataSources"
       x-speakeasy-name-override: "get"
+    put:
+      tags:
+        - "data-sources"
+      summary: "Update Data Source"
+      description: "Update a data source."
+      operationId: "update_data_source"
+      parameters:
+        - name: "data_source_id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+            title: "Data Source Id"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema: {"$ref": "#/components/schemas/DataSourceSpec"}
+      responses:
+        "200":
+          description: "Successful Response"
+          content:
+            "application/json":
+              schema: {"$ref": "#/components/schemas/DataSource"}
+        "404":
+          description: "Not found"
+        "422":
+          description: "Validation Error"
+          content:
+            "application/json":
+              schema: {"$ref": "#/components/schemas/HTTPValidationError"}
     delete:
       tags:
         - "data-sources"
@@ -583,6 +622,65 @@ paths:
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
       x-speakeasy-group: "dataSources"
       x-speakeasy-name-override: "getCacheStatistics"
+  "/data-sources/{data_source_id}/publish":
+    post:
+      tags:
+        - "data-sources"
+      summary: "Publish Data Source"
+      description: "Publish a data source."
+      operationId: "publish_data_source"
+      parameters:
+        - name: "data_source_id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+            title: "Data Source Id"
+      responses:
+        "200":
+          description: "Successful Response"
+          content:
+            "application/json":
+              schema: {"$ref": "#/components/schemas/DataSource"}
+        "404":
+          description: "Not found"
+        "422":
+          description: "Validation Error"
+          content:
+            "application/json":
+              schema: {"$ref": "#/components/schemas/HTTPValidationError"}
+  "/data-sources/{data_source_id}/test":
+    post:
+      tags:
+        - "data-sources"
+      summary: "Data Source Test By Id"
+      description: "Test an existing data source with optional runtime parameters.\n\nBackend fetches the data source configuration and merges with runtime parameters\nand environment variables before executing the test."
+      operationId: "data_source_test_by_id"
+      parameters:
+        - name: "data_source_id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+            title: "Data Source Id"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema: {"$ref": "#/components/schemas/DataSourceTestParams"}
+      responses:
+        "200":
+          description: "Successful Response"
+          content:
+            "application/json":
+              schema: {"$ref": "#/components/schemas/DataSourceTestResponse"}
+        "404":
+          description: "Not found"
+        "422":
+          description: "Validation Error"
+          content:
+            "application/json":
+              schema: {"$ref": "#/components/schemas/HTTPValidationError"}
   "/internal/run-version-sync":
     post:
       tags:
@@ -2294,9 +2392,6 @@ components:
           type: "string"
           format: "uuid"
           title: "Data Source Id"
-        "archived":
-          type: "boolean"
-          title: "Archived"
         "created_at":
           type: "string"
           format: "date-time"
@@ -2319,12 +2414,12 @@ components:
               type: "array"
             - type: "null"
           title: "Runtime Params"
+        "status": {"$ref": "#/components/schemas/DataSourceStatus", "default": "DRAFT"}
       type: "object"
       required:
         - "name"
         - "source"
         - "data_source_id"
-        - "archived"
         - "created_at"
         - "last_updated_at"
       title: "DataSource"
@@ -2421,6 +2516,82 @@ components:
         - "name"
         - "source"
       title: "DataSourceSpec"
+    "DataSourceStatus":
+      type: "string"
+      enum:
+        - "DRAFT"
+        - "PUBLISHED"
+        - "ARCHIVED"
+      title: "DataSourceStatus"
+    "DataSourceTestParams":
+      properties:
+        "params":
+          anyOf:
+            - additionalProperties: true
+              type: "object"
+            - type: "null"
+          title: "Params"
+        "env_vars":
+          anyOf:
+            - additionalProperties:
+                type: "string"
+              type: "object"
+            - type: "null"
+          title: "Env Vars"
+      type: "object"
+      title: "DataSourceTestParams"
+      description: "Parameters for testing an existing data source.\nData source ID comes from URL path."
+    "DataSourceTestResponse":
+      properties:
+        "test_id":
+          type: "string"
+          format: "uuid"
+          title: "Test Id"
+        "request_url":
+          anyOf:
+            - type: "string"
+            - type: "null"
+          title: "Request Url"
+        "request_headers":
+          anyOf:
+            - additionalProperties:
+                type: "string"
+              type: "object"
+            - type: "null"
+          title: "Request Headers"
+        "status_code":
+          anyOf:
+            - type: "integer"
+            - type: "null"
+          title: "Status Code"
+        "response_time_ms":
+          type: "number"
+          title: "Response Time Ms"
+        "response_body":
+          anyOf:
+            - additionalProperties: true
+              type: "object"
+            - type: "string"
+            - type: "null"
+          title: "Response Body"
+        "response_headers":
+          anyOf:
+            - additionalProperties:
+                type: "string"
+              type: "object"
+            - type: "null"
+          title: "Response Headers"
+        "error":
+          anyOf:
+            - type: "string"
+            - type: "null"
+          title: "Error"
+      type: "object"
+      required:
+        - "test_id"
+        - "status_code"
+        - "response_time_ms"
+      title: "DataSourceTestResponse"
     "DependencyDict":
       properties:
         "node":

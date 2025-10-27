@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Dict
 
 from pydantic import model_serializer
-from typing_extensions import Annotated, NotRequired, TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from lineart_sdk.types import (
     UNSET,
@@ -14,29 +14,30 @@ from lineart_sdk.types import (
     Nullable,
     OptionalNullable,
 )
-from lineart_sdk.utils import FieldMetadata, QueryParamMetadata
 
 
-class ListDataSourcesRequestTypedDict(TypedDict):
-    include_archived: NotRequired[bool]
-    status: NotRequired[Nullable[str]]
+class DataSourceTestParamsTypedDict(TypedDict):
+    r"""Parameters for testing an existing data source.
+    Data source ID comes from URL path.
+    """
+
+    params: NotRequired[Nullable[Dict[str, Any]]]
+    env_vars: NotRequired[Nullable[Dict[str, str]]]
 
 
-class ListDataSourcesRequest(BaseModel):
-    include_archived: Annotated[
-        Optional[bool],
-        FieldMetadata(query=QueryParamMetadata(style="form", explode=True)),
-    ] = False
+class DataSourceTestParams(BaseModel):
+    r"""Parameters for testing an existing data source.
+    Data source ID comes from URL path.
+    """
 
-    status: Annotated[
-        OptionalNullable[str],
-        FieldMetadata(query=QueryParamMetadata(style="form", explode=True)),
-    ] = UNSET
+    params: OptionalNullable[Dict[str, Any]] = UNSET
+
+    env_vars: OptionalNullable[Dict[str, str]] = UNSET
 
     @model_serializer(mode="wrap")
     def serialize_model(self, handler):
-        optional_fields = ["include_archived", "status"]
-        nullable_fields = ["status"]
+        optional_fields = ["params", "env_vars"]
+        nullable_fields = ["params", "env_vars"]
         null_default_fields = []
 
         serialized = handler(self)
