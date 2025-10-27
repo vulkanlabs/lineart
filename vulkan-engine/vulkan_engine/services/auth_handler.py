@@ -125,7 +125,6 @@ class AuthHandler:
                 return {"Authorization": f"Bearer {token}"}
 
         access_token = self._fetch_token()
-
         return {"Authorization": f"Bearer {access_token}"}
 
     def _fetch_token(self) -> str:
@@ -158,6 +157,14 @@ class AuthHandler:
 
         if self.auth_config.scope:
             body["scope"] = self.auth_config.scope
+
+        if self.auth_config.grant_type.value == "password":
+            username = self.env_variables.get("USERNAME", "")
+            password = self.env_variables.get("PASSWORD", "")
+            if username:
+                body["username"] = username
+            if password:
+                body["password"] = password
 
         response = requests.post(
             url=self.auth_config.token_url,

@@ -377,13 +377,13 @@ class DataSourceService(BaseService):
         )
 
         # Check if any desired variable uses reserved names
-        reserved_names = {"CLIENT_ID", "CLIENT_SECRET"}
+        reserved_names = {"CLIENT_ID", "CLIENT_SECRET", "USERNAME", "PASSWORD"}
         variable_names = {v.name for v in desired_variables}
         reserved_in_request = reserved_names.intersection(variable_names)
 
         # If reserved names are used, verify auth is configured
         if reserved_in_request:
-            spec = DataSourceSchema.model_validate(data_source)
+            spec = DataSourceSchema.from_orm(data_source)
             has_auth = hasattr(spec.source, "auth") and spec.source.auth is not None
 
             if not has_auth:
@@ -408,15 +408,13 @@ class DataSourceService(BaseService):
         # Update or create variables
         existing_map = {v.name: v for v in existing_variables}
         for v in desired_variables:
-            # Encrypt CLIENT_SECRET before storing
+            # Encrypt CLIENT_SECRET and PASSWORD before storing
             value_to_store = v.value
-            if v.name == "CLIENT_SECRET":
+            if v.name in ["CLIENT_SECRET", "PASSWORD"]:
                 try:
                     value_to_store = encrypt_secret(v.value)
                 except EncryptionError as e:
-                    raise InvalidDataSourceException(
-                        f"Failed to encrypt CLIENT_SECRET: {e}"
-                    )
+                    raise InvalidDataSourceException(f"Failed to encrypt {v.name}: {e}")
 
             env_var = existing_map.get(v.name)
             if not env_var:
@@ -461,8 +459,7 @@ class DataSourceService(BaseService):
 
         filtered_vars = []
         for var in env_vars:
-            if var.name == "CLIENT_SECRET":
-                # Create a copy with masked value
+            if var.name in ["CLIENT_SECRET", "PASSWORD"]:
                 masked_var = DataSourceEnvVarSchema(name=var.name, value="********")
                 filtered_vars.append(masked_var)
             else:

@@ -7,7 +7,7 @@ import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
 import { Button, Input, Label, Separator, RadioGroup, RadioGroupItem, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui";
 
 type AuthMethod = "none" | "basic" | "bearer";
-type GrantType = "client_credentials" | "password" | "authorization_code" | "implicit" | "refresh_token";
+type GrantType = "client_credentials" | "password" | "implicit";
 
 interface AuthenticationConfigCardProps {
     dataSource: DataSource;
@@ -63,10 +63,14 @@ export function AuthenticationConfigCard({
         (sourceWithAuth.auth?.grant_type as GrantType) || "client_credentials"
     );
     const [scope, setScope] = useState(sourceWithAuth.auth?.scope || "");
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [hasPassword, setHasPassword] = useState(false);
 
     // Validation errors
     const [tokenUrlError, setTokenUrlError] = useState("");
     const [credentialsError, setCredentialsError] = useState("");
+    const [passwordGrantError, setPasswordGrantError] = useState("");
 
     // Load credentials from env vars
     useEffect(() => {
@@ -75,22 +79,39 @@ export function AuthenticationConfigCard({
                 const envVars = await fetchDataSourceEnvVars(dataSource.data_source_id, projectId);
                 const clientIdVar = envVars.find((v) => v.name === "CLIENT_ID");
                 const clientSecretVar = envVars.find((v) => v.name === "CLIENT_SECRET");
+                const usernameVar = envVars.find((v) => v.name === "USERNAME");
+                const passwordVar = envVars.find((v) => v.name === "PASSWORD");
 
                 if (clientIdVar) {
                     setClientId(String(clientIdVar.value || ""));
-                    setHasClientId(!!clientIdVar.value);
+                    setHasClientId(true);
+                } else {
+                    setHasClientId(false);
                 }
+
                 if (clientSecretVar) {
-                    setClientSecret(String(clientSecretVar.value || ""));
-                    setHasSecret(!!clientSecretVar.value);
+                    setClientSecret("");
+                    setHasSecret(true);
+                } else {
+                    setHasSecret(false);
+                }
+
+                if (usernameVar)
+                    setUsername(String(usernameVar.value || ""));
+
+                if (passwordVar) {
+                    setPassword("");
+                    setHasPassword(true);
+                } else {
+                    setHasPassword(false);
                 }
             } catch (error) {
                 console.error("Failed to load credentials:", error);
             }
         };
 
-        if (sourceWithAuth.auth) loadCredentials();
-    }, [dataSource, projectId, fetchDataSourceEnvVars, sourceWithAuth.auth]);
+        loadCredentials();
+    }, [dataSource.data_source_id, projectId, fetchDataSourceEnvVars]);
 
     // Auto-enable credential editing when auth method changes and no credentials exist
     useEffect(() => {
@@ -103,6 +124,7 @@ export function AuthenticationConfigCard({
         // Clear previous errors
         setTokenUrlError("");
         setCredentialsError("");
+        setPasswordGrantError("");
 
         // Validate required fields for Bearer auth
         if (authMethod === "bearer") {
@@ -110,10 +132,21 @@ export function AuthenticationConfigCard({
                 setTokenUrlError("Token URL is required for Bearer authentication");
                 return;
             }
+
+            // Validate password grant type specific fields, only if not already saved
+            if (grantType === "password") {
+                const needsUsername = !username || !username.trim();
+                const needsPassword = !password || (!password.trim() && !hasPassword);
+
+                if (needsUsername || needsPassword) {
+                    setPasswordGrantError("Username and Password are required for Password grant type");
+                    return;
+                }
+            }
         }
 
-        // Validate credentials if auth is enabled
-        if (authMethod !== "none") {
+        // Validate credentials if auth is enabled and we're editing credentials
+        if (authMethod !== "none" && (isEditingCredentials || !hasClientId)) {
             // For credential editing mode, use inputs; otherwise use stored values
             const finalClientId = isEditingCredentials ? clientIdInput : (clientIdInput || clientId);
             const finalSecret = isEditingCredentials ? clientSecretInput : (clientSecretInput || clientSecret);
@@ -158,25 +191,35 @@ export function AuthenticationConfigCard({
             );
 
             // Update credentials if auth is configured and credentials were edited
-            if (authMethod !== "none" && (isEditingCredentials || !hasClientId)) {
-                const finalClientId = clientIdInput || clientId;
-                const finalSecret = clientSecretInput || clientSecret;
-                const credentials: DataSourceEnvVarBase[] = [
-                    { name: "CLIENT_ID", value: finalClientId },
-                    { name: "CLIENT_SECRET", value: finalSecret },
-                ];
+            if (authMethod !== "none") {
+                const credentials: DataSourceEnvVarBase[] = [];
 
-                await setDataSourceEnvVars(
-                    dataSource.data_source_id,
-                    credentials,
-                    projectId
-                );
+                if (isEditingCredentials || !hasClientId) {
+                    const finalClientId = clientIdInput || clientId;
+                    const finalSecret = clientSecretInput || clientSecret;
+                    credentials.push({ name: "CLIENT_ID", value: finalClientId });
+                    credentials.push({ name: "CLIENT_SECRET", value: finalSecret });
 
-                // Update stored credential state
-                setClientId(finalClientId);
-                setHasClientId(true);
-                setClientSecret(finalSecret);
-                setHasSecret(true);
+                    // Update stored credential state
+                    setClientId(finalClientId);
+                    setHasClientId(true);
+                    setClientSecret(finalSecret);
+                    setHasSecret(true);
+                }
+
+                if (grantType === "password" && username && password) {
+                    credentials.push({ name: "USERNAME", value: username });
+                    credentials.push({ name: "PASSWORD", value: password });
+                }
+
+                // Only call API if we have credentials to save
+                if (credentials.length > 0) {
+                    await setDataSourceEnvVars(
+                        dataSource.data_source_id,
+                        credentials,
+                        projectId
+                    );
+                }
             }
 
             setIsEditing(false);
@@ -203,6 +246,7 @@ export function AuthenticationConfigCard({
         setIsEditingCredentials(false);
         setTokenUrlError("");
         setCredentialsError("");
+        setPasswordGrantError("");
     };
 
     const handleEditCredentials = () => {
@@ -328,7 +372,7 @@ export function AuthenticationConfigCard({
                                         if (credentialsError) setCredentialsError("");
                                     }}
                                     disabled={!isEditing || !isEditingCredentials || disabled}
-                                    placeholder={!isEditingCredentials && hasClientId ? "••••••••" : "Enter client ID"}
+                                    placeholder="Enter client ID"
                                 />
                             </div>
 
@@ -397,9 +441,7 @@ export function AuthenticationConfigCard({
                                     <SelectContent>
                                         <SelectItem value="client_credentials">Client Credentials</SelectItem>
                                         <SelectItem value="password">Password</SelectItem>
-                                        <SelectItem value="authorization_code">Authorization Code</SelectItem>
                                         <SelectItem value="implicit">Implicit</SelectItem>
-                                        <SelectItem value="refresh_token">Refresh Token</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -416,6 +458,59 @@ export function AuthenticationConfigCard({
                                     placeholder="read write"
                                 />
                             </div>
+
+                            {grantType === "password" && (
+                                <>
+                                    <Separator className="my-4" />
+                                    <h5 className="text-sm font-medium">Password Grant Credentials</h5>
+
+                                    {passwordGrantError && (
+                                        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+                                            {passwordGrantError}
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="username" className="text-sm">
+                                            Username <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="username"
+                                            value={username}
+                                            onChange={(e) => {
+                                                setUsername(e.target.value);
+                                                if (passwordGrantError) setPasswordGrantError("");
+                                            }}
+                                            disabled={!isEditing || disabled}
+                                            placeholder="Enter username"
+                                            className={passwordGrantError ? "border-red-500" : ""}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="password" className="text-sm">
+                                            Password <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="password"
+                                            type="password"
+                                            value={password || (hasPassword ? "••••••••" : "")}
+                                            onChange={(e) => {
+                                                setPassword(e.target.value);
+                                                if (passwordGrantError) setPasswordGrantError("");
+                                            }}
+                                            disabled={!isEditing || disabled}
+                                            placeholder={hasPassword ? "••••••••" : "Enter password"}
+                                            className={passwordGrantError ? "border-red-500" : ""}
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            {hasPassword
+                                                ? "Password is encrypted and stored securely"
+                                                : "Used for Password Credentials grant"}
+                                        </p>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </>
                 )}

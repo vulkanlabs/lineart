@@ -18,9 +18,7 @@ class AuthMethod(str, Enum):
 class GrantType(str, Enum):
     CLIENT_CREDENTIALS = "client_credentials"
     PASSWORD = "password"
-    AUTHORIZATION_CODE = "authorization_code"
     IMPLICIT = "implicit"
-    REFRESH_TOKEN = "refresh_token"
 
 
 class Auth(BaseModel):

@@ -10,8 +10,9 @@ from urllib.parse import urlparse
 import httpx
 from jinja2 import TemplateSyntaxError, UndefinedError
 
-from vulkan.node_config import configure_fields, resolve_template
-from vulkan_engine.db import DataSourceTestResult
+from vulkan.auth import Auth
+from vulkan.node_config import configure_fields, normalize_mapping, resolve_template
+from vulkan_engine.db import DataSourceEnvVar, DataSourceTestResult
 from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
     InvalidDataSourceException,
@@ -22,6 +23,8 @@ from vulkan_engine.schemas import (
     DataSourceTestRequestById,
     DataSourceTestResponse,
 )
+from vulkan_engine.security.crypto import decrypt_secret
+from vulkan_engine.services.auth_handler import AuthHandler
 from vulkan_engine.services.base import BaseService
 
 
@@ -37,6 +40,37 @@ class DataSourceTestService(BaseService):
             logger: Optional logger
         """
         super().__init__(db, logger)
+
+    def _load_auth_credentials(self, data_source_id: str) -> dict[str, str]:
+        """
+        Load and decrypt authentication credentials from db.
+
+        Returns:
+            Dictionary with CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD (decrypted)
+        """
+        env_vars = {}
+
+        credentials = (
+            self.db.query(DataSourceEnvVar)
+            .filter_by(data_source_id=data_source_id)
+            .filter(
+                DataSourceEnvVar.name.in_(
+                    ["CLIENT_ID", "CLIENT_SECRET", "USERNAME", "PASSWORD"]
+                )
+            )
+            .all()
+        )
+
+        for credential in credentials:
+            value = str(credential.value)
+
+            # CLIENT_SECRET and PASSWORD are stored encrypted
+            if credential.name in ["CLIENT_SECRET", "PASSWORD"]:
+                value = decrypt_secret(value)
+
+            env_vars[credential.name] = value
+
+        return env_vars
 
     def _validate_test_request(self, test_request: DataSourceTestRequest) -> None:
         """
@@ -100,31 +134,51 @@ class DataSourceTestService(BaseService):
 
         # Build full test request by merging data source config with runtime params
         source_config = data_source.source
+
+        # Normalize headers and params from ConfigurableDict to template strings
+        headers_normalized = normalize_mapping(source_config.get("headers"))
+        params_base_normalized = normalize_mapping(source_config.get("params"))
+
+        env_vars = test_request.env_vars or {}
+
+        if source_config.get("auth"):
+            auth_credentials = self._load_auth_credentials(test_request.data_source_id)
+            env_vars.update(auth_credentials)
+
         full_request = DataSourceTestRequest(
             url=source_config.get("url", ""),
             method=source_config.get("method", "GET"),
-            headers=source_config.get("headers"),
+            headers=headers_normalized,
             body=source_config.get("body"),
-            # Merge params: data source base + runtime overrides
+            # Merge params: normalized base + runtime overrides
             params={
-                **(source_config.get("params") or {}),
+                **(params_base_normalized or {}),
                 **(test_request.params or {}),
             },
-            # Use provided env_vars for template resolution
-            env_vars=test_request.env_vars,
+            # Use merged env_vars
+            env_vars=env_vars,
         )
 
-        # Execute using the standard test method
-        return await self.execute_test(full_request)
+        # Execute using the standard test method, passing auth config and data source ID
+        return await self.execute_test(
+            full_request,
+            auth_config=source_config.get("auth"),
+            data_source_id=test_request.data_source_id,
+        )
 
     async def execute_test(
-        self, test_request: DataSourceTestRequest
+        self,
+        test_request: DataSourceTestRequest,
+        auth_config: dict | None = None,
+        data_source_id: str | None = None,
     ) -> DataSourceTestResponse:
         """
         Execute a data source test.
 
         Args:
             test_request: Test request configuration
+            auth_config: Optional authentication configuration (from HTTPSource.auth)
+            data_source_id: Optional data source ID (for auth cache key)
 
         Returns:
             DataSourceTestResponse with test results
@@ -159,19 +213,34 @@ class DataSourceTestService(BaseService):
         resolved_headers = {}
 
         try:
-            # Resolve URL template
+            # Resolve templates
             url = resolve_template(test_request.url, local_vars, env_vars)
             resolved_url = url
 
-            # Resolve template fields
             headers = configure_fields(test_request.headers or {}, local_vars, env_vars)
-            resolved_headers = headers
             params = configure_fields(test_request.params or {}, local_vars, env_vars)
             body = (
-                configure_fields(test_request.body or {}, local_vars, env_vars)
+                configure_fields(test_request.body, local_vars, env_vars)
                 if test_request.body
                 else None
             )
+            resolved_headers = headers
+
+            # Add authentication headers if auth is configured
+            if auth_config and data_source_id:
+                auth_obj = Auth(**auth_config)
+                cache_available = hasattr(self, "cache") and self.cache is not None
+
+                auth_handler = AuthHandler(
+                    auth_config=auth_obj,
+                    data_source_id=data_source_id,
+                    env_variables=env_vars,
+                    cache=self.cache if cache_available else None,
+                )
+
+                auth_headers = auth_handler.get_auth_headers()
+                headers = {**headers, **auth_headers}
+                resolved_headers = headers
 
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.request(
