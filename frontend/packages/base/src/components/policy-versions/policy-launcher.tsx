@@ -49,7 +49,9 @@ export interface PolicyLauncherConfig {
             input_data: any;
             config_variables: any;
         };
+        projectId?: string;
     }) => Promise<any>;
+    projectId?: string;
 }
 
 export interface PolicyLauncherPageConfig extends PolicyLauncherConfig {}
@@ -293,6 +295,7 @@ function LaunchRunForm({
             .createRunByPolicyVersion({
                 policyVersionId: config.policyVersionId,
                 bodyCreateRunByPolicyVersion: body,
+                projectId: config.projectId,
             })
             .then((data) => {
                 setError(null);
