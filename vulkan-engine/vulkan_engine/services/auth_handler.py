@@ -7,15 +7,12 @@ Handles authentication for HTTP requests to external APIs:
 """
 
 import base64
-import logging
 from typing import Dict
 
 import redis
 import requests
 
 from vulkan.auth import Auth, AuthMethod
-
-logger = logging.getLogger(__name__)
 
 
 class AuthHandler:

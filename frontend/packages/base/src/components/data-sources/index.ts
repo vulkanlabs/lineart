@@ -1,8 +1,5 @@
 // Data source components barrel export
 export * from "./AuthenticationConfigCard";
-export * from "./AuthMethodSelector";
-export * from "./BasicAuthConfig";
-export * from "./BearerAuthConfig";
 export * from "./CachingConfigurationCard";
 export * from "./CreateDataSourceDialog";
 export * from "./DataSourceDetailPage";
