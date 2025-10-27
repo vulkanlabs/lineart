@@ -199,8 +199,7 @@ asyncio.run(main())
 * [list_data_objects](docs/sdks/datasources/README.md#list_data_objects) - List Data Objects
 * [get_usage](docs/sdks/datasources/README.md#get_usage) - Get Data Source Usage
 * [publish_data_source](docs/sdks/datasources/README.md#publish_data_source) - Publish Data Source
-* [test_data_source](docs/sdks/datasources/README.md#test_data_source) - Test Data Source
-* [test_data_source_by_id](docs/sdks/datasources/README.md#test_data_source_by_id) - Test Data Source By Id
+* [data_source_test_by_id](docs/sdks/datasources/README.md#data_source_test_by_id) - Data Source Test By Id
 
 ### [internal](docs/sdks/internal/README.md)
 

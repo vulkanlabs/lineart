@@ -1,4 +1,4 @@
-# HTTPSourceBody1
+# Body1
 
 
 ## Supported Types

@@ -10,16 +10,12 @@ from lineart_sdk.utils import FieldMetadata, PathParamMetadata, RequestMetadata
 from .datasourcetestparams import DataSourceTestParams, DataSourceTestParamsTypedDict
 
 
-class TestDataSourceByIDRequestTypedDict(TypedDict):
-    __test__ = False  # pyright: ignore[reportGeneralTypeIssues]
-
+class DataSourceTestByIDRequestTypedDict(TypedDict):
     data_source_id: str
     data_source_test_params: DataSourceTestParamsTypedDict
 
 
-class TestDataSourceByIDRequest(BaseModel):
-    __test__ = False
-
+class DataSourceTestByIDRequest(BaseModel):
     data_source_id: Annotated[
         str, FieldMetadata(path=PathParamMetadata(style="simple", explode=False))
     ]

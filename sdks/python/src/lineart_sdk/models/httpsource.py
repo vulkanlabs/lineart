@@ -162,62 +162,45 @@ Params6 = TypeAliasType(
 )
 
 
-HTTPSourceBody3TypedDict = TypeAliasType(
-    "HTTPSourceBody3TypedDict", Union[str, int, float, bool]
+Body3TypedDict = TypeAliasType("Body3TypedDict", Union[str, int, float, bool])
+
+
+Body3 = TypeAliasType("Body3", Union[str, int, float, bool])
+
+
+Body4TypedDict = TypeAliasType(
+    "Body4TypedDict", Union[str, int, float, bool, List[Body3TypedDict]]
 )
 
 
-HTTPSourceBody3 = TypeAliasType("HTTPSourceBody3", Union[str, int, float, bool])
+Body4 = TypeAliasType("Body4", Union[str, int, float, bool, List[Body3]])
 
 
-HTTPSourceBody4TypedDict = TypeAliasType(
-    "HTTPSourceBody4TypedDict",
-    Union[str, int, float, bool, List[HTTPSourceBody3TypedDict]],
+Body2TypedDict = TypeAliasType("Body2TypedDict", Union[str, int, float, bool])
+
+
+Body2 = TypeAliasType("Body2", Union[str, int, float, bool])
+
+
+Body5TypedDict = TypeAliasType(
+    "Body5TypedDict",
+    Union[str, int, float, bool, List[Body2TypedDict], Dict[str, Body4TypedDict]],
 )
 
 
-HTTPSourceBody4 = TypeAliasType(
-    "HTTPSourceBody4", Union[str, int, float, bool, List[HTTPSourceBody3]]
+Body5 = TypeAliasType(
+    "Body5", Union[str, int, float, bool, List[Body2], Dict[str, Body4]]
 )
 
 
-HTTPSourceBody2TypedDict = TypeAliasType(
-    "HTTPSourceBody2TypedDict", Union[str, int, float, bool]
-)
+Body1TypedDict = TypeAliasType("Body1TypedDict", Union[str, int, float, bool])
 
 
-HTTPSourceBody2 = TypeAliasType("HTTPSourceBody2", Union[str, int, float, bool])
+Body1 = TypeAliasType("Body1", Union[str, int, float, bool])
 
 
-HTTPSourceBody5TypedDict = TypeAliasType(
-    "HTTPSourceBody5TypedDict",
-    Union[
-        str,
-        int,
-        float,
-        bool,
-        List[HTTPSourceBody2TypedDict],
-        Dict[str, HTTPSourceBody4TypedDict],
-    ],
-)
-
-
-HTTPSourceBody5 = TypeAliasType(
-    "HTTPSourceBody5",
-    Union[str, int, float, bool, List[HTTPSourceBody2], Dict[str, HTTPSourceBody4]],
-)
-
-
-HTTPSourceBody1TypedDict = TypeAliasType(
-    "HTTPSourceBody1TypedDict", Union[str, int, float, bool]
-)
-
-
-HTTPSourceBody1 = TypeAliasType("HTTPSourceBody1", Union[str, int, float, bool])
-
-
-HTTPSourceBody6TypedDict = TypeAliasType(
-    "HTTPSourceBody6TypedDict",
+Body6TypedDict = TypeAliasType(
+    "Body6TypedDict",
     Union[
         EnvVarConfigTypedDict,
         RunTimeParamTypedDict,
@@ -225,23 +208,16 @@ HTTPSourceBody6TypedDict = TypeAliasType(
         int,
         float,
         bool,
-        List[HTTPSourceBody1TypedDict],
-        Dict[str, HTTPSourceBody5TypedDict],
+        List[Body1TypedDict],
+        Dict[str, Body5TypedDict],
     ],
 )
 
 
-HTTPSourceBody6 = TypeAliasType(
-    "HTTPSourceBody6",
+Body6 = TypeAliasType(
+    "Body6",
     Union[
-        EnvVarConfig,
-        RunTimeParam,
-        str,
-        int,
-        float,
-        bool,
-        List[HTTPSourceBody1],
-        Dict[str, HTTPSourceBody5],
+        EnvVarConfig, RunTimeParam, str, int, float, bool, List[Body1], Dict[str, Body5]
     ],
 )
 
@@ -258,7 +234,7 @@ class HTTPSourceTypedDict(TypedDict):
     method: NotRequired[Method]
     headers: NotRequired[Dict[str, Headers6TypedDict]]
     params: NotRequired[Dict[str, Params6TypedDict]]
-    body: NotRequired[Dict[str, HTTPSourceBody6TypedDict]]
+    body: NotRequired[Dict[str, Body6TypedDict]]
     timeout: NotRequired[Nullable[int]]
     retry: NotRequired[RetryPolicyTypedDict]
     response_type: NotRequired[ResponseType]
@@ -273,7 +249,7 @@ class HTTPSource(BaseModel):
 
     params: Optional[Dict[str, Params6]] = None
 
-    body: Optional[Dict[str, HTTPSourceBody6]] = None
+    body: Optional[Dict[str, Body6]] = None
 
     timeout: OptionalNullable[int] = UNSET
 

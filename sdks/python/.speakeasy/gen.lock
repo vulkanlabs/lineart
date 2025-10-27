@@ -1,10 +1,10 @@
 lockVersion: 2.0.0
 id: 88929680-bb73-487a-94bf-9600cc541817
 management:
-  docChecksum: 42068ea80e27a95f725a7b7005f3b984
+  docChecksum: cec3649d52db88cc24ddeb639351cbc2
   docVersion: 0.1.0
-  speakeasyVersion: 1.638.1
-  generationVersion: 2.729.2
+  speakeasyVersion: 1.640.0
+  generationVersion: 2.730.5
   releaseVersion: 0.1.1
   configChecksum: 73898a7de081ea6e7a217383aa5b582d
 features:
@@ -40,6 +40,12 @@ generatedFiles:
   - docs/models/authdisconnectresponse.md
   - docs/models/authstartresponse.md
   - docs/models/authuserinforesponse.md
+  - docs/models/body1.md
+  - docs/models/body2.md
+  - docs/models/body3.md
+  - docs/models/body4.md
+  - docs/models/body5.md
+  - docs/models/body6.md
   - docs/models/bodycreaterunbypolicyversion.md
   - docs/models/bodycreaterungroup.md
   - docs/models/bodyrundurationstatsbypolicy.md
@@ -78,9 +84,8 @@ generatedFiles:
   - docs/models/datasourcespec.md
   - docs/models/datasourcespecsource.md
   - docs/models/datasourcestatus.md
+  - docs/models/datasourcetestbyidrequest.md
   - docs/models/datasourcetestparams.md
-  - docs/models/datasourcetestrequest.md
-  - docs/models/datasourcetestrequestbody.md
   - docs/models/datasourcetestresponse.md
   - docs/models/deletecomponentrequest.md
   - docs/models/deletedatasourcerequest.md
@@ -110,12 +115,6 @@ generatedFiles:
   - docs/models/headers5.md
   - docs/models/headers6.md
   - docs/models/httpsource.md
-  - docs/models/httpsourcebody1.md
-  - docs/models/httpsourcebody2.md
-  - docs/models/httpsourcebody3.md
-  - docs/models/httpsourcebody4.md
-  - docs/models/httpsourcebody5.md
-  - docs/models/httpsourcebody6.md
   - docs/models/listcomponentsrequest.md
   - docs/models/listconfigvariablesrequest.md
   - docs/models/listdataobjectsrequest.md
@@ -174,7 +173,6 @@ generatedFiles:
   - docs/models/stepdetails.md
   - docs/models/stepmetadatabase.md
   - docs/models/stepmetadatabaseerror.md
-  - docs/models/testdatasourcebyidrequest.md
   - docs/models/ttl.md
   - docs/models/uimetadata.md
   - docs/models/uinodeposition.md
@@ -243,6 +241,7 @@ generatedFiles:
   - src/lineart_sdk/models/create_run_by_policy_versionop.py
   - src/lineart_sdk/models/create_run_groupop.py
   - src/lineart_sdk/models/dagsterlogdetails.py
+  - src/lineart_sdk/models/data_source_test_by_idop.py
   - src/lineart_sdk/models/databrokerrequest.py
   - src/lineart_sdk/models/databrokerresponse.py
   - src/lineart_sdk/models/dataobject.py
@@ -255,7 +254,6 @@ generatedFiles:
   - src/lineart_sdk/models/datasourcespec.py
   - src/lineart_sdk/models/datasourcestatus.py
   - src/lineart_sdk/models/datasourcetestparams.py
-  - src/lineart_sdk/models/datasourcetestrequest.py
   - src/lineart_sdk/models/datasourcetestresponse.py
   - src/lineart_sdk/models/delete_componentop.py
   - src/lineart_sdk/models/delete_data_sourceop.py
@@ -324,7 +322,6 @@ generatedFiles:
   - src/lineart_sdk/models/start_authop.py
   - src/lineart_sdk/models/stepdetails.py
   - src/lineart_sdk/models/stepmetadatabase.py
-  - src/lineart_sdk/models/test_data_source_by_idop.py
   - src/lineart_sdk/models/uimetadata.py
   - src/lineart_sdk/models/uinodeposition.py
   - src/lineart_sdk/models/update_componentop.py
@@ -937,6 +934,18 @@ examples:
       responses:
         "200":
           application/json: {"test_id": "3463b5a3-6177-45a2-a8b4-d57e7b5ff28d", "status_code": 662742, "response_time_ms": 7204.16}
+        "422":
+          application/json: {}
+  data_source_test_by_id:
+    speakeasy-default-data-source-test-by-id:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      requestBody:
+        application/json: {}
+      responses:
+        "200":
+          application/json: {"test_id": "aaed7529-fb13-495f-950b-7eeb5e2b5cd4", "status_code": 202577, "response_time_ms": 4479.2}
         "422":
           application/json: {}
 examplesVersion: 1.0.2

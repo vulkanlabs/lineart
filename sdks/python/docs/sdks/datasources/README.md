@@ -18,8 +18,7 @@
 * [list_data_objects](#list_data_objects) - List Data Objects
 * [get_usage](#get_usage) - Get Data Source Usage
 * [publish_data_source](#publish_data_source) - Publish Data Source
-* [test_data_source](#test_data_source) - Test Data Source
-* [test_data_source_by_id](#test_data_source_by_id) - Test Data Source By Id
+* [data_source_test_by_id](#data_source_test_by_id) - Data Source Test By Id
 
 ## list
 
@@ -569,52 +568,7 @@ with Lineart(
 | errors.HTTPValidationError | 422                        | application/json           |
 | errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
 
-## test_data_source
-
-Test a data source configuration.
-
-### Example Usage
-
-<!-- UsageSnippet language="python" operationID="test_data_source" method="post" path="/data-sources/test" -->
-```python
-from lineart_sdk import Lineart
-
-
-with Lineart(
-    server_url="https://api.example.com",
-) as lineart:
-
-    res = lineart.data_sources.test_data_source(url="https://trivial-eggplant.info/", method="GET")
-
-    # Handle response
-    print(res)
-
-```
-
-### Parameters
-
-| Parameter                                                                                       | Type                                                                                            | Required                                                                                        | Description                                                                                     |
-| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `url`                                                                                           | *str*                                                                                           | :heavy_check_mark:                                                                              | N/A                                                                                             |
-| `method`                                                                                        | *Optional[str]*                                                                                 | :heavy_minus_sign:                                                                              | N/A                                                                                             |
-| `headers`                                                                                       | Dict[str, *str*]                                                                                | :heavy_minus_sign:                                                                              | N/A                                                                                             |
-| `body`                                                                                          | [OptionalNullable[models.DataSourceTestRequestBody]](../../models/datasourcetestrequestbody.md) | :heavy_minus_sign:                                                                              | N/A                                                                                             |
-| `params`                                                                                        | Dict[str, *Any*]                                                                                | :heavy_minus_sign:                                                                              | N/A                                                                                             |
-| `env_vars`                                                                                      | Dict[str, *str*]                                                                                | :heavy_minus_sign:                                                                              | N/A                                                                                             |
-| `retries`                                                                                       | [Optional[utils.RetryConfig]](../../models/utils/retryconfig.md)                                | :heavy_minus_sign:                                                                              | Configuration to override the default retry behavior of the client.                             |
-
-### Response
-
-**[models.DataSourceTestResponse](../../models/datasourcetestresponse.md)**
-
-### Errors
-
-| Error Type                 | Status Code                | Content Type               |
-| -------------------------- | -------------------------- | -------------------------- |
-| errors.HTTPValidationError | 422                        | application/json           |
-| errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
-
-## test_data_source_by_id
+## data_source_test_by_id
 
 Test an existing data source with optional runtime parameters.
 
@@ -623,7 +577,7 @@ and environment variables before executing the test.
 
 ### Example Usage
 
-<!-- UsageSnippet language="python" operationID="test_data_source_by_id" method="post" path="/data-sources/{data_source_id}/test" -->
+<!-- UsageSnippet language="python" operationID="data_source_test_by_id" method="post" path="/data-sources/{data_source_id}/test" -->
 ```python
 from lineart_sdk import Lineart
 
@@ -632,7 +586,7 @@ with Lineart(
     server_url="https://api.example.com",
 ) as lineart:
 
-    res = lineart.data_sources.test_data_source_by_id(data_source_id="<id>")
+    res = lineart.data_sources.data_source_test_by_id(data_source_id="<id>")
 
     # Handle response
     print(res)

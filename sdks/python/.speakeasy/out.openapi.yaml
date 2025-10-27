@@ -649,38 +649,13 @@ paths:
           content:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
-  "/data-sources/test":
-    post:
-      tags:
-        - "data-sources"
-      summary: "Test Data Source"
-      description: "Test a data source configuration."
-      operationId: "test_data_source"
-      requestBody:
-        content:
-          "application/json":
-            schema: {"$ref": "#/components/schemas/DataSourceTestRequest"}
-        required: true
-      responses:
-        "200":
-          description: "Successful Response"
-          content:
-            "application/json":
-              schema: {"$ref": "#/components/schemas/DataSourceTestResponse"}
-        "404":
-          description: "Not found"
-        "422":
-          description: "Validation Error"
-          content:
-            "application/json":
-              schema: {"$ref": "#/components/schemas/HTTPValidationError"}
   "/data-sources/{data_source_id}/test":
     post:
       tags:
         - "data-sources"
-      summary: "Test Data Source By Id"
+      summary: "Data Source Test By Id"
       description: "Test an existing data source with optional runtime parameters.\n\nBackend fetches the data source configuration and merges with runtime parameters\nand environment variables before executing the test."
-      operationId: "test_data_source_by_id"
+      operationId: "data_source_test_by_id"
       parameters:
         - name: "data_source_id"
           in: "path"
@@ -2566,47 +2541,6 @@ components:
       type: "object"
       title: "DataSourceTestParams"
       description: "Parameters for testing an existing data source.\nData source ID comes from URL path."
-    "DataSourceTestRequest":
-      properties:
-        "url":
-          type: "string"
-          title: "Url"
-        "method":
-          type: "string"
-          title: "Method"
-          default: "GET"
-        "headers":
-          anyOf:
-            - additionalProperties:
-                type: "string"
-              type: "object"
-            - type: "null"
-          title: "Headers"
-        "body":
-          anyOf:
-            - additionalProperties: true
-              type: "object"
-            - type: "string"
-            - type: "null"
-          title: "Body"
-        "params":
-          anyOf:
-            - additionalProperties: true
-              type: "object"
-            - type: "null"
-          title: "Params"
-        "env_vars":
-          anyOf:
-            - additionalProperties:
-                type: "string"
-              type: "object"
-            - type: "null"
-          title: "Env Vars"
-      type: "object"
-      required:
-        - "url"
-      title: "DataSourceTestRequest"
-      description: "Full test request with all configuration (used for testing without existing data source)."
     "DataSourceTestResponse":
       properties:
         "test_id":
