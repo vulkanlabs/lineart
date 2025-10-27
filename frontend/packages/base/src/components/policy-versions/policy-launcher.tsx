@@ -7,19 +7,18 @@ import Link from "next/link";
 // External libraries
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, UseFormReturn, ControllerRenderProps } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import {
     Play,
     Settings,
     CheckCircle,
     AlertCircle,
-    Copy,
     Link as LinkIcon,
     Terminal,
 } from "lucide-react";
 
 // Vulkan packages
-import { Run } from "@vulkanlabs/client-open";
+import { RunCreated } from "@vulkanlabs/client-open";
 
 // Local components
 import {
@@ -50,7 +49,7 @@ export interface PolicyLauncherConfig {
             config_variables: any;
         };
         projectId?: string;
-    }) => Promise<any>;
+    }) => Promise<RunCreated>;
     projectId?: string;
 }
 
@@ -60,7 +59,7 @@ export interface PolicyLauncherButtonConfig extends PolicyLauncherConfig {}
 
 export function PolicyLauncherPage({ config }: { config: PolicyLauncherPageConfig }) {
     const { policyVersionId, inputSchema, configVariables } = config;
-    const [createdRun, setCreatedRun] = useState<any | null>(null);
+    const [createdRun, setCreatedRun] = useState<RunCreated | null>(null);
     const [error, setError] = useState<Error | null>(null);
     const [copiedUrl, setCopiedUrl] = useState(false);
     const [copiedCurl, setCopiedCurl] = useState(false);
@@ -143,7 +142,7 @@ export function PolicyLauncherPage({ config }: { config: PolicyLauncherPageConfi
 
 export function PolicyLauncherButton({ config }: { config: PolicyLauncherButtonConfig }) {
     const { inputSchema, configVariables } = config;
-    const [createdRun, setCreatedRun] = useState<Run | null>(null);
+    const [createdRun, setCreatedRun] = useState<RunCreated | null>(null);
     const [error, setError] = useState<Error | null>(null);
     const [open, setOpen] = useState(false);
 
@@ -234,7 +233,7 @@ type LaunchRunFormProps = {
     config: PolicyLauncherConfig;
     defaultInputData: Object;
     defaultConfigVariables: Object;
-    setCreatedRun: (run: Run | null) => void;
+    setCreatedRun: (run: RunCreated | null) => void;
     setError: (error: Error | null) => void;
     onFormDataChange?: (data: { input_data: string; config_variables: string }) => void;
 };
@@ -525,7 +524,7 @@ function asConfigMap(configVariables: string[]) {
     return Object.fromEntries(configVariables.map((key) => [key, ""]));
 }
 
-function RunCreatedCard({ createdRun, closeDialog }: { createdRun: Run; closeDialog: () => void }) {
+function RunCreatedCard({ createdRun, closeDialog }: { createdRun: RunCreated; closeDialog: () => void }) {
     return (
         <div className="text-center space-y-6 py-8">
             <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
