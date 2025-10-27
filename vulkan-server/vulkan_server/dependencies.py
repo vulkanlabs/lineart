@@ -118,7 +118,7 @@ def get_redis_client() -> redis.Redis | None:
             host=redis_host,
             port=redis_port,
             db=redis_db,
-            password=redis_password if redis_password else None,
+            password=redis_password,
             decode_responses=False,
         )
         client.ping()
