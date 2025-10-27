@@ -4,7 +4,19 @@ import { useState, useEffect } from "react";
 import { Save, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
-import { Button, Input, Label, Separator, RadioGroup, RadioGroupItem, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui";
+import {
+    Button,
+    Input,
+    Label,
+    Separator,
+    RadioGroup,
+    RadioGroupItem,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../ui";
 import { toast } from "sonner";
 
 type AuthMethod = "none" | "basic" | "bearer";
@@ -56,7 +68,7 @@ export function AuthenticationConfigCard({
     const [hasSecret, setHasSecret] = useState(false);
     const [tokenUrl, setTokenUrl] = useState(sourceWithAuth.auth?.token_url || "");
     const [grantType, setGrantType] = useState<GrantType>(
-        (sourceWithAuth.auth?.grant_type as GrantType) || "client_credentials"
+        (sourceWithAuth.auth?.grant_type as GrantType) || "client_credentials",
     );
     const [scope, setScope] = useState(sourceWithAuth.auth?.scope || "");
 
@@ -120,11 +132,7 @@ export function AuthenticationConfigCard({
             };
 
             // Update data source with auth configuration
-            await updateDataSource(
-                dataSource.data_source_id,
-                dataSourceSpec,
-                projectId
-            );
+            await updateDataSource(dataSource.data_source_id, dataSourceSpec, projectId);
 
             // Update credentials if auth is configured
             if (authMethod !== "none") {
@@ -142,11 +150,7 @@ export function AuthenticationConfigCard({
                     { name: "CLIENT_SECRET", value: finalSecret },
                 ];
 
-                await setDataSourceEnvVars(
-                    dataSource.data_source_id,
-                    credentials,
-                    projectId
-                );
+                await setDataSourceEnvVars(dataSource.data_source_id, credentials, projectId);
             }
 
             toast.success("Authentication configuration saved");
@@ -182,7 +186,8 @@ export function AuthenticationConfigCard({
             <div>
                 <h3 className="text-base font-semibold mb-3">Authentication</h3>
                 <p className="text-xs text-muted-foreground mb-4">
-                    Configure authentication for external API requests. Credentials are encrypted at rest using AES-256-GCM.
+                    Configure authentication for external API requests. Credentials are encrypted at
+                    rest using AES-256-GCM.
                 </p>
 
                 <div className="space-y-3">
@@ -192,7 +197,11 @@ export function AuthenticationConfigCard({
                         {!disabled && (
                             <div className="flex gap-2">
                                 {!isEditing ? (
-                                    <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
+                                    <Button
+                                        onClick={() => setIsEditing(true)}
+                                        variant="outline"
+                                        size="sm"
+                                    >
                                         Edit
                                     </Button>
                                 ) : (
@@ -223,20 +232,41 @@ export function AuthenticationConfigCard({
                         className="space-y-2"
                     >
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="none" id="auth-none" disabled={!isEditing || disabled} />
-                            <Label htmlFor="auth-none" className="text-sm font-normal cursor-pointer">
+                            <RadioGroupItem
+                                value="none"
+                                id="auth-none"
+                                disabled={!isEditing || disabled}
+                            />
+                            <Label
+                                htmlFor="auth-none"
+                                className="text-sm font-normal cursor-pointer"
+                            >
                                 None
                             </Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="basic" id="auth-basic" disabled={!isEditing || disabled} />
-                            <Label htmlFor="auth-basic" className="text-sm font-normal cursor-pointer">
+                            <RadioGroupItem
+                                value="basic"
+                                id="auth-basic"
+                                disabled={!isEditing || disabled}
+                            />
+                            <Label
+                                htmlFor="auth-basic"
+                                className="text-sm font-normal cursor-pointer"
+                            >
                                 Basic Authentication (Base64 encoded credentials)
                             </Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="bearer" id="auth-bearer" disabled={!isEditing || disabled} />
-                            <Label htmlFor="auth-bearer" className="text-sm font-normal cursor-pointer">
+                            <RadioGroupItem
+                                value="bearer"
+                                id="auth-bearer"
+                                disabled={!isEditing || disabled}
+                            />
+                            <Label
+                                htmlFor="auth-bearer"
+                                className="text-sm font-normal cursor-pointer"
+                            >
                                 Bearer Token / OAuth
                             </Label>
                         </div>
@@ -318,9 +348,13 @@ export function AuthenticationConfigCard({
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="client_credentials">Client Credentials</SelectItem>
+                                        <SelectItem value="client_credentials">
+                                            Client Credentials
+                                        </SelectItem>
                                         <SelectItem value="password">Password</SelectItem>
-                                        <SelectItem value="authorization_code">Authorization Code</SelectItem>
+                                        <SelectItem value="authorization_code">
+                                            Authorization Code
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -339,7 +373,8 @@ export function AuthenticationConfigCard({
                             </div>
 
                             <p className="text-xs text-muted-foreground">
-                                Tokens are cached in Redis with TTL based on token expiration for optimal performance.
+                                Tokens are cached in Redis with TTL based on token expiration for
+                                optimal performance.
                             </p>
                         </div>
                     </>
