@@ -8,14 +8,7 @@ import Link from "next/link";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, UseFormReturn } from "react-hook-form";
-import {
-    Play,
-    Settings,
-    CheckCircle,
-    AlertCircle,
-    Link as LinkIcon,
-    Terminal,
-} from "lucide-react";
+import { Play, Settings, CheckCircle, AlertCircle, Link as LinkIcon, Terminal } from "lucide-react";
 
 // Vulkan packages
 import { RunCreated } from "@vulkanlabs/client-open";
@@ -524,7 +517,13 @@ function asConfigMap(configVariables: string[]) {
     return Object.fromEntries(configVariables.map((key) => [key, ""]));
 }
 
-function RunCreatedCard({ createdRun, closeDialog }: { createdRun: RunCreated; closeDialog: () => void }) {
+function RunCreatedCard({
+    createdRun,
+    closeDialog,
+}: {
+    createdRun: RunCreated;
+    closeDialog: () => void;
+}) {
     return (
         <div className="text-center space-y-6 py-8">
             <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
