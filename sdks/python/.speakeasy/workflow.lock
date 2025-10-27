@@ -1,4 +1,4 @@
-speakeasyVersion: 1.639.3
+speakeasyVersion: 1.640.0
 sources:
     VulkanAPI:
         sourceNamespace: vulkan-api
@@ -14,7 +14,7 @@ targets:
         sourceRevisionDigest: sha256:c1e8d7e204b9f04ecc8f5cf11e8120d3eddc6d12f75a955afa47059dee0338c1
         sourceBlobDigest: sha256:63d55bd69336c67b8fb3caf12e54fc4c3894dec627578d433f8699a8844961a2
         codeSamplesNamespace: vulkan-api-python-code-samples
-        codeSamplesRevisionDigest: sha256:b95dd229f0075867ebfb8b657872b2ea0f9ba920a402ff909e42a532820e209e
+        codeSamplesRevisionDigest: sha256:8dfb1b0395316b9ff0d62093a5a273f3ab0b99b00bad7b3e6b7ee88151ac0d5e
 workflow:
     workflowVersion: 1.0.0
     speakeasyVersion: latest

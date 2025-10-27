@@ -3,7 +3,7 @@ id: 88929680-bb73-487a-94bf-9600cc541817
 management:
   docChecksum: cec3649d52db88cc24ddeb639351cbc2
   docVersion: 0.1.0
-  speakeasyVersion: 1.639.3
+  speakeasyVersion: 1.640.0
   generationVersion: 2.730.5
   releaseVersion: 0.1.1
   configChecksum: 73898a7de081ea6e7a217383aa5b582d
@@ -913,6 +913,15 @@ examples:
       responses:
         "200":
           application/json: {"name": "<value>", "source": {"path": "/tmp"}, "data_source_id": "fb59ebf0-3518-4698-9c96-53e52bf0d7a5", "created_at": "2025-02-01T13:55:04.311Z", "last_updated_at": "2025-05-28T02:38:08.410Z"}
+        "422":
+          application/json: {}
+  test_data_source:
+    speakeasy-default-test-data-source:
+      requestBody:
+        application/json: {"url": "https://trivial-eggplant.info/", "method": "GET"}
+      responses:
+        "200":
+          application/json: {"test_id": "5cb619dd-4720-4a29-9584-a011b5468868", "status_code": 176829, "response_time_ms": 8548.03}
         "422":
           application/json: {}
   test_data_source_by_id:
