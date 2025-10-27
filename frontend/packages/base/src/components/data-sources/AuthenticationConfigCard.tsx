@@ -1,26 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, X } from "lucide-react";
+import { Save, X, Shield, Edit2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
-import {
-    Button,
-    Input,
-    Label,
-    Separator,
-    RadioGroup,
-    RadioGroupItem,
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "../ui";
-import { toast } from "sonner";
+import { Button, Input, Label, Separator, RadioGroup, RadioGroupItem, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui";
 
 type AuthMethod = "none" | "basic" | "bearer";
-type GrantType = "client_credentials" | "password" | "authorization_code";
+type GrantType = "client_credentials" | "password" | "authorization_code" | "implicit" | "refresh_token";
 
 interface AuthenticationConfigCardProps {
     dataSource: DataSource;
@@ -52,25 +39,34 @@ export function AuthenticationConfigCard({
 }: AuthenticationConfigCardProps) {
     const router = useRouter();
     const [isEditing, setIsEditing] = useState(false);
+    const [isEditingCredentials, setIsEditingCredentials] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
     const sourceWithAuth = dataSource.source as any;
+    const isDraft = dataSource.status === "DRAFT";
 
     const getCurrentAuthMethod = (): AuthMethod => {
         if (!sourceWithAuth.auth) return "none";
         return sourceWithAuth.auth.method as AuthMethod;
     };
 
+    // Auth state
     const [authMethod, setAuthMethod] = useState<AuthMethod>(getCurrentAuthMethod());
     const [clientId, setClientId] = useState("");
+    const [clientIdInput, setClientIdInput] = useState("");
+    const [hasClientId, setHasClientId] = useState(false);
     const [clientSecret, setClientSecret] = useState("");
     const [clientSecretInput, setClientSecretInput] = useState("");
     const [hasSecret, setHasSecret] = useState(false);
     const [tokenUrl, setTokenUrl] = useState(sourceWithAuth.auth?.token_url || "");
     const [grantType, setGrantType] = useState<GrantType>(
-        (sourceWithAuth.auth?.grant_type as GrantType) || "client_credentials",
+        (sourceWithAuth.auth?.grant_type as GrantType) || "client_credentials"
     );
     const [scope, setScope] = useState(sourceWithAuth.auth?.scope || "");
+
+    // Validation errors
+    const [tokenUrlError, setTokenUrlError] = useState("");
+    const [credentialsError, setCredentialsError] = useState("");
 
     // Load credentials from env vars
     useEffect(() => {
@@ -80,7 +76,10 @@ export function AuthenticationConfigCard({
                 const clientIdVar = envVars.find((v) => v.name === "CLIENT_ID");
                 const clientSecretVar = envVars.find((v) => v.name === "CLIENT_SECRET");
 
-                if (clientIdVar) setClientId(String(clientIdVar.value || ""));
+                if (clientIdVar) {
+                    setClientId(String(clientIdVar.value || ""));
+                    setHasClientId(!!clientIdVar.value);
+                }
                 if (clientSecretVar) {
                     setClientSecret(String(clientSecretVar.value || ""));
                     setHasSecret(!!clientSecretVar.value);
@@ -93,15 +92,40 @@ export function AuthenticationConfigCard({
         if (sourceWithAuth.auth) loadCredentials();
     }, [dataSource, projectId, fetchDataSourceEnvVars, sourceWithAuth.auth]);
 
+    // Auto-enable credential editing when auth method changes and no credentials exist
+    useEffect(() => {
+        if (isEditing && authMethod !== "none" && !hasClientId && !hasSecret) {
+            setIsEditingCredentials(true);
+        }
+    }, [authMethod, isEditing, hasClientId, hasSecret]);
+
     const handleSave = async () => {
-        setIsSaving(true);
-        try {
-            // Validate required fields for Bearer auth
-            if (authMethod === "bearer" && !tokenUrl) {
-                toast.error("Token URL is required for Bearer authentication");
-                setIsSaving(false);
+        // Clear previous errors
+        setTokenUrlError("");
+        setCredentialsError("");
+
+        // Validate required fields for Bearer auth
+        if (authMethod === "bearer") {
+            if (!tokenUrl || tokenUrl.trim() === "") {
+                setTokenUrlError("Token URL is required for Bearer authentication");
                 return;
             }
+        }
+
+        // Validate credentials if auth is enabled
+        if (authMethod !== "none") {
+            // For credential editing mode, use inputs; otherwise use stored values
+            const finalClientId = isEditingCredentials ? clientIdInput : (clientIdInput || clientId);
+            const finalSecret = isEditingCredentials ? clientSecretInput : (clientSecretInput || clientSecret);
+
+            if (!finalClientId || !finalClientId.trim() || !finalSecret || !finalSecret.trim()) {
+                setCredentialsError("Both Client ID and Client Secret are required");
+                return;
+            }
+        }
+
+        setIsSaving(true);
+        try {
 
             // Build updated source with auth configuration
             const sourceUpdates: any = {
@@ -123,43 +147,46 @@ export function AuthenticationConfigCard({
                 };
             }
 
-            const dataSourceSpec: any = {
-                name: dataSource.name,
-                source: sourceUpdates,
-                caching: dataSource.caching,
-                description: dataSource.description,
-                metadata: dataSource.metadata,
-            };
+            await updateDataSource(
+                dataSource.data_source_id,
+                {
+                    name: dataSource.name,
+                    source: sourceUpdates,
+                    caching: dataSource.caching,
+                },
+                projectId
+            );
 
-            // Update data source with auth configuration
-            await updateDataSource(dataSource.data_source_id, dataSourceSpec, projectId);
-
-            // Update credentials if auth is configured
-            if (authMethod !== "none") {
+            // Update credentials if auth is configured and credentials were edited
+            if (authMethod !== "none" && (isEditingCredentials || !hasClientId)) {
+                const finalClientId = clientIdInput || clientId;
                 const finalSecret = clientSecretInput || clientSecret;
-
-                // Validate credentials
-                if (!clientId || !finalSecret) {
-                    toast.error("Client ID and Client Secret are required");
-                    setIsSaving(false);
-                    return;
-                }
-
                 const credentials: DataSourceEnvVarBase[] = [
-                    { name: "CLIENT_ID", value: clientId },
+                    { name: "CLIENT_ID", value: finalClientId },
                     { name: "CLIENT_SECRET", value: finalSecret },
                 ];
 
-                await setDataSourceEnvVars(dataSource.data_source_id, credentials, projectId);
+                await setDataSourceEnvVars(
+                    dataSource.data_source_id,
+                    credentials,
+                    projectId
+                );
+
+                // Update stored credential state
+                setClientId(finalClientId);
+                setHasClientId(true);
+                setClientSecret(finalSecret);
+                setHasSecret(true);
             }
 
-            toast.success("Authentication configuration saved");
             setIsEditing(false);
+            setIsEditingCredentials(false);
+            setClientIdInput("");
             setClientSecretInput("");
             router.refresh();
         } catch (error: any) {
             console.error("Failed to save authentication:", error);
-            toast.error(error.message || "Failed to save authentication");
+            setCredentialsError(error.message || "Failed to save authentication configuration");
         } finally {
             setIsSaving(false);
         }
@@ -170,60 +197,61 @@ export function AuthenticationConfigCard({
         setTokenUrl(sourceWithAuth.auth?.token_url || "");
         setGrantType((sourceWithAuth.auth?.grant_type as GrantType) || "client_credentials");
         setScope(sourceWithAuth.auth?.scope || "");
+        setClientIdInput("");
         setClientSecretInput("");
         setIsEditing(false);
+        setIsEditingCredentials(false);
+        setTokenUrlError("");
+        setCredentialsError("");
     };
 
-    const handleSecretBlur = () => {
-        if (clientSecretInput) {
-            setHasSecret(true);
-            setClientSecret(clientSecretInput);
-        }
+    const handleEditCredentials = () => {
+        setIsEditingCredentials(true);
+        // Pre-populate inputs with current values for editing
+        setClientIdInput(clientId);
+        setClientSecretInput("");
+    };
+
+    const handleCancelCredentials = () => {
+        setIsEditingCredentials(false);
+        setClientIdInput("");
+        setClientSecretInput("");
+        setCredentialsError("");
     };
 
     return (
         <div className="space-y-6">
-            <div>
-                <h3 className="text-base font-semibold mb-3">Authentication</h3>
-                <p className="text-xs text-muted-foreground mb-4">
-                    Configure authentication for external API requests. Credentials are encrypted at
-                    rest using AES-256-GCM.
-                </p>
-
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Authentication Method</Label>
-
-                        {!disabled && (
-                            <div className="flex gap-2">
-                                {!isEditing ? (
-                                    <Button
-                                        onClick={() => setIsEditing(true)}
-                                        variant="outline"
-                                        size="sm"
-                                    >
-                                        Edit
-                                    </Button>
-                                ) : (
-                                    <>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={handleCancel}
-                                            disabled={isSaving}
-                                        >
-                                            <X className="h-4 w-4 mr-1" />
-                                            Cancel
-                                        </Button>
-                                        <Button size="sm" onClick={handleSave} disabled={isSaving}>
-                                            <Save className="h-4 w-4 mr-1" />
-                                            {isSaving ? "Saving..." : "Save"}
-                                        </Button>
-                                    </>
-                                )}
-                            </div>
-                        )}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-lg font-semibold md:text-2xl">Authentication</h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Configure authentication for external API requests
+                    </p>
+                </div>
+                {!isEditing ? (
+                    <Button onClick={() => setIsEditing(true)} disabled={!isDraft}>
+                        <Shield className="h-4 w-4 mr-2" />
+                        Edit
+                    </Button>
+                ) : (
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+                            <X className="h-4 w-4 mr-2" />
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSave} disabled={isSaving}>
+                            <Save className="h-4 w-4 mr-2" />
+                            {isSaving ? "Saving..." : "Save"}
+                        </Button>
                     </div>
+                )}
+            </div>
+
+            <Separator />
+
+            <div className="space-y-6">
+                <div className="space-y-3">
+                    <Label className="text-sm font-medium">Authentication Method</Label>
 
                     <RadioGroup
                         value={authMethod}
@@ -232,41 +260,20 @@ export function AuthenticationConfigCard({
                         className="space-y-2"
                     >
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                                value="none"
-                                id="auth-none"
-                                disabled={!isEditing || disabled}
-                            />
-                            <Label
-                                htmlFor="auth-none"
-                                className="text-sm font-normal cursor-pointer"
-                            >
+                            <RadioGroupItem value="none" id="auth-none" disabled={!isEditing || disabled} />
+                            <Label htmlFor="auth-none" className="text-sm font-normal cursor-pointer">
                                 None
                             </Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                                value="basic"
-                                id="auth-basic"
-                                disabled={!isEditing || disabled}
-                            />
-                            <Label
-                                htmlFor="auth-basic"
-                                className="text-sm font-normal cursor-pointer"
-                            >
-                                Basic Authentication (Base64 encoded credentials)
+                            <RadioGroupItem value="basic" id="auth-basic" disabled={!isEditing || disabled} />
+                            <Label htmlFor="auth-basic" className="text-sm font-normal cursor-pointer">
+                                Basic Authentication
                             </Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                                value="bearer"
-                                id="auth-bearer"
-                                disabled={!isEditing || disabled}
-                            />
-                            <Label
-                                htmlFor="auth-bearer"
-                                className="text-sm font-normal cursor-pointer"
-                            >
+                            <RadioGroupItem value="bearer" id="auth-bearer" disabled={!isEditing || disabled} />
+                            <Label htmlFor="auth-bearer" className="text-sm font-normal cursor-pointer">
                                 Bearer Token / OAuth
                             </Label>
                         </div>
@@ -278,7 +285,36 @@ export function AuthenticationConfigCard({
                         <Separator className="my-6" />
 
                         <div className="space-y-4">
-                            <h4 className="text-sm font-medium">Credentials</h4>
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-medium">Credentials</h4>
+                                {isEditing && !isEditingCredentials && (hasClientId || hasSecret) && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleEditCredentials}
+                                        disabled={disabled}
+                                    >
+                                        <Edit2 className="h-3 w-3 mr-1" />
+                                        Edit Credentials
+                                    </Button>
+                                )}
+                                {isEditingCredentials && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleCancelCredentials}
+                                    >
+                                        <X className="h-3 w-3 mr-1" />
+                                        Cancel
+                                    </Button>
+                                )}
+                            </div>
+
+                            {credentialsError && (
+                                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+                                    {credentialsError}
+                                </div>
+                            )}
 
                             <div className="space-y-2">
                                 <Label htmlFor="client-id" className="text-sm">
@@ -286,10 +322,13 @@ export function AuthenticationConfigCard({
                                 </Label>
                                 <Input
                                     id="client-id"
-                                    value={clientId}
-                                    onChange={(e) => setClientId(e.target.value)}
-                                    disabled={!isEditing || disabled}
-                                    placeholder="Enter client ID"
+                                    value={isEditingCredentials ? clientIdInput : (clientId || "")}
+                                    onChange={(e) => {
+                                        setClientIdInput(e.target.value);
+                                        if (credentialsError) setCredentialsError("");
+                                    }}
+                                    disabled={!isEditing || !isEditingCredentials || disabled}
+                                    placeholder={!isEditingCredentials && hasClientId ? "••••••••" : "Enter client ID"}
                                 />
                             </div>
 
@@ -300,11 +339,13 @@ export function AuthenticationConfigCard({
                                 <Input
                                     id="client-secret"
                                     type="password"
-                                    value={clientSecretInput}
-                                    onChange={(e) => setClientSecretInput(e.target.value)}
-                                    onBlur={handleSecretBlur}
-                                    disabled={!isEditing || disabled}
-                                    placeholder={hasSecret ? "••••••••" : "Enter client secret"}
+                                    value={isEditingCredentials ? clientSecretInput : (hasSecret ? "••••••••" : "")}
+                                    onChange={(e) => {
+                                        setClientSecretInput(e.target.value);
+                                        if (credentialsError) setCredentialsError("");
+                                    }}
+                                    disabled={!isEditing || !isEditingCredentials || disabled}
+                                    placeholder={isEditingCredentials ? "Enter new client secret" : ""}
                                 />
                                 <p className="text-xs text-muted-foreground">
                                     Secret is encrypted and never exposed in API responses.
@@ -314,7 +355,6 @@ export function AuthenticationConfigCard({
                     </>
                 )}
 
-                {/* Bearer-specific configuration */}
                 {authMethod === "bearer" && (
                     <>
                         <Separator className="my-6" />
@@ -329,10 +369,17 @@ export function AuthenticationConfigCard({
                                 <Input
                                     id="token-url"
                                     value={tokenUrl}
-                                    onChange={(e) => setTokenUrl(e.target.value)}
+                                    onChange={(e) => {
+                                        setTokenUrl(e.target.value);
+                                        if (tokenUrlError) setTokenUrlError("");
+                                    }}
                                     disabled={!isEditing || disabled}
                                     placeholder="https://auth.example.com/oauth/token"
+                                    className={tokenUrlError ? "border-red-500" : ""}
                                 />
+                                {tokenUrlError && (
+                                    <p className="text-sm text-red-600">{tokenUrlError}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -348,13 +395,11 @@ export function AuthenticationConfigCard({
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="client_credentials">
-                                            Client Credentials
-                                        </SelectItem>
+                                        <SelectItem value="client_credentials">Client Credentials</SelectItem>
                                         <SelectItem value="password">Password</SelectItem>
-                                        <SelectItem value="authorization_code">
-                                            Authorization Code
-                                        </SelectItem>
+                                        <SelectItem value="authorization_code">Authorization Code</SelectItem>
+                                        <SelectItem value="implicit">Implicit</SelectItem>
+                                        <SelectItem value="refresh_token">Refresh Token</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -371,16 +416,11 @@ export function AuthenticationConfigCard({
                                     placeholder="read write"
                                 />
                             </div>
-
-                            <p className="text-xs text-muted-foreground">
-                                Tokens are cached in Redis with TTL based on token expiration for
-                                optimal performance.
-                            </p>
                         </div>
                     </>
                 )}
 
-                {disabled && (
+                {!isDraft && (
                     <p className="text-xs text-muted-foreground mt-4">
                         Authentication cannot be modified for published data sources.
                     </p>
