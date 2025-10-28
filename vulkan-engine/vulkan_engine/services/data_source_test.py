@@ -68,6 +68,58 @@ class DataSourceTestService(BaseService):
                     f"Request body too large: {body_size} bytes (max 1MB)"
                 )
 
+    def _parse_response_data(self, response: httpx.Response) -> str | dict | list:
+        """
+        Parse HTTP response data with graceful fallback chain.
+
+        Attempts to parse response in the following order:
+        1. JSON (dict/list) - most common API response format
+        2. Text - for HTML, plain text, or malformed JSON
+        3. Binary indicator - for images, PDFs, etc.
+
+        Args:
+            response: The httpx Response object to parse
+
+        Returns:
+            Parsed response data as dict/list (JSON), str (text), or binary indicator
+        """
+        try:
+            return response.json()
+        except ValueError:
+            # Not valid JSON, try text
+            pass
+
+        try:
+            return response.text
+        except Exception:
+            # Unable to decode as text, likely binary content
+            return f"<Binary content, {len(response.content)} bytes>"
+
+    def _extract_error_message(
+        self, response_data: str | dict | list, status_code: int
+    ) -> str:
+        """
+        Extract meaningful error message from failed HTTP responses.
+
+        Attempts to find error details in common API response patterns:
+        - JSON responses with 'detail' or 'error' fields
+        - Fallback to HTTP status code description
+
+        Args:
+            response_data: Parsed response data
+            status_code: HTTP status code
+
+        Returns:
+            Human-readable error message
+        """
+        if isinstance(response_data, dict):
+            return (
+                response_data.get("detail")
+                or response_data.get("error")
+                or f"HTTP {status_code}"
+            )
+        return f"HTTP {status_code}"
+
     async def execute_test_by_id(
         self, test_request: DataSourceTestRequestById
     ) -> DataSourceTestResponse:
@@ -184,27 +236,12 @@ class DataSourceTestService(BaseService):
                 status_code = response.status_code
                 response_headers = dict(response.headers)
 
-                # Try to parse as JSON, fallback to text, fallback to raw content info
-                try:
-                    response_data = response.json()
-                except Exception:
-                    try:
-                        response_data = response.text
-                    except Exception:
-                        response_data = (
-                            f"<Binary content, {len(response.content)} bytes>"
-                        )
+                # Parse response data with proper fallback chain
+                response_data = self._parse_response_data(response)
 
-                # Set error message for HTTP error status codes
+                # Extract error message for failed requests
                 if status_code >= 400:
-                    if isinstance(response_data, dict):
-                        error = (
-                            response_data.get("detail")
-                            or response_data.get("error")
-                            or f"HTTP {status_code}"
-                        )
-                    else:
-                        error = f"HTTP {status_code}"
+                    error = self._extract_error_message(response_data, status_code)
 
         except (TemplateSyntaxError, UndefinedError) as e:
             error = f"Template resolution error: {str(e)}"
