@@ -76,12 +76,6 @@ class DataSourceTestService(BaseService):
         1. JSON (dict/list) - most common API response format
         2. Text - for HTML, plain text, or malformed JSON
         3. Binary indicator - for images, PDFs, etc.
-
-        Args:
-            response: The httpx Response object to parse
-
-        Returns:
-            Parsed response data as dict/list (JSON), str (text), or binary indicator
         """
         try:
             return response.json()
@@ -101,16 +95,6 @@ class DataSourceTestService(BaseService):
         """
         Extract meaningful error message from failed HTTP responses.
 
-        Attempts to find error details in common API response patterns:
-        - JSON responses with 'detail' or 'error' fields
-        - Fallback to HTTP status code description
-
-        Args:
-            response_data: Parsed response data
-            status_code: HTTP status code
-
-        Returns:
-            Human-readable error message
         """
         if isinstance(response_data, dict):
             return (
