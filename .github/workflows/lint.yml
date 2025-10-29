@@ -13,6 +13,9 @@ on:
         required: false
         default: '23'
         type: string
+    secrets:
+      GH_TOKEN_READ_PUBLIC:
+        required: false
 
 jobs:
   python-lint:
@@ -40,21 +43,31 @@ jobs:
 
   js-lint:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: ${{ inputs.node_version }}
         cache: 'npm'
         cache-dependency-path: 'frontend/package-lock.json'
-                
+        registry-url: 'https://npm.pkg.github.com'
+        scope: '@vulkanlabs'
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN_READ_PUBLIC || secrets.GITHUB_TOKEN }}
+
     - name: Install dependencies
       working-directory: frontend
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN_READ_PUBLIC || secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN_READ_PUBLIC || secrets.GITHUB_TOKEN }}
       run: npm ci --include dev
 
     - name: Lint JavaScript/TypeScript
       working-directory: frontend
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN_READ_PUBLIC || secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN_READ_PUBLIC || secrets.GITHUB_TOKEN }}
       run: npm run format:check
