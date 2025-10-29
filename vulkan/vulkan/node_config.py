@@ -217,7 +217,6 @@ def configure_fields(
     - EnvVarConfig: Always returns strings (matching OS environment variable semantics)
     - Plain templates: Uses "auto" type inference
     """
-    print("Spec:", spec)
     if spec is None:
         spec = {}
 
