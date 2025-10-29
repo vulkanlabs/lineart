@@ -17,6 +17,7 @@ import pytest
 from vulkan.node_config import (
     EnvVarConfig,
     RunTimeParam,
+    _is_template_like,
     configure_fields,
     extract_env_vars,
     extract_env_vars_from_string,
@@ -755,3 +756,59 @@ class TestConfigureFieldsWithDictCasting:
         # Should remain as dict since it can't be converted
         assert isinstance(result["config"], dict)
         assert result["config"] == {"some": "value", "other": "data"}
+
+
+class TestIsTemplateLike:
+    """Test cases for the _is_template_like helper function."""
+
+    def test_full_template_string(self):
+        """Full template strings should be detected."""
+        assert _is_template_like("{{var}}") is True
+        assert _is_template_like("{{env.API_KEY}}") is True
+        assert _is_template_like("{{user_id}}") is True
+        assert _is_template_like("{{ var }}") is True
+        assert _is_template_like("{{  env.API_KEY  }}") is True
+
+    def test_template_at_start(self):
+        """Templates at the start with text after should be detected."""
+        assert _is_template_like("{{param1}} Value") is True
+        assert _is_template_like("{{env.HOST}}/api/v1") is True
+        assert _is_template_like("{{count}} items") is True
+
+    def test_template_at_end(self):
+        """Templates at the end with text before should be detected."""
+        assert _is_template_like("Basic {{env.API_KEY}}") is True
+        assert _is_template_like("User ID: {{user_id}}") is True
+        assert _is_template_like("https://api.com/{{endpoint}}") is True
+
+    def test_template_in_middle(self):
+        """Templates in the middle with text on both sides should be detected."""
+        assert _is_template_like("prefix {{var}} suffix") is True
+        assert _is_template_like("https://{{domain}}/api") is True
+        assert _is_template_like("Bearer {{env.TOKEN}}!") is True
+        assert _is_template_like("prefix {{ var }} suffix") is True
+
+    def test_multiple_templates(self):
+        """Strings with multiple templates should be detected."""
+        assert _is_template_like("{{var1}} middle {{var2}}") is True
+        assert _is_template_like("{{env.HOST}}/{{version}}/{{endpoint}}") is True
+        assert _is_template_like("{{first}} and {{second}} and {{third}}") is True
+
+    def test_plain_text_no_templates(self):
+        """Plain text without templates should not be detected."""
+        assert _is_template_like("plain text") is False
+        assert _is_template_like("no templates here") is False
+        assert _is_template_like("just a string") is False
+        assert _is_template_like("12345") is False
+        assert _is_template_like("") is False
+
+    def test_wrong_order_delimiters(self):
+        """Wrong order delimiters should not be detected."""
+        assert _is_template_like("}} {{") is False
+        assert _is_template_like("}} text {{") is False
+        assert _is_template_like("{{var") is False
+        assert _is_template_like("var}}") is False
+        assert _is_template_like("{{") is False
+        assert _is_template_like("}}") is False
+        assert _is_template_like("{var}") is False
+        assert _is_template_like("{ var }") is False
