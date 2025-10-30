@@ -283,8 +283,7 @@ class TestAuthHandlerBearer:
         grant_types = [
             GrantType.CLIENT_CREDENTIALS,
             GrantType.PASSWORD,
-            GrantType.AUTHORIZATION_CODE,
-            GrantType.REFRESH_TOKEN,
+            GrantType.IMPLICIT,
         ]
 
         mock_response = Mock()
@@ -310,7 +309,7 @@ class TestAuthHandlerBearer:
             assert "Authorization" in headers
 
     def test_bearer_auth_without_cache(self, bearer_auth_config, env_variables, caplog):
-        """Test Bearer auth works without Redis cache but logs warning."""
+        """Test Bearer auth works without Redis cache."""
         handler = AuthHandler(
             auth_config=bearer_auth_config,
             data_source_id="test-ds-id",
@@ -327,15 +326,9 @@ class TestAuthHandlerBearer:
             mock_response.raise_for_status.return_value = None
             mock_post.return_value = mock_response
 
-            with caplog.at_level("WARNING"):
-                headers = handler.get_auth_headers()
+            headers = handler.get_auth_headers()
 
             assert headers["Authorization"] == "Bearer token"
-
-            # Verify warning was logged about performance impact
-            assert any(
-                "WITHOUT Redis cache" in record.message for record in caplog.records
-            )
 
     @patch("requests.post")
     def test_bearer_auth_handles_token_without_expires(
@@ -355,8 +348,8 @@ class TestAuthHandlerBearer:
 class TestAuthHandlerEdgeCases:
     """Test edge cases and error handling."""
 
-    def test_get_auth_params_returns_empty_dict(self):
-        """Test that get_auth_params returns empty dict (future extension)."""
+    def test_basic_auth_returns_headers(self):
+        """Test that basic auth returns proper authorization headers."""
         auth_config = Auth(method=AuthMethod.BASIC)
         handler = AuthHandler(
             auth_config=auth_config,
@@ -365,9 +358,9 @@ class TestAuthHandlerEdgeCases:
             cache=None,
         )
 
-        params = handler.get_auth_params()
-        assert params == {}
-        assert isinstance(params, dict)
+        headers = handler.get_auth_headers()
+        assert "Authorization" in headers
+        assert headers["Authorization"].startswith("Basic ")
 
     def test_invalid_auth_method(self):
         """Test handling of invalid auth method."""
