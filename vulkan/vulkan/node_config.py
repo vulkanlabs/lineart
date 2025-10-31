@@ -3,7 +3,7 @@ import re
 from typing import Any, Literal
 
 from jinja2 import Environment, Template, nodes
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 _BaseType = str | int | float | bool
 _ListType = list[_BaseType]
@@ -23,6 +23,7 @@ class RunTimeParam(BaseModel):
 
 _ParameterType = _BaseType | _ListType | _DictType | EnvVarConfig | RunTimeParam
 ConfigurableDict = dict[str, _ParameterType]
+configurable_dict_adapter = TypeAdapter(ConfigurableDict)
 
 
 def _visit_nodes(node, visitor_func):
