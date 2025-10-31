@@ -59,5 +59,5 @@ clean-pycache:
 	 find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
 
 .PHONY: speakeasy
-speakeasy:
+speakeasy: clean-pycache openapi
 	cd sdks/python && speakeasy run --skip-versioning

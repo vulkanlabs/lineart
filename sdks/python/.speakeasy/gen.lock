@@ -1,10 +1,10 @@
 lockVersion: 2.0.0
 id: 88929680-bb73-487a-94bf-9600cc541817
 management:
-  docChecksum: f5c6994ebac7d428ab09fcb3eb36f60f
+  docChecksum: cec3649d52db88cc24ddeb639351cbc2
   docVersion: 0.1.0
-  speakeasyVersion: 1.637.0
-  generationVersion: 2.727.4
+  speakeasyVersion: 1.642.1
+  generationVersion: 2.731.4
   releaseVersion: 0.1.1
   configChecksum: 73898a7de081ea6e7a217383aa5b582d
 features:
@@ -83,6 +83,10 @@ generatedFiles:
   - docs/models/datasourcesource.md
   - docs/models/datasourcespec.md
   - docs/models/datasourcespecsource.md
+  - docs/models/datasourcestatus.md
+  - docs/models/datasourcetestbyidrequest.md
+  - docs/models/datasourcetestparams.md
+  - docs/models/datasourcetestresponse.md
   - docs/models/deletecomponentrequest.md
   - docs/models/deletedatasourcerequest.md
   - docs/models/deletepolicyrequest.md
@@ -142,8 +146,10 @@ generatedFiles:
   - docs/models/policyversion.md
   - docs/models/policyversionbase.md
   - docs/models/policyversionupdate.md
+  - docs/models/publishdatasourcerequest.md
   - docs/models/publishmetadatarequest.md
   - docs/models/registeredfilesource.md
+  - docs/models/responsebody.md
   - docs/models/responsetype.md
   - docs/models/retrypolicy.md
   - docs/models/run.md
@@ -171,6 +177,7 @@ generatedFiles:
   - docs/models/uimetadata.md
   - docs/models/uinodeposition.md
   - docs/models/updatecomponentrequest.md
+  - docs/models/updatedatasourcerequest.md
   - docs/models/updatepolicyrequest.md
   - docs/models/updatepolicyversionrequest.md
   - docs/models/updaterunrequest.md
@@ -234,6 +241,7 @@ generatedFiles:
   - src/lineart_sdk/models/create_run_by_policy_versionop.py
   - src/lineart_sdk/models/create_run_groupop.py
   - src/lineart_sdk/models/dagsterlogdetails.py
+  - src/lineart_sdk/models/data_source_test_by_idop.py
   - src/lineart_sdk/models/databrokerrequest.py
   - src/lineart_sdk/models/databrokerresponse.py
   - src/lineart_sdk/models/dataobject.py
@@ -244,6 +252,9 @@ generatedFiles:
   - src/lineart_sdk/models/datasourceenvvarbase.py
   - src/lineart_sdk/models/datasourcereference.py
   - src/lineart_sdk/models/datasourcespec.py
+  - src/lineart_sdk/models/datasourcestatus.py
+  - src/lineart_sdk/models/datasourcetestparams.py
+  - src/lineart_sdk/models/datasourcetestresponse.py
   - src/lineart_sdk/models/delete_componentop.py
   - src/lineart_sdk/models/delete_data_sourceop.py
   - src/lineart_sdk/models/delete_policy_versionop.py
@@ -287,6 +298,7 @@ generatedFiles:
   - src/lineart_sdk/models/policyversion.py
   - src/lineart_sdk/models/policyversionbase.py
   - src/lineart_sdk/models/policyversionupdate.py
+  - src/lineart_sdk/models/publish_data_sourceop.py
   - src/lineart_sdk/models/publish_metadataop.py
   - src/lineart_sdk/models/registeredfilesource.py
   - src/lineart_sdk/models/retrypolicy.py
@@ -313,6 +325,7 @@ generatedFiles:
   - src/lineart_sdk/models/uimetadata.py
   - src/lineart_sdk/models/uinodeposition.py
   - src/lineart_sdk/models/update_componentop.py
+  - src/lineart_sdk/models/update_data_sourceop.py
   - src/lineart_sdk/models/update_policy_versionop.py
   - src/lineart_sdk/models/update_policyop.py
   - src/lineart_sdk/models/update_runop.py
@@ -408,7 +421,7 @@ examples:
           include_archived: false
       responses:
         "200":
-          application/json: [{"name": "<value>", "source": {"file_id": "<id>"}, "data_source_id": "34e20577-cf42-4774-8ba8-577a365aca4f", "archived": true, "created_at": "2025-11-27T13:39:17.638Z", "last_updated_at": "2024-02-21T18:58:26.579Z"}]
+          application/json: [{"name": "<value>", "source": {"file_id": "<id>"}, "data_source_id": "34e20577-cf42-4774-8ba8-577a365aca4f", "created_at": "2025-11-27T13:39:17.638Z", "last_updated_at": "2024-02-21T18:58:26.579Z"}]
         "422":
           application/json: {}
   create_data_source:
@@ -417,7 +430,7 @@ examples:
         application/json: {"name": "<value>", "source": {"path": "/mnt"}}
       responses:
         "200":
-          application/json: {"name": "<value>", "source": {"path": "/mnt"}, "data_source_id": "6ecd390b-9464-4697-af59-e2980ca9f9ed", "archived": false, "created_at": "2024-01-20T08:50:07.133Z", "last_updated_at": "2023-08-15T17:28:01.973Z"}
+          application/json: {"name": "<value>", "source": {"path": "/mnt"}, "data_source_id": "6ecd390b-9464-4697-af59-e2980ca9f9ed", "created_at": "2024-01-20T08:50:07.133Z", "last_updated_at": "2023-08-15T17:28:01.973Z"}
         "422":
           application/json: {}
   get_data_source:
@@ -427,7 +440,7 @@ examples:
           data_source_id: "<id>"
       responses:
         "200":
-          application/json: {"name": "<value>", "source": {"path": "/var/tmp"}, "data_source_id": "a66636c7-45b5-4bf5-9cbd-46d7a4661240", "archived": true, "created_at": "2023-05-08T18:41:06.130Z", "last_updated_at": "2024-06-02T06:49:16.384Z"}
+          application/json: {"name": "<value>", "source": {"path": "/var/tmp"}, "data_source_id": "a66636c7-45b5-4bf5-9cbd-46d7a4661240", "created_at": "2023-05-08T18:41:06.130Z", "last_updated_at": "2024-06-02T06:49:16.384Z"}
         "422":
           application/json: {}
   delete_data_source:
@@ -878,6 +891,61 @@ examples:
       responses:
         "200":
           application/json: "<value>"
+        "422":
+          application/json: {}
+  update_data_source:
+    speakeasy-default-update-data-source:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      requestBody:
+        application/json: {"name": "<value>", "source": {"url": "https://fond-widow.net/", "method": "GET", "response_type": "PLAIN_TEXT"}}
+      responses:
+        "200":
+          application/json: {"name": "<value>", "source": {"url": "https://fond-widow.net/", "method": "GET", "response_type": "PLAIN_TEXT"}, "data_source_id": "ca4f089c-7223-43ba-ab6e-d2f54ee16d95", "created_at": "2023-12-13T02:14:00.703Z", "last_updated_at": "2024-11-28T09:16:50.406Z"}
+        "422":
+          application/json: {}
+  publish_data_source:
+    speakeasy-default-publish-data-source:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      responses:
+        "200":
+          application/json: {"name": "<value>", "source": {"path": "/tmp"}, "data_source_id": "fb59ebf0-3518-4698-9c96-53e52bf0d7a5", "created_at": "2025-02-01T13:55:04.311Z", "last_updated_at": "2025-05-28T02:38:08.410Z"}
+        "422":
+          application/json: {}
+  test_data_source:
+    speakeasy-default-test-data-source:
+      requestBody:
+        application/json: {"url": "https://trivial-eggplant.info/", "method": "GET"}
+      responses:
+        "200":
+          application/json: {"test_id": "5cb619dd-4720-4a29-9584-a011b5468868", "status_code": 176829, "response_time_ms": 8548.03}
+        "422":
+          application/json: {}
+  test_data_source_by_id:
+    speakeasy-default-test-data-source-by-id:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      requestBody:
+        application/json: {}
+      responses:
+        "200":
+          application/json: {"test_id": "3463b5a3-6177-45a2-a8b4-d57e7b5ff28d", "status_code": 662742, "response_time_ms": 7204.16}
+        "422":
+          application/json: {}
+  data_source_test_by_id:
+    speakeasy-default-data-source-test-by-id:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      requestBody:
+        application/json: {}
+      responses:
+        "200":
+          application/json: {"test_id": "aaed7529-fb13-495f-950b-7eeb5e2b5cd4", "status_code": 202577, "response_time_ms": 4479.2}
         "422":
           application/json: {}
 examplesVersion: 1.0.2

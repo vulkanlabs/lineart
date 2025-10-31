@@ -18,6 +18,9 @@ on:
         required: false
         default: 'https://npm.pkg.github.com'
         type: string
+    secrets:
+      GH_TOKEN_READ_PUBLIC:
+        required: false
 
 jobs:
   generate-openapi-spec:
@@ -61,9 +64,15 @@ jobs:
         with:
           node-version: ${{ inputs.node_version }}
           registry-url: 'https://npm.pkg.github.com'
+          scope: '@vulkanlabs'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN_READ_PUBLIC || secrets.GITHUB_TOKEN }}
 
       # Build & Publish Frontend Packages
       - name: Build all packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN_READ_PUBLIC || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN_READ_PUBLIC || secrets.GITHUB_TOKEN }}
         run: |
           cd frontend
           npm ci
@@ -71,7 +80,7 @@ jobs:
 
       - name: Publish development version of packages
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN_READ_PUBLIC || secrets.GITHUB_TOKEN }}
         run: |
           cd frontend/packages
 

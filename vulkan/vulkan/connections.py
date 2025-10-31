@@ -10,7 +10,12 @@ from pydantic import BaseModel, Field, field_validator
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
-from vulkan.node_config import ConfigurableDict, configure_fields, resolve_template
+from vulkan.node_config import (
+    ConfigurableDict,
+    configurable_dict_adapter,
+    configure_fields,
+    resolve_template,
+)
 
 
 class RetryPolicy(BaseModel):
@@ -34,9 +39,9 @@ class HTTPConfig(BaseModel):
 
     url: str
     method: HTTPMethod = "GET"
-    headers: ConfigurableDict = Field(default_factory=dict)
-    params: ConfigurableDict = Field(default_factory=dict)
-    body: ConfigurableDict = Field(default_factory=dict)
+    headers: dict = Field(default_factory=dict)
+    params: dict = Field(default_factory=dict)
+    body: dict = Field(default_factory=dict)
     timeout: int | None = None
     retry: RetryPolicy = Field(default_factory=lambda: RetryPolicy(max_retries=1))
     response_type: Literal["JSON", "XML", "CSV", "PLAIN_TEXT"] = (
@@ -55,10 +60,15 @@ class HTTPConfig(BaseModel):
 
     @field_validator("headers", "params", "body")
     @classmethod
-    def _ensure_dict(
-        cls, v
-    ):  # Pydantic will already coerce mapping types; keep for safety
-        return {} if v is None else v
+    def _ensure_configurable_dict(cls, v) -> ConfigurableDict:
+        """Validate that all dicts conform to our parameter specification.
+
+        This is performed manually to avoid generation errors from
+        OpenAPI spec to client code.
+        """
+        if v is None:
+            return {}
+        return configurable_dict_adapter.validate_python(v)
 
 
 def make_request(

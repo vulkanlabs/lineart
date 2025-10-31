@@ -1,8 +1,9 @@
 import ast
+import re
 from typing import Any, Literal
 
 from jinja2 import Environment, Template, nodes
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 _BaseType = str | int | float | bool
 _ListType = list[_BaseType]
@@ -22,6 +23,7 @@ class RunTimeParam(BaseModel):
 
 _ParameterType = _BaseType | _ListType | _DictType | EnvVarConfig | RunTimeParam
 ConfigurableDict = dict[str, _ParameterType]
+configurable_dict_adapter = TypeAdapter(ConfigurableDict)
 
 
 def _visit_nodes(node, visitor_func):
@@ -99,6 +101,9 @@ def extract_env_vars(spec: ConfigurableDict) -> list[str]:
     env_vars = []
 
     for key, value in spec.items():
+        # Try to convert dict to RunTimeParam or EnvVarConfig if applicable
+        value = _try_cast_to_config_object(value)
+
         if isinstance(value, EnvVarConfig):
             env_vars.append(value.env)
         elif isinstance(value, str):
@@ -129,6 +134,9 @@ def extract_runtime_params(spec: ConfigurableDict) -> list[str]:
     runtime_params = []
 
     for key, value in spec.items():
+        # Try to convert dict to RunTimeParam or EnvVarConfig if applicable
+        value = _try_cast_to_config_object(value)
+
         if isinstance(value, RunTimeParam):
             runtime_params.append(value.param)
         elif isinstance(value, str):
@@ -271,7 +279,8 @@ def _is_template_like(value: Any) -> bool:
     if not isinstance(value, str):
         return False
 
-    return value.startswith("{{") and value.endswith("}}")
+    # Check if the string contains at least one Jinja2 template expression
+    return bool(re.search(r"\{\{.*?\}\}", value))
 
 
 def _convert_to_type(value: str, target_type: str) -> int | float | bool:

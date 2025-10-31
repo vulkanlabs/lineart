@@ -72,6 +72,10 @@ if TYPE_CHECKING:
         CreateRunGroupRequestTypedDict,
     )
     from .dagsterlogdetails import DagsterLogDetails, DagsterLogDetailsTypedDict
+    from .data_source_test_by_idop import (
+        DataSourceTestByIDRequest,
+        DataSourceTestByIDRequestTypedDict,
+    )
     from .databrokerrequest import DataBrokerRequest, DataBrokerRequestTypedDict
     from .databrokerresponse import (
         DataBrokerResponse,
@@ -106,6 +110,17 @@ if TYPE_CHECKING:
         DataSourceSpecSource,
         DataSourceSpecSourceTypedDict,
         DataSourceSpecTypedDict,
+    )
+    from .datasourcestatus import DataSourceStatus
+    from .datasourcetestparams import (
+        DataSourceTestParams,
+        DataSourceTestParamsTypedDict,
+    )
+    from .datasourcetestresponse import (
+        DataSourceTestResponse,
+        DataSourceTestResponseTypedDict,
+        ResponseBody,
+        ResponseBodyTypedDict,
     )
     from .delete_componentop import (
         DeleteComponentRequest,
@@ -245,6 +260,10 @@ if TYPE_CHECKING:
     from .policyversion import PolicyVersion, PolicyVersionTypedDict
     from .policyversionbase import PolicyVersionBase, PolicyVersionBaseTypedDict
     from .policyversionupdate import PolicyVersionUpdate, PolicyVersionUpdateTypedDict
+    from .publish_data_sourceop import (
+        PublishDataSourceRequest,
+        PublishDataSourceRequestTypedDict,
+    )
     from .publish_metadataop import (
         PublishMetadataRequest,
         PublishMetadataRequestTypedDict,
@@ -302,6 +321,10 @@ if TYPE_CHECKING:
     from .update_componentop import (
         UpdateComponentRequest,
         UpdateComponentRequestTypedDict,
+    )
+    from .update_data_sourceop import (
+        UpdateDataSourceRequest,
+        UpdateDataSourceRequestTypedDict,
     )
     from .update_policy_versionop import (
         UpdatePolicyVersionRequest,
@@ -413,6 +436,13 @@ __all__ = [
     "DataSourceSpecSource",
     "DataSourceSpecSourceTypedDict",
     "DataSourceSpecTypedDict",
+    "DataSourceStatus",
+    "DataSourceTestByIDRequest",
+    "DataSourceTestByIDRequestTypedDict",
+    "DataSourceTestParams",
+    "DataSourceTestParamsTypedDict",
+    "DataSourceTestResponse",
+    "DataSourceTestResponseTypedDict",
     "DataSourceTypedDict",
     "DeleteComponentRequest",
     "DeleteComponentRequestTypedDict",
@@ -531,10 +561,14 @@ __all__ = [
     "PolicyVersionTypedDict",
     "PolicyVersionUpdate",
     "PolicyVersionUpdateTypedDict",
+    "PublishDataSourceRequest",
+    "PublishDataSourceRequestTypedDict",
     "PublishMetadataRequest",
     "PublishMetadataRequestTypedDict",
     "RegisteredFileSource",
     "RegisteredFileSourceTypedDict",
+    "ResponseBody",
+    "ResponseBodyTypedDict",
     "ResponseType",
     "RetryPolicy",
     "RetryPolicyTypedDict",
@@ -587,6 +621,8 @@ __all__ = [
     "UINodePositionTypedDict",
     "UpdateComponentRequest",
     "UpdateComponentRequestTypedDict",
+    "UpdateDataSourceRequest",
+    "UpdateDataSourceRequestTypedDict",
     "UpdatePolicyRequest",
     "UpdatePolicyRequestTypedDict",
     "UpdatePolicyVersionRequest",
@@ -660,6 +696,8 @@ _dynamic_imports: dict[str, str] = {
     "CreateRunGroupRequestTypedDict": ".create_run_groupop",
     "DagsterLogDetails": ".dagsterlogdetails",
     "DagsterLogDetailsTypedDict": ".dagsterlogdetails",
+    "DataSourceTestByIDRequest": ".data_source_test_by_idop",
+    "DataSourceTestByIDRequestTypedDict": ".data_source_test_by_idop",
     "DataBrokerRequest": ".databrokerrequest",
     "DataBrokerRequestTypedDict": ".databrokerrequest",
     "DataBrokerResponse": ".databrokerresponse",
@@ -689,6 +727,13 @@ _dynamic_imports: dict[str, str] = {
     "DataSourceSpecSource": ".datasourcespec",
     "DataSourceSpecSourceTypedDict": ".datasourcespec",
     "DataSourceSpecTypedDict": ".datasourcespec",
+    "DataSourceStatus": ".datasourcestatus",
+    "DataSourceTestParams": ".datasourcetestparams",
+    "DataSourceTestParamsTypedDict": ".datasourcetestparams",
+    "DataSourceTestResponse": ".datasourcetestresponse",
+    "DataSourceTestResponseTypedDict": ".datasourcetestresponse",
+    "ResponseBody": ".datasourcetestresponse",
+    "ResponseBodyTypedDict": ".datasourcetestresponse",
     "DeleteComponentRequest": ".delete_componentop",
     "DeleteComponentRequestTypedDict": ".delete_componentop",
     "DeleteDataSourceRequest": ".delete_data_sourceop",
@@ -815,6 +860,8 @@ _dynamic_imports: dict[str, str] = {
     "PolicyVersionBaseTypedDict": ".policyversionbase",
     "PolicyVersionUpdate": ".policyversionupdate",
     "PolicyVersionUpdateTypedDict": ".policyversionupdate",
+    "PublishDataSourceRequest": ".publish_data_sourceop",
+    "PublishDataSourceRequestTypedDict": ".publish_data_sourceop",
     "PublishMetadataRequest": ".publish_metadataop",
     "PublishMetadataRequestTypedDict": ".publish_metadataop",
     "RegisteredFileSource": ".registeredfilesource",
@@ -871,6 +918,8 @@ _dynamic_imports: dict[str, str] = {
     "UINodePositionTypedDict": ".uinodeposition",
     "UpdateComponentRequest": ".update_componentop",
     "UpdateComponentRequestTypedDict": ".update_componentop",
+    "UpdateDataSourceRequest": ".update_data_sourceop",
+    "UpdateDataSourceRequestTypedDict": ".update_data_sourceop",
     "UpdatePolicyVersionRequest": ".update_policy_versionop",
     "UpdatePolicyVersionRequestTypedDict": ".update_policy_versionop",
     "UpdatePolicyRequest": ".update_policyop",

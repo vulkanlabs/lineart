@@ -37,7 +37,8 @@ const formSchema = z.object({
 });
 
 export interface CreateDataSourceDialogConfig {
-    createDataSource: (spec: DataSourceSpec) => Promise<DataSource>;
+    createDataSource: (spec: DataSourceSpec, projectId?: string) => Promise<DataSource>;
+    projectId?: string;
     buttonText?: string;
     dialogTitle?: string;
 }
@@ -93,7 +94,10 @@ export function CreateDataSourceDialog({ config }: { config: CreateDataSourceDia
                 metadata: {},
             };
 
-            const createdDataSource = await config.createDataSource(dataSourceSpec);
+            const createdDataSource = await config.createDataSource(
+                dataSourceSpec,
+                config.projectId,
+            );
             setOpen(false);
             form.reset();
             toast("Data Source Created", {

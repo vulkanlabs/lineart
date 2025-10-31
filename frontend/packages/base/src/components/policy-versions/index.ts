@@ -1,15 +1,15 @@
 // Policy version components barrel export
-export * from "./policy-launcher";
-export * from "./policy-resources";
+export * from "./PolicyLauncher";
+export * from "./PolicyResources";
 
 // Re-export types specifically for better discoverability
 export type {
     PolicyResourcesEnvironmentVariablesConfig,
     PolicyResourcesDataSourcesTableConfig,
     PolicyResourcesRequirementsEditorConfig,
-} from "./policy-resources";
+} from "./PolicyResources";
 export type {
     PolicyLauncherConfig,
     PolicyLauncherPageConfig,
     PolicyLauncherButtonConfig,
-} from "./policy-launcher";
+} from "./PolicyLauncher";

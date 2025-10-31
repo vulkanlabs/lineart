@@ -112,9 +112,11 @@ export interface UpdateAllocationDialogConfig {
     updatePolicyAllocationStrategy: (
         policyId: string,
         payload: PolicyAllocationStrategy,
+        projectId?: string,
     ) => Promise<any>;
     buttonText?: string;
     dialogTitle?: string;
+    projectId?: string;
 }
 
 /**
@@ -232,7 +234,7 @@ export function UpdateAllocationDialog({ config }: { config: UpdateAllocationDia
         };
 
         try {
-            await updatePolicyAllocationStrategy(policyId, payload);
+            await updatePolicyAllocationStrategy(policyId, payload, config.projectId);
             toast.success("Allocation Updated", {
                 description: "The policy allocation strategy has been successfully updated.",
             });

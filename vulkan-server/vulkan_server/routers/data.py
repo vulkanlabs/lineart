@@ -207,28 +207,8 @@ def publish_data_source(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/test", response_model=schemas.DataSourceTestResponse)
-async def test_data_source(
-    test_request: schemas.DataSourceTestRequest,
-    service: DataSourceTestService = Depends(get_data_source_test_service),
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)] = None,
-):
-    """Test a data source configuration."""
-    try:
-        return await service.execute_test(test_request)
-    except InvalidDataSourceException as e:
-        logger.warning(f"Test validation error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except TimeoutError as e:
-        logger.warning(f"Test timeout: {e}")
-        raise HTTPException(status_code=408, detail="Request timeout")
-    except Exception as e:
-        logger.error(f"Test execution error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
 @router.post("/{data_source_id}/test", response_model=schemas.DataSourceTestResponse)
-async def test_data_source_by_id(
+async def data_source_test_by_id(
     data_source_id: str,
     test_params: schemas.DataSourceTestParams,
     service: DataSourceTestService = Depends(get_data_source_test_service),
