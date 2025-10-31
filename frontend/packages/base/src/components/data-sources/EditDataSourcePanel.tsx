@@ -272,7 +272,7 @@ export function EditDataSourcePanel({
                             rows={6}
                             className={`mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed font-mono resize-none placeholder:!text-foreground ${!isEditing ? "!text-foreground !opacity-100 placeholder:!opacity-70" : "placeholder:!opacity-60 disabled:opacity-50"}`}
                             placeholder={
-                                '{\n  "Content-Type": "application/json",\n  "Authorization": "Bearer token"\n}'
+                                '{\n  "Content-Type": "application/json"\n}'
                             }
                         />
                     </div>
@@ -301,7 +301,7 @@ export function EditDataSourcePanel({
                         rows={8}
                         className={`mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed font-mono resize-none placeholder:!text-foreground ${!isEditing ? "!text-foreground !opacity-100 placeholder:!opacity-70" : "placeholder:!opacity-60 disabled:opacity-50"}`}
                         placeholder={
-                            '{\n  "tax_id": "{{tax_id}}",\n  "product_id": "123",\n  "Auth": "{{env.secret_key}}"\n}'
+                            '{\n  "tax_id": "{{tax_id}}",\n  "product_id": "123"\n}'
                         }
                     />
                     <p className="text-xs text-muted-foreground mt-1">

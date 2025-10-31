@@ -1,6 +1,7 @@
 import logging
 import sys
 
+from data_router import auth_router
 from data_router import router as data_router
 from fastapi import FastAPI, Request
 from fipe_router import router as fipe_router
@@ -23,6 +24,7 @@ logger.addHandler(stream_handler)
 
 # Include the routers
 app.include_router(data_router)
+app.include_router(auth_router)
 app.include_router(fipe_router)
 
 
