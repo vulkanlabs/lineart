@@ -16,7 +16,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "fb1d7ee648fd"
+revision: str = "002_add_datasource_status_column"
 down_revision: Union[str, Sequence[str], None] = "001_create_initial_schema"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
