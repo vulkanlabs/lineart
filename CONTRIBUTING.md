@@ -43,6 +43,27 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 ```
 
+### Database Migrations
+
+We use Alembic for database migrations with sequential numbering.
+
+To create a new migration:
+
+```bash
+# First, check the latest migration number in vulkan-engine/vulkan_engine/alembic/versions/
+# Then create the next sequential migration
+cd vulkan-engine
+uv run alembic revision --rev-id="003" -m "description_of_your_changes"
+```
+
+**Important:**
+- Use zero-padded sequential numbers (001, 002, 003, etc.)
+- Replace the rev-id with the next number in sequence
+- Use descriptive, snake_case names for the migration description
+- Example: `uv run alembic revision --rev-id="003" -m "add_user_authentication"`
+
+This will generate a file like: `003_add_user_authentication.py`
+
 ## Configuration
 
 You need to set some basic configuration values.
