@@ -212,14 +212,12 @@ class RunOrchestrationService(BaseService):
         run.run_metadata = metadata
         self.db.commit()
 
-        self.logger.system.info(f"Run group_id {run.run_group_id}")
-
         # Trigger shadow runs if part of a run group
         # TODO: What to do when the main run fails?
         # TODO: Should we trigger the remaining runs with a subprocess (so we don't
         # halt the API's response)?
         if run.run_group_id:
-            self.logger.system.info(
+            self.logger.system.debug(
                 f"Launching shadow runs from group {run.run_group_id}"
             )
             self._launch_pending_runs(run.run_group_id)
@@ -250,7 +248,7 @@ class RunOrchestrationService(BaseService):
 
         # Launch each pending run
         for run in pending_runs:
-            self.logger.system.info(f"Launching run {run.run_id}")
+            self.logger.system.debug(f"Launching run {run.run_id}")
             try:
                 self.launch_run(run=run, input_data=input_data)
             except Exception as e:
