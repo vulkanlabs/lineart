@@ -429,7 +429,7 @@ class DataSourceService(BaseService):
             project_id: Optional project UUID to filter by
 
         Returns:
-            List of DataSourceEnvVar objects with CLIENT_SECRET masked
+            List of DataSourceEnvVar objects
 
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
@@ -445,15 +445,7 @@ class DataSourceService(BaseService):
             .all()
         )
 
-        filtered_vars = []
-        for var in env_vars:
-            if var.name in ["CLIENT_SECRET", "PASSWORD"]:
-                masked_var = DataSourceEnvVarSchema(name=var.name, value="********")
-                filtered_vars.append(masked_var)
-            else:
-                filtered_vars.append(DataSourceEnvVarSchema.model_validate(var))
-
-        return filtered_vars
+        return [DataSourceEnvVarSchema.model_validate(var) for var in env_vars]
 
     def list_data_objects(
         self, data_source_id: str, project_id: str = None
