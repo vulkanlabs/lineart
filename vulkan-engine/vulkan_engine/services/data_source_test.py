@@ -24,7 +24,6 @@ from vulkan_engine.schemas import (
     DataSourceTestRequestById,
     DataSourceTestResponse,
 )
-from vulkan_engine.security.crypto import decrypt_secret
 from vulkan_engine.services.auth_handler import AuthHandler
 from vulkan_engine.services.base import BaseService
 
@@ -44,10 +43,10 @@ class DataSourceTestService(BaseService):
 
     def _load_auth_credentials(self, data_source_id: str) -> dict[str, str]:
         """
-        Load and decrypt authentication credentials from db.
+        Load authentication credentials from database.
 
         Returns:
-            Dictionary with CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD (decrypted)
+            Dictionary with CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD
         """
         env_vars = {}
 
@@ -63,11 +62,12 @@ class DataSourceTestService(BaseService):
         )
 
         for credential in credentials:
-            value = str(credential.value)
-
-            # CLIENT_SECRET and PASSWORD are stored encrypted
-            if credential.name in ["CLIENT_SECRET", "PASSWORD"]:
-                value = decrypt_secret(value)
+            if credential.value is None:
+                value = ""
+            elif isinstance(credential.value, str):
+                value = credential.value
+            else:
+                value = str(credential.value)
 
             env_vars[credential.name] = value
 

@@ -40,12 +40,6 @@ from vulkan_engine.schemas import (
 )
 from vulkan_engine.schemas import DataSource as DataSourceSchema
 from vulkan_engine.schemas import DataSourceEnvVar as DataSourceEnvVarSchema
-from vulkan_engine.security import (
-    DecryptionError,
-    EncryptionError,
-    decrypt_secret,
-    encrypt_secret,
-)
 from vulkan_engine.services.auth_handler import AuthHandler
 from vulkan_engine.services.base import BaseService
 
@@ -408,13 +402,7 @@ class DataSourceService(BaseService):
         # Update or create variables
         existing_map = {v.name: v for v in existing_variables}
         for v in desired_variables:
-            # Encrypt CLIENT_SECRET and PASSWORD before storing
             value_to_store = v.value
-            if v.name in ["CLIENT_SECRET", "PASSWORD"]:
-                try:
-                    value_to_store = encrypt_secret(v.value)
-                except EncryptionError as e:
-                    raise InvalidDataSourceException(f"Failed to encrypt {v.name}: {e}")
 
             env_var = existing_map.get(v.name)
             if not env_var:
@@ -575,16 +563,7 @@ class DataSourceService(BaseService):
         env_variables = {}
         if env_vars:
             for ev in env_vars:
-                # Decrypt CLIENT_SECRET before using
-                if ev.name == "CLIENT_SECRET":
-                    try:
-                        env_variables[ev.name] = decrypt_secret(ev.value)
-                    except DecryptionError as e:
-                        raise InvalidDataSourceException(
-                            f"Failed to decrypt CLIENT_SECRET: {e}"
-                        )
-                else:
-                    env_variables[ev.name] = ev.value
+                env_variables[ev.name] = ev.value
 
         # Check for missing variables
         missing_vars = set(spec.variables or []) - set(env_variables.keys())
