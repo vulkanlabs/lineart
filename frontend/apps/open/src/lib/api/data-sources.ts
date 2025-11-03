@@ -189,8 +189,8 @@ export const fetchDataSourceCacheStats = async (
  * Update an existing data source configuration
  *
  * The backend enforces update restrictions for published data sources.
- * This function simply sends the requested updates and lets the backend
- * decide what changes are allowed based on the data source status.
+ * This function fetches the current data source, merges the updates,
+ * and sends the complete spec to the backend.
  *
  * @param {string} dataSourceId - ID of data source to update
  * @param {Partial<DataSourceSpec>} updates - Partial updates to apply
@@ -203,10 +203,21 @@ export async function updateDataSource(
     projectId?: string,
 ): Promise<DataSource> {
     "use server";
+
+    const currentDataSource = await fetchDataSource(dataSourceId, projectId);
+
+    const completeSpec: DataSourceSpec = {
+        name: updates.name ?? currentDataSource.name,
+        source: updates.source ?? currentDataSource.source,
+        caching: updates.caching ?? currentDataSource.caching,
+        description: updates.description !== undefined ? updates.description : currentDataSource.description,
+        metadata: updates.metadata !== undefined ? updates.metadata : currentDataSource.metadata,
+    };
+
     return withErrorHandling(
         dataSourcesApi.updateDataSource({
             dataSourceId,
-            dataSourceSpec: updates as DataSourceSpec,
+            dataSourceSpec: completeSpec,
         }),
         `update data source ${dataSourceId}`,
     );

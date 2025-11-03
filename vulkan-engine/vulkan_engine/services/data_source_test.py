@@ -41,6 +41,33 @@ class DataSourceTestService(BaseService):
         """
         super().__init__(db, logger)
 
+    def _load_all_env_vars(self, data_source_id: str) -> dict[str, str]:
+        """
+        Load all environment variables from database.
+
+        Returns:
+            Dictionary with all environment variable name-value pairs
+        """
+        env_vars = {}
+
+        all_vars = (
+            self.db.query(DataSourceEnvVar)
+            .filter_by(data_source_id=data_source_id)
+            .all()
+        )
+
+        for var in all_vars:
+            if var.value is None:
+                value = ""
+            elif isinstance(var.value, str):
+                value = var.value
+            else:
+                value = str(var.value)
+
+            env_vars[var.name] = value
+
+        return env_vars
+
     def _load_auth_credentials(self, data_source_id: str) -> dict[str, str]:
         """
         Load authentication credentials from database.
@@ -176,11 +203,10 @@ class DataSourceTestService(BaseService):
         headers_normalized = normalize_mapping(source_config.get("headers"))
         params_base_normalized = normalize_mapping(source_config.get("params"))
 
-        env_vars = test_request.env_vars or {}
+        env_vars = self._load_all_env_vars(test_request.data_source_id)
 
-        if source_config.get("auth"):
-            auth_credentials = self._load_auth_credentials(test_request.data_source_id)
-            env_vars.update(auth_credentials)
+        if test_request.env_vars:
+            env_vars.update(test_request.env_vars)
 
         full_request = DataSourceTestRequest(
             url=source_config.get("url", ""),
