@@ -373,7 +373,8 @@ def normalize_to_template(value: _ParameterType) -> str:
     - {"param": "variable"} -> "{{variable}}"
     - {"env": "variable"} -> "{{env.variable}}"
     - "{{variable}}" -> "{{variable}}" (unchanged)
-    - "variable" -> "{{variable}}"
+    - "application/json" -> "application/json" (literal strings unchanged)
+    - "variable" -> "{{variable}}" (only if it looks like a variable name)
     """
     if isinstance(value, RunTimeParam):
         return f"{{{{{value.param}}}}}"
@@ -382,7 +383,18 @@ def normalize_to_template(value: _ParameterType) -> str:
     elif isinstance(value, list):
         # For lists, normalize each element
         return [normalize_to_template(item) for item in value]
-    elif isinstance(value, str) and value.startswith("{{") and value.endswith("}}"):
+    elif isinstance(value, str):
+        if value.startswith("{{") and value.endswith("}}"):
+            return value
+        # If it's a literal string (contains special chars like /, :, spaces, etc),
+        # return as-is if it's a literal value not a variable name
+        if any(
+            char in value
+            for char in ["/", ":", " ", "-", ".", "@", "+", "=", "?", "&", "#", ","]
+        ):
+            return value
+        # Treat all plain strings as literals to avoid wrapping values like "API", "v1", etc.
+        # The system should use explicit {{ }} syntax for variable references
         return value
     else:
         return f"{{{{{value}}}}}"

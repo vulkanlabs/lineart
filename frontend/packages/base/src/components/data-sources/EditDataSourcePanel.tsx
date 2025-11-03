@@ -105,7 +105,8 @@ export function EditDataSourcePanel({
                 try {
                     parsedHeaders = JSON.parse(headers);
                 } catch (e) {
-                    toast.error("Invalid JSON format in headers");
+                    console.error('Failed to parse headers:', e);
+                    toast.error(`Invalid JSON format in headers: ${e instanceof Error ? e.message : String(e)}`);
                     setIsSaving(false);
                     return;
                 }
@@ -116,7 +117,8 @@ export function EditDataSourcePanel({
                 try {
                     parsedParams = JSON.parse(params);
                 } catch (e) {
-                    toast.error("Invalid JSON format in params");
+                    console.error('Failed to parse params:', e);
+                    toast.error(`Invalid JSON format in params: ${e instanceof Error ? e.message : String(e)}`);
                     setIsSaving(false);
                     return;
                 }
@@ -127,7 +129,8 @@ export function EditDataSourcePanel({
                 try {
                     parsedBody = JSON.parse(body);
                 } catch (e) {
-                    toast.error("Invalid JSON format in body");
+                    console.error('Failed to parse body:', e);
+                    toast.error(`Invalid JSON format in body: ${e instanceof Error ? e.message : String(e)}`);
                     setIsSaving(false);
                     return;
                 }
@@ -152,6 +155,8 @@ export function EditDataSourcePanel({
             if (Object.keys(cleanedParams).length > 0) source.params = cleanedParams;
             if (Object.keys(cleanedBody).length > 0) source.body = cleanedBody;
             if (timeout) source.timeout = parseInt(timeout, 10);
+            
+            if (dataSource.source.auth) source.auth = dataSource.source.auth;
 
             const updates: Partial<DataSource> = {
                 name: dataSource.name,

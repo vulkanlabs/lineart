@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 import httpx
 from jinja2 import TemplateSyntaxError, UndefinedError
+from requests.exceptions import HTTPError as RequestsHTTPError
 
 from vulkan.auth import Auth
 from vulkan.node_config import configure_fields, normalize_mapping, resolve_template
@@ -308,8 +309,16 @@ class DataSourceTestService(BaseService):
         except ValueError as e:
             error = f"Configuration error: {str(e)}"
             status_code = 400
+        except RequestsHTTPError as e:
+            # HTTP error, used by auth handler
+            if e.response is not None:
+                status_code = e.response.status_code
+                error = f"Authentication failed: {e.response.status_code} {e.response.reason}"
+            else:
+                status_code = 500
+                error = f"Authentication failed: {str(e)}"
         except Exception as e:
-            error = f"Unexpected error: {str(e)}"
+            error = f"Unexpected error [{type(e).__name__}]: {str(e)}"
             status_code = 500
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000
