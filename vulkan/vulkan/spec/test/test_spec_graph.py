@@ -1,5 +1,4 @@
 import pytest
-
 from vulkan.spec.dependency import INPUT_NODE, Dependency
 from vulkan.spec.graph import sort_nodes
 from vulkan.spec.nodes import BranchNode, DataInputNode, TerminateNode, TransformNode

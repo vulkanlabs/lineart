@@ -10,9 +10,9 @@ from datetime import date
 from sqlalchemy import func as F
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-
 from vulkan.data_source import DataSourceStatus
 from vulkan.spec.nodes.base import NodeType
+
 from vulkan_engine import schemas
 from vulkan_engine.db import (
     ConfigurationValue,

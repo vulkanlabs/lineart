@@ -9,8 +9,8 @@ from urllib.parse import urlparse
 
 import httpx
 from jinja2 import TemplateSyntaxError, UndefinedError
-
 from vulkan.node_config import configure_fields, resolve_template
+
 from vulkan_engine.db import DataSourceTestResult
 from vulkan_engine.exceptions import (
     DataSourceNotFoundException,

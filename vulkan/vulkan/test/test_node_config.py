@@ -13,7 +13,6 @@ Examples:
 """
 
 import pytest
-
 from vulkan.node_config import (
     EnvVarConfig,
     RunTimeParam,
