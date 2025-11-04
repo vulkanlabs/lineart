@@ -1,6 +1,5 @@
 import pytest
 from lineart_sdk import Lineart, models
-
 from vulkan.spec.dependency import INPUT_NODE, Dependency
 from vulkan.spec.nodes import BranchNode, TerminateNode
 from vulkan.spec.policy import PolicyDefinition

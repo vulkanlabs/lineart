@@ -2,7 +2,6 @@ from unittest.mock import MagicMock
 
 import pytest
 from hatchet_sdk import Hatchet
-
 from vulkan.core.policy import Policy
 from vulkan.runners.hatchet.nodes import (
     HatchetDataInput,

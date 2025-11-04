@@ -8,8 +8,8 @@ from uuid import UUID
 
 from numpy.random import choice
 from sqlalchemy.orm import Session
-
 from vulkan.core.run import RunStatus
+
 from vulkan_engine.db import Run, RunGroup
 from vulkan_engine.exceptions import (
     InvalidAllocationStrategyException,

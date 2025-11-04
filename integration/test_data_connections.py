@@ -15,7 +15,6 @@ from lineart_sdk.models import (
     RunTimeParam,
     WorkflowBase,
 )
-
 from vulkan.spec.dependency import INPUT_NODE, Dependency
 from vulkan.spec.nodes import (
     ConnectionNode,

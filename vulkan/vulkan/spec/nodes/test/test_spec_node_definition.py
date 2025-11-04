@@ -1,7 +1,6 @@
 from enum import Enum
 
 import pytest
-
 from vulkan.spec.dependency import INPUT_NODE, Dependency
 from vulkan.spec.nodes import BranchNode, InputNode, NodeType, TerminateNode
 from vulkan.spec.nodes.transform import TransformNode
