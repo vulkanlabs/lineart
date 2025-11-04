@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-beam = ["apache-beam[dataframe,gcp]>=2.60.0"]
+beam = ["apache-beam[dataframe,gcp]>=2.69.0"]
 dagster = [
     "dagster>=1.11.9",
     "dagster-postgres>=0.27.9",
@@ -32,7 +32,7 @@ all = [
 
 [tool.uv]
 dev-dependencies = [
-    "apache-beam[dataframe,gcp]>=2.60.0",
+    "apache-beam[dataframe,gcp]>=2.69.0",
     "pandas>=2.2.3",
     "pytest>=8.3.2",
     "pytest-httpserver>=1.1.0",
