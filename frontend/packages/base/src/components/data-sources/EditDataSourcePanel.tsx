@@ -9,6 +9,10 @@ import { toast } from "sonner";
 
 interface EditDataSourcePanelProps {
     dataSource: DataSource;
+    fetchDataSource: (
+        dataSourceId: string,
+        projectId?: string,
+    ) => Promise<DataSource>;
     updateDataSource: (
         dataSourceId: string,
         updates: Partial<DataSource>,
@@ -20,6 +24,7 @@ interface EditDataSourcePanelProps {
 
 export function EditDataSourcePanel({
     dataSource,
+    fetchDataSource,
     updateDataSource,
     projectId,
     disabled = false,
@@ -96,6 +101,9 @@ export function EditDataSourcePanel({
     const handleSave = async () => {
         setIsSaving(true);
         try {
+            // Fetch latest dataSource from server to avoid overwriting other changes
+            const latestDataSource = await fetchDataSource(dataSource.data_source_id, projectId);
+
             let parsedHeaders = {};
             let parsedParams = {};
             let parsedBody = {};
@@ -147,7 +155,7 @@ export function EditDataSourcePanel({
                 retry: {
                     max_retries: maxRetries ? parseInt(maxRetries, 10) : 3,
                     backoff_factor: backoffFactor ? parseFloat(backoffFactor) : 2,
-                    status_forcelist: dataSource.source.retry?.status_forcelist || [],
+                    status_forcelist: latestDataSource.source.retry?.status_forcelist || [],
                 },
             };
 
@@ -155,8 +163,8 @@ export function EditDataSourcePanel({
             if (Object.keys(cleanedParams).length > 0) source.params = cleanedParams;
             if (Object.keys(cleanedBody).length > 0) source.body = cleanedBody;
             if (timeout) source.timeout = parseInt(timeout, 10);
-            
-            if (dataSource.source.auth) source.auth = dataSource.source.auth;
+
+            if (latestDataSource.source.auth) source.auth = latestDataSource.source.auth;
 
             const updates: Partial<DataSource> = {
                 name: dataSource.name,

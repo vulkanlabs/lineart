@@ -13,7 +13,11 @@ from requests.exceptions import HTTPError as RequestsHTTPError
 
 from vulkan.auth import Auth
 from vulkan.node_config import configure_fields, normalize_mapping, resolve_template
-from vulkan_engine.db import DataSourceEnvVar, DataSourceTestResult
+from vulkan_engine.db import (
+    DataSourceCredential,
+    DataSourceEnvVar,
+    DataSourceTestResult,
+)
 from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
     InvalidDataSourceException,
@@ -70,7 +74,7 @@ class DataSourceTestService(BaseService):
 
     def _load_auth_credentials(self, data_source_id: str) -> dict[str, str]:
         """
-        Load authentication credentials from database.
+        Load authentication credentials from dedicated credentials table
 
         Returns:
             Dictionary with CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD
@@ -78,25 +82,13 @@ class DataSourceTestService(BaseService):
         env_vars = {}
 
         credentials = (
-            self.db.query(DataSourceEnvVar)
+            self.db.query(DataSourceCredential)
             .filter_by(data_source_id=data_source_id)
-            .filter(
-                DataSourceEnvVar.name.in_(
-                    ["CLIENT_ID", "CLIENT_SECRET", "USERNAME", "PASSWORD"]
-                )
-            )
             .all()
         )
 
         for credential in credentials:
-            if credential.value is None:
-                value = ""
-            elif isinstance(credential.value, str):
-                value = credential.value
-            else:
-                value = str(credential.value)
-
-            env_vars[credential.name] = value
+            env_vars[credential.credential_type] = credential.value
 
         return env_vars
 
@@ -204,6 +196,8 @@ class DataSourceTestService(BaseService):
         params_base_normalized = normalize_mapping(source_config.get("params"))
 
         env_vars = self._load_all_env_vars(test_request.data_source_id)
+        credentials = self._load_auth_credentials(test_request.data_source_id)
+        env_vars.update(credentials)
 
         if test_request.env_vars:
             env_vars.update(test_request.env_vars)

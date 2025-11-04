@@ -108,6 +108,41 @@ export const setDataSourceEnvVars = async (
     );
 };
 
+/**
+ * Set authentication credentials for a data source
+ * @param {string} dataSourceId - Target data source identifier
+ * @param {Array} credentials - List of credentials (CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD)
+ * @returns {Promise<any>} Saved credentials
+ */
+export const setDataSourceCredentials = async (
+    dataSourceId: string,
+    credentials: Array<{ credential_type: string; value: string }>,
+) => {
+    return withErrorHandling(
+        dataSourcesApi.setDataSourceCredentials({
+            dataSourceId,
+            dataSourceCredentialBase: credentials,
+        }),
+        `set credentials for data source ${dataSourceId}`,
+    );
+};
+
+/**
+ * Get authentication credentials for a data source
+ * @param {string} dataSourceId - Target data source identifier
+ * @returns {Promise<any>} List of credentials
+ */
+export const fetchDataSourceCredentials = async (
+    dataSourceId: string,
+) => {
+    return withErrorHandling(
+        dataSourcesApi.getDataSourceCredentials({
+            dataSourceId,
+        }),
+        `get credentials for data source ${dataSourceId}`,
+    );
+};
+
 // Usage and metrics
 /**
  * Get data source usage analytics over time period

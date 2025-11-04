@@ -8,7 +8,7 @@ environment variables, data objects, and data broker operations.
 from typing import Any
 
 import requests
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from vulkan.data_source import DataSourceStatus, DataSourceType
 from vulkan.schemas import DataSourceSpec
@@ -17,6 +17,7 @@ from vulkan_engine.db import (
     Component,
     DataObject,
     DataSource,
+    DataSourceCredential,
     DataSourceEnvVar,
     PolicyVersion,
     RunDataRequest,
@@ -39,6 +40,7 @@ from vulkan_engine.schemas import (
     DataSourceEnvVarBase,
 )
 from vulkan_engine.schemas import DataSource as DataSourceSchema
+from vulkan_engine.schemas import DataSourceCredential as DataSourceCredentialSchema
 from vulkan_engine.schemas import DataSourceEnvVar as DataSourceEnvVarSchema
 from vulkan_engine.services.auth_handler import AuthHandler
 from vulkan_engine.services.base import BaseService
@@ -370,22 +372,17 @@ class DataSourceService(BaseService):
             data_source_id=data_source_id, project_id=project_id, include_archived=False
         )
 
-        # Check if any desired variable uses reserved names
+        # Block reserved credential names, use /credentials endpoint
         reserved_names = {"CLIENT_ID", "CLIENT_SECRET", "USERNAME", "PASSWORD"}
         variable_names = {v.name for v in desired_variables}
         reserved_in_request = reserved_names.intersection(variable_names)
 
-        # If reserved names are used, verify auth is configured
         if reserved_in_request:
-            spec = DataSourceSchema.from_orm(data_source)
-            has_auth = hasattr(spec.source, "auth") and spec.source.auth is not None
-
-            if not has_auth:
-                raise InvalidDataSourceException(
-                    f"Cannot set reserved credential variables {reserved_in_request} "
-                    f"without authentication configured on the data source. "
-                    f"Please configure auth on the HTTPSource first."
-                )
+            raise InvalidDataSourceException(
+                f"Cannot set credentials via environment variables endpoint. "
+                f"The following names are reserved for credentials: {', '.join(reserved_in_request)}. "
+                f"Please use the /credentials endpoint instead: PUT /data-sources/{{id}}/credentials"
+            )
 
         # Get existing variables
         existing_variables = (
@@ -446,6 +443,95 @@ class DataSourceService(BaseService):
         )
 
         return [DataSourceEnvVarSchema.model_validate(var) for var in env_vars]
+
+    def set_credentials(
+        self, data_source_id: str, credentials: list[DataSourceCredentialSchema]
+    ) -> list[DataSourceCredentialSchema]:
+        """
+        Set credentials for a data source
+
+        Args:
+            data_source_id: Data source UUID
+            credentials: List of credentials (CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD)
+
+        Returns:
+            List of saved DataSourceCredential objects
+
+        Raises:
+            DataSourceNotFoundException: If data source doesn't exist
+            InvalidDataSourceException: If credential types are invalid or auth not configured
+        """
+        # Validate data source exists, raise DataSourceNotFoundException if not found
+        self.data_source_loader.get_data_source(
+            data_source_id=data_source_id, include_archived=False
+        )
+
+        valid_types = {"CLIENT_ID", "CLIENT_SECRET", "USERNAME", "PASSWORD"}
+        for cred in credentials:
+            if cred.credential_type not in valid_types:
+                raise InvalidDataSourceException(
+                    f"Invalid credential_type: {cred.credential_type}. "
+                    f"Must be one of: {', '.join(valid_types)}"
+                )
+
+        saved_credentials = []
+        for cred in credentials:
+            # Check if credential already exists
+            existing = (
+                self.db.query(DataSourceCredential)
+                .filter_by(
+                    data_source_id=data_source_id, credential_type=cred.credential_type
+                )
+                .first()
+            )
+
+            if existing:
+                existing.value = cred.value
+                existing.last_updated_at = func.now()
+                saved_credentials.append(existing)
+            else:
+                new_credential = DataSourceCredential(
+                    data_source_id=data_source_id,
+                    credential_type=cred.credential_type,
+                    value=cred.value,
+                )
+                self.db.add(new_credential)
+                saved_credentials.append(new_credential)
+
+        self.db.commit()
+
+        for cred in saved_credentials:
+            self.db.refresh(cred)
+
+        return [
+            DataSourceCredentialSchema.model_validate(cred)
+            for cred in saved_credentials
+        ]
+
+    def get_credentials(self, data_source_id: str) -> list[DataSourceCredentialSchema]:
+        """
+        Get credentials for a data source
+
+        Args:
+            data_source_id: Data source UUID
+
+        Returns:
+            List of DataSourceCredential objects
+
+        Raises:
+            DataSourceNotFoundException: If data source doesn't exist
+        """
+        self.data_source_loader.get_data_source(
+            data_source_id=data_source_id, include_archived=False
+        )
+
+        credentials = (
+            self.db.query(DataSourceCredential)
+            .filter_by(data_source_id=data_source_id)
+            .all()
+        )
+
+        return [DataSourceCredentialSchema.model_validate(cred) for cred in credentials]
 
     def list_data_objects(
         self, data_source_id: str, project_id: str = None
@@ -556,6 +642,14 @@ class DataSourceService(BaseService):
         if env_vars:
             for ev in env_vars:
                 env_variables[ev.name] = ev.value
+
+        credentials = (
+            self.db.query(DataSourceCredential)
+            .filter_by(data_source_id=spec.data_source_id)
+            .all()
+        )
+        for cred in credentials:
+            env_variables[cred.credential_type] = cred.value
 
         # Check for missing variables
         missing_vars = set(spec.variables or []) - set(env_variables.keys())

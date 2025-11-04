@@ -290,6 +290,33 @@ class DataSourceEnvVar(TimedUpdateMixin, Base):
     )
 
 
+class DataSourceCredential(TimedUpdateMixin, Base):
+    __tablename__ = "data_source_credential"
+
+    credential_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    data_source_id = Column(
+        Uuid, ForeignKey("data_source.data_source_id", ondelete="CASCADE")
+    )
+
+    credential_type = Column(String, nullable=False)
+    value = Column(String, nullable=False)
+
+    __table_args__ = (
+        Index(
+            "unique_data_source_credential_type",
+            "data_source_id",
+            "credential_type",
+            unique=True,
+        ),
+        CheckConstraint(
+            sqltext="credential_type IN ('CLIENT_ID', 'CLIENT_SECRET', 'USERNAME', 'PASSWORD')",
+            name="valid_credential_type",
+        ),
+    )
+
+
 class WorkflowDataDependency(Base):
     __tablename__ = "workflow_data_dependency"
 

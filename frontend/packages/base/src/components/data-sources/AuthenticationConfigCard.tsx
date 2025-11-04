@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Save, X, Shield, Edit2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { DataSource, DataSourceEnvVarBase } from "@vulkanlabs/client-open";
+import type { DataSource } from "@vulkanlabs/client-open";
 import { Button, Input, Label, Separator, RadioGroup, RadioGroupItem, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui";
 
 type AuthMethod = "none" | "basic" | "bearer";
@@ -12,29 +12,34 @@ type GrantType = "client_credentials" | "password" | "implicit";
 interface AuthenticationConfigCardProps {
     dataSource: DataSource;
     projectId?: string;
+    fetchDataSource: (
+        dataSourceId: string,
+        projectId?: string,
+    ) => Promise<DataSource>;
     updateDataSource: (
         dataSourceId: string,
         updates: Partial<DataSource>,
         projectId?: string,
     ) => Promise<DataSource>;
-    fetchDataSourceEnvVars: (
+    fetchDataSourceCredentials: (
         dataSourceId: string,
         projectId?: string,
-    ) => Promise<DataSourceEnvVarBase[]>;
-    setDataSourceEnvVars: (
+    ) => Promise<any[]>;
+    setDataSourceCredentials: (
         dataSourceId: string,
-        variables: DataSourceEnvVarBase[],
+        credentials: Array<{ credential_type: string; value: string }>,
         projectId?: string,
-    ) => Promise<void>;
+    ) => Promise<any>;
     disabled?: boolean;
 }
 
 export function AuthenticationConfigCard({
     dataSource,
     projectId,
+    fetchDataSource,
     updateDataSource,
-    fetchDataSourceEnvVars,
-    setDataSourceEnvVars,
+    fetchDataSourceCredentials,
+    setDataSourceCredentials,
     disabled = false,
 }: AuthenticationConfigCardProps) {
     const router = useRouter();
@@ -72,34 +77,34 @@ export function AuthenticationConfigCard({
     const [credentialsError, setCredentialsError] = useState("");
     const [passwordGrantError, setPasswordGrantError] = useState("");
 
-    // Load credentials from env vars
+    // Load credentials from dedicated credentials table
     useEffect(() => {
         const loadCredentials = async () => {
             try {
-                const envVars = await fetchDataSourceEnvVars(dataSource.data_source_id, projectId);
-                const clientIdVar = envVars.find((v) => v.name === "CLIENT_ID");
-                const clientSecretVar = envVars.find((v) => v.name === "CLIENT_SECRET");
-                const usernameVar = envVars.find((v) => v.name === "USERNAME");
-                const passwordVar = envVars.find((v) => v.name === "PASSWORD");
+                const credentials = await fetchDataSourceCredentials(dataSource.data_source_id, projectId);
+                const clientIdCred = credentials.find((c) => c.credential_type === "CLIENT_ID");
+                const clientSecretCred = credentials.find((c) => c.credential_type === "CLIENT_SECRET");
+                const usernameCred = credentials.find((c) => c.credential_type === "USERNAME");
+                const passwordCred = credentials.find((c) => c.credential_type === "PASSWORD");
 
-                if (clientIdVar) {
-                    setClientId(String(clientIdVar.value || ""));
+                if (clientIdCred) {
+                    setClientId(String(clientIdCred.value || ""));
                     setHasClientId(true);
                 } else {
                     setHasClientId(false);
                 }
 
-                if (clientSecretVar) {
+                if (clientSecretCred) {
                     setClientSecret("");
                     setHasSecret(true);
                 } else {
                     setHasSecret(false);
                 }
 
-                if (usernameVar)
-                    setUsername(String(usernameVar.value || ""));
+                if (usernameCred)
+                    setUsername(String(usernameCred.value || ""));
 
-                if (passwordVar) {
+                if (passwordCred) {
                     setPassword("");
                     setHasPassword(true);
                 } else {
@@ -111,7 +116,7 @@ export function AuthenticationConfigCard({
         };
 
         loadCredentials();
-    }, [dataSource.data_source_id, projectId, fetchDataSourceEnvVars]);
+    }, [dataSource.data_source_id, projectId, fetchDataSourceCredentials]);
 
     // Auto-enable credential editing when auth method changes and no credentials exist
     useEffect(() => {
@@ -159,10 +164,12 @@ export function AuthenticationConfigCard({
 
         setIsSaving(true);
         try {
+            // Fetch latest dataSource from server to avoid overwriting other changes
+            const latestDataSource = await fetchDataSource(dataSource.data_source_id, projectId);
 
-            // Build updated source with auth configuration
+            // Build updated source with auth configuration from latest state
             const sourceUpdates: any = {
-                ...dataSource.source,
+                ...latestDataSource.source,
             };
 
             if (authMethod === "none") {
@@ -183,22 +190,22 @@ export function AuthenticationConfigCard({
             await updateDataSource(
                 dataSource.data_source_id,
                 {
-                    name: dataSource.name,
+                    name: latestDataSource.name,
                     source: sourceUpdates,
-                    caching: dataSource.caching,
+                    caching: latestDataSource.caching,
                 },
                 projectId
             );
 
             // Update credentials if auth is configured and credentials were edited
             if (authMethod !== "none") {
-                const credentials: DataSourceEnvVarBase[] = [];
+                const credentials: Array<{ credential_type: string; value: string }> = [];
 
                 if (isEditingCredentials || !hasClientId) {
                     const finalClientId = clientIdInput || clientId;
                     const finalSecret = clientSecretInput || clientSecret;
-                    credentials.push({ name: "CLIENT_ID", value: finalClientId });
-                    credentials.push({ name: "CLIENT_SECRET", value: finalSecret });
+                    credentials.push({ credential_type: "CLIENT_ID", value: finalClientId });
+                    credentials.push({ credential_type: "CLIENT_SECRET", value: finalSecret });
 
                     // Update stored credential state
                     setClientId(finalClientId);
@@ -208,13 +215,13 @@ export function AuthenticationConfigCard({
                 }
 
                 if (grantType === "password" && username && password) {
-                    credentials.push({ name: "USERNAME", value: username });
-                    credentials.push({ name: "PASSWORD", value: password });
+                    credentials.push({ credential_type: "USERNAME", value: username });
+                    credentials.push({ credential_type: "PASSWORD", value: password });
                 }
 
                 // Only call API if we have credentials to save
                 if (credentials.length > 0) {
-                    await setDataSourceEnvVars(
+                    await setDataSourceCredentials(
                         dataSource.data_source_id,
                         credentials,
                         projectId
