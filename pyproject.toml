@@ -1,41 +1,41 @@
-    [project]
-    name = "one-ring"
-    version = "0.1.0"
-    description = "A monorepo for all Vulkan projects."
-    readme = "README.md"
-    requires-python = ">=3.12"
-    dependencies = [
-        "google-cloud-aiplatform>=1.85.0",
-        "vulkan[all]",
-        "vulkan-engine",
-        "vulkan-server",
-        "lineart",
-        "ruff>=0.11.0",
-    ]
+[project]
+name = "one-ring"
+version = "0.1.0"
+description = "A monorepo for all Vulkan projects."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "google-cloud-aiplatform>=1.85.0",
+    "vulkan[all]",
+    "vulkan-engine",
+    "vulkan-server",
+    "lineart",
+    "ruff>=0.11.0",
+]
 
-    [tool.uv]
-    dev-dependencies = [
-        "questionary>=2.0.1",
-        "pre-commit>=4",
-        "ruff>=0.9.6",
-        "jupyterlab>=4.3.6",
-        "ipython-autotime>=0.3.2",
-    ]
+[tool.uv]
+dev-dependencies = [
+    "questionary>=2.0.1",
+    "pre-commit>=4",
+    "ruff>=0.9.6",
+    "jupyterlab>=4.3.6",
+    "ipython-autotime>=0.3.2",
+]
 
-    [tool.uv.workspace]
-    members = ["vulkan-server", "vulkan-dagster", "upload-svc"]
+[tool.uv.workspace]
+members = ["vulkan-server", "vulkan-dagster", "upload-svc"]
 
-    [tool.uv.sources]
-    vulkan-server = { workspace = true }
-    vulkan-dagster = { workspace = true }
-    upload-svc = { workspace = true }
-    vulkan = { path = "vulkan", editable = true }
-    vulkan-engine = { path = "vulkan-engine", editable = true }
-    lineart = { path = "sdks/lineart", editable = true }
+[tool.uv.sources]
+vulkan-server = { workspace = true }
+vulkan-dagster = { workspace = true }
+upload-svc = { workspace = true }
+vulkan = { path = "vulkan", editable = true }
+vulkan-engine = { path = "vulkan-engine", editable = true }
+lineart = { path = "sdks/lineart", editable = true }
 
-    [build-system]
-    requires = ["hatchling"]
-    build-backend = "hatchling.build"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-    [tool.pytest.ini_options]
-    testpaths = ["tests"]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
