@@ -1,6 +1,5 @@
 import apache_beam as beam
 from apache_beam.testing.test_pipeline import TestPipeline
-
 from vulkan.core.policy import Policy
 from vulkan.runners.beam.io import ReadLocalCSV
 from vulkan.runners.beam.nodes import (

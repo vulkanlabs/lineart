@@ -1,5 +1,4 @@
 import pytest
-
 from vulkan.spec.nodes.user_code import udf
 
 sc = """

@@ -9,6 +9,7 @@ import datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from vulkan.schemas import DataSourceSpec
 from vulkan_engine import schemas
 from vulkan_engine.exceptions import (
     DataSourceAlreadyExistsException,
@@ -22,7 +23,6 @@ from vulkan_engine.services import (
     DataSourceTestService,
 )
 
-from vulkan.schemas import DataSourceSpec
 from vulkan_server.dependencies import (
     get_configured_logger,
     get_data_source_analytics_service,

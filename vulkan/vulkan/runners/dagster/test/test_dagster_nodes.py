@@ -4,7 +4,6 @@ from unittest.mock import Mock
 
 import pytest
 import requests
-
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.runners.dagster.nodes import (
     DagsterDataInput,
