@@ -29,14 +29,13 @@ jobs:
       python_version: '3.12'
 
   publish-pypi-packages:
-    needs: [python-build-packages, test, lint]
+    needs: [python-build-packages, test]
     permissions:
       id-token: write  # Required for OIDC trusted publishing to TestPyPI
       contents: read
     uses: ./.github/workflows/publish-pypi-packages.yml
     with:
       environment: 'testpypi'
-    # No secrets needed - using OIDC trusted publishing!
 
   publish-packages:
     uses: ./.github/workflows/publish-packages.yml

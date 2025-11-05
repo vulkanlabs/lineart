@@ -31,7 +31,6 @@ jobs:
     with:
       environment: 'pypi'
       version_override: ${{ github.ref_name }}
-    # No secrets needed - using OIDC trusted publishing!
 
   docker-build-images:
     needs: [publish-pypi-packages]

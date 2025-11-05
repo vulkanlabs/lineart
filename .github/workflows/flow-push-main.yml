@@ -29,7 +29,6 @@ jobs:
     uses: ./.github/workflows/publish-pypi-packages.yml
     with:
       environment: 'pypi'
-    # No secrets needed - using OIDC trusted publishing!
 
   publish-packages:
     uses: ./.github/workflows/publish-packages.yml
