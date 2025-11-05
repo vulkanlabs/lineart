@@ -5,8 +5,11 @@ Update package version in pyproject.toml files.
 This script updates the version field in pyproject.toml files to support
 automated PyPI publishing with development and release versions.
 
+Development versions use PEP 440 compliant format: <version>.dev<timestamp>
+The timestamp ensures uniqueness and proper version ordering on PyPI.
+
 Usage:
-    # Generate dev version with timestamp and commit hash
+    # Generate dev version with timestamp
     python scripts/update-package-version.py vulkan --dev --commit abc123
 
     # Set specific version (for tagged releases)
@@ -19,7 +22,7 @@ Usage:
 import argparse
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -34,17 +37,20 @@ def read_current_version(pyproject_path: Path) -> str:
 
 def generate_dev_version(base_version: str, commit_hash: str) -> str:
     """
-    Generate PEP 440 compliant development version.
+    Generate PEP 440 compliant development version for PyPI.
 
-    Format: <base-version>.dev<timestamp>+<commit-hash>
-    Example: 0.1.0.dev20250105123045+32a3603b
+    Format: <base-version>.dev<timestamp>
+    Example: 0.1.0.dev20250105123045
+
+    Note: Local version identifiers (e.g., +commit_hash) are not allowed on PyPI.
+    The timestamp provides sufficient uniqueness and proper version ordering.
     """
     # Strip any existing dev/local version identifiers
     base_version = re.sub(r"\.dev.*", "", base_version)
     base_version = re.sub(r"\+.*", "", base_version)
 
-    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-    return f"{base_version}.dev{timestamp}+{commit_hash}"
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    return f"{base_version}.dev{timestamp}"
 
 
 def update_version(pyproject_path: Path, new_version: str) -> None:
