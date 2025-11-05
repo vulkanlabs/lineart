@@ -9,14 +9,17 @@ Development versions use PEP 440 compliant format: <version>.dev<timestamp>
 The timestamp ensures uniqueness and proper version ordering on PyPI.
 
 Usage:
-    # Generate dev version with timestamp
-    python scripts/update-package-version.py vulkan --dev --commit abc123
+    # Generate and print dev version (without updating files)
+    python scripts/update-package-version.py --dev --print-only
 
-    # Set specific version (for tagged releases)
-    python scripts/update-package-version.py vulkan --version 1.0.0
+    # Set specific version for packages
+    python scripts/update-package-version.py vulkan vulkan-engine --version 1.0.0
 
     # Generate dev version for both packages
-    python scripts/update-package-version.py vulkan vulkan-engine --dev --commit abc123
+    python scripts/update-package-version.py vulkan vulkan-engine --dev
+
+    # Print release version (strips 'v' prefix)
+    python scripts/update-package-version.py --version v1.2.3 --print-only
 """
 
 import argparse
@@ -35,15 +38,15 @@ def read_current_version(pyproject_path: Path) -> str:
     return match.group(1)
 
 
-def generate_dev_version(base_version: str, commit_hash: str) -> str:
+def generate_dev_version(base_version: str) -> str:
     """
     Generate PEP 440 compliant development version for PyPI.
 
     Format: <base-version>.dev<timestamp>
     Example: 0.1.0.dev20250105123045
 
-    Note: Local version identifiers (e.g., +commit_hash) are not allowed on PyPI.
-    The timestamp provides sufficient uniqueness and proper version ordering.
+    Note: The timestamp provides sufficient uniqueness and proper version ordering.
+    Local version identifiers (e.g., +commit_hash) are not allowed on PyPI.
     """
     # Strip any existing dev/local version identifiers
     base_version = re.sub(r"\.dev.*", "", base_version)
@@ -80,7 +83,7 @@ def main():
     )
     parser.add_argument(
         "packages",
-        nargs="+",
+        nargs="*",
         help="Package name(s) to update (e.g., vulkan, vulkan-engine)",
     )
 
@@ -93,18 +96,41 @@ def main():
     )
 
     parser.add_argument(
-        "--commit", help="Commit hash to include in version (required with --dev)"
+        "--print-only",
+        action="store_true",
+        help="Only print the version without updating files (use with --dev or --version)",
     )
 
     args = parser.parse_args()
 
     # Validate arguments
-    if args.dev and not args.commit:
-        parser.error("--commit is required when using --dev")
+    if not args.print_only and not args.packages:
+        parser.error("packages argument is required unless --print-only is used")
 
     # Determine the root directory (script is in scripts/ subdirectory)
     script_dir = Path(__file__).parent
     root_dir = script_dir.parent
+
+    # Determine the version
+    if args.dev:
+        # For dev versions, read base version from vulkan package
+        vulkan_pyproject = root_dir / "vulkan" / "pyproject.toml"
+        if not vulkan_pyproject.exists():
+            print(f"✗ Error: {vulkan_pyproject} not found", file=sys.stderr)
+            sys.exit(1)
+        base_version = read_current_version(vulkan_pyproject)
+        new_version = generate_dev_version(base_version)
+    else:
+        # Use specified version
+        new_version = args.version
+        # Strip 'v' prefix if present (for git tags like v1.0.0)
+        if new_version.startswith("v"):
+            new_version = new_version[1:]
+
+    # If print-only mode, just print the version and exit
+    if args.print_only:
+        print(new_version)
+        sys.exit(0)
 
     # Process each package
     for package in args.packages:
@@ -114,17 +140,6 @@ def main():
         if not pyproject_path.exists():
             print(f"✗ Error: {pyproject_path} not found", file=sys.stderr)
             sys.exit(1)
-
-        if args.dev:
-            # Read current base version and generate dev version
-            base_version = read_current_version(pyproject_path)
-            new_version = generate_dev_version(base_version, args.commit)
-        else:
-            # Use specified version
-            new_version = args.version
-            # Strip 'v' prefix if present (for git tags like v1.0.0)
-            if new_version.startswith("v"):
-                new_version = new_version[1:]
 
         # Update the version
         update_version(pyproject_path, new_version)

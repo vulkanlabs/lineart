@@ -51,18 +51,11 @@ jobs:
         run: |
           if [ -n "${{ inputs.version_override }}" ]; then
             # Use version override for tagged releases
-            VERSION="${{ inputs.version_override }}"
-            # Strip 'v' prefix if present (e.g., v1.0.0 -> 1.0.0)
-            VERSION="${VERSION#v}"
+            VERSION=$(uv run python scripts/update-package-version.py --version "${{ inputs.version_override }}" --print-only)
             echo "Using version override: $VERSION"
           else
-            # Generate dev version with timestamp and commit hash
-            COMMIT_HASH=$(git rev-parse --short=8 HEAD)
-            TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
-            BASE_VERSION=$(python3 -c "import re; content = open('vulkan/pyproject.toml').read(); print(re.search(r'version = \"([^\"]+)\"', content).group(1))")
-            # Strip any existing dev/local version identifiers
-            BASE_VERSION=$(echo "$BASE_VERSION" | sed 's/\.dev.*//' | sed 's/+.*//')
-            VERSION="${BASE_VERSION}.dev${TIMESTAMP}+${COMMIT_HASH}"
+            # Generate dev version using centralized Python script
+            VERSION=$(uv run python scripts/update-package-version.py --dev --print-only)
             echo "Generated dev version: $VERSION"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -70,7 +63,7 @@ jobs:
       - name: Update package versions
         run: |
           VERSION="${{ steps.determine-version.outputs.version }}"
-          echo "Updating vulkan to version $VERSION"
+          echo "Updating vulkan and vulkan-engine to version $VERSION"
           uv run python scripts/update-package-version.py vulkan vulkan-engine --version "$VERSION"
 
       - name: Build packages
