@@ -1,0 +1,102 @@
+name: Publish Python Packages to PyPI
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Deployment environment (pypi or testpypi)'
+        required: false
+        default: 'pypi'
+        type: string
+      version_override:
+        description: 'Override version (for tagged releases, e.g., v1.0.0)'
+        required: false
+        type: string
+        default: ''
+    # No secrets needed - OIDC handles authentication automatically!
+    outputs:
+      vulkan_version:
+        description: 'Published version of vulkan package'
+        value: ${{ jobs.publish-python-packages.outputs.vulkan_version }}
+      vulkan_engine_version:
+        description: 'Published version of vulkan-engine package'
+        value: ${{ jobs.publish-python-packages.outputs.vulkan_engine_version }}
+
+jobs:
+  publish-python-packages:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      id-token: write  # Required for OIDC trusted publishing
+      contents: read
+    outputs:
+      vulkan_version: ${{ steps.determine-version.outputs.version }}
+      vulkan_engine_version: ${{ steps.determine-version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install 'uv<0.8'
+
+      - name: Determine version
+        id: determine-version
+        run: |
+          if [ -n "${{ inputs.version_override }}" ]; then
+            # Use version override for tagged releases
+            VERSION="${{ inputs.version_override }}"
+            # Strip 'v' prefix if present (e.g., v1.0.0 -> 1.0.0)
+            VERSION="${VERSION#v}"
+            echo "Using version override: $VERSION"
+          else
+            # Generate dev version with timestamp and commit hash
+            COMMIT_HASH=$(git rev-parse --short=8 HEAD)
+            TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
+            BASE_VERSION=$(python3 -c "import re; content = open('vulkan/pyproject.toml').read(); print(re.search(r'version = \"([^\"]+)\"', content).group(1))")
+            # Strip any existing dev/local version identifiers
+            BASE_VERSION=$(echo "$BASE_VERSION" | sed 's/\.dev.*//' | sed 's/+.*//')
+            VERSION="${BASE_VERSION}.dev${TIMESTAMP}+${COMMIT_HASH}"
+            echo "Generated dev version: $VERSION"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update package versions
+        run: |
+          VERSION="${{ steps.determine-version.outputs.version }}"
+          echo "Updating vulkan to version $VERSION"
+          uv run python scripts/update-package-version.py vulkan vulkan-engine --version "$VERSION"
+
+      - name: Build packages
+        run: |
+          echo "Building vulkanlabs-vulkan and vulkanlabs-vulkan-engine packages..."
+          uv build --package vulkanlabs-vulkan
+          uv build --package vulkanlabs-vulkan-engine
+          echo "Built packages:"
+          ls -lh dist/
+
+      - name: Publish to PyPI with OIDC
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: ${{ inputs.environment == 'testpypi' && 'https://test.pypi.org/legacy/' || '' }}
+          packages-dir: dist/
+          verbose: true
+          skip-existing: true
+
+      - name: Wait for PyPI indexing
+        if: inputs.environment == 'pypi'
+        run: |
+          echo "Waiting 30 seconds for PyPI to index packages..."
+          sleep 30
+
+      - name: Summary
+        run: |
+          echo "✓ Successfully published packages to ${{ inputs.environment }}"
+          echo "  - vulkanlabs-vulkan: ${{ steps.determine-version.outputs.version }}"
+          echo "  - vulkanlabs-vulkan-engine: ${{ steps.determine-version.outputs.version }}"

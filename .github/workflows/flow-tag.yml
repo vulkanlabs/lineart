@@ -1,8 +1,9 @@
-name: Push to Main
+name: Tagged Release
 
 on:
   push:
-    branches: [ "main" ]
+    tags:
+      - 'v*.*.*'
 
 jobs:
   lint:
@@ -26,13 +27,8 @@ jobs:
     uses: ./.github/workflows/publish-pypi-packages.yml
     with:
       environment: 'pypi'
+      version_override: ${{ github.ref_name }}
     # No secrets needed - using OIDC trusted publishing!
-
-  publish-packages:
-    uses: ./.github/workflows/publish-packages.yml
-    permissions:
-      contents: read
-      packages: write
 
   docker-build-images:
     needs: [publish-pypi-packages]
