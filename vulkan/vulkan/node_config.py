@@ -398,3 +398,20 @@ def normalize_mapping(spec: ConfigurableDict) -> dict[str, str]:
         return {}
 
     return {key: normalize_to_template(value) for key, value in spec.items()}
+
+def resolve_value(value, jinja_context, env_variables):
+    """Recursively resolve templates in strings, dicts, and lists."""
+    if isinstance(value, str):
+        try:
+            # Use Jinja2-based template resolution with environment variables
+            return resolve_template(value, jinja_context, env_variables)
+        except Exception:
+            return value
+    elif isinstance(value, dict):
+        return {
+            k: resolve_value(v, jinja_context, env_variables) for k, v in value.items()
+        }
+    elif isinstance(value, list):
+        return [resolve_value(item, jinja_context, env_variables) for item in value]
+    else:
+        return value

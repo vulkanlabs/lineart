@@ -18,7 +18,7 @@ from vulkan.connections import (
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.exceptions import UserCodeException
-from vulkan.node_config import resolve_template
+from vulkan.node_config import resolve_template, resolve_value
 from vulkan.runners.shared.app_client import BaseAppClient, create_app_client
 from vulkan.runners.shared.constants import POLICY_CONFIG_KEY, RUN_CONFIG_KEY
 from vulkan.runners.shared.decision_fn import evaluate_condition
@@ -214,8 +214,8 @@ class HatchetTransform(TransformNode, HatchetNode):
         configured_params = {}
         for k, v in self.parameters.items():
             try:
-                configured_params[k] = resolve_template(
-                    v, inputs, env_variables={}, expected_type="str"
+                configured_params[k] = resolve_value(
+                    v, inputs, env_variables={}
                 )
             except Exception:
                 raise ValueError(f"Invalid parameter configuration: {v}")
