@@ -121,12 +121,14 @@ def list_policy_versions_by_policy(
 @router.get("/{policy_id}/runs", response_model=list[schemas.Run])
 def list_runs_by_policy(
     policy_id: str,
-    start_date: datetime.date | None = None,
-    end_date: datetime.date | None = None,
+    start_date: Annotated[datetime.datetime | None, Query()] = None,
+    end_date: Annotated[datetime.datetime | None, Query()] = None,
     service: PolicyService = Depends(get_policy_service),
 ):
     """List runs for a policy."""
-    runs = service.list_runs_by_policy(policy_id, start_date, end_date)
+    start_date_parsed = start_date.date() if start_date else None
+    end_date_parsed = end_date.date() if end_date else None
+    runs = service.list_runs_by_policy(policy_id, start_date_parsed, end_date_parsed)
     if not runs:
         return Response(status_code=204)
     return runs
