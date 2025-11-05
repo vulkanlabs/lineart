@@ -1,5 +1,5 @@
 [project]
-name = "vulkan"
+name = "vulkanlabs-vulkan"
 version = "0.1.0"
 description = ""
 authors = []
@@ -23,11 +23,6 @@ dagster = [
 hatchet = [
     "hatchet-sdk>=1.16",
 ]
-all = [
-    "vulkan[beam]",
-    "vulkan[hatchet]",
-    "vulkan[dagster]"
-]
 
 
 [tool.uv]
@@ -37,6 +32,9 @@ dev-dependencies = [
     "pytest>=8.3.2",
     "pytest-httpserver>=1.1.0",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["vulkan"]
 
 [build-system]
 requires = ["hatchling"]
