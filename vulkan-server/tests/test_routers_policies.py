@@ -1,9 +1,3 @@
-"""
-Unit tests for the policies router.
-
-Tests the HTTP endpoint handlers in vulkan_server.routers.policies.
-"""
-
 import datetime
 from uuid import uuid4
 
@@ -15,7 +9,9 @@ from vulkan_engine.schemas import RunStatus
 class TestListRunsByPolicy:
     """Test cases for list_runs_by_policy endpoint."""
 
-    def test_list_runs_by_policy_with_datetime_query_params(self, client, mock_policy_service):
+    def test_list_runs_by_policy_with_datetime_query_params(
+        self, client, mock_policy_service
+    ):
         """Test that datetime query params are converted to date objects."""
         # Setup
         policy_id = "test-policy-id"
@@ -59,7 +55,9 @@ class TestListRunsByPolicy:
         assert call_args[0][1] == start_datetime.date()
         assert call_args[0][2] == end_datetime.date()
 
-    def test_list_runs_by_policy_with_date_only_params(self, client, mock_policy_service):
+    def test_list_runs_by_policy_with_date_only_params(
+        self, client, mock_policy_service
+    ):
         """Test that date-only strings are accepted and converted correctly."""
         # Setup
         policy_id = "test-policy-id"
@@ -92,7 +90,6 @@ class TestListRunsByPolicy:
         mock_policy_service.list_runs_by_policy.assert_called_once()
         call_args = mock_policy_service.list_runs_by_policy.call_args
 
-        # FastAPI will parse the date string as datetime at midnight
         assert call_args[0][1] == datetime.date(2025, 1, 15)
         assert call_args[0][2] == datetime.date(2025, 1, 20)
 
@@ -124,7 +121,9 @@ class TestListRunsByPolicy:
         assert call_args[0][1] is None
         assert call_args[0][2] is None
 
-    def test_list_runs_by_policy_with_only_start_date(self, client, mock_policy_service):
+    def test_list_runs_by_policy_with_only_start_date(
+        self, client, mock_policy_service
+    ):
         """Test with only start_date provided."""
         # Setup
         policy_id = "test-policy-id"
@@ -188,7 +187,9 @@ class TestListRunsByPolicy:
         assert call_args[0][1] is None
         assert call_args[0][2] == end_datetime.date()
 
-    def test_list_runs_by_policy_returns_204_when_empty(self, client, mock_policy_service):
+    def test_list_runs_by_policy_returns_204_when_empty(
+        self, client, mock_policy_service
+    ):
         """Test that 204 is returned when no runs are found."""
         # Setup
         policy_id = "test-policy-id"
@@ -201,7 +202,9 @@ class TestListRunsByPolicy:
         assert response.status_code == 204
         mock_policy_service.list_runs_by_policy.assert_called_once()
 
-    def test_list_runs_by_policy_returns_runs_when_found(self, client, mock_policy_service):
+    def test_list_runs_by_policy_returns_runs_when_found(
+        self, client, mock_policy_service
+    ):
         """Test that runs are returned when found."""
         # Setup
         policy_id = "test-policy-id"
@@ -235,11 +238,12 @@ class TestListRunsByPolicy:
         assert data[1]["status"] == "PENDING"
         mock_policy_service.list_runs_by_policy.assert_called_once()
 
-    def test_list_runs_by_policy_converts_timezone_aware_datetime(self, client, mock_policy_service):
+    def test_list_runs_by_policy_converts_timezone_aware_datetime(
+        self, client, mock_policy_service
+    ):
         """Test that timezone-aware datetime strings are handled correctly."""
         # Setup
         policy_id = "test-policy-id"
-        # ISO format with timezone
         start_datetime_str = "2025-01-15T10:30:45.123456+00:00"
         end_datetime_str = "2025-01-20T14:22:33.654321-05:00"
 
@@ -269,7 +273,5 @@ class TestListRunsByPolicy:
         mock_policy_service.list_runs_by_policy.assert_called_once()
         call_args = mock_policy_service.list_runs_by_policy.call_args
 
-        # Should extract just the date portion (timezone should be handled by FastAPI)
         assert call_args[0][1] == datetime.date(2025, 1, 15)
         assert call_args[0][2] == datetime.date(2025, 1, 20)
-
