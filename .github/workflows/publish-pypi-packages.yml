@@ -47,6 +47,11 @@ jobs:
         run: |
           pip install 'uv<0.8'
 
+      - name: Validate tag version matches package versions
+        if: inputs.version_override != ''
+        run: |
+          uv run python scripts/update-package-version.py vulkan vulkan-engine --version "${{ inputs.version_override }}" --validate
+
       - name: Determine version
         id: determine-version
         run: |

@@ -20,6 +20,9 @@ Usage:
 
     # Print release version (strips 'v' prefix)
     python scripts/update-package-version.py --version v1.2.3 --print-only
+
+    # Validate package versions match a tag version
+    python scripts/update-package-version.py vulkan vulkan-engine --version v1.2.3 --validate
 """
 
 import argparse
@@ -36,6 +39,53 @@ def read_current_version(pyproject_path: Path) -> str:
     if not match:
         raise ValueError(f"Could not find version field in {pyproject_path}")
     return match.group(1)
+
+
+def validate_versions(
+    packages: list[str], expected_version: str, root_dir: Path
+) -> None:
+    """
+    Validate that package versions match the expected version.
+
+    Args:
+        packages: List of package names to validate (e.g., ['vulkan', 'vulkan-engine'])
+        expected_version: Expected version string
+        root_dir: Root directory of the project
+
+    Raises:
+        SystemExit: If any package version doesn't match
+    """
+    # Strip 'v' prefix if present (for git tags like v1.0.0)
+    if expected_version.startswith("v"):
+        expected_version = expected_version[1:]
+
+    print(f"Validating that package versions match: {expected_version}")
+
+    mismatches = []
+    for package in packages:
+        package_dir = root_dir / package
+        pyproject_path = package_dir / "pyproject.toml"
+
+        if not pyproject_path.exists():
+            print(f"✗ Error: {pyproject_path} not found", file=sys.stderr)
+            sys.exit(1)
+
+        current_version = read_current_version(pyproject_path)
+        print(f"  {package}/pyproject.toml version: {current_version}")
+
+        if current_version != expected_version:
+            mismatches.append((package, current_version))
+
+    if mismatches:
+        print("\n✗ Version mismatch detected:", file=sys.stderr)
+        for package, version in mismatches:
+            print(
+                f"  {package}/pyproject.toml has version {version}, expected {expected_version}",
+                file=sys.stderr,
+            )
+        sys.exit(1)
+
+    print(f"✓ All package versions match {expected_version}")
 
 
 def generate_dev_version(base_version: str) -> str:
@@ -101,15 +151,34 @@ def main():
         help="Only print the version without updating files (use with --dev or --version)",
     )
 
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Validate that package versions match the specified --version (requires packages and --version)",
+    )
+
     args = parser.parse_args()
 
     # Validate arguments
-    if not args.print_only and not args.packages:
-        parser.error("packages argument is required unless --print-only is used")
+    if args.validate and args.dev:
+        parser.error("--validate cannot be used with --dev")
+    if args.validate and not args.version:
+        parser.error("--validate requires --version")
+    if args.validate and not args.packages:
+        parser.error("--validate requires package names")
+    if not args.print_only and not args.validate and not args.packages:
+        parser.error(
+            "packages argument is required unless --print-only or --validate is used"
+        )
 
     # Determine the root directory (script is in scripts/ subdirectory)
     script_dir = Path(__file__).parent
     root_dir = script_dir.parent
+
+    # If validate mode, validate and exit
+    if args.validate:
+        validate_versions(args.packages, args.version, root_dir)
+        sys.exit(0)
 
     # Determine the version
     if args.dev:
