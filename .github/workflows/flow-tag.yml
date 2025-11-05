@@ -24,13 +24,12 @@ jobs:
 
   publish-pypi-packages:
     needs: [python-build-packages, test, lint]
-    permissions:
-      id-token: write  # Required for OIDC trusted publishing to PyPI
-      contents: read
     uses: ./.github/workflows/publish-pypi-packages.yml
     with:
       environment: 'pypi'
       version_override: ${{ github.ref_name }}
+    secrets:
+      pypi_api_token: ${{ secrets.PYPI_API_TOKEN }}
 
   docker-build-images:
     needs: [publish-pypi-packages]

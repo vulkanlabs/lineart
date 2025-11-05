@@ -13,7 +13,10 @@ on:
         required: false
         type: string
         default: ''
-    # No secrets needed - OIDC handles authentication automatically!
+    secrets:
+      pypi_api_token:
+        description: 'PyPI or TestPyPI API token'
+        required: true
     outputs:
       vulkan_version:
         description: 'Published version of vulkan package'
@@ -25,9 +28,7 @@ on:
 jobs:
   publish-python-packages:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
     permissions:
-      id-token: write  # Required for OIDC trusted publishing
       contents: read
     outputs:
       vulkan_version: ${{ steps.determine-version.outputs.version }}
@@ -74,9 +75,10 @@ jobs:
           echo "Built packages:"
           ls -lh dist/
 
-      - name: Publish to PyPI with OIDC
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          password: ${{ secrets.pypi_api_token }}
           repository-url: ${{ inputs.environment == 'testpypi' && 'https://test.pypi.org/legacy/' || '' }}
           packages-dir: dist/
           verbose: true

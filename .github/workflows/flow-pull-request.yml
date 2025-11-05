@@ -30,12 +30,11 @@ jobs:
 
   publish-pypi-packages:
     needs: [python-build-packages, test]
-    permissions:
-      id-token: write  # Required for OIDC trusted publishing to TestPyPI
-      contents: read
     uses: ./.github/workflows/publish-pypi-packages.yml
     with:
       environment: 'testpypi'
+    secrets:
+      pypi_api_token: ${{ secrets.TEST_PYPI_API_TOKEN }}
 
   publish-packages:
     uses: ./.github/workflows/publish-packages.yml
