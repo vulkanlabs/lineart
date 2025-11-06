@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Vulkan data server"
 dependencies = [
     "fastapi[standard]>=0.112.1",
-    "vulkan-engine",
+    "vulkanlabs-vulkan-engine",
     "pytest>=8.3.2",
     "pytest-httpserver>=1.1.0",
 ]
@@ -14,7 +14,7 @@ requires-python = ">=3.10"
 dev-dependencies = ["pytest>=8.3.2"]
 
 [tool.uv.sources]
-vulkan-engine = { path = "../vulkan-engine" }
+vulkanlabs-vulkan-engine = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

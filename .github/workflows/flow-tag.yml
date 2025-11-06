@@ -1,15 +1,9 @@
-name: Pull Request
+name: Tagged Release
 
 on:
-  pull_request:
-    branches: [ "main" ]
-  workflow_dispatch:
-    inputs:
-      force_publish:
-        description: 'Force publish packages'
-        required: false
-        default: false
-        type: boolean
+  push:
+    tags:
+      - 'v*.*.*'
 
 jobs:
   lint:
@@ -29,20 +23,16 @@ jobs:
       python_version: '3.12'
 
   publish-pypi-packages:
-    needs: [python-build-packages, test]
+    needs: [python-build-packages, test, lint]
     uses: ./.github/workflows/publish-pypi-packages.yml
     with:
-      environment: 'testpypi'
+      environment: 'pypi'
+      version_override: ${{ github.ref_name }}
     secrets:
-      pypi_api_token: ${{ secrets.TEST_PYPI_API_TOKEN }}
-
-  publish-packages:
-    uses: ./.github/workflows/publish-packages.yml
-    permissions:
-      contents: read
-      packages: write
+      pypi_api_token: ${{ secrets.PYPI_API_TOKEN }}
 
   docker-build-images:
+    needs: [publish-pypi-packages]
     uses: ./.github/workflows/docker-build.yaml
     permissions:
       contents: read
@@ -50,5 +40,7 @@ jobs:
     with:
       python_version: '3.12'
       postgres_version: '16.3'
-      force_publish: false
-      use_pypi: false
+      force_publish: true
+      use_pypi: true
+      vulkan_version: ${{ needs.publish-pypi-packages.outputs.vulkan_version }}
+      vulkan_engine_version: ${{ needs.publish-pypi-packages.outputs.vulkan_engine_version }}

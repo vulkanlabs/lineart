@@ -78,4 +78,4 @@ class VulkanWorkspaceManager:
         rmtree(self.workspace_path)
 
 
-DEFAULT_DEPENDENCIES = {"vulkan[dagster]"}
+DEFAULT_DEPENDENCIES = {"vulkanlabs-vulkan[dagster]"}

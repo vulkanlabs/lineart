@@ -10,11 +10,11 @@ dependencies = [
     "dagster-webserver>=1.11.9",
     "fastapi[standard]>=0.112.0",
     "tomlkit>=0.13.2",
-    "vulkan[dagster]",
+    "vulkanlabs-vulkan[dagster]",
 ]
 
 [tool.setuptools]
 packages = ["server"]
 
 [tool.uv.sources]
-vulkan = { path = "../vulkan" }
+vulkanlabs-vulkan = { path = "../vulkan" }
