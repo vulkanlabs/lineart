@@ -13,9 +13,6 @@ requires-python = ">=3.10"
 [tool.uv]
 dev-dependencies = ["pytest>=8.3.2"]
 
-[tool.uv.sources]
-vulkanlabs-vulkan-engine = { workspace = true }
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
