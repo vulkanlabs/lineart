@@ -14,8 +14,6 @@ RUN pip install uv
 RUN uv pip install --system --no-cache sqlalchemy psycopg2
 
 # Copy local files (always needed for dev builds and vulkan-server which is not on PyPI)
-# Copy root pyproject.toml to provide workspace context for vulkan-server (which is a workspace member)
-COPY pyproject.toml pyproject.toml
 COPY vulkan vulkan
 COPY vulkan-engine vulkan-engine
 COPY vulkan-server vulkan-server
@@ -28,7 +26,7 @@ RUN if [ "$USE_PYPI" = "true" ]; then \
         "vulkanlabs-vulkan-engine==${VULKAN_ENGINE_VERSION}" && \
       rm -rf vulkan vulkan-engine && \
       echo "Installing vulkan-server from local copy..."; \
-      uv pip install --system --no-cache vulkan-server; \
+      uv pip install --system --no-cache ./vulkan-server; \
     else \
       echo "Using local packages (development build)..."; \
       uv pip install --system --no-cache ./vulkan ./vulkan-engine ./vulkan-server; \
