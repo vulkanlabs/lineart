@@ -211,9 +211,12 @@ class AuthHandler:
         # Cache token with TTL
         if self.cache:
             ttl = max(
-                expires_in - 60, 60
+                expires_in - TTL_BUFFER_SECONDS, TTL_BUFFER_SECONDS
             )  # subtract 60s buffer to refresh before expiry
             cache_key = self._get_cache_key()
             self.cache.setex(cache_key, ttl, access_token)
 
         return access_token
+
+
+TTL_BUFFER_SECONDS = 60

@@ -6,6 +6,7 @@ environment variables, data objects, and data broker operations.
 """
 
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 from sqlalchemy import func, select
@@ -789,15 +790,13 @@ def _validate_url_scheme(url: str) -> None:
     Raises:
         InvalidDataSourceException: If scheme is invalid
     """
-    from urllib.parse import urlparse
 
     try:
         parsed = urlparse(url)
-        if parsed.scheme not in ["http", "https"]:
-            raise InvalidDataSourceException(
-                f"Invalid URL scheme: {parsed.scheme}. Only http/https allowed"
-            )
     except Exception as e:
-        if isinstance(e, InvalidDataSourceException):
-            raise
         raise InvalidDataSourceException(f"Invalid URL format: {str(e)}")
+
+    if parsed.scheme not in ["http", "https"]:
+        raise InvalidDataSourceException(
+            f"Invalid URL scheme: {parsed.scheme}. Only http/https allowed"
+        )
