@@ -17,6 +17,7 @@ lint: lint-python
 lint-python:
 	uvx ruff check --force-exclude --select I --fix
 	uvx ruff format --force-exclude
+	uvx ruff check --force-exclude --extend-exclude="scripts/*,docs/*,upload-svc/*,sdks/*" --extend-ignore="F401" .
 
 .PHONY: down
 down:

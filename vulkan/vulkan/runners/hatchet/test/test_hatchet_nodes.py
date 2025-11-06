@@ -136,4 +136,4 @@ def test_regression_hatchet_flow_with_unsorted_node_list():
         nodes=policy.nodes,
         hatchet=Hatchet(client=MagicMock(), config=MagicMock()),
     )
-    workflow = flow.create_workflow()
+    flow.create_workflow()
