@@ -110,9 +110,9 @@ def create_worker_service_config() -> WorkerServiceConfig:
         raise ValueError(msg)
 
     if worker_type == "hatchet":
-        hatchet_token = os.getenv("HATCHET_TOKEN")
+        hatchet_token = os.getenv("HATCHET_CLIENT_TOKEN")
         if hatchet_token is None:
-            msg = "Missing required environment variable: HATCHET_TOKEN"
+            msg = "Missing required environment variable: HATCHET_CLIENT_TOKEN"
             raise ValueError(msg)
         service_config = HatchetConfig(hatchet_token=hatchet_token)
     elif worker_type == "dagster":
