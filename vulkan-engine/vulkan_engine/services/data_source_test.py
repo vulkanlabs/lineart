@@ -9,9 +9,12 @@ from urllib.parse import urlparse
 
 import httpx
 from jinja2 import TemplateSyntaxError, UndefinedError
-from vulkan.node_config import configure_fields, resolve_template
+from requests.exceptions import HTTPError as RequestsHTTPError
+from vulkan.auth import AuthConfig
 
-from vulkan_engine.db import DataSourceTestResult
+from vulkan_engine.db import (
+    DataSourceTestResult,
+)
 from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
     InvalidDataSourceException,
@@ -23,6 +26,14 @@ from vulkan_engine.schemas import (
     DataSourceTestResponse,
 )
 from vulkan_engine.services.base import BaseService
+from vulkan_engine.services.data_source import (
+    _load_credentials,
+    _load_env_vars,
+)
+from vulkan_engine.services.request_preparation import (
+    add_auth_headers,
+    prepare_request_fields,
+)
 
 
 class DataSourceTestService(BaseService):
@@ -136,31 +147,49 @@ class DataSourceTestService(BaseService):
 
         # Build full test request by merging data source config with runtime params
         source_config = data_source.source
+
+        env_vars = _load_env_vars(self.db, test_request.data_source_id)
+        credentials = _load_credentials(self.db, test_request.data_source_id)
+
+        if test_request.env_vars:
+            env_vars.update(test_request.env_vars)
+
         full_request = DataSourceTestRequest(
             url=source_config.get("url", ""),
             method=source_config.get("method", "GET"),
             headers=source_config.get("headers"),
             body=source_config.get("body"),
-            # Merge params: data source base + runtime overrides
+            # Merge params: base + runtime overrides
             params={
                 **(source_config.get("params") or {}),
                 **(test_request.params or {}),
             },
-            # Use provided env_vars for template resolution
-            env_vars=test_request.env_vars,
+            env_vars=env_vars,
         )
 
-        # Execute using the standard test method
-        return await self.execute_test(full_request)
+        # Execute using the standard test method, passing auth config, credentials, and data source ID
+        return await self.execute_test(
+            full_request,
+            auth_config=source_config.get("auth"),
+            auth_credentials=credentials,
+            data_source_id=test_request.data_source_id,
+        )
 
     async def execute_test(
-        self, test_request: DataSourceTestRequest
+        self,
+        test_request: DataSourceTestRequest,
+        auth_config: dict | None = None,
+        auth_credentials: dict | None = None,
+        data_source_id: str | None = None,
     ) -> DataSourceTestResponse:
         """
         Execute a data source test.
 
         Args:
             test_request: Test request configuration
+            auth_config: Optional authentication configuration (from HTTPSource.auth)
+            auth_credentials: Optional authentication credentials (CLIENT_ID, CLIENT_SECRET, etc.)
+            data_source_id: Optional data source ID (for auth cache key)
 
         Returns:
             DataSourceTestResponse with test results
@@ -195,27 +224,46 @@ class DataSourceTestService(BaseService):
         resolved_headers = {}
 
         try:
-            # Resolve URL template
-            url = resolve_template(test_request.url, local_vars, env_vars)
-            resolved_url = url
+            # Prepare request fields using shared utility
+            config = {
+                "url": test_request.url,
+                "headers": test_request.headers,
+                "params": test_request.params,
+                "body": test_request.body,
+            }
 
-            # Resolve template fields
-            headers = configure_fields(test_request.headers or {}, local_vars, env_vars)
-            resolved_headers = headers
-            params = configure_fields(test_request.params or {}, local_vars, env_vars)
-            body = (
-                configure_fields(test_request.body or {}, local_vars, env_vars)
-                if test_request.body
-                else None
+            prepared = prepare_request_fields(
+                config=config,
+                local_variables=local_vars,
+                env_variables=env_vars,
+                method=test_request.method,
+                timeout=30,
             )
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            # Add authentication headers if auth is configured
+            if auth_config and data_source_id:
+                credentials_to_use = auth_credentials or {}
+
+                cache_available = hasattr(self, "cache") and self.cache is not None
+
+                prepared = add_auth_headers(
+                    prepared=prepared,
+                    auth_config=AuthConfig(**auth_config),
+                    data_source_id=data_source_id,
+                    credentials=credentials_to_use,
+                    cache=self.cache if cache_available else None,
+                )
+
+            resolved_url = prepared.url
+            resolved_headers = prepared.headers
+
+            async with httpx.AsyncClient(timeout=prepared.timeout) as client:
                 response = await client.request(
-                    method=test_request.method,
-                    url=url,
-                    headers=headers,
-                    params=params,
-                    json=body if body else None,
+                    method=prepared.method,
+                    url=prepared.url,
+                    headers=prepared.headers,
+                    params=prepared.params,
+                    json=prepared.body,
                 )
                 status_code = response.status_code
                 response_headers = dict(response.headers)
@@ -239,8 +287,16 @@ class DataSourceTestService(BaseService):
         except ValueError as e:
             error = f"Configuration error: {str(e)}"
             status_code = 400
+        except RequestsHTTPError as e:
+            # HTTP error, used by auth handler
+            if e.response is not None:
+                status_code = e.response.status_code
+                error = f"Authentication failed: {e.response.status_code} {e.response.reason}"
+            else:
+                status_code = 500
+                error = f"Authentication failed: {str(e)}"
         except Exception as e:
-            error = f"Unexpected error: {str(e)}"
+            error = f"Unexpected error [{type(e).__name__}]: {str(e)}"
             status_code = 500
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000

@@ -131,6 +131,45 @@ def get_data_source_env_variables(
         raise HTTPException(status_code=404, detail=str(e))
 
 
+@router.put(
+    "/{data_source_id}/credentials",
+    response_model=list[schemas.DataSourceCredential],
+)
+def set_data_source_credentials(
+    data_source_id: str,
+    credentials: Annotated[list[schemas.DataSourceCredentialBase], Body()],
+    service: DataSourceService = Depends(get_data_source_service),
+):
+    """
+    Set authentication credentials for a data source
+    """
+    try:
+        return service.set_credentials(data_source_id, credentials)
+    except DataSourceNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except InvalidDataSourceException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get(
+    "/{data_source_id}/credentials",
+    response_model=list[schemas.DataSourceCredential],
+)
+def get_data_source_credentials(
+    data_source_id: str,
+    service: DataSourceService = Depends(get_data_source_service),
+):
+    """
+    Get authentication credentials for a data source
+
+    Returns real credential values
+    """
+    try:
+        return service.get_credentials(data_source_id)
+    except DataSourceNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
 @router.get(
     "/{data_source_id}/objects", response_model=list[schemas.DataObjectMetadata]
 )

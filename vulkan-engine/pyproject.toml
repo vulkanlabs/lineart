@@ -1,5 +1,5 @@
 [project]
-name = "vulkan_engine"
+name = "vulkanlabs-vulkan-engine"
 version = "0.1.0"
 description = "Vulkan core engine"
 dependencies = [
@@ -8,8 +8,10 @@ dependencies = [
     "pydantic>=2.8.2",
     "dagster-graphql>=1.8.2",
     "pandas>=2.2.3",
-    "vulkan[dagster,hatchet]",
+    "vulkanlabs-vulkan[dagster,hatchet]",
     "requests>=2.32.3",
+    "redis>=5.0.0",
+    "httpx>=0.24.0",
 ]
 requires-python = ">=3.10"
 
@@ -18,9 +20,6 @@ gcp = ["google-cloud-logging>=3.11.4"]
 
 [tool.uv]
 dev-dependencies = ["pytest>=8.3.2"]
-
-[tool.uv.sources]
-vulkan = { path = "../vulkan" }
 
 [build-system]
 requires = ["hatchling"]

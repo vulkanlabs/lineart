@@ -28,6 +28,14 @@ jobs:
     with:
       python_version: '3.12'
 
+  publish-pypi-packages:
+    needs: [python-build-packages, test, lint]
+    uses: ./.github/workflows/publish-pypi-packages.yml
+    with:
+      environment: 'testpypi'
+    secrets:
+      pypi_api_token: ${{ secrets.TEST_PYPI_API_TOKEN }}
+
   publish-packages:
     uses: ./.github/workflows/publish-packages.yml
     permissions:
@@ -43,3 +51,4 @@ jobs:
       python_version: '3.12'
       postgres_version: '16.3'
       force_publish: false
+      use_pypi: false

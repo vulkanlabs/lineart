@@ -1,7 +1,6 @@
 import datetime
 from uuid import uuid4
 
-import pytest
 from vulkan_engine import schemas
 from vulkan_engine.schemas import RunStatus
 

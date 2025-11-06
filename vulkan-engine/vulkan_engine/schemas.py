@@ -2,7 +2,7 @@
 # if properly typed with db classes.
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -255,6 +255,21 @@ class DataSourceEnvVarBase(BaseModel):
 class DataSourceEnvVar(DataSourceEnvVarBase):
     created_at: datetime | None = None
     last_updated_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class DataSourceCredentialBase(BaseModel):
+    credential_type: Literal["CLIENT_ID", "CLIENT_SECRET", "USERNAME", "PASSWORD"]
+    value: str
+
+
+class DataSourceCredential(DataSourceCredentialBase):
+    credential_id: UUID
+    data_source_id: UUID
+    created_at: datetime
+    last_updated_at: datetime
 
     class Config:
         from_attributes = True

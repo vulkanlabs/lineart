@@ -97,7 +97,7 @@ class HatchetDataInput(DataInputNode, HatchetNode):
 
     def task_fn(self) -> Callable[[TWorkflowInput, Context], Any]:
         def data_input_task(
-            workflow_input: TWorkflowInput, context: Context
+            _workflow_input: TWorkflowInput, context: Context
         ) -> Dict[str, Any]:
             # Get resources from context (would need to be passed in)
             run_cfg = context.additional_metadata.get(RUN_CONFIG_KEY)
@@ -189,7 +189,7 @@ class HatchetTransform(TransformNode, HatchetNode):
         return self.name
 
     def task_fn(self) -> Callable[[TWorkflowInput, Context], Any]:
-        def transform_task(workflow_input: TWorkflowInput, context: Context) -> Any:
+        def transform_task(_workflow_input: TWorkflowInput, context: Context) -> Any:
             inputs = self._get_parent_outputs(context)
             configured_params = self._get_configured_params(inputs)
 
@@ -256,7 +256,7 @@ class HatchetTerminate(TerminateNode, HatchetNode):
         return self.name
 
     def task_fn(self) -> Callable[[TWorkflowInput, Context], Any]:
-        def terminate_task(workflow_input: TWorkflowInput, context: Context) -> str:
+        def terminate_task(_workflow_input: TWorkflowInput, context: Context) -> str:
             inputs = self._get_parent_outputs(context)
 
             status = self.return_status
@@ -367,7 +367,7 @@ class HatchetBranch(BranchNode, HatchetNode):
         return self.name
 
     def task_fn(self) -> Callable[[TWorkflowInput, Context], Any]:
-        def branch_task(workflow_input: TWorkflowInput, context: Context) -> str:
+        def branch_task(_workflow_input: TWorkflowInput, context: Context) -> str:
             inputs = self._get_parent_outputs(context)
 
             try:
@@ -463,7 +463,7 @@ class HatchetConnection(ConnectionNode, HatchetNode):
 
     def task_fn(self) -> Callable[[TWorkflowInput, Context], TaskOutput]:
         def connection_task(
-            workflow_input: TWorkflowInput, context: Context
+            _workflow_input: TWorkflowInput, context: Context
         ) -> TaskOutput:
             env_cfg = context.additional_metadata.get(POLICY_CONFIG_KEY)
             env = VulkanPolicyConfig(**env_cfg)
@@ -484,12 +484,7 @@ class HatchetConnection(ConnectionNode, HatchetNode):
                 response = requests.Session().send(req, timeout=self.timeout)
 
                 # TODO: how should we log this to output, including on error?
-                extra = {
-                    "url": self.url,
-                    "method": self.method,
-                    "status_code": response.status_code,
-                    "response_headers": dict(response.headers),
-                }
+                # request details: extra={"url": self.url, "method": self.method, "status_code": response.status_code}
                 response.raise_for_status()
 
                 if response.status_code == 200:
@@ -547,7 +542,7 @@ class HatchetDecision(DecisionNode, HatchetNode):
 
     def task_fn(self) -> Callable[[TWorkflowInput, Context], TaskOutput]:
         def decision_task(
-            workflow_input: TWorkflowInput, context: Context
+            _workflow_input: TWorkflowInput, context: Context
         ) -> TaskOutput:
             inputs = self._get_parent_outputs(context)
 

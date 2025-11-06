@@ -6,8 +6,8 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "google-cloud-aiplatform>=1.85.0",
-    "vulkan[all]",
-    "vulkan-engine",
+    "vulkanlabs-vulkan[dagster,beam,hatchet]",
+    "vulkanlabs-vulkan-engine",
     "vulkan-server",
     "lineart",
     "ruff>=0.11.0",
@@ -23,14 +23,13 @@ dev-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["vulkan-server", "vulkan-dagster", "upload-svc"]
+members = ["vulkan", "vulkan-engine", "vulkan-server"]
 
 [tool.uv.sources]
 vulkan-server = { workspace = true }
-vulkan-dagster = { workspace = true }
-upload-svc = { workspace = true }
-vulkan = { path = "vulkan", editable = true }
-vulkan-engine = { path = "vulkan-engine", editable = true }
+# Map PyPI package names to workspace directories
+vulkanlabs-vulkan = { workspace = true }
+vulkanlabs-vulkan-engine = { workspace = true }
 lineart = { path = "sdks/lineart", editable = true }
 
 [build-system]

@@ -88,15 +88,15 @@ services:
       - config/active/hatchet.env
     volumes:
       - hatchet_vulkan_home:/opt/vulkan
-  # vulkan-web-app:
-  #   build:
-  #     context: .
-  #     dockerfile: images/vulkan-web-app.Dockerfile
-  #     args:
-  #       PYTHON_VERSION: "3.12"
-  #       NEXT_PUBLIC_VULKAN_SERVER_URL: "http://app:6001"
-  #   ports:
-  #     - "3003:3000"
+  vulkan-web-app:
+    build:
+      context: .
+      dockerfile: images/vulkan-web-app.Dockerfile
+      args:
+        PYTHON_VERSION: "3.12"
+        NEXT_PUBLIC_VULKAN_SERVER_URL: "http://app:6001"
+    ports:
+      - "3003:3000"
   # Mock services
   testdata:
     build:

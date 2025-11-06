@@ -10,9 +10,11 @@ Organization:
 - Service Dependencies: Business logic services for routers
 """
 
+import os
 from functools import lru_cache
 from typing import Annotated, Iterator
 
+import redis
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from vulkan_engine.backends.execution import ExecutionBackend
@@ -87,6 +89,42 @@ def get_configured_logger(
         Configured VulkanLogger instance
     """
     return create_logger(db, config.logging)
+
+
+def get_redis_client() -> redis.Redis | None:
+    """
+    Get Redis client for OAuth token caching.
+
+    Returns:
+        Redis client instance or None if Redis is not configured
+
+    Envs:
+        REDIS_HOST: Redis server host (default localhost)
+        REDIS_PORT: Redis server port (default 6379)
+        REDIS_DB: Redis database number (default 0)
+        REDIS_PASSWORD: Redis password (optional)
+    """
+    redis_host = os.getenv("REDIS_HOST")
+
+    if not redis_host:
+        return None
+
+    redis_port = int(os.getenv("REDIS_PORT", "6379"))
+    redis_db = int(os.getenv("REDIS_DB", "0"))
+    redis_password = os.getenv("REDIS_PASSWORD")
+
+    try:
+        client = redis.Redis(
+            host=redis_host,
+            port=redis_port,
+            db=redis_db,
+            password=redis_password,
+            decode_responses=False,
+        )
+        client.ping()
+        return client
+    except (redis.ConnectionError, redis.TimeoutError):
+        return None
 
 
 def get_service_dependencies(
@@ -278,6 +316,7 @@ def get_allocation_service(
 def get_data_source_service(
     db: Annotated[Session, Depends(get_database_session)],
     logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
+    redis_cache: Annotated[redis.Redis | None, Depends(get_redis_client)],
 ) -> DataSourceService:
     """
     Get DataSourceService for data source management.
@@ -285,11 +324,12 @@ def get_data_source_service(
     Args:
         db: Database session
         logger: Configured logger
+        redis_cache: Redis client for OAuth token caching (optional)
 
     Returns:
         Configured DataSourceService instance
     """
-    return DataSourceService(db=db, logger=logger)
+    return DataSourceService(db=db, logger=logger, redis_cache=redis_cache)
 
 
 def get_component_service(

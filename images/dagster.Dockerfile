@@ -24,15 +24,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip install uv
 
+# Build arguments for PyPI package installation
+ARG USE_PYPI=false
+ARG VULKAN_VERSION
+ARG VULKAN_ENGINE_VERSION
+
 # Install vulkan-dagster-server
+# Copy local files (always needed for dev builds and vulkan-dagster which is not on PyPI)
 COPY vulkan ${VULKAN_SERVER_PATH}/vulkan
 COPY vulkan-dagster ${VULKAN_SERVER_PATH}/vulkan-dagster
-RUN uv pip install --system --no-cache ${VULKAN_SERVER_PATH}/vulkan-dagster
-## Use symlink installations after the initial setup to avoid duplicating
-## the same packages in the container.
-## Note: This has to be set after running the --no-cache installation,
-##       as the two options are mutually exclusive.
-# ENV UV_LINK_MODE=symlink
+
+# Conditional installation: Use PyPI packages for production builds, local copy for development
+RUN if [ "$USE_PYPI" = "true" ]; then \
+      echo "Installing vulkanlabs-vulkan from PyPI (production build)..."; \
+      uv pip install --system --no-cache "vulkanlabs-vulkan==${VULKAN_VERSION}" && \
+      rm -rf ${VULKAN_SERVER_PATH}/vulkan && \
+      echo "Installing vulkan-dagster from local copy..."; \
+      uv pip install --system --no-cache ${VULKAN_SERVER_PATH}/vulkan-dagster; \
+    else \
+      echo "Using local packages (development build)..."; \
+      uv pip install --system --no-cache ${VULKAN_SERVER_PATH}/vulkan-dagster; \
+    fi
 
 COPY vulkan-dagster/config/dagster.yaml ${DAGSTER_HOME}/
 COPY vulkan-dagster/config/workspace.yaml ${VULKAN_HOME}/
