@@ -399,6 +399,7 @@ def normalize_mapping(spec: ConfigurableDict) -> dict[str, str]:
 
     return {key: normalize_to_template(value) for key, value in spec.items()}
 
+
 def resolve_value(value, jinja_context, env_variables):
     """Recursively resolve templates in strings, dicts, and lists."""
     if isinstance(value, str):

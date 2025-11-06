@@ -214,9 +214,7 @@ class HatchetTransform(TransformNode, HatchetNode):
         configured_params = {}
         for k, v in self.parameters.items():
             try:
-                configured_params[k] = resolve_value(
-                    v, inputs, env_variables={}
-                )
+                configured_params[k] = resolve_value(v, inputs, env_variables={})
             except Exception:
                 raise ValueError(f"Invalid parameter configuration: {v}")
         return configured_params
