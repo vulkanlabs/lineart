@@ -10,6 +10,7 @@ from typing import Any
 
 from vulkan.auth import AuthConfig
 from vulkan.node_config import configure_fields, resolve_template
+
 from vulkan_engine.services.auth_handler import AuthHandler
 
 

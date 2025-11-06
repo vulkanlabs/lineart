@@ -10,13 +10,13 @@ from urllib.parse import urlparse
 
 import requests
 from sqlalchemy import func, select
-
 from vulkan.credentials import (
     validate_credential_type,
     validate_no_reserved_credentials_in_templates,
 )
 from vulkan.data_source import DataSourceStatus, DataSourceType
 from vulkan.schemas import DataSourceSpec
+
 from vulkan_engine.data.broker import DataBroker
 from vulkan_engine.db import (
     Component,
@@ -371,7 +371,7 @@ class DataSourceService(BaseService):
             InvalidDataSourceException: If variables are not supported
         """
         # Validate data source exists and is not archived
-        data_source = self.data_source_loader.get_data_source(
+        _ = self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=False
         )
 

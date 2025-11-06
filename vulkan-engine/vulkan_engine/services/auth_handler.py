@@ -11,7 +11,6 @@ from typing import Dict
 
 import redis
 import requests
-
 from vulkan.auth import AuthConfig, AuthMethod
 
 

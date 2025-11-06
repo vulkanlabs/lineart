@@ -1,7 +1,6 @@
 from logging import Logger
 
 from requests import JSONDecodeError, Response
-
 from vulkan.exceptions import UNHANDLED_ERROR_NAME, VULKAN_INTERNAL_EXCEPTIONS
 
 

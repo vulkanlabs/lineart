@@ -10,8 +10,8 @@ from urllib.parse import urlparse
 import httpx
 from jinja2 import TemplateSyntaxError, UndefinedError
 from requests.exceptions import HTTPError as RequestsHTTPError
-
 from vulkan.auth import AuthConfig
+
 from vulkan_engine.db import (
     DataSourceTestResult,
 )

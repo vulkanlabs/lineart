@@ -8,9 +8,8 @@ import base64
 from unittest.mock import Mock, patch
 
 import pytest
-from vulkan_engine.services.auth_handler import AuthHandler
-
 from vulkan.auth import AuthConfig, AuthMethod, GrantType
+from vulkan_engine.services.auth_handler import AuthHandler
 
 
 class TestAuthHandlerBasic:

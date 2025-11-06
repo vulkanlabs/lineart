@@ -21,12 +21,12 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 from sqlalchemy.sql import func
-
 from vulkan.core.run import RunStatus, WorkflowStatus
 from vulkan.credentials import CredentialType
 from vulkan.data_source import DataSourceStatus
 from vulkan.schemas import CachingOptions, DataSourceSpec
 from vulkan.spec.nodes.base import NodeType
+
 from vulkan_engine.config import DatabaseConfig
 from vulkan_engine.schemas import DataObjectOrigin
 
