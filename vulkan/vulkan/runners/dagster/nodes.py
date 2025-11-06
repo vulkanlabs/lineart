@@ -16,7 +16,7 @@ from vulkan.connections import (
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.exceptions import UserCodeException
-from vulkan.node_config import resolve_template
+from vulkan.node_config import resolve_template, resolve_value
 from vulkan.runners.dagster.names import normalize_dependencies, normalize_node_id
 from vulkan.runners.dagster.resources import AppClientResource
 from vulkan.runners.shared.constants import (
@@ -415,23 +415,6 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
             dependencies=dependencies,
             callback=node.callback,
         )
-
-
-def resolve_value(value, jinja_context, env_variables):
-    if isinstance(value, str):
-        try:
-            # Use Jinja2-based template resolution with environment variables
-            return resolve_template(value, jinja_context, env_variables)
-        except Exception:
-            return value
-    elif isinstance(value, dict):
-        return {
-            k: resolve_value(v, jinja_context, env_variables) for k, v in value.items()
-        }
-    elif isinstance(value, list):
-        return [resolve_value(item, jinja_context, env_variables) for item in value]
-    else:
-        return value
 
 
 class DagsterBranch(BranchNode, DagsterNode):

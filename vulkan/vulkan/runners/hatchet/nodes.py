@@ -18,7 +18,7 @@ from vulkan.connections import (
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.exceptions import UserCodeException
-from vulkan.node_config import resolve_template
+from vulkan.node_config import resolve_template, resolve_value
 from vulkan.runners.shared.app_client import BaseAppClient, create_app_client
 from vulkan.runners.shared.constants import POLICY_CONFIG_KEY, RUN_CONFIG_KEY
 from vulkan.runners.shared.decision_fn import evaluate_condition
@@ -148,7 +148,7 @@ class HatchetDataInput(DataInputNode, HatchetNode):
         configured_params = {}
         for k, v in self.parameters.items():
             try:
-                configured_params[k] = resolve_template(v, inputs, env_variables={})
+                configured_params[k] = resolve_value(v, inputs, env_variables={})
             except Exception:
                 raise ValueError(f"Invalid parameter configuration: {v}")
         return configured_params
@@ -302,23 +302,13 @@ class HatchetTerminate(TerminateNode, HatchetNode):
         self, template_metadata: dict, inputs: dict, context: Context
     ) -> dict:
         """Resolve JSON metadata templates."""
+        try:
+            env_config = context.additional_metadata.get(POLICY_CONFIG_KEY)
+            env_variables = env_config.variables if env_config else {}
+        except Exception:
+            env_variables = {}
 
-        def resolve_value(value):
-            if isinstance(value, str):
-                try:
-                    env_config = context.additional_metadata.get(POLICY_CONFIG_KEY)
-                    env_variables = env_config.variables if env_config else {}
-                    return resolve_template(value, inputs, env_variables)
-                except Exception:
-                    return value
-            elif isinstance(value, dict):
-                return {k: resolve_value(v) for k, v in value.items()}
-            elif isinstance(value, list):
-                return [resolve_value(item) for item in value]
-            else:
-                return value
-
-        return resolve_value(template_metadata)
+        return resolve_value(template_metadata, inputs, env_variables)
 
     def _terminate(
         self, context: Context, result: str, metadata: Dict[str, Any] | None = None
