@@ -10,6 +10,10 @@ from typing import Any
 import requests
 from sqlalchemy import func, select
 
+from vulkan.credentials import (
+    validate_credential_type,
+    validate_no_reserved_credentials_in_templates,
+)
 from vulkan.data_source import DataSourceStatus, DataSourceType
 from vulkan.schemas import DataSourceSpec
 from vulkan_engine.data.broker import DataBroker
@@ -97,15 +101,13 @@ class DataSourceService(BaseService):
 
         # Extract all environment variables from templates
         env_vars = spec.source.extract_env_vars()
-        reserved_names = {"CLIENT_ID", "CLIENT_SECRET"}
-        conflicts = reserved_names.intersection(env_vars)
 
-        if conflicts:
-            raise InvalidDataSourceException(
-                f"Reserved credential names cannot be used in templates: {', '.join(conflicts)}. "
-                f"CLIENT_ID and CLIENT_SECRET are reserved for authentication only and "
-                f"must be configured separately via environment variables."
+        try:
+            validate_no_reserved_credentials_in_templates(
+                env_vars, error_context="templates"
             )
+        except ValueError as e:
+            raise InvalidDataSourceException(str(e))
 
     def list_data_sources(
         self, include_archived: bool = False, project_id: str = None, status: str = None
@@ -373,15 +375,15 @@ class DataSourceService(BaseService):
         )
 
         # Block reserved credential names, use /credentials endpoint
-        reserved_names = {"CLIENT_ID", "CLIENT_SECRET", "USERNAME", "PASSWORD"}
         variable_names = {v.name for v in desired_variables}
-        reserved_in_request = reserved_names.intersection(variable_names)
 
-        if reserved_in_request:
+        try:
+            validate_no_reserved_credentials_in_templates(
+                variable_names, error_context="environment variables"
+            )
+        except ValueError as e:
             raise InvalidDataSourceException(
-                f"Cannot set credentials via environment variables endpoint. "
-                f"The following names are reserved for credentials: {', '.join(reserved_in_request)}. "
-                f"Please use the /credentials endpoint instead: PUT /data-sources/{{id}}/credentials"
+                f"{str(e)} Please use the /credentials endpoint instead: PUT /data-sources/{{id}}/credentials"
             )
 
         # Get existing variables
@@ -466,13 +468,11 @@ class DataSourceService(BaseService):
             data_source_id=data_source_id, include_archived=False
         )
 
-        valid_types = {"CLIENT_ID", "CLIENT_SECRET", "USERNAME", "PASSWORD"}
         for cred in credentials:
-            if cred.credential_type not in valid_types:
-                raise InvalidDataSourceException(
-                    f"Invalid credential_type: {cred.credential_type}. "
-                    f"Must be one of: {', '.join(valid_types)}"
-                )
+            try:
+                validate_credential_type(cred.credential_type)
+            except ValueError as e:
+                raise InvalidDataSourceException(str(e))
 
         saved_credentials = []
         for cred in credentials:
@@ -628,28 +628,17 @@ class DataSourceService(BaseService):
 
         spec = DataSourceSchema.from_orm(data_source)
 
+        # Validate request configuration for HTTP data sources
+        if spec.source.source_type == DataSourceType.HTTP:
+            _validate_url_scheme(spec.source.url)
+
         # Initialize broker
         logger = self.logger.system if self.logger else None
         broker = DataBroker(db=self.db, logger=logger, spec=spec)
 
-        # Get environment variables
-        env_vars = (
-            self.db.query(DataSourceEnvVar)
-            .filter_by(data_source_id=spec.data_source_id)
-            .all()
-        )
-        env_variables = {}
-        if env_vars:
-            for ev in env_vars:
-                env_variables[ev.name] = ev.value
-
-        credentials = (
-            self.db.query(DataSourceCredential)
-            .filter_by(data_source_id=spec.data_source_id)
-            .all()
-        )
-        for cred in credentials:
-            env_variables[cred.credential_type] = cred.value
+        # Get environment variables and credentials from database
+        env_variables = _load_env_vars(self.db, spec.data_source_id)
+        credentials = _load_credentials(self.db, spec.data_source_id)
 
         # Check for missing variables
         missing_vars = set(spec.variables or []) - set(env_variables.keys())
@@ -666,7 +655,7 @@ class DataSourceService(BaseService):
             auth_handler = AuthHandler(
                 auth_config=spec.source.auth,
                 data_source_id=spec.data_source_id,
-                env_variables=env_variables,
+                credentials=credentials,
                 cache=self.redis_cache,
             )
             auth_headers = auth_handler.get_auth_headers()
@@ -744,3 +733,71 @@ class DataSourceService(BaseService):
             self.logger.system.info(f"Published data source {data_source_id}")
 
         return DataSourceSchema.from_orm(data_source)
+
+
+# Helper
+
+
+def _load_env_vars(db, data_source_id: str) -> dict[str, str]:
+    """
+    Load environment variables from database.
+
+    Args:
+        db: Database session
+        data_source_id: Data source UUID
+
+    Returns:
+        Dictionary of name -> value pairs
+    """
+    env_vars = {}
+    all_vars = db.query(DataSourceEnvVar).filter_by(data_source_id=data_source_id).all()
+    for var in all_vars:
+        if var.value is None:
+            value = ""
+        elif isinstance(var.value, str):
+            value = var.value
+        else:
+            value = str(var.value)
+        env_vars[var.name] = value
+    return env_vars
+
+
+def _load_credentials(db, data_source_id: str) -> dict[str, str]:
+    """
+    Load authentication credentials from database.
+
+    Args:
+        db: Database session
+        data_source_id: Data source UUID
+
+    Returns:
+        Dictionary of credential_type -> value pairs
+    """
+    credentials_rows = (
+        db.query(DataSourceCredential).filter_by(data_source_id=data_source_id).all()
+    )
+    return {cred.credential_type.value: cred.value for cred in credentials_rows}
+
+
+def _validate_url_scheme(url: str) -> None:
+    """
+    Validate URL scheme is http or https.
+
+    Args:
+        url: URL to validate
+
+    Raises:
+        InvalidDataSourceException: If scheme is invalid
+    """
+    from urllib.parse import urlparse
+
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ["http", "https"]:
+            raise InvalidDataSourceException(
+                f"Invalid URL scheme: {parsed.scheme}. Only http/https allowed"
+            )
+    except Exception as e:
+        if isinstance(e, InvalidDataSourceException):
+            raise
+        raise InvalidDataSourceException(f"Invalid URL format: {str(e)}")

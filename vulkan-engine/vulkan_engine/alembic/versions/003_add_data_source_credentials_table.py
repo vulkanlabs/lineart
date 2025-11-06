@@ -2,10 +2,10 @@
 
 Revision ID: 003
 Revises: 002_add_datasource_status_column
-Create Date: 2025-11-03 20:16:16.663184
+Create Date: 2025-11-05 20:02:46.579966
 
-Creates data_source_credential table to store authentication credentials
-(CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD) separately from environment variables.
+Adds data_source_credential table for storing authentication credentials
+separately from environment variables.
 
 """
 
@@ -23,39 +23,60 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Create data_source_credential table."""
+    """Upgrade schema: add data_source_credential table with Enum type."""
 
+    credential_type_enum = postgresql.ENUM(
+        "CLIENT_ID", "CLIENT_SECRET", "USERNAME", "PASSWORD", name="credentialtype"
+    )
+    credential_type_enum.create(op.get_bind())
+
+    # Create data_source_credential table
     op.create_table(
         "data_source_credential",
         sa.Column(
             "credential_id",
-            postgresql.UUID(as_uuid=True),
-            primary_key=True,
+            sa.Uuid(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
         sa.Column(
             "data_source_id",
-            postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("data_source.data_source_id", ondelete="CASCADE"),
+            sa.Uuid(),
             nullable=False,
         ),
-        sa.Column("credential_type", sa.String(), nullable=False),
+        sa.Column(
+            "credential_type",
+            sa.Enum(
+                "CLIENT_ID",
+                "CLIENT_SECRET",
+                "USERNAME",
+                "PASSWORD",
+                name="credentialtype",
+            ),
+            nullable=False,
+        ),
         sa.Column("value", sa.String(), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=False,
+            nullable=True,
         ),
         sa.Column(
             "last_updated_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            nullable=False,
+            nullable=True,
         ),
+        sa.ForeignKeyConstraint(
+            ["data_source_id"],
+            ["data_source.data_source_id"],
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("credential_id"),
     )
 
+    # Create unique index for data_source_id + credential_type
     op.create_index(
         "unique_data_source_credential_type",
         "data_source_credential",
@@ -63,14 +84,18 @@ def upgrade() -> None:
         unique=True,
     )
 
-    op.create_check_constraint(
-        "valid_credential_type",
-        "data_source_credential",
-        "credential_type IN ('CLIENT_ID', 'CLIENT_SECRET', 'USERNAME', 'PASSWORD')",
-    )
-
 
 def downgrade() -> None:
-    """Drop data_source_credential table."""
+    """Downgrade schema: drop data_source_credential table and enum."""
+
+    op.drop_index(
+        "unique_data_source_credential_type",
+        table_name="data_source_credential",
+    )
 
     op.drop_table("data_source_credential")
+
+    credential_type_enum = postgresql.ENUM(
+        "CLIENT_ID", "CLIENT_SECRET", "USERNAME", "PASSWORD", name="credentialtype"
+    )
+    credential_type_enum.drop(op.get_bind())

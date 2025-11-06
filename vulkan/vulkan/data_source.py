@@ -3,8 +3,9 @@ from enum import Enum
 
 from pydantic import BaseModel, field_validator
 
-from vulkan.auth import Auth
+from vulkan.auth import AuthConfig
 from vulkan.connections import HTTPConfig
+from vulkan.credentials import validate_no_reserved_credentials_in_templates
 from vulkan.node_config import (
     extract_env_vars,
     extract_env_vars_from_string,
@@ -72,7 +73,7 @@ class LocalFileSource(BaseModel):
 class HTTPSource(HTTPConfig, SourceSpecBase):
     """HTTP data source configuration with optional authentication."""
 
-    auth: Auth | None = None
+    auth: AuthConfig | None = None
 
     def extract_env_vars(self) -> list[str]:
         """
@@ -99,16 +100,14 @@ class HTTPSource(HTTPConfig, SourceSpecBase):
     @classmethod
     def validate_auth_secrets_not_in_templates(cls, v, info):
         """
-        Validates that auth secrets (CLIENT_ID, CLIENT_SECRET) are not
-        used in templates.
+        Validates that reserved credential names are not used in templates.
 
-        These are reserved names for authentication credentials
+        Uses shared validation function to ensure consistency across the codebase.
         """
         if v is None:
             return v
 
         data = info.data
-        reserved_names = {"CLIENT_ID", "CLIENT_SECRET"}
 
         env_vars = []
         if "url" in data:
@@ -117,12 +116,9 @@ class HTTPSource(HTTPConfig, SourceSpecBase):
             if field in data and data[field] is not None:
                 env_vars += extract_env_vars(data[field])
 
-        conflicts = reserved_names.intersection(env_vars)
-        if conflicts:
-            raise ValueError(
-                f"Auth credentials cannot be used in templates: {', '.join(conflicts)}. "
-                f"CLIENT_ID and CLIENT_SECRET are reserved for authentication only."
-            )
+        validate_no_reserved_credentials_in_templates(
+            env_vars, error_context="templates"
+        )
 
         return v
 

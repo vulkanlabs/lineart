@@ -12,7 +12,22 @@ from typing import Dict
 import redis
 import requests
 
-from vulkan.auth import Auth, AuthMethod
+from vulkan.auth import AuthConfig, AuthMethod
+
+
+def encode_basic_credentials(client_id: str, client_secret: str) -> str:
+    """
+    Encode client ID and secret as Base64 for Basic authentication.
+
+    Args:
+        client_id: Client ID
+        client_secret: Client secret
+
+    Returns:
+        Base64 encoded string in format "client_id:client_secret"
+    """
+    credentials = f"{client_id}:{client_secret}"
+    return base64.b64encode(credentials.encode()).decode()
 
 
 class AuthHandler:
@@ -27,7 +42,7 @@ class AuthHandler:
         auth_handler = AuthHandler(
             auth_config=datasource.auth,
             data_source_id=datasource.id,
-            env_variables={"CLIENT_ID": "...", "CLIENT_SECRET": "..."},
+            credentials={"CLIENT_ID": "...", "CLIENT_SECRET": "..."},
             cache=redis_client
         )
 
@@ -37,22 +52,31 @@ class AuthHandler:
 
     def __init__(
         self,
-        auth_config: Auth,
+        auth_config: AuthConfig,
         data_source_id: str,
-        env_variables: dict,
+        credentials: dict,
         cache: redis.Redis | None = None,
     ):
         """
         Args:
             auth_config: Authentication configuration (from DataSource.source.auth)
             data_source_id: DataSource ID (used for cache key)
-            env_variables: Environment variables including CLIENT_ID and CLIENT_SECRET
+            credentials: Authentication credentials (CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD)
             cache: Redis client for token caching (optional, required for Bearer)
         """
         self.auth_config = auth_config
         self.data_source_id = data_source_id
-        self.env_variables = env_variables
+        self.credentials = credentials
         self.cache = cache
+
+    def _get_cache_key(self) -> str:
+        """
+        Generate Redis cache key for this data source's auth token.
+
+        Returns:
+            Cache key string in format "auth_token:{data_source_id}"
+        """
+        return f"auth_token:{self.data_source_id}"
 
     def get_auth_headers(self) -> Dict[str, str]:
         """
@@ -81,7 +105,7 @@ class AuthHandler:
         Handles Basic authentication.
 
         Process:
-        1. Get CLIENT_ID and CLIENT_SECRET from env variables
+        1. Get CLIENT_ID and CLIENT_SECRET from credentials
         2. Concatenate as "client_id:client_secret"
         3. Base64 encode
         4. Return Authorization header
@@ -89,11 +113,10 @@ class AuthHandler:
         Returns:
             {"Authorization": "Basic <base64(client_id:client_secret)>"}
         """
-        client_id = self.env_variables.get("CLIENT_ID", "")
-        client_secret = self.env_variables.get("CLIENT_SECRET", "")
+        client_id = self.credentials.get("CLIENT_ID", "")
+        client_secret = self.credentials.get("CLIENT_SECRET", "")
 
-        credentials = f"{client_id}:{client_secret}"
-        encoded = base64.b64encode(credentials.encode()).decode()
+        encoded = encode_basic_credentials(client_id, client_secret)
 
         return {"Authorization": f"Basic {encoded}"}
 
@@ -114,10 +137,8 @@ class AuthHandler:
         Raises:
             requests.HTTPError: If token request fails
         """
-        # Redis cache key (unique per DataSource)
-        cache_key = f"auth_token:{self.data_source_id}"
-
         # Check cache if available
+        cache_key = self._get_cache_key()
         if self.cache:
             cached_token = self.cache.get(cache_key)
             if cached_token:
@@ -145,11 +166,10 @@ class AuthHandler:
             requests.HTTPError: If token request fails
             KeyError: If response doesn't contain access_token
         """
-        client_id = self.env_variables.get("CLIENT_ID", "")
-        client_secret = self.env_variables.get("CLIENT_SECRET", "")
+        client_id = self.credentials.get("CLIENT_ID", "")
+        client_secret = self.credentials.get("CLIENT_SECRET", "")
 
-        credentials = f"{client_id}:{client_secret}"
-        encoded = base64.b64encode(credentials.encode()).decode()
+        encoded = encode_basic_credentials(client_id, client_secret)
 
         body = {
             "grant_type": self.auth_config.grant_type.value,
@@ -159,12 +179,21 @@ class AuthHandler:
             body["scope"] = self.auth_config.scope
 
         if self.auth_config.grant_type.value == "password":
-            username = self.env_variables.get("USERNAME", "")
-            password = self.env_variables.get("PASSWORD", "")
-            if username:
-                body["username"] = username
-            if password:
-                body["password"] = password
+            username = self.credentials.get("USERNAME")
+            password = self.credentials.get("PASSWORD")
+
+            if not username or not password:
+                missing = []
+                if not username:
+                    missing.append("USERNAME")
+                if not password:
+                    missing.append("PASSWORD")
+                raise ValueError(
+                    f"Password grant type requires {' and '.join(missing)} credentials"
+                )
+
+            body["username"] = username
+            body["password"] = password
 
         response = requests.post(
             url=self.auth_config.token_url,
@@ -184,7 +213,7 @@ class AuthHandler:
             ttl = max(
                 expires_in - 60, 60
             )  # subtract 60s buffer to refresh before expiry
-            cache_key = f"auth_token:{self.data_source_id}"
+            cache_key = self._get_cache_key()
             self.cache.setex(cache_key, ttl, access_token)
 
         return access_token

@@ -10,9 +10,7 @@ dependencies = [
     "pandas>=2.2.3",
     "vulkan[dagster,hatchet]",
     "requests>=2.32.3",
-    "cryptography>=45.0.0",
     "redis>=5.0.0",
-    "fastapi>=0.100.0",
     "httpx>=0.24.0",
 ]
 requires-python = ">=3.10"

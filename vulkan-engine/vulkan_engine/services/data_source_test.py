@@ -11,11 +11,8 @@ import httpx
 from jinja2 import TemplateSyntaxError, UndefinedError
 from requests.exceptions import HTTPError as RequestsHTTPError
 
-from vulkan.auth import Auth
-from vulkan.node_config import configure_fields, normalize_mapping, resolve_template
+from vulkan.auth import AuthConfig
 from vulkan_engine.db import (
-    DataSourceCredential,
-    DataSourceEnvVar,
     DataSourceTestResult,
 )
 from vulkan_engine.exceptions import (
@@ -28,8 +25,15 @@ from vulkan_engine.schemas import (
     DataSourceTestRequestById,
     DataSourceTestResponse,
 )
-from vulkan_engine.services.auth_handler import AuthHandler
 from vulkan_engine.services.base import BaseService
+from vulkan_engine.services.data_source import (
+    _load_credentials,
+    _load_env_vars,
+)
+from vulkan_engine.services.request_preparation import (
+    add_auth_headers,
+    prepare_request_fields,
+)
 
 
 class DataSourceTestService(BaseService):
@@ -44,53 +48,6 @@ class DataSourceTestService(BaseService):
             logger: Optional logger
         """
         super().__init__(db, logger)
-
-    def _load_all_env_vars(self, data_source_id: str) -> dict[str, str]:
-        """
-        Load all environment variables from database.
-
-        Returns:
-            Dictionary with all environment variable name-value pairs
-        """
-        env_vars = {}
-
-        all_vars = (
-            self.db.query(DataSourceEnvVar)
-            .filter_by(data_source_id=data_source_id)
-            .all()
-        )
-
-        for var in all_vars:
-            if var.value is None:
-                value = ""
-            elif isinstance(var.value, str):
-                value = var.value
-            else:
-                value = str(var.value)
-
-            env_vars[var.name] = value
-
-        return env_vars
-
-    def _load_auth_credentials(self, data_source_id: str) -> dict[str, str]:
-        """
-        Load authentication credentials from dedicated credentials table
-
-        Returns:
-            Dictionary with CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD
-        """
-        env_vars = {}
-
-        credentials = (
-            self.db.query(DataSourceCredential)
-            .filter_by(data_source_id=data_source_id)
-            .all()
-        )
-
-        for credential in credentials:
-            env_vars[credential.credential_type] = credential.value
-
-        return env_vars
 
     def _validate_test_request(self, test_request: DataSourceTestRequest) -> None:
         """
@@ -191,13 +148,8 @@ class DataSourceTestService(BaseService):
         # Build full test request by merging data source config with runtime params
         source_config = data_source.source
 
-        # Normalize headers and params from ConfigurableDict to template strings
-        headers_normalized = normalize_mapping(source_config.get("headers"))
-        params_base_normalized = normalize_mapping(source_config.get("params"))
-
-        env_vars = self._load_all_env_vars(test_request.data_source_id)
-        credentials = self._load_auth_credentials(test_request.data_source_id)
-        env_vars.update(credentials)
+        env_vars = _load_env_vars(self.db, test_request.data_source_id)
+        credentials = _load_credentials(self.db, test_request.data_source_id)
 
         if test_request.env_vars:
             env_vars.update(test_request.env_vars)
@@ -205,21 +157,21 @@ class DataSourceTestService(BaseService):
         full_request = DataSourceTestRequest(
             url=source_config.get("url", ""),
             method=source_config.get("method", "GET"),
-            headers=headers_normalized,
+            headers=source_config.get("headers"),
             body=source_config.get("body"),
-            # Merge params: normalized base + runtime overrides
+            # Merge params: base + runtime overrides
             params={
-                **(params_base_normalized or {}),
+                **(source_config.get("params") or {}),
                 **(test_request.params or {}),
             },
-            # Use merged env_vars
             env_vars=env_vars,
         )
 
-        # Execute using the standard test method, passing auth config and data source ID
+        # Execute using the standard test method, passing auth config, credentials, and data source ID
         return await self.execute_test(
             full_request,
             auth_config=source_config.get("auth"),
+            auth_credentials=credentials,
             data_source_id=test_request.data_source_id,
         )
 
@@ -227,6 +179,7 @@ class DataSourceTestService(BaseService):
         self,
         test_request: DataSourceTestRequest,
         auth_config: dict | None = None,
+        auth_credentials: dict | None = None,
         data_source_id: str | None = None,
     ) -> DataSourceTestResponse:
         """
@@ -235,6 +188,7 @@ class DataSourceTestService(BaseService):
         Args:
             test_request: Test request configuration
             auth_config: Optional authentication configuration (from HTTPSource.auth)
+            auth_credentials: Optional authentication credentials (CLIENT_ID, CLIENT_SECRET, etc.)
             data_source_id: Optional data source ID (for auth cache key)
 
         Returns:
@@ -270,42 +224,46 @@ class DataSourceTestService(BaseService):
         resolved_headers = {}
 
         try:
-            # Resolve templates
-            url = resolve_template(test_request.url, local_vars, env_vars)
-            resolved_url = url
+            # Prepare request fields using shared utility
+            config = {
+                "url": test_request.url,
+                "headers": test_request.headers,
+                "params": test_request.params,
+                "body": test_request.body,
+            }
 
-            headers = configure_fields(test_request.headers or {}, local_vars, env_vars)
-            params = configure_fields(test_request.params or {}, local_vars, env_vars)
-            body = (
-                configure_fields(test_request.body, local_vars, env_vars)
-                if test_request.body
-                else None
+            prepared = prepare_request_fields(
+                config=config,
+                local_variables=local_vars,
+                env_variables=env_vars,
+                method=test_request.method,
+                timeout=30,
             )
-            resolved_headers = headers
 
             # Add authentication headers if auth is configured
             if auth_config and data_source_id:
-                auth_obj = Auth(**auth_config)
+                credentials_to_use = auth_credentials or {}
+
                 cache_available = hasattr(self, "cache") and self.cache is not None
 
-                auth_handler = AuthHandler(
-                    auth_config=auth_obj,
+                prepared = add_auth_headers(
+                    prepared=prepared,
+                    auth_config=AuthConfig(**auth_config),
                     data_source_id=data_source_id,
-                    env_variables=env_vars,
+                    credentials=credentials_to_use,
                     cache=self.cache if cache_available else None,
                 )
 
-                auth_headers = auth_handler.get_auth_headers()
-                headers = {**headers, **auth_headers}
-                resolved_headers = headers
+            resolved_url = prepared.url
+            resolved_headers = prepared.headers
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=prepared.timeout) as client:
                 response = await client.request(
-                    method=test_request.method,
-                    url=url,
-                    headers=headers,
-                    params=params,
-                    json=body if body else None,
+                    method=prepared.method,
+                    url=prepared.url,
+                    headers=prepared.headers,
+                    params=prepared.params,
+                    json=prepared.body,
                 )
                 status_code = response.status_code
                 response_headers = dict(response.headers)

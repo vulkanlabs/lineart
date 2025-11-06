@@ -4,6 +4,7 @@ import {
     type DataSource,
     type DataSourceSpec,
     type DataSourceEnvVarBase,
+    type DataSourceCredentialBase,
 } from "@vulkanlabs/client-open";
 import { dataSourcesApi, withErrorHandling } from "./client";
 
@@ -111,12 +112,12 @@ export const setDataSourceEnvVars = async (
 /**
  * Set authentication credentials for a data source
  * @param {string} dataSourceId - Target data source identifier
- * @param {Array} credentials - List of credentials (CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD)
+ * @param {DataSourceCredentialBase[]} credentials - List of credentials (CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD)
  * @returns {Promise<any>} Saved credentials
  */
 export const setDataSourceCredentials = async (
     dataSourceId: string,
-    credentials: Array<{ credential_type: string; value: string }>,
+    credentials: DataSourceCredentialBase[],
 ) => {
     return withErrorHandling(
         dataSourcesApi.setDataSourceCredentials({

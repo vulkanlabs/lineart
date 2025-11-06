@@ -21,7 +21,7 @@ class GrantType(str, Enum):
     IMPLICIT = "implicit"
 
 
-class Auth(BaseModel):
+class AuthConfig(BaseModel):
     """
     Unified authentication configuration for DataSources.
 
@@ -30,7 +30,7 @@ class Auth(BaseModel):
     via environment variables and stored securely in the database.
 
     Configuration Flow:
-        1. User creates DataSource with Auth config (this object)
+        1. User creates DataSource with AuthConfig (this object)
         2. User separately sets CLIENT_ID and CLIENT_SECRET as env vars
         3. Backend stores credentials securely (CLIENT_SECRET encrypted)
         4. At runtime, credentials are retrieved and used with this auth config

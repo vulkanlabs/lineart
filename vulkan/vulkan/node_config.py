@@ -1,5 +1,4 @@
 import ast
-import re
 from typing import Any, Literal
 
 from jinja2 import Environment, Template, nodes
@@ -101,9 +100,6 @@ def extract_env_vars(spec: ConfigurableDict) -> list[str]:
     env_vars = []
 
     for key, value in spec.items():
-        # Try to convert dict to RunTimeParam or EnvVarConfig if applicable
-        value = _try_cast_to_config_object(value)
-
         if isinstance(value, EnvVarConfig):
             env_vars.append(value.env)
         elif isinstance(value, str):
@@ -134,9 +130,6 @@ def extract_runtime_params(spec: ConfigurableDict) -> list[str]:
     runtime_params = []
 
     for key, value in spec.items():
-        # Try to convert dict to RunTimeParam or EnvVarConfig if applicable
-        value = _try_cast_to_config_object(value)
-
         if isinstance(value, RunTimeParam):
             runtime_params.append(value.param)
         elif isinstance(value, str):
@@ -279,8 +272,7 @@ def _is_template_like(value: Any) -> bool:
     if not isinstance(value, str):
         return False
 
-    # Check if the string contains at least one Jinja2 template expression
-    return bool(re.search(r"\{\{.*?\}\}", value))
+    return value.startswith("{{") and value.endswith("}}")
 
 
 def _convert_to_type(value: str, target_type: str) -> int | float | bool:
@@ -373,8 +365,7 @@ def normalize_to_template(value: _ParameterType) -> str:
     - {"param": "variable"} -> "{{variable}}"
     - {"env": "variable"} -> "{{env.variable}}"
     - "{{variable}}" -> "{{variable}}" (unchanged)
-    - "application/json" -> "application/json" (literal strings unchanged)
-    - "variable" -> "{{variable}}" (only if it looks like a variable name)
+    - "variable" -> "{{variable}}"
     """
     if isinstance(value, RunTimeParam):
         return f"{{{{{value.param}}}}}"
@@ -383,9 +374,7 @@ def normalize_to_template(value: _ParameterType) -> str:
     elif isinstance(value, list):
         # For lists, normalize each element
         return [normalize_to_template(item) for item in value]
-    elif isinstance(value, str):
-        if value.startswith("{{") and value.endswith("}}"):
-            return value
+    elif isinstance(value, str) and value.startswith("{{") and value.endswith("}}"):
         return value
     else:
         return f"{{{{{value}}}}}"

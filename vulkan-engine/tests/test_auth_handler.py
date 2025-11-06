@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 import pytest
 from vulkan_engine.services.auth_handler import AuthHandler
 
-from vulkan.auth import Auth, AuthMethod, GrantType
+from vulkan.auth import AuthConfig, AuthMethod, GrantType
 
 
 class TestAuthHandlerBasic:
@@ -19,20 +19,20 @@ class TestAuthHandlerBasic:
     @pytest.fixture
     def basic_auth_config(self):
         """Create a Basic auth configuration."""
-        return Auth(method=AuthMethod.BASIC)
+        return AuthConfig(method=AuthMethod.BASIC)
 
     @pytest.fixture
-    def env_variables(self):
-        """Create environment variables with credentials."""
+    def credentials(self):
+        """Create authentication credentials."""
         return {"CLIENT_ID": "test_user", "CLIENT_SECRET": "test_password"}
 
     @pytest.fixture
-    def auth_handler(self, basic_auth_config, env_variables):
+    def auth_handler(self, basic_auth_config, credentials):
         """Create an AuthHandler for Basic auth."""
         return AuthHandler(
             auth_config=basic_auth_config,
             data_source_id="test-ds-id",
-            env_variables=env_variables,
+            credentials=credentials,
             cache=None,
         )
 
@@ -53,7 +53,7 @@ class TestAuthHandlerBasic:
         handler = AuthHandler(
             auth_config=basic_auth_config,
             data_source_id="test-ds-id",
-            env_variables={"CLIENT_SECRET": "password"},
+            credentials={"CLIENT_SECRET": "password"},
             cache=None,
         )
 
@@ -73,7 +73,7 @@ class TestAuthHandlerBasic:
         handler = AuthHandler(
             auth_config=basic_auth_config,
             data_source_id="test-ds-id",
-            env_variables={"CLIENT_ID": "user"},
+            credentials={"CLIENT_ID": "user"},
             cache=None,
         )
 
@@ -93,7 +93,7 @@ class TestAuthHandlerBasic:
         handler = AuthHandler(
             auth_config=basic_auth_config,
             data_source_id="test-ds-id",
-            env_variables={
+            credentials={
                 "CLIENT_ID": "user@example.com",
                 "CLIENT_SECRET": "p@ssw0rd!#$%",
             },
@@ -112,7 +112,7 @@ class TestAuthHandlerBearer:
     @pytest.fixture
     def bearer_auth_config(self):
         """Create a Bearer auth configuration."""
-        return Auth(
+        return AuthConfig(
             method=AuthMethod.BEARER,
             token_url="https://auth.example.com/token",
             grant_type=GrantType.CLIENT_CREDENTIALS,
@@ -120,8 +120,8 @@ class TestAuthHandlerBearer:
         )
 
     @pytest.fixture
-    def env_variables(self):
-        """Create environment variables with credentials."""
+    def credentials(self):
+        """Create authentication credentials."""
         return {"CLIENT_ID": "test_client", "CLIENT_SECRET": "test_secret"}
 
     @pytest.fixture
@@ -133,12 +133,12 @@ class TestAuthHandlerBearer:
         return redis_mock
 
     @pytest.fixture
-    def auth_handler(self, bearer_auth_config, env_variables, mock_redis):
+    def auth_handler(self, bearer_auth_config, credentials, mock_redis):
         """Create an AuthHandler for Bearer auth."""
         return AuthHandler(
             auth_config=bearer_auth_config,
             data_source_id="test-ds-id",
-            env_variables=env_variables,
+            credentials=credentials,
             cache=mock_redis,
         )
 
@@ -218,7 +218,7 @@ class TestAuthHandlerBearer:
         handler = AuthHandler(
             auth_config=bearer_auth_config,
             data_source_id="test-ds-id",
-            env_variables={"CLIENT_SECRET": "secret"},
+            credentials={"CLIENT_SECRET": "secret"},
             cache=mock_redis,
         )
 
@@ -249,7 +249,7 @@ class TestAuthHandlerBearer:
         handler = AuthHandler(
             auth_config=bearer_auth_config,
             data_source_id="test-ds-id",
-            env_variables={"CLIENT_ID": "client"},
+            credentials={"CLIENT_ID": "client"},
             cache=mock_redis,
         )
 
@@ -276,14 +276,15 @@ class TestAuthHandlerBearer:
             auth_handler.get_auth_headers()
 
     @patch("requests.post")
-    def test_bearer_auth_different_grant_types(
-        self, mock_post, env_variables, mock_redis
-    ):
+    def test_bearer_auth_different_grant_types(self, mock_post, mock_redis):
         """Test Bearer auth with different grant types."""
-        grant_types = [
-            GrantType.CLIENT_CREDENTIALS,
-            GrantType.PASSWORD,
-            GrantType.IMPLICIT,
+        grant_type_configs = [
+            (
+                GrantType.CLIENT_CREDENTIALS,
+                {"CLIENT_ID": "test_client", "CLIENT_SECRET": "test_secret"},
+            ),
+            (GrantType.PASSWORD, {"USERNAME": "test_user", "PASSWORD": "test_pass"}),
+            (GrantType.IMPLICIT, {}),
         ]
 
         mock_response = Mock()
@@ -291,8 +292,8 @@ class TestAuthHandlerBearer:
         mock_response.raise_for_status.return_value = None
         mock_post.return_value = mock_response
 
-        for grant_type in grant_types:
-            auth_config = Auth(
+        for grant_type, creds in grant_type_configs:
+            auth_config = AuthConfig(
                 method=AuthMethod.BEARER,
                 token_url="https://auth.example.com/token",
                 grant_type=grant_type,
@@ -301,19 +302,19 @@ class TestAuthHandlerBearer:
             handler = AuthHandler(
                 auth_config=auth_config,
                 data_source_id="test-ds-id",
-                env_variables=env_variables,
+                credentials=creds,
                 cache=mock_redis,
             )
 
             headers = handler.get_auth_headers()
             assert "Authorization" in headers
 
-    def test_bearer_auth_without_cache(self, bearer_auth_config, env_variables, caplog):
+    def test_bearer_auth_without_cache(self, bearer_auth_config, credentials):
         """Test Bearer auth works without Redis cache."""
         handler = AuthHandler(
             auth_config=bearer_auth_config,
             data_source_id="test-ds-id",
-            env_variables=env_variables,
+            credentials=credentials,
             cache=None,
         )
 
@@ -350,11 +351,11 @@ class TestAuthHandlerEdgeCases:
 
     def test_basic_auth_returns_headers(self):
         """Test that basic auth returns proper authorization headers."""
-        auth_config = Auth(method=AuthMethod.BASIC)
+        auth_config = AuthConfig(method=AuthMethod.BASIC)
         handler = AuthHandler(
             auth_config=auth_config,
             data_source_id="test-ds-id",
-            env_variables={"CLIENT_ID": "user", "CLIENT_SECRET": "pass"},
+            credentials={"CLIENT_ID": "user", "CLIENT_SECRET": "pass"},
             cache=None,
         )
 
@@ -371,7 +372,7 @@ class TestAuthHandlerEdgeCases:
         handler = AuthHandler(
             auth_config=auth_config,
             data_source_id="test-ds-id",
-            env_variables={"CLIENT_ID": "user", "CLIENT_SECRET": "pass"},
+            credentials={"CLIENT_ID": "user", "CLIENT_SECRET": "pass"},
             cache=None,
         )
 

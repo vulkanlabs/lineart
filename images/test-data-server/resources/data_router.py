@@ -115,7 +115,7 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @auth_router.post("/basic")
-def test_basic_auth(authorization: Annotated[str | None, Header()] = None):
+def basic_auth_test(authorization: Annotated[str | None, Header()] = None):
     """Test endpoint for Basic Authentication"""
     if not authorization:
         raise HTTPException(

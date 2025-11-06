@@ -1,7 +1,7 @@
 from logging import Logger
 
-from fastapi import HTTPException, Response
-from requests import JSONDecodeError
+from requests import JSONDecodeError, Response
+
 from vulkan.exceptions import UNHANDLED_ERROR_NAME, VULKAN_INTERNAL_EXCEPTIONS
 
 
@@ -23,24 +23,6 @@ def raise_interservice_error(logger: Logger, response: Response, message: str) -
         error_msg = f"{message}: {UNHANDLED_ERROR_NAME}"
 
     raise ValueError(error_msg)
-
-
-class ExceptionHandler:
-    def __init__(self, logger: Logger, base_msg: str):
-        self.logger = logger
-        self.base_msg = base_msg
-
-    def raise_exception(
-        self,
-        status_code: int,
-        error: str,
-        msg: str,
-        metadata: dict | None = None,
-    ):
-        msg = f"{self.base_msg}: {msg}"
-        self.logger.error(msg)
-        detail = dict(error=error, msg=msg, metadata=metadata)
-        raise HTTPException(status_code=status_code, detail=detail)
 
 
 class VulkanServerException(Exception):

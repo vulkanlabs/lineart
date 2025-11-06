@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 from sqlalchemy.sql import func
 
 from vulkan.core.run import RunStatus, WorkflowStatus
+from vulkan.credentials import CredentialType
 from vulkan.data_source import DataSourceStatus
 from vulkan.schemas import CachingOptions, DataSourceSpec
 from vulkan.spec.nodes.base import NodeType
@@ -300,7 +301,7 @@ class DataSourceCredential(TimedUpdateMixin, Base):
         Uuid, ForeignKey("data_source.data_source_id", ondelete="CASCADE")
     )
 
-    credential_type = Column(String, nullable=False)
+    credential_type = Column(Enum(CredentialType), nullable=False)
     value = Column(String, nullable=False)
 
     __table_args__ = (
@@ -309,10 +310,6 @@ class DataSourceCredential(TimedUpdateMixin, Base):
             "data_source_id",
             "credential_type",
             unique=True,
-        ),
-        CheckConstraint(
-            sqltext="credential_type IN ('CLIENT_ID', 'CLIENT_SECRET', 'USERNAME', 'PASSWORD')",
-            name="valid_credential_type",
         ),
     )
 
