@@ -15,6 +15,3 @@ dependencies = [
 
 [tool.setuptools]
 packages = ["server"]
-
-[tool.uv.sources]
-vulkanlabs-vulkan = { path = "../vulkan" }

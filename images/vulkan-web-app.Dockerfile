@@ -11,7 +11,6 @@ RUN pip install uv
 
 # Copy local files (always needed for dev builds and vulkan-server which is not on PyPI)
 # Copy root pyproject.toml to provide workspace context for vulkan-server (which is a workspace member)
-COPY pyproject.toml /workspace/pyproject.toml
 COPY vulkan /workspace/vulkan
 COPY vulkan-engine /workspace/vulkan-engine
 COPY vulkan-server /workspace/vulkan-server
