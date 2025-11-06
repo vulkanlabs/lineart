@@ -99,44 +99,72 @@ class HatchetDataInput(DataInputNode, HatchetNode):
         def data_input_task(
             _workflow_input: TWorkflowInput, context: Context
         ) -> Dict[str, Any]:
-            # Get resources from context (would need to be passed in)
+            # Get resources from context
             run_cfg = context.additional_metadata.get(RUN_CONFIG_KEY)
             if not run_cfg:
                 raise RuntimeError("Required resources not available in context")
 
             client: BaseAppClient = create_app_client(**run_cfg)
-
             inputs = self._get_parent_outputs(context)
-            extra = dict(data_source=self.data_source)
 
             try:
                 configured_params = self._get_configured_params(inputs)
-            except ValueError as e:
-                raise e
+                context.log(
+                    f"Fetching data from data source {self.data_source} with "
+                    f"parameters: {configured_params}"
+                )
 
-            try:
                 response: requests.Response = client.fetch_data(
                     data_source=self.data_source,
                     configured_params=configured_params,
                 )
-                extra.update({"status_code": response.status_code})
+
                 response.raise_for_status()
-            except (requests.exceptions.RequestException, HTTPError) as e:
+
+                data = response.json()
+                context.log(f"Data: {data}")
+
+                response_metadata = {
+                    "data_object_id": data.get("data_object_id"),
+                    "request_key": data.get("key"),
+                    "origin": data.get("origin"),
+                }
+                context.log(f"Response metadata: {response_metadata}")
+
+                return TaskOutput(
+                    step_name=self.name,
+                    step_type=self.type.value,
+                    data=data["value"],
+                )
+
+            except ValueError as e:
+                context.log(f"Parameter resolution error: {str(e)}")
                 raise e
 
-            data = response.json()
-            response_metadata = {
-                "data_object_id": data.get("data_object_id"),
-                "request_key": data.get("key"),
-                "origin": data.get("origin"),
-            }
-            # TODO: log this somewhere useful
-            extra.update({"response_metadata": response_metadata})
-            return TaskOutput(
-                step_name=self.name,
-                step_type=self.type.value,
-                data=data["value"],
-            )
+            except requests.exceptions.HTTPError as e:
+                error_detail = "Unknown error"
+                if hasattr(e, "response") and e.response is not None:
+                    response = e.response
+                    try:
+                        error_detail = response.json().get("detail", str(e))
+                    except Exception:
+                        error_detail = (
+                            response.text[:200] if hasattr(response, "text") else str(e)
+                        )
+                    context.log(
+                        f"Failed request with status {response.status_code}: {error_detail}"
+                    )
+                else:
+                    context.log(f"HTTP error: {str(e)}")
+                raise e
+
+            except requests.exceptions.RequestException as e:
+                context.log(f"Failed to retrieve data: {str(e)}")
+                raise e
+
+            except Exception as e:
+                context.log(f"Unexpected error processing data: {str(e)}")
+                raise e
 
         return data_input_task
 
