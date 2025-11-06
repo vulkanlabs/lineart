@@ -26,6 +26,7 @@ class TestMakeRequest:
         }
         req = make_request(config, local_variables=local_vars, env_variables={})
 
+        assert req.headers.get("Content-Type") == "application/json"
         assert req.headers.get("AccessToken") == "mock_access_token"
         assert req.headers.get("TestHeader") == "test_auto_value"
         raw_body = req.body.decode("utf-8")

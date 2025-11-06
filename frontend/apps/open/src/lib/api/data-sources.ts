@@ -4,6 +4,7 @@ import {
     type DataSource,
     type DataSourceSpec,
     type DataSourceEnvVarBase,
+    type DataSourceCredentialBase,
 } from "@vulkanlabs/client-open";
 import { dataSourcesApi, withErrorHandling } from "./client";
 
@@ -108,6 +109,39 @@ export const setDataSourceEnvVars = async (
     );
 };
 
+/**
+ * Set authentication credentials for a data source
+ * @param {string} dataSourceId - Target data source identifier
+ * @param {DataSourceCredentialBase[]} credentials - List of credentials (CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD)
+ * @returns {Promise<any>} Saved credentials
+ */
+export const setDataSourceCredentials = async (
+    dataSourceId: string,
+    credentials: DataSourceCredentialBase[],
+) => {
+    return withErrorHandling(
+        dataSourcesApi.setDataSourceCredentials({
+            dataSourceId,
+            dataSourceCredentialBase: credentials,
+        }),
+        `set credentials for data source ${dataSourceId}`,
+    );
+};
+
+/**
+ * Get authentication credentials for a data source
+ * @param {string} dataSourceId - Target data source identifier
+ * @returns {Promise<any>} List of credentials
+ */
+export const fetchDataSourceCredentials = async (dataSourceId: string) => {
+    return withErrorHandling(
+        dataSourcesApi.getDataSourceCredentials({
+            dataSourceId,
+        }),
+        `get credentials for data source ${dataSourceId}`,
+    );
+};
+
 // Usage and metrics
 /**
  * Get data source usage analytics over time period
@@ -189,8 +223,8 @@ export const fetchDataSourceCacheStats = async (
  * Update an existing data source configuration
  *
  * The backend enforces update restrictions for published data sources.
- * This function simply sends the requested updates and lets the backend
- * decide what changes are allowed based on the data source status.
+ * This function fetches the current data source, merges the updates,
+ * and sends the complete spec to the backend.
  *
  * @param {string} dataSourceId - ID of data source to update
  * @param {Partial<DataSourceSpec>} updates - Partial updates to apply
@@ -203,10 +237,22 @@ export async function updateDataSource(
     projectId?: string,
 ): Promise<DataSource> {
     "use server";
+
+    const currentDataSource = await fetchDataSource(dataSourceId, projectId);
+
+    const completeSpec: DataSourceSpec = {
+        name: updates.name ?? currentDataSource.name,
+        source: updates.source ?? currentDataSource.source,
+        caching: updates.caching ?? currentDataSource.caching,
+        description:
+            updates.description !== undefined ? updates.description : currentDataSource.description,
+        metadata: updates.metadata !== undefined ? updates.metadata : currentDataSource.metadata,
+    };
+
     return withErrorHandling(
         dataSourcesApi.updateDataSource({
             dataSourceId,
-            dataSourceSpec: updates as DataSourceSpec,
+            dataSourceSpec: completeSpec,
         }),
         `update data source ${dataSourceId}`,
     );

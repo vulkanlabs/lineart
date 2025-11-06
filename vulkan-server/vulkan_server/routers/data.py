@@ -9,7 +9,6 @@ import datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from vulkan.schemas import DataSourceSpec
 from vulkan_engine import schemas
 from vulkan_engine.exceptions import (
     DataSourceAlreadyExistsException,
@@ -23,6 +22,7 @@ from vulkan_engine.services import (
     DataSourceTestService,
 )
 
+from vulkan.schemas import DataSourceSpec
 from vulkan_server.dependencies import (
     get_configured_logger,
     get_data_source_analytics_service,
@@ -127,6 +127,45 @@ def get_data_source_env_variables(
     """Get environment variables for a data source."""
     try:
         return service.get_environment_variables(data_source_id)
+    except DataSourceNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.put(
+    "/{data_source_id}/credentials",
+    response_model=list[schemas.DataSourceCredential],
+)
+def set_data_source_credentials(
+    data_source_id: str,
+    credentials: Annotated[list[schemas.DataSourceCredentialBase], Body()],
+    service: DataSourceService = Depends(get_data_source_service),
+):
+    """
+    Set authentication credentials for a data source
+    """
+    try:
+        return service.set_credentials(data_source_id, credentials)
+    except DataSourceNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except InvalidDataSourceException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get(
+    "/{data_source_id}/credentials",
+    response_model=list[schemas.DataSourceCredential],
+)
+def get_data_source_credentials(
+    data_source_id: str,
+    service: DataSourceService = Depends(get_data_source_service),
+):
+    """
+    Get authentication credentials for a data source
+
+    Returns real credential values
+    """
+    try:
+        return service.get_credentials(data_source_id)
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
 

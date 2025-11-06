@@ -21,11 +21,12 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 from sqlalchemy.sql import func
+
 from vulkan.core.run import RunStatus, WorkflowStatus
+from vulkan.credentials import CredentialType
 from vulkan.data_source import DataSourceStatus
 from vulkan.schemas import CachingOptions, DataSourceSpec
 from vulkan.spec.nodes.base import NodeType
-
 from vulkan_engine.config import DatabaseConfig
 from vulkan_engine.schemas import DataObjectOrigin
 
@@ -286,6 +287,29 @@ class DataSourceEnvVar(TimedUpdateMixin, Base):
         CheckConstraint(
             sqltext="value IS NOT NULL OR nullable = TRUE",
             name="value_null_only_if_allowed",
+        ),
+    )
+
+
+class DataSourceCredential(TimedUpdateMixin, Base):
+    __tablename__ = "data_source_credential"
+
+    credential_id = Column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
+    data_source_id = Column(
+        Uuid, ForeignKey("data_source.data_source_id", ondelete="CASCADE")
+    )
+
+    credential_type = Column(Enum(CredentialType), nullable=False)
+    value = Column(String, nullable=False)
+
+    __table_args__ = (
+        Index(
+            "unique_data_source_credential_type",
+            "data_source_id",
+            "credential_type",
+            unique=True,
         ),
     )
 

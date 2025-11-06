@@ -7,10 +7,12 @@ import { revalidatePath } from "next/cache";
 import {
     fetchDataSource,
     fetchDataSourceEnvVars,
+    fetchDataSourceCredentials,
     fetchDataSourceCacheStats,
     fetchDataSourceMetrics,
     fetchDataSourceUsage,
     setDataSourceEnvVars,
+    setDataSourceCredentials,
     updateDataSource,
     testDataSource,
     publishDataSource,
@@ -49,9 +51,12 @@ export default async function Page(props: { params: Promise<{ data_source_id: st
         <DataSourceDetailPage
             config={{
                 dataSource,
+                fetchDataSource,
                 updateDataSource: withRevalidation(updateDataSource),
                 fetchDataSourceEnvVars,
                 setDataSourceEnvVars,
+                fetchDataSourceCredentials,
+                setDataSourceCredentials,
                 fetchUsage: fetchDataSourceUsage,
                 fetchMetrics: fetchDataSourceMetrics,
                 fetchCacheStats: fetchDataSourceCacheStats,

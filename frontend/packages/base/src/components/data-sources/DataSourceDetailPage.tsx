@@ -15,6 +15,7 @@ import { EditableVariablesCard } from "./EditableVariablesCard";
 import { DataSourceUsageAnalytics, UsageAnalyticsConfig } from "./DataSourceUsageAnalytics";
 import { TestDataSourcePanel } from "./TestDataSourcePanel";
 import { EditDataSourcePanel } from "./EditDataSourcePanel";
+import { AuthenticationConfigCard } from "./AuthenticationConfigCard";
 
 interface TestConfig {
     configuredParams: Record<string, string>;
@@ -25,6 +26,7 @@ interface TestConfig {
 
 export interface DataSourceDetailPageConfig {
     dataSource: DataSource;
+    fetchDataSource: (dataSourceId: string, projectId?: string) => Promise<DataSource>;
     updateDataSource: (
         dataSourceId: string,
         updates: Partial<DataSource>,
@@ -39,6 +41,12 @@ export interface DataSourceDetailPageConfig {
         variables: DataSourceEnvVarBase[],
         projectId?: string,
     ) => Promise<void>;
+    fetchDataSourceCredentials: (dataSourceId: string, projectId?: string) => Promise<any[]>;
+    setDataSourceCredentials: (
+        dataSourceId: string,
+        credentials: Array<{ credential_type: string; value: string }>,
+        projectId?: string,
+    ) => Promise<any>;
     fetchUsage: (
         dataSourceId: string,
         from: Date,
@@ -112,7 +120,15 @@ function UsageAnalyticsSection({ dataSourceId, config }: UsageAnalyticsSectionPr
 }
 
 function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
-    const { dataSource, fetchDataSourceEnvVars, setDataSourceEnvVars, publishDataSource } = config;
+    const {
+        dataSource,
+        fetchDataSource,
+        fetchDataSourceEnvVars,
+        setDataSourceEnvVars,
+        fetchDataSourceCredentials,
+        setDataSourceCredentials,
+        publishDataSource,
+    } = config;
 
     const { copiedField, copyToClipboard, getFullDataSourceJson } = useDataSourceUtils();
 
@@ -154,8 +170,19 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
                 <TabsContent value="general" className="space-y-8">
                     <EditDataSourcePanel
                         dataSource={dataSource}
+                        fetchDataSource={fetchDataSource}
                         updateDataSource={config.updateDataSource}
                         projectId={config.projectId}
+                        disabled={isPublished}
+                    />
+
+                    <AuthenticationConfigCard
+                        dataSource={dataSource}
+                        projectId={config.projectId}
+                        fetchDataSource={fetchDataSource}
+                        updateDataSource={config.updateDataSource}
+                        fetchDataSourceCredentials={fetchDataSourceCredentials}
+                        setDataSourceCredentials={setDataSourceCredentials}
                         disabled={isPublished}
                     />
 

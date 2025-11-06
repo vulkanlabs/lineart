@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 interface EditDataSourcePanelProps {
     dataSource: DataSource;
+    fetchDataSource: (dataSourceId: string, projectId?: string) => Promise<DataSource>;
     updateDataSource: (
         dataSourceId: string,
         updates: Partial<DataSource>,
@@ -20,6 +21,7 @@ interface EditDataSourcePanelProps {
 
 export function EditDataSourcePanel({
     dataSource,
+    fetchDataSource,
     updateDataSource,
     projectId,
     disabled = false,
@@ -96,6 +98,9 @@ export function EditDataSourcePanel({
     const handleSave = async () => {
         setIsSaving(true);
         try {
+            // Fetch latest dataSource from server to avoid overwriting other changes
+            const latestDataSource = await fetchDataSource(dataSource.data_source_id, projectId);
+
             let parsedHeaders = {};
             let parsedParams = {};
             let parsedBody = {};
@@ -105,7 +110,10 @@ export function EditDataSourcePanel({
                 try {
                     parsedHeaders = JSON.parse(headers);
                 } catch (e) {
-                    toast.error("Invalid JSON format in headers");
+                    console.error("Failed to parse headers:", e);
+                    toast.error(
+                        `Invalid JSON format in headers: ${e instanceof Error ? e.message : String(e)}`,
+                    );
                     setIsSaving(false);
                     return;
                 }
@@ -116,7 +124,10 @@ export function EditDataSourcePanel({
                 try {
                     parsedParams = JSON.parse(params);
                 } catch (e) {
-                    toast.error("Invalid JSON format in params");
+                    console.error("Failed to parse params:", e);
+                    toast.error(
+                        `Invalid JSON format in params: ${e instanceof Error ? e.message : String(e)}`,
+                    );
                     setIsSaving(false);
                     return;
                 }
@@ -127,7 +138,10 @@ export function EditDataSourcePanel({
                 try {
                     parsedBody = JSON.parse(body);
                 } catch (e) {
-                    toast.error("Invalid JSON format in body");
+                    console.error("Failed to parse body:", e);
+                    toast.error(
+                        `Invalid JSON format in body: ${e instanceof Error ? e.message : String(e)}`,
+                    );
                     setIsSaving(false);
                     return;
                 }
@@ -144,7 +158,7 @@ export function EditDataSourcePanel({
                 retry: {
                     max_retries: maxRetries ? parseInt(maxRetries, 10) : 3,
                     backoff_factor: backoffFactor ? parseFloat(backoffFactor) : 2,
-                    status_forcelist: dataSource.source.retry?.status_forcelist || [],
+                    status_forcelist: latestDataSource.source.retry?.status_forcelist || [],
                 },
             };
 
@@ -152,6 +166,8 @@ export function EditDataSourcePanel({
             if (Object.keys(cleanedParams).length > 0) source.params = cleanedParams;
             if (Object.keys(cleanedBody).length > 0) source.body = cleanedBody;
             if (timeout) source.timeout = parseInt(timeout, 10);
+
+            if (latestDataSource.source.auth) source.auth = latestDataSource.source.auth;
 
             const updates: Partial<DataSource> = {
                 name: dataSource.name,
@@ -271,9 +287,7 @@ export function EditDataSourcePanel({
                             disabled={!isEditing || disabled}
                             rows={6}
                             className={`mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed font-mono resize-none placeholder:!text-foreground ${!isEditing ? "!text-foreground !opacity-100 placeholder:!opacity-70" : "placeholder:!opacity-60 disabled:opacity-50"}`}
-                            placeholder={
-                                '{\n  "Content-Type": "application/json",\n  "Authorization": "Bearer token"\n}'
-                            }
+                            placeholder={'{\n  "Content-Type": "application/json"\n}'}
                         />
                     </div>
 
@@ -300,9 +314,7 @@ export function EditDataSourcePanel({
                         disabled={!isEditing || disabled}
                         rows={8}
                         className={`mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed font-mono resize-none placeholder:!text-foreground ${!isEditing ? "!text-foreground !opacity-100 placeholder:!opacity-70" : "placeholder:!opacity-60 disabled:opacity-50"}`}
-                        placeholder={
-                            '{\n  "tax_id": "{{tax_id}}",\n  "product_id": "123",\n  "Auth": "{{env.secret_key}}"\n}'
-                        }
+                        placeholder={'{\n  "tax_id": "{{tax_id}}",\n  "product_id": "123"\n}'}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                         Use {`"{{variable}}"`} for runtime parameters, {`"{{env.VAR}}"`} for
