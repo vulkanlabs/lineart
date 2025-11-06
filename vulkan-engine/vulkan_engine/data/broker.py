@@ -9,8 +9,8 @@ from logging import Logger
 
 import requests
 from sqlalchemy.orm import Session
-
 from vulkan.connections import ResponseType, make_request
+
 from vulkan_engine import schemas
 from vulkan_engine.db import DataObject, RunDataCache
 
