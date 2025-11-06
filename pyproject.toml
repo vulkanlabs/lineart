@@ -37,4 +37,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = [
+    "vulkan-server/tests",
+    "vulkan-engine/tests",
+    "vulkan/vulkan/test",
+    "vulkan/vulkan/spec/test",
+    "vulkan/vulkan/spec/nodes/test",
+    "vulkan/vulkan/runners/dagster/test",
+    "vulkan/vulkan/runners/beam/test",
+    "vulkan/vulkan/runners/hatchet/test",
+    "integration",
+]

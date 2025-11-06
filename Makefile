@@ -2,11 +2,24 @@
 # Testing
 .PHONY: test
 test:
-	uv run pytest -sv --tb=short --disable-warnings -m "not integration"
+	PYTHONPATH=vulkan-server:vulkan-engine:vulkan:$$PYTHONPATH uv run pytest \
+		--import-mode=importlib \
+		vulkan-server/tests \
+		vulkan-engine/tests \
+		vulkan/vulkan/test \
+		vulkan/vulkan/spec/test \
+		vulkan/vulkan/spec/nodes/test \
+		vulkan/vulkan/runners/dagster/test \
+		vulkan/vulkan/runners/beam/test \
+		vulkan/vulkan/runners/hatchet/test \
+		-sv --tb=short --disable-warnings -m "not integration"
 
 .PHONY: test-integration
 test-integration:
-	uv run pytest -sv --tb=short --disable-warnings -m "integration"
+	PYTHONPATH=vulkan-server:vulkan-engine:vulkan:$$PYTHONPATH uv run pytest \
+		--import-mode=importlib \
+		integration \
+		-sv --tb=short --disable-warnings -m "integration"
 
 # Development & Deployment
 .PHONY: lint

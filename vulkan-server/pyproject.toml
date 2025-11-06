@@ -19,3 +19,6 @@ vulkanlabs-vulkan-engine = { workspace = true }
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
