@@ -133,9 +133,7 @@ export const setDataSourceCredentials = async (
  * @param {string} dataSourceId - Target data source identifier
  * @returns {Promise<any>} List of credentials
  */
-export const fetchDataSourceCredentials = async (
-    dataSourceId: string,
-) => {
+export const fetchDataSourceCredentials = async (dataSourceId: string) => {
     return withErrorHandling(
         dataSourcesApi.getDataSourceCredentials({
             dataSourceId,
@@ -246,7 +244,8 @@ export async function updateDataSource(
         name: updates.name ?? currentDataSource.name,
         source: updates.source ?? currentDataSource.source,
         caching: updates.caching ?? currentDataSource.caching,
-        description: updates.description !== undefined ? updates.description : currentDataSource.description,
+        description:
+            updates.description !== undefined ? updates.description : currentDataSource.description,
         metadata: updates.metadata !== undefined ? updates.metadata : currentDataSource.metadata,
     };
 

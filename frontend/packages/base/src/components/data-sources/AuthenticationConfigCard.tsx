@@ -4,7 +4,19 @@ import { useState, useEffect } from "react";
 import { Save, X, Shield, Edit2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { DataSource } from "@vulkanlabs/client-open";
-import { Button, Input, Label, Separator, RadioGroup, RadioGroupItem, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui";
+import {
+    Button,
+    Input,
+    Label,
+    Separator,
+    RadioGroup,
+    RadioGroupItem,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../ui";
 
 type AuthMethod = "none" | "basic" | "bearer";
 type GrantType = "client_credentials" | "password" | "implicit";
@@ -12,19 +24,13 @@ type GrantType = "client_credentials" | "password" | "implicit";
 interface AuthenticationConfigCardProps {
     dataSource: DataSource;
     projectId?: string;
-    fetchDataSource: (
-        dataSourceId: string,
-        projectId?: string,
-    ) => Promise<DataSource>;
+    fetchDataSource: (dataSourceId: string, projectId?: string) => Promise<DataSource>;
     updateDataSource: (
         dataSourceId: string,
         updates: Partial<DataSource>,
         projectId?: string,
     ) => Promise<DataSource>;
-    fetchDataSourceCredentials: (
-        dataSourceId: string,
-        projectId?: string,
-    ) => Promise<any[]>;
+    fetchDataSourceCredentials: (dataSourceId: string, projectId?: string) => Promise<any[]>;
     setDataSourceCredentials: (
         dataSourceId: string,
         credentials: Array<{ credential_type: string; value: string }>,
@@ -65,7 +71,7 @@ export function AuthenticationConfigCard({
     const [hasSecret, setHasSecret] = useState(false);
     const [tokenUrl, setTokenUrl] = useState(sourceWithAuth.auth?.token_url || "");
     const [grantType, setGrantType] = useState<GrantType>(
-        (sourceWithAuth.auth?.grant_type as GrantType) || "client_credentials"
+        (sourceWithAuth.auth?.grant_type as GrantType) || "client_credentials",
     );
     const [scope, setScope] = useState(sourceWithAuth.auth?.scope || "");
     const [username, setUsername] = useState("");
@@ -81,9 +87,14 @@ export function AuthenticationConfigCard({
     useEffect(() => {
         const loadCredentials = async () => {
             try {
-                const credentials = await fetchDataSourceCredentials(dataSource.data_source_id, projectId);
+                const credentials = await fetchDataSourceCredentials(
+                    dataSource.data_source_id,
+                    projectId,
+                );
                 const clientIdCred = credentials.find((c) => c.credential_type === "CLIENT_ID");
-                const clientSecretCred = credentials.find((c) => c.credential_type === "CLIENT_SECRET");
+                const clientSecretCred = credentials.find(
+                    (c) => c.credential_type === "CLIENT_SECRET",
+                );
                 const usernameCred = credentials.find((c) => c.credential_type === "USERNAME");
                 const passwordCred = credentials.find((c) => c.credential_type === "PASSWORD");
 
@@ -101,8 +112,7 @@ export function AuthenticationConfigCard({
                     setHasSecret(false);
                 }
 
-                if (usernameCred)
-                    setUsername(String(usernameCred.value || ""));
+                if (usernameCred) setUsername(String(usernameCred.value || ""));
 
                 if (passwordCred) {
                     setPassword("");
@@ -144,7 +154,9 @@ export function AuthenticationConfigCard({
                 const needsPassword = !password || (!password.trim() && !hasPassword);
 
                 if (needsUsername || needsPassword) {
-                    setPasswordGrantError("Username and Password are required for Password grant type");
+                    setPasswordGrantError(
+                        "Username and Password are required for Password grant type",
+                    );
                     return;
                 }
             }
@@ -153,8 +165,10 @@ export function AuthenticationConfigCard({
         // Validate credentials if auth is enabled and we're editing credentials
         if (authMethod !== "none" && (isEditingCredentials || !hasClientId)) {
             // For credential editing mode, use inputs; otherwise use stored values
-            const finalClientId = isEditingCredentials ? clientIdInput : (clientIdInput || clientId);
-            const finalSecret = isEditingCredentials ? clientSecretInput : (clientSecretInput || clientSecret);
+            const finalClientId = isEditingCredentials ? clientIdInput : clientIdInput || clientId;
+            const finalSecret = isEditingCredentials
+                ? clientSecretInput
+                : clientSecretInput || clientSecret;
 
             if (!finalClientId || !finalClientId.trim() || !finalSecret || !finalSecret.trim()) {
                 setCredentialsError("Both Client ID and Client Secret are required");
@@ -194,7 +208,7 @@ export function AuthenticationConfigCard({
                     source: sourceUpdates,
                     caching: latestDataSource.caching,
                 },
-                projectId
+                projectId,
             );
 
             // Update credentials if auth is configured and credentials were edited
@@ -224,7 +238,7 @@ export function AuthenticationConfigCard({
                     await setDataSourceCredentials(
                         dataSource.data_source_id,
                         credentials,
-                        projectId
+                        projectId,
                     );
                 }
             }
@@ -311,20 +325,41 @@ export function AuthenticationConfigCard({
                         className="space-y-2"
                     >
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="none" id="auth-none" disabled={!isEditing || disabled} />
-                            <Label htmlFor="auth-none" className="text-sm font-normal cursor-pointer">
+                            <RadioGroupItem
+                                value="none"
+                                id="auth-none"
+                                disabled={!isEditing || disabled}
+                            />
+                            <Label
+                                htmlFor="auth-none"
+                                className="text-sm font-normal cursor-pointer"
+                            >
                                 None
                             </Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="basic" id="auth-basic" disabled={!isEditing || disabled} />
-                            <Label htmlFor="auth-basic" className="text-sm font-normal cursor-pointer">
+                            <RadioGroupItem
+                                value="basic"
+                                id="auth-basic"
+                                disabled={!isEditing || disabled}
+                            />
+                            <Label
+                                htmlFor="auth-basic"
+                                className="text-sm font-normal cursor-pointer"
+                            >
                                 Basic Authentication
                             </Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="bearer" id="auth-bearer" disabled={!isEditing || disabled} />
-                            <Label htmlFor="auth-bearer" className="text-sm font-normal cursor-pointer">
+                            <RadioGroupItem
+                                value="bearer"
+                                id="auth-bearer"
+                                disabled={!isEditing || disabled}
+                            />
+                            <Label
+                                htmlFor="auth-bearer"
+                                className="text-sm font-normal cursor-pointer"
+                            >
                                 Bearer Token / OAuth
                             </Label>
                         </div>
@@ -338,17 +373,19 @@ export function AuthenticationConfigCard({
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <h4 className="text-sm font-medium">Credentials</h4>
-                                {isEditing && !isEditingCredentials && (hasClientId || hasSecret) && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={handleEditCredentials}
-                                        disabled={disabled}
-                                    >
-                                        <Edit2 className="h-3 w-3 mr-1" />
-                                        Edit Credentials
-                                    </Button>
-                                )}
+                                {isEditing &&
+                                    !isEditingCredentials &&
+                                    (hasClientId || hasSecret) && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleEditCredentials}
+                                            disabled={disabled}
+                                        >
+                                            <Edit2 className="h-3 w-3 mr-1" />
+                                            Edit Credentials
+                                        </Button>
+                                    )}
                                 {isEditingCredentials && (
                                     <Button
                                         variant="ghost"
@@ -373,7 +410,7 @@ export function AuthenticationConfigCard({
                                 </Label>
                                 <Input
                                     id="client-id"
-                                    value={isEditingCredentials ? clientIdInput : (clientId || "")}
+                                    value={isEditingCredentials ? clientIdInput : clientId || ""}
                                     onChange={(e) => {
                                         setClientIdInput(e.target.value);
                                         if (credentialsError) setCredentialsError("");
@@ -390,13 +427,21 @@ export function AuthenticationConfigCard({
                                 <Input
                                     id="client-secret"
                                     type="password"
-                                    value={isEditingCredentials ? clientSecretInput : (hasSecret ? "••••••••" : "")}
+                                    value={
+                                        isEditingCredentials
+                                            ? clientSecretInput
+                                            : hasSecret
+                                              ? "••••••••"
+                                              : ""
+                                    }
                                     onChange={(e) => {
                                         setClientSecretInput(e.target.value);
                                         if (credentialsError) setCredentialsError("");
                                     }}
                                     disabled={!isEditing || !isEditingCredentials || disabled}
-                                    placeholder={isEditingCredentials ? "Enter new client secret" : ""}
+                                    placeholder={
+                                        isEditingCredentials ? "Enter new client secret" : ""
+                                    }
                                 />
                                 <p className="text-xs text-muted-foreground">
                                     Secret is encrypted and never exposed in API responses.
@@ -446,7 +491,9 @@ export function AuthenticationConfigCard({
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="client_credentials">Client Credentials</SelectItem>
+                                        <SelectItem value="client_credentials">
+                                            Client Credentials
+                                        </SelectItem>
                                         <SelectItem value="password">Password</SelectItem>
                                         <SelectItem value="implicit">Implicit</SelectItem>
                                     </SelectContent>
@@ -469,7 +516,9 @@ export function AuthenticationConfigCard({
                             {grantType === "password" && (
                                 <>
                                     <Separator className="my-4" />
-                                    <h5 className="text-sm font-medium">Password Grant Credentials</h5>
+                                    <h5 className="text-sm font-medium">
+                                        Password Grant Credentials
+                                    </h5>
 
                                     {passwordGrantError && (
                                         <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
@@ -507,7 +556,9 @@ export function AuthenticationConfigCard({
                                                 if (passwordGrantError) setPasswordGrantError("");
                                             }}
                                             disabled={!isEditing || disabled}
-                                            placeholder={hasPassword ? "••••••••" : "Enter password"}
+                                            placeholder={
+                                                hasPassword ? "••••••••" : "Enter password"
+                                            }
                                             className={passwordGrantError ? "border-red-500" : ""}
                                         />
                                         <p className="text-xs text-muted-foreground">

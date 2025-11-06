@@ -9,10 +9,7 @@ import { toast } from "sonner";
 
 interface EditDataSourcePanelProps {
     dataSource: DataSource;
-    fetchDataSource: (
-        dataSourceId: string,
-        projectId?: string,
-    ) => Promise<DataSource>;
+    fetchDataSource: (dataSourceId: string, projectId?: string) => Promise<DataSource>;
     updateDataSource: (
         dataSourceId: string,
         updates: Partial<DataSource>,
@@ -113,8 +110,10 @@ export function EditDataSourcePanel({
                 try {
                     parsedHeaders = JSON.parse(headers);
                 } catch (e) {
-                    console.error('Failed to parse headers:', e);
-                    toast.error(`Invalid JSON format in headers: ${e instanceof Error ? e.message : String(e)}`);
+                    console.error("Failed to parse headers:", e);
+                    toast.error(
+                        `Invalid JSON format in headers: ${e instanceof Error ? e.message : String(e)}`,
+                    );
                     setIsSaving(false);
                     return;
                 }
@@ -125,8 +124,10 @@ export function EditDataSourcePanel({
                 try {
                     parsedParams = JSON.parse(params);
                 } catch (e) {
-                    console.error('Failed to parse params:', e);
-                    toast.error(`Invalid JSON format in params: ${e instanceof Error ? e.message : String(e)}`);
+                    console.error("Failed to parse params:", e);
+                    toast.error(
+                        `Invalid JSON format in params: ${e instanceof Error ? e.message : String(e)}`,
+                    );
                     setIsSaving(false);
                     return;
                 }
@@ -137,8 +138,10 @@ export function EditDataSourcePanel({
                 try {
                     parsedBody = JSON.parse(body);
                 } catch (e) {
-                    console.error('Failed to parse body:', e);
-                    toast.error(`Invalid JSON format in body: ${e instanceof Error ? e.message : String(e)}`);
+                    console.error("Failed to parse body:", e);
+                    toast.error(
+                        `Invalid JSON format in body: ${e instanceof Error ? e.message : String(e)}`,
+                    );
                     setIsSaving(false);
                     return;
                 }
@@ -284,9 +287,7 @@ export function EditDataSourcePanel({
                             disabled={!isEditing || disabled}
                             rows={6}
                             className={`mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed font-mono resize-none placeholder:!text-foreground ${!isEditing ? "!text-foreground !opacity-100 placeholder:!opacity-70" : "placeholder:!opacity-60 disabled:opacity-50"}`}
-                            placeholder={
-                                '{\n  "Content-Type": "application/json"\n}'
-                            }
+                            placeholder={'{\n  "Content-Type": "application/json"\n}'}
                         />
                     </div>
 
@@ -313,9 +314,7 @@ export function EditDataSourcePanel({
                         disabled={!isEditing || disabled}
                         rows={8}
                         className={`mt-1.5 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed font-mono resize-none placeholder:!text-foreground ${!isEditing ? "!text-foreground !opacity-100 placeholder:!opacity-70" : "placeholder:!opacity-60 disabled:opacity-50"}`}
-                        placeholder={
-                            '{\n  "tax_id": "{{tax_id}}",\n  "product_id": "123"\n}'
-                        }
+                        placeholder={'{\n  "tax_id": "{{tax_id}}",\n  "product_id": "123"\n}'}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                         Use {`"{{variable}}"`} for runtime parameters, {`"{{env.VAR}}"`} for

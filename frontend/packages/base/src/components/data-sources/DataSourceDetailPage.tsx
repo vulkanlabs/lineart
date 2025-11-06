@@ -26,10 +26,7 @@ interface TestConfig {
 
 export interface DataSourceDetailPageConfig {
     dataSource: DataSource;
-    fetchDataSource: (
-        dataSourceId: string,
-        projectId?: string,
-    ) => Promise<DataSource>;
+    fetchDataSource: (dataSourceId: string, projectId?: string) => Promise<DataSource>;
     updateDataSource: (
         dataSourceId: string,
         updates: Partial<DataSource>,
@@ -44,10 +41,7 @@ export interface DataSourceDetailPageConfig {
         variables: DataSourceEnvVarBase[],
         projectId?: string,
     ) => Promise<void>;
-    fetchDataSourceCredentials: (
-        dataSourceId: string,
-        projectId?: string,
-    ) => Promise<any[]>;
+    fetchDataSourceCredentials: (dataSourceId: string, projectId?: string) => Promise<any[]>;
     setDataSourceCredentials: (
         dataSourceId: string,
         credentials: Array<{ credential_type: string; value: string }>,
@@ -133,7 +127,7 @@ function DataSourceDetails({ config }: { config: DataSourceDetailPageConfig }) {
         setDataSourceEnvVars,
         fetchDataSourceCredentials,
         setDataSourceCredentials,
-        publishDataSource
+        publishDataSource,
     } = config;
 
     const { copiedField, copyToClipboard, getFullDataSourceJson } = useDataSourceUtils();
