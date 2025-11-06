@@ -116,7 +116,7 @@ jobs:
             while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
               echo "Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES: Checking for $PACKAGE==$VERSION..."
 
-              if pip index versions "$PACKAGE" 2>/dev/null | grep -q "$VERSION"; then
+              if pip index versions --pre "$PACKAGE" 2>/dev/null | grep -q "$VERSION"; then
                 echo "✓ Package $PACKAGE==$VERSION is available!"
                 return 0
               fi
