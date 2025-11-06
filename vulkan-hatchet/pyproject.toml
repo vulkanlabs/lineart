@@ -7,8 +7,11 @@ requires-python = ">=3.10"
 dependencies = [
     "fastapi[standard]>=0.112.0",
     "tomlkit>=0.13.2",
-    "vulkan[hatchet]",
+    "vulkanlabs-vulkan[hatchet]",
 ]
 
 [tool.setuptools]
 packages = ["server"]
+
+[tool.uv.sources]
+vulkanlabs-vulkan = { path = "../vulkan" }

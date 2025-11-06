@@ -2,18 +2,41 @@
 ARG PYTHON_VERSION="3.12"
 FROM python:${PYTHON_VERSION} AS python-package
 
+# Build arguments for PyPI package installation
+ARG USE_PYPI=false
+ARG VULKAN_VERSION
+ARG VULKAN_ENGINE_VERSION
+
 RUN pip install uv
-WORKDIR /app
-COPY vulkan vulkan
-COPY vulkan-engine vulkan-engine/
-COPY vulkan-server vulkan-server/
-COPY scripts scripts
-RUN uv pip install --system --no-cache vulkan/ vulkan-engine/ vulkan-server/
-RUN uv run python scripts/export-openapi.py --out generated/openapi.json
+
+# Copy local files (always needed for dev builds and vulkan-server which is not on PyPI)
+# Copy root pyproject.toml to provide workspace context for vulkan-server (which is a workspace member)
+COPY pyproject.toml /workspace/pyproject.toml
+COPY vulkan /workspace/vulkan
+COPY vulkan-engine /workspace/vulkan-engine
+COPY vulkan-server /workspace/vulkan-server
+COPY scripts /workspace/scripts
+
+# Conditional installation: Use PyPI packages for production builds, local copy for development
+WORKDIR /workspace
+RUN if [ "$USE_PYPI" = "true" ]; then \
+      echo "Installing vulkanlabs-vulkan and vulkanlabs-vulkan-engine from PyPI (production build)..."; \
+      uv pip install --system --no-cache \
+        "vulkanlabs-vulkan==${VULKAN_VERSION}" \
+        "vulkanlabs-vulkan-engine==${VULKAN_ENGINE_VERSION}" && \
+      rm -rf /workspace/vulkan /workspace/vulkan-engine && \
+      echo "Installing vulkan-server from local copy..."; \
+      uv pip install --system --no-cache /workspace/vulkan-server; \
+    else \
+      echo "Using local packages (development build)..."; \
+      uv pip install --system --no-cache /workspace/vulkan /workspace/vulkan-engine /workspace/vulkan-server; \
+    fi
+
+RUN uv run python /workspace/scripts/export-openapi.py --out /workspace/generated/openapi.json
 
 # OpenAPI Generator CLI: Generate TypeScript client code from OpenAPI spec
 FROM openapitools/openapi-generator-cli:latest AS openapi
-COPY --from=python-package /app/generated/openapi.json /app/openapi.json
+COPY --from=python-package /workspace/generated/openapi.json /app/openapi.json
 RUN docker-entrypoint.sh generate -g typescript-fetch -i /app/openapi.json -o /app/frontend/packages/client-open/src --additional-properties="modelPropertyNaming=original"
 
 # Node.js image: Build the Next.js application

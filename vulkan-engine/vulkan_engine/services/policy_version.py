@@ -10,9 +10,9 @@ from datetime import date
 from sqlalchemy import func as F
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
 from vulkan.data_source import DataSourceStatus
 from vulkan.spec.nodes.base import NodeType
-
 from vulkan_engine import schemas
 from vulkan_engine.db import (
     ConfigurationValue,
@@ -543,12 +543,28 @@ class PolicyVersionService(BaseService):
                 f"The following data sources are not defined: {list(missing)}"
             )
 
+        # Get existing dependencies for this workflow
+        existing_deps = (
+            self.db.query(WorkflowDataDependency)
+            .filter_by(workflow_id=version.workflow_id)
+            .all()
+        )
+        existing_ds_ids = {dep.data_source_id for dep in existing_deps}
+        desired_ds_ids = {ds.data_source_id for ds in matched}
+
+        # Remove dependencies that are no longer needed
+        for dep in existing_deps:
+            if dep.data_source_id not in desired_ds_ids:
+                self.db.delete(dep)
+
+        # Add new dependencies that don't already exist
         for ds in matched:
-            dependency = WorkflowDataDependency(
-                data_source_id=ds.data_source_id,
-                workflow_id=version.workflow_id,
-            )
-            self.db.add(dependency)
+            if ds.data_source_id not in existing_ds_ids:
+                dependency = WorkflowDataDependency(
+                    data_source_id=ds.data_source_id,
+                    workflow_id=version.workflow_id,
+                )
+                self.db.add(dependency)
 
         return {str(ds.name): ds for ds in matched}
 
