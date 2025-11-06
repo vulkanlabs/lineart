@@ -18,11 +18,11 @@ from vulkan.connections import (
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.exceptions import UserCodeException
-from vulkan.node_config import resolve_template, resolve_value
+from vulkan.node_config import resolve_value
 from vulkan.runners.shared.app_client import BaseAppClient, create_app_client
 from vulkan.runners.shared.constants import POLICY_CONFIG_KEY, RUN_CONFIG_KEY
 from vulkan.runners.shared.decision_fn import evaluate_condition
-from vulkan.runners.shared.run_config import VulkanRunConfig
+from vulkan.runners.shared.run_config import VulkanPolicyConfig, VulkanRunConfig
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import (
     BranchNode,
@@ -465,7 +465,8 @@ class HatchetConnection(ConnectionNode, HatchetNode):
         def connection_task(
             workflow_input: TWorkflowInput, context: Context
         ) -> TaskOutput:
-            env = context.additional_metadata.get(POLICY_CONFIG_KEY)
+            env_cfg = context.additional_metadata.get(POLICY_CONFIG_KEY)
+            env = VulkanPolicyConfig(**env_cfg)
             inputs = self._get_parent_outputs(context)
 
             try:
@@ -622,7 +623,8 @@ def _with_vulkan_context(func: Callable) -> Callable:
 
     def fn(context: Context, **kwargs):
         if func.__code__.co_varnames[0] == "context":
-            env = context.additional_metadata.get(POLICY_CONFIG_KEY)
+            env_cfg = context.additional_metadata.get(POLICY_CONFIG_KEY)
+            env = VulkanPolicyConfig(**env_cfg)
             ctx = VulkanExecutionContext(
                 logger=context.logger if hasattr(context, "logger") else None,
                 env=env.variables if env else {},
