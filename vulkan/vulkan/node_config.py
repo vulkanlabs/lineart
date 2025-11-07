@@ -365,6 +365,50 @@ def resolve_template(
         return rendered
 
 
+def resolve_value(
+    value: Any,
+    jinja_context: dict[str, Any],
+    env_variables: dict[str, Any],
+) -> Any:
+    """
+    Recursively resolve values that may contain templates.
+
+    Handles strings (templates), dictionaries, and lists by recursively
+    resolving any template expressions found within them.
+
+    Args:
+        value: The value to resolve (str, dict, list, or other)
+        jinja_context: Dictionary of local/runtime variables
+        env_variables: Dictionary of environment variables
+
+    Returns:
+        The resolved value with templates replaced
+
+    Examples:
+        >>> resolve_value("{{x}}", {"x": 5}, {})
+        5
+        >>> resolve_value({"a": "{{x}}"}, {"x": 5}, {})
+        {"a": 5}
+        >>> resolve_value(["{{x}}", "{{y}}"], {"x": 5, "y": 10}, {})
+        [5, 10]
+    """
+    if isinstance(value, str):
+        try:
+            # Use Jinja2-based template resolution with environment variables
+            return resolve_template(value, jinja_context, env_variables)
+        except Exception:
+            # If template resolution fails, return original value
+            return value
+    elif isinstance(value, dict):
+        return {
+            k: resolve_value(v, jinja_context, env_variables) for k, v in value.items()
+        }
+    elif isinstance(value, list):
+        return [resolve_value(item, jinja_context, env_variables) for item in value]
+    else:
+        return value
+
+
 def normalize_to_template(value: _ParameterType) -> str:
     """
     Normalize both object-based and template-based configurations to template format.
@@ -398,21 +442,3 @@ def normalize_mapping(spec: ConfigurableDict) -> dict[str, str]:
         return {}
 
     return {key: normalize_to_template(value) for key, value in spec.items()}
-
-
-def resolve_value(value, jinja_context, env_variables):
-    """Recursively resolve templates in strings, dicts, and lists."""
-    if isinstance(value, str):
-        try:
-            # Use Jinja2-based template resolution with environment variables
-            return resolve_template(value, jinja_context, env_variables)
-        except Exception:
-            return value
-    elif isinstance(value, dict):
-        return {
-            k: resolve_value(v, jinja_context, env_variables) for k, v in value.items()
-        }
-    elif isinstance(value, list):
-        return [resolve_value(item, jinja_context, env_variables) for item in value]
-    else:
-        return value

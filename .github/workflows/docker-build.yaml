@@ -66,12 +66,21 @@ jobs:
               VULKAN_PORT=3001
           - name: dagster-db
             dockerfile: ./images/dagster-db/Dockerfile
-            context: . 
-            build_args: | 
+            context: .
+            build_args: |
               POSTGRES_VERSION=${{ inputs.postgres_version }}
+          - name: hatchet
+            dockerfile: ./images/hatchet.Dockerfile
+            context: .
+            build_args: |
+              PYTHON_VERSION=${{ inputs.python_version }}
+              VULKAN_HOME=/opt/vulkan
+              VULKAN_SERVER_PATH=/opt/server
+              VULKAN_SCRIPTS_PATH=/opt/scripts
+              VULKAN_PORT=3000
           - name: vulkan-web-app
             dockerfile: ./images/vulkan-web-app.Dockerfile
-            context: . 
+            context: .
             build_args: |
               PYTHON_VERSION=${{ inputs.python_version }}
               NEXT_PUBLIC_VULKAN_SERVER_URL=http://app:6001

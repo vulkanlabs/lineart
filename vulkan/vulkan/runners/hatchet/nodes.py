@@ -18,11 +18,11 @@ from vulkan.connections import (
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.exceptions import UserCodeException
-from vulkan.node_config import resolve_template, resolve_value
+from vulkan.node_config import resolve_value
 from vulkan.runners.shared.app_client import BaseAppClient, create_app_client
 from vulkan.runners.shared.constants import POLICY_CONFIG_KEY, RUN_CONFIG_KEY
 from vulkan.runners.shared.decision_fn import evaluate_condition
-from vulkan.runners.shared.run_config import VulkanRunConfig
+from vulkan.runners.shared.run_config import VulkanPolicyConfig, VulkanRunConfig
 from vulkan.spec.dependency import Dependency
 from vulkan.spec.nodes import (
     BranchNode,
@@ -99,44 +99,72 @@ class HatchetDataInput(DataInputNode, HatchetNode):
         def data_input_task(
             _workflow_input: TWorkflowInput, context: Context
         ) -> Dict[str, Any]:
-            # Get resources from context (would need to be passed in)
+            # Get resources from context
             run_cfg = context.additional_metadata.get(RUN_CONFIG_KEY)
             if not run_cfg:
                 raise RuntimeError("Required resources not available in context")
 
             client: BaseAppClient = create_app_client(**run_cfg)
-
             inputs = self._get_parent_outputs(context)
-            extra = dict(data_source=self.data_source)
 
             try:
                 configured_params = self._get_configured_params(inputs)
-            except ValueError as e:
-                raise e
+                context.log(
+                    f"Fetching data from data source {self.data_source} with "
+                    f"parameters: {configured_params}"
+                )
 
-            try:
                 response: requests.Response = client.fetch_data(
                     data_source=self.data_source,
                     configured_params=configured_params,
                 )
-                extra.update({"status_code": response.status_code})
+
                 response.raise_for_status()
-            except (requests.exceptions.RequestException, HTTPError) as e:
+
+                data = response.json()
+                context.log(f"Data: {data}")
+
+                response_metadata = {
+                    "data_object_id": data.get("data_object_id"),
+                    "request_key": data.get("key"),
+                    "origin": data.get("origin"),
+                }
+                context.log(f"Response metadata: {response_metadata}")
+
+                return TaskOutput(
+                    step_name=self.name,
+                    step_type=self.type.value,
+                    data=data["value"],
+                )
+
+            except ValueError as e:
+                context.log(f"Parameter resolution error: {str(e)}")
                 raise e
 
-            data = response.json()
-            response_metadata = {
-                "data_object_id": data.get("data_object_id"),
-                "request_key": data.get("key"),
-                "origin": data.get("origin"),
-            }
-            # TODO: log this somewhere useful
-            extra.update({"response_metadata": response_metadata})
-            return TaskOutput(
-                step_name=self.name,
-                step_type=self.type.value,
-                data=data["value"],
-            )
+            except requests.exceptions.HTTPError as e:
+                error_detail = "Unknown error"
+                if hasattr(e, "response") and e.response is not None:
+                    response = e.response
+                    try:
+                        error_detail = response.json().get("detail", str(e))
+                    except Exception:
+                        error_detail = (
+                            response.text[:200] if hasattr(response, "text") else str(e)
+                        )
+                    context.log(
+                        f"Failed request with status {response.status_code}: {error_detail}"
+                    )
+                else:
+                    context.log(f"HTTP error: {str(e)}")
+                raise e
+
+            except requests.exceptions.RequestException as e:
+                context.log(f"Failed to retrieve data: {str(e)}")
+                raise e
+
+            except Exception as e:
+                context.log(f"Unexpected error processing data: {str(e)}")
+                raise e
 
         return data_input_task
 
@@ -148,7 +176,7 @@ class HatchetDataInput(DataInputNode, HatchetNode):
         configured_params = {}
         for k, v in self.parameters.items():
             try:
-                configured_params[k] = resolve_template(v, inputs, env_variables={})
+                configured_params[k] = resolve_value(v, inputs, env_variables={})
             except Exception:
                 raise ValueError(f"Invalid parameter configuration: {v}")
         return configured_params
@@ -302,23 +330,13 @@ class HatchetTerminate(TerminateNode, HatchetNode):
         self, template_metadata: dict, inputs: dict, context: Context
     ) -> dict:
         """Resolve JSON metadata templates."""
+        try:
+            env_config = context.additional_metadata.get(POLICY_CONFIG_KEY)
+            env_variables = env_config.variables if env_config else {}
+        except Exception:
+            env_variables = {}
 
-        def resolve_value(value):
-            if isinstance(value, str):
-                try:
-                    env_config = context.additional_metadata.get(POLICY_CONFIG_KEY)
-                    env_variables = env_config.variables if env_config else {}
-                    return resolve_template(value, inputs, env_variables)
-                except Exception:
-                    return value
-            elif isinstance(value, dict):
-                return {k: resolve_value(v) for k, v in value.items()}
-            elif isinstance(value, list):
-                return [resolve_value(item) for item in value]
-            else:
-                return value
-
-        return resolve_value(template_metadata)
+        return resolve_value(template_metadata, inputs, env_variables)
 
     def _terminate(
         self, context: Context, result: str, metadata: Dict[str, Any] | None = None
@@ -475,9 +493,8 @@ class HatchetConnection(ConnectionNode, HatchetNode):
         def connection_task(
             _workflow_input: TWorkflowInput, context: Context
         ) -> TaskOutput:
-            # workflow_input is required by Hatchet API but unused here;
-            # this node gets inputs from parent nodes via context
-            env = context.additional_metadata.get(POLICY_CONFIG_KEY)
+            env_cfg = context.additional_metadata.get(POLICY_CONFIG_KEY)
+            env = VulkanPolicyConfig(**env_cfg)
             inputs = self._get_parent_outputs(context)
 
             try:
@@ -629,7 +646,8 @@ def _with_vulkan_context(func: Callable) -> Callable:
 
     def fn(context: Context, **kwargs):
         if func.__code__.co_varnames[0] == "context":
-            env = context.additional_metadata.get(POLICY_CONFIG_KEY)
+            env_cfg = context.additional_metadata.get(POLICY_CONFIG_KEY)
+            env = VulkanPolicyConfig(**env_cfg)
             ctx = VulkanExecutionContext(
                 logger=context.logger if hasattr(context, "logger") else None,
                 env=env.variables if env else {},
