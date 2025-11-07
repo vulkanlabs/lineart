@@ -190,38 +190,45 @@ export function AuthenticationConfigCard({
         setIsSaving(true);
         setShowConfirmDialog(false);
         try {
-            // Fetch latest dataSource from server to avoid overwriting other changes
-            const latestDataSource = await fetchDataSource(dataSource.data_source_id, projectId);
+            // For published data sources editing only credentials, skip updateDataSource
+            // and only update credentials via the dedicated credentials endpoint
+            if (!(isPublished && isEditingCredentials)) {
+                // Fetch latest dataSource from server to avoid overwriting other changes
+                const latestDataSource = await fetchDataSource(
+                    dataSource.data_source_id,
+                    projectId,
+                );
 
-            // Build updated source with auth configuration from latest state
-            const sourceUpdates: any = {
-                ...latestDataSource.source,
-            };
+                // Build updated source with auth configuration from latest state
+                const sourceUpdates: any = {
+                    ...latestDataSource.source,
+                };
 
-            if (authMethod === "none") {
-                delete sourceUpdates.auth;
-            } else if (authMethod === "basic") {
-                sourceUpdates.auth = {
-                    method: "basic",
-                };
-            } else if (authMethod === "bearer") {
-                sourceUpdates.auth = {
-                    method: "bearer",
-                    token_url: tokenUrl,
-                    grant_type: grantType,
-                    scope: scope || undefined,
-                };
+                if (authMethod === "none") {
+                    delete sourceUpdates.auth;
+                } else if (authMethod === "basic") {
+                    sourceUpdates.auth = {
+                        method: "basic",
+                    };
+                } else if (authMethod === "bearer") {
+                    sourceUpdates.auth = {
+                        method: "bearer",
+                        token_url: tokenUrl,
+                        grant_type: grantType,
+                        scope: scope || undefined,
+                    };
+                }
+
+                await updateDataSource(
+                    dataSource.data_source_id,
+                    {
+                        name: latestDataSource.name,
+                        source: sourceUpdates,
+                        caching: latestDataSource.caching,
+                    },
+                    projectId,
+                );
             }
-
-            await updateDataSource(
-                dataSource.data_source_id,
-                {
-                    name: latestDataSource.name,
-                    source: sourceUpdates,
-                    caching: latestDataSource.caching,
-                },
-                projectId,
-            );
 
             // Update credentials if auth is configured and credentials were edited
             if (authMethod !== "none") {
