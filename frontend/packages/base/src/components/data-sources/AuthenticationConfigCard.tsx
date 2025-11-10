@@ -77,6 +77,7 @@ export function AuthenticationConfigCard({
     );
     const [scope, setScope] = useState(sourceWithAuth.auth?.scope || "");
     const [username, setUsername] = useState("");
+    const [hasUsername, setHasUsername] = useState(false);
     const [password, setPassword] = useState("");
     const [hasPassword, setHasPassword] = useState(false);
 
@@ -93,35 +94,27 @@ export function AuthenticationConfigCard({
                     dataSource.data_source_id,
                     projectId,
                 );
-                const clientIdCred = credentials.find((c) => c.credential_type === "CLIENT_ID");
-                const clientSecretCred = credentials.find(
-                    (c) => c.credential_type === "CLIENT_SECRET",
-                );
-                const usernameCred = credentials.find((c) => c.credential_type === "USERNAME");
-                const passwordCred = credentials.find((c) => c.credential_type === "PASSWORD");
 
-                if (clientIdCred) {
-                    setClientId(String(clientIdCred.value || ""));
-                    setHasClientId(true);
-                } else {
-                    setHasClientId(false);
-                }
+                const processCredential = (
+                    credentialType: string,
+                    setValue: (val: string) => void,
+                    setHasValue: (has: boolean) => void,
+                    shouldMaskValue: boolean = false,
+                ) => {
+                    const cred = credentials.find((c) => c.credential_type === credentialType);
+                    if (cred) {
+                        setValue(shouldMaskValue ? "" : String(cred.value || ""));
+                        setHasValue(true);
+                    } else {
+                        setValue("");
+                        setHasValue(false);
+                    }
+                };
 
-                if (clientSecretCred) {
-                    setClientSecret("");
-                    setHasSecret(true);
-                } else {
-                    setHasSecret(false);
-                }
-
-                if (usernameCred) setUsername(String(usernameCred.value || ""));
-
-                if (passwordCred) {
-                    setPassword("");
-                    setHasPassword(true);
-                } else {
-                    setHasPassword(false);
-                }
+                processCredential("CLIENT_ID", setClientId, setHasClientId);
+                processCredential("CLIENT_SECRET", setClientSecret, setHasSecret, true);
+                processCredential("USERNAME", setUsername, setHasUsername);
+                processCredential("PASSWORD", setPassword, setHasPassword, true);
             } catch (error) {
                 console.error("Failed to load credentials:", error);
             }
@@ -152,8 +145,8 @@ export function AuthenticationConfigCard({
 
             // Validate password grant type specific fields, only if not already saved
             if (grantType === "password") {
-                const needsUsername = !username || !username.trim();
-                const needsPassword = !password || (!password.trim() && !hasPassword);
+                const needsUsername = (!username || !username.trim()) && !hasUsername;
+                const needsPassword = (!password || !password.trim()) && !hasPassword;
 
                 if (needsUsername || needsPassword) {
                     setPasswordGrantError(
@@ -190,8 +183,6 @@ export function AuthenticationConfigCard({
         setIsSaving(true);
         setShowConfirmDialog(false);
         try {
-            // For published data sources editing only credentials, skip updateDataSource
-            // and only update credentials via the dedicated credentials endpoint
             if (!(isPublished && isEditingCredentials)) {
                 // Fetch latest dataSource from server to avoid overwriting other changes
                 const latestDataSource = await fetchDataSource(
@@ -247,7 +238,7 @@ export function AuthenticationConfigCard({
                     setHasSecret(true);
                 }
 
-                if (grantType === "password" && username && password) {
+                if (grantType === "password" && (username || hasUsername) && (password || hasPassword)) {
                     credentials.push({ credential_type: "USERNAME", value: username });
                     credentials.push({ credential_type: "PASSWORD", value: password });
                 }
@@ -473,7 +464,7 @@ export function AuthenticationConfigCard({
                     </>
                 )}
 
-                {authMethod === "bearer" && !(isPublished && isEditingCredentials) && (
+                {authMethod === "bearer" && (
                     <>
                         <Separator className="my-6" />
 
@@ -535,7 +526,7 @@ export function AuthenticationConfigCard({
                                 />
                             </div>
 
-                            {grantType === "password" && !(isPublished && isEditingCredentials) && (
+                            {grantType === "password" && (
                                 <>
                                     <Separator className="my-4" />
                                     <h5 className="text-sm font-medium">
@@ -559,7 +550,7 @@ export function AuthenticationConfigCard({
                                                 setUsername(e.target.value);
                                                 if (passwordGrantError) setPasswordGrantError("");
                                             }}
-                                            disabled={!isEditing || disabled || isPublished}
+                                            disabled={!isEditingCredentials}
                                             placeholder="Enter username"
                                             className={passwordGrantError ? "border-red-500" : ""}
                                         />
@@ -577,7 +568,7 @@ export function AuthenticationConfigCard({
                                                 setPassword(e.target.value);
                                                 if (passwordGrantError) setPasswordGrantError("");
                                             }}
-                                            disabled={!isEditing || disabled || isPublished}
+                                            disabled={!isEditingCredentials}
                                             placeholder={
                                                 hasPassword ? "••••••••" : "Enter password"
                                             }
