@@ -9,8 +9,9 @@ from apache_beam.pvalue import TaggedOutput
 from apache_beam.transforms.enrichment import Enrichment, EnrichmentSourceHandler
 from pyarrow import parquet as pq
 
-from vulkan.connections import make_request
+from vulkan.connections import HTTPConfig
 from vulkan.core.context import VulkanExecutionContext
+from vulkan.http_client import HTTPClient
 from vulkan.schemas import (
     DataSourceSpec,
     HTTPSource,
@@ -129,10 +130,18 @@ class _HTTPHandler(EnrichmentSourceHandler):
         key = request[0]
         values = request[1]
 
-        prepared_request = make_request(self.spec.source, values, self.context.env)
-        raw_response = self._session.send(
-            prepared_request, timeout=self.spec.source.timeout
+        config = HTTPConfig(
+            url=self.spec.source.url,
+            method=self.spec.source.method,
+            headers=self.spec.source.headers or {},
+            params=self.spec.source.params or {},
+            body=self.spec.source.body or {},
+            timeout=self.spec.source.timeout,
+            retry=self.spec.source.retry,
+            response_type=self.spec.source.response_type,
         )
+        client = HTTPClient(config)
+        raw_response = client.execute_raw(values, self.context.env)
 
         response_data = None
         if raw_response.status_code == 200:

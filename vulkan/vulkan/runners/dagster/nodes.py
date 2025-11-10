@@ -11,11 +11,11 @@ from vulkan.connections import (
     HTTPConfig,
     RetryPolicy,
     format_response_data,
-    make_request,
 )
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.exceptions import UserCodeException
+from vulkan.http_client import HTTPClient
 from vulkan.node_config import resolve_template, resolve_value
 from vulkan.runners.dagster.names import normalize_dependencies, normalize_node_id
 from vulkan.runners.dagster.resources import AppClientResource
@@ -546,10 +546,11 @@ class DagsterConnection(ConnectionNode, DagsterNode):
                 body=self.body,
                 retry=RetryPolicy(max_retries=self.retry_max_retries),
                 response_type=self.response_type,
+                timeout=self.timeout,
             )
 
-            req = make_request(config, inputs, env.variables)
-            response = requests.Session().send(req, timeout=self.timeout)
+            client = HTTPClient(config)
+            response = client.execute_raw(inputs, env.variables)
 
             response.raise_for_status()
 

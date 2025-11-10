@@ -7,9 +7,9 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from logging import Logger
 
-import requests
 from sqlalchemy.orm import Session
-from vulkan.connections import ResponseType, make_request
+from vulkan.connections import HTTPConfig, ResponseType
+from vulkan.http_client import HTTPClient
 
 from vulkan_engine import schemas
 from vulkan_engine.db import DataObject, RunDataCache
@@ -48,15 +48,24 @@ class DataBroker:
         start_time = time.time()
 
         # Create request with authentication
-        req = make_request(
-            self.spec.source,
+        config = HTTPConfig(
+            url=self.spec.source.url,
+            method=self.spec.source.method,
+            headers=self.spec.source.headers or {},
+            params=self.spec.source.params or {},
+            body=self.spec.source.body or {},
+            timeout=self.spec.source.timeout,
+            retry=self.spec.source.retry,
+            response_type=self.spec.source.response_type,
+        )
+        client = HTTPClient(config)
+        response = client.execute_raw(
             configured_params,
             env_variables,
             extra_headers=auth_headers,
             extra_params=auth_params,
         )
 
-        response = requests.Session().send(req, timeout=self.spec.source.timeout)
         response.raise_for_status()
         end_time = time.time()
 
