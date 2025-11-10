@@ -13,11 +13,11 @@ from vulkan.connections import (
     HTTPConfig,
     RetryPolicy,
     format_response_data,
-    make_request,
 )
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.core.run import RunStatus
 from vulkan.exceptions import UserCodeException
+from vulkan.http_client import HTTPClient
 from vulkan.node_config import resolve_value
 from vulkan.runners.shared.app_client import BaseAppClient, create_app_client
 from vulkan.runners.shared.constants import POLICY_CONFIG_KEY, RUN_CONFIG_KEY
@@ -506,10 +506,11 @@ class HatchetConnection(ConnectionNode, HatchetNode):
                     body=self.body,
                     retry=RetryPolicy(max_retries=self.retry_max_retries),
                     response_type=self.response_type,
+                    timeout=self.timeout,
                 )
 
-                req = make_request(config, inputs, env.variables if env else {})
-                response = requests.Session().send(req, timeout=self.timeout)
+                client = HTTPClient(config)
+                response = client.execute_raw(inputs, env.variables if env else {})
 
                 # TODO: how should we log this to output, including on error?
                 # request details: extra={"url": self.url, "method": self.method, "status_code": response.status_code}
