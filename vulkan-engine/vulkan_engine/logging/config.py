@@ -38,11 +38,7 @@ def configure_structlog(
         structlog.processors.TimeStamper(fmt="iso"),
         # Add caller info (file, line, function)
         structlog.processors.CallsiteParameterAdder(
-            parameters=[
-                structlog.processors.CallsiteParameter.FILENAME,
-                structlog.processors.CallsiteParameter.LINENO,
-                structlog.processors.CallsiteParameter.FUNC_NAME,
-            ]
+            parameters=[structlog.processors.CallsiteParameter.QUAL_NAME]
         ),
         # Format exception info
         structlog.processors.format_exc_info,

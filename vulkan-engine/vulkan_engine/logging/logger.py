@@ -67,7 +67,3 @@ def get_logger(name: str | None = None) -> BoundLogger:
         logger.info("processing_data", record_count=100)
     """
     return structlog.get_logger(name)
-
-
-# Backward compatibility alias
-create_logger = init_logger
