@@ -22,7 +22,6 @@ from vulkan_engine.db import (
     Run,
     WorkflowDataDependency,
 )
-from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
     InvalidDataSourceException,
@@ -30,6 +29,7 @@ from vulkan_engine.exceptions import (
     PolicyVersionNotFoundException,
 )
 from vulkan_engine.loaders import PolicyLoader, PolicyVersionLoader
+from vulkan_engine.logging import get_logger
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.services.run_orchestration import (
     RunOrchestrationService,
@@ -47,7 +47,6 @@ class PolicyVersionService(BaseService):
         db: Session,
         workflow_service: WorkflowService,
         orchestrator: RunOrchestrationService,
-        logger=None,
     ):
         """
         Initialize policy version service.
@@ -56,13 +55,13 @@ class PolicyVersionService(BaseService):
             db: Database session
             workflow_service: Workflow management service
             orchestrator: Run orchestration service
-            logger: Optional logger
         """
-        super().__init__(db, logger)
+        super().__init__(db)
         self.orchestrator = orchestrator
         self.workflow_service = workflow_service
         self.policy_loader = PolicyLoader(db)
         self.policy_version_loader = PolicyVersionLoader(db)
+        self.logger = get_logger(__name__)
 
     def create_policy_version(
         self, config: schemas.PolicyVersionBase, project_id: str = None
@@ -100,13 +99,6 @@ class PolicyVersionService(BaseService):
         )
         self.db.add(version)
         self.db.commit()
-
-        self._log_event(
-            VulkanEvent.POLICY_VERSION_CREATED,
-            policy_id=config.policy_id,
-            policy_version_id=version.policy_version_id,
-            policy_version_alias=config.alias,
-        )
 
         return schemas.PolicyVersion.from_orm(version, workflow)
 
@@ -188,12 +180,11 @@ class PolicyVersionService(BaseService):
             ui_metadata=config.workflow.ui_metadata,
             project_id=project_id,
         )
-        self.logger.system.info(
-            f"Updated workflow {version.workflow_id}",
-            extra={
-                "project_id": project_id,
-                "policy_version_id": policy_version_id,
-            },
+        self.logger.info(
+            "updated_workflow",
+            workflow_id=str(version.workflow_id),
+            project_id=project_id,
+            policy_version_id=policy_version_id,
         )
 
         # Handle data source dependencies
@@ -214,12 +205,6 @@ class PolicyVersionService(BaseService):
             self._validate_data_source_runtime_params(data_input_nodes, data_sources)
 
         self.db.commit()
-        self._log_event(
-            VulkanEvent.POLICY_VERSION_UPDATED,
-            policy_id=version.policy_id,
-            policy_version_id=policy_version_id,
-            policy_version_alias=version.alias,
-        )
 
         return schemas.PolicyVersion.from_orm(version, workflow)
 
@@ -254,10 +239,6 @@ class PolicyVersionService(BaseService):
 
         version.archived = True
         self.db.commit()
-
-        self._log_event(
-            VulkanEvent.POLICY_VERSION_DELETED, policy_version_id=policy_version_id
-        )
 
     def create_run(
         self,
@@ -431,11 +412,6 @@ class PolicyVersionService(BaseService):
                 config_value.value = v.value
 
         self.db.commit()
-        self._log_event(
-            VulkanEvent.POLICY_VERSION_VARIABLES_UPDATED,
-            policy_version_id=policy_version_id,
-            variables=[v.model_dump_json() for v in desired_variables],
-        )
 
         return schemas.ConfigurationVariablesSetResult(
             policy_version_id=policy_version_id,

@@ -7,7 +7,6 @@ from typing import Any, Dict
 
 import requests
 from sqlalchemy.orm import Session
-from vulkan_engine.logger import VulkanLogger
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.services.credential.schemas import (
     AuthCompleteResponse,
@@ -28,8 +27,8 @@ GOOGLE_OAUTH_SCOPES = [
 class CredentialService(BaseService):
     """Service for handling OAuth2 credential flows and management."""
 
-    def __init__(self, db: Session, logger: VulkanLogger | None = None):
-        super().__init__(db, logger)
+    def __init__(self, db: Session):
+        super().__init__(db)
 
     def _get_google_credentials(self) -> Dict[str, Any]:
         """Loads and parses the Google credentials from the environment variable."""

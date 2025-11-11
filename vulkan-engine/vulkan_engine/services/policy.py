@@ -11,7 +11,6 @@ from sqlalchemy import func as F
 from sqlalchemy import select
 
 from vulkan_engine.db import Policy, PolicyVersion, Run, WorkflowStatus
-from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import (
     InvalidAllocationStrategyException,
     InvalidPolicyVersionException,
@@ -28,15 +27,14 @@ from vulkan_engine.utils import validate_date_range
 class PolicyService(BaseService):
     """Service for managing policies and their operations."""
 
-    def __init__(self, db, logger=None):
+    def __init__(self, db):
         """
         Initialize policy service.
 
         Args:
             db: Database session
-            logger: Optional logger
         """
-        super().__init__(db, logger)
+        super().__init__(db)
         self.policy_loader = PolicyLoader(db)
         self.policy_version_loader = PolicyVersionLoader(db)
 
@@ -76,11 +74,6 @@ class PolicyService(BaseService):
         policy = Policy(**policy_dict)
         self.db.add(policy)
         self.db.commit()
-        self._log_event(
-            VulkanEvent.POLICY_CREATED,
-            policy_id=policy.policy_id,
-            **policy_data.model_dump(),
-        )
 
         return policy
 
@@ -141,10 +134,6 @@ class PolicyService(BaseService):
 
         self.db.commit()
 
-        self._log_event(
-            VulkanEvent.POLICY_UPDATED, policy_id=policy_id, **update_data.model_dump()
-        )
-
         return policy
 
     def delete_policy(self, policy_id: str, project_id: str = None) -> None:
@@ -179,8 +168,6 @@ class PolicyService(BaseService):
 
         policy.archived = True
         self.db.commit()
-
-        self._log_event(VulkanEvent.POLICY_DELETED, policy_id=policy_id)
 
     def list_policy_versions(
         self, policy_id: str, include_archived: bool = False, project_id: str = None

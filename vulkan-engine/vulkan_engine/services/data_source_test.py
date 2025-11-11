@@ -20,6 +20,7 @@ from vulkan_engine.exceptions import (
     InvalidDataSourceException,
 )
 from vulkan_engine.loaders.data_source import DataSourceLoader
+from vulkan_engine.logging import get_logger
 from vulkan_engine.schemas import (
     DataSourceTestRequest,
     DataSourceTestRequestById,
@@ -39,15 +40,15 @@ from vulkan_engine.services.request_preparation import (
 class DataSourceTestService(BaseService):
     """Service for testing data sources."""
 
-    def __init__(self, db, logger=None):
+    def __init__(self, db):
         """
         Initialize data source test service.
 
         Args:
             db: Database session
-            logger: Optional logger
         """
-        super().__init__(db, logger)
+        super().__init__(db)
+        self.logger = get_logger(__name__)
 
     def _validate_test_request(self, test_request: DataSourceTestRequest) -> None:
         """
@@ -318,11 +319,13 @@ class DataSourceTestService(BaseService):
         self.db.add(test_result)
         self.db.commit()
 
-        if self.logger:
-            self.logger.system.info(
-                f"Data source test executed: {test_request.method} {test_request.url} - "
-                f"Status: {status_code}, Time: {elapsed_ms:.2f}ms"
-            )
+        self.logger.info(
+            "data_source_test_executed",
+            method=test_request.method,
+            url=test_request.url,
+            status_code=status_code,
+            elapsed_ms=round(elapsed_ms, 2),
+        )
 
         # Return response
         return DataSourceTestResponse(

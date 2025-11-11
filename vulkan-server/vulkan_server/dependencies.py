@@ -28,7 +28,6 @@ from vulkan_engine.config import VulkanEngineConfig
 
 # Removed legacy Dagster imports - now using worker abstractions only
 from vulkan_engine.db import get_db_session
-from vulkan_engine.logger import VulkanLogger, create_logger
 from vulkan_engine.services import (
     AllocationService,
     ComponentService,
@@ -74,23 +73,6 @@ def get_database_session(
     yield from get_db_session(config.database)
 
 
-def get_configured_logger(
-    config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
-    db: Annotated[Session, Depends(get_database_session)],
-) -> VulkanLogger:
-    """
-    Get configured logger instance.
-
-    Args:
-        config: Vulkan engine configuration
-        db: Database session
-
-    Returns:
-        Configured VulkanLogger instance
-    """
-    return create_logger(db, config.logging)
-
-
 def get_redis_client() -> redis.Redis | None:
     """
     Get Redis client for OAuth token caching.
@@ -125,23 +107,6 @@ def get_redis_client() -> redis.Redis | None:
         return client
     except (redis.ConnectionError, redis.TimeoutError):
         return None
-
-
-def get_service_dependencies(
-    db: Annotated[Session, Depends(get_database_session)],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
-) -> tuple[Session, VulkanLogger]:
-    """
-    Get common dependencies for services.
-
-    Args:
-        db: Database session
-        logger: Configured logger
-
-    Returns:
-        Tuple of (database session, logger)
-    """
-    return db, logger
 
 
 def get_execution_backend(
@@ -180,7 +145,6 @@ def get_worker_data_client(
 
 def get_worker_service_client(
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> BackendServiceClient:
     """
     Get worker service client using factory pattern.
@@ -191,7 +155,7 @@ def get_worker_service_client(
     Returns:
         WorkerServiceClient instance (Dagster, Hatchet, etc.)
     """
-    return ServiceClientFactory.create_service_client(config, base_logger=logger)
+    return ServiceClientFactory.create_service_client(config)
 
 
 # Business Service Dependencies
@@ -200,7 +164,6 @@ def get_run_query_service(
     worker_data_client: Annotated[
         BaseDataClient | None, Depends(get_worker_data_client)
     ],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> RunQueryService:
     """
     Get RunQueryService for read operations.
@@ -208,7 +171,6 @@ def get_run_query_service(
     Args:
         db: Database session
         worker_data_client: Worker data client (may be None if database disabled)
-        logger: Configured logger
 
     Returns:
         Configured RunQueryService instance
@@ -218,14 +180,12 @@ def get_run_query_service(
     return RunQueryService(
         db=db,
         data_client=worker_data_client,
-        logger=logger,
     )
 
 
 def get_run_orchestration_service(
     db: Annotated[Session, Depends(get_database_session)],
     backend: Annotated[ExecutionBackend, Depends(get_execution_backend)],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> RunOrchestrationService:
     """
     Get RunOrchestrationService for run management.
@@ -233,7 +193,6 @@ def get_run_orchestration_service(
     Args:
         db: Database session
         backend: Execution backend for running workflows
-        logger: Configured logger
 
     Returns:
         Configured RunOrchestrationService instance
@@ -241,25 +200,22 @@ def get_run_orchestration_service(
     return RunOrchestrationService(
         db=db,
         backend=backend,
-        logger=logger,
     )
 
 
 def get_policy_service(
     db: Annotated[Session, Depends(get_database_session)],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> PolicyService:
     """
     Get PolicyService for policy management.
 
     Args:
         db: Database session
-        logger: Configured logger
 
     Returns:
         Configured PolicyService instance
     """
-    return PolicyService(db=db, logger=logger)
+    return PolicyService(db=db)
 
 
 def get_workflow_service(
@@ -267,28 +223,23 @@ def get_workflow_service(
         BackendServiceClient, Depends(get_worker_service_client)
     ],
     db: Annotated[Session, Depends(get_database_session)],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> WorkflowService:
     """Get WorkflowService instance with dependencies."""
-    return WorkflowService(
-        db=db, backend_service_client=worker_service_client, logger=logger
-    )
+    return WorkflowService(db=db, backend_service_client=worker_service_client)
 
 
 def get_policy_version_service(
+    db: Annotated[Session, Depends(get_database_session)],
     workflow_service: Annotated[WorkflowService, Depends(get_workflow_service)],
     orchestrator: Annotated[
         RunOrchestrationService, Depends(get_run_orchestration_service)
     ],
-    deps=Depends(get_service_dependencies),
 ) -> PolicyVersionService:
     """Get PolicyVersionService instance with dependencies."""
-    db, logger = deps
     return PolicyVersionService(
         db=db,
         workflow_service=workflow_service,
         orchestrator=orchestrator,
-        logger=logger,
     )
 
 
@@ -297,7 +248,6 @@ def get_allocation_service(
     orchestrator: Annotated[
         RunOrchestrationService, Depends(get_run_orchestration_service)
     ],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> AllocationService:
     """
     Get AllocationService for run allocation.
@@ -305,17 +255,15 @@ def get_allocation_service(
     Args:
         db: Database session
         orchestrator: Run orchestration service
-        logger: Configured logger
 
     Returns:
         Configured AllocationService instance
     """
-    return AllocationService(db=db, orchestrator=orchestrator, logger=logger)
+    return AllocationService(db=db, orchestrator=orchestrator)
 
 
 def get_data_source_service(
     db: Annotated[Session, Depends(get_database_session)],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
     redis_cache: Annotated[redis.Redis | None, Depends(get_redis_client)],
 ) -> DataSourceService:
     """
@@ -323,96 +271,86 @@ def get_data_source_service(
 
     Args:
         db: Database session
-        logger: Configured logger
         redis_cache: Redis client for OAuth token caching (optional)
 
     Returns:
         Configured DataSourceService instance
     """
-    return DataSourceService(db=db, logger=logger, redis_cache=redis_cache)
+    return DataSourceService(db=db, redis_cache=redis_cache)
 
 
 def get_component_service(
     db: Annotated[Session, Depends(get_database_session)],
     workflow_service: Annotated[WorkflowService, Depends(get_workflow_service)],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> ComponentService:
     """
     Get ComponentService for component management.
 
     Args:
         db: Database session
-        logger: Configured logger
+        workflow_service: Workflow management service
 
     Returns:
         Configured ComponentService instance
     """
-    return ComponentService(db=db, workflow_service=workflow_service, logger=logger)
+    return ComponentService(db=db, workflow_service=workflow_service)
 
 
 def get_data_source_analytics_service(
     db: Annotated[Session, Depends(get_database_session)],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> DataSourceAnalyticsService:
     """
     Get DataSourceAnalyticsService for data source analytics.
 
     Args:
         db: Database session
-        logger: Configured logger
 
     Returns:
         Configured DataSourceAnalyticsService instance
     """
-    return DataSourceAnalyticsService(db=db, logger=logger)
+    return DataSourceAnalyticsService(db=db)
 
 
 def get_policy_analytics_service(
     db: Annotated[Session, Depends(get_database_session)],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> PolicyAnalyticsService:
     """
     Get PolicyAnalyticsService for policy analytics.
 
     Args:
         db: Database session
-        logger: Configured logger
 
     Returns:
         Configured PolicyAnalyticsService instance
     """
-    return PolicyAnalyticsService(db=db, logger=logger)
+    return PolicyAnalyticsService(db=db)
 
 
 def get_credential_service(
     db: Annotated[Session, Depends(get_database_session)],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> CredentialService:
     """
     Get CredentialService for OAuth credential management.
 
     Args:
         db: Database session
-        logger: Configured logger
 
     Returns:
         Configured CredentialService instance
     """
-    return CredentialService(db=db, logger=logger)
+    return CredentialService(db=db)
 
 
 def get_data_source_test_service(
     db: Annotated[Session, Depends(get_database_session)],
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)],
 ) -> DataSourceTestService:
     """
     Get DataSourceTestService for testing data sources.
 
     Args:
         db: Database session
-        logger: Configured logger
 
     Returns:
         Configured DataSourceTestService instance
     """
-    return DataSourceTestService(db=db, logger=logger)
+    return DataSourceTestService(db=db)

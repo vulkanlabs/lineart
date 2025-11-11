@@ -27,6 +27,7 @@ from vulkan_engine.exceptions import (
 )
 from vulkan_engine.loaders import RunLoader
 from vulkan_engine.loaders.policy_version import PolicyVersionLoader
+from vulkan_engine.logging import get_logger
 from vulkan_engine.schemas import RunResult, StepMetadataBase
 from vulkan_engine.services.base import BaseService
 
@@ -44,7 +45,6 @@ class RunOrchestrationService(BaseService):
         self,
         db: Session,
         backend: ExecutionBackend,
-        logger=None,
     ):
         """
         Initialize run orchestration service.
@@ -52,12 +52,12 @@ class RunOrchestrationService(BaseService):
         Args:
             db: Database session
             backend: Execution backend for running workflows
-            logger: Logger instance
         """
-        super().__init__(db, logger)
+        super().__init__(db)
         self.backend = backend
         self.run_loader = RunLoader(db)
         self.policy_version_loader = PolicyVersionLoader(db)
+        self.logger = get_logger(__name__)
 
     def create_run(
         self,
@@ -217,8 +217,9 @@ class RunOrchestrationService(BaseService):
         # TODO: Should we trigger the remaining runs with a subprocess (so we don't
         # halt the API's response)?
         if run.run_group_id:
-            self.logger.system.debug(
-                f"Launching shadow runs from group {run.run_group_id}"
+            self.logger.debug(
+                "launching_shadow_runs",
+                run_group_id=str(run.run_group_id),
             )
             self._launch_pending_runs(run.run_group_id)
 
@@ -234,7 +235,7 @@ class RunOrchestrationService(BaseService):
         # Get run group and input data
         run_group = self.db.query(RunGroup).filter_by(run_group_id=run_group_id).first()
         if not run_group:
-            self.logger.system.error(f"Run group {run_group_id} not found")
+            self.logger.error("run_group_not_found", run_group_id=str(run_group_id))
             return
 
         input_data = run_group.input_data
@@ -248,12 +249,17 @@ class RunOrchestrationService(BaseService):
 
         # Launch each pending run
         for run in pending_runs:
-            self.logger.system.debug(f"Launching run {run.run_id}")
+            self.logger.debug("launching_run", run_id=str(run.run_id))
             try:
                 self.launch_run(run=run, input_data=input_data)
             except Exception as e:
                 # TODO: Structure log to trace the run that failed and the way it was triggered
-                self.logger.system.error(f"Failed to launch run {run.run_id}: {e}")
+                self.logger.error(
+                    "failed_to_launch_run",
+                    run_id=str(run.run_id),
+                    error=str(e),
+                    exc_info=True,
+                )
                 continue
 
     def _prepare_run_config(
@@ -330,7 +336,11 @@ class RunOrchestrationService(BaseService):
                 config_variables=run_config.variables,
                 project_id=str(run.project_id) if run.project_id else None,
             )
-            self.logger.system.debug(f"Triggered job with run ID: {backend_run_id}")
+            self.logger.debug(
+                "triggered_job",
+                run_id=str(run.run_id),
+                backend_run_id=backend_run_id,
+            )
             run.status = RunStatus.STARTED
             run.started_at = datetime.now(timezone.utc)
             run.backend_run_id = backend_run_id

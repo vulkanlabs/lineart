@@ -15,6 +15,7 @@ from vulkan_engine.exceptions import (
     InvalidAllocationStrategyException,
 )
 from vulkan_engine.loaders import PolicyLoader
+from vulkan_engine.logging import get_logger
 from vulkan_engine.schemas import (
     PolicyAllocationStrategy,
     RunGroupResult,
@@ -27,18 +28,18 @@ from vulkan_engine.services.run_orchestration import RunOrchestrationService
 class AllocationService(BaseService):
     """Service for managing run allocation and run groups."""
 
-    def __init__(self, db: Session, orchestrator: RunOrchestrationService, logger=None):
+    def __init__(self, db: Session, orchestrator: RunOrchestrationService):
         """
         Initialize allocation service.
 
         Args:
             db: Database session
             orchestrator: Run orchestration service
-            logger: Optional logger
         """
-        super().__init__(db, logger)
+        super().__init__(db)
         self.orchestrator = orchestrator
         self.policy_loader = PolicyLoader(db)
+        self.logger = get_logger(__name__)
 
     def create_run_group(
         self,
@@ -81,11 +82,11 @@ class AllocationService(BaseService):
         # Parse allocation strategy
         strategy = PolicyAllocationStrategy.model_validate(policy.allocation_strategy)
 
-        if self.logger:
-            self.logger.system.info(
-                f"Allocating runs with input_data {input_data}",
-                extra={"extra": {"policy_id": policy_id}},
-            )
+        self.logger.info(
+            "allocating_runs",
+            input_data=input_data,
+            policy_id=policy_id,
+        )
 
         # Allocate runs
         runs = self.allocate_runs(

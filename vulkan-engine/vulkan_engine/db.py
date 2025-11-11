@@ -60,18 +60,6 @@ class ArchivableMixin:
     archived = Column(Boolean, default=False)
 
 
-class LogRecord(Base):
-    __tablename__ = "log_record"
-
-    log_record_id = Column(
-        Uuid, primary_key=True, server_default=func.gen_random_uuid()
-    )
-    level = Column(String)
-    message = Column(JSON)
-    timestamp = Column(String)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-
 class Policy(TimedUpdateMixin, ArchivableMixin, Base):
     __tablename__ = "policy"
 

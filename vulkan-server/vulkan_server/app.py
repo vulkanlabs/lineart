@@ -1,3 +1,6 @@
+import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -6,7 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 from pydantic import BaseModel
 from vulkan_engine import exceptions
-from vulkan_engine.logger import init_logger
+from vulkan_engine.logging import init_logger
 
 from vulkan_server import routers
 
@@ -19,11 +22,28 @@ def custom_generate_unique_id(route: APIRoute) -> str:
     return route.name
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize and cleanup application resources."""
+    # Initialize structlog on startup
+    development = os.getenv("ENVIRONMENT", "development") == "development"
+    log_level = os.getenv("LOG_LEVEL", "INFO")
+    logger = init_logger(development=development, log_level=log_level)
+    logger.info(
+        "application_started",
+        environment="development" if development else "production",
+    )
+    yield
+    # Cleanup on shutdown (if needed)
+    logger.info("application_shutdown")
+
+
 app = FastAPI(
     title="VulkanAPI",
     version="0.1.0",
     generate_unique_id_function=custom_generate_unique_id,
     separate_input_output_schemas=False,
+    lifespan=lifespan,
 )
 
 origins = [
@@ -49,9 +69,6 @@ app.include_router(routers.policies.router)
 app.include_router(routers.policy_versions.router)
 app.include_router(routers.runs.router)
 app.include_router(routers.auth.router)
-
-
-logger = init_logger("vulkan_server")
 
 
 class ErrorResponse(BaseModel):

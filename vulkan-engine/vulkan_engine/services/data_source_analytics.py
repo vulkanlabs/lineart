@@ -13,12 +13,12 @@ import pandas as pd
 from sqlalchemy import case, select
 from sqlalchemy import func as F
 
-from vulkan_engine.backends.data_client import BaseDataClient
 from vulkan_engine.db import (
     DataObjectOrigin,
     RunDataRequest,
 )
 from vulkan_engine.loaders import DataSourceLoader
+from vulkan_engine.logging import get_logger
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.utils import validate_date_range
 
@@ -26,16 +26,16 @@ from vulkan_engine.utils import validate_date_range
 class DataSourceAnalyticsService(BaseService):
     """Service for data source analytics and metrics."""
 
-    def __init__(self, db, logger=None):
+    def __init__(self, db):
         """
         Initialize data source analytics service.
 
         Args:
             db: Database session
-            logger: Optional logger
         """
-        super().__init__(db, logger)
+        super().__init__(db)
         self.data_source_loader = DataSourceLoader(db)
+        self.logger = get_logger(__name__)
 
     def get_usage_statistics(
         self,
@@ -140,11 +140,11 @@ class DataSourceAnalyticsService(BaseService):
         metrics_df = pd.read_sql(metrics_query, self.db.bind)
         sql_time = time.time() - sql_start
 
-        if self.logger:
-            self.logger.system.debug(
-                f"data-source/metrics: Query completed in {sql_time:.3f}s, "
-                f"retrieved {len(metrics_df)} rows"
-            )
+        self.logger.debug(
+            "data_source_metrics_query_completed",
+            sql_time_seconds=round(sql_time, 3),
+            row_count=len(metrics_df),
+        )
 
         # Process and format the results
         processing_start = time.time()
@@ -168,10 +168,10 @@ class DataSourceAnalyticsService(BaseService):
             error_rate = pd.DataFrame(columns=["date", "value"])
 
         processing_time = time.time() - processing_start
-        if self.logger:
-            self.logger.system.debug(
-                f"data-source/metrics: DataFrame processing completed in {processing_time:.3f}s"
-            )
+        self.logger.debug(
+            "data_source_metrics_processing_completed",
+            processing_time_seconds=round(processing_time, 3),
+        )
 
         return {
             "avg_response_time_by_date": avg_response_time.to_dict(orient="records"),
