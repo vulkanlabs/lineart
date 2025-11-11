@@ -16,14 +16,12 @@ Usage:
 import structlog
 from structlog.stdlib import BoundLogger
 
-from vulkan_engine.config import LoggingConfig
 from vulkan_engine.logging.config import configure_structlog as _configure_structlog
 
 
 def init_logger(
     development: bool = False,
     log_level: str = "INFO",
-    config: LoggingConfig | None = None,
 ) -> BoundLogger:
     """
     Initialize and configure structlog logging.
@@ -33,18 +31,10 @@ def init_logger(
     Args:
         development: If True, use pretty console output. If False, use JSON.
         log_level: Minimum log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        config: Optional LoggingConfig (for backward compatibility)
 
     Returns:
         Configured structlog logger
     """
-    # Extract settings from config if provided
-    if config:
-        # Assuming config has development and log_level attributes
-        # If not, this will use the provided defaults
-        development = getattr(config, "development", development)
-        log_level = getattr(config, "log_level", log_level)
-
     # Configure structlog globally
     _configure_structlog(development=development, log_level=log_level)
 

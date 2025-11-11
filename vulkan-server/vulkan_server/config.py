@@ -58,9 +58,10 @@ def load_app_config() -> AppConfig:
 
 def load_logging_config() -> LoggingConfig:
     """Load logging configuration from environment variables."""
-    gcp_project_id = os.getenv("GCP_PROJECT_ID")
+    development = os.getenv("ENVIRONMENT", "development") == "development"
+    log_level = os.getenv("LOG_LEVEL", "INFO")
 
-    return LoggingConfig(gcp_project_id=gcp_project_id)
+    return LoggingConfig(development=development, log_level=log_level)
 
 
 def load_worker_database_config() -> WorkerDatabaseConfig:
