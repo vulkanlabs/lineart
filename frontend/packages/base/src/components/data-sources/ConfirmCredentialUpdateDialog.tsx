@@ -43,10 +43,10 @@ export function ConfirmCredentialUpdateDialog({
                             <li>
                                 Affect all users and applications currently using this data source
                             </li>
+                            <li>Apply immediately to all future requests using this data source</li>
                             <li>
-                                Apply immediately to all future requests using this data source
+                                Potentially cause authentication issues if credentials are invalid
                             </li>
-                            <li>Potentially cause authentication issues if credentials are invalid</li>
                         </ul>
                         <p className="font-medium pt-2">
                             Please ensure the new credentials are correct before proceeding.

@@ -120,8 +120,8 @@ export function PublishDataSourceDialog({
                             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                                 <li>URL, headers, parameters and body cannot be changed</li>
                                 <li>
-                                    Authentication method and configuration (token URL, grant type, scope)
-                                    cannot be changed
+                                    Authentication method and configuration (token URL, grant type,
+                                    scope) cannot be changed
                                 </li>
                                 <li>
                                     Authentication credentials (client ID, client secret, username,
