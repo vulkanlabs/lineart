@@ -183,7 +183,9 @@ export function AuthenticationConfigCard({
         setIsSaving(true);
         setShowConfirmDialog(false);
         try {
-            if (!(isPublished && isEditingCredentials)) {
+            // Only update config if not editing credentials on a published source
+            const shouldUpdateConfig = !isPublished || !isEditingCredentials;
+            if (shouldUpdateConfig) {
                 // Fetch latest dataSource from server to avoid overwriting other changes
                 const latestDataSource = await fetchDataSource(
                     dataSource.data_source_id,
@@ -238,9 +240,11 @@ export function AuthenticationConfigCard({
                     setHasSecret(true);
                 }
 
-                if (grantType === "password" && (username || hasUsername) && (password || hasPassword)) {
-                    credentials.push({ credential_type: "USERNAME", value: username });
-                    credentials.push({ credential_type: "PASSWORD", value: password });
+                if (grantType === "password") {
+                    if (username && username.trim())
+                        credentials.push({ credential_type: "USERNAME", value: username });
+                    if (password && password.trim())
+                        credentials.push({ credential_type: "PASSWORD", value: password });
                 }
 
                 // Only call API if we have credentials to save
@@ -292,7 +296,10 @@ export function AuthenticationConfigCard({
         setIsEditingCredentials(false);
         setClientIdInput("");
         setClientSecretInput("");
+        setUsername("");
+        setPassword("");
         setCredentialsError("");
+        setPasswordGrantError("");
         if (isPublished) setIsEditing(false);
     };
 
@@ -305,12 +312,13 @@ export function AuthenticationConfigCard({
                         Configure authentication for external API requests
                     </p>
                 </div>
-                {!isEditing && !isPublished ? (
+                {!isEditing && !isPublished && (
                     <Button onClick={() => setIsEditing(true)} disabled={disabled}>
                         <Shield className="h-4 w-4 mr-2" />
                         Edit
                     </Button>
-                ) : isEditing ? (
+                )}
+                {isEditing && (
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
                             <X className="h-4 w-4 mr-2" />
@@ -321,7 +329,7 @@ export function AuthenticationConfigCard({
                             {isSaving ? "Saving..." : "Save"}
                         </Button>
                     </div>
-                ) : null}
+                )}
             </div>
 
             <Separator />
@@ -394,6 +402,7 @@ export function AuthenticationConfigCard({
                                             variant="ghost"
                                             size="sm"
                                             onClick={handleEditCredentials}
+                                            disabled={!isPublished && disabled}
                                         >
                                             <Edit2 className="h-3 w-3 mr-1" />
                                             Edit Credentials
