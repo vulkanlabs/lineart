@@ -119,6 +119,14 @@ export function PublishDataSourceDialog({
                             <p className="text-sm font-medium">After publishing:</p>
                             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                                 <li>URL, headers, parameters and body cannot be changed</li>
+                                <li>
+                                    Authentication method and configuration (token URL, grant type,
+                                    scope) cannot be changed
+                                </li>
+                                <li>
+                                    Authentication credentials (client ID, client secret, username,
+                                    password) can still be updated
+                                </li>
                                 <li>Retry policy, timeout and cache TTL can still be adjusted</li>
                                 <li>Testing remains available for validation</li>
                             </ul>

@@ -17,6 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "../ui";
+import { ConfirmCredentialUpdateDialog } from "./ConfirmCredentialUpdateDialog";
 
 type AuthMethod = "none" | "basic" | "bearer";
 type GrantType = "client_credentials" | "password" | "implicit";
@@ -52,9 +53,10 @@ export function AuthenticationConfigCard({
     const [isEditing, setIsEditing] = useState(false);
     const [isEditingCredentials, setIsEditingCredentials] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
     const sourceWithAuth = dataSource.source as any;
-    const isDraft = dataSource.status === "DRAFT";
+    const isPublished = dataSource.status === "PUBLISHED";
 
     const getCurrentAuthMethod = (): AuthMethod => {
         if (!sourceWithAuth.auth) return "none";
@@ -75,6 +77,7 @@ export function AuthenticationConfigCard({
     );
     const [scope, setScope] = useState(sourceWithAuth.auth?.scope || "");
     const [username, setUsername] = useState("");
+    const [hasUsername, setHasUsername] = useState(false);
     const [password, setPassword] = useState("");
     const [hasPassword, setHasPassword] = useState(false);
 
@@ -91,35 +94,27 @@ export function AuthenticationConfigCard({
                     dataSource.data_source_id,
                     projectId,
                 );
-                const clientIdCred = credentials.find((c) => c.credential_type === "CLIENT_ID");
-                const clientSecretCred = credentials.find(
-                    (c) => c.credential_type === "CLIENT_SECRET",
-                );
-                const usernameCred = credentials.find((c) => c.credential_type === "USERNAME");
-                const passwordCred = credentials.find((c) => c.credential_type === "PASSWORD");
 
-                if (clientIdCred) {
-                    setClientId(String(clientIdCred.value || ""));
-                    setHasClientId(true);
-                } else {
-                    setHasClientId(false);
-                }
+                const processCredential = (
+                    credentialType: string,
+                    setValue: (val: string) => void,
+                    setHasValue: (has: boolean) => void,
+                    shouldMaskValue: boolean = false,
+                ) => {
+                    const cred = credentials.find((c) => c.credential_type === credentialType);
+                    if (cred) {
+                        setValue(shouldMaskValue ? "" : String(cred.value || ""));
+                        setHasValue(true);
+                    } else {
+                        setValue("");
+                        setHasValue(false);
+                    }
+                };
 
-                if (clientSecretCred) {
-                    setClientSecret("");
-                    setHasSecret(true);
-                } else {
-                    setHasSecret(false);
-                }
-
-                if (usernameCred) setUsername(String(usernameCred.value || ""));
-
-                if (passwordCred) {
-                    setPassword("");
-                    setHasPassword(true);
-                } else {
-                    setHasPassword(false);
-                }
+                processCredential("CLIENT_ID", setClientId, setHasClientId);
+                processCredential("CLIENT_SECRET", setClientSecret, setHasSecret, true);
+                processCredential("USERNAME", setUsername, setHasUsername);
+                processCredential("PASSWORD", setPassword, setHasPassword, true);
             } catch (error) {
                 console.error("Failed to load credentials:", error);
             }
@@ -150,8 +145,8 @@ export function AuthenticationConfigCard({
 
             // Validate password grant type specific fields, only if not already saved
             if (grantType === "password") {
-                const needsUsername = !username || !username.trim();
-                const needsPassword = !password || (!password.trim() && !hasPassword);
+                const needsUsername = (!username || !username.trim()) && !hasUsername;
+                const needsPassword = (!password || !password.trim()) && !hasPassword;
 
                 if (needsUsername || needsPassword) {
                     setPasswordGrantError(
@@ -176,40 +171,57 @@ export function AuthenticationConfigCard({
             }
         }
 
+        if (isPublished && isEditingCredentials) {
+            setShowConfirmDialog(true);
+            return;
+        }
+
+        await performSave();
+    };
+
+    const performSave = async () => {
         setIsSaving(true);
+        setShowConfirmDialog(false);
         try {
-            // Fetch latest dataSource from server to avoid overwriting other changes
-            const latestDataSource = await fetchDataSource(dataSource.data_source_id, projectId);
+            // Only update config if not editing credentials on a published source
+            const shouldUpdateConfig = !isPublished || !isEditingCredentials;
+            if (shouldUpdateConfig) {
+                // Fetch latest dataSource from server to avoid overwriting other changes
+                const latestDataSource = await fetchDataSource(
+                    dataSource.data_source_id,
+                    projectId,
+                );
 
-            // Build updated source with auth configuration from latest state
-            const sourceUpdates: any = {
-                ...latestDataSource.source,
-            };
+                // Build updated source with auth configuration from latest state
+                const sourceUpdates: any = {
+                    ...latestDataSource.source,
+                };
 
-            if (authMethod === "none") {
-                delete sourceUpdates.auth;
-            } else if (authMethod === "basic") {
-                sourceUpdates.auth = {
-                    method: "basic",
-                };
-            } else if (authMethod === "bearer") {
-                sourceUpdates.auth = {
-                    method: "bearer",
-                    token_url: tokenUrl,
-                    grant_type: grantType,
-                    scope: scope || undefined,
-                };
+                if (authMethod === "none") {
+                    delete sourceUpdates.auth;
+                } else if (authMethod === "basic") {
+                    sourceUpdates.auth = {
+                        method: "basic",
+                    };
+                } else if (authMethod === "bearer") {
+                    sourceUpdates.auth = {
+                        method: "bearer",
+                        token_url: tokenUrl,
+                        grant_type: grantType,
+                        scope: scope || undefined,
+                    };
+                }
+
+                await updateDataSource(
+                    dataSource.data_source_id,
+                    {
+                        name: latestDataSource.name,
+                        source: sourceUpdates,
+                        caching: latestDataSource.caching,
+                    },
+                    projectId,
+                );
             }
-
-            await updateDataSource(
-                dataSource.data_source_id,
-                {
-                    name: latestDataSource.name,
-                    source: sourceUpdates,
-                    caching: latestDataSource.caching,
-                },
-                projectId,
-            );
 
             // Update credentials if auth is configured and credentials were edited
             if (authMethod !== "none") {
@@ -228,9 +240,11 @@ export function AuthenticationConfigCard({
                     setHasSecret(true);
                 }
 
-                if (grantType === "password" && username && password) {
-                    credentials.push({ credential_type: "USERNAME", value: username });
-                    credentials.push({ credential_type: "PASSWORD", value: password });
+                if (grantType === "password") {
+                    if (username && username.trim())
+                        credentials.push({ credential_type: "USERNAME", value: username });
+                    if (password && password.trim())
+                        credentials.push({ credential_type: "PASSWORD", value: password });
                 }
 
                 // Only call API if we have credentials to save
@@ -271,6 +285,7 @@ export function AuthenticationConfigCard({
     };
 
     const handleEditCredentials = () => {
+        if (isPublished) setIsEditing(true);
         setIsEditingCredentials(true);
         // Pre-populate inputs with current values for editing
         setClientIdInput(clientId);
@@ -281,7 +296,11 @@ export function AuthenticationConfigCard({
         setIsEditingCredentials(false);
         setClientIdInput("");
         setClientSecretInput("");
+        setUsername("");
+        setPassword("");
         setCredentialsError("");
+        setPasswordGrantError("");
+        if (isPublished) setIsEditing(false);
     };
 
     return (
@@ -293,12 +312,13 @@ export function AuthenticationConfigCard({
                         Configure authentication for external API requests
                     </p>
                 </div>
-                {!isEditing ? (
-                    <Button onClick={() => setIsEditing(true)} disabled={!isDraft}>
+                {!isEditing && !isPublished && (
+                    <Button onClick={() => setIsEditing(true)} disabled={disabled}>
                         <Shield className="h-4 w-4 mr-2" />
                         Edit
                     </Button>
-                ) : (
+                )}
+                {isEditing && (
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
                             <X className="h-4 w-4 mr-2" />
@@ -320,15 +340,17 @@ export function AuthenticationConfigCard({
 
                     <RadioGroup
                         value={authMethod}
-                        onValueChange={(value) => isEditing && setAuthMethod(value as AuthMethod)}
-                        disabled={!isEditing || disabled}
+                        onValueChange={(value) =>
+                            isEditing && !isPublished && setAuthMethod(value as AuthMethod)
+                        }
+                        disabled={!isEditing || disabled || isPublished}
                         className="space-y-2"
                     >
                         <div className="flex items-center space-x-2">
                             <RadioGroupItem
                                 value="none"
                                 id="auth-none"
-                                disabled={!isEditing || disabled}
+                                disabled={!isEditing || disabled || isPublished}
                             />
                             <Label
                                 htmlFor="auth-none"
@@ -341,7 +363,7 @@ export function AuthenticationConfigCard({
                             <RadioGroupItem
                                 value="basic"
                                 id="auth-basic"
-                                disabled={!isEditing || disabled}
+                                disabled={!isEditing || disabled || isPublished}
                             />
                             <Label
                                 htmlFor="auth-basic"
@@ -354,7 +376,7 @@ export function AuthenticationConfigCard({
                             <RadioGroupItem
                                 value="bearer"
                                 id="auth-bearer"
-                                disabled={!isEditing || disabled}
+                                disabled={!isEditing || disabled || isPublished}
                             />
                             <Label
                                 htmlFor="auth-bearer"
@@ -373,14 +395,14 @@ export function AuthenticationConfigCard({
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <h4 className="text-sm font-medium">Credentials</h4>
-                                {isEditing &&
+                                {((isEditing && !isPublished) || isPublished) &&
                                     !isEditingCredentials &&
                                     (hasClientId || hasSecret) && (
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={handleEditCredentials}
-                                            disabled={disabled}
+                                            disabled={!isPublished && disabled}
                                         >
                                             <Edit2 className="h-3 w-3 mr-1" />
                                             Edit Credentials
@@ -415,7 +437,7 @@ export function AuthenticationConfigCard({
                                         setClientIdInput(e.target.value);
                                         if (credentialsError) setCredentialsError("");
                                     }}
-                                    disabled={!isEditing || !isEditingCredentials || disabled}
+                                    disabled={!isEditingCredentials}
                                     placeholder="Enter client ID"
                                 />
                             </div>
@@ -438,7 +460,7 @@ export function AuthenticationConfigCard({
                                         setClientSecretInput(e.target.value);
                                         if (credentialsError) setCredentialsError("");
                                     }}
-                                    disabled={!isEditing || !isEditingCredentials || disabled}
+                                    disabled={!isEditingCredentials}
                                     placeholder={
                                         isEditingCredentials ? "Enter new client secret" : ""
                                     }
@@ -469,7 +491,7 @@ export function AuthenticationConfigCard({
                                         setTokenUrl(e.target.value);
                                         if (tokenUrlError) setTokenUrlError("");
                                     }}
-                                    disabled={!isEditing || disabled}
+                                    disabled={!isEditing || disabled || isPublished}
                                     placeholder="https://auth.example.com/oauth/token"
                                     className={tokenUrlError ? "border-red-500" : ""}
                                 />
@@ -485,7 +507,7 @@ export function AuthenticationConfigCard({
                                 <Select
                                     value={grantType}
                                     onValueChange={(value) => setGrantType(value as GrantType)}
-                                    disabled={!isEditing || disabled}
+                                    disabled={!isEditing || disabled || isPublished}
                                 >
                                     <SelectTrigger id="grant-type">
                                         <SelectValue />
@@ -508,7 +530,7 @@ export function AuthenticationConfigCard({
                                     id="scope"
                                     value={scope}
                                     onChange={(e) => setScope(e.target.value)}
-                                    disabled={!isEditing || disabled}
+                                    disabled={!isEditing || disabled || isPublished}
                                     placeholder="read write"
                                 />
                             </div>
@@ -537,7 +559,7 @@ export function AuthenticationConfigCard({
                                                 setUsername(e.target.value);
                                                 if (passwordGrantError) setPasswordGrantError("");
                                             }}
-                                            disabled={!isEditing || disabled}
+                                            disabled={!isEditingCredentials}
                                             placeholder="Enter username"
                                             className={passwordGrantError ? "border-red-500" : ""}
                                         />
@@ -555,7 +577,7 @@ export function AuthenticationConfigCard({
                                                 setPassword(e.target.value);
                                                 if (passwordGrantError) setPasswordGrantError("");
                                             }}
-                                            disabled={!isEditing || disabled}
+                                            disabled={!isEditingCredentials}
                                             placeholder={
                                                 hasPassword ? "••••••••" : "Enter password"
                                             }
@@ -573,12 +595,20 @@ export function AuthenticationConfigCard({
                     </>
                 )}
 
-                {!isDraft && (
+                {isPublished && !isEditingCredentials && (
                     <p className="text-xs text-muted-foreground mt-4">
-                        Authentication cannot be modified for published data sources.
+                        Only credentials can be updated for published data sources. Authentication
+                        configuration (method, token URL, grant type, scope) is read-only.
                     </p>
                 )}
             </div>
+
+            <ConfirmCredentialUpdateDialog
+                open={showConfirmDialog}
+                onConfirm={performSave}
+                onCancel={() => setShowConfirmDialog(false)}
+                isLoading={isSaving}
+            />
         </div>
     );
 }
