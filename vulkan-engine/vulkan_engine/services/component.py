@@ -10,12 +10,10 @@ from sqlalchemy.orm import Session
 
 from vulkan_engine import schemas
 from vulkan_engine.db import Component
-from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import (
     WorkflowNotFoundException,
 )
 from vulkan_engine.loaders.component import ComponentLoader
-from vulkan_engine.logger import VulkanLogger
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.services.workflow import WorkflowService
 
@@ -27,9 +25,8 @@ class ComponentService(BaseService):
         self,
         db: Session,
         workflow_service: WorkflowService,
-        logger: VulkanLogger | None = None,
     ):
-        super().__init__(db, logger)
+        super().__init__(db)
         self.workflow_service = workflow_service
         self.component_loader = ComponentLoader(db)
 
@@ -80,9 +77,6 @@ class ComponentService(BaseService):
         self.db.add(component)
         self.db.commit()
         self.db.refresh(component)
-        self._log_event(
-            VulkanEvent.COMPONENT_CREATED, component_id=component.component_id
-        )
         return schemas.Component.from_orm(component, workflow)
 
     def update_component(
@@ -121,9 +115,6 @@ class ComponentService(BaseService):
                 project_id=project_id,
             )
 
-        self._log_event(
-            VulkanEvent.COMPONENT_UPDATED, component_id=component.component_id
-        )
         return schemas.Component.from_orm(component, workflow)
 
     def delete_component(
@@ -146,7 +137,3 @@ class ComponentService(BaseService):
 
         component.archived = True
         self.db.commit()
-        self._log_event(
-            VulkanEvent.COMPONENT_DELETED,
-            component_id=component.component_id,
-        )

@@ -21,15 +21,14 @@ from vulkan_engine.utils import validate_date_range
 class PolicyAnalyticsService(BaseService):
     """Service for policy analytics and metrics."""
 
-    def __init__(self, db, logger=None):
+    def __init__(self, db):
         """
         Initialize policy analytics service.
 
         Args:
             db: Database session
-            logger: Optional logger
         """
-        super().__init__(db, logger)
+        super().__init__(db)
         self.policy_loader = PolicyLoader(db)
 
     def get_run_duration_stats(

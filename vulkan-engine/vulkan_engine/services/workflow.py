@@ -12,10 +12,9 @@ from vulkan.spec.policy import PolicyDefinitionDict
 
 from vulkan_engine.backends.service_client import BackendServiceClient
 from vulkan_engine.db import Workflow
-from vulkan_engine.events import VulkanEvent
 from vulkan_engine.exceptions import WorkflowNotFoundException
 from vulkan_engine.loaders.component import ComponentLoader
-from vulkan_engine.logger import VulkanLogger
+from vulkan_engine.logging import get_logger
 from vulkan_engine.schemas import UIMetadata
 from vulkan_engine.services.base import BaseService
 
@@ -27,11 +26,11 @@ class WorkflowService(BaseService):
         self,
         db: Session,
         backend_service_client: BackendServiceClient | None = None,
-        logger: VulkanLogger | None = None,
     ):
-        super().__init__(db, logger)
+        super().__init__(db)
         self.worker_service_client = backend_service_client
         self.component_loader = ComponentLoader(db)
+        self.logger = get_logger(__name__)
 
     def create_workflow(
         self,
@@ -66,7 +65,6 @@ class WorkflowService(BaseService):
         self.db.commit()
         self.db.refresh(workflow)
 
-        self._log_event(VulkanEvent.WORKFLOW_CREATED, workflow_id=workflow.workflow_id)
         return workflow
 
     def get_workflow(self, workflow_id: str, project_id: str | None = None) -> Workflow:
@@ -147,7 +145,6 @@ class WorkflowService(BaseService):
         self.db.commit()
         self.db.refresh(workflow)
 
-        self._log_event(VulkanEvent.WORKFLOW_UPDATED, workflow_id=workflow.workflow_id)
         return workflow
 
     def delete_workflow(self, workflow_id: str, project_id: str | None = None) -> None:
@@ -173,8 +170,6 @@ class WorkflowService(BaseService):
         except Exception as e:
             raise Exception(f"Error deleting workflow {workflow_id}: {str(e)}")
 
-        self._log_event(VulkanEvent.WORKFLOW_DELETED, workflow_id=workflow_id)
-
     def _update_worker_workspace(
         self,
         workflow: Workflow,
@@ -188,11 +183,12 @@ class WorkflowService(BaseService):
                     requirements=workflow.requirements,
                 )
         except ValueError as e:
-            if self.logger:
-                self.logger.system.error(
-                    f"Failed to update workspace ({workflow.workflow_id}): {e}",
-                    exc_info=True,
-                )
+            self.logger.error(
+                "failed_to_update_workspace",
+                workflow_id=workflow.workflow_id,
+                error=str(e),
+                exc_info=True,
+            )
             raise Exception(
                 f"Failed to update workspace. Workflow ID: {workflow.workflow_id}"
             )
@@ -204,11 +200,11 @@ class WorkflowService(BaseService):
                 )
             workflow.status = WorkflowStatus.VALID
         except ValueError as e:
-            if self.logger:
-                self.logger.system.error(
-                    f"Failed to update workspace ({workflow.workflow_id}), version is invalid:\n{e}",
-                    exc_info=False,
-                )
+            self.logger.error(
+                "workspace_invalid",
+                workflow_id=workflow.workflow_id,
+                error=str(e),
+            )
 
     def _inject_component_implementations(
         self,

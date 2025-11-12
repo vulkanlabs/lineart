@@ -1,16 +1,13 @@
 """
 Base service class for all Vulkan Engine services.
 
-Provides common functionality like database session and logging.
+Provides common functionality like database session access.
 """
 
 from abc import ABC
 from typing import Any
 
 from sqlalchemy.orm import Session
-
-from vulkan_engine.config import LoggingConfig
-from vulkan_engine.logger import VulkanLogger, create_logger
 
 
 class BaseService(ABC):
@@ -19,24 +16,21 @@ class BaseService(ABC):
 
     Provides:
     - Database session access
-    - Logger instance (always available)
     - Common patterns for service operations
+
+    Services that need logging should instantiate their own logger:
+        from vulkan_engine.logging import get_logger
+        logger = get_logger(__name__)
     """
 
-    def __init__(self, db: Session, logger: VulkanLogger | None = None):
+    def __init__(self, db: Session):
         """
         Initialize base service.
 
         Args:
             db: SQLAlchemy database session
-            logger: Optional VulkanLogger instance for logging events
         """
         self.db = db
-        self.logger = logger or _create_default_logger(db)
-
-    def _log_event(self, event, **kwargs):
-        """Helper method to log events."""
-        self.logger.event(event, **kwargs)
 
     def _convert_pydantic_to_dict(self, obj) -> Any:
         """Recursively convert Pydantic models to dictionaries."""
@@ -48,9 +42,3 @@ class BaseService(ABC):
             return [self._convert_pydantic_to_dict(i) for i in obj]
         else:
             return obj
-
-
-def _create_default_logger(db: Session) -> VulkanLogger:
-    """Create a default logger instance."""
-    default_config = LoggingConfig(gcp_project_id=None)
-    return create_logger(db, default_config)

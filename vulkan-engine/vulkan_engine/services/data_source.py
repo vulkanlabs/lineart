@@ -38,10 +38,12 @@ from vulkan_engine.exceptions import (
     InvalidDataSourceException,
 )
 from vulkan_engine.loaders import DataSourceLoader
+from vulkan_engine.logging import get_logger
 from vulkan_engine.schemas import (
     DataBrokerRequest,
     DataBrokerResponse,
     DataObjectMetadata,
+    DataSourceCredentialBase,
     DataSourceEnvVarBase,
 )
 from vulkan_engine.schemas import DataSource as DataSourceSchema
@@ -54,18 +56,18 @@ from vulkan_engine.services.base import BaseService
 class DataSourceService(BaseService):
     """Service for managing data sources and data operations."""
 
-    def __init__(self, db, logger=None, redis_cache=None):
+    def __init__(self, db, redis_cache=None):
         """
         Initialize data source service.
 
         Args:
             db: Database session
-            logger: Optional logger
             redis_cache: Optional Redis client for OAuth token caching
         """
-        super().__init__(db, logger)
+        super().__init__(db)
         self.data_source_loader = DataSourceLoader(db)
         self.redis_cache = redis_cache
+        self.logger = get_logger(__name__)
 
     def _validate_data_source_type(self, spec: DataSourceSpec) -> None:
         """
@@ -247,8 +249,7 @@ class DataSourceService(BaseService):
 
         self.db.commit()
 
-        if self.logger:
-            self.logger.system.info(f"Updated data source {data_source_id}")
+        self.logger.info("updated_data_source", data_source_id=data_source_id)
 
         return DataSourceSchema.from_orm(data_source)
 
@@ -286,10 +287,10 @@ class DataSourceService(BaseService):
             self.db.delete(data_source)
             self.db.commit()
 
-            if self.logger:
-                self.logger.system.info(
-                    f"Hard deleted DRAFT data source {data_source_id}"
-                )
+            self.logger.info(
+                "hard_deleted_draft_data_source",
+                data_source_id=data_source_id,
+            )
 
             return {"data_source_id": data_source_id}
 
@@ -342,10 +343,11 @@ class DataSourceService(BaseService):
         data_source.status = DataSourceStatus.ARCHIVED
         self.db.commit()
 
-        if self.logger:
-            self.logger.system.info(
-                f"Archived {data_source.status.value} data source {data_source_id}"
-            )
+        self.logger.info(
+            "archived_data_source",
+            data_source_id=data_source_id,
+            status=data_source.status.value,
+        )
 
         return {"data_source_id": data_source_id}
 
@@ -448,7 +450,7 @@ class DataSourceService(BaseService):
         return [DataSourceEnvVarSchema.model_validate(var) for var in env_vars]
 
     def set_credentials(
-        self, data_source_id: str, credentials: list[DataSourceCredentialSchema]
+        self, data_source_id: str, credentials: list[DataSourceCredentialBase]
     ) -> list[DataSourceCredentialSchema]:
         """
         Set credentials for a data source
@@ -634,8 +636,8 @@ class DataSourceService(BaseService):
             _validate_url_scheme(spec.source.url)
 
         # Initialize broker
-        logger = self.logger.system if self.logger else None
-        broker = DataBroker(db=self.db, logger=logger, spec=spec)
+        # DataBroker uses old logging system, pass None
+        broker = DataBroker(db=self.db, logger=None, spec=spec)
 
         # Get environment variables and credentials from database
         env_variables = _load_env_vars(self.db, spec.data_source_id)
@@ -689,12 +691,10 @@ class DataSourceService(BaseService):
             requests.exceptions.RequestException,
             requests.exceptions.HTTPError,
         ) as e:
-            if self.logger:
-                self.logger.system.error(str(e))
+            self.logger.error("data_broker_request_error", error=str(e), exc_info=True)
             raise DataBrokerRequestException(str(e))
         except Exception as e:
-            if self.logger:
-                self.logger.system.error(str(e))
+            self.logger.error("data_broker_error", error=str(e), exc_info=True)
             raise DataBrokerException(str(e))
 
     def publish_data_source(
@@ -730,8 +730,7 @@ class DataSourceService(BaseService):
         data_source.status = DataSourceStatus.PUBLISHED
         self.db.commit()
 
-        if self.logger:
-            self.logger.system.info(f"Published data source {data_source_id}")
+        self.logger.info("published_data_source", data_source_id=data_source_id)
 
         return DataSourceSchema.from_orm(data_source)
 

@@ -16,7 +16,7 @@ from vulkan_engine.exceptions import (
     DataSourceNotFoundException,
     InvalidDataSourceException,
 )
-from vulkan_engine.logger import VulkanLogger
+from vulkan_engine.logging import get_logger
 from vulkan_engine.services import (
     DataSourceAnalyticsService,
     DataSourceService,
@@ -24,7 +24,6 @@ from vulkan_engine.services import (
 )
 
 from vulkan_server.dependencies import (
-    get_configured_logger,
     get_data_source_analytics_service,
     get_data_source_service,
     get_data_source_test_service,
@@ -35,6 +34,8 @@ router = APIRouter(
     tags=["data-sources"],
     responses={404: {"description": "Not found"}},
 )
+
+logger = get_logger(__name__)
 
 
 @router.get("/", response_model=list[schemas.DataSource])
@@ -251,7 +252,6 @@ async def data_source_test_by_id(
     data_source_id: str,
     test_params: schemas.DataSourceTestParams,
     service: DataSourceTestService = Depends(get_data_source_test_service),
-    logger: Annotated[VulkanLogger, Depends(get_configured_logger)] = None,
 ):
     """
     Test an existing data source with optional runtime parameters.
@@ -268,14 +268,23 @@ async def data_source_test_by_id(
     try:
         return await service.execute_test_by_id(test_request)
     except DataSourceNotFoundException as e:
-        logger.warning(f"Data source not found: {e}")
+        logger.warning(
+            "data_source_not_found", data_source_id=data_source_id, error=str(e)
+        )
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidDataSourceException as e:
-        logger.warning(f"Test validation error: {e}")
+        logger.warning(
+            "test_validation_error", data_source_id=data_source_id, error=str(e)
+        )
         raise HTTPException(status_code=400, detail=str(e))
     except TimeoutError as e:
-        logger.warning(f"Test timeout: {e}")
+        logger.warning("test_timeout", data_source_id=data_source_id, error=str(e))
         raise HTTPException(status_code=408, detail="Request timeout")
     except Exception as e:
-        logger.error(f"Test execution error: {e}", exc_info=True)
+        logger.error(
+            "test_execution_error",
+            data_source_id=data_source_id,
+            error=str(e),
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail="Internal server error")

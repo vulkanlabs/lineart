@@ -5,7 +5,6 @@ service clients that work with different workflow engines' HTTP services.
 """
 
 import os
-from logging import Logger
 
 from vulkan_engine.backends.dagster.client import (
     create_dagster_client_from_url,
@@ -29,13 +28,11 @@ class ServiceClientFactory:
     @staticmethod
     def create_service_client(
         config: VulkanEngineConfig,
-        base_logger: Logger,
     ) -> BackendServiceClient:
         """Create a service client based on the configuration.
 
         Args:
             config: VulkanEngine configuration
-            base_logger: Logger instance used to create the service logger
 
         Returns:
             Appropriate service client implementation
@@ -46,20 +43,15 @@ class ServiceClientFactory:
         worker_type = config.worker_service.worker_type
 
         if worker_type == "dagster":
-            return ServiceClientFactory._create_dagster_service_client(
-                config, base_logger
-            )
+            return ServiceClientFactory._create_dagster_service_client(config)
         elif worker_type == "hatchet":
-            return ServiceClientFactory._create_hatchet_service_client(
-                config, base_logger
-            )
+            return ServiceClientFactory._create_hatchet_service_client(config)
         else:
             raise ValueError(f"Unsupported worker type: {worker_type}")
 
     @staticmethod
     def _create_dagster_service_client(
         config: VulkanEngineConfig,
-        base_logger: Logger,
     ) -> DagsterServiceClient:
         """Create Dagster service client with proper configuration."""
 
@@ -77,20 +69,17 @@ class ServiceClientFactory:
         return DagsterServiceClient(
             server_url=config.worker_service.server_url,
             dagster_client=dagster_client,
-            logger=base_logger,
         )
 
     @staticmethod
     def _create_hatchet_service_client(
         config: VulkanEngineConfig,
-        base_logger: Logger,
     ) -> HatchetServiceClient:
         """Create Hatchet service client with proper configuration."""
 
         server_url = config.worker_service.server_url
         return HatchetServiceClient(
             server_url=server_url,
-            logger=base_logger,
         )
 
 

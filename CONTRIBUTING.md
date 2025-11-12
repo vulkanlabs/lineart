@@ -52,8 +52,16 @@ To create a new migration:
 ```bash
 # First, check the latest migration number in vulkan-engine/vulkan_engine/alembic/versions/
 # Then create the next sequential migration
-cd vulkan-engine
-uv run alembic revision --rev-id="003" -m "description_of_your_changes"
+#
+# IMPORTANT: review the variables below to ensure they point to your dev database.
+# DB_USER
+# DB_PASSWORD
+# DB_DATABASE
+# DB_HOST
+# DB_PORT
+#
+cd vulkan-engine/vulkan_engine
+uv run alembic revision --autogenerate --rev-id="003" -m "description_of_your_changes" 
 ```
 
 **Important:**

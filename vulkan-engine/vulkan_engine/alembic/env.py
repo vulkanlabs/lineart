@@ -2,7 +2,7 @@ import os
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, pool
 
 # Import the Base from vulkan_engine.db to get access to all models
 from vulkan_engine.db import Base
@@ -16,11 +16,12 @@ config = context.config
 # (e.g., generating migrations via alembic CLI), fall back to environment variables.
 if config.get_main_option("sqlalchemy.url") is None:
     # Fallback for development: construct URL from environment variables
-    db_user = os.getenv("DB_USER")
-    db_password = os.getenv("DB_PASSWORD")
-    db_host = os.getenv("DB_HOST")
-    db_port = os.getenv("DB_PORT")
-    db_database = os.getenv("DB_DATABASE")
+    # These values should be set to point to your development database.
+    db_user = os.getenv("DB_USER", "postgres_app_user")
+    db_password = os.getenv("DB_PASSWORD", "postgres_app_password")
+    db_database = os.getenv("DB_DATABASE", "postgres_app_db")
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_port = os.getenv("DB_PORT", "5433")
 
     if all([db_user, db_password, db_host, db_port, db_database]):
         db_url = f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_database}"
@@ -72,11 +73,14 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    url = config.get_main_option("sqlalchemy.url")
+    if not url:
+        raise RuntimeError(
+            "Database URL not configured. Please set the following environment variables:\n"
+            "  DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_DATABASE"
+        )
+
+    connectable = create_engine(url, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)

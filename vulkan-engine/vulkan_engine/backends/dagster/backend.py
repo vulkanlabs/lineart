@@ -6,9 +6,9 @@ from vulkan.runners.shared.constants import POLICY_CONFIG_KEY, RUN_CONFIG_KEY
 
 from vulkan_engine.backends.dagster import trigger_run
 from vulkan_engine.backends.execution import ExecutionBackend
-from vulkan_engine.logger import init_logger
+from vulkan_engine.logging import get_logger
 
-logger = init_logger("dagster_backend")
+logger = get_logger(__name__)
 
 
 class DagsterBackend(ExecutionBackend):

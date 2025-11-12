@@ -98,15 +98,10 @@ class WorkerDatabaseConfig:
 
 @dataclass
 class LoggingConfig:
-    """
-    Configuration for logging services.
+    """Configuration for logging services."""
 
-    Enables optional cloud logging integration. When gcp_project_id is provided,
-    logs will be sent to Google Cloud Logging if the GCP dependencies are available.
-    """
-
-    gcp_project_id: str | None = None
-    """GCP project ID for cloud logging. If None, only local logging is used."""
+    development: bool
+    log_level: str
 
 
 @dataclass

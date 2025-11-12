@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from logging import Logger
 from typing import Any
 
 from requests import Request, Response, Session
@@ -7,6 +6,7 @@ from requests import Request, Response, Session
 from vulkan_engine.backends.dagster.trigger_run import update_repository
 from vulkan_engine.backends.service_client import BackendServiceClient
 from vulkan_engine.exceptions import raise_interservice_error
+from vulkan_engine.logging import get_logger
 
 
 @dataclass
@@ -22,13 +22,12 @@ class DagsterServiceClient(BackendServiceClient):
         self,
         server_url: str,
         dagster_client: Any,
-        logger: Logger,
         request_config: VulkanDagsterRequestConfig | None = None,
     ) -> None:
         self.server_url = server_url
         self.dagster_client = dagster_client
         self.session = Session()
-        self.logger = logger.getChild("vulkan_dagster_service_client")
+        self.logger = get_logger(__name__)
 
         if request_config is None:
             self.request_config = VulkanDagsterRequestConfig()

@@ -21,7 +21,6 @@ class RunQueryService(BaseService):
         self,
         db: Session,
         data_client: BaseDataClient,
-        logger=None,
     ):
         """
         Initialize run query service.
@@ -29,9 +28,8 @@ class RunQueryService(BaseService):
         Args:
             db: Database session
             data_client: Backend data client for retrieving run data
-            logger: Logger instance
         """
-        super().__init__(db, logger)
+        super().__init__(db)
         self.data_client = data_client
         self.run_loader = RunLoader(db)
 

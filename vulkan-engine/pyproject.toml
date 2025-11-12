@@ -12,11 +12,9 @@ dependencies = [
     "requests>=2.32.3",
     "redis>=5.0.0",
     "httpx>=0.24.0",
+    "structlog>=24.1.0",
 ]
 requires-python = ">=3.10"
-
-[project.optional-dependencies]
-gcp = ["google-cloud-logging>=3.11.4"]
 
 [tool.uv]
 dev-dependencies = ["pytest>=8.3.2"]
