@@ -16,11 +16,12 @@ config = context.config
 # (e.g., generating migrations via alembic CLI), fall back to environment variables.
 if config.get_main_option("sqlalchemy.url") is None:
     # Fallback for development: construct URL from environment variables
-    db_user = os.getenv("DB_USER")
-    db_password = os.getenv("DB_PASSWORD")
-    db_host = os.getenv("DB_HOST")
-    db_port = os.getenv("DB_PORT")
-    db_database = os.getenv("DB_DATABASE")
+    # These values should be set to point to your development database.
+    db_user = os.getenv("DB_USER", "postgres_app_user")
+    db_password = os.getenv("DB_PASSWORD", "postgres_app_password")
+    db_host = os.getenv("DB_HOST", "postgres_app_db")
+    db_port = os.getenv("DB_PORT", "localhost")
+    db_database = os.getenv("DB_DATABASE", "5432")
 
     if all([db_user, db_password, db_host, db_port, db_database]):
         db_url = f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_database}"
