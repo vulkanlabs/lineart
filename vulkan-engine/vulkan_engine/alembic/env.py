@@ -19,9 +19,9 @@ if config.get_main_option("sqlalchemy.url") is None:
     # These values should be set to point to your development database.
     db_user = os.getenv("DB_USER", "postgres_app_user")
     db_password = os.getenv("DB_PASSWORD", "postgres_app_password")
-    db_host = os.getenv("DB_HOST", "postgres_app_db")
-    db_port = os.getenv("DB_PORT", "localhost")
-    db_database = os.getenv("DB_DATABASE", "5432")
+    db_database = os.getenv("DB_DATABASE", "postgres_app_db")
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_port = os.getenv("DB_PORT", "5433")
 
     if all([db_user, db_password, db_host, db_port, db_database]):
         db_url = f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_database}"

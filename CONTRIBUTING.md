@@ -60,7 +60,7 @@ To create a new migration:
 # DB_HOST
 # DB_PORT
 #
-cd vulkan-engine
+cd vulkan-engine/vulkan_engine
 uv run alembic revision --autogenerate --rev-id="003" -m "description_of_your_changes" 
 ```
 

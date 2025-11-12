@@ -19,7 +19,7 @@ services:
     env_file:
       - config/active/app-db.env
     ports:
-      - "5432:5432"
+      - "5433:5432"
     healthcheck:
       test:
         [
