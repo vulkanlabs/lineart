@@ -1,28 +1,25 @@
 """
 Database initialization for vulkan-server.
 
-This module handles database table creation and initialization using
-the models defined in vulkan-engine.
+This module handles database schema migrations using Alembic.
 """
 
 import sys
 
-from sqlalchemy import create_engine
 from vulkan_engine.config import VulkanEngineConfig
-from vulkan_engine.db import Base
+from vulkan_engine.migrations import run_migrations
 
 from vulkan_server.config import load_vulkan_engine_config
 
 
 def init_database(config: VulkanEngineConfig) -> None:
     """
-    Initialize the database by creating all tables.
+    Initialize the database by running Alembic migrations.
 
     Args:
         config: VulkanEngineConfig instance with database configuration
     """
-    engine = create_engine(config.database.connection_string, echo=False)
-    Base.metadata.create_all(bind=engine)
+    run_migrations(config.database)
 
 
 def main():
