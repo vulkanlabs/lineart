@@ -10,14 +10,13 @@ dependencies = [
     "vulkanlabs-vulkan-engine",
     "vulkan-server",
     "lineart",
-    "ruff>=0.11.0",
 ]
 
 [tool.uv]
 dev-dependencies = [
     "questionary>=2.0.1",
     "pre-commit>=4",
-    "ruff>=0.9.6",
+    "ruff==0.14.3",
     "jupyterlab>=4.3.6",
     "ipython-autotime>=0.3.2",
 ]
@@ -38,3 +37,10 @@ build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+exclude = [
+    "scripts",
+    "docs",
+    "sdks",
+]
