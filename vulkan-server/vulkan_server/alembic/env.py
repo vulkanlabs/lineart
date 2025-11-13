@@ -11,7 +11,7 @@ from vulkan_engine.db import Base
 # access to the values within the .ini file in use.
 config = context.config
 
-# Database URL is set programmatically by vulkan_engine.migrations module
+# Database URL is set programmatically by vulkan_server.migrations module
 # when running migrations via the Python API. For development scenarios
 # (e.g., generating migrations via alembic CLI), fall back to environment variables.
 if config.get_main_option("sqlalchemy.url") is None:
@@ -34,6 +34,8 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
+# All open-source models from vulkan_engine inherit from this Base,
+# so Base.metadata contains all table definitions
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

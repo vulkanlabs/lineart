@@ -7,9 +7,9 @@ This module handles database schema migrations using Alembic.
 import sys
 
 from vulkan_engine.config import VulkanEngineConfig
-from vulkan_engine.migrations import run_migrations
 
 from vulkan_server.config import load_vulkan_engine_config
+from vulkan_server.migrations import run_migrations
 
 
 def init_database(config: VulkanEngineConfig) -> None:
