@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 import httpx
 from jinja2 import TemplateSyntaxError, UndefinedError
 from requests.exceptions import HTTPError as RequestsHTTPError
+from sqlalchemy.ext.asyncio import AsyncSession
 from vulkan.auth import AuthConfig
 
 from vulkan_engine.db import (
@@ -40,7 +41,7 @@ from vulkan_engine.services.request_preparation import (
 class DataSourceTestService(BaseService):
     """Service for testing data sources."""
 
-    def __init__(self, db):
+    def __init__(self, db: AsyncSession):
         """
         Initialize data source test service.
 
@@ -138,7 +139,7 @@ class DataSourceTestService(BaseService):
         # Load data source configuration
         loader = DataSourceLoader(self.db)
         try:
-            data_source = loader.get_data_source(
+            data_source = await loader.get_data_source(
                 test_request.data_source_id, include_archived=True
             )
         except DataSourceNotFoundException:
@@ -149,8 +150,8 @@ class DataSourceTestService(BaseService):
         # Build full test request by merging data source config with runtime params
         source_config = data_source.source
 
-        env_vars = _load_env_vars(self.db, test_request.data_source_id)
-        credentials = _load_credentials(self.db, test_request.data_source_id)
+        env_vars = await _load_env_vars(self.db, test_request.data_source_id)
+        credentials = await _load_credentials(self.db, test_request.data_source_id)
 
         if test_request.env_vars:
             env_vars.update(test_request.env_vars)
@@ -317,7 +318,7 @@ class DataSourceTestService(BaseService):
             response=response_payload,
         )
         self.db.add(test_result)
-        self.db.commit()
+        await self.db.commit()
 
         self.logger.info(
             "data_source_test_executed",

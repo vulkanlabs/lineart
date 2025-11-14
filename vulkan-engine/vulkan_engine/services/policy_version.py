@@ -9,7 +9,6 @@ from datetime import date
 
 from sqlalchemy import func as F
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 from vulkan.data_source import DataSourceStatus
 from vulkan.spec.nodes.base import NodeType
 
@@ -44,7 +43,7 @@ class PolicyVersionService(BaseService):
 
     def __init__(
         self,
-        db: Session,
+        db,
         workflow_service: WorkflowService,
         orchestrator: RunOrchestrationService,
     ):
@@ -63,7 +62,7 @@ class PolicyVersionService(BaseService):
         self.policy_version_loader = PolicyVersionLoader(db)
         self.logger = get_logger(__name__)
 
-    def create_policy_version(
+    async def create_policy_version(
         self, config: schemas.PolicyVersionBase, project_id: str = None
     ) -> schemas.PolicyVersion:
         """
@@ -79,10 +78,12 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyNotFoundException: If policy doesn't exist
         """
-        policy = self.policy_loader.get_policy(config.policy_id, project_id=project_id)
+        policy = await self.policy_loader.get_policy(
+            config.policy_id, project_id=project_id
+        )
 
         # Create workflow for the policy version
-        workflow = self.workflow_service.create_workflow(
+        workflow = await self.workflow_service.create_workflow(
             spec={"nodes": [], "input_schema": {}},
             requirements=[],
             variables=[],
@@ -98,11 +99,11 @@ class PolicyVersionService(BaseService):
             project_id=policy.project_id,
         )
         self.db.add(version)
-        self.db.commit()
+        await self.db.commit()
 
         return schemas.PolicyVersion.from_orm(version, workflow)
 
-    def get_policy_version(
+    async def get_policy_version(
         self, policy_version_id: str, project_id: str = None
     ) -> PolicyVersion | None:
         """
@@ -116,13 +117,13 @@ class PolicyVersionService(BaseService):
             PolicyVersion object or None if not found
         """
         try:
-            return self.policy_version_loader.get_policy_version(
+            return await self.policy_version_loader.get_policy_version(
                 policy_version_id, project_id=project_id
             )
         except PolicyVersionNotFoundException:
             return None
 
-    def list_policy_versions(
+    async def list_policy_versions(
         self,
         policy_id: str | None = None,
         archived: bool = False,
@@ -139,11 +140,11 @@ class PolicyVersionService(BaseService):
         Returns:
             List of PolicyVersion objects
         """
-        return self.policy_version_loader.list_policy_versions(
+        return await self.policy_version_loader.list_policy_versions(
             policy_id=policy_id, project_id=project_id, include_archived=archived
         )
 
-    def update_policy_version(
+    async def update_policy_version(
         self,
         policy_version_id: str,
         config: schemas.PolicyVersionUpdate,
@@ -165,14 +166,14 @@ class PolicyVersionService(BaseService):
             DSNotFound: If referenced data sources don't exist
             InvalidDataSourceException: If data source configuration is invalid
         """
-        version = self.policy_version_loader.get_policy_version(
+        version = await self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id, include_archived=False
         )
 
         # Update basic fields
         version.alias = config.alias
 
-        workflow = self.workflow_service.update_workflow(
+        workflow = await self.workflow_service.update_workflow(
             workflow_id=version.workflow_id,
             spec=config.workflow.spec,
             requirements=config.workflow.requirements,
@@ -197,18 +198,19 @@ class PolicyVersionService(BaseService):
         used_data_sources = [node.metadata["data_source"] for node in data_input_nodes]
 
         if used_data_sources:
-            data_sources = self._add_data_source_dependencies(
+            data_sources = await self._add_data_source_dependencies(
                 version, used_data_sources
             )
             # For each data source, check if its required runtime params are
             # configured in the corresponding data-input-node "parameters" field.
             self._validate_data_source_runtime_params(data_input_nodes, data_sources)
 
-        self.db.commit()
+        await self.db.commit()
+        await self.db.refresh(version)
 
         return schemas.PolicyVersion.from_orm(version, workflow)
 
-    def delete_policy_version(
+    async def delete_policy_version(
         self, policy_version_id: str, project_id: str = None
     ) -> None:
         """
@@ -223,7 +225,7 @@ class PolicyVersionService(BaseService):
             PolicyVersionInUseException: If version is in use by allocation strategy
         """
         try:
-            version = self.policy_version_loader.get_policy_version(
+            version = await self.policy_version_loader.get_policy_version(
                 policy_version_id, project_id=project_id, include_archived=False
             )
         except PolicyVersionNotFoundException:
@@ -232,15 +234,17 @@ class PolicyVersionService(BaseService):
             )
 
         # Check if version is in use by allocation strategy
-        self._check_version_not_in_use(version)
+        await self._check_version_not_in_use(version)
 
         # Delete the underlying workflow
-        self.workflow_service.delete_workflow(version.workflow_id)
+        await self.workflow_service.delete_workflow(
+            version.workflow_id, project_id=project_id
+        )
 
         version.archived = True
-        self.db.commit()
+        await self.db.commit()
 
-    def create_run(
+    async def create_run(
         self,
         policy_version_id: str,
         input_data: dict,
@@ -259,7 +263,7 @@ class PolicyVersionService(BaseService):
         Returns:
             RunCreated
         """
-        run = self.orchestrator.create_run(
+        run = await self.orchestrator.create_run(
             input_data=input_data,
             policy_version_id=policy_version_id,
             run_config_variables=config_variables,
@@ -292,7 +296,7 @@ class PolicyVersionService(BaseService):
         Returns:
             RunResult object
         """
-        run = self.orchestrator.create_run(
+        run = await self.orchestrator.create_run(
             input_data=input_data,
             policy_version_id=policy_version_id,
             run_config_variables=config_variables,
@@ -303,7 +307,7 @@ class PolicyVersionService(BaseService):
         )
         return result
 
-    def list_configuration_variables(
+    async def list_configuration_variables(
         self, policy_version_id: str, project_id: str = None
     ) -> list[schemas.ConfigurationVariables]:
         """
@@ -319,18 +323,16 @@ class PolicyVersionService(BaseService):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist
         """
-        version = self.policy_version_loader.get_policy_version(
+        version = await self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id, include_archived=False
         )
 
         # Get variables from the workflow
         required_variables = version.workflow.variables or []
 
-        variables = (
-            self.db.query(ConfigurationValue)
-            .filter_by(policy_version_id=policy_version_id)
-            .all()
-        )
+        stmt = select(ConfigurationValue).filter_by(policy_version_id=policy_version_id)
+        result = await self.db.execute(stmt)
+        variables = list(result.scalars().all())
         variable_map = {v.name: v for v in variables}
 
         result = []
@@ -360,7 +362,7 @@ class PolicyVersionService(BaseService):
 
         return result
 
-    def set_configuration_variables(
+    async def set_configuration_variables(
         self,
         policy_version_id: str,
         desired_variables: list[schemas.ConfigurationVariablesBase],
@@ -381,15 +383,13 @@ class PolicyVersionService(BaseService):
             PolicyVersionNotFoundException: If version doesn't exist
         """
         # Validate policy version exists
-        self.policy_version_loader.get_policy_version(
+        await self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id, include_archived=False
         )
 
-        existing_variables = (
-            self.db.query(ConfigurationValue)
-            .filter_by(policy_version_id=policy_version_id)
-            .all()
-        )
+        stmt = select(ConfigurationValue).filter_by(policy_version_id=policy_version_id)
+        result = await self.db.execute(stmt)
+        existing_variables = list(result.scalars().all())
 
         # Remove variables not in desired list
         desired_names = {var.name for var in desired_variables}
@@ -411,7 +411,7 @@ class PolicyVersionService(BaseService):
             else:
                 config_value.value = v.value
 
-        self.db.commit()
+        await self.db.commit()
 
         return schemas.ConfigurationVariablesSetResult(
             policy_version_id=policy_version_id,
@@ -424,7 +424,7 @@ class PolicyVersionService(BaseService):
             ],
         )
 
-    def list_runs_by_policy_version(
+    async def list_runs_by_policy_version(
         self,
         policy_version_id: str,
         start_date: date | None = None,
@@ -445,20 +445,21 @@ class PolicyVersionService(BaseService):
         """
         start_date, end_date = validate_date_range(start_date, end_date)
 
-        query = select(Run).filter(
+        stmt = select(Run).filter(
             (Run.policy_version_id == policy_version_id)
             & (Run.created_at >= start_date)
             & (F.DATE(Run.created_at) <= end_date)
         )
 
         if project_id is not None:
-            query = query.filter(Run.project_id == project_id)
+            stmt = stmt.filter(Run.project_id == project_id)
 
-        query = query.order_by(Run.created_at.desc())
+        stmt = stmt.order_by(Run.created_at.desc())
 
-        return self.db.execute(query).scalars().all()
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
 
-    def list_data_sources_by_policy_version(
+    async def list_data_sources_by_policy_version(
         self, policy_version_id: str, project_id: str = None
     ) -> list[schemas.DataSourceReference]:
         """
@@ -475,25 +476,21 @@ class PolicyVersionService(BaseService):
             PolicyVersionNotFoundException: If version doesn't exist
         """
         # Validate policy version exists
-        version = self.policy_version_loader.get_policy_version(
+        version = await self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id
         )
 
-        dependencies = (
-            self.db.query(WorkflowDataDependency)
-            .filter_by(workflow_id=version.workflow_id)
-            .all()
-        )
+        stmt = select(WorkflowDataDependency).filter_by(workflow_id=version.workflow_id)
+        result = await self.db.execute(stmt)
+        dependencies = list(result.scalars().all())
 
-        result = []
+        result_list = []
         for dep in dependencies:
-            ds = (
-                self.db.query(DataSource)
-                .filter_by(data_source_id=dep.data_source_id)
-                .first()
-            )
+            ds_stmt = select(DataSource).filter_by(data_source_id=dep.data_source_id)
+            ds_result = await self.db.execute(ds_stmt)
+            ds = ds_result.scalar_one_or_none()
             if ds:
-                result.append(
+                result_list.append(
                     schemas.DataSourceReference(
                         data_source_id=ds.data_source_id,
                         name=ds.name,
@@ -501,17 +498,18 @@ class PolicyVersionService(BaseService):
                     )
                 )
 
-        return result
+        return result_list
 
-    def _add_data_source_dependencies(
+    async def _add_data_source_dependencies(
         self, version: PolicyVersion, data_sources: list[str]
     ) -> dict[str, DataSource]:
         """Add data source dependencies for a policy version."""
-        query = select(DataSource).where(
+        stmt = select(DataSource).where(
             DataSource.name.in_(data_sources),
             DataSource.status == DataSourceStatus.PUBLISHED,
         )
-        matched = self.db.execute(query).scalars().all()
+        result = await self.db.execute(stmt)
+        matched = list(result.scalars().all())
 
         missing = set(data_sources) - {m.name for m in matched}
         if missing:
@@ -520,11 +518,11 @@ class PolicyVersionService(BaseService):
             )
 
         # Get existing dependencies for this workflow
-        existing_deps = (
-            self.db.query(WorkflowDataDependency)
-            .filter_by(workflow_id=version.workflow_id)
-            .all()
+        deps_stmt = select(WorkflowDataDependency).filter_by(
+            workflow_id=version.workflow_id
         )
+        deps_result = await self.db.execute(deps_stmt)
+        existing_deps = list(deps_result.scalars().all())
         existing_ds_ids = {dep.data_source_id for dep in existing_deps}
         desired_ds_ids = {ds.data_source_id for ds in matched}
 
@@ -560,9 +558,11 @@ class PolicyVersionService(BaseService):
                         f"from {node.name}"
                     )
 
-    def _check_version_not_in_use(self, version: PolicyVersion) -> None:
+    async def _check_version_not_in_use(self, version: PolicyVersion) -> None:
         """Check if policy version is in use by allocation strategy."""
-        policy = self.db.query(Policy).filter_by(policy_id=version.policy_id).first()
+        stmt = select(Policy).filter_by(policy_id=version.policy_id)
+        result = await self.db.execute(stmt)
+        policy = result.scalar_one_or_none()
         if policy and policy.allocation_strategy:
             strategy = schemas.PolicyAllocationStrategy.model_validate(
                 policy.allocation_strategy
