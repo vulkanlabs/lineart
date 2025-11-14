@@ -25,9 +25,3 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["vulkan_engine"]
-
-# Include all files in the alembic directory (migrations, templates, config)
-artifacts = [
-  "vulkan_engine/alembic.ini",
-  "vulkan_engine/alembic/**",
-]

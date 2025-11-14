@@ -1,0 +1,12 @@
+Generic single-database configuration with Python logging.
+
+This directory contains Alembic migrations for vulkan-server (open-source).
+
+These migrations manage the database schema for the open-source deployment,
+including core models from vulkan-engine:
+- Policy, PolicyVersion, Workflow, Component
+- DataSource, DataSourceCredential, DataSourceEnvVar
+- Run, RunGroup, RunDataCache, RunDataRequest
+- StepMetadata, DataObject, ConfigurationValue, WorkflowDataDependency
+
+All models inherit from the same SQLAlchemy Base (from vulkan_engine.db).
