@@ -12,7 +12,6 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 from vulkan.core.run import RunStatus
 from vulkan.spec.policy import PolicyDefinitionDict
 
@@ -43,7 +42,7 @@ class RunOrchestrationService(BaseService):
 
     def __init__(
         self,
-        db: Session,
+        db,
         backend: ExecutionBackend,
     ):
         """
@@ -59,7 +58,7 @@ class RunOrchestrationService(BaseService):
         self.policy_version_loader = PolicyVersionLoader(db)
         self.logger = get_logger(__name__)
 
-    def create_run(
+    async def create_run(
         self,
         input_data: dict,
         policy_version_id: str,
@@ -86,7 +85,7 @@ class RunOrchestrationService(BaseService):
             UnhandledException: If run launch fails
         """
         # Validate and prepare configuration
-        run_config = self._prepare_run_config(
+        run_config = await self._prepare_run_config(
             policy_version_id, project_id, run_config_variables
         )
 
@@ -99,14 +98,14 @@ class RunOrchestrationService(BaseService):
             project_id=project_id,
         )
         self.db.add(run)
-        self.db.commit()
+        await self.db.commit()
 
         # Trigger execution
-        return self._trigger_execution(
+        return await self._trigger_execution(
             run=run, run_config=run_config, input_data=input_data
         )
 
-    def launch_run(
+    async def launch_run(
         self,
         run: Run,
         input_data: dict,
@@ -129,16 +128,16 @@ class RunOrchestrationService(BaseService):
             UnhandledException: If run launch fails
         """
         # Validate and prepare configuration
-        run_config = self._prepare_run_config(
+        run_config = await self._prepare_run_config(
             run.policy_version_id, run.project_id, run_config_variables
         )
 
         # Trigger execution
-        return self._trigger_execution(
+        return await self._trigger_execution(
             run=run, run_config=run_config, input_data=input_data
         )
 
-    def publish_step_metadata(
+    async def publish_step_metadata(
         self, run_id: str, metadata: StepMetadataBase, project_id: str = None
     ) -> dict[str, str]:
         """
@@ -156,7 +155,7 @@ class RunOrchestrationService(BaseService):
             RunNotFoundException: If run doesn't exist or doesn't belong to specified project
         """
         # Verify run exists
-        self.run_loader.get_run(run_id, project_id=project_id)
+        await self.run_loader.get_run(run_id, project_id=project_id)
 
         # Create metadata record
         meta = StepMetadata(
@@ -169,11 +168,11 @@ class RunOrchestrationService(BaseService):
             extra=metadata.extra,
         )
         self.db.add(meta)
-        self.db.commit()
+        await self.db.commit()
 
         return {"status": "success"}
 
-    def update_run_status(
+    async def update_run_status(
         self,
         run_id: str,
         status: str,
@@ -198,7 +197,7 @@ class RunOrchestrationService(BaseService):
             RunNotFoundException: If run doesn't exist or doesn't belong to specified project
             ValueError: If status is invalid
         """
-        run = self.run_loader.get_run(run_id, project_id=project_id)
+        run = await self.run_loader.get_run(run_id, project_id=project_id)
 
         # Validate status
         try:
@@ -210,7 +209,7 @@ class RunOrchestrationService(BaseService):
         run.status = status_enum
         run.result = result
         run.run_metadata = metadata
-        self.db.commit()
+        await self.db.commit()
 
         # Trigger shadow runs if part of a run group
         # TODO: What to do when the main run fails?
@@ -221,11 +220,11 @@ class RunOrchestrationService(BaseService):
                 "launching_shadow_runs",
                 run_group_id=str(run.run_group_id),
             )
-            self._launch_pending_runs(run.run_group_id)
+            await self._launch_pending_runs(run.run_group_id)
 
         return run
 
-    def _launch_pending_runs(self, run_group_id: UUID) -> None:
+    async def _launch_pending_runs(self, run_group_id: UUID) -> None:
         """
         Launch pending runs in a run group.
 
@@ -233,7 +232,9 @@ class RunOrchestrationService(BaseService):
             run_group_id: Run group UUID
         """
         # Get run group and input data
-        run_group = self.db.query(RunGroup).filter_by(run_group_id=run_group_id).first()
+        stmt = select(RunGroup).filter_by(run_group_id=run_group_id)
+        result = await self.db.execute(stmt)
+        run_group = result.scalar_one_or_none()
         if not run_group:
             self.logger.error("run_group_not_found", run_group_id=str(run_group_id))
             return
@@ -241,17 +242,17 @@ class RunOrchestrationService(BaseService):
         input_data = run_group.input_data
 
         # Get pending runs
-        pending_runs = (
-            self.db.query(Run)
-            .filter_by(run_group_id=run_group_id, status=RunStatus.PENDING)
-            .all()
+        pending_stmt = select(Run).filter_by(
+            run_group_id=run_group_id, status=RunStatus.PENDING
         )
+        pending_result = await self.db.execute(pending_stmt)
+        pending_runs = list(pending_result.scalars().all())
 
         # Launch each pending run
         for run in pending_runs:
             self.logger.debug("launching_run", run_id=str(run.run_id))
             try:
-                self.launch_run(run=run, input_data=input_data)
+                await self.launch_run(run=run, input_data=input_data)
             except Exception as e:
                 # TODO: Structure log to trace the run that failed and the way it was triggered
                 self.logger.error(
@@ -262,7 +263,7 @@ class RunOrchestrationService(BaseService):
                 )
                 continue
 
-    def _prepare_run_config(
+    async def _prepare_run_config(
         self,
         policy_version_id: str,
         project_id: UUID | None,
@@ -283,7 +284,7 @@ class RunOrchestrationService(BaseService):
             NotFoundException: If policy version not found
             VariablesNotSetException: If required variables are missing
         """
-        version = self.policy_version_loader.get_policy_version(
+        version = await self.policy_version_loader.get_policy_version(
             policy_version_id,
             project_id=project_id,
         )
@@ -291,7 +292,7 @@ class RunOrchestrationService(BaseService):
             msg = f"Policy version {policy_version_id} not found"
             raise NotFoundException(msg)
 
-        config_variables, missing = resolve_config_variables_from_id(
+        config_variables, missing = await resolve_config_variables_from_id(
             db=self.db,
             policy_version_id=policy_version_id,
             required_variables=version.workflow.variables,
@@ -304,7 +305,7 @@ class RunOrchestrationService(BaseService):
             workflow_id=str(version.workflow_id), variables=config_variables
         )
 
-    def _trigger_execution(
+    async def _trigger_execution(
         self,
         run: Run,
         run_config: RunConfig,
@@ -325,7 +326,7 @@ class RunOrchestrationService(BaseService):
             UnhandledException: If execution triggering fails
         """
 
-        input_schema = self._get_input_schema(run_config.workflow_id)
+        input_schema = await self._get_input_schema(run_config.workflow_id)
 
         try:
             backend_run_id = self.backend.trigger_job(
@@ -344,20 +345,18 @@ class RunOrchestrationService(BaseService):
             run.status = RunStatus.STARTED
             run.started_at = datetime.now(timezone.utc)
             run.backend_run_id = backend_run_id
-            self.db.commit()
+            await self.db.commit()
         except Exception as e:
             run.status = RunStatus.FAILURE
-            self.db.commit()
+            await self.db.commit()
             raise UnhandledException(f"Failed to launch run: {str(e)}")
 
         return run
 
-    def _get_input_schema(self, workflow_id: str) -> dict[str, str]:
-        workflow_def_json = (
-            self.db.query(Workflow.spec)
-            .where(Workflow.workflow_id == workflow_id)
-            .scalar()
-        )
+    async def _get_input_schema(self, workflow_id: str) -> dict[str, str]:
+        stmt = select(Workflow.spec).where(Workflow.workflow_id == workflow_id)
+        result = await self.db.execute(stmt)
+        workflow_def_json = result.scalar_one()
         # While this can technically raise a validation error, it would
         # have occurred in the workflow creation.
         workflow_def = PolicyDefinitionDict.model_validate(workflow_def_json)
@@ -369,7 +368,7 @@ MAX_POLLING_TIMEOUT_MS = 300000
 
 
 async def get_run_result(
-    db: Session, run_id: str, polling_interval_ms: int, polling_timeout_ms: int
+    db, run_id: str, polling_interval_ms: int, polling_timeout_ms: int
 ) -> RunResult:
     """Poll the database for the run result.
 
@@ -392,15 +391,17 @@ async def get_run_result(
             # Clear the database cache to ensure we get the latest run status
             db.expire(run_obj)
 
-        run_obj = db.execute(select(Run).where(Run.run_id == run_id)).scalars().first()
-        if run_obj.status in (RunStatus.SUCCESS, RunStatus.FAILURE):
+        stmt = select(Run).where(Run.run_id == run_id)
+        result = await db.execute(stmt)
+        run_obj = result.scalar_one_or_none()
+        if run_obj and run_obj.status in (RunStatus.SUCCESS, RunStatus.FAILURE):
             completed = True
             break
 
         await asyncio.sleep(polling_interval)
         elapsed += polling_interval
 
-    if not completed:
+    if not completed or not run_obj:
         raise RunPollingTimeoutException(
             f"Run {run_id} timed out after {polling_timeout} seconds. "
             "Check the run logs for more details."

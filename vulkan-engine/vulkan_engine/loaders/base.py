@@ -2,33 +2,34 @@
 Base loader class with common functionality for all resource loaders.
 """
 
-from sqlalchemy.orm import Query, Session
+from sqlalchemy import Select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class BaseLoader:
     """Base class for all resource loaders."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         """
         Initialize the loader with a database session.
 
         Args:
-            db: SQLAlchemy database session
+            db: SQLAlchemy async database session
         """
         self.db = db
 
     def _apply_archived_filter(
-        self, query: Query, include_archived: bool = False
-    ) -> Query:
+        self, query: Select, include_archived: bool = False
+    ) -> Select:
         """
         Apply archived filter to a query.
 
         Args:
-            query: SQLAlchemy query object
+            query: SQLAlchemy select statement
             include_archived: Whether to include archived records
 
         Returns:
-            Query with archived filter applied
+            Select statement with archived filter applied
         """
         if not include_archived:
             return query.filter_by(archived=False)

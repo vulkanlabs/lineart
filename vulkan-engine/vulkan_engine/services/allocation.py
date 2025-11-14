@@ -7,7 +7,7 @@ Handles run group creation and allocation based on policy strategies.
 from uuid import UUID
 
 from numpy.random import choice
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from vulkan.core.run import RunStatus
 
 from vulkan_engine.db import Run, RunGroup
@@ -28,7 +28,7 @@ from vulkan_engine.services.run_orchestration import RunOrchestrationService
 class AllocationService(BaseService):
     """Service for managing run allocation and run groups."""
 
-    def __init__(self, db: Session, orchestrator: RunOrchestrationService):
+    def __init__(self, db: AsyncSession, orchestrator: RunOrchestrationService):
         """
         Initialize allocation service.
 
@@ -41,7 +41,7 @@ class AllocationService(BaseService):
         self.policy_loader = PolicyLoader(db)
         self.logger = get_logger(__name__)
 
-    def create_run_group(
+    async def create_run_group(
         self,
         policy_id: str,
         input_data: dict,
@@ -64,7 +64,7 @@ class AllocationService(BaseService):
             PolicyNotFoundException: If policy doesn't exist or doesn't belong to specified project
             InvalidAllocationStrategyException: If policy has no allocation strategy
         """
-        policy = self.policy_loader.get_policy(policy_id, project_id=project_id)
+        policy = await self.policy_loader.get_policy(policy_id, project_id=project_id)
 
         if not policy.allocation_strategy:
             raise InvalidAllocationStrategyException(
@@ -77,7 +77,7 @@ class AllocationService(BaseService):
             input_data=input_data,
         )
         self.db.add(run_group)
-        self.db.commit()
+        await self.db.commit()
 
         # Parse allocation strategy
         strategy = PolicyAllocationStrategy.model_validate(policy.allocation_strategy)
@@ -89,7 +89,7 @@ class AllocationService(BaseService):
         )
 
         # Allocate runs
-        runs = self.allocate_runs(
+        runs = await self.allocate_runs(
             input_data=input_data,
             run_group_id=run_group.run_group_id,
             allocation_strategy=strategy,
@@ -102,7 +102,7 @@ class AllocationService(BaseService):
             runs=runs,
         )
 
-    def allocate_runs(
+    async def allocate_runs(
         self,
         input_data: dict,
         run_group_id: UUID,
@@ -128,7 +128,7 @@ class AllocationService(BaseService):
 
         # Create shadow runs if specified
         if allocation_strategy.shadow is not None:
-            with self.db.begin():
+            async with self.db.begin():
                 for policy_version_id in allocation_strategy.shadow:
                     run = Run(
                         policy_version_id=policy_version_id,
@@ -146,7 +146,7 @@ class AllocationService(BaseService):
         policy_version_id = choice(opts, p=freq)
 
         # Create and launch main run
-        main = self.orchestrator.create_run(
+        main = await self.orchestrator.create_run(
             input_data=input_data,
             run_group_id=run_group_id,
             policy_version_id=policy_version_id,

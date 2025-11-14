@@ -16,36 +16,12 @@ from vulkan_engine.config import (
 
 
 def load_database_config() -> DatabaseConfig:
-    """Load database configuration from environment variables."""
-    user = os.getenv("DB_USER")
-    password = os.getenv("DB_PASSWORD")
-    host = os.getenv("DB_HOST")
-    port = os.getenv("DB_PORT")
-    database = os.getenv("DB_DATABASE")
+    """Load database configuration from environment variables.
 
-    if not all([user, password, host, port, database]):
-        missing = [
-            name
-            for name, value in [
-                ("DB_USER", user),
-                ("DB_PASSWORD", password),
-                ("DB_HOST", host),
-                ("DB_PORT", port),
-                ("DB_DATABASE", database),
-            ]
-            if value is None
-        ]
-        raise ValueError(
-            f"Missing required database environment variables: {', '.join(missing)}"
-        )
-
-    return DatabaseConfig(
-        user=user,
-        password=password,
-        host=host,
-        port=port,
-        database=database,
-    )
+    DatabaseConfig uses pydantic_settings to automatically load from
+    environment variables (DB_USER, DB_PASSWORD, etc.) and .env files.
+    """
+    return DatabaseConfig()
 
 
 def load_app_config() -> AppConfig:

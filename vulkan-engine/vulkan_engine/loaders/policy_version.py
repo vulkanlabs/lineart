@@ -2,6 +2,8 @@
 PolicyVersion loader for data access layer.
 """
 
+from sqlalchemy import select
+
 from vulkan_engine.db import PolicyVersion
 from vulkan_engine.exceptions import PolicyVersionNotFoundException
 from vulkan_engine.loaders.base import BaseLoader
@@ -10,7 +12,7 @@ from vulkan_engine.loaders.base import BaseLoader
 class PolicyVersionLoader(BaseLoader):
     """Loader for PolicyVersion resources."""
 
-    def get_policy_version(
+    async def get_policy_version(
         self,
         policy_version_id: str,
         project_id: str = None,
@@ -30,14 +32,15 @@ class PolicyVersionLoader(BaseLoader):
         Raises:
             PolicyVersionNotFoundException: If version doesn't exist or doesn't belong to specified project
         """
-        query = self.db.query(PolicyVersion).filter(
+        stmt = select(PolicyVersion).filter(
             PolicyVersion.policy_version_id == policy_version_id,
             PolicyVersion.project_id == project_id,
         )
 
-        query = self._apply_archived_filter(query, include_archived)
+        stmt = self._apply_archived_filter(stmt, include_archived)
 
-        version = query.first()
+        result = await self.db.execute(stmt)
+        version = result.scalar_one_or_none()
         if not version:
             raise PolicyVersionNotFoundException(
                 f"Policy version {policy_version_id} not found"
@@ -45,7 +48,7 @@ class PolicyVersionLoader(BaseLoader):
 
         return version
 
-    def list_policy_versions(
+    async def list_policy_versions(
         self,
         policy_id: str = None,
         project_id: str = None,
@@ -62,13 +65,12 @@ class PolicyVersionLoader(BaseLoader):
         Returns:
             List of PolicyVersion objects
         """
-        query = self.db.query(PolicyVersion).filter(
-            PolicyVersion.project_id == project_id
-        )
+        stmt = select(PolicyVersion).filter(PolicyVersion.project_id == project_id)
 
         if policy_id:
-            query = query.filter(PolicyVersion.policy_id == policy_id)
+            stmt = stmt.filter(PolicyVersion.policy_id == policy_id)
 
-        query = self._apply_archived_filter(query, include_archived)
+        stmt = self._apply_archived_filter(stmt, include_archived)
 
-        return query.all()
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
