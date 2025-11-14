@@ -22,20 +22,20 @@ lint-python:
 .PHONY: down
 down:
 	rm -r ./dist/ || true
-	docker-compose down -v --remove-orphans
+	docker compose down -v --remove-orphans
 
 .PHONY: build
 build:
 	uv build --wheel --all
-	docker-compose build
+	docker compose build
 
 .PHONY: up
 up:
-	docker-compose up
+	docker compose up
 
 .PHONY: run
 run: config
-	docker-compose up -d
+	docker compose up -d
 
 # Code generation for frontend types
 .PHONY: openapi
