@@ -29,4 +29,4 @@ jobs:
         
     - name: Run tests with uv
       run: |
-        uv run pytest -m "not integration"
+        TOOLING_MODE=true uv run pytest -m "not integration"

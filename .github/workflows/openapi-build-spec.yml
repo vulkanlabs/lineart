@@ -35,7 +35,7 @@ jobs:
         - name: Render OpenAPI Specification
           id: render-spec
           run: |
-            uv run python scripts/export-openapi.py --out ${{ github.workspace }}/generated/openapi.json
+            TOOLING_MODE=true uv run python scripts/export-openapi.py --out ${{ github.workspace }}/generated/openapi.json
 
         - name: Archive generated files
           uses: actions/upload-artifact@v4

@@ -31,7 +31,7 @@ RUN if [ "$USE_PYPI" = "true" ]; then \
       uv pip install --system --no-cache /workspace/vulkan /workspace/vulkan-engine /workspace/vulkan-server; \
     fi
 
-RUN uv run python /workspace/scripts/export-openapi.py --out /workspace/generated/openapi.json
+RUN TOOLING_MODE=true uv run python /workspace/scripts/export-openapi.py --out /workspace/generated/openapi.json
 
 # OpenAPI Generator CLI: Generate TypeScript client code from OpenAPI spec
 FROM openapitools/openapi-generator-cli:latest AS openapi
