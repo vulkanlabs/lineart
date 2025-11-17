@@ -76,8 +76,7 @@ async def get_db_session(
     Get database session from configuration with connection pooling.
 
     This function uses a cached engine and sessionmaker to enable efficient
-    connection pooling. Connections are reused from the pool, significantly
-    reducing overhead compared to creating new engines for each request.
+    connection pooling.
 
     Args:
         database_config: Database configuration

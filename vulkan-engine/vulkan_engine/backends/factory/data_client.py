@@ -4,7 +4,7 @@ This module provides abstractions and factory methods for creating
 data clients that work with different workflow engines' databases.
 """
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from vulkan_engine.backends.dagster.data_client import (
     DagsterDatabaseConfig,
@@ -18,7 +18,7 @@ from vulkan_engine.config import VulkanEngineConfig
 class DataClientFactory:
     """Factory for creating workflow engine data clients."""
 
-    def __init__(self, app_db: Session) -> None:
+    def __init__(self, app_db: AsyncSession) -> None:
         self.app_db = app_db
 
     def create_data_client(self, config: VulkanEngineConfig) -> BaseDataClient | None:
