@@ -4,10 +4,14 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
+import httpx
 import jwt
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,119 +23,150 @@ class BaseAppClient(ABC):
         self.server_url = server_url
         self.run_id = run_id
         self.project_id = project_id
-        self.session = self._create_session()
+        self.client = self._create_client()
         self._setup_auth()
 
-    def _create_session(self) -> requests.Session:
-        """Create session with fast retry logic for low latency."""
-        session = requests.Session()
-
-        retry_strategy = Retry(
-            total=2,
-            backoff_factor=0.3,
-            # TODO: add jitter, consider adding 429
-            status_forcelist=[502, 503, 504],  # Only retry on gateway errors
-            allowed_methods=["GET", "POST", "PUT", "DELETE"],
+    def _create_client(self) -> httpx.Client:
+        """Create httpx client with connection pooling and timeout configuration."""
+        client = httpx.Client(
+            timeout=httpx.Timeout(10.0),
+            limits=httpx.Limits(
+                max_keepalive_connections=5,
+                max_connections=10,
+            ),
         )
+        return client
 
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
+    def close(self):
+        """Close the HTTP client and release resources."""
+        if hasattr(self, "client"):
+            self.client.close()
 
-        return session
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - close client."""
+        self.close()
+        return False
 
     @abstractmethod
     def _setup_auth(self):
-        """Configure session authentication headers."""
+        """Configure client authentication headers."""
         pass
 
     def _request(
         self, method: str, endpoint: str, timeout: int = 10, **kwargs
-    ) -> requests.Response:
+    ) -> httpx.Response:
         """
-        Central request handler with logging and consistent error handling.
+        Central request handler with logging, retry logic, and consistent error handling.
 
         Args:
             method: HTTP method
             endpoint: API endpoint (will be appended to server_url)
             timeout: Request timeout in seconds (default: 10)
-            **kwargs: Additional arguments passed to requests
+            **kwargs: Additional arguments passed to httpx
+
+        Raises:
+            httpx.HTTPError: On HTTP errors after retries
         """
         url = f"{self.server_url}{endpoint}"
         log_context = {"run_id": self.run_id, "method": method, "endpoint": endpoint}
         logger.debug(f"{method} {endpoint}", extra=log_context)
 
-        start_time = time.time()
-        try:
-            kwargs["timeout"] = timeout
-            response = self.session.request(method, url, **kwargs)
-            response.raise_for_status()
-            elapsed = time.time() - start_time
+        # Retry strategy: 2 retries with exponential backoff on gateway errors
+        @retry(
+            stop=stop_after_attempt(3),  # 1 initial + 2 retries = 3 total
+            wait=wait_exponential(multiplier=0.3, min=0.3, max=2),
+            retry=retry_if_exception_type(httpx.HTTPStatusError),
+            reraise=True,
+        )
+        def _make_request() -> httpx.Response:
+            start_time = time.time()
+            try:
+                # Override timeout if provided
+                request_timeout = kwargs.pop("timeout", timeout)
 
-            logger.debug(
-                f"{method} {endpoint} -> {response.status_code} ({elapsed:.2f}s)",
-                extra={
-                    **log_context,
-                    "status_code": response.status_code,
-                    "elapsed_seconds": elapsed,
-                },
-            )
+                response = self.client.request(
+                    method, url, timeout=request_timeout, **kwargs
+                )
 
-            return response
+                # Check if we should retry on this status code
+                if response.status_code in {502, 503, 504}:
+                    raise httpx.HTTPStatusError(
+                        f"Retry on gateway error status {response.status_code}",
+                        request=response.request,
+                        response=response,
+                    )
 
-        except requests.exceptions.Timeout as e:
-            elapsed = time.time() - start_time
-            error_msg = f"Request timeout after {elapsed:.2f}s"
+                response.raise_for_status()
+                elapsed = time.time() - start_time
 
-            logger.error(
-                f"{method} {endpoint} -> {error_msg}",
-                extra={**log_context, "elapsed_seconds": elapsed},
-            )
-            raise requests.exceptions.RequestException(
-                f"{error_msg} for {method} {endpoint}"
-            ) from e
+                logger.debug(
+                    f"{method} {endpoint} -> {response.status_code} ({elapsed:.2f}s)",
+                    extra={
+                        **log_context,
+                        "status_code": response.status_code,
+                        "elapsed_seconds": elapsed,
+                    },
+                )
 
-        except requests.exceptions.HTTPError as e:
-            elapsed = time.time() - start_time
-            status_code = (
-                e.response.status_code if e.response is not None else "unknown"
-            )
-            response_text = e.response.text if e.response is not None else ""
-            error_msg = f"HTTP {status_code}: {response_text}"
+                return response
 
-            logger.error(
-                f"{method} {endpoint} -> {error_msg} (elapsed: {elapsed:.2f}s)",
-                extra={
-                    **log_context,
-                    "elapsed_seconds": elapsed,
-                    "status_code": status_code,
-                    "response_text": response_text,
-                },
-            )
-            raise requests.exceptions.RequestException(
-                f"{error_msg} for {method} {endpoint}"
-            ) from e
+            except httpx.TimeoutException as e:
+                elapsed = time.time() - start_time
+                error_msg = f"Request timeout after {elapsed:.2f}s"
 
-        except requests.exceptions.RequestException as e:
-            elapsed = time.time() - start_time
-            error_msg = str(e)
+                logger.error(
+                    f"{method} {endpoint} -> {error_msg}",
+                    extra={**log_context, "elapsed_seconds": elapsed},
+                )
+                raise httpx.HTTPError(
+                    f"{error_msg} for {method} {endpoint}"
+                ) from e
 
-            logger.error(
-                f"{method} {endpoint} -> Request failed: {error_msg} (elapsed: {elapsed:.2f}s)",
-                extra={
-                    **log_context,
-                    "elapsed_seconds": elapsed,
-                    "error": error_msg,
-                },
-            )
-            raise
+            except httpx.HTTPStatusError as e:
+                elapsed = time.time() - start_time
+                status_code = (
+                    e.response.status_code if e.response is not None else "unknown"
+                )
+                response_text = e.response.text if e.response is not None else ""
+                error_msg = f"HTTP {status_code}: {response_text}"
+
+                logger.error(
+                    f"{method} {endpoint} -> {error_msg} (elapsed: {elapsed:.2f}s)",
+                    extra={
+                        **log_context,
+                        "elapsed_seconds": elapsed,
+                        "status_code": status_code,
+                        "response_text": response_text,
+                    },
+                )
+                raise
+
+            except httpx.HTTPError as e:
+                elapsed = time.time() - start_time
+                error_msg = str(e)
+
+                logger.error(
+                    f"{method} {endpoint} -> Request failed: {error_msg} (elapsed: {elapsed:.2f}s)",
+                    extra={
+                        **log_context,
+                        "elapsed_seconds": elapsed,
+                        "error": error_msg,
+                    },
+                )
+                raise
+
+        return _make_request()
 
     # Core API methods
     def fetch_data(
         self,
         data_source: str,
         configured_params: dict,
-    ) -> requests.Response:
+    ) -> httpx.Response:
         """Fetch data from data broker."""
         return self._request(
             "POST",
@@ -251,9 +286,9 @@ class JWTAppClient(BaseAppClient):
         super().__init__(server_url, run_id, project_id)
 
     def _setup_auth(self):
-        """Generate JWT once and configure session with bearer token."""
+        """Generate JWT once and configure client with bearer token."""
         token = self._generate_jwt()
-        self.session.headers.update({"Authorization": f"Bearer {token}"})
+        self.client.headers.update({"Authorization": f"Bearer {token}"})
 
         logger.debug(
             f"Using JWT client with issuer={self.jwt_issuer}, audience={self.jwt_audience}",

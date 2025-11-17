@@ -3,9 +3,8 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Callable
 
-import requests
+import httpx
 from dagster import In, OpDefinition, OpExecutionContext, Out, Output
-from requests.exceptions import HTTPError
 
 from vulkan.connections import (
     HTTPConfig,
@@ -105,7 +104,7 @@ class DagsterDataInput(DataInputNode, DagsterNode):
             context.log.error(f"Parameter resolution error: {str(e)}")
             raise e
 
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             error_detail = "Unknown error"
             if hasattr(e, "response") and e.response is not None:
                 response = e.response
@@ -123,7 +122,7 @@ class DagsterDataInput(DataInputNode, DagsterNode):
 
             raise e
 
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             context.log.error(f"Failed to retrieve data: {str(e)}")
             raise e
 
@@ -557,7 +556,7 @@ class DagsterConnection(ConnectionNode, DagsterNode):
             if response.status_code == 200:
                 result = format_response_data(response.content, self.response_type)
                 yield Output(result)
-        except (requests.exceptions.RequestException, HTTPError) as e:
+        except httpx.HTTPError as e:
             context.log.error(f"Failed HTTP request: {str(e)}")
             raise e
         except Exception as e:

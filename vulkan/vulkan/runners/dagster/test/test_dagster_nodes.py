@@ -2,8 +2,8 @@ import logging
 from enum import Enum
 from unittest.mock import Mock
 
+import httpx
 import pytest
-import requests
 from vulkan.core.context import VulkanExecutionContext
 from vulkan.runners.dagster.nodes import (
     DagsterDataInput,
@@ -352,13 +352,15 @@ class TestDagsterDataInput:
         mock_response.status_code = 400
         mock_response.json.return_value = {"detail": "Invalid parameters provided"}
         mock_response.text = '{"detail": "Invalid parameters provided"}'
-        http_error = requests.exceptions.HTTPError(response=mock_response)
+        http_error = httpx.HTTPStatusError(
+            "HTTP Error", request=Mock(), response=mock_response
+        )
         http_error.response = mock_response
 
         mock_op_context = _get_mock_op_context(fetch_error=http_error)
 
-        # Execute and expect HTTPError to be raised
-        with pytest.raises(requests.exceptions.HTTPError):
+        # Execute and expect HTTPStatusError to be raised
+        with pytest.raises(httpx.HTTPStatusError):
             list(data_input_node.run(mock_op_context, {}))
 
         # Verify error was logged with detail
@@ -375,13 +377,15 @@ class TestDagsterDataInput:
         mock_response.json.side_effect = ValueError("Invalid JSON")
         mock_response.text = "Internal Server Error: Database connection failed"
 
-        http_error = requests.exceptions.HTTPError(response=mock_response)
+        http_error = httpx.HTTPStatusError(
+            "HTTP Error", request=Mock(), response=mock_response
+        )
         http_error.response = mock_response
         mock_response.raise_for_status.side_effect = http_error
         mock_op_context = _get_mock_op_context(mock_response)
 
-        # Execute and expect HTTPError to be raised
-        with pytest.raises(requests.exceptions.HTTPError):
+        # Execute and expect HTTPStatusError to be raised
+        with pytest.raises(httpx.HTTPStatusError):
             list(data_input_node.run(mock_op_context, {}))
 
         # Verify error was logged with text (truncated to 200 chars)
@@ -393,13 +397,15 @@ class TestDagsterDataInput:
     def test_http_error_without_response(self, data_input_node):
         """Test HTTP error without response object is handled."""
         # Mock error without response
-        http_error = requests.exceptions.HTTPError("Connection failed")
+        http_error = httpx.HTTPStatusError(
+            "Connection failed", request=Mock(), response=Mock()
+        )
         http_error.response = None
 
         mock_op_context = _get_mock_op_context(fetch_error=http_error)
 
-        # Execute and expect HTTPError to be raised
-        with pytest.raises(requests.exceptions.HTTPError):
+        # Execute and expect HTTPStatusError to be raised
+        with pytest.raises(httpx.HTTPStatusError):
             list(data_input_node.run(mock_op_context, {}))
 
         # Verify generic error was logged
@@ -408,13 +414,13 @@ class TestDagsterDataInput:
         assert "HTTP error" in error_call
 
     def test_request_exception_propagated(self, data_input_node):
-        """Test RequestException is properly logged and propagated."""
+        """Test HTTPError is properly logged and propagated."""
         mock_op_context = _get_mock_op_context(
-            fetch_error=requests.exceptions.RequestException("Network timeout")
+            fetch_error=httpx.HTTPError("Network timeout")
         )
 
-        # Execute and expect RequestException to be raised
-        with pytest.raises(requests.exceptions.RequestException):
+        # Execute and expect HTTPError to be raised
+        with pytest.raises(httpx.HTTPError):
             list(data_input_node.run(mock_op_context, {}))
 
         # Verify error was logged
