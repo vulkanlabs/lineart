@@ -38,7 +38,7 @@ RUN if [ "$USE_PYPI" = "true" ]; then \
       uv pip install --system --no-cache ${VULKAN_SERVER_PATH}/vulkan-hatchet; \
     else \
       echo "Using local packages (development build)..."; \
-      uv pip install --system --no-cache ${VULKAN_SERVER_PATH}/vulkan-hatchet; \
+      uv pip install --system --no-cache ${VULKAN_SERVER_PATH}/vulkan[hatchet] ${VULKAN_SERVER_PATH}/vulkan-hatchet; \
     fi
 
 COPY --chmod=700 vulkan-hatchet/scripts/* ${VULKAN_SCRIPTS_PATH}/
