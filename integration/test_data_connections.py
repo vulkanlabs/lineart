@@ -7,12 +7,10 @@ from lineart_sdk import Lineart
 from lineart_sdk.models import (
     CachingOptions,
     DataSource,
-    EnvVarConfig,
     HTTPSource,
     Policy,
     ResponseType,
     RetryPolicy,
-    RunTimeParam,
     WorkflowBase,
 )
 from vulkan.spec.dependency import INPUT_NODE, Dependency
@@ -26,6 +24,7 @@ from vulkan.spec.nodes import (
 )
 from vulkan.spec.nodes.metadata import DecisionCondition, DecisionType
 from vulkan.spec.policy import PolicyDefinition
+from vulkan.node_config import EnvVarConfig, RunTimeParam
 
 BASE_URL = "http://localhost:6001"
 
