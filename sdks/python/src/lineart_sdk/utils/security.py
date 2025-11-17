@@ -7,7 +7,6 @@ from typing import (
     List,
     Tuple,
 )
-
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 

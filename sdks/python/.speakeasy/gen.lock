@@ -1,17 +1,17 @@
 lockVersion: 2.0.0
 id: 88929680-bb73-487a-94bf-9600cc541817
 management:
-  docChecksum: cec3649d52db88cc24ddeb639351cbc2
+  docChecksum: 429c5a604beebc12f3df5d704a7cd8f0
   docVersion: 0.1.0
-  speakeasyVersion: 1.642.1
-  generationVersion: 2.731.4
+  speakeasyVersion: 1.657.0
+  generationVersion: 2.755.0
   releaseVersion: 0.1.1
-  configChecksum: 73898a7de081ea6e7a217383aa5b582d
+  configChecksum: 1eb9cd8d3b5c8bd844eb0b35d41c4f37
 features:
   python:
     additionalDependencies: 1.0.0
     constsAndDefaults: 1.0.5
-    core: 5.23.0
+    core: 5.23.7
     defaultEnabledRetries: 0.2.0
     devContainers: 3.0.0
     enumUnions: 0.1.0
@@ -19,7 +19,7 @@ features:
     flatRequests: 1.0.1
     flattening: 3.1.1
     globalSecurityCallbacks: 1.0.0
-    globalServerURLs: 3.1.1
+    globalServerURLs: 3.2.0
     groups: 3.0.1
     methodArguments: 1.0.2
     nameOverrides: 3.0.1
@@ -37,15 +37,11 @@ generatedFiles:
   - USAGE.md
   - docs/errors/httpvalidationerror.md
   - docs/models/authcallbackrequest.md
+  - docs/models/authconfig.md
   - docs/models/authdisconnectresponse.md
+  - docs/models/authmethod.md
   - docs/models/authstartresponse.md
   - docs/models/authuserinforesponse.md
-  - docs/models/body1.md
-  - docs/models/body2.md
-  - docs/models/body3.md
-  - docs/models/body4.md
-  - docs/models/body5.md
-  - docs/models/body6.md
   - docs/models/bodycreaterunbypolicyversion.md
   - docs/models/bodycreaterungroup.md
   - docs/models/bodyrundurationstatsbypolicy.md
@@ -75,6 +71,10 @@ generatedFiles:
   - docs/models/dataobjectmetadata.md
   - docs/models/dataobjectorigin.md
   - docs/models/datasource.md
+  - docs/models/datasourcecredential.md
+  - docs/models/datasourcecredentialbase.md
+  - docs/models/datasourcecredentialbasecredentialtype.md
+  - docs/models/datasourcecredentialcredentialtype.md
   - docs/models/datasourceenvvar.md
   - docs/models/datasourceenvvarbase.md
   - docs/models/datasourceenvvarbasevalue.md
@@ -93,11 +93,11 @@ generatedFiles:
   - docs/models/deletepolicyversionrequest.md
   - docs/models/dependencydict.md
   - docs/models/disconnectrequest.md
-  - docs/models/envvarconfig.md
   - docs/models/event.md
   - docs/models/getcachestatisticsrequest.md
   - docs/models/getcomponentrequest.md
   - docs/models/getdataobjectrequest.md
+  - docs/models/getdatasourcecredentialsrequest.md
   - docs/models/getdatasourceenvvariablesrequest.md
   - docs/models/getdatasourcemetricsrequest.md
   - docs/models/getdatasourcerequest.md
@@ -108,12 +108,7 @@ generatedFiles:
   - docs/models/getrunlogsrequest.md
   - docs/models/getrunrequest.md
   - docs/models/getuserinforequest.md
-  - docs/models/headers1.md
-  - docs/models/headers2.md
-  - docs/models/headers3.md
-  - docs/models/headers4.md
-  - docs/models/headers5.md
-  - docs/models/headers6.md
+  - docs/models/granttype.md
   - docs/models/httpsource.md
   - docs/models/listcomponentsrequest.md
   - docs/models/listconfigvariablesrequest.md
@@ -131,12 +126,6 @@ generatedFiles:
   - docs/models/method.md
   - docs/models/nodedefinitiondict.md
   - docs/models/output.md
-  - docs/models/params1.md
-  - docs/models/params2.md
-  - docs/models/params3.md
-  - docs/models/params4.md
-  - docs/models/params5.md
-  - docs/models/params6.md
   - docs/models/policy.md
   - docs/models/policyallocationstrategy.md
   - docs/models/policybase.md
@@ -164,10 +153,10 @@ generatedFiles:
   - docs/models/runsbypolicyrequest.md
   - docs/models/runsoutcomesbypolicyrequest.md
   - docs/models/runstatus.md
-  - docs/models/runtimeparam.md
   - docs/models/runversionsyncrequest.md
   - docs/models/runworkflowrequest.md
   - docs/models/setconfigvariablesrequest.md
+  - docs/models/setdatasourcecredentialsrequest.md
   - docs/models/setdatasourceenvvariablesrequest.md
   - docs/models/startauthrequest.md
   - docs/models/stepdetails.md
@@ -184,7 +173,6 @@ generatedFiles:
   - docs/models/userlogdetails.md
   - docs/models/utils/retryconfig.md
   - docs/models/validationerror.md
-  - docs/models/valuetype.md
   - docs/models/workflow.md
   - docs/models/workflowbase.md
   - docs/models/workflowstatus.md
@@ -218,7 +206,9 @@ generatedFiles:
   - src/lineart_sdk/internal.py
   - src/lineart_sdk/models/__init__.py
   - src/lineart_sdk/models/auth_callbackop.py
+  - src/lineart_sdk/models/authconfig.py
   - src/lineart_sdk/models/authdisconnectresponse.py
+  - src/lineart_sdk/models/authmethod.py
   - src/lineart_sdk/models/authstartresponse.py
   - src/lineart_sdk/models/authuserinforesponse.py
   - src/lineart_sdk/models/body_create_run_by_policy_version.py
@@ -248,6 +238,8 @@ generatedFiles:
   - src/lineart_sdk/models/dataobjectmetadata.py
   - src/lineart_sdk/models/dataobjectorigin.py
   - src/lineart_sdk/models/datasource.py
+  - src/lineart_sdk/models/datasourcecredential.py
+  - src/lineart_sdk/models/datasourcecredentialbase.py
   - src/lineart_sdk/models/datasourceenvvar.py
   - src/lineart_sdk/models/datasourceenvvarbase.py
   - src/lineart_sdk/models/datasourcereference.py
@@ -261,10 +253,10 @@ generatedFiles:
   - src/lineart_sdk/models/delete_policyop.py
   - src/lineart_sdk/models/dependencydict.py
   - src/lineart_sdk/models/disconnectop.py
-  - src/lineart_sdk/models/envvarconfig.py
   - src/lineart_sdk/models/get_cache_statisticsop.py
   - src/lineart_sdk/models/get_componentop.py
   - src/lineart_sdk/models/get_data_objectop.py
+  - src/lineart_sdk/models/get_data_source_credentialsop.py
   - src/lineart_sdk/models/get_data_source_env_variablesop.py
   - src/lineart_sdk/models/get_data_source_metricsop.py
   - src/lineart_sdk/models/get_data_source_usageop.py
@@ -275,6 +267,7 @@ generatedFiles:
   - src/lineart_sdk/models/get_run_logsop.py
   - src/lineart_sdk/models/get_runop.py
   - src/lineart_sdk/models/get_user_infoop.py
+  - src/lineart_sdk/models/granttype.py
   - src/lineart_sdk/models/httpsource.py
   - src/lineart_sdk/models/list_componentsop.py
   - src/lineart_sdk/models/list_config_variablesop.py
@@ -316,8 +309,8 @@ generatedFiles:
   - src/lineart_sdk/models/runs_by_policyop.py
   - src/lineart_sdk/models/runs_outcomes_by_policyop.py
   - src/lineart_sdk/models/runstatus.py
-  - src/lineart_sdk/models/runtimeparam.py
   - src/lineart_sdk/models/set_config_variablesop.py
+  - src/lineart_sdk/models/set_data_source_credentialsop.py
   - src/lineart_sdk/models/set_data_source_env_variablesop.py
   - src/lineart_sdk/models/start_authop.py
   - src/lineart_sdk/models/stepdetails.py
@@ -946,6 +939,28 @@ examples:
       responses:
         "200":
           application/json: {"test_id": "aaed7529-fb13-495f-950b-7eeb5e2b5cd4", "status_code": 202577, "response_time_ms": 4479.2}
+        "422":
+          application/json: {}
+  set_data_source_credentials:
+    speakeasy-default-set-data-source-credentials:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      requestBody:
+        application/json: []
+      responses:
+        "200":
+          application/json: [{"credential_type": "USERNAME", "value": "<value>", "credential_id": "e3879640-5fea-4b93-8a38-1660e44a96cb", "data_source_id": "030e9901-4aea-4b9d-a13d-cffb1f897ff9", "created_at": "2023-03-18T18:45:02.063Z", "last_updated_at": "2025-06-18T18:36:03.888Z"}]
+        "422":
+          application/json: {}
+  get_data_source_credentials:
+    speakeasy-default-get-data-source-credentials:
+      parameters:
+        path:
+          data_source_id: "<id>"
+      responses:
+        "200":
+          application/json: [{"credential_type": "CLIENT_ID", "value": "<value>", "credential_id": "8055a714-c737-4bd9-ae58-610428ff1061", "data_source_id": "849b3e7a-564f-4d19-96ba-e9481cca242a", "created_at": "2025-11-03T08:07:47.750Z", "last_updated_at": "2024-10-17T10:09:51.547Z"}]
         "422":
           application/json: {}
 examplesVersion: 1.0.2

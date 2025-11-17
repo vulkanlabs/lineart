@@ -3,15 +3,14 @@
 from typing import (
     Any,
     Dict,
+    get_type_hints,
     List,
     Optional,
-    get_type_hints,
 )
 
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
-from .forms import _populate_form
 from .metadata import (
     QueryParamMetadata,
     find_field_metadata,
@@ -22,6 +21,7 @@ from .values import (
     _populate_from_globals,
     _val_to_string,
 )
+from .forms import _populate_form
 
 
 def get_query_params(
