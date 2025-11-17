@@ -124,4 +124,4 @@ class HatchetWorkspaceManager:
         return None, None
 
 
-DEFAULT_DEPENDENCIES = {"vulkanlabs-vulkan[hatchet]"}
+DEFAULT_DEPENDENCIES = {"vulkanlabs-vulkan[hatchet]", "requests>=2"}
