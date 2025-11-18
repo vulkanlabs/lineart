@@ -15,6 +15,8 @@
 * [get_cache_statistics](#get_cache_statistics) - Get Cache Statistics
 * [update_data_source](#update_data_source) - Update Data Source
 * [get_env_variables](#get_env_variables) - Get Data Source Env Variables
+* [set_data_source_credentials](#set_data_source_credentials) - Set Data Source Credentials
+* [get_data_source_credentials](#get_data_source_credentials) - Get Data Source Credentials
 * [list_data_objects](#list_data_objects) - List Data Objects
 * [get_usage](#get_usage) - Get Data Source Usage
 * [publish_data_source](#publish_data_source) - Publish Data Source
@@ -438,6 +440,89 @@ with Lineart(
 ### Response
 
 **[List[models.DataSourceEnvVar]](../../models/.md)**
+
+### Errors
+
+| Error Type                 | Status Code                | Content Type               |
+| -------------------------- | -------------------------- | -------------------------- |
+| errors.HTTPValidationError | 422                        | application/json           |
+| errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
+
+## set_data_source_credentials
+
+Set authentication credentials for a data source
+
+### Example Usage
+
+<!-- UsageSnippet language="python" operationID="set_data_source_credentials" method="put" path="/data-sources/{data_source_id}/credentials" -->
+```python
+from lineart_sdk import Lineart
+
+
+with Lineart(
+    server_url="https://api.example.com",
+) as lineart:
+
+    res = lineart.data_sources.set_data_source_credentials(data_source_id="<id>", request_body=[])
+
+    # Handle response
+    print(res)
+
+```
+
+### Parameters
+
+| Parameter                                                                         | Type                                                                              | Required                                                                          | Description                                                                       |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `data_source_id`                                                                  | *str*                                                                             | :heavy_check_mark:                                                                | N/A                                                                               |
+| `request_body`                                                                    | List[[models.DataSourceCredentialBase](../../models/datasourcecredentialbase.md)] | :heavy_check_mark:                                                                | N/A                                                                               |
+| `retries`                                                                         | [Optional[utils.RetryConfig]](../../models/utils/retryconfig.md)                  | :heavy_minus_sign:                                                                | Configuration to override the default retry behavior of the client.               |
+
+### Response
+
+**[List[models.DataSourceCredential]](../../models/.md)**
+
+### Errors
+
+| Error Type                 | Status Code                | Content Type               |
+| -------------------------- | -------------------------- | -------------------------- |
+| errors.HTTPValidationError | 422                        | application/json           |
+| errors.LineartDefaultError | 4XX, 5XX                   | \*/\*                      |
+
+## get_data_source_credentials
+
+Get authentication credentials for a data source
+
+Returns real credential values
+
+### Example Usage
+
+<!-- UsageSnippet language="python" operationID="get_data_source_credentials" method="get" path="/data-sources/{data_source_id}/credentials" -->
+```python
+from lineart_sdk import Lineart
+
+
+with Lineart(
+    server_url="https://api.example.com",
+) as lineart:
+
+    res = lineart.data_sources.get_data_source_credentials(data_source_id="<id>")
+
+    # Handle response
+    print(res)
+
+```
+
+### Parameters
+
+| Parameter                                                           | Type                                                                | Required                                                            | Description                                                         |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `data_source_id`                                                    | *str*                                                               | :heavy_check_mark:                                                  | N/A                                                                 |
+| `retries`                                                           | [Optional[utils.RetryConfig]](../../models/utils/retryconfig.md)    | :heavy_minus_sign:                                                  | Configuration to override the default retry behavior of the client. |
+
+### Response
+
+**[List[models.DataSourceCredential]](../../models/.md)**
 
 ### Errors
 

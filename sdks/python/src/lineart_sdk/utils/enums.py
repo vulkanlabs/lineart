@@ -3,7 +3,6 @@
 import enum
 import sys
 
-
 class OpenEnumMeta(enum.EnumMeta):
     # The __call__ method `boundary` kwarg was added in 3.11 and must be present
     # for pyright. Refer also: https://github.com/pylint-dev/pylint/issues/9622
@@ -12,17 +11,8 @@ class OpenEnumMeta(enum.EnumMeta):
     # pylint: disable=keyword-arg-before-vararg
 
     if sys.version_info >= (3, 11):
-
         def __call__(
-            cls,
-            value,
-            names=None,
-            *values,
-            module=None,
-            qualname=None,
-            type=None,
-            start=1,
-            boundary=None,
+            cls, value, names=None, *values, module=None, qualname=None, type=None, start=1, boundary=None
         ):
             # The `type` kwarg also happens to be a built-in that pylint flags as
             # redeclared. Safe to ignore this lint rule with this scope.
@@ -54,7 +44,6 @@ class OpenEnumMeta(enum.EnumMeta):
             except ValueError:
                 return value
     else:
-
         def __call__(
             cls, value, names=None, *, module=None, qualname=None, type=None, start=1
         ):

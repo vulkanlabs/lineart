@@ -4,9 +4,8 @@ from typing import Any, Optional
 
 import httpx
 
-from lineart_sdk import errors
-
 from .serializers import unmarshal_json
+from lineart_sdk import errors
 
 
 def unmarshal_json_response(
