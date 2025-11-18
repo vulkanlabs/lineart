@@ -4,7 +4,6 @@ from json import JSONDecodeError
 from typing import Callable
 
 import apache_beam as beam
-import requests
 from apache_beam.pvalue import TaggedOutput
 from apache_beam.transforms.enrichment import Enrichment, EnrichmentSourceHandler
 from pyarrow import parquet as pq
@@ -124,7 +123,7 @@ class _HTTPHandler(EnrichmentSourceHandler):
         self.spec = spec
 
     def __enter__(self):
-        self._session = requests.Session()
+        pass
 
     def __call__(self, request: tuple, *args, **kwargs):
         key = request[0]
