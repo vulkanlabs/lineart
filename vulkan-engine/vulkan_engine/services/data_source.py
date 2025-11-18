@@ -450,7 +450,10 @@ class DataSourceService(BaseService):
         return [DataSourceEnvVarSchema.model_validate(var) for var in env_vars]
 
     def set_credentials(
-        self, data_source_id: str, credentials: list[DataSourceCredentialBase]
+        self,
+        data_source_id: str,
+        credentials: list[DataSourceCredentialBase],
+        project_id: str = None,
     ) -> list[DataSourceCredentialSchema]:
         """
         Set credentials for a data source
@@ -511,7 +514,9 @@ class DataSourceService(BaseService):
             for cred in saved_credentials
         ]
 
-    def get_credentials(self, data_source_id: str) -> list[DataSourceCredentialSchema]:
+    def get_credentials(
+        self, data_source_id: str, project_id: str = None
+    ) -> list[DataSourceCredentialSchema]:
         """
         Get credentials for a data source
 
