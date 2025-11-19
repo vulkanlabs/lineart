@@ -450,7 +450,7 @@ class DataSourceService(BaseService):
         return [DataSourceEnvVarSchema.model_validate(var) for var in env_vars]
 
     def set_credentials(
-        self, data_source_id: str, credentials: list[DataSourceCredentialBase]
+        self, data_source_id: str, credentials: list[DataSourceCredentialBase],  project_id: str | None = None,
     ) -> list[DataSourceCredentialSchema]:
         """
         Set credentials for a data source
@@ -468,7 +468,7 @@ class DataSourceService(BaseService):
         """
         # Validate data source exists, raise DataSourceNotFoundException if not found
         self.data_source_loader.get_data_source(
-            data_source_id=data_source_id, include_archived=False
+            data_source_id=data_source_id, project_id=project_id, include_archived=False
         )
 
         for cred in credentials:
@@ -483,7 +483,7 @@ class DataSourceService(BaseService):
             existing = (
                 self.db.query(DataSourceCredential)
                 .filter_by(
-                    data_source_id=data_source_id, credential_type=cred.credential_type
+                    data_source_id=data_source_id, credential_type=cred.credential_type,
                 )
                 .first()
             )
@@ -511,7 +511,7 @@ class DataSourceService(BaseService):
             for cred in saved_credentials
         ]
 
-    def get_credentials(self, data_source_id: str) -> list[DataSourceCredentialSchema]:
+    def get_credentials(self, data_source_id: str, project_id: str | None = None) -> list[DataSourceCredentialSchema]:
         """
         Get credentials for a data source
 
@@ -525,7 +525,7 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
         """
         self.data_source_loader.get_data_source(
-            data_source_id=data_source_id, include_archived=False
+            data_source_id=data_source_id, project_id=project_id, include_archived=False
         )
 
         credentials = (
