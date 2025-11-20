@@ -55,11 +55,15 @@ class DatabaseConfig:
     host: str
     port: str
     database: str
+    sslmode: str | None = None
 
     @property
     def connection_string(self) -> str:
         """Get PostgreSQL connection string."""
-        return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+        url = f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+        if self.sslmode is not None:
+            url += f"?sslmode={self.sslmode}"
+        return url
 
 
 @dataclass
