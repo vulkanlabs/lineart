@@ -12,6 +12,7 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import case, select
 from sqlalchemy import func as F
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from vulkan_engine.db import (
     DataObjectOrigin,
@@ -19,6 +20,7 @@ from vulkan_engine.db import (
 )
 from vulkan_engine.loaders import DataSourceLoader
 from vulkan_engine.logging import get_logger
+from vulkan_engine.services.analytics_utils import query_to_dataframe
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.utils import validate_date_range
 
@@ -26,7 +28,7 @@ from vulkan_engine.utils import validate_date_range
 class DataSourceAnalyticsService(BaseService):
     """Service for data source analytics and metrics."""
 
-    def __init__(self, db):
+    def __init__(self, db: AsyncSession):
         """
         Initialize data source analytics service.
 
@@ -37,7 +39,7 @@ class DataSourceAnalyticsService(BaseService):
         self.data_source_loader = DataSourceLoader(db)
         self.logger = get_logger(__name__)
 
-    def get_usage_statistics(
+    async def get_usage_statistics(
         self,
         data_source_id: str,
         start_date: date | None = None,
@@ -57,7 +59,7 @@ class DataSourceAnalyticsService(BaseService):
             Dictionary with usage statistics
         """
         # Validate data source exists
-        self.data_source_loader.get_data_source(
+        await self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
         )
 
@@ -77,13 +79,14 @@ class DataSourceAnalyticsService(BaseService):
             .group_by(date_clause)
         )
 
-        df = pd.read_sql(query, self.db.bind).fillna(0).sort_values("date")
+        df = await query_to_dataframe(self.db, query)
+        df = df.fillna(0).sort_values("date")
         df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
         df["value"] = df["count"].astype(int)
 
         return {"requests_by_date": df.to_dict(orient="records")}
 
-    def get_performance_metrics(
+    async def get_performance_metrics(
         self,
         data_source_id: str,
         start_date: date | None = None,
@@ -103,7 +106,7 @@ class DataSourceAnalyticsService(BaseService):
             Dictionary with performance metrics
         """
         # Validate data source exists
-        self.data_source_loader.get_data_source(
+        await self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
         )
 
@@ -137,7 +140,7 @@ class DataSourceAnalyticsService(BaseService):
         )
 
         sql_start = time.time()
-        metrics_df = pd.read_sql(metrics_query, self.db.bind)
+        metrics_df = await query_to_dataframe(self.db, metrics_query)
         sql_time = time.time() - sql_start
 
         self.logger.debug(
@@ -178,7 +181,7 @@ class DataSourceAnalyticsService(BaseService):
             "error_rate_by_date": error_rate.to_dict(orient="records"),
         }
 
-    def get_cache_statistics(
+    async def get_cache_statistics(
         self,
         data_source_id: str,
         start_date: date | None = None,
@@ -198,7 +201,7 @@ class DataSourceAnalyticsService(BaseService):
             Dictionary with cache statistics
         """
         # Validate data source exists
-        self.data_source_loader.get_data_source(
+        await self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
         )
 
@@ -219,7 +222,7 @@ class DataSourceAnalyticsService(BaseService):
             .group_by(date_clause, RunDataRequest.data_origin)
         )
 
-        cache_df = pd.read_sql(cache_query, self.db.bind)
+        cache_df = await query_to_dataframe(self.db, cache_query)
         cache_df["data_origin"] = cache_df["data_origin"].map(
             {
                 DataObjectOrigin.CACHE: DataObjectOrigin.CACHE.value,

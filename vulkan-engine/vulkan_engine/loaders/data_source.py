@@ -4,7 +4,7 @@ Data source loader for data access layer.
 
 from typing import List
 
-from sqlalchemy.orm import Query
+from sqlalchemy import Select, select
 from vulkan.data_source import DataSourceStatus
 
 from vulkan_engine.db import DataSource
@@ -16,8 +16,8 @@ class DataSourceLoader(BaseLoader):
     """Loader for DataSource resources."""
 
     def _apply_status_filter(
-        self, query: Query, include_archived: bool = False
-    ) -> Query:
+        self, stmt: Select, include_archived: bool = False
+    ) -> Select:
         """
         Apply status filter to exclude ARCHIVED data sources.
 
@@ -26,21 +26,21 @@ class DataSourceLoader(BaseLoader):
         explicitly requested.
 
         Args:
-            query: SQLAlchemy query object
+            stmt: SQLAlchemy select statement
             include_archived: Whether to include ARCHIVED status data sources
 
         Returns:
-            Query with status filter applied
+            Select statement with status filter applied
         """
         if not include_archived:
-            return query.filter(
+            return stmt.filter(
                 DataSource.status.in_(
                     [DataSourceStatus.DRAFT, DataSourceStatus.PUBLISHED]
                 )
             )
-        return query
+        return stmt
 
-    def get_data_source(
+    async def get_data_source(
         self, data_source_id: str, project_id: str = None, include_archived: bool = True
     ) -> DataSource:
         """
@@ -57,21 +57,23 @@ class DataSourceLoader(BaseLoader):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist or doesn't belong to specified project
         """
-        query = self.db.query(DataSource).filter(
+
+        stmt = select(DataSource).filter(
             DataSource.data_source_id == data_source_id,
             DataSource.project_id == project_id,
         )
 
         # Apply status filter to exclude ARCHIVED data sources if needed
-        query = self._apply_status_filter(query, include_archived)
+        stmt = self._apply_status_filter(stmt, include_archived)
 
-        data_source = query.first()
+        result = await self.db.execute(stmt)
+        data_source = result.scalar_one_or_none()
         if not data_source:
             raise DataSourceNotFoundException(f"Data source {data_source_id} not found")
 
         return data_source
 
-    def get_data_source_by_name(
+    async def get_data_source_by_name(
         self, name: str, project_id: str = None, include_archived: bool = True
     ) -> DataSource:
         """
@@ -88,21 +90,23 @@ class DataSourceLoader(BaseLoader):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist or doesn't belong to specified project
         """
-        query = self.db.query(DataSource).filter(
+
+        stmt = select(DataSource).filter(
             DataSource.name == name,
             DataSource.project_id == project_id,
         )
 
         # Apply status filter to exclude ARCHIVED data sources if needed
-        query = self._apply_status_filter(query, include_archived)
+        stmt = self._apply_status_filter(stmt, include_archived)
 
-        data_source = query.first()
+        result = await self.db.execute(stmt)
+        data_source = result.scalar_one_or_none()
         if not data_source:
             raise DataSourceNotFoundException(f"Data source '{name}' not found")
 
         return data_source
 
-    def list_data_sources(
+    async def list_data_sources(
         self,
         project_id: str = None,
         include_archived: bool = False,
@@ -119,22 +123,24 @@ class DataSourceLoader(BaseLoader):
         Returns:
             List of DataSource objects
         """
-        query = self.db.query(DataSource).filter(DataSource.project_id == project_id)
+
+        stmt = select(DataSource).filter(DataSource.project_id == project_id)
 
         # If specific status requested, use it directly (uses composite index)
         if status:
-            query = query.filter(DataSource.status == status)
+            stmt = stmt.filter(DataSource.status == status)
         # Otherwise, apply archived filter
         elif not include_archived:
-            query = query.filter(
+            stmt = stmt.filter(
                 DataSource.status.in_(
                     [DataSourceStatus.DRAFT, DataSourceStatus.PUBLISHED]
                 )
             )
 
-        return query.all()
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
 
-    def data_source_exists(
+    async def data_source_exists(
         self, data_source_id: str = None, name: str = None, project_id: str = None
     ) -> bool:
         """
@@ -148,17 +154,19 @@ class DataSourceLoader(BaseLoader):
         Returns:
             True if data source exists, False otherwise
         """
+
         if not data_source_id and not name:
             raise ValueError("Either data_source_id or name must be provided")
 
-        query = self.db.query(DataSource).filter(DataSource.project_id == project_id)
+        stmt = select(DataSource).filter(DataSource.project_id == project_id)
 
         if data_source_id:
-            query = query.filter(DataSource.data_source_id == data_source_id)
+            stmt = stmt.filter(DataSource.data_source_id == data_source_id)
         elif name:
-            query = query.filter(DataSource.name == name)
+            stmt = stmt.filter(DataSource.name == name)
 
         # Only check non-archived data sources for existence
-        query = self._apply_status_filter(query, include_archived=False)
+        stmt = self._apply_status_filter(stmt, include_archived=False)
 
-        return query.first() is not None
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none() is not None

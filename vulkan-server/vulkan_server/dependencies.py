@@ -11,12 +11,13 @@ Organization:
 """
 
 import os
+from collections.abc import AsyncIterator
 from functools import lru_cache
-from typing import Annotated, Iterator
+from typing import Annotated
 
 import redis
 from fastapi import Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from vulkan_engine.backends.execution import ExecutionBackend
 from vulkan_engine.backends.factory.backend import ExecutionBackendFactory
 from vulkan_engine.backends.factory.data_client import BaseDataClient, DataClientFactory
@@ -27,7 +28,7 @@ from vulkan_engine.backends.factory.service_client import (
 from vulkan_engine.config import VulkanEngineConfig
 
 # Removed legacy Dagster imports - now using worker abstractions only
-from vulkan_engine.db import get_db_session
+from vulkan_engine.connection import get_db_session
 from vulkan_engine.services import (
     AllocationService,
     ComponentService,
@@ -58,9 +59,9 @@ def get_vulkan_server_config() -> VulkanEngineConfig:
 
 
 # Infrastructure Dependencies
-def get_database_session(
+async def get_database_session(
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
-) -> Iterator[Session]:
+) -> AsyncIterator[AsyncSession]:
     """
     Get database session using configuration.
 
@@ -70,7 +71,8 @@ def get_database_session(
     Yields:
         Database session
     """
-    yield from get_db_session(config.database)
+    async for session in get_db_session(config.database):
+        yield session
 
 
 def get_redis_client() -> redis.Redis | None:
@@ -127,7 +129,7 @@ def get_execution_backend(
 
 def get_worker_data_client(
     config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
-    db_session: Annotated[Session, Depends(get_database_session)],
+    db_session: Annotated[AsyncSession, Depends(get_database_session)],
 ) -> BaseDataClient | None:
     """
     Get worker data client using factory pattern.
@@ -160,7 +162,7 @@ def get_worker_service_client(
 
 # Business Service Dependencies
 def get_run_query_service(
-    db: Annotated[Session, Depends(get_database_session)],
+    db: Annotated[AsyncSession, Depends(get_database_session)],
     worker_data_client: Annotated[
         BaseDataClient | None, Depends(get_worker_data_client)
     ],
@@ -184,7 +186,7 @@ def get_run_query_service(
 
 
 def get_run_orchestration_service(
-    db: Annotated[Session, Depends(get_database_session)],
+    db: Annotated[AsyncSession, Depends(get_database_session)],
     backend: Annotated[ExecutionBackend, Depends(get_execution_backend)],
 ) -> RunOrchestrationService:
     """
@@ -204,7 +206,7 @@ def get_run_orchestration_service(
 
 
 def get_policy_service(
-    db: Annotated[Session, Depends(get_database_session)],
+    db: Annotated[AsyncSession, Depends(get_database_session)],
 ) -> PolicyService:
     """
     Get PolicyService for policy management.
@@ -222,14 +224,14 @@ def get_workflow_service(
     worker_service_client: Annotated[
         BackendServiceClient, Depends(get_worker_service_client)
     ],
-    db: Annotated[Session, Depends(get_database_session)],
+    db: Annotated[AsyncSession, Depends(get_database_session)],
 ) -> WorkflowService:
     """Get WorkflowService instance with dependencies."""
     return WorkflowService(db=db, backend_service_client=worker_service_client)
 
 
 def get_policy_version_service(
-    db: Annotated[Session, Depends(get_database_session)],
+    db: Annotated[AsyncSession, Depends(get_database_session)],
     workflow_service: Annotated[WorkflowService, Depends(get_workflow_service)],
     orchestrator: Annotated[
         RunOrchestrationService, Depends(get_run_orchestration_service)
@@ -244,7 +246,7 @@ def get_policy_version_service(
 
 
 def get_allocation_service(
-    db: Annotated[Session, Depends(get_database_session)],
+    db: Annotated[AsyncSession, Depends(get_database_session)],
     orchestrator: Annotated[
         RunOrchestrationService, Depends(get_run_orchestration_service)
     ],
@@ -263,7 +265,7 @@ def get_allocation_service(
 
 
 def get_data_source_service(
-    db: Annotated[Session, Depends(get_database_session)],
+    db: Annotated[AsyncSession, Depends(get_database_session)],
     redis_cache: Annotated[redis.Redis | None, Depends(get_redis_client)],
 ) -> DataSourceService:
     """
@@ -280,7 +282,7 @@ def get_data_source_service(
 
 
 def get_component_service(
-    db: Annotated[Session, Depends(get_database_session)],
+    db: Annotated[AsyncSession, Depends(get_database_session)],
     workflow_service: Annotated[WorkflowService, Depends(get_workflow_service)],
 ) -> ComponentService:
     """
@@ -297,7 +299,7 @@ def get_component_service(
 
 
 def get_data_source_analytics_service(
-    db: Annotated[Session, Depends(get_database_session)],
+    db: Annotated[AsyncSession, Depends(get_database_session)],
 ) -> DataSourceAnalyticsService:
     """
     Get DataSourceAnalyticsService for data source analytics.
@@ -312,7 +314,7 @@ def get_data_source_analytics_service(
 
 
 def get_policy_analytics_service(
-    db: Annotated[Session, Depends(get_database_session)],
+    db: Annotated[AsyncSession, Depends(get_database_session)],
 ) -> PolicyAnalyticsService:
     """
     Get PolicyAnalyticsService for policy analytics.
@@ -327,7 +329,7 @@ def get_policy_analytics_service(
 
 
 def get_credential_service(
-    db: Annotated[Session, Depends(get_database_session)],
+    db: Annotated[AsyncSession, Depends(get_database_session)],
 ) -> CredentialService:
     """
     Get CredentialService for OAuth credential management.
@@ -342,7 +344,7 @@ def get_credential_service(
 
 
 def get_data_source_test_service(
-    db: Annotated[Session, Depends(get_database_session)],
+    db: Annotated[AsyncSession, Depends(get_database_session)],
 ) -> DataSourceTestService:
     """
     Get DataSourceTestService for testing data sources.

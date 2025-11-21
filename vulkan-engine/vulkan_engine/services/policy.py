@@ -9,6 +9,7 @@ from datetime import date
 
 from sqlalchemy import func as F
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from vulkan_engine.db import Policy, PolicyVersion, Run, WorkflowStatus
 from vulkan_engine.exceptions import (
@@ -27,7 +28,7 @@ from vulkan_engine.utils import validate_date_range
 class PolicyService(BaseService):
     """Service for managing policies and their operations."""
 
-    def __init__(self, db):
+    def __init__(self, db: AsyncSession):
         """
         Initialize policy service.
 
@@ -38,7 +39,7 @@ class PolicyService(BaseService):
         self.policy_loader = PolicyLoader(db)
         self.policy_version_loader = PolicyVersionLoader(db)
 
-    def list_policies(
+    async def list_policies(
         self, include_archived: bool = False, project_id: str = None
     ) -> list[Policy]:
         """
@@ -51,11 +52,11 @@ class PolicyService(BaseService):
         Returns:
             List of Policy objects
         """
-        return self.policy_loader.list_policies(
+        return await self.policy_loader.list_policies(
             project_id=project_id, include_archived=include_archived
         )
 
-    def create_policy(
+    async def create_policy(
         self, policy_data: PolicyCreate, project_id: str = None
     ) -> Policy:
         """
@@ -73,11 +74,11 @@ class PolicyService(BaseService):
 
         policy = Policy(**policy_dict)
         self.db.add(policy)
-        self.db.commit()
+        await self.db.commit()
 
         return policy
 
-    def get_policy(self, policy_id: str, project_id: str = None) -> Policy:
+    async def get_policy(self, policy_id: str, project_id: str = None) -> Policy:
         """
         Get a policy by ID, optionally filtered by project.
 
@@ -91,9 +92,9 @@ class PolicyService(BaseService):
         Raises:
             PolicyNotFoundException: If policy doesn't exist or doesn't belong to specified project
         """
-        return self.policy_loader.get_policy(policy_id, project_id=project_id)
+        return await self.policy_loader.get_policy(policy_id, project_id=project_id)
 
-    def update_policy(
+    async def update_policy(
         self, policy_id: str, update_data: PolicyBase, project_id: str = None
     ) -> Policy:
         """
@@ -111,11 +112,11 @@ class PolicyService(BaseService):
             PolicyNotFoundException: If policy doesn't exist or doesn't belong to specified project
             InvalidAllocationStrategyException: If allocation strategy is invalid
         """
-        policy = self.policy_loader.get_policy(policy_id, project_id=project_id)
+        policy = await self.policy_loader.get_policy(policy_id, project_id=project_id)
 
         # Validate allocation strategy if provided
         if update_data.allocation_strategy:
-            self._validate_allocation_strategy(
+            await self._validate_allocation_strategy(
                 update_data.allocation_strategy, project_id=project_id
             )
             policy.allocation_strategy = update_data.allocation_strategy.model_dump()
@@ -132,11 +133,11 @@ class PolicyService(BaseService):
         ):
             policy.description = update_data.description
 
-        self.db.commit()
+        await self.db.commit()
 
         return policy
 
-    def delete_policy(self, policy_id: str, project_id: str = None) -> None:
+    async def delete_policy(self, policy_id: str, project_id: str = None) -> None:
         """
         Delete (archive) a policy, optionally filtered by project.
 
@@ -148,17 +149,15 @@ class PolicyService(BaseService):
             PolicyNotFoundException: If policy doesn't exist, already archived, or doesn't belong to specified project
             PolicyHasVersionsException: If policy has active versions
         """
-        policy = self.policy_loader.get_policy(policy_id, project_id=project_id)
+        policy = await self.policy_loader.get_policy(policy_id, project_id=project_id)
 
         if policy.archived:
             raise PolicyNotFoundException(f"Policy {policy_id} not found")
 
         # Check for active versions
-        active_versions_count = (
-            self.db.query(PolicyVersion)
-            .filter_by(policy_id=policy_id, archived=False)
-            .count()
-        )
+        stmt = select(PolicyVersion).filter_by(policy_id=policy_id, archived=False)
+        result = await self.db.execute(stmt)
+        active_versions_count = len(result.scalars().all())
 
         if active_versions_count > 0:
             raise PolicyHasVersionsException(
@@ -167,9 +166,9 @@ class PolicyService(BaseService):
             )
 
         policy.archived = True
-        self.db.commit()
+        await self.db.commit()
 
-    def list_policy_versions(
+    async def list_policy_versions(
         self, policy_id: str, include_archived: bool = False, project_id: str = None
     ) -> list[PolicyVersion]:
         """
@@ -183,13 +182,13 @@ class PolicyService(BaseService):
         Returns:
             List of PolicyVersion objects
         """
-        return self.policy_version_loader.list_policy_versions(
+        return await self.policy_version_loader.list_policy_versions(
             policy_id=policy_id,
             project_id=project_id,
             include_archived=include_archived,
         )
 
-    def list_runs_by_policy(
+    async def list_runs_by_policy(
         self,
         policy_id: str,
         start_date: date | None = None,
@@ -210,7 +209,7 @@ class PolicyService(BaseService):
         """
         start_date, end_date = validate_date_range(start_date, end_date)
 
-        query = (
+        stmt = (
             select(Run)
             .join(PolicyVersion)
             .filter(
@@ -222,9 +221,10 @@ class PolicyService(BaseService):
             .order_by(Run.created_at.desc())
         )
 
-        return self.db.execute(query).scalars().all()
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
 
-    def _validate_allocation_strategy(
+    async def _validate_allocation_strategy(
         self, allocation_strategy: PolicyAllocationStrategy, project_id: str = None
     ) -> None:
         """
@@ -254,16 +254,16 @@ class PolicyService(BaseService):
         # Validate shadow versions if present
         if allocation_strategy.shadow:
             for version_id in allocation_strategy.shadow:
-                self._validate_policy_version_id(version_id, project_id)
+                await self._validate_policy_version_id(version_id, project_id)
 
         # Validate choice versions
         for option in allocation_strategy.choice:
-            self._validate_policy_version_id(option.policy_version_id, project_id)
+            await self._validate_policy_version_id(option.policy_version_id, project_id)
 
         # TODO: Validate if schemas are compatible
         # TODO: Validate if config_variables are compatible
 
-    def _validate_policy_version_id(
+    async def _validate_policy_version_id(
         self, policy_version_id: str, project_id: str = None
     ) -> PolicyVersion:
         """
@@ -280,7 +280,7 @@ class PolicyService(BaseService):
             PolicyVersionNotFoundException: If version doesn't exist
             InvalidPolicyVersionException: If version is not valid
         """
-        version = self.policy_version_loader.get_policy_version(
+        version = await self.policy_version_loader.get_policy_version(
             policy_version_id, project_id=project_id
         )
 

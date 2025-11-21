@@ -7,7 +7,7 @@ Provides common functionality like database session access.
 from abc import ABC
 from typing import Any
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class BaseService(ABC):
@@ -23,12 +23,12 @@ class BaseService(ABC):
         logger = get_logger(__name__)
     """
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         """
         Initialize base service.
 
         Args:
-            db: SQLAlchemy database session
+            db: SQLAlchemy async database session
         """
         self.db = db
 

@@ -5,7 +5,7 @@ Handles internal workflow operations. Workflows should never be exposed directly
 to API users but are managed internally by PolicyVersionService and ComponentService.
 """
 
-from sqlalchemy.orm import Session
+from sqlalchemy import select
 from vulkan.core.run import WorkflowStatus
 from vulkan.spec.nodes import NodeType
 from vulkan.spec.policy import PolicyDefinitionDict
@@ -24,7 +24,7 @@ class WorkflowService(BaseService):
 
     def __init__(
         self,
-        db: Session,
+        db,
         backend_service_client: BackendServiceClient | None = None,
     ):
         super().__init__(db)
@@ -32,7 +32,7 @@ class WorkflowService(BaseService):
         self.component_loader = ComponentLoader(db)
         self.logger = get_logger(__name__)
 
-    def create_workflow(
+    async def create_workflow(
         self,
         spec: PolicyDefinitionDict | None = None,
         requirements: list[str] | None = None,
@@ -62,12 +62,14 @@ class WorkflowService(BaseService):
             project_id=project_id,
         )
         self.db.add(workflow)
-        self.db.commit()
-        self.db.refresh(workflow)
+        await self.db.commit()
+        await self.db.refresh(workflow)
 
         return workflow
 
-    def get_workflow(self, workflow_id: str, project_id: str | None = None) -> Workflow:
+    async def get_workflow(
+        self, workflow_id: str, project_id: str | None = None
+    ) -> Workflow:
         """
         Get a workflow by ID.
 
@@ -80,18 +82,16 @@ class WorkflowService(BaseService):
         Raises:
             WorkflowNotFoundException: If workflow doesn't exist
         """
-        workflow = (
-            self.db.query(Workflow)
-            .filter(
-                Workflow.workflow_id == workflow_id, Workflow.project_id == project_id
-            )
-            .first()
+        stmt = select(Workflow).filter(
+            Workflow.workflow_id == workflow_id, Workflow.project_id == project_id
         )
+        result = await self.db.execute(stmt)
+        workflow = result.scalar_one_or_none()
         if not workflow:
             raise WorkflowNotFoundException(f"Workflow {workflow_id} not found")
         return workflow
 
-    def update_workflow(
+    async def update_workflow(
         self,
         workflow_id: str,
         spec: PolicyDefinitionDict | None = None,
@@ -117,11 +117,11 @@ class WorkflowService(BaseService):
         Raises:
             WorkflowNotFoundException: If workflow doesn't exist
         """
-        workflow = self.get_workflow(workflow_id, project_id)
+        workflow = await self.get_workflow(workflow_id, project_id)
 
         # Update the underlying workflow
         spec = self._convert_pydantic_to_dict(spec)
-        spec, requirements = self._inject_component_implementations(
+        spec, requirements = await self._inject_component_implementations(
             spec,
             requirements,
             project_id,
@@ -136,18 +136,20 @@ class WorkflowService(BaseService):
             workflow.ui_metadata = self._convert_pydantic_to_dict(ui_metadata)
 
         workflow.status = WorkflowStatus.INVALID
-        self.db.commit()
-        self.db.refresh(workflow)
+        await self.db.commit()
+        await self.db.refresh(workflow)
 
         # Ensure the workspace is created or updated with the new spec and requirements
         self._update_worker_workspace(workflow)
         workflow.status = WorkflowStatus.VALID
-        self.db.commit()
-        self.db.refresh(workflow)
+        await self.db.commit()
+        await self.db.refresh(workflow)
 
         return workflow
 
-    def delete_workflow(self, workflow_id: str, project_id: str | None = None) -> None:
+    async def delete_workflow(
+        self, workflow_id: str, project_id: str | None = None
+    ) -> None:
         """
         Delete a workflow.
 
@@ -157,9 +159,9 @@ class WorkflowService(BaseService):
         Raises:
             WorkflowNotFoundException: If workflow doesn't exist
         """
-        workflow = self.get_workflow(workflow_id, project_id)
-        self.db.delete(workflow)
-        self.db.commit()
+        workflow = await self.get_workflow(workflow_id, project_id)
+        await self.db.delete(workflow)
+        await self.db.commit()
 
         # Remove from worker service
         name = str(workflow_id)
@@ -206,7 +208,7 @@ class WorkflowService(BaseService):
                 error=str(e),
             )
 
-    def _inject_component_implementations(
+    async def _inject_component_implementations(
         self,
         spec: PolicyDefinitionDict,
         requirements: list[str] | None,
@@ -232,7 +234,7 @@ class WorkflowService(BaseService):
                 if component_name is None:
                     raise ValueError(f"Component node {node.name} has no component ID")
 
-                component = self.component_loader.get_component(
+                component = await self.component_loader.get_component(
                     name=component_name,
                     project_id=project_id,
                     include_archived=False,

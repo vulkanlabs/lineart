@@ -4,6 +4,8 @@ Policy loader for data access layer.
 
 from typing import List
 
+from sqlalchemy import select
+
 from vulkan_engine.db import Policy
 from vulkan_engine.exceptions import PolicyNotFoundException
 from vulkan_engine.loaders.base import BaseLoader
@@ -12,7 +14,7 @@ from vulkan_engine.loaders.base import BaseLoader
 class PolicyLoader(BaseLoader):
     """Loader for Policy resources."""
 
-    def get_policy(self, policy_id: str, project_id: str = None) -> Policy:
+    async def get_policy(self, policy_id: str, project_id: str = None) -> Policy:
         """
         Get a policy by ID, filtered by project.
 
@@ -26,18 +28,18 @@ class PolicyLoader(BaseLoader):
         Raises:
             PolicyNotFoundException: If policy doesn't exist or doesn't belong to specified project
         """
-        policy = (
-            self.db.query(Policy)
-            .filter(Policy.policy_id == policy_id, Policy.project_id == project_id)
-            .first()
+        stmt = select(Policy).filter(
+            Policy.policy_id == policy_id, Policy.project_id == project_id
         )
+        result = await self.db.execute(stmt)
+        policy = result.scalar_one_or_none()
 
         if not policy:
             raise PolicyNotFoundException(f"Policy {policy_id} not found")
 
         return policy
 
-    def list_policies(
+    async def list_policies(
         self, project_id: str = None, include_archived: bool = False
     ) -> List[Policy]:
         """
@@ -50,7 +52,8 @@ class PolicyLoader(BaseLoader):
         Returns:
             List of Policy objects
         """
-        query = self.db.query(Policy).filter(Policy.project_id == project_id)
-        query = self._apply_archived_filter(query, include_archived)
+        stmt = select(Policy).filter(Policy.project_id == project_id)
+        stmt = self._apply_archived_filter(stmt, include_archived)
 
-        return query.all()
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())

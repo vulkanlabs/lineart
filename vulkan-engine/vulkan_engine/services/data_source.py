@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 import requests
 from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from vulkan.credentials import (
     validate_credential_type,
     validate_no_reserved_credentials_in_templates,
@@ -56,7 +57,7 @@ from vulkan_engine.services.base import BaseService
 class DataSourceService(BaseService):
     """Service for managing data sources and data operations."""
 
-    def __init__(self, db, redis_cache=None):
+    def __init__(self, db: AsyncSession, redis_cache=None):
         """
         Initialize data source service.
 
@@ -112,7 +113,7 @@ class DataSourceService(BaseService):
         except ValueError as e:
             raise InvalidDataSourceException(str(e))
 
-    def list_data_sources(
+    async def list_data_sources(
         self, include_archived: bool = False, project_id: str = None, status: str = None
     ) -> list[DataSourceSchema]:
         """
@@ -135,12 +136,12 @@ class DataSourceService(BaseService):
                 # If status is invalid, return empty list
                 return []
 
-        data_sources = self.data_source_loader.list_data_sources(
+        data_sources = await self.data_source_loader.list_data_sources(
             project_id=project_id, include_archived=include_archived, status=status_enum
         )
         return [DataSourceSchema.from_orm(ds) for ds in data_sources]
 
-    def create_data_source(
+    async def create_data_source(
         self, spec: DataSourceSpec, project_id: str = None
     ) -> DataSourceSchema:
         """
@@ -158,7 +159,7 @@ class DataSourceService(BaseService):
             InvalidDataSourceException: If data source configuration is invalid
         """
         # Check if data source already exists
-        if self.data_source_loader.data_source_exists(
+        if await self.data_source_loader.data_source_exists(
             name=spec.name, project_id=project_id
         ):
             raise DataSourceAlreadyExistsException(
@@ -176,11 +177,11 @@ class DataSourceService(BaseService):
         data_source.project_id = project_id
 
         self.db.add(data_source)
-        self.db.commit()
+        await self.db.commit()
 
         return DataSourceSchema.from_orm(data_source)
 
-    def get_data_source(
+    async def get_data_source(
         self, data_source_id: str, project_id: str = None
     ) -> DataSourceSchema:
         """
@@ -196,12 +197,12 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
-        data_source = self.data_source_loader.get_data_source(
+        data_source = await self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
         )
         return DataSourceSchema.from_orm(data_source)
 
-    def update_data_source(
+    async def update_data_source(
         self, data_source_id: str, spec: DataSourceSpec, project_id: str = None
     ) -> DataSourceSchema:
         """
@@ -223,7 +224,7 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If data source configuration is invalid
         """
-        data_source = self.data_source_loader.get_data_source(
+        data_source = await self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=False
         )
 
@@ -247,13 +248,14 @@ class DataSourceService(BaseService):
         else:
             data_source.update_from_spec(spec)
 
-        self.db.commit()
+        await self.db.commit()
+        await self.db.refresh(data_source)
 
         self.logger.info("updated_data_source", data_source_id=data_source_id)
 
         return DataSourceSchema.from_orm(data_source)
 
-    def delete_data_source(
+    async def delete_data_source(
         self, data_source_id: str, project_id: str = None
     ) -> dict[str, str]:
         """
@@ -272,7 +274,7 @@ class DataSourceService(BaseService):
         """
         # Get non-archived data source
         try:
-            data_source = self.data_source_loader.get_data_source(
+            data_source = await self.data_source_loader.get_data_source(
                 data_source_id=data_source_id,
                 project_id=project_id,
                 include_archived=False,
@@ -284,8 +286,8 @@ class DataSourceService(BaseService):
 
         # Hard delete for DRAFT data sources
         if data_source.status == DataSourceStatus.DRAFT:
-            self.db.delete(data_source)
-            self.db.commit()
+            await self.db.delete(data_source)
+            await self.db.commit()
 
             self.logger.info(
                 "hard_deleted_draft_data_source",
@@ -306,7 +308,8 @@ class DataSourceService(BaseService):
                 & (PolicyVersion.archived.is_(False))
             )
         )
-        policy_uses = self.db.execute(stmt).all()
+        result = await self.db.execute(stmt)
+        policy_uses = list(result.scalars().all())
 
         if policy_uses:
             raise InvalidDataSourceException(
@@ -324,7 +327,8 @@ class DataSourceService(BaseService):
                 & (Component.archived.is_(False))
             )
         )
-        component_uses = self.db.execute(stmt_component).all()
+        component_result = await self.db.execute(stmt_component)
+        component_uses = list(component_result.scalars().all())
 
         if component_uses:
             raise InvalidDataSourceException(
@@ -332,16 +336,16 @@ class DataSourceService(BaseService):
             )
 
         # has associated data objects
-        objects = (
-            self.db.query(DataObject).filter_by(data_source_id=data_source_id).all()
-        )
+        objects_stmt = select(DataObject).filter_by(data_source_id=data_source_id)
+        objects_result = await self.db.execute(objects_stmt)
+        objects = list(objects_result.scalars().all())
         if objects:
             raise InvalidDataSourceException(
                 f"Data source {data_source_id} has associated data objects"
             )
 
         data_source.status = DataSourceStatus.ARCHIVED
-        self.db.commit()
+        await self.db.commit()
 
         self.logger.info(
             "archived_data_source",
@@ -351,7 +355,7 @@ class DataSourceService(BaseService):
 
         return {"data_source_id": data_source_id}
 
-    def set_environment_variables(
+    async def set_environment_variables(
         self,
         data_source_id: str,
         desired_variables: list[DataSourceEnvVarBase],
@@ -373,7 +377,7 @@ class DataSourceService(BaseService):
             InvalidDataSourceException: If variables are not supported
         """
         # Validate data source exists and is not archived
-        _ = self.data_source_loader.get_data_source(
+        _ = await self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=False
         )
 
@@ -390,11 +394,9 @@ class DataSourceService(BaseService):
             )
 
         # Get existing variables
-        existing_variables = (
-            self.db.query(DataSourceEnvVar)
-            .filter_by(data_source_id=data_source_id)
-            .all()
-        )
+        env_var_stmt = select(DataSourceEnvVar).filter_by(data_source_id=data_source_id)
+        env_var_result = await self.db.execute(env_var_stmt)
+        existing_variables = list(env_var_result.scalars().all())
 
         # Remove variables not in desired list
         for var in existing_variables:
@@ -417,10 +419,10 @@ class DataSourceService(BaseService):
             else:
                 env_var.value = value_to_store
 
-        self.db.commit()
+        await self.db.commit()
         return {"data_source_id": data_source_id, "variables": desired_variables}
 
-    def get_environment_variables(
+    async def get_environment_variables(
         self, data_source_id: str, project_id: str = None
     ) -> list[DataSourceEnvVarSchema]:
         """
@@ -437,20 +439,18 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
         """
         # Validate data source exists and is not archived
-        self.data_source_loader.get_data_source(
+        await self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=False
         )
 
-        env_vars = (
-            self.db.query(DataSourceEnvVar)
-            .filter_by(data_source_id=data_source_id)
-            .all()
-        )
+        env_var_stmt = select(DataSourceEnvVar).filter_by(data_source_id=data_source_id)
+        env_var_result = await self.db.execute(env_var_stmt)
+        env_vars = list(env_var_result.scalars().all())
 
         return [DataSourceEnvVarSchema.model_validate(var) for var in env_vars]
 
-    def set_credentials(
-        self, data_source_id: str, credentials: list[DataSourceCredentialBase],  project_id: str | None = None,
+    async def set_credentials(
+        self, data_source_id: str, credentials: list[DataSourceCredentialBase]
     ) -> list[DataSourceCredentialSchema]:
         """
         Set credentials for a data source
@@ -467,8 +467,8 @@ class DataSourceService(BaseService):
             InvalidDataSourceException: If credential types are invalid or auth not configured
         """
         # Validate data source exists, raise DataSourceNotFoundException if not found
-        self.data_source_loader.get_data_source(
-            data_source_id=data_source_id, project_id=project_id, include_archived=False
+        await self.data_source_loader.get_data_source(
+            data_source_id=data_source_id, include_archived=False
         )
 
         for cred in credentials:
@@ -480,13 +480,11 @@ class DataSourceService(BaseService):
         saved_credentials = []
         for cred in credentials:
             # Check if credential already exists
-            existing = (
-                self.db.query(DataSourceCredential)
-                .filter_by(
-                    data_source_id=data_source_id, credential_type=cred.credential_type,
-                )
-                .first()
+            cred_stmt = select(DataSourceCredential).filter_by(
+                data_source_id=data_source_id, credential_type=cred.credential_type
             )
+            cred_result = await self.db.execute(cred_stmt)
+            existing = cred_result.scalar_one_or_none()
 
             if existing:
                 existing.value = cred.value
@@ -501,17 +499,19 @@ class DataSourceService(BaseService):
                 self.db.add(new_credential)
                 saved_credentials.append(new_credential)
 
-        self.db.commit()
+        await self.db.commit()
 
         for cred in saved_credentials:
-            self.db.refresh(cred)
+            await self.db.refresh(cred)
 
         return [
             DataSourceCredentialSchema.model_validate(cred)
             for cred in saved_credentials
         ]
 
-    def get_credentials(self, data_source_id: str, project_id: str | None = None) -> list[DataSourceCredentialSchema]:
+    async def get_credentials(
+        self, data_source_id: str
+    ) -> list[DataSourceCredentialSchema]:
         """
         Get credentials for a data source
 
@@ -524,19 +524,19 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
         """
-        self.data_source_loader.get_data_source(
-            data_source_id=data_source_id, project_id=project_id, include_archived=False
+        await self.data_source_loader.get_data_source(
+            data_source_id=data_source_id, include_archived=False
         )
 
-        credentials = (
-            self.db.query(DataSourceCredential)
-            .filter_by(data_source_id=data_source_id)
-            .all()
+        cred_stmt = select(DataSourceCredential).filter_by(
+            data_source_id=data_source_id
         )
+        cred_result = await self.db.execute(cred_stmt)
+        credentials = list(cred_result.scalars().all())
 
         return [DataSourceCredentialSchema.model_validate(cred) for cred in credentials]
 
-    def list_data_objects(
+    async def list_data_objects(
         self, data_source_id: str, project_id: str = None
     ) -> list[DataObjectMetadata]:
         """
@@ -553,13 +553,13 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
         """
         # Validate data source exists (include archived for data objects listing)
-        self.data_source_loader.get_data_source(
+        await self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
         )
 
-        data_objects = (
-            self.db.query(DataObject).filter_by(data_source_id=data_source_id).all()
-        )
+        obj_stmt = select(DataObject).filter_by(data_source_id=data_source_id)
+        obj_result = await self.db.execute(obj_stmt)
+        data_objects = list(obj_result.scalars().all())
 
         return [
             DataObjectMetadata(
@@ -571,7 +571,7 @@ class DataSourceService(BaseService):
             for obj in data_objects
         ]
 
-    def get_data_object(
+    async def get_data_object(
         self, data_source_id: str, data_object_id: str, project_id: str = None
     ) -> DataObject:
         """
@@ -589,16 +589,16 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source or data object doesn't exist
         """
         # Validate data source exists first
-        self.data_source_loader.get_data_source(
+        await self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
         )
 
         # Get the data object
-        data_object = (
-            self.db.query(DataObject)
-            .filter_by(data_source_id=data_source_id, data_object_id=data_object_id)
-            .first()
+        obj_stmt = select(DataObject).filter_by(
+            data_source_id=data_source_id, data_object_id=data_object_id
         )
+        obj_result = await self.db.execute(obj_stmt)
+        data_object = obj_result.scalar_one_or_none()
 
         if not data_object:
             raise DataObjectNotFoundException(
@@ -607,7 +607,7 @@ class DataSourceService(BaseService):
 
         return data_object
 
-    def request_data_from_broker(
+    async def request_data_from_broker(
         self, request: DataBrokerRequest, project_id: str = None
     ) -> DataBrokerResponse:
         """
@@ -625,7 +625,7 @@ class DataSourceService(BaseService):
             InvalidDataSourceException: If environment variables missing
         """
         # Find data source by name (include archived for broker requests)
-        data_source = self.data_source_loader.get_data_source_by_name(
+        data_source = await self.data_source_loader.get_data_source_by_name(
             name=request.data_source_name, project_id=project_id, include_archived=True
         )
 
@@ -640,8 +640,8 @@ class DataSourceService(BaseService):
         broker = DataBroker(db=self.db, logger=None, spec=spec)
 
         # Get environment variables and credentials from database
-        env_variables = _load_env_vars(self.db, spec.data_source_id)
-        credentials = _load_credentials(self.db, spec.data_source_id)
+        env_variables = await _load_env_vars(self.db, spec.data_source_id)
+        credentials = await _load_credentials(self.db, spec.data_source_id)
 
         # Check for missing variables
         missing_vars = set(spec.variables or []) - set(env_variables.keys())
@@ -683,7 +683,7 @@ class DataSourceService(BaseService):
                 error=data.error,
             )
             self.db.add(request_obj)
-            self.db.commit()
+            await self.db.commit()
 
             return data
 
@@ -697,7 +697,7 @@ class DataSourceService(BaseService):
             self.logger.error("data_broker_error", error=str(e), exc_info=True)
             raise DataBrokerException(str(e))
 
-    def publish_data_source(
+    async def publish_data_source(
         self, data_source_id: str, project_id: str = None
     ) -> DataSourceSchema:
         """
@@ -718,7 +718,7 @@ class DataSourceService(BaseService):
             DataSourceNotFoundException: If data source doesn't exist
         """
         # Get data source
-        data_source = self.data_source_loader.get_data_source(
+        data_source = await self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=False
         )
 
@@ -728,7 +728,7 @@ class DataSourceService(BaseService):
 
         # Publish, validation is handled by DB constraints and schema validation
         data_source.status = DataSourceStatus.PUBLISHED
-        self.db.commit()
+        await self.db.commit()
 
         self.logger.info("published_data_source", data_source_id=data_source_id)
 
@@ -738,7 +738,7 @@ class DataSourceService(BaseService):
 # Helper
 
 
-def _load_env_vars(db, data_source_id: str) -> dict[str, str]:
+async def _load_env_vars(db: AsyncSession, data_source_id: str) -> dict[str, str]:
     """
     Load environment variables from database.
 
@@ -750,7 +750,9 @@ def _load_env_vars(db, data_source_id: str) -> dict[str, str]:
         Dictionary of name -> value pairs
     """
     env_vars = {}
-    all_vars = db.query(DataSourceEnvVar).filter_by(data_source_id=data_source_id).all()
+    env_var_stmt = select(DataSourceEnvVar).filter_by(data_source_id=data_source_id)
+    env_var_result = await db.execute(env_var_stmt)
+    all_vars = list(env_var_result.scalars().all())
     for var in all_vars:
         if var.value is None:
             value = ""
@@ -762,7 +764,7 @@ def _load_env_vars(db, data_source_id: str) -> dict[str, str]:
     return env_vars
 
 
-def _load_credentials(db, data_source_id: str) -> dict[str, str]:
+async def _load_credentials(db: AsyncSession, data_source_id: str) -> dict[str, str]:
     """
     Load authentication credentials from database.
 
@@ -773,9 +775,9 @@ def _load_credentials(db, data_source_id: str) -> dict[str, str]:
     Returns:
         Dictionary of credential_type -> value pairs
     """
-    credentials_rows = (
-        db.query(DataSourceCredential).filter_by(data_source_id=data_source_id).all()
-    )
+    cred_stmt = select(DataSourceCredential).filter_by(data_source_id=data_source_id)
+    cred_result = await db.execute(cred_stmt)
+    credentials_rows = list(cred_result.scalars().all())
     return {cred.credential_type.value: cred.value for cred in credentials_rows}
 
 

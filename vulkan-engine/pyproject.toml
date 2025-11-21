@@ -3,9 +3,12 @@ name = "vulkanlabs-vulkan-engine"
 version = "0.1.0"
 description = "Vulkan core engine"
 dependencies = [
-    "sqlalchemy>=2.0.32",
+    "sqlalchemy[asyncio]>=2.0.32",
+    "asyncpg>=0.29.0",
+    "greenlet>=3.0.0",
     "alembic>=1.13.0",
     "pydantic>=2.8.2",
+    "pydantic-settings>=2.4.0",
     "dagster-graphql>=1.8.2",
     "pandas>=2.2.3",
     "vulkanlabs-vulkan[dagster,hatchet]",
@@ -16,8 +19,13 @@ dependencies = [
 ]
 requires-python = ">=3.10"
 
-[tool.uv]
-dev-dependencies = ["pytest>=8.3.2"]
+[dependency-groups]
+dev = [
+    "pytest>=8.3.2",
+    "pytest-anyio>=0.0.0",
+    "pytest-asyncio>=0.23.0",
+    "testcontainers[postgres]>=4.6.0",
+]
 
 [build-system]
 requires = ["hatchling"]

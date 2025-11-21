@@ -6,7 +6,7 @@ import os
 from typing import Any, Dict
 
 import requests
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.services.credential.schemas import (
     AuthCompleteResponse,
@@ -27,7 +27,7 @@ GOOGLE_OAUTH_SCOPES = [
 class CredentialService(BaseService):
     """Service for handling OAuth2 credential flows and management."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         super().__init__(db)
 
     def _get_google_credentials(self) -> Dict[str, Any]:

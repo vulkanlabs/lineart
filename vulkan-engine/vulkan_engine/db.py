@@ -1,5 +1,3 @@
-from typing import Iterator
-
 from sqlalchemy import (
     ARRAY,
     JSON,
@@ -15,11 +13,9 @@ from sqlalchemy import (
     LargeBinary,
     String,
     Uuid,
-    create_engine,
 )
-from sqlalchemy.engine import Engine
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
+from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 from vulkan.core.run import RunStatus, WorkflowStatus
 from vulkan.credentials import CredentialType
@@ -27,26 +23,9 @@ from vulkan.data_source import DataSourceStatus
 from vulkan.schemas import CachingOptions, DataSourceSpec
 from vulkan.spec.nodes.base import NodeType
 
-from vulkan_engine.config import DatabaseConfig
 from vulkan_engine.schemas import DataObjectOrigin
 
 Base = declarative_base()
-
-
-def create_engine_from_config(database_config: DatabaseConfig) -> Engine:
-    """Create database engine from configuration."""
-    return create_engine(database_config.connection_string, echo=False)
-
-
-def get_db_session(database_config: DatabaseConfig) -> Iterator[Session]:
-    """Get database session from configuration."""
-    engine = create_engine_from_config(database_config)
-    DBSession = sessionmaker(bind=engine)
-    db = DBSession()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 class TimedUpdateMixin:

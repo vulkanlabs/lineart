@@ -7,6 +7,9 @@ and other implementations can use and extend.
 from dataclasses import dataclass
 from typing import Literal, Union
 
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 @dataclass
 class DagsterConfig:
@@ -46,24 +49,36 @@ class WorkerServiceConfig:
             )
 
 
-@dataclass
-class DatabaseConfig:
-    """Configuration for the main application database."""
+class DatabaseConfig(BaseSettings):
+    """Configuration for the main application database.
 
-    user: str
-    password: str
-    host: str
-    port: str
-    database: str
-    sslmode: str | None = None
+    Automatically loads from environment variables with DB_ prefix.
+    Supports .env files and environment variable overrides.
+    """
+
+    user: str = Field(..., alias="DB_USER")
+    password: str = Field(..., alias="DB_PASSWORD")
+    host: str = Field(default="localhost", alias="DB_HOST")
+    port: str = Field(default="5432", alias="DB_PORT")
+    database: str = Field(..., alias="DB_DATABASE")
+    pool_size: int = Field(default=10, alias="DB_POOL_SIZE")
+    max_overflow: int = Field(default=20, alias="DB_MAX_OVERFLOW")
+    pool_recycle: int = Field(default=3600, alias="DB_POOL_RECYCLE")
+    pool_pre_ping: bool = Field(default=True, alias="DB_POOL_PRE_PING")
+    echo: bool = Field(default=False, alias="DB_ECHO")
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+        populate_by_name=True,
+    )
 
     @property
     def connection_string(self) -> str:
-        """Get PostgreSQL connection string."""
-        url = f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
-        if self.sslmode is not None:
-            url += f"?sslmode={self.sslmode}"
-        return url
+        """Get PostgreSQL connection string (postgresql+asyncpg://)."""
+        return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
 
 
 @dataclass
@@ -92,12 +107,12 @@ class WorkerDatabaseConfig:
 
     @property
     def connection_string(self) -> str | None:
-        """Get PostgreSQL connection string if database is enabled and configured."""
+        """Get PostgreSQL connection string if database is enabled and configured (postgresql+asyncpg://)."""
         if not self.enabled or not all(
             [self.user, self.password, self.host, self.port, self.database]
         ):
             return None
-        return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+        return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
 
 
 @dataclass

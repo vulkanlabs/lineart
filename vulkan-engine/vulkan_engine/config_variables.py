@@ -1,15 +1,15 @@
-from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from vulkan_engine.db import ConfigurationValue
 
 
-def resolve_config_variables_from_id(
-    db: Session,
+async def resolve_config_variables_from_id(
+    db,
     policy_version_id: str,
     required_variables: list[str],
     run_config_variables: dict | None = None,
 ):
-    policy_version_defaults = _get_policy_version_defaults(
+    policy_version_defaults = await _get_policy_version_defaults(
         db,
         policy_version_id=policy_version_id,
         required_variables=required_variables,
@@ -35,22 +35,20 @@ def resolve_config_variables(
     return config_variables, missing
 
 
-def _get_policy_version_defaults(
-    db: Session,
+async def _get_policy_version_defaults(
+    db,
     policy_version_id: str,
     required_variables: list[str] | None,
 ) -> dict:
     if required_variables is None or len(required_variables) == 0:
         return {}
 
-    results = (
-        db.query(ConfigurationValue)
-        .filter(
-            (ConfigurationValue.policy_version_id == policy_version_id)
-            & (ConfigurationValue.name.in_(required_variables))
-        )
-        .all()
+    stmt = select(ConfigurationValue).filter(
+        (ConfigurationValue.policy_version_id == policy_version_id)
+        & (ConfigurationValue.name.in_(required_variables))
     )
+    result = await db.execute(stmt)
+    results = list(result.scalars().all())
     return {v.name: v.value for v in results}
 
 

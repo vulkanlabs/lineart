@@ -6,7 +6,7 @@ Handles business logic for component operations.
 
 from typing import List
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from vulkan_engine import schemas
 from vulkan_engine.db import Component
@@ -23,34 +23,36 @@ class ComponentService(BaseService):
 
     def __init__(
         self,
-        db: Session,
+        db: AsyncSession,
         workflow_service: WorkflowService,
     ):
         super().__init__(db)
         self.workflow_service = workflow_service
         self.component_loader = ComponentLoader(db)
 
-    def list_components(
+    async def list_components(
         self,
         include_archived: bool = False,
         project_id: str | None = None,
     ) -> List[schemas.Component]:
         """List all components."""
-        components = self.component_loader.list_components(
+        components = await self.component_loader.list_components(
             project_id=project_id,
             include_archived=include_archived,
         )
         return components
 
-    def get_component(self, component_name: str, project_id: str = None) -> Component:
+    async def get_component(
+        self, component_name: str, project_id: str = None
+    ) -> Component:
         """Get a component by name."""
-        component = self.component_loader.get_component(
+        component = await self.component_loader.get_component(
             name=component_name,
             project_id=project_id,
         )
         return component
 
-    def create_component(
+    async def create_component(
         self,
         config: schemas.ComponentBase,
         project_id: str | None = None,
@@ -58,7 +60,7 @@ class ComponentService(BaseService):
         """Create a new component."""
 
         # Create workflow for the component
-        workflow = self.workflow_service.create_workflow(
+        workflow = await self.workflow_service.create_workflow(
             spec={"nodes": [], "input_schema": {}},
             requirements=[],
             variables=[],
@@ -75,18 +77,18 @@ class ComponentService(BaseService):
         )
 
         self.db.add(component)
-        self.db.commit()
-        self.db.refresh(component)
+        await self.db.commit()
+        await self.db.refresh(component)
         return schemas.Component.from_orm(component, workflow)
 
-    def update_component(
+    async def update_component(
         self,
         component_name: str,
         config: schemas.ComponentUpdate,
         project_id: str | None = None,
     ) -> schemas.Component:
         """Update a component."""
-        component = self.get_component(
+        component = await self.get_component(
             component_name=component_name,
             project_id=project_id,
         )
@@ -99,14 +101,14 @@ class ComponentService(BaseService):
         if config.icon is not None:
             component.icon = config.icon
 
-        self.db.commit()
-        self.db.refresh(component)
+        await self.db.commit()
+        await self.db.refresh(component)
 
         workflow = component.workflow
 
         # Update the underlying workflow if provided
         if config.workflow is not None:
-            workflow = self.workflow_service.update_workflow(
+            workflow = await self.workflow_service.update_workflow(
                 workflow_id=component.workflow_id,
                 spec=config.workflow.spec,
                 requirements=config.workflow.requirements,
@@ -117,13 +119,13 @@ class ComponentService(BaseService):
 
         return schemas.Component.from_orm(component, workflow)
 
-    def delete_component(
+    async def delete_component(
         self,
         component_name: str,
         project_id: str | None = None,
     ) -> None:
         """Delete (archive) a component."""
-        component = self.get_component(
+        component = await self.get_component(
             component_name=component_name,
             project_id=project_id,
         )
@@ -131,9 +133,11 @@ class ComponentService(BaseService):
         # Delete the underlying workflow
         if component.workflow_id:
             try:
-                self.workflow_service.delete_workflow(component.workflow_id, project_id)
+                await self.workflow_service.delete_workflow(
+                    component.workflow_id, project_id
+                )
             except WorkflowNotFoundException:
                 pass
 
         component.archived = True
-        self.db.commit()
+        await self.db.commit()

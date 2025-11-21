@@ -10,10 +10,12 @@ from datetime import date
 import pandas as pd
 from sqlalchemy import func as F
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from vulkan.core.run import RunStatus
 
 from vulkan_engine.db import PolicyVersion, Run
 from vulkan_engine.loaders import PolicyLoader
+from vulkan_engine.services.analytics_utils import query_to_dataframe
 from vulkan_engine.services.base import BaseService
 from vulkan_engine.utils import validate_date_range
 
@@ -21,7 +23,7 @@ from vulkan_engine.utils import validate_date_range
 class PolicyAnalyticsService(BaseService):
     """Service for policy analytics and metrics."""
 
-    def __init__(self, db):
+    def __init__(self, db: AsyncSession):
         """
         Initialize policy analytics service.
 
@@ -31,7 +33,7 @@ class PolicyAnalyticsService(BaseService):
         super().__init__(db)
         self.policy_loader = PolicyLoader(db)
 
-    def get_run_duration_stats(
+    async def get_run_duration_stats(
         self,
         policy_id: str,
         start_date: date | None = None,
@@ -53,15 +55,17 @@ class PolicyAnalyticsService(BaseService):
             List of duration statistics by date
         """
         # Validate policy exists
-        self.policy_loader.get_policy(policy_id, project_id=project_id)
+        await self.policy_loader.get_policy(policy_id, project_id=project_id)
 
         start_date, end_date = validate_date_range(start_date, end_date)
 
         if version_ids is None:
-            version_ids = select(PolicyVersion.policy_version_id).where(
+            version_ids_stmt = select(PolicyVersion.policy_version_id).where(
                 PolicyVersion.policy_id == policy_id,
                 PolicyVersion.project_id == project_id,
             )
+            version_ids_result = await self.db.execute(version_ids_stmt)
+            version_ids = list(version_ids_result.scalars().all())
 
         duration_seconds = F.extract("epoch", Run.last_updated_at - Run.created_at)
         date_clause = F.DATE(Run.created_at).label("date")
@@ -81,10 +85,10 @@ class PolicyAnalyticsService(BaseService):
             .group_by(date_clause)
         )
 
-        df = pd.read_sql(query, self.db.bind)
+        df = await query_to_dataframe(self.db, query)
         return df.to_dict(orient="records")
 
-    def get_run_duration_by_status(
+    async def get_run_duration_by_status(
         self,
         policy_id: str,
         start_date: date | None = None,
@@ -106,15 +110,17 @@ class PolicyAnalyticsService(BaseService):
             List of duration statistics by date and status
         """
         # Validate policy exists
-        self.policy_loader.get_policy(policy_id, project_id=project_id)
+        await self.policy_loader.get_policy(policy_id, project_id=project_id)
 
         start_date, end_date = validate_date_range(start_date, end_date)
 
         if version_ids is None:
-            version_ids = select(PolicyVersion.policy_version_id).where(
+            version_ids_stmt = select(PolicyVersion.policy_version_id).where(
                 PolicyVersion.policy_id == policy_id,
                 PolicyVersion.project_id == project_id,
             )
+            version_ids_result = await self.db.execute(version_ids_stmt)
+            version_ids = list(version_ids_result.scalars().all())
 
         duration_seconds = F.extract("epoch", Run.last_updated_at - Run.created_at)
         date_clause = F.DATE(Run.created_at).label("date")
@@ -133,14 +139,14 @@ class PolicyAnalyticsService(BaseService):
             .group_by(date_clause, Run.status)
         )
 
-        df = pd.read_sql(query, self.db.bind)
+        df = await query_to_dataframe(self.db, query)
         df = df.pivot(
             index=date_clause.name, values="avg_duration", columns=["status"]
         ).reset_index()
 
         return df.to_dict(orient="records")
 
-    def get_run_counts(
+    async def get_run_counts(
         self,
         policy_id: str,
         start_date: date | None = None,
@@ -162,15 +168,17 @@ class PolicyAnalyticsService(BaseService):
             List of run counts and error rates by date
         """
         # Validate policy exists
-        self.policy_loader.get_policy(policy_id, project_id=project_id)
+        await self.policy_loader.get_policy(policy_id, project_id=project_id)
 
         start_date, end_date = validate_date_range(start_date, end_date)
 
         if version_ids is None:
-            version_ids = select(PolicyVersion.policy_version_id).where(
+            version_ids_stmt = select(PolicyVersion.policy_version_id).where(
                 PolicyVersion.policy_id == policy_id,
                 PolicyVersion.project_id == project_id,
             )
+            version_ids_result = await self.db.execute(version_ids_stmt)
+            version_ids = list(version_ids_result.scalars().all())
 
         date_clause = F.DATE(Run.created_at).label("date")
 
@@ -192,10 +200,10 @@ class PolicyAnalyticsService(BaseService):
             .group_by(date_clause)
         )
 
-        df = pd.read_sql(query, self.db.bind)
+        df = await query_to_dataframe(self.db, query)
         return df.to_dict(orient="records")
 
-    def get_run_outcomes(
+    async def get_run_outcomes(
         self,
         policy_id: str,
         start_date: date | None = None,
@@ -217,15 +225,17 @@ class PolicyAnalyticsService(BaseService):
             List of run outcomes by date
         """
         # Validate policy exists
-        self.policy_loader.get_policy(policy_id, project_id=project_id)
+        await self.policy_loader.get_policy(policy_id, project_id=project_id)
 
         start_date, end_date = validate_date_range(start_date, end_date)
 
         if version_ids is None:
-            version_ids = select(PolicyVersion.policy_version_id).where(
+            version_ids_stmt = select(PolicyVersion.policy_version_id).where(
                 PolicyVersion.policy_id == policy_id,
                 PolicyVersion.project_id == project_id,
             )
+            version_ids_result = await self.db.execute(version_ids_stmt)
+            version_ids = list(version_ids_result.scalars().all())
 
         date_clause = F.DATE(Run.created_at).label("date")
 
@@ -258,7 +268,7 @@ class PolicyAnalyticsService(BaseService):
             .group_by(date_clause, Run.result, subquery.c.total)
         )
 
-        df = pd.read_sql(query, self.db.bind)
+        df = await query_to_dataframe(self.db, query)
         df["percentage"] = 100 * df["count"] / df["total"]
         df = (
             df.pivot(
