@@ -27,6 +27,39 @@ services:
       start_period: 10s
     volumes:
       - postgres_data_app_db:/var/lib/postgresql/data
+  data-broker-db:
+    image: postgres:16.3
+    env_file:
+      - config/active/data-broker-db.env
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "sh -c 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    volumes:
+      - postgres_data_broker_db:/var/lib/postgresql/data
+  data-broker:
+    build:
+      context: .
+      dockerfile: images/data-broker/Dockerfile
+    env_file:
+      - config/active/data-broker.env
+    ports:
+      - "6002:6002"
+    depends_on:
+      data-broker-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
   dagster:
     image: ghcr.io/vulkanlabs/dagster:latest
     init: true
@@ -65,3 +98,4 @@ volumes:
   postgres_data_app_db:
   postgres_data_dagster_db:
   dagster_vulkan_home:
+  postgres_data_broker_db:
