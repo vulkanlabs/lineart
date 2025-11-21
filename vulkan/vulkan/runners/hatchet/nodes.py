@@ -3,11 +3,10 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Callable, Dict
 
-import requests
+import httpx
 from hatchet_sdk import Context
 from hatchet_sdk.runnables.types import TWorkflowInput
 from pydantic import BaseModel
-from requests.exceptions import HTTPError
 
 from vulkan.connections import (
     HTTPConfig,
@@ -114,7 +113,7 @@ class HatchetDataInput(DataInputNode, HatchetNode):
                     f"parameters: {configured_params}"
                 )
 
-                response: requests.Response = client.fetch_data(
+                response: httpx.Response = client.fetch_data(
                     data_source=self.data_source,
                     configured_params=configured_params,
                 )
@@ -141,7 +140,7 @@ class HatchetDataInput(DataInputNode, HatchetNode):
                 context.log(f"Parameter resolution error: {str(e)}")
                 raise e
 
-            except requests.exceptions.HTTPError as e:
+            except httpx.HTTPStatusError as e:
                 error_detail = "Unknown error"
                 if hasattr(e, "response") and e.response is not None:
                     response = e.response
@@ -158,7 +157,7 @@ class HatchetDataInput(DataInputNode, HatchetNode):
                     context.log(f"HTTP error: {str(e)}")
                 raise e
 
-            except requests.exceptions.RequestException as e:
+            except httpx.HTTPError as e:
                 context.log(f"Failed to retrieve data: {str(e)}")
                 raise e
 
@@ -524,7 +523,7 @@ class HatchetConnection(ConnectionNode, HatchetNode):
                         data=result,
                     )
 
-            except (requests.exceptions.RequestException, HTTPError) as e:
+            except httpx.HTTPError as e:
                 raise e
             except Exception as e:
                 raise e

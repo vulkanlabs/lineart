@@ -196,6 +196,8 @@ asyncio.run(main())
 * [get_cache_statistics](docs/sdks/datasources/README.md#get_cache_statistics) - Get Cache Statistics
 * [update_data_source](docs/sdks/datasources/README.md#update_data_source) - Update Data Source
 * [get_env_variables](docs/sdks/datasources/README.md#get_env_variables) - Get Data Source Env Variables
+* [set_data_source_credentials](docs/sdks/datasources/README.md#set_data_source_credentials) - Set Data Source Credentials
+* [get_data_source_credentials](docs/sdks/datasources/README.md#get_data_source_credentials) - Get Data Source Credentials
 * [list_data_objects](docs/sdks/datasources/README.md#list_data_objects) - List Data Objects
 * [get_usage](docs/sdks/datasources/README.md#get_usage) - Get Data Source Usage
 * [publish_data_source](docs/sdks/datasources/README.md#publish_data_source) - Publish Data Source

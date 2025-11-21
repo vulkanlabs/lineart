@@ -407,6 +407,73 @@ paths:
             "application/json":
               schema: {"$ref": "#/components/schemas/HTTPValidationError"}
       x-speakeasy-name-override: "getEnvVariables"
+  "/data-sources/{data_source_id}/credentials":
+    put:
+      tags:
+        - "data-sources"
+      summary: "Set Data Source Credentials"
+      description: "Set authentication credentials for a data source"
+      operationId: "set_data_source_credentials"
+      parameters:
+        - name: "data_source_id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+            title: "Data Source Id"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: "array"
+              items: {"$ref": "#/components/schemas/DataSourceCredentialBase"}
+              title: "Credentials"
+      responses:
+        "200":
+          description: "Successful Response"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items: {"$ref": "#/components/schemas/DataSourceCredential"}
+                title: "Response Set Data Source Credentials"
+        "404":
+          description: "Not found"
+        "422":
+          description: "Validation Error"
+          content:
+            "application/json":
+              schema: {"$ref": "#/components/schemas/HTTPValidationError"}
+    get:
+      tags:
+        - "data-sources"
+      summary: "Get Data Source Credentials"
+      description: "Get authentication credentials for a data source\n\nReturns real credential values"
+      operationId: "get_data_source_credentials"
+      parameters:
+        - name: "data_source_id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+            title: "Data Source Id"
+      responses:
+        "200":
+          description: "Successful Response"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items: {"$ref": "#/components/schemas/DataSourceCredential"}
+                title: "Response Get Data Source Credentials"
+        "404":
+          description: "Not found"
+        "422":
+          description: "Validation Error"
+          content:
+            "application/json":
+              schema: {"$ref": "#/components/schemas/HTTPValidationError"}
   "/data-sources/{data_source_id}/objects":
     get:
       tags:
@@ -1018,7 +1085,7 @@ paths:
           schema:
             anyOf:
               - type: "string"
-                format: "date"
+                format: "date-time"
               - type: "null"
             title: "Start Date"
         - name: "end_date"
@@ -1027,7 +1094,7 @@ paths:
           schema:
             anyOf:
               - type: "string"
-                format: "date"
+                format: "date-time"
               - type: "null"
             title: "End Date"
       responses:
@@ -1922,6 +1989,36 @@ paths:
       x-speakeasy-name-override: "callback"
 components:
   schemas:
+    "AuthConfig":
+      properties:
+        "method": {"$ref": "#/components/schemas/AuthMethod", "description": "Authentication method: 'basic' or 'bearer'"}
+        "token_url":
+          anyOf:
+            - type: "string"
+            - type: "null"
+          title: "Token Url"
+          description: "OAuth token endpoint URL (required for bearer auth)"
+          examples:
+            - "https://api.example.com/oauth/token"
+        "grant_type":
+          anyOf:
+            - {"$ref": "#/components/schemas/GrantType"}
+            - type: "null"
+          description: "OAuth grant type (required for bearer auth)"
+        "scope":
+          anyOf:
+            - type: "string"
+            - type: "null"
+          title: "Scope"
+          description: "OAuth scope - space-separated list (optional)"
+          examples:
+            - "api.read api.write"
+            - "https://api.example.com/.default"
+      type: "object"
+      required:
+        - "method"
+      title: "AuthConfig"
+      description: "Unified authentication configuration for DataSources.\n\nThe auth config defines HOW to authenticate (method, endpoints, etc).\nThe actual credentials (CLIENT_ID, CLIENT_SECRET) are configured separately\nvia environment variables and stored securely in the database.\n\nConfiguration Flow:\n    1. User creates DataSource with AuthConfig (this object)\n    2. User separately sets CLIENT_ID and CLIENT_SECRET as env vars\n    3. Backend stores credentials securely (CLIENT_SECRET encrypted)\n    4. At runtime, credentials are retrieved and used with this auth config"
     "AuthDisconnectResponse":
       properties:
         "message":
@@ -1931,6 +2028,12 @@ components:
       required:
         - "message"
       title: "AuthDisconnectResponse"
+    "AuthMethod":
+      type: "string"
+      enum:
+        - "basic"
+        - "bearer"
+      title: "AuthMethod"
     "AuthStartResponse":
       properties:
         "authorization_url":
@@ -2423,6 +2526,62 @@ components:
         - "created_at"
         - "last_updated_at"
       title: "DataSource"
+    "DataSourceCredential":
+      properties:
+        "credential_type":
+          type: "string"
+          enum:
+            - "CLIENT_ID"
+            - "CLIENT_SECRET"
+            - "USERNAME"
+            - "PASSWORD"
+          title: "Credential Type"
+        "value":
+          type: "string"
+          title: "Value"
+        "credential_id":
+          type: "string"
+          format: "uuid"
+          title: "Credential Id"
+        "data_source_id":
+          type: "string"
+          format: "uuid"
+          title: "Data Source Id"
+        "created_at":
+          type: "string"
+          format: "date-time"
+          title: "Created At"
+        "last_updated_at":
+          type: "string"
+          format: "date-time"
+          title: "Last Updated At"
+      type: "object"
+      required:
+        - "credential_type"
+        - "value"
+        - "credential_id"
+        - "data_source_id"
+        - "created_at"
+        - "last_updated_at"
+      title: "DataSourceCredential"
+    "DataSourceCredentialBase":
+      properties:
+        "credential_type":
+          type: "string"
+          enum:
+            - "CLIENT_ID"
+            - "CLIENT_SECRET"
+            - "USERNAME"
+            - "PASSWORD"
+          title: "Credential Type"
+        "value":
+          type: "string"
+          title: "Value"
+      type: "object"
+      required:
+        - "credential_type"
+        - "value"
+      title: "DataSourceCredentialBase"
     "DataSourceEnvVar":
       properties:
         "name":
@@ -2622,15 +2781,13 @@ components:
         - "hierarchy"
       title: "DependencyDict"
       description: "Dict representation of a Dependency object."
-    "EnvVarConfig":
-      properties:
-        "env":
-          type: "string"
-          title: "Env"
-      type: "object"
-      required:
-        - "env"
-      title: "EnvVarConfig"
+    "GrantType":
+      type: "string"
+      enum:
+        - "client_credentials"
+        - "password"
+        - "implicit"
+      title: "GrantType"
     "HTTPSource":
       properties:
         "url":
@@ -2646,141 +2803,15 @@ components:
           title: "Method"
           default: "GET"
         "headers":
-          additionalProperties:
-            anyOf:
-              - type: "string"
-              - type: "integer"
-              - type: "number"
-              - type: "boolean"
-              - items:
-                  anyOf:
-                    - type: "string"
-                    - type: "integer"
-                    - type: "number"
-                    - type: "boolean"
-                type: "array"
-              - additionalProperties:
-                  anyOf:
-                    - type: "string"
-                    - type: "integer"
-                    - type: "number"
-                    - type: "boolean"
-                    - items:
-                        anyOf:
-                          - type: "string"
-                          - type: "integer"
-                          - type: "number"
-                          - type: "boolean"
-                      type: "array"
-                    - additionalProperties:
-                        anyOf:
-                          - type: "string"
-                          - type: "integer"
-                          - type: "number"
-                          - type: "boolean"
-                          - items:
-                              anyOf:
-                                - type: "string"
-                                - type: "integer"
-                                - type: "number"
-                                - type: "boolean"
-                            type: "array"
-                      type: "object"
-                type: "object"
-              - {"$ref": "#/components/schemas/EnvVarConfig"}
-              - {"$ref": "#/components/schemas/RunTimeParam"}
+          additionalProperties: true
           type: "object"
           title: "Headers"
         "params":
-          additionalProperties:
-            anyOf:
-              - type: "string"
-              - type: "integer"
-              - type: "number"
-              - type: "boolean"
-              - items:
-                  anyOf:
-                    - type: "string"
-                    - type: "integer"
-                    - type: "number"
-                    - type: "boolean"
-                type: "array"
-              - additionalProperties:
-                  anyOf:
-                    - type: "string"
-                    - type: "integer"
-                    - type: "number"
-                    - type: "boolean"
-                    - items:
-                        anyOf:
-                          - type: "string"
-                          - type: "integer"
-                          - type: "number"
-                          - type: "boolean"
-                      type: "array"
-                    - additionalProperties:
-                        anyOf:
-                          - type: "string"
-                          - type: "integer"
-                          - type: "number"
-                          - type: "boolean"
-                          - items:
-                              anyOf:
-                                - type: "string"
-                                - type: "integer"
-                                - type: "number"
-                                - type: "boolean"
-                            type: "array"
-                      type: "object"
-                type: "object"
-              - {"$ref": "#/components/schemas/EnvVarConfig"}
-              - {"$ref": "#/components/schemas/RunTimeParam"}
+          additionalProperties: true
           type: "object"
           title: "Params"
         "body":
-          additionalProperties:
-            anyOf:
-              - type: "string"
-              - type: "integer"
-              - type: "number"
-              - type: "boolean"
-              - items:
-                  anyOf:
-                    - type: "string"
-                    - type: "integer"
-                    - type: "number"
-                    - type: "boolean"
-                type: "array"
-              - additionalProperties:
-                  anyOf:
-                    - type: "string"
-                    - type: "integer"
-                    - type: "number"
-                    - type: "boolean"
-                    - items:
-                        anyOf:
-                          - type: "string"
-                          - type: "integer"
-                          - type: "number"
-                          - type: "boolean"
-                      type: "array"
-                    - additionalProperties:
-                        anyOf:
-                          - type: "string"
-                          - type: "integer"
-                          - type: "number"
-                          - type: "boolean"
-                          - items:
-                              anyOf:
-                                - type: "string"
-                                - type: "integer"
-                                - type: "number"
-                                - type: "boolean"
-                            type: "array"
-                      type: "object"
-                type: "object"
-              - {"$ref": "#/components/schemas/EnvVarConfig"}
-              - {"$ref": "#/components/schemas/RunTimeParam"}
+          additionalProperties: true
           type: "object"
           title: "Body"
         "timeout":
@@ -2798,10 +2829,15 @@ components:
             - "PLAIN_TEXT"
           title: "Response Type"
           default: "PLAIN_TEXT"
+        "auth":
+          anyOf:
+            - {"$ref": "#/components/schemas/AuthConfig"}
+            - type: "null"
       type: "object"
       required:
         - "url"
       title: "HTTPSource"
+      description: "HTTP data source configuration with optional authentication."
     "HTTPValidationError":
       properties:
         "detail":
@@ -3337,24 +3373,6 @@ components:
         - "SUCCESS"
         - "FAILURE"
       title: "RunStatus"
-    "RunTimeParam":
-      properties:
-        "param":
-          type: "string"
-          title: "Param"
-        "value_type":
-          type: "string"
-          enum:
-            - "str"
-            - "int"
-            - "float"
-            - "auto"
-          title: "Value Type"
-          default: "auto"
-      type: "object"
-      required:
-        - "param"
-      title: "RunTimeParam"
     "StepDetails":
       properties:
         "output":

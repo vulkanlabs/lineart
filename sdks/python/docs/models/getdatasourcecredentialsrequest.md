@@ -1,8 +1,8 @@
-# EnvVarConfig
+# GetDataSourceCredentialsRequest
 
 
 ## Fields
 
 | Field              | Type               | Required           | Description        |
 | ------------------ | ------------------ | ------------------ | ------------------ |
-| `env`              | *str*              | :heavy_check_mark: | N/A                |
+| `data_source_id`   | *str*              | :heavy_check_mark: | N/A                |

@@ -4,14 +4,13 @@ from decimal import Decimal
 from typing import (
     Any,
     Dict,
+    get_type_hints,
     List,
     Optional,
     Union,
     get_args,
     get_origin,
-    get_type_hints,
 )
-
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 

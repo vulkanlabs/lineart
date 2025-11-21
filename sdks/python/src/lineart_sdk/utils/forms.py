@@ -3,20 +3,20 @@
 from typing import (
     Any,
     Dict,
+    get_type_hints,
     List,
     Tuple,
-    get_type_hints,
 )
-
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
+
+from .serializers import marshal_json
 
 from .metadata import (
     FormMetadata,
     MultipartFormMetadata,
     find_field_metadata,
 )
-from .serializers import marshal_json
 from .values import _is_set, _val_to_string
 
 
@@ -145,15 +145,11 @@ def serialize_multipart_form(
                 for file_obj in val:
                     if not _is_set(file_obj):
                         continue
-
-                    file_name, content, content_type = _extract_file_properties(
-                        file_obj
-                    )
+                        
+                    file_name, content, content_type = _extract_file_properties(file_obj)
 
                     if content_type is not None:
-                        files.append(
-                            (f_name + "[]", (file_name, content, content_type))
-                        )
+                        files.append((f_name + "[]", (file_name, content, content_type)))
                     else:
                         files.append((f_name + "[]", (file_name, content)))
             else:
@@ -165,16 +161,11 @@ def serialize_multipart_form(
                 else:
                     files.append((f_name, (file_name, content)))
         elif field_metadata.json:
-            files.append(
-                (
-                    f_name,
-                    (
-                        None,
-                        marshal_json(val, request_field_types[name]),
-                        "application/json",
-                    ),
-                )
-            )
+            files.append((f_name, (
+                None,
+                marshal_json(val, request_field_types[name]),
+                "application/json",
+            )))
         else:
             if isinstance(val, List):
                 values = []
