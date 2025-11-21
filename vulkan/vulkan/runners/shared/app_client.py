@@ -19,11 +19,21 @@ logger = logging.getLogger(__name__)
 class BaseAppClient(ABC):
     """Abstract base client for app server communication."""
 
-    def __init__(self, server_url: str, run_id: str, project_id: str | None = None):
+    def __init__(
+        self,
+        server_url: str,
+        run_id: str,
+        project_id: str | None = None,
+        data_broker_url: str | None = None,
+    ):
         self.server_url = server_url
         self.run_id = run_id
         self.project_id = project_id
+        self.data_broker_url = (
+            data_broker_url.rstrip("/") if data_broker_url else None
+        )
         self.client = self._create_client()
+        self.auth_headers: dict[str, str] = {}
         self._setup_auth()
 
     def _create_client(self) -> httpx.Client:
@@ -55,6 +65,10 @@ class BaseAppClient(ABC):
     def _setup_auth(self):
         """Configure client authentication headers."""
         pass
+
+    def _get_auth_headers(self) -> dict[str, str]:
+        """Return auth headers for outbound calls."""
+        return dict(self.auth_headers)
 
     def _request(
         self, method: str, endpoint: str, timeout: int = 10, **kwargs
@@ -168,6 +182,8 @@ class BaseAppClient(ABC):
         configured_params: dict,
     ) -> httpx.Response:
         """Fetch data from data broker."""
+        if self.data_broker_url:
+            return self._fetch_data_from_broker(data_source, configured_params)
         return self._request(
             "POST",
             "/internal/data-broker",
@@ -178,6 +194,53 @@ class BaseAppClient(ABC):
                 "configured_params": configured_params,
             },
         )
+
+    def get_data_source(self, data_source_name: str) -> dict:
+        """Fetch full data source details (including secrets) from the server."""
+        response = self._request(
+            "GET",
+            f"/data-sources/name/{data_source_name}",
+            params={"project_id": self.project_id, "include_secrets": True},
+        )
+        return response.json()
+
+    def _fetch_data_from_broker(
+        self, data_source: str, configured_params: dict
+    ) -> httpx.Response:
+        """Fetch data directly from the broker service when URL is provided."""
+        if not self.data_broker_url:
+            raise ValueError("data_broker_url must be set for direct broker calls")
+
+        data_source_details = self.get_data_source(data_source)
+        if "data_source_spec" in data_source_details:
+            spec = data_source_details["data_source_spec"]
+            env_variables = data_source_details.get("env_variables", {})
+            credentials = data_source_details.get("credentials", {})
+        else:
+            spec = data_source_details
+            env_variables = {}
+            credentials = {}
+
+        merged_env = {
+            key: "" if value is None else str(value)
+            for key, value in {**credentials, **env_variables}.items()
+        }
+
+        payload = {
+            "data_source_spec": spec,
+            "configured_params": configured_params,
+            "env_variables": merged_env,
+            "run_id": self.run_id,
+        }
+
+        url = f"{self.data_broker_url}/v1/fetch-data"
+        response = self.client.post(
+            url,
+            json=payload,
+            headers=self._get_auth_headers() or None,
+        )
+        response.raise_for_status()
+        return response
 
     def run_version_sync(self, policy_version_id: str, data: dict) -> dict:
         """Create a new run for a policy version."""
@@ -263,6 +326,7 @@ class SimpleAppClient(BaseAppClient):
 
     def _setup_auth(self):
         """No authentication setup needed."""
+        self.auth_headers = {}
         logger.debug("Using simple client without authentication")
 
 
@@ -278,17 +342,24 @@ class JWTAppClient(BaseAppClient):
         jwt_audience: str,
         jwt_ttl: int = 3600,  # Default 1 hour for entire run
         project_id: str | None = None,
+        data_broker_url: str | None = None,
     ):
         self.jwt_secret = jwt_secret
         self.jwt_issuer = jwt_issuer
         self.jwt_audience = jwt_audience
         self.jwt_ttl = jwt_ttl
-        super().__init__(server_url, run_id, project_id)
+        super().__init__(
+            server_url=server_url,
+            run_id=run_id,
+            project_id=project_id,
+            data_broker_url=data_broker_url,
+        )
 
     def _setup_auth(self):
         """Generate JWT once and configure client with bearer token."""
         token = self._generate_jwt()
-        self.client.headers.update({"Authorization": f"Bearer {token}"})
+        self.auth_headers = {"Authorization": f"Bearer {token}"}
+        self.client.headers.update(self.auth_headers)
 
         logger.debug(
             f"Using JWT client with issuer={self.jwt_issuer}, audience={self.jwt_audience}",
@@ -321,7 +392,10 @@ class JWTAppClient(BaseAppClient):
 
 
 def create_app_client(
-    server_url: str, run_id: str, project_id: str | None = None
+    server_url: str,
+    run_id: str,
+    project_id: str | None = None,
+    data_broker_url: str | None = None,
 ) -> BaseAppClient:
     """
     Factory function to create the appropriate client based on environment variables.
@@ -355,6 +429,7 @@ def create_app_client(
             run_id=run_id,
             project_id=project_id,
             server_url=server_url,
+            data_broker_url=data_broker_url,
             jwt_secret=secret,
             jwt_issuer=issuer,
             jwt_audience=audience,
@@ -378,4 +453,5 @@ def create_app_client(
             run_id=run_id,
             project_id=project_id,
             server_url=server_url,
+            data_broker_url=data_broker_url,
         )

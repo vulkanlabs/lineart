@@ -50,7 +50,11 @@ class ExecutionBackendFactory:
         dagster_client = create_dagster_client_from_url(
             url=worker_config.service_config.worker_url,
         )
-        return DagsterBackend(dagster_client, config.app.server_url)
+        return DagsterBackend(
+            dagster_client,
+            config.app.server_url,
+            data_broker_url=config.app.data_broker_url,
+        )
 
     @staticmethod
     def _create_hatchet_backend(config: VulkanEngineConfig) -> ExecutionBackend:

@@ -87,6 +87,7 @@ class AppConfig:
 
     host: str
     port: str
+    data_broker_url: str | None = None
 
     @property
     def server_url(self) -> str:

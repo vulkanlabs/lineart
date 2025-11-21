@@ -25,19 +25,20 @@ DataBrokerResponseError = TypeAliasType(
 
 
 class DataBrokerResponseTypedDict(TypedDict):
-    data_object_id: str
-    origin: DataObjectOrigin
+    data_object_id: NotRequired[Nullable[str]]
+    origin: Union[DataObjectOrigin, str]
     key: str
     value: Any
     start_time: NotRequired[Nullable[float]]
     end_time: NotRequired[Nullable[float]]
+    duration: NotRequired[Nullable[float]]
     error: NotRequired[Nullable[DataBrokerResponseErrorTypedDict]]
 
 
 class DataBrokerResponse(BaseModel):
-    data_object_id: str
+    data_object_id: OptionalNullable[str] = UNSET
 
-    origin: DataObjectOrigin
+    origin: Union[DataObjectOrigin, str]
 
     key: str
 
@@ -47,12 +48,14 @@ class DataBrokerResponse(BaseModel):
 
     end_time: OptionalNullable[float] = UNSET
 
+    duration: OptionalNullable[float] = UNSET
+
     error: OptionalNullable[DataBrokerResponseError] = UNSET
 
     @model_serializer(mode="wrap")
     def serialize_model(self, handler):
-        optional_fields = ["start_time", "end_time", "error"]
-        nullable_fields = ["start_time", "end_time", "error"]
+        optional_fields = ["data_object_id", "start_time", "end_time", "duration", "error"]
+        nullable_fields = ["data_object_id", "start_time", "end_time", "duration", "error"]
         null_default_fields = []
 
         serialized = handler(self)

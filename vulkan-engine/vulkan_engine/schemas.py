@@ -304,16 +304,20 @@ class DataBrokerRequest(BaseModel):
     data_source_name: str
     configured_params: dict[str, Any]
     run_id: str
+    project_id: str | None = None
+    data_source_spec: dict | None = None
+    env_variables: dict[str, Any] | None = None
 
 
 class DataBrokerResponse(BaseModel):
-    data_object_id: UUID
-    origin: DataObjectOrigin
+    data_object_id: UUID | None
+    origin: DataObjectOrigin | str
     key: str
     value: Any
     start_time: float | None = None
     end_time: float | None = None
     error: dict | str | None = None
+    duration: float | None = None
 
 
 class RunGroupRuns(BaseModel):

@@ -28,8 +28,9 @@ def load_app_config() -> AppConfig:
     """Load app configuration from environment variables."""
     host = os.getenv("APP_HOST", "localhost")
     port = os.getenv("APP_PORT", "6001")
+    data_broker_url = os.getenv("DATA_BROKER_URL")
 
-    return AppConfig(host=host, port=port)
+    return AppConfig(host=host, port=port, data_broker_url=data_broker_url)
 
 
 def load_logging_config() -> LoggingConfig:
