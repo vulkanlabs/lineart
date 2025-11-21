@@ -1,6 +1,7 @@
 import os
 
-from dagster import ConfigurableResource, Field
+from dagster import ConfigurableResource
+from pydantic import Field
 
 from vulkan.runners.shared.run_config import VulkanPolicyConfig, VulkanRunConfig
 

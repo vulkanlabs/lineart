@@ -29,9 +29,7 @@ class BaseAppClient(ABC):
         self.server_url = server_url
         self.run_id = run_id
         self.project_id = project_id
-        self.data_broker_url = (
-            data_broker_url.rstrip("/") if data_broker_url else None
-        )
+        self.data_broker_url = data_broker_url.rstrip("/") if data_broker_url else None
         self.client = self._create_client()
         self.auth_headers: dict[str, str] = {}
         self._setup_auth()
@@ -136,9 +134,7 @@ class BaseAppClient(ABC):
                     f"{method} {endpoint} -> {error_msg}",
                     extra={**log_context, "elapsed_seconds": elapsed},
                 )
-                raise httpx.HTTPError(
-                    f"{error_msg} for {method} {endpoint}"
-                ) from e
+                raise httpx.HTTPError(f"{error_msg} for {method} {endpoint}") from e
 
             except httpx.HTTPStatusError as e:
                 elapsed = time.time() - start_time
