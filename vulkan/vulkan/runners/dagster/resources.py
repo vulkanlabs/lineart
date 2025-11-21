@@ -1,16 +1,11 @@
 from dagster import ConfigurableResource, ResourceDependency
 
+from vulkan.runners.dagster.run_config import (
+    DagsterVulkanPolicyConfig,
+    DagsterVulkanRunConfig,
+)
 from vulkan.runners.shared.app_client import BaseAppClient, create_app_client
-
-
-class VulkanRunConfig(ConfigurableResource):
-    run_id: str
-    server_url: str
-    project_id: str | None = None
-
-
-class VulkanPolicyConfig(ConfigurableResource):
-    variables: dict
+from vulkan.runners.shared.run_config import VulkanRunConfig as SharedRunConfig
 
 
 class AppClientResource(ConfigurableResource):
@@ -21,7 +16,7 @@ class AppClientResource(ConfigurableResource):
     for all requests within that run.
     """
 
-    run_config: ResourceDependency[VulkanRunConfig]
+    run_config: ResourceDependency[DagsterVulkanRunConfig]
     _client: BaseAppClient | None = None
 
     def get_client(self) -> BaseAppClient:
@@ -32,9 +27,11 @@ class AppClientResource(ConfigurableResource):
             BaseAppClient: Either SimpleAppClient or JWTAppClient based on configuration
         """
         if self._client is None:
+            shared: SharedRunConfig = self.run_config.to_shared()
             self._client = create_app_client(
-                run_id=self.run_config.run_id,
-                project_id=self.run_config.project_id,
-                server_url=self.run_config.server_url,
+                run_id=shared.run_id,
+                project_id=shared.project_id,
+                server_url=shared.server_url,
+                data_broker_url=shared.data_broker_url,
             )
         return self._client

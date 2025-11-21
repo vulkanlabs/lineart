@@ -9,10 +9,10 @@ from vulkan.runners.dagster.io_manager import (
     postgresql_io_manager,
 )
 from vulkan.runners.dagster.policy import DagsterFlow
-from vulkan.runners.dagster.resources import (
-    AppClientResource,
-    VulkanPolicyConfig,
-    VulkanRunConfig,
+from vulkan.runners.dagster.resources import AppClientResource
+from vulkan.runners.dagster.run_config import (
+    DagsterVulkanPolicyConfig,
+    DagsterVulkanRunConfig,
 )
 from vulkan.runners.shared.constants import (
     APP_CLIENT_KEY,
@@ -23,11 +23,11 @@ from vulkan.spec.environment.loaders import load_and_resolve_policy
 
 
 def make_workspace_definition(spec_file_path: str) -> Definitions:
-    run_config = VulkanRunConfig.configure_at_launch()
+    run_config = DagsterVulkanRunConfig.configure_at_launch()
     resources = {
         # Vulkan Configurable Resources
         RUN_CONFIG_KEY: run_config,
-        POLICY_CONFIG_KEY: VulkanPolicyConfig.configure_at_launch(),
+        POLICY_CONFIG_KEY: DagsterVulkanPolicyConfig.configure_at_launch(),
         # Run DB
         DB_CONFIG_KEY: DBConfig(
             host=EnvVar("VULKAN_DB_HOST"),

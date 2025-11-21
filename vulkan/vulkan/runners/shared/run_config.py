@@ -9,6 +9,7 @@ class VulkanRunConfig:
     run_id: str
     server_url: str
     project_id: str | None = None
+    data_broker_url: str | None = None
 
 
 @dataclass
