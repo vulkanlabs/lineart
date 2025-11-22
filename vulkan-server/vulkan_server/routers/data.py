@@ -39,23 +39,25 @@ logger = get_logger(__name__)
 
 
 @router.get("/", response_model=list[schemas.DataSource])
-def list_data_sources(
+async def list_data_sources(
     include_archived: bool = False,
     status: str | None = None,
     service: DataSourceService = Depends(get_data_source_service),
 ):
     """List all data sources. Optionally filter by status (e.g., 'PUBLISHED', 'DRAFT')."""
-    return service.list_data_sources(include_archived=include_archived, status=status)
+    return await service.list_data_sources(
+        include_archived=include_archived, status=status
+    )
 
 
 @router.post("/", response_model=schemas.DataSource)
-def create_data_source(
+async def create_data_source(
     spec: DataSourceSpec,
     service: DataSourceService = Depends(get_data_source_service),
 ):
     """Create a new data source."""
     try:
-        return service.create_data_source(spec)
+        return await service.create_data_source(spec)
     except DataSourceAlreadyExistsException as e:
         raise HTTPException(status_code=400, detail=str(e))
     except InvalidDataSourceException as e:
@@ -63,40 +65,58 @@ def create_data_source(
 
 
 @router.get("/{data_source_id}", response_model=schemas.DataSource)
-def get_data_source(
+async def get_data_source(
     data_source_id: str,
     service: DataSourceService = Depends(get_data_source_service),
 ):
     """Get a data source by ID."""
     try:
-        return service.get_data_source(data_source_id)
+        return await service.get_data_source(data_source_id)
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.put("/{data_source_id}", response_model=schemas.DataSource)
-def update_data_source(
+async def update_data_source(
     data_source_id: str,
     spec: DataSourceSpec,
     service: DataSourceService = Depends(get_data_source_service),
 ):
     """Update a data source."""
     try:
-        return service.update_data_source(data_source_id, spec)
+        return await service.update_data_source(data_source_id, spec)
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidDataSourceException as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get("/name/{data_source_name}")
+async def get_data_source_by_name(
+    data_source_name: str,
+    include_secrets: bool = False,
+    project_id: str | None = None,
+    service: DataSourceService = Depends(get_data_source_service),
+):
+    """Get a data source by name with optional secret material."""
+    try:
+        return await service.get_data_source_by_name(
+            data_source_name,
+            project_id=project_id,
+            include_secrets=include_secrets,
+        )
+    except DataSourceNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
 @router.delete("/{data_source_id}")
-def delete_data_source(
+async def delete_data_source(
     data_source_id: str,
     service: DataSourceService = Depends(get_data_source_service),
 ):
     """Delete (archive) a data source."""
     try:
-        return service.delete_data_source(data_source_id)
+        return await service.delete_data_source(data_source_id)
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidDataSourceException as e:
@@ -104,14 +124,16 @@ def delete_data_source(
 
 
 @router.put("/{data_source_id}/variables")
-def set_data_source_env_variables(
+async def set_data_source_env_variables(
     data_source_id: str,
     desired_variables: Annotated[list[schemas.DataSourceEnvVarBase], Body()],
     service: DataSourceService = Depends(get_data_source_service),
 ):
     """Set environment variables for a data source."""
     try:
-        return service.set_environment_variables(data_source_id, desired_variables)
+        return await service.set_environment_variables(
+            data_source_id, desired_variables
+        )
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidDataSourceException as e:
@@ -121,13 +143,13 @@ def set_data_source_env_variables(
 @router.get(
     "/{data_source_id}/variables", response_model=list[schemas.DataSourceEnvVar]
 )
-def get_data_source_env_variables(
+async def get_data_source_env_variables(
     data_source_id: str,
     service: DataSourceService = Depends(get_data_source_service),
 ):
     """Get environment variables for a data source."""
     try:
-        return service.get_environment_variables(data_source_id)
+        return await service.get_environment_variables(data_source_id)
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -136,7 +158,7 @@ def get_data_source_env_variables(
     "/{data_source_id}/credentials",
     response_model=list[schemas.DataSourceCredential],
 )
-def set_data_source_credentials(
+async def set_data_source_credentials(
     data_source_id: str,
     credentials: Annotated[list[schemas.DataSourceCredentialBase], Body()],
     service: DataSourceService = Depends(get_data_source_service),
@@ -145,7 +167,7 @@ def set_data_source_credentials(
     Set authentication credentials for a data source
     """
     try:
-        return service.set_credentials(data_source_id, credentials)
+        return await service.set_credentials(data_source_id, credentials)
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidDataSourceException as e:
@@ -156,7 +178,7 @@ def set_data_source_credentials(
     "/{data_source_id}/credentials",
     response_model=list[schemas.DataSourceCredential],
 )
-def get_data_source_credentials(
+async def get_data_source_credentials(
     data_source_id: str,
     service: DataSourceService = Depends(get_data_source_service),
 ):
@@ -166,7 +188,7 @@ def get_data_source_credentials(
     Returns real credential values
     """
     try:
-        return service.get_credentials(data_source_id)
+        return await service.get_credentials(data_source_id)
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -174,73 +196,85 @@ def get_data_source_credentials(
 @router.get(
     "/{data_source_id}/objects", response_model=list[schemas.DataObjectMetadata]
 )
-def list_data_objects(
+async def list_data_objects(
     data_source_id: str,
     service: DataSourceService = Depends(get_data_source_service),
 ):
     """List data objects for a data source."""
     try:
-        return service.list_data_objects(data_source_id)
+        await service.data_source_loader.get_data_source(
+            data_source_id=data_source_id, include_archived=True
+        )
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
+    raise HTTPException(
+        status_code=410,
+        detail="Data objects are now managed by the data-broker-service cache.",
+    )
 
 
 @router.get(
     "/{data_source_id}/objects/{data_object_id}", response_model=schemas.DataObject
 )
-def get_data_object(
+async def get_data_object(
     data_source_id: str,
     data_object_id: str,
     service: DataSourceService = Depends(get_data_source_service),
 ):
     """Get a specific data object."""
     try:
-        return service.get_data_object(data_source_id, data_object_id)
+        await service.data_source_loader.get_data_source(
+            data_source_id=data_source_id, include_archived=True
+        )
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
+    raise HTTPException(
+        status_code=410,
+        detail="Data objects are now managed by the data-broker-service cache.",
+    )
 
 
 @router.get("/{data_source_id}/usage", response_model=dict[str, Any])
-def get_data_source_usage(
+async def get_data_source_usage(
     data_source_id: str,
     start_date: Annotated[datetime.date | None, Query()] = None,
     end_date: Annotated[datetime.date | None, Query()] = None,
     service: DataSourceAnalyticsService = Depends(get_data_source_analytics_service),
 ):
     """Get usage statistics for a data source."""
-    return service.get_usage_statistics(data_source_id, start_date, end_date)
+    return await service.get_usage_statistics(data_source_id, start_date, end_date)
 
 
 @router.get("/{data_source_id}/metrics", response_model=dict[str, Any])
-def get_data_source_metrics(
+async def get_data_source_metrics(
     data_source_id: str,
     start_date: Annotated[datetime.date | None, Query()] = None,
     end_date: Annotated[datetime.date | None, Query()] = None,
     service: DataSourceAnalyticsService = Depends(get_data_source_analytics_service),
 ):
     """Get performance metrics for a data source."""
-    return service.get_performance_metrics(data_source_id, start_date, end_date)
+    return await service.get_performance_metrics(data_source_id, start_date, end_date)
 
 
 @router.get("/{data_source_id}/cache-stats", response_model=dict[str, Any])
-def get_cache_statistics(
+async def get_cache_statistics(
     data_source_id: str,
     start_date: Annotated[datetime.date | None, Query()] = None,
     end_date: Annotated[datetime.date | None, Query()] = None,
     service: DataSourceAnalyticsService = Depends(get_data_source_analytics_service),
 ):
     """Get cache statistics for a data source."""
-    return service.get_cache_statistics(data_source_id, start_date, end_date)
+    return await service.get_cache_statistics(data_source_id, start_date, end_date)
 
 
 @router.post("/{data_source_id}/publish", response_model=schemas.DataSource)
-def publish_data_source(
+async def publish_data_source(
     data_source_id: str,
     service: DataSourceService = Depends(get_data_source_service),
 ):
     """Publish a data source."""
     try:
-        return service.publish_data_source(data_source_id)
+        return await service.publish_data_source(data_source_id)
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidDataSourceException as e:

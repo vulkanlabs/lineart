@@ -40,8 +40,9 @@ def run_migrations(database_config: DatabaseConfig) -> None:
         )
 
     # Create Alembic configuration and set the database URL programmatically
+    # Use sync_connection_string for Alembic migrations (psycopg2 driver)
     alembic_cfg = Config(str(alembic_ini_path))
-    alembic_cfg.set_main_option("sqlalchemy.url", database_config.connection_string)
+    alembic_cfg.set_main_option("sqlalchemy.url", database_config.sync_connection_string)
 
     # Run migrations to latest version
     command.upgrade(alembic_cfg, "head")
@@ -57,6 +58,7 @@ def create_initial_schema(database_config: DatabaseConfig) -> None:
     Args:
         database_config: DatabaseConfig instance with connection details
     """
-    engine = create_engine(database_config.connection_string, echo=False)
+    # Use sync_connection_string for synchronous operations
+    engine = create_engine(database_config.sync_connection_string, echo=False)
     Base.metadata.create_all(bind=engine)
     engine.dispose()

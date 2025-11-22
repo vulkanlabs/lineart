@@ -3,6 +3,7 @@ PolicyVersion loader for data access layer.
 """
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from vulkan_engine.db import PolicyVersion
 from vulkan_engine.exceptions import PolicyVersionNotFoundException
@@ -35,7 +36,7 @@ class PolicyVersionLoader(BaseLoader):
         stmt = select(PolicyVersion).filter(
             PolicyVersion.policy_version_id == policy_version_id,
             PolicyVersion.project_id == project_id,
-        )
+        ).options(selectinload(PolicyVersion.workflow))
 
         stmt = self._apply_archived_filter(stmt, include_archived)
 

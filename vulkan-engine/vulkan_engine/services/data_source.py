@@ -2,13 +2,16 @@
 Data source and data broker management service.
 
 Handles all business logic related to data sources including CRUD operations,
-environment variables, data objects, and data broker operations.
+environment variables, and data broker operations.
 """
 
+import os
+import time
 from typing import Any
 from urllib.parse import urlparse
 
-import requests
+import httpx
+import jwt
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from vulkan.credentials import (
@@ -18,10 +21,8 @@ from vulkan.credentials import (
 from vulkan.data_source import DataSourceStatus, DataSourceType
 from vulkan.schemas import DataSourceSpec
 
-from vulkan_engine.data.broker import DataBroker
 from vulkan_engine.db import (
     Component,
-    DataObject,
     DataSource,
     DataSourceCredential,
     DataSourceEnvVar,
@@ -33,7 +34,6 @@ from vulkan_engine.db import (
 from vulkan_engine.exceptions import (
     DataBrokerException,
     DataBrokerRequestException,
-    DataObjectNotFoundException,
     DataSourceAlreadyExistsException,
     DataSourceNotFoundException,
     InvalidDataSourceException,
@@ -43,21 +43,28 @@ from vulkan_engine.logging import get_logger
 from vulkan_engine.schemas import (
     DataBrokerRequest,
     DataBrokerResponse,
-    DataObjectMetadata,
+    DataObjectOrigin,
     DataSourceCredentialBase,
     DataSourceEnvVarBase,
 )
 from vulkan_engine.schemas import DataSource as DataSourceSchema
 from vulkan_engine.schemas import DataSourceCredential as DataSourceCredentialSchema
 from vulkan_engine.schemas import DataSourceEnvVar as DataSourceEnvVarSchema
-from vulkan_engine.services.auth_handler import AuthHandler
 from vulkan_engine.services.base import BaseService
 
 
 class DataSourceService(BaseService):
     """Service for managing data sources and data operations."""
 
-    def __init__(self, db: AsyncSession, redis_cache=None):
+    def __init__(
+        self,
+        db: AsyncSession,
+        redis_cache=None,
+        data_broker_url: str | None = None,
+        jwt_secret: str | None = None,
+        jwt_issuer: str | None = None,
+        jwt_audience: str | None = None,
+    ):
         """
         Initialize data source service.
 
@@ -69,6 +76,14 @@ class DataSourceService(BaseService):
         self.data_source_loader = DataSourceLoader(db)
         self.redis_cache = redis_cache
         self.logger = get_logger(__name__)
+        broker_url = data_broker_url or os.getenv("DATA_BROKER_URL")
+        self.data_broker_url = broker_url.rstrip("/") if broker_url else None
+        self.jwt_secret = jwt_secret or os.getenv("VULKAN_JWT_SECRET")
+        self.jwt_issuer = jwt_issuer or os.getenv("VULKAN_JWT_ISSUER")
+        self.jwt_audience = jwt_audience or os.getenv(
+            "VULKAN_JWT_AUDIENCE", "data-broker-service"
+        )
+        self.jwt_ttl = int(os.getenv("VULKAN_JWT_TTL", "3600"))
 
     def _validate_data_source_type(self, spec: DataSourceSpec) -> None:
         """
@@ -202,6 +217,39 @@ class DataSourceService(BaseService):
         )
         return DataSourceSchema.from_orm(data_source)
 
+    async def get_data_source_by_name(
+        self,
+        data_source_name: str,
+        project_id: str | None = None,
+        include_secrets: bool = False,
+    ) -> DataSourceSchema | dict[str, Any]:
+        """
+        Get a data source by name with optional secret material.
+
+        Args:
+            data_source_name: Data source name
+            project_id: Optional project UUID to filter by
+            include_secrets: Whether to include env vars and credentials
+        """
+        data_source = await self.data_source_loader.get_data_source_by_name(
+            name=data_source_name,
+            project_id=project_id,
+            include_archived=True,
+        )
+        spec = DataSourceSchema.from_orm(data_source)
+
+        if not include_secrets:
+            return spec
+
+        env_variables = await _load_env_vars(self.db, spec.data_source_id)
+        credentials = await _load_credentials(self.db, spec.data_source_id)
+
+        return {
+            "data_source_spec": self._build_data_source_spec(spec),
+            "env_variables": env_variables,
+            "credentials": credentials,
+        }
+
     async def update_data_source(
         self, data_source_id: str, spec: DataSourceSpec, project_id: str = None
     ) -> DataSourceSchema:
@@ -333,15 +381,6 @@ class DataSourceService(BaseService):
         if component_uses:
             raise InvalidDataSourceException(
                 f"Data source {data_source_id} is used by one or more components"
-            )
-
-        # has associated data objects
-        objects_stmt = select(DataObject).filter_by(data_source_id=data_source_id)
-        objects_result = await self.db.execute(objects_stmt)
-        objects = list(objects_result.scalars().all())
-        if objects:
-            raise InvalidDataSourceException(
-                f"Data source {data_source_id} has associated data objects"
             )
 
         data_source.status = DataSourceStatus.ARCHIVED
@@ -538,74 +577,17 @@ class DataSourceService(BaseService):
 
     async def list_data_objects(
         self, data_source_id: str, project_id: str = None
-    ) -> list[DataObjectMetadata]:
+    ) -> list[Any]:
         """
-        List data objects for a data source.
+        Data objects are now managed by the data-broker-service cache.
 
-        Args:
-            data_source_id: Data source UUID
-            project_id: Optional project UUID to filter by
-
-        Returns:
-            List of DataObjectMetadata objects
-
-        Raises:
-            DataSourceNotFoundException: If data source doesn't exist
+        This method is kept for backward compatibility but no longer returns
+        cached objects from the application database.
         """
-        # Validate data source exists (include archived for data objects listing)
         await self.data_source_loader.get_data_source(
             data_source_id=data_source_id, project_id=project_id, include_archived=True
         )
-
-        obj_stmt = select(DataObject).filter_by(data_source_id=data_source_id)
-        obj_result = await self.db.execute(obj_stmt)
-        data_objects = list(obj_result.scalars().all())
-
-        return [
-            DataObjectMetadata(
-                data_object_id=obj.data_object_id,
-                data_source_id=obj.data_source_id,
-                key=obj.key,
-                created_at=obj.created_at,
-            )
-            for obj in data_objects
-        ]
-
-    async def get_data_object(
-        self, data_source_id: str, data_object_id: str, project_id: str = None
-    ) -> DataObject:
-        """
-        Get a specific data object.
-
-        Args:
-            data_source_id: Data source UUID
-            data_object_id: Data object UUID
-            project_id: Optional project UUID to filter by
-
-        Returns:
-            DataObject object
-
-        Raises:
-            DataSourceNotFoundException: If data source or data object doesn't exist
-        """
-        # Validate data source exists first
-        await self.data_source_loader.get_data_source(
-            data_source_id=data_source_id, project_id=project_id, include_archived=True
-        )
-
-        # Get the data object
-        obj_stmt = select(DataObject).filter_by(
-            data_source_id=data_source_id, data_object_id=data_object_id
-        )
-        obj_result = await self.db.execute(obj_stmt)
-        data_object = obj_result.scalar_one_or_none()
-
-        if not data_object:
-            raise DataObjectNotFoundException(
-                f"Data object {data_object_id} not found in data source {data_source_id}"
-            )
-
-        return data_object
+        return []
 
     async def request_data_from_broker(
         self, request: DataBrokerRequest, project_id: str = None
@@ -623,10 +605,15 @@ class DataSourceService(BaseService):
         Raises:
             DataSourceNotFoundException: If data source doesn't exist
             InvalidDataSourceException: If environment variables missing
+            DataBrokerException: If broker is not configured
         """
+        project_context = project_id or getattr(request, "project_id", None)
+
         # Find data source by name (include archived for broker requests)
         data_source = await self.data_source_loader.get_data_source_by_name(
-            name=request.data_source_name, project_id=project_id, include_archived=True
+            name=request.data_source_name,
+            project_id=project_context,
+            include_archived=True,
         )
 
         spec = DataSourceSchema.from_orm(data_source)
@@ -635,11 +622,11 @@ class DataSourceService(BaseService):
         if spec.source.source_type == DataSourceType.HTTP:
             _validate_url_scheme(spec.source.url)
 
-        # Initialize broker
-        # DataBroker uses old logging system, pass None
-        broker = DataBroker(db=self.db, logger=None, spec=spec)
+        if not self.data_broker_url:
+            raise DataBrokerException(
+                "Data broker service is not configured for this environment"
+            )
 
-        # Get environment variables and credentials from database
         env_variables = await _load_env_vars(self.db, spec.data_source_id)
         credentials = await _load_credentials(self.db, spec.data_source_id)
 
@@ -650,52 +637,121 @@ class DataSourceService(BaseService):
                 f"Missing environment variables: {', '.join(missing_vars)}"
             )
 
-        # Handle authentication if configured
-        auth_headers = None
-        auth_params = None
+        merged_env = {
+            key: "" if value is None else str(value)
+            for key, value in {**credentials, **env_variables}.items()
+        }
 
-        if hasattr(spec.source, "auth") and spec.source.auth:
-            auth_handler = AuthHandler(
-                auth_config=spec.source.auth,
-                data_source_id=spec.data_source_id,
-                credentials=credentials,
-                cache=self.redis_cache,
-            )
-            auth_headers = auth_handler.get_auth_headers()
+        payload = self._build_broker_payload(spec, request, merged_env)
+        headers = self._build_broker_headers()
 
+        request_start = time.time()
         try:
-            # Get data through broker
-            data = broker.get_data(
-                request.configured_params,
-                env_variables,
-                auth_headers=auth_headers,
-                auth_params=auth_params,
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.data_broker_url}/v1/fetch-data",
+                    json=payload,
+                    headers=headers,
+                    timeout=30,
+                )
+                response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            self.logger.error(
+                "data_broker_request_error",
+                error=str(e),
+                status_code=e.response.status_code if e.response else None,
+                response_text=e.response.text if e.response else None,
+                exc_info=True,
             )
-
-            # Record the request with timing information
-            request_obj = RunDataRequest(
-                run_id=request.run_id,
-                data_object_id=data.data_object_id,
-                data_source_id=spec.data_source_id,
-                data_origin=data.origin,
-                start_time=data.start_time,
-                end_time=data.end_time,
-                error=data.error,
-            )
-            self.db.add(request_obj)
-            await self.db.commit()
-
-            return data
-
-        except (
-            requests.exceptions.RequestException,
-            requests.exceptions.HTTPError,
-        ) as e:
-            self.logger.error("data_broker_request_error", error=str(e), exc_info=True)
-            raise DataBrokerRequestException(str(e))
-        except Exception as e:
+            raise DataBrokerRequestException(str(e)) from e
+        except httpx.HTTPError as e:
             self.logger.error("data_broker_error", error=str(e), exc_info=True)
-            raise DataBrokerException(str(e))
+            raise DataBrokerException(str(e)) from e
+
+        broker_response = response.json()
+        origin = broker_response.get("origin", DataObjectOrigin.REQUEST.value)
+        try:
+            origin_enum = DataObjectOrigin(origin)
+        except ValueError:
+            origin_enum = DataObjectOrigin.REQUEST
+
+        duration = broker_response.get("duration")
+        computed_start = request_start if duration is not None else None
+        computed_end = request_start + duration if duration is not None else None
+
+        request_obj = RunDataRequest(
+            run_id=request.run_id,
+            data_object_id=broker_response.get("data_object_id"),
+            data_source_id=spec.data_source_id,
+            data_origin=origin_enum,
+            start_time=computed_start,
+            end_time=computed_end,
+            error=broker_response.get("error"),
+        )
+        self.db.add(request_obj)
+        await self.db.commit()
+
+        return DataBrokerResponse(
+            data_object_id=broker_response.get("data_object_id"),
+            origin=origin_enum,
+            key=broker_response.get("key"),
+            value=broker_response.get("value"),
+            start_time=computed_start,
+            end_time=computed_end,
+            duration=duration,
+            error=broker_response.get("error"),
+        )
+
+    def _build_broker_payload(
+        self,
+        spec: DataSourceSchema,
+        request: DataBrokerRequest,
+        env_variables: dict[str, str],
+    ) -> dict[str, Any]:
+        """Construct payload for data broker fetch."""
+        resolved_env = {
+            key: "" if value is None else str(value)
+            for key, value in {
+                **env_variables,
+                **(request.env_variables or {}),
+            }.items()
+        }
+        return {
+            "data_source_spec": self._build_data_source_spec(spec),
+            "configured_params": request.configured_params,
+            "env_variables": resolved_env,
+            "run_id": request.run_id,
+        }
+
+    def _build_broker_headers(self) -> dict[str, str] | None:
+        """Generate Authorization headers for broker access when configured."""
+        required = [self.jwt_secret, self.jwt_issuer, self.jwt_audience]
+        if not all(required):
+            return None
+
+        now = int(time.time())
+        payload = {
+            "iss": self.jwt_issuer,
+            "aud": self.jwt_audience,
+            "iat": now,
+            "exp": now + self.jwt_ttl,
+        }
+        token = jwt.encode(payload, self.jwt_secret, algorithm="HS256")
+        return {"Authorization": f"Bearer {token}"}
+
+    def _build_data_source_spec(self, spec: DataSourceSchema) -> dict[str, Any]:
+        """Build broker-friendly data source spec."""
+        ttl = spec.caching.calculate_ttl()
+        caching_ttl = ttl if ttl is not None else 0
+        return {
+            "data_source_id": str(spec.data_source_id),
+            "name": spec.name,
+            "source": spec.source.model_dump(),
+            "caching": {
+                "enabled": spec.caching.enabled,
+                "ttl": caching_ttl,
+            },
+        }
 
     async def publish_data_source(
         self, data_source_id: str, project_id: str = None

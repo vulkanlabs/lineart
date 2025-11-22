@@ -40,6 +40,29 @@ from vulkan.spec.nodes.metadata import DecisionCondition, DecisionType
 from vulkan.spec.policy import PolicyDefinitionNode
 
 
+def _shared_run_config(resource) -> VulkanRunConfig:
+    """Convert dagster resource to shared run config when compatible."""
+    if hasattr(resource, "to_shared"):
+        return resource.to_shared()
+    if isinstance(resource, VulkanRunConfig):
+        return resource
+    return VulkanRunConfig(
+        run_id=getattr(resource, "run_id", ""),
+        server_url=getattr(resource, "server_url", ""),
+        project_id=getattr(resource, "project_id", None),
+        data_broker_url=getattr(resource, "data_broker_url", None),
+    )
+
+
+def _shared_policy_config(resource) -> VulkanPolicyConfig:
+    """Convert dagster resource to shared policy config when compatible."""
+    if hasattr(resource, "to_shared"):
+        return resource.to_shared()
+    if isinstance(resource, VulkanPolicyConfig):
+        return resource
+    return VulkanPolicyConfig(variables=getattr(resource, "variables", {}))
+
+
 class DagsterNode(ABC):
     @abstractmethod
     def op(self) -> OpDefinition:
@@ -251,7 +274,7 @@ class DagsterTransformNodeMixin(DagsterNode):
 def _with_vulkan_context(func: callable) -> callable:
     def fn(context: OpExecutionContext, **kwargs):
         if func.__code__.co_varnames[0] == "context":
-            env = getattr(context.resources, POLICY_CONFIG_KEY)
+            env = _shared_policy_config(getattr(context.resources, POLICY_CONFIG_KEY))
             ctx = VulkanExecutionContext(logger=context.log, env=env.variables)
             return func(ctx, **kwargs)
         return func(**kwargs)
@@ -327,7 +350,9 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
     def _fn(self, context: OpExecutionContext, **kwargs):
         status = self.return_status
         result = status.value if isinstance(status, Enum) else status
-        vulkan_run_config: VulkanRunConfig = getattr(context.resources, RUN_CONFIG_KEY)
+        vulkan_run_config: VulkanRunConfig = _shared_run_config(
+            getattr(context.resources, RUN_CONFIG_KEY)
+        )
         context.log.debug(f"Terminating with status {status}")
 
         metadata = None
@@ -369,7 +394,9 @@ class DagsterTerminate(TerminateNode, DagsterTransformNodeMixin):
         """Replace template expressions with actual node data using Jinja2."""
         try:
             env_config = getattr(context.resources, POLICY_CONFIG_KEY, None)
-            env_variables = env_config.variables if env_config else {}
+            env_variables = (
+                _shared_policy_config(env_config).variables if env_config else {}
+            )
         except Exception:
             env_variables = {}
 
@@ -533,7 +560,9 @@ class DagsterConnection(ConnectionNode, DagsterNode):
         )
 
     def run(self, context, inputs):
-        env: VulkanPolicyConfig = getattr(context.resources, POLICY_CONFIG_KEY)
+        env: VulkanPolicyConfig = _shared_policy_config(
+            getattr(context.resources, POLICY_CONFIG_KEY)
+        )
         inputs = _resolved_inputs(inputs, self.dependencies)
 
         try:

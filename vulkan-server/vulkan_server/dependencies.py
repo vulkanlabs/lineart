@@ -267,6 +267,7 @@ def get_allocation_service(
 def get_data_source_service(
     db: Annotated[AsyncSession, Depends(get_database_session)],
     redis_cache: Annotated[redis.Redis | None, Depends(get_redis_client)],
+    config: Annotated[VulkanEngineConfig, Depends(get_vulkan_server_config)],
 ) -> DataSourceService:
     """
     Get DataSourceService for data source management.
@@ -278,7 +279,11 @@ def get_data_source_service(
     Returns:
         Configured DataSourceService instance
     """
-    return DataSourceService(db=db, redis_cache=redis_cache)
+    return DataSourceService(
+        db=db,
+        redis_cache=redis_cache,
+        data_broker_url=config.app.data_broker_url,
+    )
 
 
 def get_component_service(

@@ -14,7 +14,12 @@ logger = get_logger(__name__)
 class DagsterBackend(ExecutionBackend):
     """Dagster implementation of the execution backend."""
 
-    def __init__(self, dagster_client: DagsterGraphQLClient, app_server_url: str):
+    def __init__(
+        self,
+        dagster_client: DagsterGraphQLClient,
+        app_server_url: str,
+        data_broker_url: str | None = None,
+    ):
         """
         Initialize Dagster backend.
 
@@ -24,6 +29,7 @@ class DagsterBackend(ExecutionBackend):
         """
         self.dagster_client = dagster_client
         self.server_url = app_server_url
+        self.data_broker_url = data_broker_url
 
     def trigger_job(
         self,
@@ -59,6 +65,7 @@ class DagsterBackend(ExecutionBackend):
                         "run_id": str(run_id),
                         "project_id": str(project_id) if project_id else None,
                         "server_url": self.server_url,
+                        "data_broker_url": self.data_broker_url,
                     }
                 },
                 POLICY_CONFIG_KEY: {"config": {"variables": config_variables}},

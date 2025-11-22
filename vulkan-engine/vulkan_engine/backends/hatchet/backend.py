@@ -72,6 +72,7 @@ class HatchetBackend(ExecutionBackend):
             run_id=str(run_id),
             server_url=self._server_config.server_url,
             project_id=str(project_id) if project_id else None,
+            data_broker_url=self._server_config.data_broker_url,
         )
         policy_cfg = VulkanPolicyConfig(variables=config_variables)
 

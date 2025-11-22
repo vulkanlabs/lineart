@@ -55,13 +55,16 @@ async def run_version_sync(
 
 
 @router.post("/data-broker", response_model=schemas.DataBrokerResponse)
-def request_data_from_broker(
+async def request_data_from_broker(
     request: schemas.DataBrokerRequest,
     service: DataSourceService = Depends(get_data_source_service),
 ):
     """Request data through the data broker."""
     try:
-        return service.request_data_from_broker(request)
+        project_id = getattr(request, "project_id", None)
+        return await service.request_data_from_broker(
+            request, project_id=str(project_id) if project_id else None
+        )
     except DataSourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidDataSourceException as e:
@@ -73,14 +76,14 @@ def request_data_from_broker(
 
 
 @router.post("/runs/{run_id}/metadata")
-def publish_metadata(
+async def publish_metadata(
     run_id: UUID,
     config: schemas.StepMetadataBase,
     service: RunOrchestrationService = Depends(get_run_orchestration_service),
 ):
     """Publish metadata for a run step."""
     try:
-        return service.publish_step_metadata(run_id, config)
+        return await service.publish_step_metadata(run_id, config)
     except RunNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
     except KeyError as e:
@@ -90,7 +93,7 @@ def publish_metadata(
 
 
 @router.put("/runs/{run_id}", response_model=schemas.Run)
-def update_run(
+async def update_run(
     run_id: UUID,
     status: Annotated[str, Body()],
     result: Annotated[str, Body()],
@@ -99,7 +102,7 @@ def update_run(
 ):
     """Update run status and optionally trigger shadow runs."""
     try:
-        return service.update_run_status(run_id, status, result, metadata)
+        return await service.update_run_status(run_id, status, result, metadata)
     except RunNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:

@@ -3,13 +3,16 @@
 from __future__ import annotations
 from lineart_sdk.types import BaseModel
 from typing import Any, Dict
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 
 class DataBrokerRequestTypedDict(TypedDict):
     data_source_name: str
     configured_params: Dict[str, Any]
     run_id: str
+    project_id: NotRequired[str]
+    data_source_spec: NotRequired[Dict[str, Any]]
+    env_variables: NotRequired[Dict[str, Any]]
 
 
 class DataBrokerRequest(BaseModel):
@@ -18,3 +21,9 @@ class DataBrokerRequest(BaseModel):
     configured_params: Dict[str, Any]
 
     run_id: str
+
+    project_id: str | None = None
+
+    data_source_spec: Dict[str, Any] | None = None
+
+    env_variables: Dict[str, Any] | None = None
