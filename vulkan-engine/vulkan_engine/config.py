@@ -80,6 +80,11 @@ class DatabaseConfig(BaseSettings):
         """Get PostgreSQL connection string (postgresql+asyncpg://)."""
         return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
 
+    @property
+    def sync_connection_string(self) -> str:
+        """Get synchronous PostgreSQL connection string (postgresql+psycopg2://) for migrations."""
+        return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+
 
 @dataclass
 class AppConfig:

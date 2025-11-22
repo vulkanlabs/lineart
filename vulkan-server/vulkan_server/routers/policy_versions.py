@@ -35,51 +35,51 @@ router = APIRouter(
 
 
 @router.post("/", response_model=schemas.PolicyVersion)
-def create_policy_version(
+async def create_policy_version(
     config: schemas.PolicyVersionBase,
     service: PolicyVersionService = Depends(get_policy_version_service),
 ):
     """Create a new policy version."""
     try:
-        return service.create_policy_version(config)
+        return await service.create_policy_version(config)
     except PolicyNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.get("/{policy_version_id}", response_model=schemas.PolicyVersion)
-def get_policy_version(
+async def get_policy_version(
     policy_version_id: str,
     service: PolicyVersionService = Depends(get_policy_version_service),
 ):
     """Get a policy version by ID."""
-    version = service.get_policy_version(policy_version_id)
+    version = await service.get_policy_version(policy_version_id)
     if not version:
         return Response(status_code=204)
     return version
 
 
 @router.get("/", response_model=list[schemas.PolicyVersion])
-def list_policy_versions(
+async def list_policy_versions(
     policy_id: str | None = None,
     include_archived: bool = False,
     service: PolicyVersionService = Depends(get_policy_version_service),
 ):
     """List policy versions with optional filtering."""
-    versions = service.list_policy_versions(policy_id, include_archived)
+    versions = await service.list_policy_versions(policy_id, include_archived)
     if not versions:
         return Response(status_code=204)
     return versions
 
 
 @router.put("/{policy_version_id}", response_model=schemas.PolicyVersion)
-def update_policy_version(
+async def update_policy_version(
     policy_version_id: str,
     config: schemas.PolicyVersionUpdate,
     service: PolicyVersionService = Depends(get_policy_version_service),
 ):
     """Update a policy version."""
     try:
-        return service.update_policy_version(policy_version_id, config)
+        return await service.update_policy_version(policy_version_id, config)
     except PolicyVersionNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
     except DataSourceNotFoundException as e:
@@ -91,13 +91,13 @@ def update_policy_version(
 
 
 @router.delete("/{policy_version_id}")
-def delete_policy_version(
+async def delete_policy_version(
     policy_version_id: str,
     service: PolicyVersionService = Depends(get_policy_version_service),
 ):
     """Delete (archive) a policy version."""
     try:
-        service.delete_policy_version(policy_version_id)
+        await service.delete_policy_version(policy_version_id)
         return {"policy_version_id": policy_version_id}
     except PolicyVersionNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -108,7 +108,7 @@ def delete_policy_version(
 
 
 @router.post("/{policy_version_id}/runs", response_model=schemas.RunCreated)
-def create_run_by_policy_version(
+async def create_run_by_policy_version(
     policy_version_id: str,
     input_data: Annotated[dict, Body()],
     config_variables: Annotated[dict, Body(default_factory=dict)],
@@ -116,7 +116,7 @@ def create_run_by_policy_version(
 ):
     """Create a run for a policy version."""
     try:
-        return service.create_run(policy_version_id, input_data, config_variables)
+        return await service.create_run(policy_version_id, input_data, config_variables)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -147,39 +147,39 @@ async def run_workflow(
     "/{policy_version_id}/variables",
     response_model=list[schemas.ConfigurationVariables],
 )
-def list_config_variables(
+async def list_config_variables(
     policy_version_id: str,
     service: PolicyVersionService = Depends(get_policy_version_service),
 ):
     """List configuration variables for a policy version."""
     try:
-        return service.list_configuration_variables(policy_version_id)
+        return await service.list_configuration_variables(policy_version_id)
     except PolicyVersionNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.put("/{policy_version_id}/variables")
-def set_config_variables(
+async def set_config_variables(
     policy_version_id: str,
     desired_variables: Annotated[list[schemas.ConfigurationVariablesBase], Body()],
     service: PolicyVersionService = Depends(get_policy_version_service),
 ):
     """Set configuration variables for a policy version."""
     try:
-        return service.set_configuration_variables(policy_version_id, desired_variables)
+        return await service.set_configuration_variables(policy_version_id, desired_variables)
     except PolicyVersionNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.get("/{policy_version_id}/runs", response_model=list[schemas.Run])
-def list_runs_by_policy_version(
+async def list_runs_by_policy_version(
     policy_version_id: str,
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
     service: PolicyVersionService = Depends(get_policy_version_service),
 ):
     """List runs for a policy version."""
-    runs = service.list_runs_by_policy_version(policy_version_id, start_date, end_date)
+    runs = await service.list_runs_by_policy_version(policy_version_id, start_date, end_date)
     if not runs:
         return Response(status_code=204)
     return runs
@@ -189,13 +189,13 @@ def list_runs_by_policy_version(
     "/{policy_version_id}/data-sources",
     response_model=list[schemas.DataSourceReference],
 )
-def list_data_sources_by_policy_version(
+async def list_data_sources_by_policy_version(
     policy_version_id: str,
     service: PolicyVersionService = Depends(get_policy_version_service),
 ):
     """List data sources used by a policy version."""
     try:
-        data_sources = service.list_data_sources_by_policy_version(policy_version_id)
+        data_sources = await service.list_data_sources_by_policy_version(policy_version_id)
         if not data_sources:
             return Response(status_code=204)
         return data_sources

@@ -22,13 +22,13 @@ router = APIRouter(
 
 
 @router.get("/{run_id}/data", response_model=schemas.RunData)
-def get_run_data(
+async def get_run_data(
     run_id: str,
     service: Annotated[RunQueryService, Depends(get_run_query_service)],
 ):
     """Get run data including step outputs and metadata."""
     try:
-        return service.get_run_data(run_id)
+        return await service.get_run_data(run_id)
     except RunNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -37,24 +37,24 @@ def get_run_data(
 
 
 @router.get("/{run_id}/logs", response_model=schemas.RunLogs)
-def get_run_logs(
+async def get_run_logs(
     run_id: str,
     service: Annotated[RunQueryService, Depends(get_run_query_service)],
 ):
     """Get logs for a run."""
     try:
-        return service.get_run_logs(run_id)
+        return await service.get_run_logs(run_id)
     except RunNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.get("/{run_id}", response_model=schemas.Run)
-def get_run(
+async def get_run(
     run_id: str,
     service: Annotated[RunQueryService, Depends(get_run_query_service)],
 ):
     """Get run details."""
     try:
-        return service.get_run(run_id)
+        return await service.get_run(run_id)
     except RunNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))

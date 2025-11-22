@@ -99,6 +99,7 @@ class RunOrchestrationService(BaseService):
         )
         self.db.add(run)
         await self.db.commit()
+        await self.db.refresh(run)
 
         # Trigger execution
         return await self._trigger_execution(
@@ -210,6 +211,7 @@ class RunOrchestrationService(BaseService):
         run.result = result
         run.run_metadata = metadata
         await self.db.commit()
+        await self.db.refresh(run)
 
         # Trigger shadow runs if part of a run group
         # TODO: What to do when the main run fails?
@@ -346,9 +348,11 @@ class RunOrchestrationService(BaseService):
             run.started_at = datetime.now(timezone.utc)
             run.backend_run_id = backend_run_id
             await self.db.commit()
+            await self.db.refresh(run)
         except Exception as e:
             run.status = RunStatus.FAILURE
             await self.db.commit()
+            await self.db.refresh(run)
             raise UnhandledException(f"Failed to launch run: {str(e)}")
 
         return run

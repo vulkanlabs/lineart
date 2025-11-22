@@ -20,13 +20,13 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[schemas.Component])
-def list_components(
+async def list_components(
     include_archived: bool = False,
     service: ComponentService = Depends(get_component_service),
     project_id: str | None = None,
 ):
     """List all components."""
-    components = service.list_components(
+    components = await service.list_components(
         include_archived=include_archived, project_id=project_id
     )
     if not components:
@@ -35,24 +35,24 @@ def list_components(
 
 
 @router.post("/", response_model=schemas.Component)
-def create_component(
+async def create_component(
     config: schemas.ComponentBase,
     service: ComponentService = Depends(get_component_service),
     project_id: str | None = None,
 ):
     """Create a new component."""
-    return service.create_component(config, project_id=project_id)
+    return await service.create_component(config, project_id=project_id)
 
 
 @router.get("/{component_name}", response_model=schemas.Component)
-def get_component(
+async def get_component(
     component_name: str,
     service: ComponentService = Depends(get_component_service),
     project_id: str | None = None,
 ):
     """Get a component by name."""
     try:
-        return service.get_component(
+        return await service.get_component(
             component_name=component_name, project_id=project_id
         )
     except ComponentNotFoundException:
@@ -60,7 +60,7 @@ def get_component(
 
 
 @router.put("/{component_name}", response_model=schemas.Component)
-def update_component(
+async def update_component(
     component_name: str,
     config: schemas.ComponentUpdate,
     service: ComponentService = Depends(get_component_service),
@@ -68,7 +68,7 @@ def update_component(
 ):
     """Update a component by name."""
     try:
-        return service.update_component(
+        return await service.update_component(
             component_name=component_name, config=config, project_id=project_id
         )
     except ComponentNotFoundException as e:
@@ -76,14 +76,14 @@ def update_component(
 
 
 @router.delete("/{component_name}")
-def delete_component(
+async def delete_component(
     component_name: str,
     service: ComponentService = Depends(get_component_service),
     project_id: str | None = None,
 ):
     """Delete (archive) a component."""
     try:
-        service.delete_component(component_name, project_id=project_id)
+        await service.delete_component(component_name, project_id=project_id)
         return {"component_name": component_name}
     except ComponentNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
